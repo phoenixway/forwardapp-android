@@ -1,6 +1,10 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Файл: /build.gradle.kts
+// ПОВНА ЗАМІНА
+
 plugins {
+    // Декларуємо плагіни, які можуть використовуватись у підпроєктах
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.compose.compiler) apply false
 }

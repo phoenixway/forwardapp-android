@@ -1,21 +1,30 @@
+// Файл: /app/build.gradle.kts
+// ПОВНА ЗАМІНА
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.ksp)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
     namespace = "com.romankozak.forwardappmobile"
-    compileSdk = 36 // Використовуємо вашу версію
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.romankozak.forwardappmobile"
-        minSdk = 25
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+
+        // БЛОК KSP БУЛО ВИДАЛЕНО ЗВІДСИ
     }
 
     buildTypes {
@@ -27,44 +36,46 @@ android {
             )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14" // Явно вказуємо версію, сумісну з Kotlin 2.0.0
-    }
 
-    // Оновлені та об'єднані налаштування для пакування
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/LICENSE"
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
-            pickFirsts += "META-INF/native-image/io.netty/transport-native-epoll/native-image.properties"
-            pickFirsts += "META-INF/native/libnetty-transport-native-epoll.so"
         }
     }
 }
 
+// ДОДАНО: Правильне місце для налаштувань KSP на рівні модуля
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
-    // AndroidX & Lifecycle
+    // Ваш блок залежностей залишається без змін
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore.preferences)
 
-    // Compose (використовуємо BOM для керування версіями)
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -73,23 +84,18 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    // Compose Preview & Tooling
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Navigation
     implementation(libs.androidx.navigation.compose)
 
-    // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
+    "ksp"(libs.androidx.room.compiler)
 
-    // Ktor Server & Client
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
@@ -98,7 +104,6 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
 
-    // Netty Native
     implementation(libs.netty.transport.native.epoll) {
         artifact {
             classifier = "linux-x86_64"
@@ -110,16 +115,14 @@ dependencies {
         }
     }
 
-
-    // Logging - залишаємо тільки logback, щоб уникнути конфлікту
     implementation(libs.kotlin.logging.jvm)
-    implementation(libs.logback.classic)
+    implementation(libs.slf4j.android)
 
-    // Інші бібліотеки
+    //implementation(libs.logback.classic)
+
     implementation(libs.reorderable)
     implementation(libs.google.gson)
 
-    // Тестування
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

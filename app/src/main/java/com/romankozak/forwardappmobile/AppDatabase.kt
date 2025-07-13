@@ -14,7 +14,9 @@ import androidx.room.TypeConverters
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5) // ДОДАНО: Правило для нової міграції
-    ]
+    ],
+    exportSchema = true
+
 )
 @TypeConverters(Converters::class) // ДОДАНО: Реєструємо конвертер на рівні БД
 abstract class AppDatabase : RoomDatabase() {

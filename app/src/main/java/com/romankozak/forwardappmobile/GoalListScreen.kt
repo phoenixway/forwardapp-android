@@ -1,9 +1,14 @@
 package com.romankozak.forwardappmobile
 
+import GlobalSearchDialog
+import RenameListDialog
+import WifiImportDialog
+import WifiServerDialog
 import android.app.Application
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -60,17 +65,12 @@ fun GoalListScreen(
             TopAppBar(
                 title = { Text("Backlogs") },
                 actions = {
-                    // --- ДОДАНО: Кнопка "Додати новий список" ---
                     IconButton(onClick = { viewModel.onAddNewListRequest() }) {
                         Icon(Icons.Default.Add, contentDescription = "Додати новий список")
                     }
-
-                    // Кнопка глобального пошуку
                     IconButton(onClick = { viewModel.onShowSearchDialog() }) {
                         Icon(Icons.Default.Search, contentDescription = "Глобальний пошук")
                     }
-
-                    // Меню "три крапки"
                     var menuExpanded by remember { mutableStateOf(false) }
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Меню")
@@ -87,46 +87,90 @@ fun GoalListScreen(
                     }
                 }
             )
-        },
-        // --- ВИДАЛЕНО: Плаваюча кнопка (FAB) ---
-        // floatingActionButton = { ... }
+        }
     ) { paddingValues ->
         if (hierarchy.topLevelLists.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 Text("Створіть свій перший список")
             }
         } else {
-            LazyColumn(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize()
+            ) {
+                // ВИПРАВЛЕНО: Використовуємо рекурсивну функцію для відображення
                 hierarchy.topLevelLists.forEach { list ->
-                    item(key = list.id) {
-                        GoalListRow(
-                            list = list,
-                            level = 0,
-                            hasChildren = hierarchy.childMap.containsKey(list.id),
-                            onListClick = { viewModel.onListClicked(list.id) },
-                            onToggleExpanded = { viewModel.onToggleExpanded(it) },
-                            onMenuRequested = { viewModel.onMenuRequested(it) }
-                        )
-                    }
-                    if (list.isExpanded) {
-                        val children = hierarchy.childMap[list.id] ?: emptyList()
-                        items(children, key = { "child-${it.id}" }) { child ->
-                            GoalListRow(
-                                list = child,
-                                level = 1,
-                                hasChildren = hierarchy.childMap.containsKey(child.id),
-                                onListClick = { viewModel.onListClicked(child.id) },
-                                onToggleExpanded = { viewModel.onToggleExpanded(it) },
-                                onMenuRequested = { viewModel.onMenuRequested(it) }
-                            )
-                        }
-                    }
+                    renderListRecursively(
+                        list = list,
+                        level = 0,
+                        hierarchy = hierarchy,
+                        onListClick = { viewModel.onListClicked(it) },
+                        onToggleExpanded = { viewModel.onToggleExpanded(it) },
+                        onMenuRequested = { viewModel.onMenuRequested(it) }
+                    )
                 }
             }
         }
     }
 
-    // --- Обробка всіх діалогових вікон ---
+    // Обробка всіх діалогових вікон (без змін)
+    HandleDialogs(
+        dialogState = dialogState,
+        hierarchy = hierarchy,
+        viewModel = viewModel,
+        showWifiServerDialog = showWifiServerDialog,
+        wifiServerAddress = wifiServerAddress,
+        showWifiImportDialog = showWifiImportDialog,
+        showSearchDialog = showSearchDialog
+    )
+}
+
+// ВИПРАВЛЕНО: Функція для рекурсивного відображення списків
+private fun LazyListScope.renderListRecursively(
+    list: GoalList,
+    level: Int,
+    hierarchy: ListHierarchy,
+    onListClick: (String) -> Unit,
+    onToggleExpanded: (GoalList) -> Unit,
+    onMenuRequested: (GoalList) -> Unit
+) {
+    item(key = list.id) {
+        GoalListRow(
+            list = list,
+            level = level,
+            hasChildren = hierarchy.childMap.containsKey(list.id),
+            onListClick = onListClick,
+            onToggleExpanded = onToggleExpanded,
+            onMenuRequested = onMenuRequested
+        )
+    }
+    if (list.isExpanded) {
+        val children = hierarchy.childMap[list.id] ?: emptyList()
+        children.forEach { child ->
+            renderListRecursively(
+                list = child,
+                level = level + 1,
+                hierarchy = hierarchy,
+                onListClick = onListClick,
+                onToggleExpanded = onToggleExpanded,
+                onMenuRequested = onMenuRequested
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun HandleDialogs(
+    dialogState: DialogState,
+    hierarchy: ListHierarchy,
+    viewModel: GoalListViewModel,
+    showWifiServerDialog: Boolean,
+    wifiServerAddress: String?,
+    showWifiImportDialog: Boolean,
+    showSearchDialog: Boolean
+) {
     when (val state = dialogState) {
         is DialogState.Hidden -> {}
         is DialogState.AddList -> {
@@ -188,142 +232,5 @@ fun GoalListScreen(
             onDismiss = { viewModel.onDismissSearchDialog() },
             onConfirm = { query -> viewModel.onPerformGlobalSearch(query) }
         )
-    }
-}
-
-@Composable
-fun WifiServerDialog(address: String?, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Wi-Fi Сервер") },
-        text = {
-            if (address != null) {
-                ServerInfo(address = address)
-            } else {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Закрити")
-            }
-        }
-    )
-}
-
-@Composable
-fun WifiImportDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    val viewModel: GoalListViewModel = viewModel()
-    val desktopAddress by viewModel.desktopAddress.collectAsState()
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Імпорт з Wi-Fi", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(16.dp))
-                Text("Введіть IP-адресу та порт десктоп-додатку:")
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = desktopAddress,
-                    onValueChange = { viewModel.onDesktopAddressChange(it) },
-                    placeholder = { Text("Напр. 192.168.1.5:8080") },
-                    singleLine = true
-                )
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Скасувати")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = { onConfirm(desktopAddress) },
-                        enabled = desktopAddress.isNotBlank()
-                    ) {
-                        Text("Отримати дані")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun RenameListDialog(
-    currentName: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var text by remember { mutableStateOf(currentName) }
-    val focusRequester = remember { FocusRequester() }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Перейменувати список") },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Нова назва") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(text) },
-                enabled = text.isNotBlank() && text != currentName
-            ) {
-                Text("Зберегти")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Скасувати")
-            }
-        }
-    )
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-}
-
-@Composable
-fun GlobalSearchDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    val focusRequester = remember { FocusRequester() }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Глобальний пошук") },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Що шукати?") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(text) },
-                enabled = text.isNotBlank()
-            ) { Text("Знайти") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
-    )
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
     }
 }

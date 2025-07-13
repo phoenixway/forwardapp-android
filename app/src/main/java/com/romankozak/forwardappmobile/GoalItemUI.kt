@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -93,10 +95,9 @@ fun GoalItem(
     onItemClick: () -> Unit,
     onTagClick: (String) -> Unit,
     backgroundColor: Color,
-    modifier: Modifier = Modifier // <-- ДОДАНО: Цей рядок виправляє все
+    modifier: Modifier = Modifier
 ) {
     Column(
-        // ВИКОРИСТОВУЄМО ПЕРЕДАНИЙ МОДИФІКАТОР ТУТ
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onItemClick)
@@ -106,6 +107,8 @@ fun GoalItem(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Ручку перетягування ВИДАЛЕНО ЗВІДСИ
+
             CustomCheckbox(
                 checked = goal.completed,
                 onCheckedChange = { onToggle() }
@@ -131,6 +134,16 @@ fun GoalItem(
                     )
                 }
             }
+
+            // Ручку перетягування ДОДАНО СЮДИ
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.DragHandle,
+                contentDescription = "Перетягнути",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(24.dp)
+            )
         }
         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     }

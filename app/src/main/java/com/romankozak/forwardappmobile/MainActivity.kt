@@ -3,8 +3,9 @@ package com.romankozak.forwardappmobile
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge // <-- ДОДАЙТЕ ЦЕЙ ІМПОРТ
 import androidx.activity.viewModels
-import androidx.compose.foundation.ExperimentalFoundationApi // <-- ДОДАЙТЕ ЦЕЙ ІМПОРТ
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -20,7 +21,10 @@ class MainActivity : ComponentActivity() {
     private val db by lazy { AppDatabase.getDatabase(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // <-- ДОДАЙТЕ ЦЕЙ РЯДОК ПЕРЕД super.onCreate(savedInstanceState) АБО ПІСЛЯ
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
         setContent {
             ForwardAppMobileTheme {
                 AppNavigation(
@@ -32,7 +36,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ДОДАЙТЕ АНОТАЦІЮ ТУТ
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppNavigation(

@@ -10,7 +10,7 @@ import java.util.UUID
 
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
-    data class ResetSwipeState(val instanceId: String) : UiEvent()
+    //data class ResetSwipeState(val instanceId: String) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
 }
 
@@ -248,9 +248,9 @@ class GoalDetailViewModel(
 
     fun onEditGoal(goalWithInstance: GoalWithInstanceInfo) {
         _goalToEdit.value = goalWithInstance.goal
-        viewModelScope.launch {
-            _uiEventChannel.send(UiEvent.ResetSwipeState(goalWithInstance.instanceId))
-        }
+       // viewModelScope.launch {
+       //     _uiEventChannel.send(UiEvent.ResetSwipeState(goalWithInstance.instanceId))
+       // }
     }
 
     fun onDismissEditGoalDialog() {
@@ -262,9 +262,9 @@ class GoalDetailViewModel(
 
     fun onGoalActionInitiated(goalWithInstance: GoalWithInstanceInfo) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(goalWithInstance)
-        viewModelScope.launch {
-            _uiEventChannel.send(UiEvent.ResetSwipeState(goalWithInstance.instanceId))
-        }
+        //viewModelScope.launch {
+        //    _uiEventChannel.send(UiEvent.ResetSwipeState(goalWithInstance.instanceId))
+        // }
     }
 
     fun onActionSelected(actionType: GoalActionType) {
