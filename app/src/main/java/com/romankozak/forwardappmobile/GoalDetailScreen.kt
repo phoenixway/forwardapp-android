@@ -221,10 +221,12 @@ fun SwipeableGoalItem(
 ) {
     val density = LocalDensity.current
 
-    val anchors = remember {
-        val revealPx = with(density) { -180.dp.toPx() }
-        // ЗМІНА: Довжина свайпу для видалення значно збільшена
-        val deletePx = with(density) { 120.dp.toPx() }
+    // Визначаємо позиції якорів
+    val revealPx = with(density) { -180.dp.toPx() }
+    val deletePx = with(density) { 120.dp.toPx() }
+
+    // ЗМІНА: Створюємо повний набір якорів, який будемо використовувати як базовий
+    val fullAnchors = remember {
         DraggableAnchors {
             SwipeAction.Hidden at 0f
             SwipeAction.Revealed at revealPx
@@ -237,12 +239,38 @@ fun SwipeableGoalItem(
     val state = remember(key1 = resetKey) {
         AnchoredDraggableState(
             initialValue = SwipeAction.Hidden,
-            anchors = anchors,
+            anchors = fullAnchors, // Починаємо з повним набором
             positionalThreshold = { totalDistance -> totalDistance * 0.6f },
             velocityThreshold = { with(density) { 100.dp.toPx() } },
             animationSpec = tween(durationMillis = 300)
         )
     }
+
+    // ЗМІНА: Ключова логіка для блокування протилежного свайпу.
+    // Цей ефект спрацьовує щоразу, коли елемент фіксується на новому якорі.
+    LaunchedEffect(state.currentValue) {
+        val newAnchors = when (state.currentValue) {
+            // Якщо елемент зсунутий вліво (показані дії),
+            // залишаємо тільки якорі "Сховано" та "Показано".
+            // Якір "Видалити" тимчасово прибирається.
+            SwipeAction.Revealed -> DraggableAnchors {
+                SwipeAction.Hidden at 0f
+                SwipeAction.Revealed at revealPx
+            }
+            // Якщо елемент зсунутий вправо (показано видалення),
+            // залишаємо тільки якорі "Сховано" та "Видалити".
+            // Якір "Показано" тимчасово прибирається.
+            SwipeAction.Delete -> DraggableAnchors {
+                SwipeAction.Hidden at 0f
+                SwipeAction.Delete at deletePx
+            }
+            // Якщо елемент в центрі, повертаємо повний набір якорів.
+            SwipeAction.Hidden -> fullAnchors
+        }
+        // Оновлюємо якорі в стані компонента.
+        state.updateAnchors(newAnchors)
+    }
+
 
     LaunchedEffect(state.targetValue) {
         if (state.targetValue == SwipeAction.Delete) {
@@ -267,7 +295,6 @@ fun SwipeableGoalItem(
                 IconButton(onClick = onEdit, modifier = Modifier.fillMaxHeight().width(90.dp).background(Color.Gray)) { Icon(Icons.Default.Edit, "Редагувати", tint = Color.White) }
             }
             Box(
-                // ЗМІНА: Ширина області видалення також збільшена
                 modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(120.dp).background(MaterialTheme.colorScheme.error),
                 contentAlignment = Alignment.Center
             ) {
