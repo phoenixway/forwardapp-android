@@ -104,16 +104,12 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
 
-    implementation(libs.netty.transport.native.epoll) {
-        artifact {
-            classifier = "linux-x86_64"
-        }
-    }
-    implementation(libs.netty.transport.native.epoll) {
-        artifact {
-            classifier = "linux-aarch_64"
-        }
-    }
+   // implementation(libs.netty.transport.native.epoll) {
+     //   artifact {
+       //     classifier = "linux-x86_64"
+        //}
+        // }
+    //implementation(libs.netty.transport.native.epoll) {        artifact {            classifier = "linux-aarch_64"        }    }
 
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.slf4j.android)
@@ -122,6 +118,10 @@ dependencies {
 
     implementation(libs.reorderable)
     implementation(libs.google.gson)
+
+    implementation("io.ktor:ktor-server-cio-jvm:2.3.11")
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:2.3.11")
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

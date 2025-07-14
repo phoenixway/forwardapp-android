@@ -23,6 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.romankozak.forwardappmobile.ServerInfo // <-- ДОДАТИ ЦЕЙ РЯДОК
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,55 +150,3 @@ fun SyncChangeItem(change: SyncChange, isChecked: Boolean, onToggle: () -> Unit)
     }
 }
 
-@Composable
-fun ServerInfo(address: String) {
-    val clipboardManager = LocalClipboardManager.current
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Wifi,
-            contentDescription = "Wi-Fi Icon",
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            "Сервер запущено",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Введіть цю адресу на десктоп-додатку:",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = address,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = {
-                clipboardManager.setText(AnnotatedString(address))
-            }) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Копіювати адресу"
-                )
-            }
-        }
-    }
-}

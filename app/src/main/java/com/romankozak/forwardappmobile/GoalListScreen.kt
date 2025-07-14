@@ -1,9 +1,6 @@
 package com.romankozak.forwardappmobile
 
-import GlobalSearchDialog
-import RenameListDialog
-import WifiImportDialog
-import WifiServerDialog
+
 import android.app.Application
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -224,7 +221,14 @@ private fun HandleDialogs(
     }
 
     if (showWifiImportDialog) {
-        WifiImportDialog(onDismiss = { viewModel.onDismissWifiImportDialog() }, onConfirm = { address -> viewModel.performWifiImport(address) })
+        // ЗМІНА: Тепер ми передаємо стан і колбек з основного ViewModel
+        val desktopAddress by viewModel.desktopAddress.collectAsState()
+        WifiImportDialog(
+            desktopAddress = desktopAddress,
+            onAddressChange = { viewModel.onDesktopAddressChange(it) },
+            onDismiss = { viewModel.onDismissWifiImportDialog() },
+            onConfirm = { address -> viewModel.performWifiImport(address) }
+        )
     }
 
     if (showSearchDialog) {

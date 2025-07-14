@@ -1,24 +1,26 @@
 package com.romankozak.forwardappmobile
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
-// Події для навігації та показу повідомлень
+// ... (sealed classes без змін) ...
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
     data class NavigateToDetails(val listId: String) : GoalListUiEvent()
-    data class NavigateToGlobalSearch(val query: String) : GoalListUiEvent() // <-- ДОДАНО
+    data class NavigateToGlobalSearch(val query: String) : GoalListUiEvent()
     data class ShowToast(val message: String) : GoalListUiEvent()
 }
 
-// Стани для діалогових вікон
 sealed class DialogState {
     object Hidden : DialogState()
     data class AddList(val parentId: String?) : DialogState()
@@ -28,6 +30,7 @@ sealed class DialogState {
     data class RenameList(val list: GoalList) : DialogState()
 }
 
+
 class GoalListViewModel(
     application: Application,
     private val goalListDao: GoalListDao,
@@ -35,8 +38,8 @@ class GoalListViewModel(
     private val settingsRepo: SettingsRepository
 ) : AndroidViewModel(application) {
 
-    // --- СТАН ЕКРАНУ ---
-
+    private val TAG = "WIFI_DEBUG"
+    // ... (решта полів без змін) ...
     private val _allListsFlat = goalListDao.getAllLists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -48,8 +51,6 @@ class GoalListViewModel(
 
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
-
-    // --- СТАН ДЛЯ СИНХРОНІЗАЦІЇ ---
 
     private val _showWifiServerDialog = MutableStateFlow(false)
     val showWifiServerDialog: StateFlow<Boolean> = _showWifiServerDialog.asStateFlow()
@@ -75,8 +76,49 @@ class GoalListViewModel(
         }
     }
 
-    // --- КЕРУВАННЯ СПИСКАМИ ---
+    fun onShowWifiServerDialog() {
+        Log.d(TAG, "Step 1: onShowWifiServerDialog called.")
+        _wifiServerAddress.value = null
+        _showWifiServerDialog.value = true
+        Log.d(TAG, "Step 2: Calling startWifiServer().")
+        startWifiServer()
+    }
 
+    // ЗМІНА: Повністю новий, надійний патерн запуску
+    private fun startWifiServer() {
+        viewModelScope.launch {
+            Log.d(TAG, "Step 3: Launching coroutine, switching to IO dispatcher.")
+            // Переключаємось на фоновий потік
+            val result = withContext(Dispatchers.IO) {
+                // Викликаємо звичайну, не-suspend функцію
+                Log.d(TAG, "Step 4: On IO thread, calling wifiSyncServer.start().")
+                wifiSyncServer.start()
+            }
+            // Повертаємось на головний потік. Результат вже є.
+            Log.d(TAG, "Step 5: Back on Main thread. Result isSuccess: ${result.isSuccess}")
+
+            result.onSuccess { address ->
+                Log.d(TAG, "Step 6 (SUCCESS): Address: $address. Updating UI.")
+                _wifiServerAddress.value = address
+            }
+                .onFailure { exception ->
+                    Log.e(TAG, "Step 6 (FAILURE): Updating UI.", exception)
+                    _wifiServerAddress.value = "Помилка: ${exception.message}"
+                }
+        }
+    }
+
+    // ... (решта коду без змін) ...
+    private fun stopWifiServer() {
+        viewModelScope.launch(Dispatchers.IO) {
+            wifiSyncServer.stop()
+            withContext(Dispatchers.Main) {
+                _wifiServerAddress.value = null
+            }
+        }
+    }
+
+    // ... (решта методів ViewModel без змін)
     fun onToggleExpanded(list: GoalList) {
         viewModelScope.launch {
             goalListDao.update(list.copy(isExpanded = !list.isExpanded))
@@ -100,13 +142,11 @@ class GoalListViewModel(
 
     fun onDeleteListConfirmed(list: GoalList) {
         viewModelScope.launch {
-            // Рекурсивно видаляємо всі дочірні списки
             val listsToDelete = findChildrenRecursive(list.id, listHierarchy.value.childMap)
             listsToDelete.forEach {
                 goalDao.deleteInstancesForLists(listOf(it.id))
                 goalListDao.delete(it)
             }
-            // Видаляємо сам список
             goalDao.deleteInstancesForLists(listOf(list.id))
             goalListDao.delete(list)
             dismissDialog()
@@ -124,8 +164,6 @@ class GoalListViewModel(
             dismissDialog()
         }
     }
-
-    // --- КЕРУВАННЯ ДІАЛОГАМИ ---
 
     fun onAddNewListRequest() {
         _dialogState.value = DialogState.AddList(null)
@@ -151,26 +189,17 @@ class GoalListViewModel(
         _dialogState.value = DialogState.Hidden
     }
 
-    // --- НАВІГАЦІЯ ---
-
     fun onListClicked(listId: String) {
         viewModelScope.launch {
             _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId))
         }
     }
 
-    // --- СИНХРОНІЗАЦІЯ ---
-
     fun onDesktopAddressChange(newAddress: String) {
         _desktopAddress.value = newAddress
         viewModelScope.launch {
             settingsRepo.saveDesktopAddress(newAddress)
         }
-    }
-
-    fun onShowWifiServerDialog() {
-        _showWifiServerDialog.value = true
-        startWifiServer()
     }
 
     fun onDismissWifiServerDialog() {
@@ -190,7 +219,6 @@ class GoalListViewModel(
         _dialogState.value = DialogState.RenameList(list)
     }
 
-    // --- ДОДАНО: Метод для підтвердження перейменування ---
     fun onRenameListConfirmed(listToRename: GoalList, newName: String) {
         if (newName.isBlank()) {
             dismissDialog()
@@ -205,9 +233,6 @@ class GoalListViewModel(
     private val _showSearchDialog = MutableStateFlow(false)
     val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
 
-    // ... (решта коду)
-
-    // --- ДОДАНО: Методи для керування пошуком ---
     fun onShowSearchDialog() {
         _showSearchDialog.value = true
     }
@@ -225,14 +250,10 @@ class GoalListViewModel(
         }
     }
 
-
-    // --- ОСНОВНА ЗМІНА ТУТ ---
     fun performWifiImport(address: String) {
         viewModelScope.launch {
             val result = syncRepo.fetchBackupFromWifi(address)
             result.onSuccess { jsonString ->
-                // НЕ записуємо в SyncDataViewModel напряму
-                // А відправляємо подію з даними на екран
                 _uiEventChannel.send(GoalListUiEvent.NavigateToSyncScreenWithData(jsonString))
                 onDismissWifiImportDialog()
             }.onFailure {
@@ -240,21 +261,9 @@ class GoalListViewModel(
             }
         }
     }
-
-
-    private fun startWifiServer() {
-        viewModelScope.launch {
-            _wifiServerAddress.value = wifiSyncServer.start()
-        }
-    }
-
-    private fun stopWifiServer() {
-        wifiSyncServer.stop()
-        _wifiServerAddress.value = null
-    }
 }
 
-// Фабрика залишається такою ж, але тепер вона буде єдиним джерелом створення ViewModel
+
 class GoalListViewModelFactory(
     private val application: Application,
     private val goalListDao: GoalListDao,

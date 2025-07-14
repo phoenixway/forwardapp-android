@@ -1,3 +1,5 @@
+package com.romankozak.forwardappmobile
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,19 +15,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.romankozak.forwardappmobile.GoalListViewModel
 
 @Composable
-fun WifiImportDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    val viewModel: GoalListViewModel = viewModel()
-    val desktopAddress by viewModel.desktopAddress.collectAsState()
-
+fun WifiImportDialog(
+    // ЗМІНА: Отримуємо поточне значення адреси ззовні
+    desktopAddress: String,
+    // ЗМІНА: Отримуємо колбек для повідомлення про зміну адреси
+    onAddressChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -34,8 +36,9 @@ fun WifiImportDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 Text("Введіть IP-адресу та порт десктоп-додатку:")
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
+                    // ЗМІНА: Використовуємо передані значення
                     value = desktopAddress,
-                    onValueChange = { viewModel.onDesktopAddressChange(it) },
+                    onValueChange = onAddressChange,
                     placeholder = { Text("Напр. 192.168.1.5:8080") },
                     singleLine = true
                 )
