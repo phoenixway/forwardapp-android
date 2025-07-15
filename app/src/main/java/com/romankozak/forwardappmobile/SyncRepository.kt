@@ -111,7 +111,8 @@ class SyncRepository(
                     id = it.id, text = it.text, completed = it.completed,
                     createdAt = dateStringToLong(it.createdAt) ?: 0L,
                     updatedAt = dateStringToLong(it.updatedAt), description = "",
-                    tags = null
+                    tags = null,
+                    associatedListIds = null // ВИПРАВЛЕНО: Додано значення null для нового поля
                 )
             }
             val importedLists = (backupFile.data.goalLists ?: emptyMap()).values.map {
@@ -136,7 +137,12 @@ class SyncRepository(
                 if (localGoal == null) {
                     changes.add(SyncChange.Add(id = importedGoal.id, entityType = "Ціль", description = importedGoal.text, entity = importedGoal))
                 } else if ((importedGoal.updatedAt ?: 0L) > (localGoal.updatedAt ?: 0L)) {
-                    changes.add(SyncChange.Update(id = importedGoal.id, entityType = "Ціль", description = importedGoal.text, oldEntity = localGoal, newEntity = importedGoal))
+                    // При оновленні ми не можемо отримати associatedListIds з десктопної версії,
+                    // тому ми зберігаємо ті, що вже є в мобільній версії.
+                    val updatedImportedGoal = importedGoal.copy(
+                        associatedListIds = localGoal.associatedListIds
+                    )
+                    changes.add(SyncChange.Update(id = updatedImportedGoal.id, entityType = "Ціль", description = updatedImportedGoal.text, oldEntity = localGoal, newEntity = updatedImportedGoal))
                 }
             }
 
@@ -145,7 +151,6 @@ class SyncRepository(
             throw IllegalStateException("Помилка розбору даних: ${e.message}", e)
         }
     }
-
     suspend fun applyChanges(approvedChanges: List<SyncChange>, jsonString: String) {
         val backupFile = Gson().fromJson(jsonString, DesktopBackupFile::class.java)
 

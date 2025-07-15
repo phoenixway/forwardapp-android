@@ -27,4 +27,7 @@ interface GoalListDao {
 
     @Query("DELETE FROM goal_lists WHERE id = :listId")
     suspend fun deleteListById(listId: String)
+
+    @Query("SELECT * FROM goal_lists WHERE id IN (:listIds)")
+    suspend fun getListsByIds(listIds: List<String>): List<GoalList>
 }

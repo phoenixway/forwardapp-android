@@ -2,7 +2,6 @@
 
 package com.romankozak.forwardappmobile
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -20,7 +19,6 @@ import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -37,7 +35,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -65,21 +62,19 @@ fun GoalDetailScreen(
     viewModel: GoalDetailViewModel,
     navController: NavController
 ) {
-    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val goals by viewModel.filteredGoals.collectAsState()
-    val goalToEdit by viewModel.goalToEdit.collectAsState()
     val goalActionState by viewModel.goalActionDialogState.collectAsState()
     val showInputModeDialog by viewModel.showInputModeDialog.collectAsState()
+    val associatedListsMap by viewModel.associatedListsMap.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    var resetTriggers by remember { mutableStateOf(mapOf<String, Int>()) }
 
     val reorderableState = rememberReorderableLazyListState(
         onMove = { from, to -> viewModel.moveGoal(from.index, to.index) }
     )
-
-    // ВИДАЛЕНО: `resetTriggers` більше не потрібні
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -96,7 +91,10 @@ fun GoalDetailScreen(
                         }
                     }
                 }
-                // ВИДАЛЕНО: Обробник ResetSwipeState
+                is UiEvent.ResetSwipeState -> {
+                    val currentTrigger = resetTriggers[event.instanceId] ?: 0
+                    resetTriggers = resetTriggers + (event.instanceId to currentTrigger + 1)
+                }
                 is UiEvent.Navigate -> {
                     navController.navigate(event.route)
                 }
@@ -158,14 +156,21 @@ fun GoalDetailScreen(
                         val isHighlighted by remember(uiState.goalToHighlight) {
                             derivedStateOf { uiState.goalToHighlight == goalWithInstance.goal.id }
                         }
-                        SwipeableGoalItem( // ВИДАЛЕНО: Передача trigger/states
+                        val trigger = resetTriggers[goalWithInstance.instanceId] ?: 0
+                        val associatedLists = associatedListsMap[goalWithInstance.goal.id] ?: emptyList()
+
+                        SwipeableGoalItem(
+                            resetTrigger = trigger,
                             goalWithInstance = goalWithInstance,
                             isHighlighted = isHighlighted,
+                            associatedLists = associatedLists,
                             onEdit = { viewModel.onEditGoal(goalWithInstance) },
                             onDelete = { viewModel.deleteGoal(goalWithInstance) },
                             onMore = { viewModel.onGoalActionInitiated(goalWithInstance) },
                             onToggle = { viewModel.toggleGoalCompleted(goalWithInstance.goal) },
-                            onTagClick = { tag -> viewModel.onTagClicked(tag) }
+                            onTagClick = { tag -> viewModel.onTagClicked(tag) },
+                            onAssociatedListClick = { listId -> viewModel.onAssociatedListClicked(listId) },
+                            onResetSwipe = { viewModel.resetSwipe(goalWithInstance.instanceId) }
                         )
                     }
                 }
@@ -173,14 +178,7 @@ fun GoalDetailScreen(
         }
     }
 
-    if (goalToEdit != null) {
-        EditGoalDialog(
-            goal = goalToEdit!!,
-            onDismiss = { viewModel.onDismissEditGoalDialog() },
-            onConfirm = { newText -> viewModel.updateGoalText(goalToEdit!!, newText) }
-        )
-    }
-
+    // Діалоги, що використовуються на цьому екрані
     if (showInputModeDialog) {
         InputModeDialog(
             onDismiss = { viewModel.onDismissInputModeDialog() },
@@ -211,21 +209,23 @@ fun GoalDetailScreen(
 
 @Composable
 fun SwipeableGoalItem(
+    resetTrigger: Int,
     goalWithInstance: GoalWithInstanceInfo,
     isHighlighted: Boolean,
+    associatedLists: List<GoalList>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMore: () -> Unit,
     onToggle: () -> Unit,
-    onTagClick: (String) -> Unit
+    onTagClick: (String) -> Unit,
+    onAssociatedListClick: (String) -> Unit,
+    onResetSwipe: () -> Unit
 ) {
     val density = LocalDensity.current
 
-    // Визначаємо позиції якорів
     val revealPx = with(density) { -180.dp.toPx() }
     val deletePx = with(density) { 120.dp.toPx() }
 
-    // ЗМІНА: Створюємо повний набір якорів, який будемо використовувати як базовий
     val fullAnchors = remember {
         DraggableAnchors {
             SwipeAction.Hidden at 0f
@@ -234,43 +234,30 @@ fun SwipeableGoalItem(
         }
     }
 
-    var resetKey by remember { mutableStateOf(0) }
-
-    val state = remember(key1 = resetKey) {
+    val state = remember(key1 = resetTrigger) {
         AnchoredDraggableState(
             initialValue = SwipeAction.Hidden,
-            anchors = fullAnchors, // Починаємо з повним набором
+            anchors = fullAnchors,
             positionalThreshold = { totalDistance -> totalDistance * 0.6f },
             velocityThreshold = { with(density) { 100.dp.toPx() } },
             animationSpec = tween(durationMillis = 300)
         )
     }
 
-    // ЗМІНА: Ключова логіка для блокування протилежного свайпу.
-    // Цей ефект спрацьовує щоразу, коли елемент фіксується на новому якорі.
     LaunchedEffect(state.currentValue) {
         val newAnchors = when (state.currentValue) {
-            // Якщо елемент зсунутий вліво (показані дії),
-            // залишаємо тільки якорі "Сховано" та "Показано".
-            // Якір "Видалити" тимчасово прибирається.
             SwipeAction.Revealed -> DraggableAnchors {
                 SwipeAction.Hidden at 0f
                 SwipeAction.Revealed at revealPx
             }
-            // Якщо елемент зсунутий вправо (показано видалення),
-            // залишаємо тільки якорі "Сховано" та "Видалити".
-            // Якір "Показано" тимчасово прибирається.
             SwipeAction.Delete -> DraggableAnchors {
                 SwipeAction.Hidden at 0f
                 SwipeAction.Delete at deletePx
             }
-            // Якщо елемент в центрі, повертаємо повний набір якорів.
             SwipeAction.Hidden -> fullAnchors
         }
-        // Оновлюємо якорі в стані компонента.
         state.updateAnchors(newAnchors)
     }
-
 
     LaunchedEffect(state.targetValue) {
         if (state.targetValue == SwipeAction.Delete) {
@@ -308,7 +295,7 @@ fun SwipeableGoalItem(
             color = itemBackgroundColor,
             onClick = {
                 if (state.currentValue != SwipeAction.Hidden) {
-                    resetKey++
+                    onResetSwipe()
                 } else {
                     onMore()
                 }
@@ -316,15 +303,17 @@ fun SwipeableGoalItem(
         ) {
             GoalItem(
                 goal = goalWithInstance.goal,
+                associatedLists = associatedLists,
                 onToggle = onToggle,
                 onItemClick = {
                     if (state.currentValue != SwipeAction.Hidden) {
-                        resetKey++
+                        onResetSwipe()
                     } else {
                         onMore()
                     }
                 },
                 onTagClick = onTagClick,
+                onAssociatedListClick = onAssociatedListClick,
                 backgroundColor = Color.Transparent,
                 modifier = Modifier
             )
@@ -332,6 +321,7 @@ fun SwipeableGoalItem(
     }
 }
 
+// Решта файлу залишається без змін (GoalInputBar, Dialogs)
 @Composable
 fun GoalInputBar(
     inputMode: InputMode,
@@ -351,8 +341,9 @@ fun GoalInputBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
-            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp, top = 8.dp)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+
     ) {
         Surface(
             shape = RoundedCornerShape(28.dp),
@@ -428,8 +419,6 @@ fun GoalInputBar(
         }
     }
 }
-
-// Решта файлу (GoalActionChoiceDialog, ListChooserDialog, InputModeDialog) залишається без змін.
 
 @Composable
 fun GoalActionChoiceDialog(onDismiss: () -> Unit, onActionSelected: (GoalActionType) -> Unit) {

@@ -33,39 +33,31 @@ fun ParsedGoalText(
     text: String,
     modifier: Modifier = Modifier,
     isCompleted: Boolean,
-    onTagClick: (String) -> Unit // --- ДОДАНО: Callback для кліку на тег/проект
+    onTagClick: (String) -> Unit
 ) {
     val tagColor = MaterialTheme.colorScheme.primary
     val projectColor = MaterialTheme.colorScheme.tertiary
-    // --- ЗМІНЕНО: Regex тепер шукає #tags та @projects ---
     val regex = Regex("([#@])(\\p{L}[\\p{L}0-9_]*)")
 
     val annotatedString = buildAnnotatedString {
         var lastIndex = 0
         for (match in regex.findAll(text)) {
-            // Додаємо звичайний текст перед знайденим тегом
             append(text.substring(lastIndex, match.range.first))
-
             val symbol = match.groups[1]!!.value
             val word = match.groups[2]!!.value
             val fullTag = "$symbol$word"
-
-            // --- ЗМІНЕНО: Використовуємо один annotation tag для спрощення ---
             pushStringAnnotation("SEARCH_TERM", fullTag)
-
             val style = when (symbol) {
                 "#" -> SpanStyle(color = tagColor, fontWeight = FontWeight.SemiBold)
                 "@" -> SpanStyle(color = projectColor, fontWeight = FontWeight.Medium)
                 else -> SpanStyle()
             }
-
             withStyle(style = style) {
                 append(fullTag)
             }
             pop()
             lastIndex = match.range.last + 1
         }
-        // Додаємо решту тексту, якщо він є
         if (lastIndex < text.length) {
             append(text.substring(lastIndex))
         }
@@ -79,7 +71,6 @@ fun ParsedGoalText(
         ),
         modifier = modifier,
         onClick = { offset ->
-            // --- ЗМІНЕНО: Обробляємо клік та викликаємо callback ---
             annotatedString.getStringAnnotations(tag = "SEARCH_TERM", start = offset, end = offset)
                 .firstOrNull()?.let { annotation ->
                     onTagClick(annotation.item)
@@ -88,12 +79,36 @@ fun ParsedGoalText(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun AssociatedListsRow(
+    lists: List<GoalList>,
+    onListClick: (String) -> Unit
+) {
+    if (lists.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(8.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            lists.forEach { list ->
+                AssistChip(
+                    onClick = { onListClick(list.id) },
+                    label = { Text(list.name) }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun GoalItem(
     goal: Goal,
+    associatedLists: List<GoalList>,
     onToggle: () -> Unit,
     onItemClick: () -> Unit,
     onTagClick: (String) -> Unit,
+    onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
     modifier: Modifier = Modifier
 ) {
@@ -107,8 +122,6 @@ fun GoalItem(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ручку перетягування ВИДАЛЕНО ЗВІДСИ
-
             CustomCheckbox(
                 checked = goal.completed,
                 onCheckedChange = { onToggle() }
@@ -116,33 +129,30 @@ fun GoalItem(
             Spacer(modifier = Modifier.width(8.dp))
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 ParsedGoalText(
                     text = goal.text,
                     isCompleted = goal.completed,
                     onTagClick = onTagClick
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = formatDate(goal.createdAt),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = formatDate(goal.createdAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                // --- ВІДОБРАЖЕННЯ ПОВ'ЯЗАНИХ СПИСКІВ ---
+                AssociatedListsRow(
+                    lists = associatedLists,
+                    onListClick = onAssociatedListClick
+                )
             }
-
-            // Ручку перетягування ДОДАНО СЮДИ
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Default.DragHandle,
                 contentDescription = "Перетягнути",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .size(24.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))

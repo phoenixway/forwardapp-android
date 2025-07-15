@@ -69,12 +69,37 @@ fun AppNavigation(
             val listId = backStackEntry.arguments?.getString("listId")
             if (listId != null) {
                 val goalIdToHighlight = backStackEntry.arguments?.getString("goalId")
-                val detailViewModelFactory = GoalDetailViewModelFactory(db.goalDao(), listId, goalIdToHighlight)
+                // --- ОНОВЛЕНО ФАБРИКУ ---
+                val detailViewModelFactory = GoalDetailViewModelFactory(db.goalDao(), db.goalListDao(), listId, goalIdToHighlight)
                 val detailViewModel: GoalDetailViewModel = viewModel(factory = detailViewModelFactory)
 
                 GoalDetailScreen(
                     viewModel = detailViewModel,
                     navController = navController
+                )
+            }
+        }
+
+        composable(
+            route = "goal_edit_screen?listId={listId}&goalId={goalId}&text={text}",
+            arguments = listOf(
+                navArgument("listId") { type = NavType.StringType },
+                navArgument("goalId") {
+                    nullable = true
+                    type = NavType.StringType
+                },
+                navArgument("text") {
+                    nullable = true
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val listId = backStackEntry.arguments?.getString("listId")
+            if (listId != null) {
+                GoalEditScreen(
+                    navController = navController,
+                    db = db,
+                    savedStateHandle = backStackEntry.savedStateHandle
                 )
             }
         }

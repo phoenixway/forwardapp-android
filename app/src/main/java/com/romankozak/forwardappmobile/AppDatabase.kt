@@ -10,15 +10,16 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [Goal::class, GoalList::class, GoalInstance::class],
-    version = 5, // ЗБІЛЬШЕНО: Версію оновлено до 5
+    version = 6, // ЗБІЛЬШЕНО: Версію оновлено до 6
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
-        AutoMigration(from = 4, to = 5) // ДОДАНО: Правило для нової міграції
+        AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6) // ДОДАНО: Правило для нової міграції
     ],
     exportSchema = true
 
 )
-@TypeConverters(Converters::class) // ДОДАНО: Реєструємо конвертер на рівні БД
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     // ... решта коду без змін
     abstract fun goalListDao(): GoalListDao

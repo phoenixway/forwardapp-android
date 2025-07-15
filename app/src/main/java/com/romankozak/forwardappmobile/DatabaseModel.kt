@@ -37,7 +37,7 @@ class Converters {
 // --- ОСНОВНІ КЛАСИ ДЛЯ БАЗИ ДАНИХ ---
 
 @Entity(tableName = "goals")
-@TypeConverters(Converters::class) // ДОДАНО: Застосовуємо конвертер до таблиці
+@TypeConverters(Converters::class) // Ця анотація вже тут і обробить List<String>
 data class Goal(
     @PrimaryKey val id: String,
     val text: String,
@@ -45,9 +45,10 @@ data class Goal(
     val completed: Boolean,
     val createdAt: Long,
     val updatedAt: Long?,
-    val tags: List<String>? // ДОДАНО: Нове поле для тегів
+    val tags: List<String>?,
+    // --- ДОДАНО: Поле для пов'язаних списків ---
+    val associatedListIds: List<String>?
 )
-
 @Entity(tableName = "goal_lists")
 data class GoalList(
     @PrimaryKey val id: String,
