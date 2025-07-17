@@ -1,5 +1,14 @@
 // Файл: /app/build.gradle.kts
-// ПОВНА ЗАМІНА
+
+val majorVersion = 2
+val minorVersion = 1
+val patchVersion = 0
+val buildNumber = 30
+
+fun calculateVersionCode(): Int {
+    return majorVersion * 1_000_000 + minorVersion * 1_000 + patchVersion
+}
+
 
 plugins {
     alias(libs.plugins.android.application)
@@ -16,13 +25,15 @@ android {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = calculateVersionCode()
+        versionName = "$majorVersion.$minorVersion.$patchVersion"
+        // ------------------------------------
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
 
         // БЛОК KSP БУЛО ВИДАЛЕНО ЗВІДСИ
     }
