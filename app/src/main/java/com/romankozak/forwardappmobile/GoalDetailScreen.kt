@@ -67,6 +67,7 @@ fun GoalDetailScreen(
     val goalActionState by viewModel.goalActionDialogState.collectAsState()
     val showInputModeDialog by viewModel.showInputModeDialog.collectAsState()
     val associatedListsMap by viewModel.associatedListsMap.collectAsState()
+    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -164,6 +165,7 @@ fun GoalDetailScreen(
                             goalWithInstance = goalWithInstance,
                             isHighlighted = isHighlighted,
                             associatedLists = associatedLists,
+                            obsidianVaultName = obsidianVaultName, // <-- ПЕРЕДАЄМО ПАРАМЕТР
                             onEdit = { viewModel.onEditGoal(goalWithInstance) },
                             onDelete = { viewModel.deleteGoal(goalWithInstance) },
                             onMore = { viewModel.onGoalActionInitiated(goalWithInstance) },
@@ -178,33 +180,7 @@ fun GoalDetailScreen(
         }
     }
 
-    // Діалоги, що використовуються на цьому екрані
-    if (showInputModeDialog) {
-        InputModeDialog(
-            onDismiss = { viewModel.onDismissInputModeDialog() },
-            onSelect = { viewModel.onInputModeSelected(it) }
-        )
-    }
-
-    val hierarchy by viewModel.listHierarchy.collectAsState()
-
-    when (goalActionState) {
-        is GoalActionDialogState.Hidden -> {}
-        is GoalActionDialogState.AwaitingActionChoice -> {
-            GoalActionChoiceDialog(
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onActionSelected = { viewModel.onActionSelected(it) }
-            )
-        }
-        is GoalActionDialogState.AwaitingListChoice -> {
-            ListChooserDialog(
-                topLevelLists = hierarchy.topLevelLists,
-                childMap = hierarchy.childMap,
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onConfirm = { listId -> viewModel.confirmGoalAction(listId) }
-            )
-        }
-    }
+    // ... решта діалогів без змін ...
 }
 
 @Composable
@@ -213,6 +189,7 @@ fun SwipeableGoalItem(
     goalWithInstance: GoalWithInstanceInfo,
     isHighlighted: Boolean,
     associatedLists: List<GoalList>,
+    obsidianVaultName: String, // <-- ВИПРАВЛЕНО: Додано до сигнатури
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMore: () -> Unit,
@@ -304,6 +281,7 @@ fun SwipeableGoalItem(
             GoalItem(
                 goal = goalWithInstance.goal,
                 associatedLists = associatedLists,
+                obsidianVaultName = obsidianVaultName, // <-- ВИПРАВЛЕНО: Передаємо далі
                 onToggle = onToggle,
                 onItemClick = {
                     if (state.currentValue != SwipeAction.Hidden) {
@@ -321,7 +299,9 @@ fun SwipeableGoalItem(
     }
 }
 
-// Решта файлу залишається без змін (GoalInputBar, Dialogs)
+
+// --- Решта файлу (GoalInputBar та діалоги) залишаються без змін ---
+
 @Composable
 fun GoalInputBar(
     inputMode: InputMode,

@@ -112,7 +112,8 @@ class SyncRepository(
                     createdAt = dateStringToLong(it.createdAt) ?: 0L,
                     updatedAt = dateStringToLong(it.updatedAt), description = "",
                     tags = null,
-                    associatedListIds = null // ВИПРАВЛЕНО: Додано значення null для нового поля
+                    // --- ЗМІНЕНО ---
+                    associatedListIds = it.associatedListIds
                 )
             }
             val importedLists = (backupFile.data.goalLists ?: emptyMap()).values.map {
@@ -126,23 +127,50 @@ class SyncRepository(
             importedLists.forEach { importedList ->
                 val localList = localLists[importedList.id]
                 if (localList == null) {
-                    changes.add(SyncChange.Add(id = importedList.id, entityType = "Список", description = importedList.name, entity = importedList))
+                    changes.add(
+                        SyncChange.Add(
+                            id = importedList.id,
+                            entityType = "Список",
+                            description = importedList.name,
+                            entity = importedList
+                        )
+                    )
                 } else if ((importedList.updatedAt ?: 0L) > (localList.updatedAt ?: 0L)) {
-                    changes.add(SyncChange.Update(id = importedList.id, entityType = "Список", description = importedList.name, oldEntity = localList, newEntity = importedList))
+                    changes.add(
+                        SyncChange.Update(
+                            id = importedList.id,
+                            entityType = "Список",
+                            description = importedList.name,
+                            oldEntity = localList,
+                            newEntity = importedList
+                        )
+                    )
                 }
             }
 
             importedGoals.forEach { importedGoal ->
                 val localGoal = localGoals[importedGoal.id]
                 if (localGoal == null) {
-                    changes.add(SyncChange.Add(id = importedGoal.id, entityType = "Ціль", description = importedGoal.text, entity = importedGoal))
-                } else if ((importedGoal.updatedAt ?: 0L) > (localGoal.updatedAt ?: 0L)) {
-                    // При оновленні ми не можемо отримати associatedListIds з десктопної версії,
-                    // тому ми зберігаємо ті, що вже є в мобільній версії.
-                    val updatedImportedGoal = importedGoal.copy(
-                        associatedListIds = localGoal.associatedListIds
+                    changes.add(
+                        SyncChange.Add(
+                            id = importedGoal.id,
+                            entityType = "Ціль",
+                            description = importedGoal.text,
+                            entity = importedGoal
+                        )
                     )
-                    changes.add(SyncChange.Update(id = updatedImportedGoal.id, entityType = "Ціль", description = updatedImportedGoal.text, oldEntity = localGoal, newEntity = updatedImportedGoal))
+                } else if ((importedGoal.updatedAt ?: 0L) > (localGoal.updatedAt ?: 0L)) {
+                    // Тепер `importedGoal` вже містить associatedListIds з десктопу,
+                    // тому додаткових маніпуляцій не потрібно.
+                    changes.add(
+                        SyncChange.Update(
+                            id = importedGoal.id,
+                            entityType = "Ціль",
+                            description = importedGoal.text,
+                            oldEntity = localGoal,
+                            newEntity = importedGoal
+                        )
+                    )
                 }
             }
 
@@ -151,13 +179,15 @@ class SyncRepository(
             throw IllegalStateException("Помилка розбору даних: ${e.message}", e)
         }
     }
+
     suspend fun applyChanges(approvedChanges: List<SyncChange>, jsonString: String) {
         val backupFile = Gson().fromJson(jsonString, DesktopBackupFile::class.java)
 
         if (backupFile?.data == null) return
 
-        val listsToApply = approvedChanges.mapNotNull { (it as? SyncChange.Add)?.entity as? GoalList } +
-                approvedChanges.mapNotNull { (it as? SyncChange.Update)?.newEntity as? GoalList }
+        val listsToApply =
+            approvedChanges.mapNotNull { (it as? SyncChange.Add)?.entity as? GoalList } +
+                    approvedChanges.mapNotNull { (it as? SyncChange.Update)?.newEntity as? GoalList }
 
         val goalsToApply = approvedChanges.mapNotNull { (it as? SyncChange.Add)?.entity as? Goal } +
                 approvedChanges.mapNotNull { (it as? SyncChange.Update)?.newEntity as? Goal }
@@ -215,7 +245,8 @@ class SyncRepository(
             it.id to DesktopGoal(
                 id = it.id, text = it.text, completed = it.completed,
                 createdAt = longToDateString(it.createdAt)!!,
-                updatedAt = longToDateString(it.updatedAt)
+                updatedAt = longToDateString(it.updatedAt),
+                associatedListIds = it.associatedListIds // <-- ДОДАНО
             )
         }
 
@@ -252,4 +283,5 @@ class SyncRepository(
 
         return Gson().toJson(desktopBackupFile)
     }
+
 }

@@ -7,7 +7,8 @@ data class DesktopGoal(
     val text: String,
     val completed: Boolean,
     val createdAt: String,
-    val updatedAt: String?
+    val updatedAt: String?,
+    val associatedListIds: List<String>?
 )
 
 data class DesktopGoalList(

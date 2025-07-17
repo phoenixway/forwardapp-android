@@ -51,9 +51,13 @@ data class ListHierarchy(
 class GoalDetailViewModel(
     private val goalDao: GoalDao,
     private val goalListDao: GoalListDao,
+    settingsRepo: SettingsRepository,
     private val listId: String,
     private val highlightedGoalId: String?
 ) : ViewModel() {
+
+    val obsidianVaultName: StateFlow<String> = settingsRepo.obsidianVaultNameFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     private val _uiState = MutableStateFlow(GoalDetailUiState())
     val uiState: StateFlow<GoalDetailUiState> = _uiState.asStateFlow()

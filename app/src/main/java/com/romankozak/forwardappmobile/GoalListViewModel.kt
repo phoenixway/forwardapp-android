@@ -28,6 +28,8 @@ sealed class DialogState {
     data class ContextMenu(val list: GoalList) : DialogState()
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class RenameList(val list: GoalList) : DialogState()
+    object AppSettings : DialogState()
+
 }
 
 
@@ -51,6 +53,8 @@ class GoalListViewModel(
 
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
+    val obsidianVaultName: StateFlow<String> = settingsRepo.obsidianVaultNameFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     private val _showWifiServerDialog = MutableStateFlow(false)
     val showWifiServerDialog: StateFlow<Boolean> = _showWifiServerDialog.asStateFlow()
@@ -261,6 +265,18 @@ class GoalListViewModel(
             }
         }
     }
+
+    fun onShowSettingsDialog() {
+        _dialogState.value = DialogState.AppSettings
+    }
+
+    fun onSaveSettings(vaultName: String) {
+        viewModelScope.launch {
+            settingsRepo.saveObsidianVaultName(vaultName)
+            dismissDialog()
+        }
+    }
+
 }
 
 

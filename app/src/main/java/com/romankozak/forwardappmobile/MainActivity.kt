@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge // <-- ДОДАЙТЕ ЦЕЙ ІМПО�
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -68,9 +69,12 @@ fun AppNavigation(
         ) { backStackEntry ->
             val listId = backStackEntry.arguments?.getString("listId")
             if (listId != null) {
+                // --- ВИПРАВЛЕНО: Цей рядок було випадково видалено, тепер його повернуто ---
                 val goalIdToHighlight = backStackEntry.arguments?.getString("goalId")
-                // --- ОНОВЛЕНО ФАБРИКУ ---
-                val detailViewModelFactory = GoalDetailViewModelFactory(db.goalDao(), db.goalListDao(), listId, goalIdToHighlight)
+
+                val context = LocalContext.current
+                val settingsRepo = SettingsRepository(context.applicationContext)
+                val detailViewModelFactory = GoalDetailViewModelFactory(db.goalDao(), db.goalListDao(), settingsRepo, listId, goalIdToHighlight)
                 val detailViewModel: GoalDetailViewModel = viewModel(factory = detailViewModelFactory)
 
                 GoalDetailScreen(

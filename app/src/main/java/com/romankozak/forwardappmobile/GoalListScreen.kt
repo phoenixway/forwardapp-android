@@ -81,6 +81,12 @@ fun GoalListScreen(
                             viewModel.onShowWifiImportDialog()
                             menuExpanded = false
                         })
+                        Divider()
+                        DropdownMenuItem(text = { Text("Налаштування") }, onClick = {
+                            viewModel.onShowSettingsDialog()
+                            menuExpanded = false
+                        })
+
                     }
                 }
             )
@@ -168,6 +174,8 @@ private fun HandleDialogs(
     showWifiImportDialog: Boolean,
     showSearchDialog: Boolean
 ) {
+    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
+
     when (val state = dialogState) {
         is DialogState.Hidden -> {}
         is DialogState.AddList -> {
@@ -214,6 +222,14 @@ private fun HandleDialogs(
                 onConfirm = { newName -> viewModel.onRenameListConfirmed(state.list, newName) }
             )
         }
+        is DialogState.AppSettings -> {
+            SettingsDialog(
+                initialVaultName = obsidianVaultName,
+                onDismiss = { viewModel.dismissDialog() },
+                onSave = { newName -> viewModel.onSaveSettings(newName) }
+            )
+        }
+
     }
 
     if (showWifiServerDialog) {
