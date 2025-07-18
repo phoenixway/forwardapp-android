@@ -4,24 +4,37 @@ package com.romankozak.forwardappmobile
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.RenameColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.AutoMigrationSpec
 
 @Database(
     entities = [Goal::class, GoalList::class, GoalInstance::class],
-    version = 6, // ЗБІЛЬШЕНО: Версію оновлено до 6
+    version = 7, // ЗБІЛЬШЕНО: Версію оновлено до 7
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5),
-        AutoMigration(from = 5, to = 6) // ДОДАНО: Правило для нової міграції
+        AutoMigration(from = 5, to = 6),
+        // --- ДОДАНО: Правило для нової міграції з перейменуванням колонок ---
+        AutoMigration(
+            from = 6,
+            to = 7,
+            spec = AppDatabase.Migration6To7::class
+        )
     ],
     exportSchema = true
 
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
-    // ... решта коду без змін
+
+    // --- ДОДАНО: Специфікація для міграції ---
+    @RenameColumn(tableName = "goal_instances", fromColumnName = "id", toColumnName = "instance_id")
+    @RenameColumn(tableName = "goal_instances", fromColumnName = "orderIndex", toColumnName = "goal_order")
+    class Migration6To7 : AutoMigrationSpec
+
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao
 
@@ -36,7 +49,9 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "forward_app_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    // Важливо: видаліть .fallbackToDestructiveMigration() для робочої версії,
+                    // але для розробки це може бути корисно, якщо міграція не спрацює.
+                    // .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

@@ -11,9 +11,6 @@ import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-// --- КОНВЕРТЕР ДЛЯ СПИСКУ ТЕГІВ ---
-// Room не знає, як зберігати список рядків, тому ми вказуємо,
-// як перетворити його в JSON і назад.
 class Converters {
     @TypeConverter
     fun fromString(value: String?): List<String>? {
@@ -34,21 +31,19 @@ class Converters {
 }
 
 
-// --- ОСНОВНІ КЛАСИ ДЛЯ БАЗИ ДАНИХ ---
-
 @Entity(tableName = "goals")
-@TypeConverters(Converters::class) // Ця анотація вже тут і обробить List<String>
+@TypeConverters(Converters::class)
 data class Goal(
     @PrimaryKey val id: String,
     val text: String,
-    val description: String?,
+    val description: String? = null,
     val completed: Boolean,
     val createdAt: Long,
     val updatedAt: Long?,
-    val tags: List<String>?,
-    // --- ДОДАНО: Поле для пов'язаних списків ---
-    val associatedListIds: List<String>?
+    val tags: List<String>? = null,
+    val associatedListIds: List<String>? = null
 )
+
 @Entity(tableName = "goal_lists")
 data class GoalList(
     @PrimaryKey val id: String,
@@ -61,12 +56,17 @@ data class GoalList(
     var isExpanded: Boolean = true
 )
 
-@Entity(tableName = "goal_instances", primaryKeys = ["id"])
+@Entity(tableName = "goal_instances")
 data class GoalInstance(
-    val id: String,
+    @PrimaryKey
+    @ColumnInfo(name = "instance_id")
+    val instanceId: String,
+
     val goalId: String,
     val listId: String,
-    val orderIndex: Int
+
+    @ColumnInfo(name = "goal_order")
+    val order: Long
 )
 
 data class GoalListWithGoals(
@@ -84,16 +84,37 @@ data class GoalListWithGoals(
 )
 
 data class GoalWithInstanceInfo(
-    @Embedded
-    val goal: Goal,
-    val instanceId: String,
-    val orderIndex: Int
+    @Embedded val goal: Goal,
+    @ColumnInfo(name = "instance_id") val instanceId: String,
+    @ColumnInfo(name = "list_id") val listId: String,
+    @ColumnInfo(name = "goal_order") val order: Long
 )
 
-// --- ДОДАНО: Клас для результатів глобального пошуку ---
+fun GoalWithInstanceInfo.toGoalInstance(): GoalInstance {
+    return GoalInstance(
+        instanceId = this.instanceId,
+        goalId = this.goal.id,
+        listId = this.listId,
+        order = this.order
+    )
+}
+
+// --- ВИПРАВЛЕНО: Єдиний, правильний клас для представлення ієрархії ---
+data class ListHierarchyData(
+    val allLists: List<GoalList> = emptyList(),
+    val topLevelLists: List<GoalList> = emptyList(),
+    val childMap: Map<String, List<GoalList>> = emptyMap()
+)
+
 data class GlobalSearchResult(
     @Embedded
     val goal: Goal,
     val listId: String,
     val listName: String
+)
+
+data class GoalIdListPair(
+    val goalId: String,
+    @Embedded
+    val goalList: GoalList
 )

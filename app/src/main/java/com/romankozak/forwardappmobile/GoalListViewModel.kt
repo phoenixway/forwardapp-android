@@ -13,7 +13,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-// ... (sealed classes без змін) ...
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
     data class NavigateToDetails(val listId: String) : GoalListUiEvent()
@@ -41,15 +40,15 @@ class GoalListViewModel(
 ) : AndroidViewModel(application) {
 
     private val TAG = "WIFI_DEBUG"
-    // ... (решта полів без змін) ...
     private val _allListsFlat = goalListDao.getAllLists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val listHierarchy: StateFlow<ListHierarchy> = _allListsFlat.map { flatList ->
+    // --- ВИПРАВЛЕНО: Використовуємо новий, єдиний клас ListHierarchyData ---
+    val listHierarchy: StateFlow<ListHierarchyData> = _allListsFlat.map { flatList ->
         val topLevel = flatList.filter { it.parentId == null }
         val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
-        ListHierarchy(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy())
+        ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
@@ -88,17 +87,13 @@ class GoalListViewModel(
         startWifiServer()
     }
 
-    // ЗМІНА: Повністю новий, надійний патерн запуску
     private fun startWifiServer() {
         viewModelScope.launch {
             Log.d(TAG, "Step 3: Launching coroutine, switching to IO dispatcher.")
-            // Переключаємось на фоновий потік
             val result = withContext(Dispatchers.IO) {
-                // Викликаємо звичайну, не-suspend функцію
                 Log.d(TAG, "Step 4: On IO thread, calling wifiSyncServer.start().")
                 wifiSyncServer.start()
             }
-            // Повертаємось на головний потік. Результат вже є.
             Log.d(TAG, "Step 5: Back on Main thread. Result isSuccess: ${result.isSuccess}")
 
             result.onSuccess { address ->
@@ -112,7 +107,6 @@ class GoalListViewModel(
         }
     }
 
-    // ... (решта коду без змін) ...
     private fun stopWifiServer() {
         viewModelScope.launch(Dispatchers.IO) {
             wifiSyncServer.stop()
@@ -122,7 +116,6 @@ class GoalListViewModel(
         }
     }
 
-    // ... (решта методів ViewModel без змін)
     fun onToggleExpanded(list: GoalList) {
         viewModelScope.launch {
             goalListDao.update(list.copy(isExpanded = !list.isExpanded))

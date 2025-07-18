@@ -189,7 +189,7 @@ fun SwipeableGoalItem(
     goalWithInstance: GoalWithInstanceInfo,
     isHighlighted: Boolean,
     associatedLists: List<GoalList>,
-    obsidianVaultName: String, // <-- ВИПРАВЛЕНО: Додано до сигнатури
+    obsidianVaultName: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMore: () -> Unit,
@@ -258,11 +258,24 @@ fun SwipeableGoalItem(
                 IconButton(onClick = onMore, modifier = Modifier.fillMaxHeight().width(90.dp).background(MaterialTheme.colorScheme.secondary)) { Icon(Icons.Default.SwapVert, "Дії", tint = Color.White) }
                 IconButton(onClick = onEdit, modifier = Modifier.fillMaxHeight().width(90.dp).background(Color.Gray)) { Icon(Icons.Default.Edit, "Редагувати", tint = Color.White) }
             }
+
+            // --- ОСНОВНА ЗМІНА ТУТ ---
+            // Ми повертаємося до Box, але тепер центруємо саму ІКОНКУ всередині нього.
             Box(
-                modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(120.dp).background(MaterialTheme.colorScheme.error),
-                contentAlignment = Alignment.Center
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxHeight()
+                    .width(120.dp)
+                    .background(MaterialTheme.colorScheme.error)
             ) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Видалити", tint = Color.White, modifier = Modifier.size(32.dp))
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Видалити",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .align(Alignment.Center) // Цей модифікатор явно центрує іконку в батьківському Box.
+                )
             }
         }
         Surface(
@@ -281,7 +294,7 @@ fun SwipeableGoalItem(
             GoalItem(
                 goal = goalWithInstance.goal,
                 associatedLists = associatedLists,
-                obsidianVaultName = obsidianVaultName, // <-- ВИПРАВЛЕНО: Передаємо далі
+                obsidianVaultName = obsidianVaultName,
                 onToggle = onToggle,
                 onItemClick = {
                     if (state.currentValue != SwipeAction.Hidden) {
@@ -298,7 +311,6 @@ fun SwipeableGoalItem(
         }
     }
 }
-
 
 // --- Решта файлу (GoalInputBar та діалоги) залишаються без змін ---
 

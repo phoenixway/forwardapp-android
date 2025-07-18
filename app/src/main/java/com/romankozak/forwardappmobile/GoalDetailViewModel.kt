@@ -2,9 +2,16 @@ package com.romankozak.forwardappmobile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -12,41 +19,30 @@ import java.util.UUID
 
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
-    data class ResetSwipeState(val instanceId: String) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
+    data class ResetSwipeState(val instanceId: String): UiEvent()
 }
 
-sealed class GoalActionType {
-    object CreateInstance : GoalActionType()
-    object MoveInstance : GoalActionType()
-    object CopyGoal : GoalActionType()
+enum class InputMode {
+    AddGoal, SearchInList, SearchGlobal
 }
+
+data class GoalDetailUiState(
+    val isLoading: Boolean = true,
+    val goalList: GoalList? = null,
+    val inputMode: InputMode = InputMode.AddGoal,
+    val localSearchQuery: String = "",
+    val goalToHighlight: String? = null
+)
 
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
     data class AwaitingActionChoice(val goalWithInstance: GoalWithInstanceInfo) : GoalActionDialogState()
     data class AwaitingListChoice(val goalWithInstance: GoalWithInstanceInfo, val actionType: GoalActionType) : GoalActionDialogState()
 }
-
-enum class InputMode {
-    AddGoal,
-    SearchInList,
-    SearchGlobal
+enum class GoalActionType {
+    CreateInstance, MoveInstance, CopyGoal
 }
-
-data class GoalDetailUiState(
-    val goalList: GoalList? = null,
-    val isLoading: Boolean = true,
-    val inputMode: InputMode = InputMode.AddGoal,
-    val localSearchQuery: String = "",
-    val goalToHighlight: String? = null
-)
-
-data class ListHierarchy(
-    val allLists: List<GoalList> = emptyList(),
-    val topLevelLists: List<GoalList> = emptyList(),
-    val childMap: Map<String, List<GoalList>> = emptyMap()
-)
 
 class GoalDetailViewModel(
     private val goalDao: GoalDao,
@@ -56,81 +52,65 @@ class GoalDetailViewModel(
     private val highlightedGoalId: String?
 ) : ViewModel() {
 
-    val obsidianVaultName: StateFlow<String> = settingsRepo.obsidianVaultNameFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    private val _uiState = MutableStateFlow(GoalDetailUiState())
+    private val _uiState = MutableStateFlow(GoalDetailUiState(goalToHighlight = highlightedGoalId))
     val uiState: StateFlow<GoalDetailUiState> = _uiState.asStateFlow()
 
-    private val _uiEventChannel = Channel<UiEvent>()
-    val uiEventFlow = _uiEventChannel.receiveAsFlow()
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEventFlow = _uiEvent.asSharedFlow()
 
-    private var lastDeletedGoal: Goal? = null
-    private var lastDeletedInstance: GoalInstance? = null
-
-    private val _goalsWithInstances = goalDao.getGoalsForList(listId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> =
-        combine(_goalsWithInstances, uiState.map { it.localSearchQuery }.distinctUntilChanged()) { goals, query ->
-            if (query.isBlank()) {
-                goals
-            } else {
-                goals.filter {
-                    it.goal.text.contains(query, ignoreCase = true)
-                }
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    // --- ЕФЕКТИВНЕ ЗАВАНТАЖЕННЯ ПОВ'ЯЗАНИХ СПИСКІВ ---
-    val associatedListsMap: StateFlow<Map<String, List<GoalList>>> = filteredGoals.flatMapLatest { goals ->
-        val allAssociatedIds = goals.mapNotNull { it.goal.associatedListIds }.flatten().distinct()
-        if (allAssociatedIds.isEmpty()) {
-            flowOf(emptyMap())
-        } else {
-            flow {
-                val lists = goalListDao.getListsByIds(allAssociatedIds).associateBy { it.id }
-                val map = goals.associate { goalInfo ->
-                    val associatedLists = goalInfo.goal.associatedListIds?.mapNotNull { lists[it] } ?: emptyList()
-                    goalInfo.goal.id to associatedLists
-                }
-                emit(map)
-            }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
-
+    private val _goalActionDialogState = MutableStateFlow<GoalActionDialogState>(GoalActionDialogState.Hidden)
+    val goalActionDialogState = _goalActionDialogState.asStateFlow()
 
     private val _showInputModeDialog = MutableStateFlow(false)
     val showInputModeDialog = _showInputModeDialog.asStateFlow()
 
+    private var recentlyDeletedGoal: GoalWithInstanceInfo? = null
+
+    private val allGoalsForList = goalDao.getGoalsForListStream(listId)
+
+    val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> = combine(
+        allGoalsForList,
+        _uiState
+    ) { goals, state ->
+        if (state.localSearchQuery.isBlank()) {
+            goals
+        } else {
+            goals.filter { it.goal.text.contains(state.localSearchQuery, ignoreCase = true) }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val associatedListsMap: StateFlow<Map<String, List<GoalList>>> = allGoalsForList.flatMapLatest { goals ->
+        val goalIds = goals.map { it.goal.id }
+        if (goalIds.isEmpty()) {
+            kotlinx.coroutines.flow.flowOf(emptyMap())
+        } else {
+            goalDao.getAssociatedListsForGoals(goalIds)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    // --- ВИПРАВЛЕНО: Використовуємо новий, єдиний клас ListHierarchyData ---
+    val listHierarchyForChooser: StateFlow<ListHierarchyData> = goalListDao.getAllLists()
+        .combine(goalListDao.getGoalListByIdStream(listId)) { allLists, currentList ->
+            val allButCurrent = allLists.filter { it.id != currentList?.id }
+            val topLevel = allButCurrent.filter { it.parentId == null }
+            val childMap = allButCurrent
+                .filter { it.parentId != null }
+                .groupBy { it.parentId!! }
+            ListHierarchyData(allLists, topLevel, childMap)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+    val obsidianVaultName: StateFlow<String> = settingsRepo.obsidianVaultNameFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     init {
         viewModelScope.launch {
-            _uiState.update { it.copy(
-                goalList = goalDao.getList(listId).first(),
-                isLoading = false,
-                goalToHighlight = highlightedGoalId
-            ) }
-
+            val goalList = goalListDao.getGoalListById(listId)
+            _uiState.update { it.copy(isLoading = false, goalList = goalList) }
         }
     }
-
-    fun onHighlightShown() {
-        viewModelScope.launch {
-            delay(2000)
-            _uiState.update { it.copy(goalToHighlight = null) }
-        }
-    }
-
-    fun onTagClicked(tag: String) {
-        viewModelScope.launch {
-            _uiEventChannel.send(UiEvent.Navigate("global_search_screen/$tag"))
-        }
-    }
-
-    // --- НАВІГАЦІЯ ПРИ КЛІЦІ НА ПОВ'ЯЗАНИЙ СПИСОК ---
-    fun onAssociatedListClicked(listId: String) {
-        viewModelScope.launch {
-            _uiEventChannel.send(UiEvent.Navigate("goal_detail_screen/$listId"))
+    fun onInputTextChanged(text: String) {
+        if (_uiState.value.inputMode == InputMode.SearchInList) {
+            _uiState.update { it.copy(localSearchQuery = text) }
         }
     }
 
@@ -138,137 +118,127 @@ class GoalDetailViewModel(
         _showInputModeDialog.value = true
     }
 
+    fun onInputModeSelected(mode: InputMode) {
+        _showInputModeDialog.value = false
+        _uiState.update { it.copy(inputMode = mode, localSearchQuery = "") }
+    }
+
     fun onDismissInputModeDialog() {
         _showInputModeDialog.value = false
     }
 
-    fun onInputModeSelected(mode: InputMode) {
-        resetToAddMode()
-        _uiState.update { it.copy(inputMode = mode) }
-        _showInputModeDialog.value = false
-    }
-
-    fun onInputTextChanged(text: String) {
-        val currentMode = _uiState.value.inputMode
-        if (currentMode == InputMode.SearchInList) {
-            if (text.isBlank()) {
-                resetToAddMode()
-            } else {
-                _uiState.update { it.copy(localSearchQuery = text) }
-            }
-        }
-    }
-
     fun submitInput(text: String) {
+        val currentInputMode = uiState.value.inputMode
         viewModelScope.launch {
-            when (_uiState.value.inputMode) {
+            when (currentInputMode) {
                 InputMode.AddGoal -> {
-                    if (text.isNotBlank()) {
-                        val encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString())
-                        val route = "goal_edit_screen?listId=$listId&text=$encodedText"
-                        _uiEventChannel.send(UiEvent.Navigate(route))
-                    }
+                    val minOrder = goalDao.getMinOrderForList(listId)
+                    val newOrder = (minOrder ?: 0L) - 1
+
+                    val newGoal = Goal(
+                        id = UUID.randomUUID().toString(),
+                        text = text,
+                        completed = false,
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis()
+                    )
+
+                    val newInstance = GoalInstance(
+                        instanceId = UUID.randomUUID().toString(),
+                        goalId = newGoal.id,
+                        listId = listId,
+                        order = newOrder
+                    )
+
+                    goalDao.insertGoalWithInstance(newGoal, newInstance)
                 }
+
                 InputMode.SearchInList -> {
-                    resetToAddMode()
+                    _uiState.update { it.copy(localSearchQuery = text) }
                 }
+
                 InputMode.SearchGlobal -> {
-                    if (text.isNotBlank()) {
-                        _uiEventChannel.send(UiEvent.Navigate("global_search_screen/$text"))
-                    }
-                    resetToAddMode()
+                    val encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString())
+                    _uiEvent.emit(UiEvent.Navigate("global_search_screen/$encodedText"))
                 }
             }
         }
     }
 
-    fun resetToAddMode() {
-        _uiState.update { it.copy(inputMode = InputMode.AddGoal, localSearchQuery = "") }
-    }
-
-    fun deleteGoal(goalWithInstance: GoalWithInstanceInfo) {
+    fun onEditGoal(goalWithInstance: GoalWithInstanceInfo) {
         viewModelScope.launch {
-            lastDeletedGoal = goalWithInstance.goal
-            lastDeletedInstance = GoalInstance(
-                id = goalWithInstance.instanceId,
-                goalId = goalWithInstance.goal.id,
-                listId = listId,
-                orderIndex = goalWithInstance.orderIndex
-            )
-            // Додатково видаляємо саму ціль, якщо на неї більше немає посилань
-            goalDao.deleteGoalInstanceById(goalWithInstance.instanceId)
-            val remainingInstances = goalDao.getInstancesForGoal(goalWithInstance.goal.id).size
-            if (remainingInstances == 0) {
-                goalDao.deleteGoalById(goalWithInstance.goal.id)
-            }
-            _uiEventChannel.send(UiEvent.ShowSnackbar(message = "Ціль видалено", action = "Скасувати"))
+            _uiEvent.emit(UiEvent.Navigate("goal_edit_screen?listId=$listId&goalId=${goalWithInstance.goal.id}"))
         }
-    }
-
-    fun undoDelete() {
-        val goalToRestore = lastDeletedGoal
-        val instanceToRestore = lastDeletedInstance
-        if (goalToRestore != null && instanceToRestore != null) {
-            viewModelScope.launch {
-                goalDao.insertGoal(goalToRestore)
-                goalDao.insertGoalInstance(instanceToRestore)
-            }
-        }
-        lastDeletedGoal = null
-        lastDeletedInstance = null
     }
 
     fun toggleGoalCompleted(goal: Goal) {
         viewModelScope.launch {
-            val updatedGoal = goal.copy(completed = !goal.completed, updatedAt = System.currentTimeMillis())
-            goalDao.updateGoal(updatedGoal)
+            goalDao.updateGoal(
+                goal.copy(
+                    completed = !goal.completed,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
         }
     }
 
     fun moveGoal(from: Int, to: Int) {
         viewModelScope.launch {
-            val currentGoals = filteredGoals.value.toMutableList()
-            if (from in currentGoals.indices && to in currentGoals.indices) {
-                val movedItem = currentGoals.removeAt(from)
-                currentGoals.add(to, movedItem)
-                val updatedInstances = currentGoals.mapIndexed { index, item ->
-                    GoalInstance(item.instanceId, item.goal.id, listId, index)
-                }
-                goalDao.updateGoalInstances(updatedInstances)
+            val currentList = filteredGoals.value.toMutableList()
+            if (from < 0 || from >= currentList.size || to < 0 || to >= currentList.size) return@launch
+
+            val item = currentList.removeAt(from)
+            currentList.add(to, item)
+
+            val newOrderList = currentList.mapIndexed { index, goalWithInstance ->
+                goalWithInstance.copy(order = index.toLong())
+            }
+
+            goalDao.updateInstancesOrder(newOrderList)
+        }
+    }
+
+    fun deleteGoal(goalWithInstance: GoalWithInstanceInfo) {
+        viewModelScope.launch {
+            recentlyDeletedGoal = goalWithInstance
+            goalDao.deleteInstanceById(goalWithInstance.instanceId)
+            _uiEvent.emit(UiEvent.ShowSnackbar(message = "Ціль видалено", action = "Скасувати"))
+        }
+    }
+
+    fun undoDelete() {
+        viewModelScope.launch {
+            recentlyDeletedGoal?.let {
+                goalDao.restoreInstance(it.toGoalInstance())
+                recentlyDeletedGoal = null
             }
         }
     }
 
-    val listHierarchy: StateFlow<ListHierarchy> = goalListDao.getAllLists()
-        .map { flatList ->
-            val topLevel = flatList.filter { it.parentId == null }
-            val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
-            ListHierarchy(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy())
-
-
-    fun onEditGoal(goalWithInstance: GoalWithInstanceInfo) {
-        viewModelScope.launch {
-            val route = "goal_edit_screen?listId=$listId&goalId=${goalWithInstance.goal.id}"
-            _uiEventChannel.send(UiEvent.Navigate(route))
-            _uiEventChannel.send(UiEvent.ResetSwipeState(goalWithInstance.instanceId))
-        }
+    fun onHighlightShown() {
+        _uiState.update { it.copy(goalToHighlight = null) }
     }
 
     fun resetSwipe(instanceId: String) {
         viewModelScope.launch {
-            _uiEventChannel.send(UiEvent.ResetSwipeState(instanceId))
+            _uiEvent.emit(UiEvent.ResetSwipeState(instanceId))
         }
     }
 
-    private val _goalActionDialogState = MutableStateFlow<GoalActionDialogState>(GoalActionDialogState.Hidden)
-    val goalActionDialogState: StateFlow<GoalActionDialogState> = _goalActionDialogState.asStateFlow()
+    fun onTagClicked(tag: String) {
+        viewModelScope.launch {
+            if (_uiState.value.inputMode != InputMode.SearchGlobal) {
+                onInputModeSelected(InputMode.SearchInList)
+            }
+            _uiState.update { it.copy(localSearchQuery = tag) }
+        }
+    }
 
     fun onGoalActionInitiated(goalWithInstance: GoalWithInstanceInfo) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(goalWithInstance)
     }
 
-    fun onActionSelected(actionType: GoalActionType) {
+    fun onGoalActionSelected(actionType: GoalActionType) {
         val currentState = _goalActionDialogState.value
         if (currentState is GoalActionDialogState.AwaitingActionChoice) {
             _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(currentState.goalWithInstance, actionType)
@@ -276,73 +246,62 @@ class GoalDetailViewModel(
     }
 
     fun onDismissGoalActionDialogs() {
-        val currentState = _goalActionDialogState.value
-        if (currentState is GoalActionDialogState.AwaitingActionChoice) {
-            viewModelScope.launch {
-                _uiEventChannel.send(UiEvent.ResetSwipeState(currentState.goalWithInstance.instanceId))
-            }
-        }
-        if (currentState is GoalActionDialogState.AwaitingListChoice) {
-            viewModelScope.launch {
-                _uiEventChannel.send(UiEvent.ResetSwipeState(currentState.goalWithInstance.instanceId))
-            }
-        }
         _goalActionDialogState.value = GoalActionDialogState.Hidden
     }
 
-    fun confirmGoalAction(destinationListId: String) {
+    fun confirmGoalAction(targetListId: String) {
         val currentState = _goalActionDialogState.value
         if (currentState is GoalActionDialogState.AwaitingListChoice) {
-            val instanceId = currentState.goalWithInstance.instanceId
-            if (destinationListId == listId) {
-                onDismissGoalActionDialogs()
-                return
-            }
-            viewModelScope.launch {
-                when (currentState.actionType) {
-                    is GoalActionType.MoveInstance -> moveInstanceToList(currentState.goalWithInstance, destinationListId)
-                    is GoalActionType.CreateInstance -> createInstanceInList(currentState.goalWithInstance.goal, destinationListId)
-                    is GoalActionType.CopyGoal -> copyGoalToList(currentState.goalWithInstance.goal, destinationListId)
-                }
-                _uiEventChannel.send(UiEvent.ResetSwipeState(instanceId))
+            when(currentState.actionType) {
+                GoalActionType.CreateInstance -> createInstanceInList(currentState.goalWithInstance.goal, targetListId)
+                GoalActionType.MoveInstance -> moveInstanceToList(currentState.goalWithInstance, targetListId)
+                GoalActionType.CopyGoal -> copyGoalToList(currentState.goalWithInstance.goal, targetListId)
             }
         }
-        _goalActionDialogState.value = GoalActionDialogState.Hidden
+        onDismissGoalActionDialogs()
     }
 
-    private suspend fun moveInstanceToList(goalWithInstance: GoalWithInstanceInfo, destinationListId: String) {
-        val newOrderIndex = goalDao.getGoalCountInList(destinationListId)
-        goalDao.moveGoalToNewList(goalWithInstance.instanceId, destinationListId, newOrderIndex)
+    private fun createInstanceInList(goal: Goal, targetListId: String) {
+        viewModelScope.launch {
+            val newInstance = GoalInstance(
+                instanceId = UUID.randomUUID().toString(),
+                goalId = goal.id,
+                listId = targetListId,
+                order = System.currentTimeMillis()
+            )
+            goalDao.insertInstance(newInstance)
+            _uiEvent.emit(UiEvent.ShowSnackbar("Екземпляр цілі створено"))
+        }
     }
 
-    private suspend fun createInstanceInList(sourceGoal: Goal, destinationListId: String) {
-        val newOrderIndex = goalDao.getGoalCountInList(destinationListId)
-        val newInstance = GoalInstance(
-            id = UUID.randomUUID().toString(),
-            goalId = sourceGoal.id,
-            listId = destinationListId,
-            orderIndex = newOrderIndex
-        )
-        goalDao.insertGoalInstance(newInstance)
+    private fun moveInstanceToList(goalWithInstance: GoalWithInstanceInfo, targetListId: String) {
+        viewModelScope.launch {
+            goalDao.updateInstanceListId(goalWithInstance.instanceId, targetListId)
+            _uiEvent.emit(UiEvent.ShowSnackbar("Екземпляр переміщено"))
+        }
     }
 
-    private suspend fun copyGoalToList(sourceGoal: Goal, destinationListId: String) {
-        val currentTime = System.currentTimeMillis()
-        val newGoal = sourceGoal.copy(
-            id = UUID.randomUUID().toString(),
-            createdAt = currentTime,
-            updatedAt = currentTime,
-            // При копіюванні можна обнулити посилання або зберегти - тут зберіг
-            associatedListIds = sourceGoal.associatedListIds
-        )
-        goalDao.insertGoal(newGoal)
-        val newOrderIndex = goalDao.getGoalCountInList(destinationListId)
-        val newInstance = GoalInstance(
-            id = UUID.randomUUID().toString(),
-            goalId = newGoal.id,
-            listId = destinationListId,
-            orderIndex = newOrderIndex
-        )
-        goalDao.insertGoalInstance(newInstance)
+    private fun copyGoalToList(goal: Goal, targetListId: String) {
+        viewModelScope.launch {
+            val newGoal = goal.copy(
+                id = UUID.randomUUID().toString(),
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            val newInstance = GoalInstance(
+                instanceId = UUID.randomUUID().toString(),
+                goalId = newGoal.id,
+                listId = targetListId,
+                order = System.currentTimeMillis()
+            )
+            goalDao.insertGoalWithInstance(newGoal, newInstance)
+            _uiEvent.emit(UiEvent.ShowSnackbar("Ціль скопійовано"))
+        }
+    }
+
+    fun onAssociatedListClicked(listId: String) {
+        viewModelScope.launch {
+            _uiEvent.emit(UiEvent.Navigate("goal_detail_screen/$listId"))
+        }
     }
 }

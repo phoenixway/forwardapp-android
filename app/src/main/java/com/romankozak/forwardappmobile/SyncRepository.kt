@@ -219,11 +219,12 @@ class SyncRepository(
             val newInstances = affectedLists.flatMap { list ->
                 list.itemInstanceIds.mapIndexedNotNull { index, instanceId ->
                     allDesktopInstances[instanceId]?.let { desktopInstance ->
+                        // --- ВИПРАВЛЕНО: Створення GoalInstance з правильними параметрами ---
                         GoalInstance(
-                            id = desktopInstance.id,
+                            instanceId = desktopInstance.id,
                             goalId = desktopInstance.goalId,
                             listId = list.id,
-                            orderIndex = index
+                            order = index.toLong()
                         )
                     }
                 }
@@ -234,7 +235,6 @@ class SyncRepository(
             }
         }
     }
-
     suspend fun createBackupJsonString(): String {
         val lists = goalListDao.getAll()
         val goals = goalDao.getAll()
@@ -246,22 +246,25 @@ class SyncRepository(
                 id = it.id, text = it.text, completed = it.completed,
                 createdAt = longToDateString(it.createdAt)!!,
                 updatedAt = longToDateString(it.updatedAt),
-                associatedListIds = it.associatedListIds // <-- ДОДАНО
+                associatedListIds = it.associatedListIds
             )
         }
 
+        // --- ВИПРАВЛЕНО ТУТ: Використовуємо 'instanceId' замість 'id' ---
         val desktopInstances = instances.associate {
-            it.id to DesktopGoalInstance(id = it.id, goalId = it.goalId)
+            it.instanceId to DesktopGoalInstance(id = it.instanceId, goalId = it.goalId)
         }
 
         val desktopLists = lists.associate { list ->
-            val listInstances = instances.filter { it.listId == list.id }.sortedBy { it.orderIndex }
+            // --- ВИПРАВЛЕНО ТУТ: Використовуємо 'order' замість 'orderIndex' ---
+            val listInstances = instances.filter { it.listId == list.id }.sortedBy { it.order }
             list.id to DesktopGoalList(
                 id = list.id, name = list.name, parentId = list.parentId,
                 description = list.description,
                 createdAt = longToDateString(list.createdAt)!!,
                 updatedAt = longToDateString(list.updatedAt),
-                itemInstanceIds = listInstances.map { it.id },
+                // --- ВИПРАВЛЕНО ТУТ: Використовуємо 'instanceId' замість 'id' ---
+                itemInstanceIds = listInstances.map { it.instanceId },
                 childListIds = childMap[list.id]?.map { it.id } ?: emptyList()
             )
         }
@@ -283,5 +286,4 @@ class SyncRepository(
 
         return Gson().toJson(desktopBackupFile)
     }
-
 }
