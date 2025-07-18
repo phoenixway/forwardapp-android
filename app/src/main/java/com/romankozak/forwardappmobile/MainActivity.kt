@@ -54,17 +54,16 @@ fun AppNavigation(
         }
 
         composable(
-            "goal_detail_screen/{listId}?goalId={goalId}",
+            route = "goal_edit_screen/{listId}/{goalId}",
             arguments = listOf(
                 navArgument("listId") { type = NavType.StringType },
-                navArgument("goalId") { type = NavType.StringType; nullable = true }
+                navArgument("goalId") { type = NavType.StringType }
             )
         ) {
-            // Hilt сам надасть GoalDetailViewModel.
-            // SavedStateHandle вже буде включено автоматично.
-            GoalDetailScreen(
-                viewModel = hiltViewModel(),
-                navController = navController
+            // Hilt сам надасть GoalEditViewModel.
+            GoalEditScreen(
+                navController = navController,
+                viewModel = hiltViewModel()
             )
         }
 

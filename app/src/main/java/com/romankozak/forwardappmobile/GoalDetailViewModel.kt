@@ -85,8 +85,24 @@ class GoalDetailViewModel @Inject constructor(
 
     val associatedListsMap: StateFlow<Map<String, List<GoalList>>> = filteredGoals.flatMapLatest { goals ->
         val goalIds = goals.map { it.goal.id }.distinct()
+        // Ми, як і раніше, отримуємо повний потік даних від репозиторію
         goalRepository.getAssociatedListsForGoals(goalIds)
+            // АЛЕ тепер ми додаємо оператор .map, щоб трансформувати цей потік
+            .map { fullMap ->
+                val currentListId = listIdFlow.value
+                // Створюємо нову мапу для відфільтрованих результатів
+                val filteredMap = mutableMapOf<String, List<GoalList>>()
+                // І для кожної цілі...
+                for ((goalId, lists) in fullMap) {
+                    // ...ми фільтруємо її список асоційованих списків,
+                    // видаляючи той, в якому ми зараз знаходимось.
+                    filteredMap[goalId] = lists.filter { it.id != currentListId }
+                }
+                // Повертаємо вже відфільтровану мапу
+                filteredMap
+            }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
 
     private val _goalActionDialogState = MutableStateFlow<GoalActionDialogState>(GoalActionDialogState.Hidden)
     val goalActionDialogState: StateFlow<GoalActionDialogState> = _goalActionDialogState.asStateFlow()
@@ -171,9 +187,11 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onEditGoal(goal: GoalWithInstanceInfo) {
         viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen?listId=${goal.listId}&goalId=${goal.goal.id}"))
+            _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${goal.listId}/${goal.goal.id}"))
         }
     }
+
+
 
     fun onTagClicked(tag: String) {
         viewModelScope.launch {
