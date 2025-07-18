@@ -2,16 +2,16 @@ package com.romankozak.forwardappmobile
 
 import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import javax.inject.Inject
 
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
@@ -28,22 +28,22 @@ sealed class DialogState {
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class RenameList(val list: GoalList) : DialogState()
     object AppSettings : DialogState()
-
 }
 
-
-class GoalListViewModel(
-    application: Application,
-    private val goalListDao: GoalListDao,
-    private val goalDao: GoalDao,
-    private val settingsRepo: SettingsRepository
-) : AndroidViewModel(application) {
+@HiltViewModel
+class GoalListViewModel @Inject constructor(
+    private val goalRepository: GoalRepository,
+    private val settingsRepo: SettingsRepository,
+    // Нам все ще потрібен Application для WifiSyncServer
+    private val application: Application
+) : ViewModel() {
 
     private val TAG = "WIFI_DEBUG"
-    private val _allListsFlat = goalListDao.getAllLists()
+
+    // Тепер ми отримуємо потік списків з репозиторію
+    private val _allListsFlat = goalRepository.getAllGoalListsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // --- ВИПРАВЛЕНО: Використовуємо новий, єдиний клас ListHierarchyData ---
     val listHierarchy: StateFlow<ListHierarchyData> = _allListsFlat.map { flatList ->
         val topLevel = flatList.filter { it.parentId == null }
         val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
@@ -52,6 +52,7 @@ class GoalListViewModel(
 
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
+
     val obsidianVaultName: StateFlow<String> = settingsRepo.obsidianVaultNameFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
@@ -70,8 +71,8 @@ class GoalListViewModel(
     private val _uiEventChannel = Channel<GoalListUiEvent>()
     val uiEventFlow = _uiEventChannel.receiveAsFlow()
 
-    private val syncRepo = SyncRepository(goalListDao, goalDao)
-    private val wifiSyncServer = WifiSyncServer(syncRepo, getApplication())
+    private val syncRepo = SyncRepository(goalRepository)
+    private val wifiSyncServer = WifiSyncServer(syncRepo, application)
 
     init {
         viewModelScope.launch {
@@ -80,30 +81,21 @@ class GoalListViewModel(
     }
 
     fun onShowWifiServerDialog() {
-        Log.d(TAG, "Step 1: onShowWifiServerDialog called.")
         _wifiServerAddress.value = null
         _showWifiServerDialog.value = true
-        Log.d(TAG, "Step 2: Calling startWifiServer().")
         startWifiServer()
     }
 
     private fun startWifiServer() {
         viewModelScope.launch {
-            Log.d(TAG, "Step 3: Launching coroutine, switching to IO dispatcher.")
             val result = withContext(Dispatchers.IO) {
-                Log.d(TAG, "Step 4: On IO thread, calling wifiSyncServer.start().")
                 wifiSyncServer.start()
             }
-            Log.d(TAG, "Step 5: Back on Main thread. Result isSuccess: ${result.isSuccess}")
-
             result.onSuccess { address ->
-                Log.d(TAG, "Step 6 (SUCCESS): Address: $address. Updating UI.")
                 _wifiServerAddress.value = address
+            }.onFailure { exception ->
+                _wifiServerAddress.value = "Помилка: ${exception.message}"
             }
-                .onFailure { exception ->
-                    Log.e(TAG, "Step 6 (FAILURE): Updating UI.", exception)
-                    _wifiServerAddress.value = "Помилка: ${exception.message}"
-                }
         }
     }
 
@@ -118,21 +110,13 @@ class GoalListViewModel(
 
     fun onToggleExpanded(list: GoalList) {
         viewModelScope.launch {
-            goalListDao.update(list.copy(isExpanded = !list.isExpanded))
+            goalRepository.updateGoalList(list.copy(isExpanded = !list.isExpanded))
         }
     }
 
     fun onAddList(name: String, parentId: String?) {
         viewModelScope.launch {
-            val newList = GoalList(
-                id = UUID.randomUUID().toString(),
-                name = name,
-                parentId = parentId,
-                description = "",
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-            goalListDao.insert(newList)
+            goalRepository.createGoalList(name, parentId)
             dismissDialog()
         }
     }
@@ -140,12 +124,7 @@ class GoalListViewModel(
     fun onDeleteListConfirmed(list: GoalList) {
         viewModelScope.launch {
             val listsToDelete = findChildrenRecursive(list.id, listHierarchy.value.childMap)
-            listsToDelete.forEach {
-                goalDao.deleteInstancesForLists(listOf(it.id))
-                goalListDao.delete(it)
-            }
-            goalDao.deleteInstancesForLists(listOf(list.id))
-            goalListDao.delete(list)
+            goalRepository.deleteListsAndSubLists(listOf(list) + listsToDelete)
             dismissDialog()
         }
     }
@@ -157,63 +136,9 @@ class GoalListViewModel(
 
     fun onMoveListConfirmed(listToMove: GoalList, newParentId: String?) {
         viewModelScope.launch {
-            goalListDao.update(listToMove.copy(parentId = newParentId))
+            goalRepository.updateGoalList(listToMove.copy(parentId = newParentId))
             dismissDialog()
         }
-    }
-
-    fun onAddNewListRequest() {
-        _dialogState.value = DialogState.AddList(null)
-    }
-
-    fun onAddSublistRequest(parentList: GoalList) {
-        _dialogState.value = DialogState.AddList(parentList.id)
-    }
-
-    fun onMoveListRequest(list: GoalList) {
-        _dialogState.value = DialogState.MoveList(list)
-    }
-
-    fun onMenuRequested(list: GoalList) {
-        _dialogState.value = DialogState.ContextMenu(list)
-    }
-
-    fun onDeleteRequest(list: GoalList) {
-        _dialogState.value = DialogState.ConfirmDelete(list)
-    }
-
-    fun dismissDialog() {
-        _dialogState.value = DialogState.Hidden
-    }
-
-    fun onListClicked(listId: String) {
-        viewModelScope.launch {
-            _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId))
-        }
-    }
-
-    fun onDesktopAddressChange(newAddress: String) {
-        _desktopAddress.value = newAddress
-        viewModelScope.launch {
-            settingsRepo.saveDesktopAddress(newAddress)
-        }
-    }
-
-    fun onDismissWifiServerDialog() {
-        _showWifiServerDialog.value = false
-        stopWifiServer()
-    }
-
-    fun onShowWifiImportDialog() {
-        _showWifiImportDialog.value = true
-    }
-
-    fun onDismissWifiImportDialog() {
-        _showWifiImportDialog.value = false
-    }
-
-    fun onRenameRequest(list: GoalList) {
-        _dialogState.value = DialogState.RenameList(list)
     }
 
     fun onRenameListConfirmed(listToRename: GoalList, newName: String) {
@@ -222,28 +147,8 @@ class GoalListViewModel(
             return
         }
         viewModelScope.launch {
-            goalListDao.update(listToRename.copy(name = newName, updatedAt = System.currentTimeMillis()))
+            goalRepository.updateGoalList(listToRename.copy(name = newName, updatedAt = System.currentTimeMillis()))
             dismissDialog()
-        }
-    }
-
-    private val _showSearchDialog = MutableStateFlow(false)
-    val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
-
-    fun onShowSearchDialog() {
-        _showSearchDialog.value = true
-    }
-
-    fun onDismissSearchDialog() {
-        _showSearchDialog.value = false
-    }
-
-    fun onPerformGlobalSearch(query: String) {
-        if (query.isNotBlank()) {
-            viewModelScope.launch {
-                _uiEventChannel.send(GoalListUiEvent.NavigateToGlobalSearch(query))
-                onDismissSearchDialog()
-            }
         }
     }
 
@@ -259,10 +164,6 @@ class GoalListViewModel(
         }
     }
 
-    fun onShowSettingsDialog() {
-        _dialogState.value = DialogState.AppSettings
-    }
-
     fun onSaveSettings(vaultName: String) {
         viewModelScope.launch {
             settingsRepo.saveObsidianVaultName(vaultName)
@@ -270,20 +171,33 @@ class GoalListViewModel(
         }
     }
 
-}
-
-
-class GoalListViewModelFactory(
-    private val application: Application,
-    private val goalListDao: GoalListDao,
-    private val goalDao: GoalDao,
-    private val settingsRepo: SettingsRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(GoalListViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return GoalListViewModel(application, goalListDao, goalDao, settingsRepo) as T
+    // --- Навігація та UI події ---
+    fun onAddNewListRequest() { _dialogState.value = DialogState.AddList(null) }
+    fun onAddSublistRequest(parentList: GoalList) { _dialogState.value = DialogState.AddList(parentList.id) }
+    fun onMoveListRequest(list: GoalList) { _dialogState.value = DialogState.MoveList(list) }
+    fun onMenuRequested(list: GoalList) { _dialogState.value = DialogState.ContextMenu(list) }
+    fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
+    fun onRenameRequest(list: GoalList) { _dialogState.value = DialogState.RenameList(list) }
+    fun onShowSettingsDialog() { _dialogState.value = DialogState.AppSettings }
+    fun dismissDialog() { _dialogState.value = DialogState.Hidden }
+    fun onListClicked(listId: String) { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId)) } }
+    fun onDesktopAddressChange(newAddress: String) {
+        _desktopAddress.value = newAddress
+        viewModelScope.launch { settingsRepo.saveDesktopAddress(newAddress) }
+    }
+    fun onDismissWifiServerDialog() { _showWifiServerDialog.value = false; stopWifiServer() }
+    fun onShowWifiImportDialog() { _showWifiImportDialog.value = true }
+    fun onDismissWifiImportDialog() { _showWifiImportDialog.value = false }
+    private val _showSearchDialog = MutableStateFlow(false)
+    val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
+    fun onShowSearchDialog() { _showSearchDialog.value = true }
+    fun onDismissSearchDialog() { _showSearchDialog.value = false }
+    fun onPerformGlobalSearch(query: String) {
+        if (query.isNotBlank()) {
+            viewModelScope.launch {
+                _uiEventChannel.send(GoalListUiEvent.NavigateToGlobalSearch(query))
+                onDismissSearchDialog()
+            }
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

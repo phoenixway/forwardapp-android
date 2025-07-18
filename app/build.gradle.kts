@@ -1,7 +1,7 @@
 // Файл: /app/build.gradle.kts
 
 val majorVersion = 2
-val minorVersion = 1
+val minorVersion = 2
 val patchVersion = 0
 val buildNumber = 30
 
@@ -15,6 +15,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.hilt.android)
+
 }
 
 android {
@@ -139,4 +141,9 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler) // Використовуємо ksp, а не kapt
+    implementation(libs.hilt.navigation.compose)
+
 }

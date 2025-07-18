@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,13 +13,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -31,6 +30,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.burnoutcrew.reorderable.ReorderableItem
@@ -50,7 +51,6 @@ import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 import kotlin.math.roundToInt
 
-// Стани для свайпу
 enum class SwipeAction {
     Hidden,
     Revealed,
@@ -59,8 +59,8 @@ enum class SwipeAction {
 
 @Composable
 fun GoalDetailScreen(
-    viewModel: GoalDetailViewModel,
-    navController: NavController
+    navController: NavController,
+    viewModel: GoalDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val goals by viewModel.filteredGoals.collectAsState()
@@ -68,14 +68,23 @@ fun GoalDetailScreen(
     val showInputModeDialog by viewModel.showInputModeDialog.collectAsState()
     val associatedListsMap by viewModel.associatedListsMap.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
+    val listHierarchy by viewModel.listHierarchyForChooser.collectAsState()
+    val list by viewModel.goalList.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var resetTriggers by remember { mutableStateOf(mapOf<String, Int>()) }
 
+    val listState = rememberLazyListState()
+
     val reorderableState = rememberReorderableLazyListState(
-        onMove = { from, to -> viewModel.moveGoal(from.index, to.index) }
+        listState = listState,
+        onMove = { from, to ->
+            viewModel.moveGoal(from.index, to.index)
+        }
     )
+
+    val isLoading = list == null
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -108,7 +117,7 @@ fun GoalDetailScreen(
         if (goalId != null) {
             val index = goals.indexOfFirst { it.goal.id == goalId }
             if (index != -1) {
-                reorderableState.listState.animateScrollToItem(index)
+                listState.animateScrollToItem(index)
                 viewModel.onHighlightShown()
             }
         }
@@ -117,7 +126,7 @@ fun GoalDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.goalList?.name ?: "Завантаження...") },
+                title = { Text(list?.name ?: "Завантаження...") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -135,7 +144,7 @@ fun GoalDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        if (isLoading) {
             Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -145,42 +154,74 @@ fun GoalDetailScreen(
             }
         } else {
             LazyColumn(
-                state = reorderableState.listState,
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .reorderable(reorderableState)
-                    .detectReorderAfterLongPress(reorderableState)
             ) {
                 items(goals, key = { it.instanceId }) { goalWithInstance ->
-                    ReorderableItem(reorderableState, key = goalWithInstance.instanceId) {
-                        val isHighlighted by remember(uiState.goalToHighlight) {
-                            derivedStateOf { uiState.goalToHighlight == goalWithInstance.goal.id }
-                        }
-                        val trigger = resetTriggers[goalWithInstance.instanceId] ?: 0
-                        val associatedLists = associatedListsMap[goalWithInstance.goal.id] ?: emptyList()
+                    ReorderableItem(reorderableState, key = goalWithInstance.instanceId) { isDragging ->
+                        val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp, label = "elevationAnimation")
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(elevation.value),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(modifier = Modifier.weight(1f)
+                                .detectReorderAfterLongPress(reorderableState)
+                            ) {
+                                val isHighlighted by remember(uiState.goalToHighlight) {
+                                    derivedStateOf { uiState.goalToHighlight == goalWithInstance.goal.id }
+                                }
+                                val trigger = resetTriggers[goalWithInstance.instanceId] ?: 0
+                                val associatedLists = associatedListsMap[goalWithInstance.goal.id] ?: emptyList()
 
-                        SwipeableGoalItem(
-                            resetTrigger = trigger,
-                            goalWithInstance = goalWithInstance,
-                            isHighlighted = isHighlighted,
-                            associatedLists = associatedLists,
-                            obsidianVaultName = obsidianVaultName, // <-- ПЕРЕДАЄМО ПАРАМЕТР
-                            onEdit = { viewModel.onEditGoal(goalWithInstance) },
-                            onDelete = { viewModel.deleteGoal(goalWithInstance) },
-                            onMore = { viewModel.onGoalActionInitiated(goalWithInstance) },
-                            onToggle = { viewModel.toggleGoalCompleted(goalWithInstance.goal) },
-                            onTagClick = { tag -> viewModel.onTagClicked(tag) },
-                            onAssociatedListClick = { listId -> viewModel.onAssociatedListClicked(listId) },
-                            onResetSwipe = { viewModel.resetSwipe(goalWithInstance.instanceId) }
-                        )
+                                SwipeableGoalItem(
+                                    resetTrigger = trigger,
+                                    goalWithInstance = goalWithInstance,
+                                    isHighlighted = isHighlighted,
+                                    associatedLists = associatedLists,
+                                    obsidianVaultName = obsidianVaultName,
+                                    onEdit = { viewModel.onEditGoal(goalWithInstance) },
+                                    onDelete = { viewModel.deleteGoal(goalWithInstance) },
+                                    onMore = { viewModel.onGoalActionInitiated(goalWithInstance) },
+                                    onToggle = { viewModel.toggleGoalCompleted(goalWithInstance.goal) },
+                                    onTagClick = { tag -> viewModel.onTagClicked(tag) },
+                                    onAssociatedListClick = { listId -> viewModel.onAssociatedListClicked(listId) }
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
+    if (showInputModeDialog) {
+        InputModeDialog(
+            onDismiss = { viewModel.onDismissInputModeDialog() },
+            onSelect = { viewModel.onInputModeSelected(it) }
+        )
+    }
 
-    // ... решта діалогів без змін ...
+    when (val state = goalActionState) {
+        is GoalActionDialogState.Hidden -> {}
+        is GoalActionDialogState.AwaitingActionChoice -> {
+            GoalActionChoiceDialog(
+                onDismiss = { viewModel.onDismissGoalActionDialogs() },
+                onActionSelected = { viewModel.onGoalActionSelected(it) }
+            )
+        }
+        is GoalActionDialogState.AwaitingListChoice -> {
+            ListChooserDialog(
+                topLevelLists = listHierarchy.topLevelLists,
+                childMap = listHierarchy.childMap,
+                onDismiss = { viewModel.onDismissGoalActionDialogs() },
+                onConfirm = { viewModel.confirmGoalAction(it) }
+            )
+        }
+    }
 }
 
 @Composable
@@ -195,45 +236,26 @@ fun SwipeableGoalItem(
     onMore: () -> Unit,
     onToggle: () -> Unit,
     onTagClick: (String) -> Unit,
-    onAssociatedListClick: (String) -> Unit,
-    onResetSwipe: () -> Unit
+    onAssociatedListClick: (String) -> Unit
 ) {
     val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
 
-    val revealPx = with(density) { -180.dp.toPx() }
+    val revealPx = with(density) { (180.dp * -1).toPx() }
     val deletePx = with(density) { 120.dp.toPx() }
-
-    val fullAnchors = remember {
-        DraggableAnchors {
-            SwipeAction.Hidden at 0f
-            SwipeAction.Revealed at revealPx
-            SwipeAction.Delete at deletePx
-        }
-    }
 
     val state = remember(key1 = resetTrigger) {
         AnchoredDraggableState(
             initialValue = SwipeAction.Hidden,
-            anchors = fullAnchors,
-            positionalThreshold = { totalDistance -> totalDistance * 0.6f },
-            velocityThreshold = { with(density) { 100.dp.toPx() } },
-            animationSpec = tween(durationMillis = 300)
-        )
-    }
-
-    LaunchedEffect(state.currentValue) {
-        val newAnchors = when (state.currentValue) {
-            SwipeAction.Revealed -> DraggableAnchors {
+            anchors = DraggableAnchors {
                 SwipeAction.Hidden at 0f
                 SwipeAction.Revealed at revealPx
-            }
-            SwipeAction.Delete -> DraggableAnchors {
-                SwipeAction.Hidden at 0f
                 SwipeAction.Delete at deletePx
-            }
-            SwipeAction.Hidden -> fullAnchors
-        }
-        state.updateAnchors(newAnchors)
+            },
+            positionalThreshold = { totalDistance -> totalDistance * 0.6f },
+            velocityThreshold = { Float.POSITIVE_INFINITY },
+            animationSpec = tween(durationMillis = 300)
+        )
     }
 
     LaunchedEffect(state.targetValue) {
@@ -243,49 +265,59 @@ fun SwipeableGoalItem(
     }
 
     val itemBackgroundColor by animateColorAsState(
-        targetValue = if (isHighlighted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
+        targetValue = if (isHighlighted) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
         animationSpec = tween(durationMillis = 1500), label = "ItemBackgroundColor"
     )
 
     Box(
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(itemBackgroundColor)
     ) {
-        Box(modifier = Modifier.matchParentSize()) {
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                IconButton(onClick = onMore, modifier = Modifier.fillMaxHeight().width(90.dp).background(MaterialTheme.colorScheme.secondary)) { Icon(Icons.Default.SwapVert, "Дії", tint = Color.White) }
-                IconButton(onClick = onEdit, modifier = Modifier.fillMaxHeight().width(90.dp).background(Color.Gray)) { Icon(Icons.Default.Edit, "Редагувати", tint = Color.White) }
-            }
-
-            // --- ОСНОВНА ЗМІНА ТУТ ---
-            // Ми повертаємося до Box, але тепер центруємо саму ІКОНКУ всередині нього.
+        Box(
+            modifier = Modifier.matchParentSize()
+        ) {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .fillMaxHeight()
                     .width(120.dp)
-                    .background(MaterialTheme.colorScheme.error)
+                    .background(MaterialTheme.colorScheme.error),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Видалити",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .align(Alignment.Center) // Цей модифікатор явно центрує іконку в батьківському Box.
-                )
+                Icon(Icons.Default.Delete, "Видалити", tint = Color.White)
+            }
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onMore,
+                    modifier = Modifier.fillMaxHeight().width(90.dp).background(MaterialTheme.colorScheme.secondary)
+                ) {
+                    Icon(Icons.Default.SwapVert, "Дії", tint = Color.White)
+                }
+                IconButton(
+                    onClick = {
+                        onEdit()
+                        coroutineScope.launch { state.settle(0f) }
+                    },
+                    modifier = Modifier.fillMaxHeight().width(90.dp).background(Color.Gray)
+                ) {
+                    Icon(Icons.Default.Edit, "Редагувати", tint = Color.White)
+                }
             }
         }
+
+        val clampedOffset = state.requireOffset().coerceIn(revealPx, deletePx)
         Surface(
             modifier = Modifier
-                .offset { IntOffset(state.requireOffset().roundToInt(), 0) }
+                .fillMaxWidth()
+                .offset { IntOffset(clampedOffset.roundToInt(), 0) }
                 .anchoredDraggable(state, Orientation.Horizontal),
-            color = itemBackgroundColor,
             onClick = {
                 if (state.currentValue != SwipeAction.Hidden) {
-                    onResetSwipe()
+                    coroutineScope.launch { state.settle(0f) }
                 } else {
                     onMore()
                 }
@@ -296,23 +328,15 @@ fun SwipeableGoalItem(
                 associatedLists = associatedLists,
                 obsidianVaultName = obsidianVaultName,
                 onToggle = onToggle,
-                onItemClick = {
-                    if (state.currentValue != SwipeAction.Hidden) {
-                        onResetSwipe()
-                    } else {
-                        onMore()
-                    }
-                },
+                onItemClick = {},
                 onTagClick = onTagClick,
                 onAssociatedListClick = onAssociatedListClick,
-                backgroundColor = Color.Transparent,
+                backgroundColor = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
             )
         }
     }
 }
-
-// --- Решта файлу (GoalInputBar та діалоги) залишаються без змін ---
 
 @Composable
 fun GoalInputBar(
@@ -468,6 +492,8 @@ fun InputModeDialog(onDismiss: () -> Unit, onSelect: (InputMode) -> Unit) {
                 Text("Add Goal", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.AddGoal) }.padding(16.dp))
                 HorizontalDivider()
                 Text("Search in List", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.SearchInList) }.padding(16.dp))
+
+
                 HorizontalDivider()
                 Text("Search Globally", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.SearchGlobal) }.padding(16.dp))
             }

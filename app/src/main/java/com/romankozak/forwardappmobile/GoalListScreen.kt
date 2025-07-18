@@ -1,7 +1,5 @@
 package com.romankozak.forwardappmobile
 
-
-import android.app.Application
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,23 +12,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalListScreen(
     navController: NavController,
-    syncDataViewModel: SyncDataViewModel
+    syncDataViewModel: SyncDataViewModel,
+    // Тепер ми отримуємо ViewModel, створену Hilt, як параметр
+    viewModel: GoalListViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
-    val settingsRepo = SettingsRepository(context.applicationContext)
-    val viewModel: GoalListViewModel = viewModel(
-        factory = GoalListViewModelFactory(context.applicationContext as Application, db.goalListDao(), db.goalDao(), settingsRepo)
-    )
-
     val hierarchy by viewModel.listHierarchy.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
     val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsState()
@@ -46,7 +38,7 @@ fun GoalListScreen(
                     navController.navigate("sync_screen")
                 }
                 is GoalListUiEvent.NavigateToDetails -> navController.navigate("goal_detail_screen/${event.listId}")
-                is GoalListUiEvent.ShowToast -> Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                is GoalListUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
                 is GoalListUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
             }
         }
@@ -81,13 +73,11 @@ fun GoalListScreen(
                             viewModel.onShowSettingsDialog()
                             menuExpanded = false
                         })
-
                     }
                 }
             )
         }
     ) { paddingValues ->
-        // --- ВИПРАВЛЕНО: `hierarchy.topLevelLists` тепер існує і працює ---
         if (hierarchy.topLevelLists.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 Text("Створіть свій перший список")
@@ -123,7 +113,6 @@ fun GoalListScreen(
     )
 }
 
-// --- ВИПРАВЛЕНО: Функція приймає об'єкт `ListHierarchyData` ---
 private fun LazyListScope.renderListRecursively(
     list: GoalList,
     level: Int,
@@ -157,11 +146,10 @@ private fun LazyListScope.renderListRecursively(
     }
 }
 
-
 @Composable
 private fun HandleDialogs(
     dialogState: DialogState,
-    hierarchy: ListHierarchyData, // --- ВИПРАВЛЕНО: Тип параметра ---
+    hierarchy: ListHierarchyData,
     viewModel: GoalListViewModel,
     showWifiServerDialog: Boolean,
     wifiServerAddress: String?,
@@ -223,7 +211,6 @@ private fun HandleDialogs(
                 onSave = { newName -> viewModel.onSaveSettings(newName) }
             )
         }
-
     }
 
     if (showWifiServerDialog) {

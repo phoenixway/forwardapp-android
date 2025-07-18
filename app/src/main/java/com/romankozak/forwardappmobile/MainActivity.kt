@@ -3,45 +3,39 @@ package com.romankozak.forwardappmobile
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge // <-- ДОДАЙТЕ ЦЕЙ ІМПОРТ
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val syncDataViewModel: SyncDataViewModel by viewModels()
-    private val db by lazy { AppDatabase.getDatabase(this) }
+    // Видаляємо db, бо Hilt тепер керує цим
+    // private val db by lazy { AppDatabase.getDatabase(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // <-- ДОДАЙТЕ ЦЕЙ РЯДОК ПЕРЕД super.onCreate(savedInstanceState) АБО ПІСЛЯ
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
         setContent {
             ForwardAppMobileTheme {
-                AppNavigation(
-                    syncDataViewModel = syncDataViewModel,
-                    db = db
-                )
+                AppNavigation(syncDataViewModel = syncDataViewModel)
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppNavigation(
     syncDataViewModel: SyncDataViewModel,
-    db: AppDatabase
 ) {
     val navController = rememberNavController()
 
@@ -50,9 +44,12 @@ fun AppNavigation(
         startDestination = "goal_lists_screen"
     ) {
         composable("goal_lists_screen") {
+            // Hilt сам надасть GoalListViewModel
+            val viewModel: GoalListViewModel = hiltViewModel()
             GoalListScreen(
                 navController = navController,
-                syncDataViewModel = syncDataViewModel
+                syncDataViewModel = syncDataViewModel,
+                viewModel = viewModel
             )
         }
 
@@ -60,68 +57,50 @@ fun AppNavigation(
             "goal_detail_screen/{listId}?goalId={goalId}",
             arguments = listOf(
                 navArgument("listId") { type = NavType.StringType },
-                navArgument("goalId") {
+                navArgument("goalId") { type = NavType.StringType; nullable = true }
+            )
+        ) {
+            // Hilt сам надасть GoalDetailViewModel.
+            // SavedStateHandle вже буде включено автоматично.
+            GoalDetailScreen(
+                viewModel = hiltViewModel(),
+                navController = navController
+            )
+        }
+
+        composable(
+            "goal_detail_screen/{goalListId}?goalId={goalToHighlight}", // <-- ВИПРАВЛЕНО
+            arguments = listOf(
+                navArgument("goalListId") { type = NavType.StringType }, // <-- ВИПРАВЛЕНО
+                navArgument("goalToHighlight") { // <-- Також привів до відповідності
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
                 }
             )
-        ) { backStackEntry ->
-            val listId = backStackEntry.arguments?.getString("listId")
-            if (listId != null) {
-                // --- ВИПРАВЛЕНО: Цей рядок було випадково видалено, тепер його повернуто ---
-                val goalIdToHighlight = backStackEntry.arguments?.getString("goalId")
-
-                val context = LocalContext.current
-                val settingsRepo = SettingsRepository(context.applicationContext)
-                val detailViewModelFactory = GoalDetailViewModelFactory(db.goalDao(), db.goalListDao(), settingsRepo, listId, goalIdToHighlight)
-                val detailViewModel: GoalDetailViewModel = viewModel(factory = detailViewModelFactory)
-
-                GoalDetailScreen(
-                    viewModel = detailViewModel,
-                    navController = navController
-                )
-            }
-        }
-
-        composable(
-            route = "goal_edit_screen?listId={listId}&goalId={goalId}&text={text}",
-            arguments = listOf(
-                navArgument("listId") { type = NavType.StringType },
-                navArgument("goalId") {
-                    nullable = true
-                    type = NavType.StringType
-                },
-                navArgument("text") {
-                    nullable = true
-                    type = NavType.StringType
-                }
+        ) {
+            // Hilt сам надасть GoalDetailViewModel.
+            // SavedStateHandle вже буде включено автоматично.
+            GoalDetailScreen(
+                navController = navController
+                // viewModel тут не потрібен, hiltViewModel() зробить все сам
             )
-        ) { backStackEntry ->
-            val listId = backStackEntry.arguments?.getString("listId")
-            if (listId != null) {
-                GoalEditScreen(
-                    navController = navController,
-                    db = db,
-                    savedStateHandle = backStackEntry.savedStateHandle
-                )
-            }
         }
+
 
         composable(
             "global_search_screen/{query}",
             arguments = listOf(navArgument("query") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val query = backStackEntry.arguments?.getString("query")
-            if (query != null) {
-                val searchViewModelFactory = GlobalSearchViewModelFactory(db.goalDao(), query)
-                val searchViewModel: GlobalSearchViewModel = viewModel(factory = searchViewModelFactory)
-
-                GlobalSearchScreen(viewModel = searchViewModel, navController = navController)
-            }
+        ) {
+            // Hilt сам надасть GlobalSearchViewModel.
+            GlobalSearchScreen(
+                viewModel = hiltViewModel(),
+                navController = navController
+            )
         }
 
         composable("sync_screen") {
+            // Цей ViewModel поки що не використовує Hilt, тому залишаємо як є.
             SyncScreen(
                 syncDataViewModel = syncDataViewModel,
                 onSyncComplete = { navController.popBackStack() }
