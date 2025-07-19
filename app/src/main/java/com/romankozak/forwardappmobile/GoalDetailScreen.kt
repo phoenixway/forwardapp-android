@@ -3,20 +3,19 @@
 package com.romankozak.forwardappmobile
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -25,37 +24,34 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.mohamedrejeb.compose.dnd.DragAndDropContainer
+import com.mohamedrejeb.compose.dnd.drag.DraggableItem
+import com.mohamedrejeb.compose.dnd.drop.dropTarget
+import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.burnoutcrew.reorderable.ReorderableItem
-import org.burnoutcrew.reorderable.detectReorderAfterLongPress
-import org.burnoutcrew.reorderable.rememberReorderableLazyListState
-import org.burnoutcrew.reorderable.reorderable
-import kotlin.math.roundToInt
 
-enum class SwipeAction {
-    Hidden,
-    Revealed,
-    Delete
-}
 
 @Composable
 fun GoalDetailScreen(
@@ -76,13 +72,7 @@ fun GoalDetailScreen(
     var resetTriggers by remember { mutableStateOf(mapOf<String, Int>()) }
 
     val listState = rememberLazyListState()
-
-    val reorderableState = rememberReorderableLazyListState(
-        listState = listState,
-        onMove = { from, to ->
-            viewModel.moveGoal(from.index, to.index)
-        }
-    )
+    val dragAndDropState = rememberDragAndDropState<GoalWithInstanceInfo>()
 
     val isLoading = list == null
 
@@ -102,11 +92,16 @@ fun GoalDetailScreen(
                     }
                 }
                 is UiEvent.ResetSwipeState -> {
-                    val currentTrigger = resetTriggers[event.instanceId] ?: 0
+                    val currentTrigger = resetTriggers.getOrDefault(event.instanceId, 0)
                     resetTriggers = resetTriggers + (event.instanceId to currentTrigger + 1)
                 }
                 is UiEvent.Navigate -> {
                     navController.navigate(event.route)
+                }
+                is UiEvent.ScrollTo -> {
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(event.index.coerceAtLeast(0))
+                    }
                 }
             }
         }
@@ -138,59 +133,161 @@ fun GoalDetailScreen(
         bottomBar = {
             GoalInputBar(
                 inputMode = uiState.inputMode,
-                onModeChangeRequest = { viewModel.onInputModeChangeRequest() },
+                onModeChangeRequest = { viewModel.onModeChangeRequest() },
                 onTextChange = { viewModel.onInputTextChanged(it) },
                 onSubmit = { viewModel.submitInput(it) }
             )
         }
     ) { paddingValues ->
-        if (isLoading) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when {
+            isLoading -> {
+                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else if (goals.isEmpty() && uiState.localSearchQuery.isBlank()) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("У цьому списку ще немає цілей.")
+            goals.isEmpty() && uiState.localSearchQuery.isBlank() -> {
+                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    Text("У цьому списку ще немає цілей.")
+                }
             }
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .reorderable(reorderableState)
-            ) {
-                items(goals, key = { it.instanceId }) { goalWithInstance ->
-                    ReorderableItem(reorderableState, key = goalWithInstance.instanceId) { isDragging ->
-                        val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp, label = "elevationAnimation")
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(elevation.value),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(modifier = Modifier.weight(1f)
-                                .detectReorderAfterLongPress(reorderableState)
-                            ) {
-                                val isHighlighted by remember(uiState.goalToHighlight) {
-                                    derivedStateOf { uiState.goalToHighlight == goalWithInstance.goal.id }
-                                }
-                                val trigger = resetTriggers[goalWithInstance.instanceId] ?: 0
-                                val associatedLists = associatedListsMap[goalWithInstance.goal.id] ?: emptyList()
+            else -> {
+                var scrollDirection by remember { mutableStateOf(0) }
 
-                                SwipeableGoalItem(
-                                    resetTrigger = trigger,
-                                    goalWithInstance = goalWithInstance,
-                                    isHighlighted = isHighlighted,
-                                    associatedLists = associatedLists,
-                                    obsidianVaultName = obsidianVaultName,
-                                    onEdit = { viewModel.onEditGoal(goalWithInstance) },
-                                    onDelete = { viewModel.deleteGoal(goalWithInstance) },
-                                    onMore = { viewModel.onGoalActionInitiated(goalWithInstance) },
-                                    onToggle = { viewModel.toggleGoalCompleted(goalWithInstance.goal) },
-                                    onTagClick = { tag -> viewModel.onTagClicked(tag) },
-                                    onAssociatedListClick = { listId -> viewModel.onAssociatedListClicked(listId) }
-                                )
+                LaunchedEffect(scrollDirection) {
+                    if (scrollDirection != 0) {
+                        while (true) {
+                            listState.scrollBy(20f * scrollDirection)
+                            delay(16)
+                        }
+                    }
+                }
+
+                LaunchedEffect(dragAndDropState.draggedItem) {
+                    if (dragAndDropState.draggedItem == null) {
+                        scrollDirection = 0
+                    }
+                }
+
+                DragAndDropContainer(
+                    state = dragAndDropState
+                ) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    ) {
+                        itemsIndexed(goals, key = { _, it -> it.instanceId }) { _, goalWithInstanceInfo ->
+                            val isCurrentlyDragging = dragAndDropState.draggedItem?.key == goalWithInstanceInfo.instanceId
+
+                            val elevation = animateDpAsState(if (isCurrentlyDragging) 8.dp else 0.dp, label = "elevationAnimation")
+                            val scale by animateFloatAsState(if (isCurrentlyDragging) 1.02f else 1.0f, label = "scaleAnimation")
+
+                            val haptic = LocalHapticFeedback.current
+                            LaunchedEffect(isCurrentlyDragging) {
+                                if (isCurrentlyDragging) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .dropTarget(
+                                        state = dragAndDropState,
+                                        key = goalWithInstanceInfo.instanceId,
+                                        onDrop = { draggedItemState ->
+                                            scrollDirection = 0
+                                            val draggedData = draggedItemState.data
+                                            val droppedOnData = goalWithInstanceInfo
+
+                                            val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
+                                            val toIndex = goals.indexOfFirst { it.instanceId == droppedOnData.instanceId }
+
+                                            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
+                                                viewModel.moveGoal(fromIndex, toIndex)
+                                                                           }
+                                        },
+                                        onDragEnter = {
+                                            val hoveredIndex = goals.indexOfFirst { it.instanceId == goalWithInstanceInfo.instanceId }
+                                            val visibleItems = listState.layoutInfo.visibleItemsInfo
+                                            if (visibleItems.isNotEmpty()) {
+                                                val firstVisibleIndex = visibleItems.first().index
+                                                val lastVisibleIndex = visibleItems.last().index
+
+                                                scrollDirection = when (hoveredIndex) {
+                                                    firstVisibleIndex -> -1
+                                                    lastVisibleIndex -> 1
+                                                    else -> 0
+                                                }
+                                            }
+                                        },
+                                        onDragExit = {
+                                            scrollDirection = 0
+                                        }
+                                    )
+                            ) {
+                                // ✨ ВИПРАВЛЕНО: Замінено isDragging на draggedItem != null
+                                if (dragAndDropState.draggedItem != null && dragAndDropState.hoveredDropTargetKey == goalWithInstanceInfo.instanceId && dragAndDropState.draggedItem?.key != goalWithInstanceInfo.instanceId) {
+                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                ) {
+                                    val isHighlighted by remember(uiState.goalToHighlight) {
+                                        derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
+                                    }
+                                    val associatedLists = associatedListsMap.getOrDefault(goalWithInstanceInfo.goal.id, emptyList())
+
+                                    SwipeableGoalItem(
+                                        modifier = Modifier
+                                            .scale(scale)
+                                            .shadow(elevation.value, RoundedCornerShape(8.dp)),
+                                        resetTrigger = resetTriggers.getOrDefault(goalWithInstanceInfo.instanceId, 0),
+                                        goalWithInstance = goalWithInstanceInfo,
+                                        isHighlighted = isHighlighted,
+                                        isDragging = isCurrentlyDragging,
+                                        associatedLists = associatedLists,
+                                        obsidianVaultName = obsidianVaultName,
+                                        onEdit = { viewModel.onEditGoal(goalWithInstanceInfo) },
+                                        onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
+                                        onMore = { viewModel.onGoalActionInitiated(goalWithInstanceInfo) },
+                                        onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
+                                        onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
+                                        onAssociatedListClick = { listId: String -> viewModel.onAssociatedListClicked(listId) },
+                                        dragHandle = {
+                                            DraggableItem(
+                                                state = dragAndDropState,
+                                                key = goalWithInstanceInfo.instanceId,
+                                                data = goalWithInstanceInfo,
+                                                dropAnimationSpec = snap()
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.size(48.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.DragHandle,
+                                                        contentDescription = "Ручка для перетягування",
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        item {
+                            // ✨ ВИПРАВЛЕНО: Замінено isDragging на draggedItem != null
+                            val isTargetedAtEnd = dragAndDropState.draggedItem != null && dragAndDropState.hoveredDropTargetKey == null
+                            if(isTargetedAtEnd) {
+                                val draggedItemIndex = goals.indexOfFirst { it.instanceId == dragAndDropState.draggedItem?.key }
+                                if(draggedItemIndex != -1 && draggedItemIndex != goals.lastIndex) {
+                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                                }
                             }
                         }
                     }
@@ -198,6 +295,7 @@ fun GoalDetailScreen(
             }
         }
     }
+
     if (showInputModeDialog) {
         InputModeDialog(
             onDismiss = { viewModel.onDismissInputModeDialog() },
@@ -225,120 +323,6 @@ fun GoalDetailScreen(
 }
 
 @Composable
-fun SwipeableGoalItem(
-    resetTrigger: Int,
-    goalWithInstance: GoalWithInstanceInfo,
-    isHighlighted: Boolean,
-    associatedLists: List<GoalList>,
-    obsidianVaultName: String,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onMore: () -> Unit,
-    onToggle: () -> Unit,
-    onTagClick: (String) -> Unit,
-    onAssociatedListClick: (String) -> Unit
-) {
-    val density = LocalDensity.current
-    val coroutineScope = rememberCoroutineScope()
-
-    val revealPx = with(density) { (180.dp * -1).toPx() }
-    val deletePx = with(density) { 120.dp.toPx() }
-
-    val state = remember(key1 = resetTrigger) {
-        AnchoredDraggableState(
-            initialValue = SwipeAction.Hidden,
-            anchors = DraggableAnchors {
-                SwipeAction.Hidden at 0f
-                SwipeAction.Revealed at revealPx
-                SwipeAction.Delete at deletePx
-            },
-            positionalThreshold = { totalDistance -> totalDistance * 0.6f },
-            velocityThreshold = { Float.POSITIVE_INFINITY },
-            animationSpec = tween(durationMillis = 300)
-        )
-    }
-
-    LaunchedEffect(state.targetValue) {
-        if (state.targetValue == SwipeAction.Delete) {
-            onDelete()
-        }
-    }
-
-    val itemBackgroundColor by animateColorAsState(
-        targetValue = if (isHighlighted) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
-        animationSpec = tween(durationMillis = 1500), label = "ItemBackgroundColor"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(itemBackgroundColor)
-    ) {
-        Box(
-            modifier = Modifier.matchParentSize()
-        ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxHeight()
-                    .width(120.dp)
-                    .background(MaterialTheme.colorScheme.error),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Delete, "Видалити", tint = Color.White)
-            }
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onMore,
-                    modifier = Modifier.fillMaxHeight().width(90.dp).background(MaterialTheme.colorScheme.secondary)
-                ) {
-                    Icon(Icons.Default.SwapVert, "Дії", tint = Color.White)
-                }
-                IconButton(
-                    onClick = {
-                        onEdit()
-                        coroutineScope.launch { state.settle(0f) }
-                    },
-                    modifier = Modifier.fillMaxHeight().width(90.dp).background(Color.Gray)
-                ) {
-                    Icon(Icons.Default.Edit, "Редагувати", tint = Color.White)
-                }
-            }
-        }
-
-        val clampedOffset = state.requireOffset().coerceIn(revealPx, deletePx)
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(clampedOffset.roundToInt(), 0) }
-                .anchoredDraggable(state, Orientation.Horizontal),
-            onClick = {
-                if (state.currentValue != SwipeAction.Hidden) {
-                    coroutineScope.launch { state.settle(0f) }
-                } else {
-                    onMore()
-                }
-            }
-        ) {
-            GoalItem(
-                goal = goalWithInstance.goal,
-                associatedLists = associatedLists,
-                obsidianVaultName = obsidianVaultName,
-                onToggle = onToggle,
-                onItemClick = {},
-                onTagClick = onTagClick,
-                onAssociatedListClick = onAssociatedListClick,
-                backgroundColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier
-            )
-        }
-    }
-}
-
-@Composable
 fun GoalInputBar(
     inputMode: InputMode,
     onModeChangeRequest: () -> Unit,
@@ -359,7 +343,6 @@ fun GoalInputBar(
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, bottom = 8.dp, top = 8.dp)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-
     ) {
         Surface(
             shape = RoundedCornerShape(28.dp),
@@ -381,7 +364,6 @@ fun GoalInputBar(
                         contentDescription = "Change Input Mode"
                     )
                 }
-
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -436,16 +418,26 @@ fun GoalInputBar(
     }
 }
 
+
 @Composable
 fun GoalActionChoiceDialog(onDismiss: () -> Unit, onActionSelected: (GoalActionType) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column {
-                Text("Create instance in another list", modifier = Modifier.fillMaxWidth().clickable { onActionSelected(GoalActionType.CreateInstance) }.padding(16.dp))
+                Text("Create instance in another list", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.CreateInstance) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Move instance to another list", modifier = Modifier.fillMaxWidth().clickable { onActionSelected(GoalActionType.MoveInstance) }.padding(16.dp))
+                Text("Move instance to another list", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.MoveInstance) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Copy goal to another list", modifier = Modifier.fillMaxWidth().clickable { onActionSelected(GoalActionType.CopyGoal) }.padding(16.dp))
+                Text("Copy goal to another list", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.CopyGoal) }
+                    .padding(16.dp))
             }
         }
     }
@@ -489,13 +481,20 @@ fun InputModeDialog(onDismiss: () -> Unit, onSelect: (InputMode) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column {
-                Text("Add Goal", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.AddGoal) }.padding(16.dp))
+                Text("Add Goal", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(InputMode.AddGoal) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Search in List", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.SearchInList) }.padding(16.dp))
-
-
+                Text("Search in List", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(InputMode.SearchInList) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Search Globally", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.SearchGlobal) }.padding(16.dp))
+                Text("Search Globally", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(InputMode.SearchGlobal) }
+                    .padding(16.dp))
             }
         }
     }

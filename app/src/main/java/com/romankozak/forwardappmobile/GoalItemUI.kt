@@ -8,8 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -29,7 +27,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// --- (код з іконками залишається без змін) ---
+// --- (код з іконками, парсингом, форматуванням дати та ParsedGoalText залишається без змін) ---
+
 private enum class IconCategory {
     IMPORTANCE, SCALE, ACTIVITY, CUSTOM
 }
@@ -97,37 +96,29 @@ fun ParsedGoalText(
     val projectColor = MaterialTheme.colorScheme.tertiary
     val linkColor = MaterialTheme.colorScheme.tertiary
 
-    // ВИПРАВЛЕНО: Додано \b для тегів, щоб уникнути часткових збігів
     val combinedRegex = remember { Regex("(\\[\\[(.*?)(?:\\|(.*?))?]])|([#@])(\\p{L}[\\p{L}0-9_-]*\\b)") }
-
 
     val annotatedString = buildAnnotatedString {
         var lastIndex = 0
         for (match in combinedRegex.findAll(text)) {
             append(text.substring(lastIndex, match.range.first))
-
-            // ВИПРАВЛЕНО: Більш надійний доступ до груп
             val groups = match.groups
-            val wikilinkGroup = groups[1] // Повний збіг [[...]]
-            val tagSymbolGroup = groups[4] // # або @
+            val wikilinkGroup = groups[1]
+            val tagSymbolGroup = groups[4]
 
             if (wikilinkGroup != null) {
-                // Це вікі-посилання
                 val linkTarget = groups[2]?.value ?: ""
                 val linkText = groups[3]?.value
                 val displayText = if (!linkText.isNullOrEmpty()) linkText else linkTarget
-
                 pushStringAnnotation("OBSIDIAN_LINK", linkTarget)
                 withStyle(style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
                     append(displayText)
                 }
                 pop()
             } else if (tagSymbolGroup != null) {
-                // Це тег або проект
                 val tagSymbol = tagSymbolGroup.value
                 val tagName = groups[5]?.value ?: ""
                 val fullTag = "$tagSymbol$tagName"
-
                 pushStringAnnotation("SEARCH_TERM", fullTag)
                 val style = when (tagSymbol) {
                     "#" -> SpanStyle(color = tagColor, fontWeight = FontWeight.SemiBold)
@@ -156,7 +147,6 @@ fun ParsedGoalText(
         onClick = { offset ->
             annotatedString.getStringAnnotations("SEARCH_TERM", start = offset, end = offset)
                 .firstOrNull()?.let { onTagClick(it.item) }
-
             annotatedString.getStringAnnotations("OBSIDIAN_LINK", start = offset, end = offset)
                 .firstOrNull()?.let { annotation ->
                     val noteName = annotation.item
@@ -180,7 +170,6 @@ fun ParsedGoalText(
     )
 }
 
-// ... решта файлу (AssociatedListsRow, GoalItem) залишається без змін ...
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AssociatedListsRow(
@@ -213,7 +202,8 @@ fun GoalItem(
     onTagClick: (String) -> Unit,
     onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    dragHandle: @Composable (() -> Unit)? = null // Додано
 ) {
     val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text) }
 
@@ -266,13 +256,12 @@ fun GoalItem(
                     onListClick = onAssociatedListClick
                 )
             }
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Default.DragHandle,
-                contentDescription = "Перетягнути",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
+
+            // Додано відображення ручки для перетягування
+            if (dragHandle != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                dragHandle()
+            }
         }
         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     }

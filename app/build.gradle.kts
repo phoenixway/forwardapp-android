@@ -2,7 +2,7 @@
 
 val majorVersion = 2
 val minorVersion = 2
-val patchVersion = 0
+val patchVersion = 1
 val buildNumber = 30
 
 fun calculateVersionCode(): Int {
@@ -29,15 +29,11 @@ android {
         targetSdk = 36
         versionCode = calculateVersionCode()
         versionName = "$majorVersion.$minorVersion.$patchVersion"
-        // ------------------------------------
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
-
-
-        // БЛОК KSP БУЛО ВИДАЛЕНО ЗВІДСИ
     }
 
     buildTypes {
@@ -77,13 +73,11 @@ android {
     }
 }
 
-// ДОДАНО: Правильне місце для налаштувань KSP на рівні модуля
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
-    // Ваш блок залежностей залишається без змін
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -107,7 +101,7 @@ dependencies {
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    "ksp"(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler)
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
@@ -117,24 +111,12 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
 
-   // implementation(libs.netty.transport.native.epoll) {
-     //   artifact {
-       //     classifier = "linux-x86_64"
-        //}
-        // }
-    //implementation(libs.netty.transport.native.epoll) {        artifact {            classifier = "linux-aarch_64"        }    }
-
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.slf4j.android)
-
-    //implementation(libs.logback.classic)
-
-    implementation(libs.reorderable)
     implementation(libs.google.gson)
 
     implementation("io.ktor:ktor-server-cio-jvm:2.3.11")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:2.3.11")
-
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -143,7 +125,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler) // Використовуємо ksp, а не kapt
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
+    // --- ВИПРАВЛЕНО: Правильне підключення бібліотеки ---
+    implementation(libs.compose.dnd)
 }

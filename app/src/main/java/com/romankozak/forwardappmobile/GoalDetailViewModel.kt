@@ -11,11 +11,16 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/*
+ нижче опис бібліотеки. у вкладеннях файл який треба реалдівізувати на ній. зроби це.
+ */
+
 // --- ДОПОМІЖНІ КЛАСИ ТА СТАНИ ---
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
     data class ResetSwipeState(val instanceId: String) : UiEvent()
+    data class ScrollTo(val index: Int) : UiEvent() // ✨ ДОДАЙТЕ ЦЕ
 }
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
@@ -183,6 +188,7 @@ class GoalDetailViewModel @Inject constructor(
                 }
                 // TODO: Створити один метод в репозиторії для оновлення порядку
                 updatedInstances.forEach { goalRepository.insertInstance(it.toGoalInstance()) }
+                _uiEventFlow.send(UiEvent.ScrollTo(to))
             }
         }
     }
@@ -193,6 +199,10 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    // --- ДОДАНО ВІДСУТНІ МЕТОДИ ---
+    fun onModeChangeRequest() {
+        _showInputModeDialog.value = true
+    }
 
 
     fun onTagClicked(tag: String) {
