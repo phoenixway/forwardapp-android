@@ -68,21 +68,23 @@ class GoalDetailViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> =
-        combine(listIdFlow, _uiState) { id, state -> Pair(id, state.localSearchQuery) }
-            .flatMapLatest { (id, query) ->
+        combine(listIdFlow, _uiState) { id, state -> Pair(id, state) } // --- ЗМІНА: Передаємо весь стан, а не тільки query
+            .flatMapLatest { (id, state) ->
                 if (id.isEmpty()) {
                     flowOf(emptyList())
                 } else {
                     goalRepository.getGoalsForListStream(id).map { goals ->
-                        if (query.isBlank()) {
-                            goals
+                        // --- ЗМІНА: Додаємо перевірку режиму вводу ---
+                        if (state.inputMode == InputMode.SearchInList && state.localSearchQuery.isNotBlank()) {
+                            // Фільтруємо ТІЛЬКИ в режимі пошуку і якщо є що шукати
+                            goals.filter { it.goal.text.lowercase().contains(state.localSearchQuery.lowercase()) }
                         } else {
-                            goals.filter { it.goal.text.lowercase().contains(query.lowercase()) }
+                            // В режимі додавання або при порожньому пошуку повертаємо все
+                            goals
                         }
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     val associatedListsMap: StateFlow<Map<String, List<GoalList>>> = filteredGoals.flatMapLatest { goals ->
         val goalIds = goals.map { it.goal.id }.distinct()
         // Ми, як і раніше, отримуємо повний потік даних від репозиторію
