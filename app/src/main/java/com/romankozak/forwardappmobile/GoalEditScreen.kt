@@ -3,6 +3,7 @@
 package com.romankozak.forwardappmobile
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,7 +22,6 @@ import androidx.navigation.NavController
 @Composable
 fun GoalEditScreen(
     navController: NavController,
-    // --- ВИПРАВЛЕНО: ViewModel створюється за допомогою Hilt ---
     viewModel: GoalEditViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -88,11 +88,35 @@ fun GoalEditScreen(
                     OutlinedTextField(
                         value = uiState.goalDescription,
                         onValueChange = viewModel::onDescriptionChange,
-                        label = { Text("Опис (необов'язково)") },
+                        label = { Text("Опис (підтримує Markdown)") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 120.dp),
                     )
+                }
+
+                if (uiState.goalDescription.isNotBlank()) {
+                    item {
+                        Column {
+                            Text(
+                                "Попередній перегляд опису:",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                MarkdownText(
+                                    text = uiState.goalDescription,
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
                 }
 
                 item {
@@ -132,6 +156,34 @@ fun GoalEditScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Додати пов'язаний список")
+                    }
+                }
+
+                // ✨ ЗМІНА: Використовуємо локальну змінну для безпечного доступу
+                item {
+                    val createdAt = uiState.createdAt
+                    if (createdAt != null) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Створено: ${formatDate(createdAt)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            val updatedAt = uiState.updatedAt
+                            if (updatedAt != null && updatedAt > createdAt + 1000) { // Показуємо, тільки якщо є різниця
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Оновлено: ${formatDate(updatedAt)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }

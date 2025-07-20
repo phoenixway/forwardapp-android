@@ -20,7 +20,9 @@ data class GoalEditUiState(
     val associatedLists: List<GoalList> = emptyList(),
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
-    val showListChooser: Boolean = false
+    val showListChooser: Boolean = false,
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null
 )
 
 @HiltViewModel
@@ -63,7 +65,10 @@ class GoalEditViewModel @Inject constructor(
                             goalDescription = goal.description ?: "",
                             associatedLists = lists,
                             isReady = true,
-                            isNewGoal = false
+                            isNewGoal = false,
+                            createdAt = goal.createdAt,
+                            updatedAt = goal.updatedAt
+
                         )
                     }
                 } else {
@@ -76,7 +81,8 @@ class GoalEditViewModel @Inject constructor(
                         goalText = savedStateHandle.get<String>("text") ?: "",
                         associatedLists = emptyList(),
                         isReady = true,
-                        isNewGoal = true
+                        isNewGoal = true,
+
                     )
                 }
             }
