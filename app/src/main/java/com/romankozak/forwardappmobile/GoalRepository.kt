@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import java.util.UUID
 import javax.inject.Inject
@@ -20,11 +21,8 @@ class GoalRepository @Inject constructor(
         return goalListDao.getGoalListById(id)
     }
 
-    fun getAssociatedListsForGoal(goalId: String): Flow<Map<String, List<GoalList>>> {
-        return goalDao.getAssociatedListsForGoals(listOf(goalId))
-    }
-
-    suspend fun createGoal(title: String, listId: String) {
+    // ✨ ЗМІНА: Метод тепер повертає ID створеного екземпляру (String).
+    suspend fun createGoal(title: String, listId: String): String {
         val currentTime = System.currentTimeMillis()
         val newGoal = Goal(
             id = UUID.randomUUID().toString(),
@@ -34,10 +32,12 @@ class GoalRepository @Inject constructor(
             createdAt = currentTime,
             updatedAt = currentTime,
             tags = null,
-            associatedListIds = listOf(listId)
+            // За замовчуванням, нові цілі не мають швидких посилань
+            associatedListIds = emptyList()
         )
 
-        val order = goalDao.getGoalCountInList(listId).toLong()
+        val order = -currentTime
+
         val newInstance = GoalInstance(
             instanceId = UUID.randomUUID().toString(),
             goalId = newGoal.id,
@@ -46,6 +46,8 @@ class GoalRepository @Inject constructor(
         )
 
         goalDao.insertGoalWithInstance(newGoal, newInstance)
+
+        return newInstance.instanceId
     }
 
     suspend fun deleteGoalInstance(instanceId: String) {
@@ -56,8 +58,9 @@ class GoalRepository @Inject constructor(
         goalDao.updateGoal(goal)
     }
 
+    // ✨ ЗМІНА: Повернуто до простої версії. Цей метод НЕ МАЄ чіпати Goal.associatedListIds.
     suspend fun createGoalInstance(goalId: String, targetListId: String) {
-        val order = goalDao.getGoalCountInList(targetListId).toLong()
+        val order = -System.currentTimeMillis()
         val newInstance = GoalInstance(
             instanceId = UUID.randomUUID().toString(),
             goalId = goalId,
@@ -72,9 +75,36 @@ class GoalRepository @Inject constructor(
     }
 
     suspend fun copyGoal(goal: Goal, targetListId: String) {
+        // Створюємо повну копію цілі, включаючи її "швидкі посилання"
         val newGoal = goal.copy(id = UUID.randomUUID().toString())
-        createGoalInstance(newGoal.id, targetListId)
         goalDao.insertGoal(newGoal)
+        // Створюємо екземпляр цієї нової цілі в цільовому списку
+        createGoalInstance(newGoal.id, targetListId)
+    }
+
+    // ✨ ЗМІНА: Повністю переписана логіка для правильного отримання даних
+    fun getAssociatedListsForGoals(goalIds: List<String>): Flow<Map<String, List<GoalList>>> {
+        if (goalIds.isEmpty()) return flowOf(emptyMap())
+
+        // 1. Отримуємо потік потрібних нам цілей
+        val goalsFlow = goalDao.getGoalsByIds(goalIds)
+        // 2. Отримуємо потік усіх списків (для пошуку)
+        val allListsFlow = goalListDao.getAllLists()
+
+        // 3. Комбінуємо два потоки
+        return combine(goalsFlow, allListsFlow) { goals, allLists ->
+            val listLookup = allLists.associateBy { it.id }
+            val resultMap = mutableMapOf<String, List<GoalList>>()
+
+            // 4. Для кожної цілі знаходимо її асоційовані списки
+            for (goal in goals) {
+                val associatedIds = goal.associatedListIds ?: emptyList()
+                // Використовуємо `mapNotNull`, щоб безпечно отримати списки з нашого кешу `listLookup`
+                val associatedLists = associatedIds.mapNotNull { listLookup[it] }
+                resultMap[goal.id] = associatedLists
+            }
+            resultMap
+        }
     }
 
     // Методи для GoalListViewModel
@@ -104,70 +134,21 @@ class GoalRepository @Inject constructor(
         listsToDelete.forEach { goalListDao.delete(it) }
     }
 
-    // --- ДОДАНО МЕТОДИ ДЛЯ SyncRepository ---
-    suspend fun getAllGoalLists(): List<GoalList> {
-        return goalListDao.getAll()
-    }
+    // --- Методи для SyncRepository ---
+    suspend fun getAllGoalLists(): List<GoalList> = goalListDao.getAll()
+    suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
+    suspend fun getAllGoalInstances(): List<GoalInstance> = goalDao.getAllInstances()
+    suspend fun insertGoalLists(lists: List<GoalList>) = goalListDao.insertLists(lists)
+    suspend fun insertGoals(goals: List<Goal>) = goalDao.insertGoals(goals)
+    suspend fun deleteInstancesForLists(listIds: List<String>) = goalDao.deleteInstancesForLists(listIds)
+    suspend fun insertGoalInstances(instances: List<GoalInstance>) = goalDao.insertGoalInstances(instances)
+    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult> = goalDao.searchGoalsGlobal(query)
 
-    suspend fun getAllGoals(): List<Goal> {
-        return goalDao.getAll()
-    }
-
-    suspend fun getAllGoalInstances(): List<GoalInstance> {
-        return goalDao.getAllInstances()
-    }
-
-    suspend fun insertGoalLists(lists: List<GoalList>) {
-        goalListDao.insertLists(lists)
-    }
-
-    suspend fun insertGoals(goals: List<Goal>) {
-        goalDao.insertGoals(goals)
-    }
-
-    suspend fun deleteInstancesForLists(listIds: List<String>) {
-        goalDao.deleteInstancesForLists(listIds)
-    }
-
-    suspend fun insertGoalInstances(instances: List<GoalInstance>) {
-        goalDao.insertGoalInstances(instances)
-    }
-
-    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult> {
-        return goalDao.searchGoalsGlobal(query)
-    }
-// ... всередині класу GoalRepository
-
-    // --- ДОДАНО МЕТОДИ ДЛЯ GoalEditViewModel ---
-    suspend fun getGoalById(id: String): Goal? {
-        return goalDao.getGoalById(id)
-    }
-
-    suspend fun getListsByIds(ids: List<String>): List<GoalList> {
-        return goalListDao.getListsByIds(ids)
-    }
-
-    suspend fun insertGoal(goal: Goal) {
-        goalDao.insertGoal(goal)
-    }
-
-    suspend fun getGoalCountInList(listId: String): Int {
-        return goalDao.getGoalCountInList(listId)
-    }
-
-    suspend fun insertInstance(instance: GoalInstance) {
-        goalDao.insertInstance(instance)
-    }
-
-    fun getAssociatedListsForGoals(goalIds: List<String>): Flow<Map<String, List<GoalList>>> {
-        if (goalIds.isEmpty()) return flowOf(emptyMap())
-        return goalDao.getAssociatedListsForGoals(goalIds)
-    }
-
-    fun getGoalListByIdFlow(id: String): Flow<GoalList?> {
-        return goalListDao.getGoalListByIdStream(id)
-    }
-
-
-
+    // --- Методи для GoalEditViewModel ---
+    suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
+    suspend fun getListsByIds(ids: List<String>): List<GoalList> = goalListDao.getListsByIds(ids)
+    suspend fun insertGoal(goal: Goal) = goalDao.insertGoal(goal)
+    suspend fun getGoalCountInList(listId: String): Int = goalDao.getGoalCountInList(listId)
+    suspend fun insertInstance(instance: GoalInstance) = goalDao.insertInstance(instance)
+    fun getGoalListByIdFlow(id: String): Flow<GoalList?> = goalListDao.getGoalListByIdStream(id)
 }

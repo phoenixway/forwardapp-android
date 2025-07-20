@@ -33,6 +33,10 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE id = :id")
     suspend fun getGoalById(id: String): Goal?
 
+    // ✨ ЗМІНА: Додаємо новий метод для отримання кількох цілей за їх ID
+    @Query("SELECT * FROM goals WHERE id IN (:ids)")
+    fun getGoalsByIds(ids: List<String>): Flow<List<Goal>>
+
     @Query("SELECT * FROM goals")
     suspend fun getAll(): List<Goal>
 
@@ -54,7 +58,6 @@ interface GoalDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGoalInstances(instances: List<GoalInstance>)
-
 
     @Query("DELETE FROM goal_instances WHERE instance_id = :instanceId")
     suspend fun deleteInstanceById(instanceId: String)
@@ -81,27 +84,9 @@ interface GoalDao {
     @Query("UPDATE goal_instances SET listId = :targetListId WHERE instance_id = :instanceId")
     suspend fun updateInstanceListId(instanceId: String, targetListId: String)
 
-    // --- ПОПЕРЕДНІЙ МЕТОД ЗАМІНЕНО НА ЦІ ДВА ---
-
-    // 1. Внутрішній метод, який Room може обробити. Він повертає плаский список.
-    @Transaction
-    @Query("""
-        SELECT gi.goalId, gl.*
-        FROM goal_instances gi
-        JOIN goal_lists gl ON gi.listId = gl.id
-        WHERE gi.goalId IN (:goalIds)
-    """)
-    fun getGoalIdListPairs(goalIds: List<String>): Flow<List<GoalIdListPair>>
-
-    // 2. Публічний метод, який ViewModel буде використовувати. Він робить перетворення.
-    fun getAssociatedListsForGoals(goalIds: List<String>): Flow<Map<String, List<GoalList>>> {
-        return getGoalIdListPairs(goalIds).map { pairs ->
-            pairs.groupBy { it.goalId }
-                .mapValues { entry -> entry.value.map { it.goalList } }
-        }
-    }
-
-    // --- КІНЕЦЬ ЗМІН ---
+    // ✨ ЗМІНА: Видаляємо старі, неправильні методи
+    // fun getGoalIdListPairs(...) - ВИДАЛЕНО
+    // fun getAssociatedListsForGoals(...) - ВИДАЛЕНО
 
     @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%'")
     fun searchGoalsByText(query: String): Flow<List<Goal>>

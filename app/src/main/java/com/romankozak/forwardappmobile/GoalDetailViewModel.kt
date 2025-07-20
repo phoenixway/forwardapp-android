@@ -11,28 +11,27 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/*
- нижче опис бібліотеки. у вкладеннях файл який треба реалдівізувати на ній. зроби це.
- */
-
 // --- ДОПОМІЖНІ КЛАСИ ТА СТАНИ ---
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
     data class ResetSwipeState(val instanceId: String) : UiEvent()
-    data class ScrollTo(val index: Int) : UiEvent() // ✨ ДОДАЙТЕ ЦЕ
+    data class ScrollTo(val index: Int) : UiEvent()
 }
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
     data class AwaitingActionChoice(val goalWithInstance: GoalWithInstanceInfo) : GoalActionDialogState()
     data class AwaitingListChoice(val goalWithInstance: GoalWithInstanceInfo, val actionType: GoalActionType) : GoalActionDialogState()
 }
-enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal }
+enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, MoveToTop }
 enum class InputMode { AddGoal, SearchInList, SearchGlobal }
+
+// ✨ ЗМІНА: Додано поле для відстеження ID нової цілі
 data class UiState(
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
-    val inputMode: InputMode = InputMode.AddGoal
+    val inputMode: InputMode = InputMode.AddGoal,
+    val newlyAddedGoalInstanceId: String? = null
 )
 data class ListHierarchy(
     val topLevelLists: List<GoalList>,
@@ -73,18 +72,15 @@ class GoalDetailViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> =
-        combine(listIdFlow, _uiState) { id, state -> Pair(id, state) } // --- ЗМІНА: Передаємо весь стан, а не тільки query
+        combine(listIdFlow, _uiState) { id, state -> Pair(id, state) }
             .flatMapLatest { (id, state) ->
                 if (id.isEmpty()) {
                     flowOf(emptyList())
                 } else {
                     goalRepository.getGoalsForListStream(id).map { goals ->
-                        // --- ЗМІНА: Додаємо перевірку режиму вводу ---
                         if (state.inputMode == InputMode.SearchInList && state.localSearchQuery.isNotBlank()) {
-                            // Фільтруємо ТІЛЬКИ в режимі пошуку і якщо є що шукати
                             goals.filter { it.goal.text.lowercase().contains(state.localSearchQuery.lowercase()) }
                         } else {
-                            // В режимі додавання або при порожньому пошуку повертаємо все
                             goals
                         }
                     }
@@ -92,20 +88,13 @@ class GoalDetailViewModel @Inject constructor(
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val associatedListsMap: StateFlow<Map<String, List<GoalList>>> = filteredGoals.flatMapLatest { goals ->
         val goalIds = goals.map { it.goal.id }.distinct()
-        // Ми, як і раніше, отримуємо повний потік даних від репозиторію
         goalRepository.getAssociatedListsForGoals(goalIds)
-            // АЛЕ тепер ми додаємо оператор .map, щоб трансформувати цей потік
             .map { fullMap ->
                 val currentListId = listIdFlow.value
-                // Створюємо нову мапу для відфільтрованих результатів
                 val filteredMap = mutableMapOf<String, List<GoalList>>()
-                // І для кожної цілі...
                 for ((goalId, lists) in fullMap) {
-                    // ...ми фільтруємо її список асоційованих списків,
-                    // видаляючи той, в якому ми зараз знаходимось.
                     filteredMap[goalId] = lists.filter { it.id != currentListId }
                 }
-                // Повертаємо вже відфільтровану мапу
                 filteredMap
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
@@ -127,8 +116,6 @@ class GoalDetailViewModel @Inject constructor(
             ListHierarchy(topLevelLists, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyMap()))
 
-    // --- ВІДНОВЛЕНО ВСІ ВІДСУТНІ МЕТОДИ ---
-
     fun onInputTextChanged(text: String) {
         _uiState.update { it.copy(localSearchQuery = text) }
     }
@@ -143,12 +130,20 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    // ✨ ЗМІНА: Тепер метод зберігає ID нової цілі в UiState
     private fun addGoal(title: String) {
         val listId = listIdFlow.value
         if (listId.isEmpty()) return
         viewModelScope.launch {
-            goalRepository.createGoal(title, listId)
+            val newInstanceId = goalRepository.createGoal(title, listId)
+            // Оновлюємо стан, щоб UI знав про нову ціль
+            _uiState.update { it.copy(newlyAddedGoalInstanceId = newInstanceId) }
         }
+    }
+
+    // ✨ ЗМІНА: Додано новий метод, щоб UI міг повідомити, що скрол виконано
+    fun onScrolledToNewGoal() {
+        _uiState.update { it.copy(newlyAddedGoalInstanceId = null) }
     }
 
     fun deleteGoal(goal: GoalWithInstanceInfo) {
@@ -162,8 +157,6 @@ class GoalDetailViewModel @Inject constructor(
     fun undoDelete() {
         recentlyDeletedGoal?.let {
             viewModelScope.launch {
-                // Ця логіка має бути в репозиторії, але поки що залишимо тут
-                // TODO: Перенести логіку відновлення в GoalRepository
                 goalRepository.insertInstance(it.toGoalInstance())
                 resetSwipe(it.instanceId)
                 recentlyDeletedGoal = null
@@ -186,7 +179,6 @@ class GoalDetailViewModel @Inject constructor(
                 val updatedInstances = currentGoals.mapIndexed { index, goalWithInstanceInfo ->
                     goalWithInstanceInfo.copy(order = index.toLong())
                 }
-                // TODO: Створити один метод в репозиторії для оновлення порядку
                 updatedInstances.forEach { goalRepository.insertInstance(it.toGoalInstance()) }
                 _uiEventFlow.send(UiEvent.ScrollTo(to))
             }
@@ -199,11 +191,9 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- ДОДАНО ВІДСУТНІ МЕТОДИ ---
     fun onModeChangeRequest() {
         _showInputModeDialog.value = true
     }
-
 
     fun onTagClicked(tag: String) {
         viewModelScope.launch {
@@ -228,7 +218,20 @@ class GoalDetailViewModel @Inject constructor(
     fun onGoalActionSelected(actionType: GoalActionType) {
         val currentState = _goalActionDialogState.value
         if (currentState is GoalActionDialogState.AwaitingActionChoice) {
-            _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(currentState.goalWithInstance, actionType)
+            val goalToActOn = currentState.goalWithInstance
+
+            when (actionType) {
+                GoalActionType.MoveToTop -> {
+                    val fromIndex = filteredGoals.value.indexOfFirst { it.instanceId == goalToActOn.instanceId }
+                    if (fromIndex > 0) {
+                        moveGoal(fromIndex, 0)
+                    }
+                    onDismissGoalActionDialogs()
+                }
+                else -> {
+                    _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(goalToActOn, actionType)
+                }
+            }
         }
     }
 
@@ -253,6 +256,7 @@ class GoalDetailViewModel @Inject constructor(
                     GoalActionType.CreateInstance -> goalRepository.createGoalInstance(goal.goal.id, targetListId)
                     GoalActionType.MoveInstance -> goalRepository.moveGoalInstance(goal.instanceId, targetListId)
                     GoalActionType.CopyGoal -> goalRepository.copyGoal(goal.goal, targetListId)
+                    GoalActionType.MoveToTop -> { /* Handled in onGoalActionSelected */ }
                 }
                 _goalActionDialogState.value = GoalActionDialogState.Hidden
                 resetSwipe(goal.instanceId)

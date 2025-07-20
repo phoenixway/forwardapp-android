@@ -7,16 +7,22 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Anchor
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -27,7 +33,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// --- (код з іконками, парсингом, форматуванням дати та ParsedGoalText залишається без змін) ---
+// --- (код з парсингом іконок, форматуванням дати залишається без змін) ---
 
 private enum class IconCategory {
     IMPORTANCE, SCALE, ACTIVITY, CUSTOM
@@ -96,42 +102,72 @@ fun ParsedGoalText(
     val projectColor = MaterialTheme.colorScheme.tertiary
     val linkColor = MaterialTheme.colorScheme.tertiary
 
-    val combinedRegex = remember { Regex("(\\[\\[(.*?)(?:\\|(.*?))?]])|([#@])(\\p{L}[\\p{L}0-9_-]*\\b)") }
+    // ✨ ЗМІНА: Об'єднуємо всі регулярні вирази в один для єдиного проходу
+    val combinedRegex = remember {
+        Regex(
+            // Група 1-3: Markdown (жирний, курсив, закреслений)
+            "(\\*\\*|__)(.*?)\\1" +       // **bold** або __bold__
+                    "|(\\*|_)(.*?)\\3" +          // *italic* або _italic_
+                    "|(~~)(.*?)\\5" +             // ~~strikethrough~~
+                    // Група 7-9: Спеціальні посилання Obsidian
+                    "|(\\[\\[)(.*?)(?:\\|(.*?))?]]" +
+                    // Група 10-11: Теги та проекти
+                    "|([#@])(\\p{L}[\\p{L}0-9_-]*\\b)"
+        )
+    }
 
     val annotatedString = buildAnnotatedString {
         var lastIndex = 0
         for (match in combinedRegex.findAll(text)) {
-            append(text.substring(lastIndex, match.range.first))
-            val groups = match.groups
-            val wikilinkGroup = groups[1]
-            val tagSymbolGroup = groups[4]
+            // Додаємо звичайний текст перед знайденим елементом
+            if (match.range.first > lastIndex) {
+                append(text.substring(lastIndex, match.range.first))
+            }
 
-            if (wikilinkGroup != null) {
-                val linkTarget = groups[2]?.value ?: ""
-                val linkText = groups[3]?.value
-                val displayText = if (!linkText.isNullOrEmpty()) linkText else linkTarget
-                pushStringAnnotation("OBSIDIAN_LINK", linkTarget)
-                withStyle(style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
-                    append(displayText)
+            // Визначаємо, що саме ми знайшли, і застосовуємо відповідний стиль
+            val (content, style, annotation) = when {
+                // Жирний
+                match.groups[2] != null -> Triple(match.groups[2]!!.value, SpanStyle(fontWeight = FontWeight.Bold), null)
+                // Курсив
+                match.groups[4] != null -> Triple(match.groups[4]!!.value, SpanStyle(fontStyle = FontStyle.Italic), null)
+                // Закреслений
+                match.groups[6] != null -> Triple(match.groups[6]!!.value, SpanStyle(textDecoration = TextDecoration.LineThrough), null)
+                // Посилання Obsidian
+                match.groups[7] != null -> {
+                    val linkTarget = match.groups[8]!!.value
+                    val linkText = match.groups[9]?.value
+                    val displayText = if (!linkText.isNullOrEmpty()) linkText else linkTarget
+                    Triple(displayText, SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline), "OBSIDIAN_LINK" to linkTarget)
                 }
-                pop()
-            } else if (tagSymbolGroup != null) {
-                val tagSymbol = tagSymbolGroup.value
-                val tagName = groups[5]?.value ?: ""
-                val fullTag = "$tagSymbol$tagName"
-                pushStringAnnotation("SEARCH_TERM", fullTag)
-                val style = when (tagSymbol) {
-                    "#" -> SpanStyle(color = tagColor, fontWeight = FontWeight.SemiBold)
-                    "@" -> SpanStyle(color = projectColor, fontWeight = FontWeight.Medium)
-                    else -> SpanStyle()
+                // Теги/Проекти
+                match.groups[10] != null -> {
+                    val tagSymbol = match.groups[10]!!.value
+                    val tagName = match.groups[11]!!.value
+                    val fullTag = "$tagSymbol$tagName"
+                    val tagStyle = when (tagSymbol) {
+                        "#" -> SpanStyle(color = tagColor, fontWeight = FontWeight.SemiBold)
+                        "@" -> SpanStyle(color = projectColor, fontWeight = FontWeight.Medium)
+                        else -> SpanStyle()
+                    }
+                    Triple(fullTag, tagStyle, "SEARCH_TERM" to fullTag)
                 }
-                withStyle(style = style) {
-                    append(fullTag)
-                }
+                else -> Triple("", SpanStyle(), null)
+            }
+
+            // Застосовуємо стиль і анотацію (якщо є)
+            if (annotation != null) {
+                pushStringAnnotation(annotation.first, annotation.second)
+            }
+            withStyle(style = style) {
+                append(content)
+            }
+            if (annotation != null) {
                 pop()
             }
+
             lastIndex = match.range.last + 1
         }
+        // Додаємо залишок тексту, якщо він є
         if (lastIndex < text.length) {
             append(text.substring(lastIndex))
         }
@@ -172,27 +208,6 @@ fun ParsedGoalText(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AssociatedListsRow(
-    lists: List<GoalList>,
-    onListClick: (String) -> Unit
-) {
-    if (lists.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            lists.forEach { list ->
-                AssistChip(
-                    onClick = { onListClick(list.id) },
-                    label = { Text(list.name) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun GoalItem(
     goal: Goal,
     associatedLists: List<GoalList>,
@@ -203,7 +218,7 @@ fun GoalItem(
     onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
-    dragHandle: @Composable (() -> Unit)? = null // Додано
+    dragHandle: @Composable (() -> Unit)? = null
 ) {
     val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text) }
 
@@ -225,39 +240,52 @@ fun GoalItem(
             Column(
                 modifier = Modifier.weight(1f),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (parsedData.icons.isNotEmpty()) {
-                        Row(
-                            modifier = Modifier.padding(end = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            parsedData.icons.forEach { iconData ->
-                                Text(text = iconData.icon)
+                // Основний текст цілі (тепер з підтримкою Markdown)
+                ParsedGoalText(
+                    text = parsedData.mainText,
+                    isCompleted = goal.completed,
+                    obsidianVaultName = obsidianVaultName,
+                    onTagClick = onTagClick
+                )
+
+                // Рядок зі статусними іконками та асоційованими списками
+                val hasStatusContent = parsedData.icons.isNotEmpty() || associatedLists.isNotEmpty()
+                if (hasStatusContent) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Рендеримо статусні іконки
+                        parsedData.icons.forEach { iconData ->
+                            Text(
+                                text = iconData.icon,
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.align(Alignment.CenterVertically)
+                            )
+                        }
+
+                        // Рендеримо асоційовані списки без іконки якоря
+                        associatedLists.forEach { list ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .clickable { onAssociatedListClick(list.id) }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            ) {
+                                Text(
+                                    text = list.name,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     }
-                    ParsedGoalText(
-                        text = parsedData.mainText,
-                        isCompleted = goal.completed,
-                        obsidianVaultName = obsidianVaultName,
-                        onTagClick = onTagClick
-                    )
                 }
-
-                Text(
-                    text = formatDate(goal.createdAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-
-                AssociatedListsRow(
-                    lists = associatedLists,
-                    onListClick = onAssociatedListClick
-                )
             }
 
-            // Додано відображення ручки для перетягування
             if (dragHandle != null) {
                 Spacer(modifier = Modifier.width(4.dp))
                 dragHandle()

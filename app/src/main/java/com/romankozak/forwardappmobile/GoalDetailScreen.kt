@@ -118,6 +118,21 @@ fun GoalDetailScreen(
         }
     }
 
+    // ✨ ЗМІНА: Додано LaunchedEffect, який реагує на оновлення списку цілей
+    LaunchedEffect(goals) {
+        val newGoalInstanceId = uiState.newlyAddedGoalInstanceId
+        if (newGoalInstanceId != null) {
+            // Шукаємо індекс нової цілі в оновленому списку
+            val index = goals.indexOfFirst { it.instanceId == newGoalInstanceId }
+            if (index != -1) {
+                // Якщо знайшли - скролимо
+                listState.animateScrollToItem(index)
+                // І повідомляємо ViewModel, що ми закінчили, щоб уникнути повторних скролів
+                viewModel.onScrolledToNewGoal()
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -206,7 +221,7 @@ fun GoalDetailScreen(
 
                                             if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
                                                 viewModel.moveGoal(fromIndex, toIndex)
-                                                                           }
+                                            }
                                         },
                                         onDragEnter = {
                                             val hoveredIndex = goals.indexOfFirst { it.instanceId == goalWithInstanceInfo.instanceId }
@@ -227,7 +242,6 @@ fun GoalDetailScreen(
                                         }
                                     )
                             ) {
-                                // ✨ ВИПРАВЛЕНО: Замінено isDragging на draggedItem != null
                                 if (dragAndDropState.draggedItem != null && dragAndDropState.hoveredDropTargetKey == goalWithInstanceInfo.instanceId && dragAndDropState.draggedItem?.key != goalWithInstanceInfo.instanceId) {
                                     HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
                                 }
@@ -281,7 +295,6 @@ fun GoalDetailScreen(
                         }
 
                         item {
-                            // ✨ ВИПРАВЛЕНО: Замінено isDragging на draggedItem != null
                             val isTargetedAtEnd = dragAndDropState.draggedItem != null && dragAndDropState.hoveredDropTargetKey == null
                             if(isTargetedAtEnd) {
                                 val draggedItemIndex = goals.indexOfFirst { it.instanceId == dragAndDropState.draggedItem?.key }
@@ -437,6 +450,11 @@ fun GoalActionChoiceDialog(onDismiss: () -> Unit, onActionSelected: (GoalActionT
                 Text("Copy goal to another list", modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onActionSelected(GoalActionType.CopyGoal) }
+                    .padding(16.dp))
+                HorizontalDivider()
+                Text("Перемістити на вершину списку", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.MoveToTop) }
                     .padding(16.dp))
             }
         }
