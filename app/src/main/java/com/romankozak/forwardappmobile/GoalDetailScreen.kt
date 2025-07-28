@@ -73,7 +73,7 @@ fun GoalDetailScreen(
 
     val listState = rememberLazyListState()
     val dragAndDropState = rememberDragAndDropState<GoalWithInstanceInfo>()
-
+    var scrollDirection by remember { mutableStateOf(0) }
     val isLoading = list == null
 
     LaunchedEffect(Unit) {
@@ -118,17 +118,22 @@ fun GoalDetailScreen(
         }
     }
 
-    // ✨ ЗМІНА: Додано LaunchedEffect, який реагує на оновлення списку цілей
     LaunchedEffect(goals) {
         val newGoalInstanceId = uiState.newlyAddedGoalInstanceId
         if (newGoalInstanceId != null) {
-            // Шукаємо індекс нової цілі в оновленому списку
             val index = goals.indexOfFirst { it.instanceId == newGoalInstanceId }
             if (index != -1) {
-                // Якщо знайшли - скролимо
                 listState.animateScrollToItem(index)
-                // І повідомляємо ViewModel, що ми закінчили, щоб уникнути повторних скролів
                 viewModel.onScrolledToNewGoal()
+            }
+        }
+    }
+
+    LaunchedEffect(scrollDirection) {
+        if (scrollDirection != 0) {
+            while (true) {
+                listState.scrollBy(20f * scrollDirection)
+                delay(16)
             }
         }
     }
@@ -166,23 +171,6 @@ fun GoalDetailScreen(
                 }
             }
             else -> {
-                var scrollDirection by remember { mutableStateOf(0) }
-
-                LaunchedEffect(scrollDirection) {
-                    if (scrollDirection != 0) {
-                        while (true) {
-                            listState.scrollBy(20f * scrollDirection)
-                            delay(16)
-                        }
-                    }
-                }
-
-                LaunchedEffect(dragAndDropState.draggedItem) {
-                    if (dragAndDropState.draggedItem == null) {
-                        scrollDirection = 0
-                    }
-                }
-
                 DragAndDropContainer(
                     state = dragAndDropState
                 ) {
@@ -192,7 +180,7 @@ fun GoalDetailScreen(
                             .fillMaxSize()
                             .padding(paddingValues)
                     ) {
-                        itemsIndexed(goals, key = { _, it -> it.instanceId }) { _, goalWithInstanceInfo ->
+                        itemsIndexed(goals, key = { _, it -> it.instanceId }) { index, goalWithInstanceInfo ->
                             val isCurrentlyDragging = dragAndDropState.draggedItem?.key == goalWithInstanceInfo.instanceId
 
                             val elevation = animateDpAsState(if (isCurrentlyDragging) 8.dp else 0.dp, label = "elevationAnimation")
@@ -205,50 +193,57 @@ fun GoalDetailScreen(
                                 }
                             }
 
+                            // ✨ ЗМІНА №1: Визначаємо напрямок руху і стан наведення
+                            val draggedItemIndex = remember(dragAndDropState.draggedItem) {
+                                goals.indexOfFirst { it.instanceId == dragAndDropState.draggedItem?.key }
+                            }
+                            val isHovered = dragAndDropState.hoveredDropTargetKey == goalWithInstanceInfo.instanceId
+                            val isDraggingDown = draggedItemIndex != -1 && draggedItemIndex < index
+
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+// У файлі GoalDetailScreen.kt, всередині Column в itemsIndexed
+
                                     .dropTarget(
                                         state = dragAndDropState,
                                         key = goalWithInstanceInfo.instanceId,
                                         onDrop = { draggedItemState ->
-                                            scrollDirection = 0
+                                            scrollDirection = 0 // Зупиняємо скрол при відпусканні
                                             val draggedData = draggedItemState.data
-                                            val droppedOnData = goalWithInstanceInfo
+                                            val hoveredKey = dragAndDropState.hoveredDropTargetKey
 
                                             val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
-                                            val toIndex = goals.indexOfFirst { it.instanceId == droppedOnData.instanceId }
+                                            val toIndex = goals.indexOfFirst { it.instanceId == hoveredKey }
 
                                             if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                                                viewModel.moveGoal(fromIndex, toIndex)
+                                                val firstVisibleItemIndex = listState.firstVisibleItemIndex
+                                                val needsScroll = toIndex <= firstVisibleItemIndex
+                                                viewModel.moveGoal(fromIndex, toIndex, needsScroll)
                                             }
                                         },
+                                        // ✨ РІШЕННЯ: Повертаємо логіку, що вмикає автоскрол
                                         onDragEnter = {
-                                            val hoveredIndex = goals.indexOfFirst { it.instanceId == goalWithInstanceInfo.instanceId }
                                             val visibleItems = listState.layoutInfo.visibleItemsInfo
                                             if (visibleItems.isNotEmpty()) {
-                                                val firstVisibleIndex = visibleItems.first().index
-                                                val lastVisibleIndex = visibleItems.last().index
-
-                                                scrollDirection = when (hoveredIndex) {
-                                                    firstVisibleIndex -> -1
-                                                    lastVisibleIndex -> 1
-                                                    else -> 0
+                                                // `index` з `itemsIndexed` - це індекс елемента, над яким ми зараз
+                                                scrollDirection = when (index) {
+                                                    visibleItems.first().index -> -1 // Якщо навели на верхній - скрол вгору
+                                                    visibleItems.last().index -> 1  // Якщо навели на нижній - скрол вниз
+                                                    else -> 0                       // В інших випадках - без скролу
                                                 }
                                             }
-                                        },
-                                        onDragExit = {
-                                            scrollDirection = 0
                                         }
+
                                     )
                             ) {
-                                if (dragAndDropState.draggedItem != null && dragAndDropState.hoveredDropTargetKey == goalWithInstanceInfo.instanceId && dragAndDropState.draggedItem?.key != goalWithInstanceInfo.instanceId) {
+                                // ✨ ЗМІНА №2: Показуємо риску зверху, якщо тягнемо вгору
+                                if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
                                     HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
                                 }
 
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     val isHighlighted by remember(uiState.goalToHighlight) {
                                         derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
@@ -291,15 +286,50 @@ fun GoalDetailScreen(
                                         }
                                     )
                                 }
+
+                                // ✨ ЗМІНА №3: Показуємо риску знизу, якщо тягнемо вниз
+                                if (isHovered && isDraggingDown && !isCurrentlyDragging) {
+                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                                }
                             }
                         }
 
-                        item {
-                            val isTargetedAtEnd = dragAndDropState.draggedItem != null && dragAndDropState.hoveredDropTargetKey == null
-                            if(isTargetedAtEnd) {
-                                val draggedItemIndex = goals.indexOfFirst { it.instanceId == dragAndDropState.draggedItem?.key }
-                                if(draggedItemIndex != -1 && draggedItemIndex != goals.lastIndex) {
-                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                        // ✨ ЗМІНА №4: Оновлений блок для зони в кінці списку
+                        item(key = "drop-zone-at-end") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(60.dp)
+                                    .dropTarget(
+                                        state = dragAndDropState,
+                                        key = "drop-zone-at-end",
+// onDrop для основного елемента в GoalDetailScreen.kt
+                                        onDrop = { draggedItemState ->
+                                            scrollDirection = 0
+                                            val draggedData = draggedItemState.data
+
+                                            // ✨ ВИПРАВЛЕННЯ: Використовуємо hoveredDropTargetKey, щоб знайти ціль
+                                            val hoveredKey = dragAndDropState.hoveredDropTargetKey
+
+                                            val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
+                                            val toIndex = goals.indexOfFirst { it.instanceId == hoveredKey }
+
+                                            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
+                                                val firstVisibleItemIndex = listState.firstVisibleItemIndex
+                                                val needsScroll = toIndex <= firstVisibleItemIndex
+
+                                                viewModel.moveGoal(fromIndex, toIndex, needsScroll)
+                                            }
+                                        },
+                                    )
+                            ) {
+                                // ✨ Показуємо риску, коли наводимо на цю зону
+                                if (dragAndDropState.hoveredDropTargetKey == "drop-zone-at-end") {
+                                    HorizontalDivider(
+                                        modifier = Modifier.align(Alignment.TopCenter),
+                                        thickness = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                    )
                                 }
                             }
                         }

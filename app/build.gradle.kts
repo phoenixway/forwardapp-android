@@ -131,3 +131,4 @@ dependencies {
     // --- ВИПРАВЛЕНО: Правильне підключення бібліотеки ---
     implementation(libs.compose.dnd)
 }
+

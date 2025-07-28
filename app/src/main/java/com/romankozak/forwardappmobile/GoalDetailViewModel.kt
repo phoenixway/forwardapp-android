@@ -170,7 +170,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun moveGoal(from: Int, to: Int) {
+   fun moveGoal(from: Int, to: Int, needsScroll: Boolean) {
         val currentGoals = filteredGoals.value.toMutableList()
         if (from in currentGoals.indices && to in currentGoals.indices) {
             val item = currentGoals.removeAt(from)
@@ -180,7 +180,11 @@ class GoalDetailViewModel @Inject constructor(
                     goalWithInstanceInfo.copy(order = index.toLong())
                 }
                 updatedInstances.forEach { goalRepository.insertInstance(it.toGoalInstance()) }
-                _uiEventFlow.send(UiEvent.ScrollTo(to))
+
+                // ✨ ЗМІНА №2: Виконуємо скрол тільки якщо needsScroll == true
+                if (needsScroll) {
+                    _uiEventFlow.send(UiEvent.ScrollTo(to))
+                }
             }
         }
     }
@@ -224,7 +228,8 @@ class GoalDetailViewModel @Inject constructor(
                 GoalActionType.MoveToTop -> {
                     val fromIndex = filteredGoals.value.indexOfFirst { it.instanceId == goalToActOn.instanceId }
                     if (fromIndex > 0) {
-                        moveGoal(fromIndex, 0)
+                        // ✨ ВИПРАВЛЕННЯ: Додаємо needsScroll = true
+                        moveGoal(fromIndex, 0, needsScroll = true)
                     }
                     onDismissGoalActionDialogs()
                 }
