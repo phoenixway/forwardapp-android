@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -14,13 +14,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalSearchScreen(
-    viewModel: GlobalSearchViewModel,
     navController: NavController,
+    // --- ВИПРАВЛЕНО: ViewModel створюється за допомогою Hilt ---
+    viewModel: GlobalSearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val query = viewModel.query
@@ -37,7 +39,7 @@ fun GlobalSearchScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 }
             )
@@ -58,7 +60,7 @@ fun GlobalSearchScreen(
                     .padding(paddingValues),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(uiState.results, key = { it.goal.id }) { result ->
+                items(uiState.results, key = { it.goal.id + it.listId }) { result ->
                     SearchResultItem(
                         result = result,
                         onClick = {

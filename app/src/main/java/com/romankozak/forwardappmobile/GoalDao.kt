@@ -7,168 +7,100 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map // Імпортуємо map
+import kotlinx.coroutines.flow.map
 
 @Dao
 interface GoalDao {
 
-    // Внутрішня функція без логування, яку викликає обгорнута функція
-    @Query("""
-        SELECT goals.*, goal_instances.id AS instanceId, goal_instances.orderIndex
-        FROM goals
-        INNER JOIN goal_instances ON goals.id = goal_instances.goalId
-        WHERE goal_instances.listId = :listId
-        ORDER BY goal_instances.orderIndex ASC
-    """)
-    fun getGoalsForListInternal(listId: String): Flow<List<GoalWithInstanceInfo>>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGoal(goal: Goal)
 
-    // Обгорнута функція з логуванням
-    fun getGoalsForList(listId: String): Flow<List<GoalWithInstanceInfo>> {
-        return getGoalsForListInternal(listId).map { goals ->
-            println("DEBUG_DAO: getGoalsForList emitted ${goals.size} goals for list $listId. First goal: ${goals.firstOrNull()?.goal?.text}")
-            goals
-        }
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGoals(goals: List<Goal>)
+
+    @Update
+    suspend fun updateGoal(goal: Goal)
+
+    @Query("DELETE FROM goals WHERE id = :id")
+    suspend fun deleteGoalById(id: String)
+
+    @Transaction
+    suspend fun insertGoalWithInstance(goal: Goal, instance: GoalInstance) {
+        insertGoal(goal)
+        insertInstance(instance)
     }
 
-    @Query("SELECT * FROM goal_lists WHERE id = :listId")
-    fun getList(listId: String): Flow<GoalList?>
+    @Query("SELECT * FROM goals WHERE id = :id")
+    suspend fun getGoalById(id: String): Goal?
 
-    // --- НОВІ МЕТОДИ ДЛЯ ПЕРЕМІЩЕННЯ ЦІЛЕЙ ---
-    @Query("SELECT * FROM goal_lists")
-    fun getAllLists(): Flow<List<GoalList>>
+    // ✨ ЗМІНА: Додаємо новий метод для отримання кількох цілей за їх ID
+    @Query("SELECT * FROM goals WHERE id IN (:ids)")
+    fun getGoalsByIds(ids: List<String>): Flow<List<Goal>>
 
-    // Внутрішня функція без логування
-    @Query("UPDATE goal_instances SET listId = :newListId, orderIndex = :newOrderIndex WHERE id = :instanceId")
-    suspend fun moveGoalToNewListInternal(instanceId: String, newListId: String, newOrderIndex: Int)
-
-    // Обгорнута функція з логуванням
-    suspend fun moveGoalToNewList(instanceId: String, newListId: String, newOrderIndex: Int) {
-        println("DEBUG_DAO: moveGoalToNewList: Instance $instanceId to list $newListId at index $newOrderIndex")
-        moveGoalToNewListInternal(instanceId, newListId, newOrderIndex)
-    }
-    // -----------------------------------------
-
-    // --- ДОДАНО: Метод для глобального пошуку цілей ---
-    @Query("""
-        SELECT g.*, gl.id as listId, gl.name as listName
-        FROM goals g
-        INNER JOIN goal_instances gi ON g.id = gi.goalId
-        INNER JOIN goal_lists gl ON gi.listId = gl.id
-        WHERE g.text LIKE :query
-        GROUP BY g.id
-        ORDER BY g.createdAt DESC
-    """)
-    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult>
-
-
-    // --- Функції для синхронізації ---
     @Query("SELECT * FROM goals")
     suspend fun getAll(): List<Goal>
+
+    @Transaction
+    @Query("""
+        SELECT goals.*, instances.instance_id, instances.listId AS list_id, instances.goal_order
+        FROM goals
+        INNER JOIN goal_instances AS instances ON goals.id = instances.goalId
+        WHERE instances.listId = :listId
+        ORDER BY instances.goal_order ASC
+    """)
+    fun getGoalsForListStream(listId: String): Flow<List<GoalWithInstanceInfo>>
+
+    @Query("SELECT MIN(goal_order) FROM goal_instances WHERE listId = :listId")
+    suspend fun getMinOrderForList(listId: String): Long?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertInstance(instance: GoalInstance)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGoalInstances(instances: List<GoalInstance>)
+
+    @Query("DELETE FROM goal_instances WHERE instance_id = :instanceId")
+    suspend fun deleteInstanceById(instanceId: String)
+
+    @Query("DELETE FROM goal_instances WHERE listId IN (:listIds)")
+    suspend fun deleteInstancesForLists(listIds: List<String>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun restoreInstance(instance: GoalInstance)
 
     @Query("SELECT * FROM goal_instances")
     suspend fun getAllInstances(): List<GoalInstance>
 
-    // Внутрішня функція без логування
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertGoalsInternal(goals: List<Goal>)
-
-    // Обгорнута функція з логуванням
-    suspend fun insertGoals(goals: List<Goal>) {
-        println("DEBUG_DAO: Insert/Replace ${goals.size} Goals (batch)")
-        insertGoalsInternal(goals)
+    @Transaction
+    suspend fun updateInstancesOrder(instances: List<GoalWithInstanceInfo>) {
+        instances.forEach {
+            updateInstance(it.toGoalInstance())
+        }
     }
 
-    // Внутрішня функція без логування
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertGoalInstancesInternal(instances: List<GoalInstance>)
-
-    // Обгорнута функція з логуванням
-    suspend fun insertGoalInstances(instances: List<GoalInstance>) {
-        println("DEBUG_DAO: Insert/Replace ${instances.size} GoalInstances (batch)")
-        insertGoalInstancesInternal(instances)
-    }
-
-    @Query("DELETE FROM goal_instances WHERE listId IN (:listIds)")
-    suspend fun deleteInstancesForLists(listIds: List<String>) {
-        println("DEBUG_DAO: Delete Instances for Lists: $listIds")
-        deleteInstancesForListsInternal(listIds)
-    }
-
-    @Query("DELETE FROM goal_instances WHERE listId IN (:listIds)")
-    suspend fun deleteInstancesForListsInternal(listIds: List<String>)
-
-    // --- Керування окремими цілями ---
-    // Внутрішня функція без логування
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertGoalInternal(goal: Goal)
-
-    // Обгорнута функція з логуванням
-    suspend fun insertGoal(goal: Goal) {
-        println("DEBUG_DAO: Insert/Replace Goal: ${goal.text} (ID: ${goal.id})")
-        insertGoalInternal(goal)
-    }
-
-    // Внутрішня функція без логування
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertGoalInstanceInternal(instance: GoalInstance)
-
-    // Обгорнута функція з логуванням
-    suspend fun insertGoalInstance(instance: GoalInstance) {
-        println("DEBUG_DAO: Insert/Replace GoalInstance: (ID: ${instance.id}, GoalID: ${instance.goalId}, ListID: ${instance.listId})")
-        insertGoalInstanceInternal(instance)
-    }
-
-    // Внутрішня функція без логування
     @Update
-    suspend fun updateGoalInternal(goal: Goal)
+    suspend fun updateInstance(instance: GoalInstance)
 
-    // Обгорнута функція з логуванням
-    suspend fun updateGoal(goal: Goal) {
-        println("DEBUG_DAO: Update Goal: ${goal.text} (ID: ${goal.id})")
-        updateGoalInternal(goal)
-    }
+    @Query("UPDATE goal_instances SET listId = :targetListId WHERE instance_id = :instanceId")
+    suspend fun updateInstanceListId(instanceId: String, targetListId: String)
 
-    // Внутрішня функція без логування
-    @Update
-    suspend fun updateGoalInstancesInternal(instances: List<GoalInstance>)
+    // ✨ ЗМІНА: Видаляємо старі, неправильні методи
+    // fun getGoalIdListPairs(...) - ВИДАЛЕНО
+    // fun getAssociatedListsForGoals(...) - ВИДАЛЕНО
 
-    // Обгорнута функція з логуванням
-    suspend fun updateGoalInstances(instances: List<GoalInstance>) {
-        println("DEBUG_DAO: Update GoalInstances: ${instances.size} instances.")
-        updateGoalInstancesInternal(instances)
-    }
+    @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%'")
+    fun searchGoalsByText(query: String): Flow<List<Goal>>
 
-    // Внутрішня функція без логування
-    @Query("DELETE FROM goals WHERE id = :goalId")
-    suspend fun deleteGoalByIdInternal(goalId: String)
+    @Transaction
+    @Query("""
+        SELECT g.*, gl.id as listId, gl.name as listName
+        FROM goals g
+        JOIN goal_instances gi ON g.id = gi.goalId
+        JOIN goal_lists gl ON gi.listId = gl.id
+        WHERE g.text LIKE :query
+    """)
+    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult>
 
-    // Обгорнута функція з логуванням
-    suspend fun deleteGoalById(goalId: String) {
-        println("DEBUG_DAO: Delete Goal by ID: $goalId")
-        deleteGoalByIdInternal(goalId)
-    }
-
-    // Внутрішня функція без логування
-    @Query("DELETE FROM goal_instances WHERE goalId = :goalId")
-    suspend fun deleteGoalInstancesByGoalIdInternal(goalId: String)
-
-    // Обгорнута функція з логуванням
-    suspend fun deleteGoalInstancesByGoalId(goalId: String) {
-        println("DEBUG_DAO: Delete GoalInstances by Goal ID: $goalId")
-        deleteGoalInstancesByGoalIdInternal(goalId)
-    }
-
-    // ДОДАНО: Новий метод для точкового видалення екземпляра
-    @Query("DELETE FROM goal_instances WHERE id = :instanceId")
-    suspend fun deleteGoalInstanceById(instanceId: String)
-
-    @Query("SELECT COUNT(*) FROM goal_instances WHERE listId = :listId")
+    @Query("SELECT count(*) FROM goal_instances WHERE listId = :listId")
     suspend fun getGoalCountInList(listId: String): Int
-
-    @Query("SELECT * FROM goal_instances WHERE goalId = :goalId")
-    suspend fun getInstancesForGoal(goalId: String): List<GoalInstance>
-
-    @Query("SELECT * FROM goal_lists WHERE id IN (:listIds)")
-    suspend fun getListsByIds(listIds: List<String>): List<GoalList>
-
 }

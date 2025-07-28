@@ -3,13 +3,12 @@ package com.romankozak.forwardappmobile
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
+import javax.inject.Inject
 
 sealed class GoalEditEvent {
     data class NavigateBack(val message: String? = null) : GoalEditEvent()
@@ -21,24 +20,19 @@ data class GoalEditUiState(
     val associatedLists: List<GoalList> = emptyList(),
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
-    val showListChooser: Boolean = false
+    val showListChooser: Boolean = false,
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null
 )
 
-data class ListHierarchyForChooser(
-    val allLists: List<GoalList> = emptyList(),
-    val topLevelLists: List<GoalList> = emptyList(),
-    val childMap: Map<String, List<GoalList>> = emptyMap()
-)
-
-class GoalEditViewModel(
-    private val goalDao: GoalDao,
-    private val goalListDao: GoalListDao,
+@HiltViewModel
+class GoalEditViewModel @Inject constructor(
+    private val goalRepository: GoalRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val goalId: String? = savedStateHandle["goalId"]
-    private val initialListId: String = savedStateHandle["listId"]!!
-    private val initialText: String? = savedStateHandle["text"]
+    private val initialListId: String? = savedStateHandle["listId"]
 
     private val _uiState = MutableStateFlow(GoalEditUiState())
     val uiState = _uiState.asStateFlow()
@@ -48,17 +42,22 @@ class GoalEditViewModel(
 
     private var currentGoal: Goal? = null
 
-    val listHierarchy: MutableStateFlow<ListHierarchyForChooser> = MutableStateFlow(ListHierarchyForChooser())
+    val listHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
+        .map { allLists ->
+            val topLevel = allLists.filter { it.parentId == null }
+            val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+            ListHierarchyData(allLists, topLevel, childMap)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
     init {
         viewModelScope.launch {
             if (goalId != null) {
                 // Редагування існуючої цілі
-                val goal = goalDao.getAll().find { it.id == goalId }
+                val goal = goalRepository.getGoalById(goalId)
                 if (goal != null) {
                     currentGoal = goal
                     val associatedIds = goal.associatedListIds ?: emptyList()
-                    val lists = if (associatedIds.isNotEmpty()) goalListDao.getListsByIds(associatedIds) else emptyList()
+                    val lists = if (associatedIds.isNotEmpty()) goalRepository.getListsByIds(associatedIds) else emptyList()
 
                     _uiState.update {
                         it.copy(
@@ -66,7 +65,10 @@ class GoalEditViewModel(
                             goalDescription = goal.description ?: "",
                             associatedLists = lists,
                             isReady = true,
-                            isNewGoal = false
+                            isNewGoal = false,
+                            createdAt = goal.createdAt,
+                            updatedAt = goal.updatedAt
+
                         )
                     }
                 } else {
@@ -76,19 +78,13 @@ class GoalEditViewModel(
                 // Створення нової цілі
                 _uiState.update {
                     it.copy(
-                        goalText = initialText ?: "",
-                        associatedLists = emptyList(), // Починаємо з порожнього списку посилань
+                        goalText = savedStateHandle.get<String>("text") ?: "",
+                        associatedLists = emptyList(),
                         isReady = true,
-                        isNewGoal = true
+                        isNewGoal = true,
+
                     )
                 }
-            }
-
-            // Завантажуємо всі списки для діалогу вибору
-            goalListDao.getAllLists().collect { allLists ->
-                val topLevel = allLists.filter { it.parentId == null }
-                val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-                listHierarchy.value = ListHierarchyForChooser(allLists, topLevel, childMap)
             }
         }
     }
@@ -138,38 +134,41 @@ class GoalEditViewModel(
             val associatedIds = _uiState.value.associatedLists.map { it.id }
 
             if (currentGoal != null) {
-                // Оновлюємо існуючу ціль
                 val updatedGoal = currentGoal!!.copy(
                     text = _uiState.value.goalText,
-                    description = _uiState.value.goalDescription,
+                    description = _uiState.value.goalDescription.ifBlank { null },
                     updatedAt = System.currentTimeMillis(),
                     associatedListIds = associatedIds
                 )
-                goalDao.updateGoal(updatedGoal)
+                goalRepository.updateGoal(updatedGoal)
             } else {
-                // Створюємо нову ціль та її перший екземпляр
+                val listIdForNewGoal = initialListId
+                if (listIdForNewGoal == null) {
+                    _events.send(GoalEditEvent.NavigateBack("Не вдалося створити ціль: невідомий список."))
+                    return@launch
+                }
+
                 val currentTime = System.currentTimeMillis()
                 val newGoal = Goal(
                     id = UUID.randomUUID().toString(),
                     text = _uiState.value.goalText,
-                    description = _uiState.value.goalDescription,
+                    description = _uiState.value.goalDescription.ifBlank { null },
                     completed = false,
                     createdAt = currentTime,
                     updatedAt = currentTime,
                     tags = null,
-                    associatedListIds = associatedIds
+                    associatedListIds = associatedIds.ifEmpty { listOf(listIdForNewGoal) }
                 )
-                goalDao.insertGoal(newGoal)
+                goalRepository.insertGoal(newGoal)
 
-                // Створюємо один екземпляр у початковому списку
-                val orderIndex = goalDao.getGoalCountInList(initialListId)
+                val order = goalRepository.getGoalCountInList(listIdForNewGoal).toLong()
                 val newInstance = GoalInstance(
-                    id = UUID.randomUUID().toString(),
+                    instanceId = UUID.randomUUID().toString(),
                     goalId = newGoal.id,
-                    listId = initialListId,
-                    orderIndex = orderIndex
+                    listId = listIdForNewGoal,
+                    order = order
                 )
-                goalDao.insertGoalInstance(newInstance)
+                goalRepository.insertInstance(newInstance)
             }
 
             _events.send(GoalEditEvent.NavigateBack("Збережено"))

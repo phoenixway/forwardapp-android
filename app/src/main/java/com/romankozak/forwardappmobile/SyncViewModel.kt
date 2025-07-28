@@ -16,7 +16,6 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
     private val _approvedChangeIds = MutableStateFlow<Set<String>>(emptySet())
     val approvedChangeIds = _approvedChangeIds.asStateFlow()
 
-    // --- ДОДАНО: Стан для відображення помилок на екрані ---
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
@@ -47,7 +46,6 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
         }
     }
 
-    // --- ДОДАНО: Метод для скидання помилки ---
     fun clearError() {
         _error.value = null
     }
@@ -76,12 +74,4 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
     }
 }
 
-class SyncViewModelFactory(private val syncRepo: SyncRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(SyncViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return SyncViewModel(syncRepo) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}
+// --- КЛАС-ДУБЛІКАТ ВИДАЛЕНО ЗВІДСИ ---

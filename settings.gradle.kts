@@ -1,17 +1,21 @@
+// Файл: /settings.gradle.kts (у корені проєкту)
+
 pluginManagement {
     repositories {
         google()
-        mavenCentral() // Цей рядок дозволяє знаходити плагіни
+        mavenCentral()
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
-        mavenCentral() // А цей рядок дозволяє знаходити бібліотеки, як-от reorderable
+        // --- ВАЖЛИВО: Додано репозиторій Maven Central ---
+        mavenCentral()
     }
 }
 
-rootProject.name = "ForwardAppMobile2"
+rootProject.name = "ForwardAppMobile"
 include(":app")

@@ -10,42 +10,25 @@ import io.ktor.client.request.get
 import io.ktor.serialization.gson.gson
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
+import javax.inject.Singleton
 
-// --- ФІНАЛЬНА, ПРАВИЛЬНА РЕАЛІЗАЦІЯ SEALED CLASS ---
+// --- Sealed class без змін ---
 sealed class SyncChange(
     val id: String,
     val type: String,
     val entityType: String,
     val description: String
 ) {
-    // Класи-спадкоємці тепер визначені всередині тіла sealed class, що є правильною практикою
-    class Add(
-        id: String,
-        entityType: String,
-        description: String,
-        val entity: Any
-    ) : SyncChange(id, "Додавання", entityType, description)
-
-    class Update(
-        id: String,
-        entityType: String,
-        description: String,
-        val oldEntity: Any,
-        val newEntity: Any
-    ) : SyncChange(id, "Оновлення", entityType, description)
-
-    class Remove(
-        id: String,
-        entityType: String,
-        description: String,
-        val entity: Any
-    ) : SyncChange(id, "Видалення", entityType, description)
+    class Add(id: String, entityType: String, description: String, val entity: Any) : SyncChange(id, "Додавання", entityType, description)
+    class Update(id: String, entityType: String, description: String, val oldEntity: Any, val newEntity: Any) : SyncChange(id, "Оновлення", entityType, description)
+    class Remove(id: String, entityType: String, description: String, val entity: Any) : SyncChange(id, "Видалення", entityType, description)
 }
 
-
-class SyncRepository(
-    private val goalListDao: GoalListDao,
-    private val goalDao: GoalDao
+// --- ВИПРАВЛЕНО: Додаємо анотації для Hilt і змінюємо конструктор ---
+@Singleton
+class SyncRepository @Inject constructor(
+    private val goalRepository: GoalRepository
 ) {
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -78,11 +61,7 @@ class SyncRepository(
         if (dateString == null) return null
         val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
         format.timeZone = TimeZone.getTimeZone("UTC")
-        return try {
-            format.parse(dateString)?.time
-        } catch (e: Exception) {
-            System.currentTimeMillis()
-        }
+        return try { format.parse(dateString)?.time } catch (e: Exception) { System.currentTimeMillis() }
     }
 
     private fun longToDateString(time: Long?): String? {
@@ -97,14 +76,13 @@ class SyncRepository(
 
         try {
             val backupFile = Gson().fromJson(jsonString, DesktopBackupFile::class.java)
-
-            if (backupFile?.data == null) {
-                throw IllegalArgumentException("Отримано некоректний формат даних (поле 'data' відсутнє).")
-            }
+            if (backupFile?.data == null) throw IllegalArgumentException("Отримано некоректний формат даних (поле 'data' відсутнє).")
 
             val changes = mutableListOf<SyncChange>()
-            val localLists = goalListDao.getAll().associateBy { it.id }
-            val localGoals = goalDao.getAll().associateBy { it.id }
+
+            // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
+            val localLists = goalRepository.getAllGoalLists().associateBy { it.id }
+            val localGoals = goalRepository.getAllGoals().associateBy { it.id }
 
             val importedGoals = (backupFile.data.goals ?: emptyMap()).values.map {
                 Goal(
@@ -112,7 +90,6 @@ class SyncRepository(
                     createdAt = dateStringToLong(it.createdAt) ?: 0L,
                     updatedAt = dateStringToLong(it.updatedAt), description = "",
                     tags = null,
-                    // --- ЗМІНЕНО ---
                     associatedListIds = it.associatedListIds
                 )
             }
@@ -127,50 +104,18 @@ class SyncRepository(
             importedLists.forEach { importedList ->
                 val localList = localLists[importedList.id]
                 if (localList == null) {
-                    changes.add(
-                        SyncChange.Add(
-                            id = importedList.id,
-                            entityType = "Список",
-                            description = importedList.name,
-                            entity = importedList
-                        )
-                    )
+                    changes.add(SyncChange.Add(importedList.id, "Список", importedList.name, importedList))
                 } else if ((importedList.updatedAt ?: 0L) > (localList.updatedAt ?: 0L)) {
-                    changes.add(
-                        SyncChange.Update(
-                            id = importedList.id,
-                            entityType = "Список",
-                            description = importedList.name,
-                            oldEntity = localList,
-                            newEntity = importedList
-                        )
-                    )
+                    changes.add(SyncChange.Update(importedList.id, "Список", importedList.name, localList, importedList))
                 }
             }
 
             importedGoals.forEach { importedGoal ->
                 val localGoal = localGoals[importedGoal.id]
                 if (localGoal == null) {
-                    changes.add(
-                        SyncChange.Add(
-                            id = importedGoal.id,
-                            entityType = "Ціль",
-                            description = importedGoal.text,
-                            entity = importedGoal
-                        )
-                    )
+                    changes.add(SyncChange.Add(importedGoal.id, "Ціль", importedGoal.text, importedGoal))
                 } else if ((importedGoal.updatedAt ?: 0L) > (localGoal.updatedAt ?: 0L)) {
-                    // Тепер `importedGoal` вже містить associatedListIds з десктопу,
-                    // тому додаткових маніпуляцій не потрібно.
-                    changes.add(
-                        SyncChange.Update(
-                            id = importedGoal.id,
-                            entityType = "Ціль",
-                            description = importedGoal.text,
-                            oldEntity = localGoal,
-                            newEntity = importedGoal
-                        )
-                    )
+                    changes.add(SyncChange.Update(importedGoal.id, "Ціль", importedGoal.text, localGoal, importedGoal))
                 }
             }
 
@@ -182,22 +127,17 @@ class SyncRepository(
 
     suspend fun applyChanges(approvedChanges: List<SyncChange>, jsonString: String) {
         val backupFile = Gson().fromJson(jsonString, DesktopBackupFile::class.java)
-
         if (backupFile?.data == null) return
 
-        val listsToApply =
-            approvedChanges.mapNotNull { (it as? SyncChange.Add)?.entity as? GoalList } +
-                    approvedChanges.mapNotNull { (it as? SyncChange.Update)?.newEntity as? GoalList }
+        val listsToApply = approvedChanges.mapNotNull { (it as? SyncChange.Add)?.entity as? GoalList } +
+                approvedChanges.mapNotNull { (it as? SyncChange.Update)?.newEntity as? GoalList }
 
         val goalsToApply = approvedChanges.mapNotNull { (it as? SyncChange.Add)?.entity as? Goal } +
                 approvedChanges.mapNotNull { (it as? SyncChange.Update)?.newEntity as? Goal }
 
-        if (listsToApply.isNotEmpty()) {
-            goalListDao.insertLists(listsToApply)
-        }
-        if (goalsToApply.isNotEmpty()) {
-            goalDao.insertGoals(goalsToApply)
-        }
+        // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
+        if (listsToApply.isNotEmpty()) goalRepository.insertGoalLists(listsToApply)
+        if (goalsToApply.isNotEmpty()) goalRepository.insertGoals(goalsToApply)
 
         val approvedListIds = listsToApply.map { it.id }.toSet()
         val approvedGoalIds = goalsToApply.map { it.id }.toSet()
@@ -214,31 +154,33 @@ class SyncRepository(
         if (affectedLists.isNotEmpty()) {
             val affectedListIds = affectedLists.map { it.id }
 
-            goalDao.deleteInstancesForLists(affectedListIds)
+            // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
+            goalRepository.deleteInstancesForLists(affectedListIds)
 
             val newInstances = affectedLists.flatMap { list ->
                 list.itemInstanceIds.mapIndexedNotNull { index, instanceId ->
                     allDesktopInstances[instanceId]?.let { desktopInstance ->
                         GoalInstance(
-                            id = desktopInstance.id,
+                            instanceId = desktopInstance.id,
                             goalId = desktopInstance.goalId,
                             listId = list.id,
-                            orderIndex = index
+                            order = index.toLong()
                         )
                     }
                 }
             }
 
-            if (newInstances.isNotEmpty()) {
-                goalDao.insertGoalInstances(newInstances)
-            }
+            // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
+            if (newInstances.isNotEmpty()) goalRepository.insertGoalInstances(newInstances)
         }
     }
 
     suspend fun createBackupJsonString(): String {
-        val lists = goalListDao.getAll()
-        val goals = goalDao.getAll()
-        val instances = goalDao.getAllInstances()
+        // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
+        val lists = goalRepository.getAllGoalLists()
+        val goals = goalRepository.getAllGoals()
+        val instances = goalRepository.getAllGoalInstances()
+
         val childMap = lists.filter { it.parentId != null }.groupBy { it.parentId!! }
 
         val desktopGoals = goals.associate {
@@ -246,22 +188,22 @@ class SyncRepository(
                 id = it.id, text = it.text, completed = it.completed,
                 createdAt = longToDateString(it.createdAt)!!,
                 updatedAt = longToDateString(it.updatedAt),
-                associatedListIds = it.associatedListIds // <-- ДОДАНО
+                associatedListIds = it.associatedListIds
             )
         }
 
         val desktopInstances = instances.associate {
-            it.id to DesktopGoalInstance(id = it.id, goalId = it.goalId)
+            it.instanceId to DesktopGoalInstance(id = it.instanceId, goalId = it.goalId)
         }
 
         val desktopLists = lists.associate { list ->
-            val listInstances = instances.filter { it.listId == list.id }.sortedBy { it.orderIndex }
+            val listInstances = instances.filter { it.listId == list.id }.sortedBy { it.order }
             list.id to DesktopGoalList(
                 id = list.id, name = list.name, parentId = list.parentId,
                 description = list.description,
                 createdAt = longToDateString(list.createdAt)!!,
                 updatedAt = longToDateString(list.updatedAt),
-                itemInstanceIds = listInstances.map { it.id },
+                itemInstanceIds = listInstances.map { it.instanceId },
                 childListIds = childMap[list.id]?.map { it.id } ?: emptyList()
             )
         }
@@ -283,5 +225,4 @@ class SyncRepository(
 
         return Gson().toJson(desktopBackupFile)
     }
-
 }

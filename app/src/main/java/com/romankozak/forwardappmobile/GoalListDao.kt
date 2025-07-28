@@ -16,13 +16,13 @@ interface GoalListDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLists(lists: List<GoalList>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE) // Змінено для узгодженості
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(goalList: GoalList)
 
     @Update
     suspend fun update(goalList: GoalList)
 
-    @Delete // <-- ДОДАНО: Правильний метод для видалення
+    @Delete
     suspend fun delete(goalList: GoalList)
 
     @Query("DELETE FROM goal_lists WHERE id = :listId")
@@ -30,4 +30,14 @@ interface GoalListDao {
 
     @Query("SELECT * FROM goal_lists WHERE id IN (:listIds)")
     suspend fun getListsByIds(listIds: List<String>): List<GoalList>
+
+    // --- ДОДАНО ЦІ ДВА МЕТОДИ ---
+
+    // Метод для одноразового отримання (використовується в init блоці ViewModel)
+    @Query("SELECT * FROM goal_lists WHERE id = :id")
+    suspend fun getGoalListById(id: String): GoalList?
+
+    // Метод, що повертає Flow (для combine оператора)
+    @Query("SELECT * FROM goal_lists WHERE id = :id")
+    fun getGoalListByIdStream(id: String): Flow<GoalList?>
 }

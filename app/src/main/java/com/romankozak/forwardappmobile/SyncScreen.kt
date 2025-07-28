@@ -23,9 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.romankozak.forwardappmobile.ServerInfo // <-- ДОДАТИ ЦЕЙ РЯДОК
-
-
+import com.romankozak.forwardappmobile.ServerInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,8 +32,14 @@ fun SyncScreen(
     onSyncComplete: () -> Unit
 ) {
     val context = LocalContext.current
+
+    // --- ВИПРАВЛЕНО: Створюємо SyncRepository і передаємо його у фабрику ---
+    // Оскільки SyncRepository тепер також є Hilt-класом (@Singleton),
+    // в ідеалі ми мали б його ін'єктувати, але для швидкого виправлення
+    // створимо його тут вручну.
     val db = AppDatabase.getDatabase(context)
-    val syncRepo = SyncRepository(db.goalListDao(), db.goalDao())
+    val goalRepository = GoalRepository(db.goalDao(), db.goalListDao())
+    val syncRepo = SyncRepository(goalRepository)
 
     val viewModel: SyncViewModel = viewModel(factory = SyncViewModelFactory(syncRepo))
 
@@ -45,7 +49,6 @@ fun SyncScreen(
 
     LaunchedEffect(Unit) {
         viewModel.createReport(syncDataViewModel)
-
     }
 
     Scaffold(
@@ -149,4 +152,3 @@ fun SyncChangeItem(change: SyncChange, isChecked: Boolean, onToggle: () -> Unit)
         }
     }
 }
-

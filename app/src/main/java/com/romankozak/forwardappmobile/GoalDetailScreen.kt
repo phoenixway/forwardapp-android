@@ -3,22 +3,20 @@
 package com.romankozak.forwardappmobile
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -26,41 +24,39 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.mohamedrejeb.compose.dnd.DragAndDropContainer
+import com.mohamedrejeb.compose.dnd.drag.DraggableItem
+import com.mohamedrejeb.compose.dnd.drop.dropTarget
+import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.burnoutcrew.reorderable.ReorderableItem
-import org.burnoutcrew.reorderable.detectReorderAfterLongPress
-import org.burnoutcrew.reorderable.rememberReorderableLazyListState
-import org.burnoutcrew.reorderable.reorderable
-import kotlin.math.roundToInt
 
-// Стани для свайпу
-enum class SwipeAction {
-    Hidden,
-    Revealed,
-    Delete
-}
 
 @Composable
 fun GoalDetailScreen(
-    viewModel: GoalDetailViewModel,
-    navController: NavController
+    navController: NavController,
+    viewModel: GoalDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val goals by viewModel.filteredGoals.collectAsState()
@@ -68,14 +64,17 @@ fun GoalDetailScreen(
     val showInputModeDialog by viewModel.showInputModeDialog.collectAsState()
     val associatedListsMap by viewModel.associatedListsMap.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
+    val listHierarchy by viewModel.listHierarchyForChooser.collectAsState()
+    val list by viewModel.goalList.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var resetTriggers by remember { mutableStateOf(mapOf<String, Int>()) }
 
-    val reorderableState = rememberReorderableLazyListState(
-        onMove = { from, to -> viewModel.moveGoal(from.index, to.index) }
-    )
+    val listState = rememberLazyListState()
+    val dragAndDropState = rememberDragAndDropState<GoalWithInstanceInfo>()
+    var scrollDirection by remember { mutableStateOf(0) }
+    val isLoading = list == null
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -93,11 +92,16 @@ fun GoalDetailScreen(
                     }
                 }
                 is UiEvent.ResetSwipeState -> {
-                    val currentTrigger = resetTriggers[event.instanceId] ?: 0
+                    val currentTrigger = resetTriggers.getOrDefault(event.instanceId, 0)
                     resetTriggers = resetTriggers + (event.instanceId to currentTrigger + 1)
                 }
                 is UiEvent.Navigate -> {
                     navController.navigate(event.route)
+                }
+                is UiEvent.ScrollTo -> {
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(event.index.coerceAtLeast(0))
+                    }
                 }
             }
         }
@@ -108,8 +112,28 @@ fun GoalDetailScreen(
         if (goalId != null) {
             val index = goals.indexOfFirst { it.goal.id == goalId }
             if (index != -1) {
-                reorderableState.listState.animateScrollToItem(index)
+                listState.animateScrollToItem(index)
                 viewModel.onHighlightShown()
+            }
+        }
+    }
+
+    LaunchedEffect(goals) {
+        val newGoalInstanceId = uiState.newlyAddedGoalInstanceId
+        if (newGoalInstanceId != null) {
+            val index = goals.indexOfFirst { it.instanceId == newGoalInstanceId }
+            if (index != -1) {
+                listState.animateScrollToItem(index)
+                viewModel.onScrolledToNewGoal()
+            }
+        }
+    }
+
+    LaunchedEffect(scrollDirection) {
+        if (scrollDirection != 0) {
+            while (true) {
+                listState.scrollBy(20f * scrollDirection)
+                delay(16)
             }
         }
     }
@@ -117,7 +141,7 @@ fun GoalDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.goalList?.name ?: "Завантаження...") },
+                title = { Text(list?.name ?: "Завантаження...") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -129,178 +153,217 @@ fun GoalDetailScreen(
         bottomBar = {
             GoalInputBar(
                 inputMode = uiState.inputMode,
-                onModeChangeRequest = { viewModel.onInputModeChangeRequest() },
+                onModeChangeRequest = { viewModel.onModeChangeRequest() },
                 onTextChange = { viewModel.onInputTextChanged(it) },
                 onSubmit = { viewModel.submitInput(it) }
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when {
+            isLoading -> {
+                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else if (goals.isEmpty() && uiState.localSearchQuery.isBlank()) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("У цьому списку ще немає цілей.")
+            goals.isEmpty() && uiState.localSearchQuery.isBlank() -> {
+                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    Text("У цьому списку ще немає цілей.")
+                }
             }
-        } else {
-            LazyColumn(
-                state = reorderableState.listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .reorderable(reorderableState)
-                    .detectReorderAfterLongPress(reorderableState)
-            ) {
-                items(goals, key = { it.instanceId }) { goalWithInstance ->
-                    ReorderableItem(reorderableState, key = goalWithInstance.instanceId) {
-                        val isHighlighted by remember(uiState.goalToHighlight) {
-                            derivedStateOf { uiState.goalToHighlight == goalWithInstance.goal.id }
-                        }
-                        val trigger = resetTriggers[goalWithInstance.instanceId] ?: 0
-                        val associatedLists = associatedListsMap[goalWithInstance.goal.id] ?: emptyList()
+            else -> {
+                DragAndDropContainer(
+                    state = dragAndDropState
+                ) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    ) {
+                        itemsIndexed(goals, key = { _, it -> it.instanceId }) { index, goalWithInstanceInfo ->
+                            val isCurrentlyDragging = dragAndDropState.draggedItem?.key == goalWithInstanceInfo.instanceId
 
-                        SwipeableGoalItem(
-                            resetTrigger = trigger,
-                            goalWithInstance = goalWithInstance,
-                            isHighlighted = isHighlighted,
-                            associatedLists = associatedLists,
-                            obsidianVaultName = obsidianVaultName, // <-- ПЕРЕДАЄМО ПАРАМЕТР
-                            onEdit = { viewModel.onEditGoal(goalWithInstance) },
-                            onDelete = { viewModel.deleteGoal(goalWithInstance) },
-                            onMore = { viewModel.onGoalActionInitiated(goalWithInstance) },
-                            onToggle = { viewModel.toggleGoalCompleted(goalWithInstance.goal) },
-                            onTagClick = { tag -> viewModel.onTagClicked(tag) },
-                            onAssociatedListClick = { listId -> viewModel.onAssociatedListClicked(listId) },
-                            onResetSwipe = { viewModel.resetSwipe(goalWithInstance.instanceId) }
-                        )
+                            val elevation = animateDpAsState(if (isCurrentlyDragging) 8.dp else 0.dp, label = "elevationAnimation")
+                            val scale by animateFloatAsState(if (isCurrentlyDragging) 1.02f else 1.0f, label = "scaleAnimation")
+
+                            val haptic = LocalHapticFeedback.current
+                            LaunchedEffect(isCurrentlyDragging) {
+                                if (isCurrentlyDragging) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                            }
+
+                            // ✨ ЗМІНА №1: Визначаємо напрямок руху і стан наведення
+                            val draggedItemIndex = remember(dragAndDropState.draggedItem) {
+                                goals.indexOfFirst { it.instanceId == dragAndDropState.draggedItem?.key }
+                            }
+                            val isHovered = dragAndDropState.hoveredDropTargetKey == goalWithInstanceInfo.instanceId
+                            val isDraggingDown = draggedItemIndex != -1 && draggedItemIndex < index
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+// У файлі GoalDetailScreen.kt, всередині Column в itemsIndexed
+
+                                    .dropTarget(
+                                        state = dragAndDropState,
+                                        key = goalWithInstanceInfo.instanceId,
+                                        onDrop = { draggedItemState ->
+                                            scrollDirection = 0 // Зупиняємо скрол при відпусканні
+                                            val draggedData = draggedItemState.data
+                                            val hoveredKey = dragAndDropState.hoveredDropTargetKey
+
+                                            val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
+                                            val toIndex = goals.indexOfFirst { it.instanceId == hoveredKey }
+
+                                            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
+                                                val firstVisibleItemIndex = listState.firstVisibleItemIndex
+                                                val needsScroll = toIndex <= firstVisibleItemIndex
+                                                viewModel.moveGoal(fromIndex, toIndex, needsScroll)
+                                            }
+                                        },
+                                        // ✨ РІШЕННЯ: Повертаємо логіку, що вмикає автоскрол
+                                        onDragEnter = {
+                                            val visibleItems = listState.layoutInfo.visibleItemsInfo
+                                            if (visibleItems.isNotEmpty()) {
+                                                // `index` з `itemsIndexed` - це індекс елемента, над яким ми зараз
+                                                scrollDirection = when (index) {
+                                                    visibleItems.first().index -> -1 // Якщо навели на верхній - скрол вгору
+                                                    visibleItems.last().index -> 1  // Якщо навели на нижній - скрол вниз
+                                                    else -> 0                       // В інших випадках - без скролу
+                                                }
+                                            }
+                                        }
+
+                                    )
+                            ) {
+                                // ✨ ЗМІНА №2: Показуємо риску зверху, якщо тягнемо вгору
+                                if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
+                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                                }
+
+                                Box(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    val isHighlighted by remember(uiState.goalToHighlight) {
+                                        derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
+                                    }
+                                    val associatedLists = associatedListsMap.getOrDefault(goalWithInstanceInfo.goal.id, emptyList())
+
+                                    SwipeableGoalItem(
+                                        modifier = Modifier
+                                            .scale(scale)
+                                            .shadow(elevation.value, RoundedCornerShape(8.dp)),
+                                        resetTrigger = resetTriggers.getOrDefault(goalWithInstanceInfo.instanceId, 0),
+                                        goalWithInstance = goalWithInstanceInfo,
+                                        isHighlighted = isHighlighted,
+                                        isDragging = isCurrentlyDragging,
+                                        associatedLists = associatedLists,
+                                        obsidianVaultName = obsidianVaultName,
+                                        onEdit = { viewModel.onEditGoal(goalWithInstanceInfo) },
+                                        onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
+                                        onMore = { viewModel.onGoalActionInitiated(goalWithInstanceInfo) },
+                                        onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
+                                        onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
+                                        onAssociatedListClick = { listId: String -> viewModel.onAssociatedListClicked(listId) },
+                                        dragHandle = {
+                                            DraggableItem(
+                                                state = dragAndDropState,
+                                                key = goalWithInstanceInfo.instanceId,
+                                                data = goalWithInstanceInfo,
+                                                dropAnimationSpec = snap()
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.size(48.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.DragHandle,
+                                                        contentDescription = "Ручка для перетягування",
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+
+                                // ✨ ЗМІНА №3: Показуємо риску знизу, якщо тягнемо вниз
+                                if (isHovered && isDraggingDown && !isCurrentlyDragging) {
+                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                                }
+                            }
+                        }
+
+                        // ✨ ЗМІНА №4: Оновлений блок для зони в кінці списку
+                        item(key = "drop-zone-at-end") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(60.dp)
+                                    .dropTarget(
+                                        state = dragAndDropState,
+                                        key = "drop-zone-at-end",
+// onDrop для основного елемента в GoalDetailScreen.kt
+                                        onDrop = { draggedItemState ->
+                                            scrollDirection = 0
+                                            val draggedData = draggedItemState.data
+
+                                            // ✨ ВИПРАВЛЕННЯ: Використовуємо hoveredDropTargetKey, щоб знайти ціль
+                                            val hoveredKey = dragAndDropState.hoveredDropTargetKey
+
+                                            val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
+                                            val toIndex = goals.indexOfFirst { it.instanceId == hoveredKey }
+
+                                            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
+                                                val firstVisibleItemIndex = listState.firstVisibleItemIndex
+                                                val needsScroll = toIndex <= firstVisibleItemIndex
+
+                                                viewModel.moveGoal(fromIndex, toIndex, needsScroll)
+                                            }
+                                        },
+                                    )
+                            ) {
+                                // ✨ Показуємо риску, коли наводимо на цю зону
+                                if (dragAndDropState.hoveredDropTargetKey == "drop-zone-at-end") {
+                                    HorizontalDivider(
+                                        modifier = Modifier.align(Alignment.TopCenter),
+                                        thickness = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    // ... решта діалогів без змін ...
-}
-
-@Composable
-fun SwipeableGoalItem(
-    resetTrigger: Int,
-    goalWithInstance: GoalWithInstanceInfo,
-    isHighlighted: Boolean,
-    associatedLists: List<GoalList>,
-    obsidianVaultName: String, // <-- ВИПРАВЛЕНО: Додано до сигнатури
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onMore: () -> Unit,
-    onToggle: () -> Unit,
-    onTagClick: (String) -> Unit,
-    onAssociatedListClick: (String) -> Unit,
-    onResetSwipe: () -> Unit
-) {
-    val density = LocalDensity.current
-
-    val revealPx = with(density) { -180.dp.toPx() }
-    val deletePx = with(density) { 120.dp.toPx() }
-
-    val fullAnchors = remember {
-        DraggableAnchors {
-            SwipeAction.Hidden at 0f
-            SwipeAction.Revealed at revealPx
-            SwipeAction.Delete at deletePx
-        }
-    }
-
-    val state = remember(key1 = resetTrigger) {
-        AnchoredDraggableState(
-            initialValue = SwipeAction.Hidden,
-            anchors = fullAnchors,
-            positionalThreshold = { totalDistance -> totalDistance * 0.6f },
-            velocityThreshold = { with(density) { 100.dp.toPx() } },
-            animationSpec = tween(durationMillis = 300)
+    if (showInputModeDialog) {
+        InputModeDialog(
+            onDismiss = { viewModel.onDismissInputModeDialog() },
+            onSelect = { viewModel.onInputModeSelected(it) }
         )
     }
 
-    LaunchedEffect(state.currentValue) {
-        val newAnchors = when (state.currentValue) {
-            SwipeAction.Revealed -> DraggableAnchors {
-                SwipeAction.Hidden at 0f
-                SwipeAction.Revealed at revealPx
-            }
-            SwipeAction.Delete -> DraggableAnchors {
-                SwipeAction.Hidden at 0f
-                SwipeAction.Delete at deletePx
-            }
-            SwipeAction.Hidden -> fullAnchors
+    when (val state = goalActionState) {
+        is GoalActionDialogState.Hidden -> {}
+        is GoalActionDialogState.AwaitingActionChoice -> {
+            GoalActionChoiceDialog(
+                onDismiss = { viewModel.onDismissGoalActionDialogs() },
+                onActionSelected = { viewModel.onGoalActionSelected(it) }
+            )
         }
-        state.updateAnchors(newAnchors)
-    }
-
-    LaunchedEffect(state.targetValue) {
-        if (state.targetValue == SwipeAction.Delete) {
-            onDelete()
-        }
-    }
-
-    val itemBackgroundColor by animateColorAsState(
-        targetValue = if (isHighlighted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
-        animationSpec = tween(durationMillis = 1500), label = "ItemBackgroundColor"
-    )
-
-    Box(
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
-    ) {
-        Box(modifier = Modifier.matchParentSize()) {
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                IconButton(onClick = onMore, modifier = Modifier.fillMaxHeight().width(90.dp).background(MaterialTheme.colorScheme.secondary)) { Icon(Icons.Default.SwapVert, "Дії", tint = Color.White) }
-                IconButton(onClick = onEdit, modifier = Modifier.fillMaxHeight().width(90.dp).background(Color.Gray)) { Icon(Icons.Default.Edit, "Редагувати", tint = Color.White) }
-            }
-            Box(
-                modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(120.dp).background(MaterialTheme.colorScheme.error),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Видалити", tint = Color.White, modifier = Modifier.size(32.dp))
-            }
-        }
-        Surface(
-            modifier = Modifier
-                .offset { IntOffset(state.requireOffset().roundToInt(), 0) }
-                .anchoredDraggable(state, Orientation.Horizontal),
-            color = itemBackgroundColor,
-            onClick = {
-                if (state.currentValue != SwipeAction.Hidden) {
-                    onResetSwipe()
-                } else {
-                    onMore()
-                }
-            }
-        ) {
-            GoalItem(
-                goal = goalWithInstance.goal,
-                associatedLists = associatedLists,
-                obsidianVaultName = obsidianVaultName, // <-- ВИПРАВЛЕНО: Передаємо далі
-                onToggle = onToggle,
-                onItemClick = {
-                    if (state.currentValue != SwipeAction.Hidden) {
-                        onResetSwipe()
-                    } else {
-                        onMore()
-                    }
-                },
-                onTagClick = onTagClick,
-                onAssociatedListClick = onAssociatedListClick,
-                backgroundColor = Color.Transparent,
-                modifier = Modifier
+        is GoalActionDialogState.AwaitingListChoice -> {
+            ListChooserDialog(
+                topLevelLists = listHierarchy.topLevelLists,
+                childMap = listHierarchy.childMap,
+                onDismiss = { viewModel.onDismissGoalActionDialogs() },
+                onConfirm = { viewModel.confirmGoalAction(it) }
             )
         }
     }
 }
-
-
-// --- Решта файлу (GoalInputBar та діалоги) залишаються без змін ---
 
 @Composable
 fun GoalInputBar(
@@ -323,7 +386,6 @@ fun GoalInputBar(
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, bottom = 8.dp, top = 8.dp)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-
     ) {
         Surface(
             shape = RoundedCornerShape(28.dp),
@@ -345,7 +407,6 @@ fun GoalInputBar(
                         contentDescription = "Change Input Mode"
                     )
                 }
-
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -400,16 +461,31 @@ fun GoalInputBar(
     }
 }
 
+
 @Composable
 fun GoalActionChoiceDialog(onDismiss: () -> Unit, onActionSelected: (GoalActionType) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column {
-                Text("Create instance in another list", modifier = Modifier.fillMaxWidth().clickable { onActionSelected(GoalActionType.CreateInstance) }.padding(16.dp))
+                Text("Create instance in another list", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.CreateInstance) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Move instance to another list", modifier = Modifier.fillMaxWidth().clickable { onActionSelected(GoalActionType.MoveInstance) }.padding(16.dp))
+                Text("Move instance to another list", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.MoveInstance) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Copy goal to another list", modifier = Modifier.fillMaxWidth().clickable { onActionSelected(GoalActionType.CopyGoal) }.padding(16.dp))
+                Text("Copy goal to another list", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.CopyGoal) }
+                    .padding(16.dp))
+                HorizontalDivider()
+                Text("Перемістити на вершину списку", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onActionSelected(GoalActionType.MoveToTop) }
+                    .padding(16.dp))
             }
         }
     }
@@ -453,11 +529,20 @@ fun InputModeDialog(onDismiss: () -> Unit, onSelect: (InputMode) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column {
-                Text("Add Goal", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.AddGoal) }.padding(16.dp))
+                Text("Add Goal", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(InputMode.AddGoal) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Search in List", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.SearchInList) }.padding(16.dp))
+                Text("Search in List", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(InputMode.SearchInList) }
+                    .padding(16.dp))
                 HorizontalDivider()
-                Text("Search Globally", modifier = Modifier.fillMaxWidth().clickable { onSelect(InputMode.SearchGlobal) }.padding(16.dp))
+                Text("Search Globally", modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(InputMode.SearchGlobal) }
+                    .padding(16.dp))
             }
         }
     }

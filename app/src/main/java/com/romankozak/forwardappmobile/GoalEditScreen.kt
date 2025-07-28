@@ -3,6 +3,7 @@
 package com.romankozak.forwardappmobile
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,28 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.createSavedStateHandle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 
 @Composable
 fun GoalEditScreen(
     navController: NavController,
-    db: AppDatabase,
-    savedStateHandle: SavedStateHandle
+    viewModel: GoalEditViewModel = hiltViewModel()
 ) {
-    // Ось виправлений, сучасний спосіб створення ViewModel з SavedStateHandle
-    val viewModel: GoalEditViewModel = viewModel(
-        key = "goal_edit_${savedStateHandle.get<String>("goalId") ?: savedStateHandle.get<String>("text")}"
-    ) {
-        GoalEditViewModel(
-            goalDao = db.goalDao(),
-            goalListDao = db.goalListDao(),
-            savedStateHandle = createSavedStateHandle()
-        )
-    }
-
     val uiState by viewModel.uiState.collectAsState()
     val listHierarchy by viewModel.listHierarchy.collectAsState()
     val context = LocalContext.current
@@ -101,13 +88,39 @@ fun GoalEditScreen(
                     OutlinedTextField(
                         value = uiState.goalDescription,
                         onValueChange = viewModel::onDescriptionChange,
-                        label = { Text("Опис (необов'язково)") },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                        label = { Text("Опис (підтримує Markdown)") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 120.dp),
                     )
                 }
 
+                if (uiState.goalDescription.isNotBlank()) {
+                    item {
+                        Column {
+                            Text(
+                                "Попередній перегляд опису:",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                MarkdownText(
+                                    text = uiState.goalDescription,
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
+                }
+
                 item {
-                    Text("Assosiated lists:", style = MaterialTheme.typography.titleMedium)
+                    Text("Пов'язані списки:", style = MaterialTheme.typography.titleMedium)
                 }
 
                 item {
@@ -126,7 +139,9 @@ fun GoalEditScreen(
                                         Icon(
                                             Icons.Default.Cancel,
                                             contentDescription = "Видалити зі списку",
-                                            modifier = Modifier.size(InputChipDefaults.IconSize).clickable { viewModel.onRemoveListAssociation(list.id) }
+                                            modifier = Modifier
+                                                .size(InputChipDefaults.IconSize)
+                                                .clickable { viewModel.onRemoveListAssociation(list.id) }
                                         )
                                     }
                                 }
@@ -140,7 +155,35 @@ fun GoalEditScreen(
                         onClick = { viewModel.onShowListChooser() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Add assosiated list")
+                        Text("Додати пов'язаний список")
+                    }
+                }
+
+                // ✨ ЗМІНА: Використовуємо локальну змінну для безпечного доступу
+                item {
+                    val createdAt = uiState.createdAt
+                    if (createdAt != null) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Створено: ${formatDate(createdAt)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            val updatedAt = uiState.updatedAt
+                            if (updatedAt != null && updatedAt > createdAt + 1000) { // Показуємо, тільки якщо є різниця
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Оновлено: ${formatDate(updatedAt)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
