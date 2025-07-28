@@ -21,12 +21,12 @@ plugins {
 
 android {
     namespace = "com.romankozak.forwardappmobile"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 36
         versionCode = calculateVersionCode()
         versionName = "$majorVersion.$minorVersion.$patchVersion"
 
