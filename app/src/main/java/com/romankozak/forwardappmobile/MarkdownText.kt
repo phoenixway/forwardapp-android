@@ -33,7 +33,7 @@ fun MarkdownText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
-    isCompleted: Boolean = false, // Для кольору тексту
+    isCompleted: Boolean = false, // Для кольору та стилю тексту
     obsidianVaultName: String = "", // Для посилань
     onTagClick: (String) -> Unit = {} // Для тегів
 ) {
@@ -41,8 +41,17 @@ fun MarkdownText(
     val tagColor = MaterialTheme.colorScheme.primary
     val projectColor = MaterialTheme.colorScheme.tertiary
     val linkColor = MaterialTheme.colorScheme.tertiary
-    val textColor = style.color.takeUnless { it.isUnspecified }
-        ?: if (isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+
+    val finalTextStyle = if (isCompleted) {
+        style.copy(
+            textDecoration = TextDecoration.LineThrough,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    } else {
+        style.copy(
+            color = style.color.takeUnless { it.isUnspecified } ?: MaterialTheme.colorScheme.onSurface
+        )
+    }
 
     val listRegex = remember { Regex("^\\s*([*+-])\\s+(.*)") }
     val inlineContentRegex = remember {
@@ -55,14 +64,12 @@ fun MarkdownText(
         )
     }
 
-    // Функція, що обробляє кліки на анотованому тексті
     val handleClick: (Int) -> Unit = { offset ->
         val annotatedString = buildAnnotatedString {
-            // Ми маємо згенерувати рядок знову, щоб отримати анотації
-            // Це не ідеально, але працює для визначення, на що клікнули
             text.lines().forEach { line ->
                 val content = listRegex.find(line)?.destructured?.component2() ?: line
-                append(applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor))
+                // ✨ ЗМІНА №1: Передаємо isCompleted у функцію
+                append(applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted))
                 append("\n")
             }
         }
@@ -97,7 +104,8 @@ fun MarkdownText(
                 line to false
             }
 
-            val annotatedLine = applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor)
+            // ✨ ЗМІНА №2: Передаємо isCompleted у функцію
+            val annotatedLine = applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
 
             val fullLine = if (isList) {
                 buildAnnotatedString {
@@ -111,25 +119,27 @@ fun MarkdownText(
             if (onTagClick != {} || obsidianVaultName.isNotBlank()) {
                 ClickableText(
                     text = fullLine,
-                    style = style.copy(color = textColor),
+                    style = finalTextStyle,
                     onClick = handleClick
                 )
             } else {
                 Text(
                     text = fullLine,
-                    style = style.copy(color = textColor)
+                    style = finalTextStyle
                 )
             }
         }
     }
 }
 
+// ✨ ЗМІНА №3: Додаємо isCompleted у параметри функції
 private fun applyInlineStyles(
     content: String,
     regex: Regex,
     tagColor: Color,
     projectColor: Color,
-    linkColor: Color
+    linkColor: Color,
+    isCompleted: Boolean
 ): AnnotatedString {
     return buildAnnotatedString {
         var lastIndex = 0
@@ -143,7 +153,15 @@ private fun applyInlineStyles(
                     val linkTarget = match.groups[8]!!.value
                     val linkText = match.groups[9]?.value
                     val displayText = if (!linkText.isNullOrEmpty()) linkText else linkTarget
-                    Triple(displayText, SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline), "OBSIDIAN_LINK" to linkTarget)
+
+                    // ✨ ЗМІНА №4: Комбінуємо стилі, якщо ціль виконана
+                    val decoration = if (isCompleted) {
+                        TextDecoration.combine(listOf(TextDecoration.Underline, TextDecoration.LineThrough))
+                    } else {
+                        TextDecoration.Underline
+                    }
+
+                    Triple(displayText, SpanStyle(color = linkColor, textDecoration = decoration), "OBSIDIAN_LINK" to linkTarget)
                 }
                 match.groups[10] != null -> {
                     val tagSymbol = match.groups[10]!!.value

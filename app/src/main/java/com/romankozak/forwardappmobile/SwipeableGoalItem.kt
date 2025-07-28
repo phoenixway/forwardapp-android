@@ -32,8 +32,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -75,172 +78,182 @@ fun SwipeableGoalItem(
     val density = LocalDensity.current
     val hapticFeedback = LocalHapticFeedback.current
 
-    val initialAnchors = DraggableAnchors {
-        SwipeState.Normal at 0f
-    }
+    // ✨ ЗМІНА №1: Створюємо змінну, яка буде нашим "ключем перезавантаження"
+    var swipeResetKey by remember { mutableStateOf(0) }
 
-    val swipeState = remember(resetTrigger) {
-        AnchoredDraggableState(
-            initialValue = SwipeState.Normal,
-            anchors = initialAnchors,
-            positionalThreshold = { distance: Float -> distance * 0.5f },
-            velocityThreshold = { with(density) { 125.dp.toPx() } },
-            snapAnimationSpec = tween(300, easing = FastOutSlowInEasing),
-            decayAnimationSpec = splineBasedDecay(density)
-        )
-    }
-
-    val actionsRevealPx = with(density) { 180.dp.toPx() }
-    val deleteThresholdPx = with(density) { (-160.dp).toPx() }
-
-    val dynamicAnchors = DraggableAnchors {
-        SwipeState.Normal at 0f
-        if (swipeState.currentValue != SwipeState.DeleteTriggered) {
-            SwipeState.ActionsRevealed at actionsRevealPx
-        }
-        if (swipeState.currentValue != SwipeState.ActionsRevealed) {
-            SwipeState.DeleteTriggered at deleteThresholdPx
+    // ✨ ЗМІНА №2: Коли перетягування завершується, ми не чіпаємо стан, а просто
+    // збільшуємо ключ, що змусить Compose "перезавантажити" компонент.
+    LaunchedEffect(isDragging) {
+        if (!isDragging) {
+            swipeResetKey++
         }
     }
 
-    LaunchedEffect(dynamicAnchors) {
-        swipeState.updateAnchors(dynamicAnchors)
-    }
-
-    LaunchedEffect(swipeState.targetValue) {
-        if (swipeState.targetValue == SwipeState.DeleteTriggered) {
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-            onDelete()
-            swipeState.snapTo(SwipeState.Normal)
-        }
-    }
-
-    val itemBackgroundColor by animateColorAsState(
-        targetValue = when {
-            isDragging -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-            swipeState.offset < 0 -> MaterialTheme.colorScheme.errorContainer.copy(
-                alpha = (abs(swipeState.offset) / abs(deleteThresholdPx)).coerceIn(0f, 0.3f)
+    // ✨ ЗМІНА №3: Огортаємо наш проблемний компонент у `key`.
+    // Тепер щоразу, коли `swipeResetKey` або `resetTrigger` змінюється,
+    // все, що всередині, буде створено заново з чистого аркуша.
+    key(swipeResetKey, resetTrigger) {
+        val swipeState = remember {
+            AnchoredDraggableState(
+                initialValue = SwipeState.Normal,
+                anchors = DraggableAnchors { SwipeState.Normal at 0f },
+                // Зробимо активацію важчою: треба протягнути 60% шляху
+                positionalThreshold = { distance: Float -> distance * 0.6f },
+                // Зробимо флінг важчим: потрібна більша швидкість
+                velocityThreshold = { with(density) { 1800.dp.toPx() } },
+                // Сповільнимо анімацію: тривалість 500 мс замість 300
+                snapAnimationSpec = tween(900, easing = FastOutSlowInEasing),
+                decayAnimationSpec = splineBasedDecay(density)
             )
-            else -> Color.Transparent
-        },
-        animationSpec = tween(200),
-        label = "ItemBackgroundColor"
-    )
-
-    val resetSwipe: () -> Unit = {
-        coroutineScope.launch {
-            swipeState.animateTo(SwipeState.Normal)
         }
-    }
 
-    val actionsAlpha = (abs(swipeState.offset) / actionsRevealPx).coerceIn(0f, 1f)
-    val deleteAlpha = if (swipeState.offset < 0) (abs(swipeState.offset) / abs(deleteThresholdPx)).coerceIn(0f, 1f) else 0f
+        val actionsRevealPx = with(density) { 180.dp.toPx() }
+        val deleteThresholdPx = with(density) { (-160.dp).toPx() }
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(itemBackgroundColor, RoundedCornerShape(8.dp))
-    ) {
-        Box(
-            modifier = Modifier.matchParentSize()
-        ) {
-            if (swipeState.offset > 0) {
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .fillMaxHeight()
-                        .alpha(actionsAlpha),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Surface(
-                        onClick = { onEdit(); resetSwipe() },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(88.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.onPrimary)
-                        }
-                    }
-                    Surface(
-                        // ✨ ОСЬ ЦЯ ЗМІНА: тепер просто викликаємо onMore.
-                        // Скиданням буде керувати батьківський компонент через ViewModel.
-                        onClick = { onMore() },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(88.dp),
-                        color = MaterialTheme.colorScheme.secondary,
-                        shape = RectangleShape
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(Icons.Default.SwapHoriz, "More", tint = MaterialTheme.colorScheme.onSecondary)
-                        }
-                    }
+        LaunchedEffect(Unit) {
+            swipeState.updateAnchors(
+                DraggableAnchors {
+                    SwipeState.Normal at 0f
+                    SwipeState.ActionsRevealed at actionsRevealPx
+                    SwipeState.DeleteTriggered at deleteThresholdPx
                 }
-            }
-            if (swipeState.offset < 0) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .fillMaxHeight()
-                        .alpha(deleteAlpha)
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(88.dp),
-                        color = MaterialTheme.colorScheme.error,
-                        shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Видалити",
-                                tint = MaterialTheme.colorScheme.onError,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
+            )
+        }
+
+        LaunchedEffect(swipeState.targetValue) {
+            if (swipeState.targetValue == SwipeState.DeleteTriggered) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDelete()
+                swipeState.snapTo(SwipeState.Normal)
             }
         }
 
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset {
-                    val offsetValue = swipeState.offset
-                    if (offsetValue.isFinite()) {
-                        IntOffset(offsetValue.roundToInt(), 0)
-                    } else {
-                        IntOffset.Zero
-                    }
-                }
-                .anchoredDraggable(state = swipeState, orientation = Orientation.Horizontal),
-            onClick = {
-                if (swipeState.currentValue == SwipeState.Normal) onMore() else resetSwipe()
+        val itemBackgroundColor by animateColorAsState(
+            targetValue = when {
+                isDragging -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                swipeState.offset < 0 -> MaterialTheme.colorScheme.errorContainer.copy(
+                    alpha = (abs(swipeState.offset) / abs(deleteThresholdPx)).coerceIn(0f, 0.3f)
+                )
+
+                else -> Color.Transparent
             },
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = if (swipeState.offset != 0f || isDragging) 8.dp else 0.dp,
-            shape = RoundedCornerShape(8.dp)
+            animationSpec = tween(200),
+            label = "ItemBackgroundColor"
+        )
+
+        val resetSwipe: () -> Unit = {
+            coroutineScope.launch {
+                swipeState.animateTo(SwipeState.Normal)
+            }
+        }
+
+        val actionsAlpha = (abs(swipeState.offset) / actionsRevealPx).coerceIn(0f, 1f)
+        val deleteAlpha = if (swipeState.offset < 0) (abs(swipeState.offset) / abs(deleteThresholdPx)).coerceIn(0f, 1f) else 0f
+
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(itemBackgroundColor, RoundedCornerShape(8.dp))
         ) {
-            GoalItem(
-                goal = goalWithInstance.goal,
-                associatedLists = associatedLists,
-                obsidianVaultName = obsidianVaultName,
-                onToggle = onToggle,
-                onItemClick = { onMore() },
-                onTagClick = onTagClick,
-                onAssociatedListClick = onAssociatedListClick,
-                backgroundColor = Color.Transparent,
-                dragHandle = dragHandle
-            )
+            Box(
+                modifier = Modifier.matchParentSize()
+            ) {
+                if (swipeState.offset > 0) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .fillMaxHeight()
+                            .alpha(actionsAlpha),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Surface(
+                            onClick = { onEdit(); resetSwipe() },
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(88.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.onPrimary)
+                            }
+                        }
+                        Surface(
+                            onClick = { onMore() },
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(88.dp),
+                            color = MaterialTheme.colorScheme.secondary,
+                            shape = RectangleShape
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(Icons.Default.SwapHoriz, "More", tint = MaterialTheme.colorScheme.onSecondary)
+                            }
+                        }
+                    }
+                }
+                if (swipeState.offset < 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .alpha(deleteAlpha)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(88.dp),
+                            color = MaterialTheme.colorScheme.error,
+                            shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Видалити",
+                                    tint = MaterialTheme.colorScheme.onError,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset {
+                        val offsetValue = swipeState.offset
+                        if (offsetValue.isFinite()) {
+                            IntOffset(offsetValue.roundToInt(), 0)
+                        } else {
+                            IntOffset.Zero
+                        }
+                    }
+                    .anchoredDraggable(state = swipeState, orientation = Orientation.Horizontal),
+                onClick = {
+                    if (swipeState.currentValue == SwipeState.Normal) onMore() else resetSwipe()
+                },
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = if (swipeState.offset != 0f || isDragging) 8.dp else 0.dp,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                GoalItem(
+                    goal = goalWithInstance.goal,
+                    associatedLists = associatedLists,
+                    obsidianVaultName = obsidianVaultName,
+                    onToggle = onToggle,
+                    onItemClick = { onMore() },
+                    onTagClick = onTagClick,
+                    onAssociatedListClick = onAssociatedListClick,
+                    backgroundColor = Color.Transparent,
+                    dragHandle = dragHandle
+                )
+            }
         }
     }
 }

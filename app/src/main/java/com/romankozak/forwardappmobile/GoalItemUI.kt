@@ -105,7 +105,7 @@ fun GoalItem(
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically
         ) {
             CustomCheckbox(
                 checked = goal.completed,

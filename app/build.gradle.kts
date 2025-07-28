@@ -2,7 +2,7 @@
 
 val majorVersion = 2
 val minorVersion = 2
-val patchVersion = 1
+val patchVersion = 2
 val buildNumber = 30
 
 fun calculateVersionCode(): Int {
@@ -21,12 +21,12 @@ plugins {
 
 android {
     namespace = "com.romankozak.forwardappmobile"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.romankozak.forwardappmobile"
-        minSdk = 26
-        targetSdk = 36
+        minSdk = 28
+        targetSdk = 35
         versionCode = calculateVersionCode()
         versionName = "$majorVersion.$minorVersion.$patchVersion"
 
