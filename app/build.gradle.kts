@@ -2,7 +2,7 @@
 
 val majorVersion = 2
 val minorVersion = 2
-val patchVersion = 2
+val patchVersion = 3
 val buildNumber = 30
 
 fun calculateVersionCode(): Int {
