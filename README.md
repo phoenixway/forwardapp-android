@@ -3,50 +3,67 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/phoenixway/forwardapp-android)
 
-ForwardApp — це нативний Android-додаток для керування цілями та завданнями, побудований на сучасних технологіях. Він розроблений для ефективного структурування ваших ідей, від короткострокових завдань до довгострокових стратегічних цілей.
+ForwardApp is a native Android application for managing goals and tasks, built with modern technologies. It's designed for effectively structuring your ideas, from short-term tasks to long-term strategic goals.
 
- ## ✨ Ключові можливості
+## ✨ Features
 
-* **Ієрархічні списки:** Створюйте вкладені списки для детальної організації ваших проєктів та цілей.
-* **Керування цілями:** Додавайте, редагуйте, видаляйте та відмічайте цілі як виконані.
-* **Drag-and-Drop:** Легко змінюйте пріоритет цілей, перетягуючи їх вгору та вниз у списку.
-* **Жести та контекстні меню:** Використовуйте свайпи для швидких дій (видалення, редагування) та контекстні меню для керування списками (перейменування, видалення, створення підсписків).
-* **Глобальний пошук:** Миттєво знаходьте будь-яку ціль по всьому додатку за допомогою потужного глобального пошуку.
-* **Підтримка Markdown:** Форматуйте текст ваших цілей, використовуючи синтаксис Markdown для **жирного**, *курсивного* та ~~закресленого~~ тексту.
-* **Інтеграція з Obsidian:** Використовуйте вікі-посилання `[[Назва нотатки]]` для швидкого переходу до відповідних нотаток у вашому сховищі Obsidian.
-* **Розумні іконки:** Автоматично додавайте іконки до цілей (🔥, ⭐, 🔭 та ін.) за допомогою спеціальних тегів та маркерів (`#critical`, `!`, `~` тощо) для візуальної класифікації.
+* **Hierarchical Lists:** Create nested lists to organize your projects and goals in detail.
+* **Goal Management:** Add, edit, delete, and mark goals as complete.
+* **Drag-and-Drop Reordering:** Easily change the priority of goals by dragging and dropping them within a list.
+* **Gestures & Context Menus:** Use swipe gestures for quick actions (edit, delete) and context menus to manage your lists (rename, delete, add sublists).
+* **Global Search:** Instantly find any goal across the entire app with a powerful global search feature.
+* **Markdown Support:** Format your goal text with Markdown syntax for **bold**, *italic*, and ~~strikethrough~~ text.
+* **Obsidian Integration:** Use wiki-links like `[[Note Name]]` to quickly jump to corresponding notes in your Obsidian vault.
+* **Smart Icons:** Automatically assign icons (🔥, ⭐, 🔭, etc.) to your goals using special tags and markers (`#critical`, `!`, `~`) for visual classification.
 
-## 🛠️ Технологічний стек
+## 🛠️ Tech Stack & Architecture
 
-Проєкт побудований з використанням сучасних інструментів та підходів до розробки під Android.
+This project is built using modern tools and best practices for Android development.
 
-* **Мова:** [Kotlin](https://kotlinlang.org/)
+* **Language:** [Kotlin](https://kotlinlang.org/)
 * **UI:** [Jetpack Compose](https://developer.android.com/jetpack/compose)
-* **Архітектура:** MVVM (Model-View-ViewModel)
-* **Асинхронність:** Kotlin Coroutines & Flow
-* **База даних:** [Room](https://developer.android.com/training/data-storage/room)
+* **Architecture:** MVVM (Model-View-ViewModel)
+* **Asynchronicity:** Kotlin Coroutines & Flow
+* **Database:** [Room](https://developer.android.com/training/data-storage/room)
 * **Dependency Injection:** [Hilt](https://developer.android.com/training/dependency-injection/hilt-android)
-* **Навігація:** Jetpack Navigation for Compose
-* **Drag & Drop:** [compose-dnd](https://github.com/mohamedrejeb/compose-dnd)
+* **Navigation:** Jetpack Navigation for Compose
+* **Drag & Drop:** [compose-dnd](https://github.com/mohamedrejeb/compose-dnd) by Mohamed Rejeb
 
-## 🚀 Збірка проєкту
+## 📲 Installation
 
-1.  Клонуйте репозиторій:
+You can install the app directly by downloading the APK from the latest release.
+
+1.  **Download the APK**
+    * Go to the [**Releases Page**](https://github.com/phoenixway/forwardapp-android/releases).
+    * In the latest release, expand the **Assets** section and download the `.apk` file.
+
+2.  **Enable Unknown Sources**
+    * Before you can install the APK, you need to allow installations from unknown sources on your device.
+    * On modern Android versions (8.0+), this is a per-app permission. When you open the downloaded `.apk` file, your file manager or browser will prompt you for permission to install apps. Grant it.
+    * On older versions, you may need to go to `Settings > Security` and enable the `Unknown sources` option.
+
+3.  **Install the App**
+    * Open the downloaded `.apk` file from your device's notification shade or your file manager.
+    * Tap **Install** to complete the installation.
+
+## 🚀 Building the Project (for Developers)
+
+1.  Clone the repository:
     ```bash
     git clone [https://github.com/phoenixway/forwardapp-android.git](https://github.com/phoenixway/forwardapp-android.git)
     ```
-2.  Відкрийте проєкт в останній стабільній версії [Android Studio](https://developer.android.com/studio).
-3.  Дочекайтеся, доки Gradle завантажить усі залежності.
-4.  Запустіть додаток на емуляторі або фізичному пристрої.
+2.  Open the project in the latest stable version of [Android Studio](https://developer.android.com/studio).
+3.  Let Gradle sync all the dependencies.
+4.  Build and run the app on an emulator or a physical device.
 
-## 🤝 Внесок
+## 🤝 Contributing
 
-Будь-який внесок у розвиток проєкту вітається. Якщо у вас є ідеї щодо покращення або ви знайшли баг, будь ласка, створюйте "Issue". Якщо ви хочете додати нову функціональність, будь ласка, дотримуйтесь стандартного процесу: Fork -> Create Branch -> Commit -> Create Pull Request.
+Contributions are welcome. If you have ideas for improvements or have found a bug, please open an issue. If you'd like to contribute code, please follow the standard Fork -> Create Branch -> Commit -> Create Pull Request workflow.
 
-## 📄 Ліцензія
+## 📄 License
 
-Цей проєкт розповсюджується під ліцензією MIT. Детальніше дивіться у файлі `LICENSE`.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-## ✍️ Автор
+## ✍️ Author
 
 **Roman Kozak (Pylypchuk)** - [phoenixway](https://github.com/phoenixway)
