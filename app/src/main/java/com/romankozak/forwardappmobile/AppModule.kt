@@ -2,6 +2,10 @@ package com.romankozak.forwardappmobile
 
 import android.content.Context
 import androidx.room.Room
+import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.data.database.MIGRATION_8_9
+import com.romankozak.forwardappmobile.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.dao.GoalListDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -13,7 +17,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // Рецепт №1: Як створити базу даних
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -21,16 +24,19 @@ object AppModule {
             context.applicationContext,
             AppDatabase::class.java,
             "forward_app_database"
-        ).fallbackToDestructiveMigration().build()
+        )
+            // ДОДАНО: Підключаємо міграцію
+            .addMigrations(MIGRATION_8_9)
+            // Важливо: видаліть fallbackToDestructiveMigration, щоб міграція спрацювала
+            // .fallbackToDestructiveMigration()
+            .build()
     }
 
-    // Рецепт №2: Як створити GoalDao
     @Provides
     fun provideGoalDao(database: AppDatabase): GoalDao {
         return database.goalDao()
     }
 
-    // --- ДОДАНО: Рецепт №3: Як створити GoalListDao ---
     @Provides
     fun provideGoalListDao(database: AppDatabase): GoalListDao {
         return database.goalListDao()
