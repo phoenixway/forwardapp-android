@@ -32,19 +32,16 @@ sealed class DialogState {
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class RenameList(val list: GoalList) : DialogState()
     object AppSettings : DialogState()
+    object AboutApp : DialogState() // --- ДОДАНО: Новий стан для діалогу "Про додаток"
 }
 
 @HiltViewModel
 class GoalListViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val settingsRepo: SettingsRepository,
-    // Нам все ще потрібен Application для WifiSyncServer
     private val application: Application
 ) : ViewModel() {
 
-    private val TAG = "WIFI_DEBUG"
-
-    // Тепер ми отримуємо потік списків з репозиторію
     private val _allListsFlat = goalRepository.getAllGoalListsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -183,6 +180,7 @@ class GoalListViewModel @Inject constructor(
     fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
     fun onRenameRequest(list: GoalList) { _dialogState.value = DialogState.RenameList(list) }
     fun onShowSettingsDialog() { _dialogState.value = DialogState.AppSettings }
+    fun onShowAboutDialog() { _dialogState.value = DialogState.AboutApp } // --- ДОДАНО: Функція для показу діалогу
     fun dismissDialog() { _dialogState.value = DialogState.Hidden }
     fun onListClicked(listId: String) { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId)) } }
     fun onDesktopAddressChange(newAddress: String) {

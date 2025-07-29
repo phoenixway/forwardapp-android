@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.goallist
 
+import android.content.pm.PackageInfo
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +14,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.dialogs.MoveListDialog
@@ -59,7 +63,7 @@ fun GoalListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Backlogs") },
+                title = { Text("Forward ") },
                 actions = {
                     IconButton(onClick = { viewModel.onAddNewListRequest() }) {
                         Icon(Icons.Default.Add, contentDescription = "Додати новий список")
@@ -83,6 +87,11 @@ fun GoalListScreen(
                         Divider()
                         DropdownMenuItem(text = { Text("Налаштування") }, onClick = {
                             viewModel.onShowSettingsDialog()
+                            menuExpanded = false
+                        })
+                        // --- ДОДАНО: Новий пункт меню ---
+                        DropdownMenuItem(text = { Text("Про додаток") }, onClick = {
+                            viewModel.onShowAboutDialog()
                             menuExpanded = false
                         })
                     }
@@ -228,6 +237,10 @@ private fun HandleDialogs(
                 onSave = { newName -> viewModel.onSaveSettings(newName) }
             )
         }
+        // --- ДОДАНО: Обробка діалогу "Про додаток" ---
+        is DialogState.AboutApp -> {
+            AboutAppDialog(onDismiss = { viewModel.dismissDialog() })
+        }
     }
 
     if (showWifiServerDialog) {
@@ -252,4 +265,41 @@ private fun HandleDialogs(
             onConfirm = { query -> viewModel.onPerformGlobalSearch(query) }
         )
     }
+}
+
+// --- ДОДАНО: Новий Composable для діалогу "Про додаток" ---
+@Composable
+private fun AboutAppDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val packageInfo: PackageInfo? = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Про додаток Forward") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Версія: ${packageInfo?.versionName ?: "N/A"}")
+                val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo?.longVersionCode ?: -1
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo?.versionCode?.toLong() ?: -1
+                }
+                if (versionCode != -1L) {
+                    Text("Збірка: $versionCode")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Закрити")
+            }
+        }
+    )
 }
