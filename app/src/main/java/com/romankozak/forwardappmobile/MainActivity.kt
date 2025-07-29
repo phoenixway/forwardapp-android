@@ -12,6 +12,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
+import com.romankozak.forwardappmobile.ui.screens.goaldetail.GoalDetailScreen
+import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
+import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListScreen
+import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListViewModel
+import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
 
