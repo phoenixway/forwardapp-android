@@ -23,7 +23,9 @@ data class DesktopGoalList(
     val createdAt: String,
     val updatedAt: String?,
     val parentId: String?,
-    val childListIds: List<String>?
+    val childListIds: List<String>?,
+    val isExpanded: Boolean? = true,
+    val order: Long? = 0
 )
 
 data class DesktopGoalInstance(

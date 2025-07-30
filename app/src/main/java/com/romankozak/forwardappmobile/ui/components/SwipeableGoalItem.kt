@@ -69,6 +69,7 @@ fun SwipeableGoalItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMore: () -> Unit,
+    onItemClick: () -> Unit, // ✨ ЗМІНА №1: Додано новий параметр для обробки кліку
     onToggle: () -> Unit,
     onTagClick: (String) -> Unit,
     onAssociatedListClick: (String) -> Unit,
@@ -79,30 +80,21 @@ fun SwipeableGoalItem(
     val density = LocalDensity.current
     val hapticFeedback = LocalHapticFeedback.current
 
-    // ✨ ЗМІНА №1: Створюємо змінну, яка буде нашим "ключем перезавантаження"
     var swipeResetKey by remember { mutableStateOf(0) }
 
-    // ✨ ЗМІНА №2: Коли перетягування завершується, ми не чіпаємо стан, а просто
-    // збільшуємо ключ, що змусить Compose "перезавантажити" компонент.
     LaunchedEffect(isDragging) {
         if (!isDragging) {
             swipeResetKey++
         }
     }
 
-    // ✨ ЗМІНА №3: Огортаємо наш проблемний компонент у `key`.
-    // Тепер щоразу, коли `swipeResetKey` або `resetTrigger` змінюється,
-    // все, що всередині, буде створено заново з чистого аркуша.
     key(swipeResetKey, resetTrigger) {
         val swipeState = remember {
             AnchoredDraggableState(
                 initialValue = SwipeState.Normal,
                 anchors = DraggableAnchors { SwipeState.Normal at 0f },
-                // Зробимо активацію важчою: треба протягнути 60% шляху
                 positionalThreshold = { distance: Float -> distance * 0.6f },
-                // Зробимо флінг важчим: потрібна більша швидкість
                 velocityThreshold = { with(density) { 1800.dp.toPx() } },
-                // Сповільнимо анімацію: тривалість 500 мс замість 300
                 snapAnimationSpec = tween(900, easing = FastOutSlowInEasing),
                 decayAnimationSpec = splineBasedDecay(density)
             )
@@ -181,7 +173,7 @@ fun SwipeableGoalItem(
                             }
                         }
                         Surface(
-                            onClick = { onMore() },
+                            onClick = { onMore(); resetSwipe() }, // ✨ ЗМІНА №2: Додано resetSwipe() для узгодженості
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .width(88.dp),
@@ -236,8 +228,9 @@ fun SwipeableGoalItem(
                         }
                     }
                     .anchoredDraggable(state = swipeState, orientation = Orientation.Horizontal),
+                // ✨ ЗМІНА №3: Використовуємо новий параметр onItemClick
                 onClick = {
-                    if (swipeState.currentValue == SwipeState.Normal) onMore() else resetSwipe()
+                    if (swipeState.currentValue == SwipeState.Normal) onItemClick() else resetSwipe()
                 },
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = if (swipeState.offset != 0f || isDragging) 8.dp else 0.dp,
@@ -248,7 +241,8 @@ fun SwipeableGoalItem(
                     associatedLists = associatedLists,
                     obsidianVaultName = obsidianVaultName,
                     onToggle = onToggle,
-                    onItemClick = { onMore() },
+                    // ✨ ЗМІНА №4: Передаємо onItemClick до GoalItem
+                    onItemClick = onItemClick,
                     onTagClick = onTagClick,
                     onAssociatedListClick = onAssociatedListClick,
                     backgroundColor = Color.Transparent,

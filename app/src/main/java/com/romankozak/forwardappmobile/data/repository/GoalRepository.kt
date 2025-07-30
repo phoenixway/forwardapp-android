@@ -158,4 +158,10 @@ class GoalRepository @Inject constructor(
     suspend fun getGoalCountInList(listId: String): Int = goalDao.getGoalCountInList(listId)
     suspend fun insertInstance(instance: GoalInstance) = goalDao.insertInstance(instance)
     fun getGoalListByIdFlow(id: String): Flow<GoalList?> = goalListDao.getGoalListByIdStream(id)
+
+    suspend fun updateListsOrder(orderedIds: List<String>) {
+        orderedIds.forEachIndexed { index, listId ->
+            goalListDao.updateOrder(listId, index.toLong())
+        }
+    }
 }

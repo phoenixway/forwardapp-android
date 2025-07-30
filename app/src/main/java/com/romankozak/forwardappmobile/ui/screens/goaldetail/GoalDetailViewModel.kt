@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.collections.iterator
+import kotlinx.coroutines.Dispatchers
+
 
 // --- ДОПОМІЖНІ КЛАСИ ТА СТАНИ ---
 sealed class UiEvent {
@@ -294,4 +296,7 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(inputMode = mode, localSearchQuery = "") }
         _showInputModeDialog.value = false
     }
+
+
+
 }

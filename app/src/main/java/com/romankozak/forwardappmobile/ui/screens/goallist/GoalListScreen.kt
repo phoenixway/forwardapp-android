@@ -3,6 +3,11 @@ package com.romankozak.forwardappmobile.ui.screens.goallist
 import android.content.pm.PackageInfo
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.forEachGesture
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -14,29 +19,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.dialogs.MoveListDialog
-import com.romankozak.forwardappmobile.ui.dialogs.RenameListDialog
-import com.romankozak.forwardappmobile.ui.dialogs.SettingsDialog
-import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
-import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
+import com.mohamedrejeb.compose.dnd.DragAndDropContainer
+import com.mohamedrejeb.compose.dnd.drag.DraggableItem
+import com.mohamedrejeb.compose.dnd.drop.dropTarget
+import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
-import com.romankozak.forwardappmobile.ui.dialogs.AddListDialog
-import com.romankozak.forwardappmobile.ui.dialogs.ContextMenuDialog
-import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
+import com.romankozak.forwardappmobile.ui.dialogs.*
+import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalListScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
-    // Тепер ми отримуємо ViewModel, створену Hilt, як параметр
     viewModel: GoalListViewModel = hiltViewModel()
 ) {
     val hierarchy by viewModel.listHierarchy.collectAsState()
@@ -45,6 +51,10 @@ fun GoalListScreen(
     val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
     val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
+
+    val dragAndDropState = rememberDragAndDropState<GoalList>()
+    var longPressedItemId by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -60,37 +70,42 @@ fun GoalListScreen(
         }
     }
 
+    LaunchedEffect(dragAndDropState.draggedItem) {
+        if (dragAndDropState.draggedItem == null) {
+            longPressedItemId = null
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Forward ") },
+                title = { Text("Forward") },
                 actions = {
                     IconButton(onClick = { viewModel.onAddNewListRequest() }) {
-                        Icon(Icons.Default.Add, contentDescription = "Додати новий список")
+                        Icon(Icons.Default.Add, contentDescription = "Add new list")
                     }
                     IconButton(onClick = { viewModel.onShowSearchDialog() }) {
-                        Icon(Icons.Default.Search, contentDescription = "Глобальний пошук")
+                        Icon(Icons.Default.Search, contentDescription = "Global search")
                     }
                     var menuExpanded by remember { mutableStateOf(false) }
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Меню")
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                        DropdownMenuItem(text = { Text("Запустити Wi-Fi сервер") }, onClick = {
+                        DropdownMenuItem(text = { Text("Run Wi-Fi Server") }, onClick = {
                             viewModel.onShowWifiServerDialog()
                             menuExpanded = false
                         })
-                        DropdownMenuItem(text = { Text("Імпорт з Wi-Fi") }, onClick = {
+                        DropdownMenuItem(text = { Text("Import from Wi-Fi") }, onClick = {
                             viewModel.onShowWifiImportDialog()
                             menuExpanded = false
                         })
-                        Divider()
-                        DropdownMenuItem(text = { Text("Налаштування") }, onClick = {
+                        HorizontalDivider()
+                        DropdownMenuItem(text = { Text("Settings") }, onClick = {
                             viewModel.onShowSettingsDialog()
                             menuExpanded = false
                         })
-                        // --- ДОДАНО: Новий пункт меню ---
-                        DropdownMenuItem(text = { Text("Про додаток") }, onClick = {
+                        DropdownMenuItem(text = { Text("About") }, onClick = {
                             viewModel.onShowAboutDialog()
                             menuExpanded = false
                         })
@@ -99,25 +114,81 @@ fun GoalListScreen(
             )
         }
     ) { paddingValues ->
-        if (hierarchy.topLevelLists.isEmpty()) {
+        if (hierarchy.allLists.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("Створіть свій перший список")
+                Text("Create your first list")
             }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-            ) {
-                hierarchy.topLevelLists.forEach { list ->
-                    renderListRecursively(
-                        list = list,
-                        level = 0,
-                        hierarchyData = hierarchy,
-                        onListClick = { viewModel.onListClicked(it) },
-                        onToggleExpanded = { viewModel.onToggleExpanded(it) },
-                        onMenuRequested = { viewModel.onMenuRequested(it) }
-                    )
+            DragAndDropContainer(state = dragAndDropState) {
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize()
+                ) {
+                    // ✅ ГОЛОВНА ЗМІНА: Визначаємо рекурсивну логіку як локальну змінну.
+                    // Це дозволяє їй "бачити" scope, viewModel, longPressedItemId і т.д.
+                    // без передачі через параметри.
+                    lateinit var renderList: LazyListScope.(GoalList, Int) -> Unit
+                    renderList = { list, level ->
+                        item(key = list.id) {
+                            DraggableItem(
+                                state = dragAndDropState,
+                                key = list.id,
+                                data = list,
+                                enabled = longPressedItemId == list.id,
+                                dragAfterLongPress = true,
+
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .longPressForDragDetector(
+                                        scope = scope, // Тепер scope тут видимий
+                                        onLongPress = { longPressedItemId = list.id }
+                                    )
+                                    .dropTarget(
+                                        state = dragAndDropState,
+                                        key = list.id,
+                                        onDrop = { draggedItemState ->
+                                            val draggedList = draggedItemState.data
+                                            val targetListId = list.id
+                                            viewModel.onListMoved(draggedList.id, targetListId)
+                                        }
+                                    )
+                            ) {
+                                val isCurrentlyDragging = dragAndDropState.draggedItem?.data?.id == list.id
+                                val allListsFlat = hierarchy.allLists
+                                val draggedItemIndex = allListsFlat.indexOfFirst { it.id == dragAndDropState.draggedItem?.data?.id }
+                                val currentItemIndex = allListsFlat.indexOfFirst { it.id == list.id }
+                                val isHovered = dragAndDropState.hoveredDropTargetKey == list.id
+                                val isDraggingDown = draggedItemIndex != -1 && draggedItemIndex < currentItemIndex
+
+                                GoalListRow(
+                                    list = list,
+                                    level = level,
+                                    hasChildren = hierarchy.childMap.containsKey(list.id),
+                                    onListClick = { viewModel.onListClicked(it) },
+                                    onToggleExpanded = { viewModel.onToggleExpanded(it) },
+                                    onMenuRequested = { viewModel.onMenuRequested(it) },
+                                    isCurrentlyDragging = isCurrentlyDragging,
+                                    isHovered = isHovered,
+                                    isDraggingDown = isDraggingDown,
+                                    isPressed = false // Поки що не використовуємо
+                                )
+                            }
+                        }
+
+                        if (list.isExpanded) {
+                            val children = hierarchy.childMap[list.id]?.sortedBy { it.order } ?: emptyList()
+                            children.forEach { child ->
+                                // Рекурсивний виклик тепер дуже простий
+                                renderList(child, level + 1)
+                            }
+                        }
+                    }
+
+                    // Перший виклик для списків верхнього рівня
+                    hierarchy.topLevelLists.forEach { list ->
+                        renderList(list, 0)
+                    }
                 }
             }
         }
@@ -134,35 +205,28 @@ fun GoalListScreen(
     )
 }
 
-private fun LazyListScope.renderListRecursively(
-    list: GoalList,
-    level: Int,
-    hierarchyData: ListHierarchyData,
-    onListClick: (String) -> Unit,
-    onToggleExpanded: (GoalList) -> Unit,
-    onMenuRequested: (GoalList) -> Unit
-) {
-    item(key = list.id) {
-        GoalListRow(
-            list = list,
-            level = level,
-            hasChildren = hierarchyData.childMap.containsKey(list.id),
-            onListClick = onListClick,
-            onToggleExpanded = onToggleExpanded,
-            onMenuRequested = onMenuRequested
-        )
-    }
-    if (list.isExpanded) {
-        val children = hierarchyData.childMap[list.id] ?: emptyList()
-        children.forEach { child ->
-            renderListRecursively(
-                list = child,
-                level = level + 1,
-                hierarchyData = hierarchyData,
-                onListClick = onListClick,
-                onToggleExpanded = onToggleExpanded,
-                onMenuRequested = onMenuRequested
-            )
+private fun Modifier.longPressForDragDetector(
+    scope: CoroutineScope,
+    onLongPress: () -> Unit
+): Modifier {
+    return this.pointerInput(scope, onLongPress) {
+        awaitEachGesture {
+            // Прибираємо зайвий блок awaitPointerEventScope.
+            // Ми вже знаходимось у потрібній області видимості.
+            var longPressJob: Job? = null
+            try {
+                // awaitFirstDown() та інші функції тепер доступні напряму.
+                awaitFirstDown(requireUnconsumed = false)
+
+                longPressJob = scope.launch {
+                    delay(viewConfiguration.longPressTimeoutMillis)
+                    onLongPress()
+                }
+
+                waitForUpOrCancellation()
+            } finally {
+                longPressJob?.cancel()
+            }
         }
     }
 }
@@ -182,7 +246,7 @@ private fun HandleDialogs(
     when (val state = dialogState) {
         is DialogState.Hidden -> {}
         is DialogState.AddList -> {
-            val title = if (state.parentId == null) "Створити новий список" else "Створити підсписок"
+            val title = if (state.parentId == null) "Create new list" else "Create sublist"
             AddListDialog(
                 title = title,
                 onDismiss = { viewModel.dismissDialog() },
@@ -217,10 +281,10 @@ private fun HandleDialogs(
         is DialogState.ConfirmDelete -> {
             AlertDialog(
                 onDismissRequest = { viewModel.dismissDialog() },
-                title = { Text("Видалити список?") },
-                text = { Text("Ви впевнені, що хочете видалити '${state.list.name}' та всі його підсписки і цілі? Цю дію неможливо буде скасувати.") },
-                confirmButton = { Button(onClick = { viewModel.onDeleteListConfirmed(state.list) }) { Text("Видалити") } },
-                dismissButton = { TextButton(onClick = { viewModel.dismissDialog() }) { Text("Скасувати") } }
+                title = { Text("Delete list?") },
+                text = { Text("Are you sure you want to delete '${state.list.name}' and all its sublists and goals? This action cannot be undone.") },
+                confirmButton = { Button(onClick = { viewModel.onDeleteListConfirmed(state.list) }) { Text("Delete") } },
+                dismissButton = { TextButton(onClick = { viewModel.dismissDialog() }) { Text("Cancel") } }
             )
         }
         is DialogState.RenameList -> {
@@ -237,7 +301,6 @@ private fun HandleDialogs(
                 onSave = { newName -> viewModel.onSaveSettings(newName) }
             )
         }
-        // --- ДОДАНО: Обробка діалогу "Про додаток" ---
         is DialogState.AboutApp -> {
             AboutAppDialog(onDismiss = { viewModel.dismissDialog() })
         }
@@ -267,7 +330,6 @@ private fun HandleDialogs(
     }
 }
 
-// --- ДОДАНО: Новий Composable для діалогу "Про додаток" ---
 @Composable
 private fun AboutAppDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -281,10 +343,10 @@ private fun AboutAppDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Про додаток Forward") },
+        title = { Text("About Forward App") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Версія: ${packageInfo?.versionName ?: "N/A"}")
+                Text("Version: ${packageInfo?.versionName ?: "N/A"}")
                 val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     packageInfo?.longVersionCode ?: -1
                 } else {
@@ -292,13 +354,13 @@ private fun AboutAppDialog(onDismiss: () -> Unit) {
                     packageInfo?.versionCode?.toLong() ?: -1
                 }
                 if (versionCode != -1L) {
-                    Text("Збірка: $versionCode")
+                    Text("Build: $versionCode")
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Закрити")
+                Text("Close")
             }
         }
     )
