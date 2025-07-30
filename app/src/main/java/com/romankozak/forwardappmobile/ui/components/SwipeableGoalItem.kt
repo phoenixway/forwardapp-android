@@ -229,9 +229,6 @@ fun SwipeableGoalItem(
                     }
                     .anchoredDraggable(state = swipeState, orientation = Orientation.Horizontal),
                 // ✨ ЗМІНА №3: Використовуємо новий параметр onItemClick
-                onClick = {
-                    if (swipeState.currentValue == SwipeState.Normal) onItemClick() else resetSwipe()
-                },
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = if (swipeState.offset != 0f || isDragging) 8.dp else 0.dp,
                 shape = RoundedCornerShape(8.dp)
@@ -242,7 +239,14 @@ fun SwipeableGoalItem(
                     obsidianVaultName = obsidianVaultName,
                     onToggle = onToggle,
                     // ✨ ЗМІНА №4: Передаємо onItemClick до GoalItem
-                    onItemClick = onItemClick,
+
+                    onItemClick = {
+                        if (swipeState.currentValue == SwipeState.Normal) {
+                            onItemClick()
+                        } else {
+                            resetSwipe()
+                        }
+                    },
                     onTagClick = onTagClick,
                     onAssociatedListClick = onAssociatedListClick,
                     backgroundColor = Color.Transparent,

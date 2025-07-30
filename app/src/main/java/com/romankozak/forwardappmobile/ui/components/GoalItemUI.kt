@@ -22,7 +22,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// --- (код з парсингом іконок, форматуванням дати залишається без змін) ---
+// --- Допоміжна логіка для парсингу іконок ---
 private enum class IconCategory { IMPORTANCE, SCALE, ACTIVITY, CUSTOM }
 private data class IconConfig(val icon: String, val markers: List<String>, val category: IconCategory)
 private val ICON_CONFIGS: List<IconConfig> = listOf(
@@ -92,13 +92,14 @@ fun GoalItem(
             Checkbox(checked = goal.completed, onCheckedChange = { onToggle() })
             Spacer(modifier = Modifier.width(8.dp))
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f), // ✅ Цей рядок виправляє розтягування тексту
             ) {
                 MarkdownText(
                     text = parsedData.mainText,
                     isCompleted = goal.completed,
                     obsidianVaultName = obsidianVaultName,
                     onTagClick = onTagClick,
+                    onTextClick = onItemClick, // Передаємо основний клік
                     style = MaterialTheme.typography.bodyLarge
                 )
 
@@ -110,7 +111,6 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // --- ВІДОБРАЖЕННЯ ОЦІНКИ З ІКОНКОЮ ---
                         if (goal.displayScore > 0) {
                             ScoreBadge(score = goal.displayScore)
                         }
@@ -151,9 +151,6 @@ fun GoalItem(
     }
 }
 
-/**
- * Новий компонент для відображення оцінки з іконкою.
- */
 @Composable
 private fun ScoreBadge(score: Int) {
     Box(

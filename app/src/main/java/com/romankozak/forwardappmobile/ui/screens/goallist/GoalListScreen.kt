@@ -4,10 +4,7 @@ import android.content.pm.PackageInfo
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.forEachGesture
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -19,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,9 +30,6 @@ import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.*
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,9 +45,8 @@ fun GoalListScreen(
     val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
 
+    // Єдиний стан, що нам потрібен для drag-and-drop
     val dragAndDropState = rememberDragAndDropState<GoalList>()
-    var longPressedItemId by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -67,12 +59,6 @@ fun GoalListScreen(
                 is GoalListUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
                 is GoalListUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
             }
-        }
-    }
-
-    LaunchedEffect(dragAndDropState.draggedItem) {
-        if (dragAndDropState.draggedItem == null) {
-            longPressedItemId = null
         }
     }
 
@@ -125,9 +111,6 @@ fun GoalListScreen(
                         .padding(paddingValues)
                         .fillMaxSize()
                 ) {
-                    // ✅ ГОЛОВНА ЗМІНА: Визначаємо рекурсивну логіку як локальну змінну.
-                    // Це дозволяє їй "бачити" scope, viewModel, longPressedItemId і т.д.
-                    // без передачі через параметри.
                     lateinit var renderList: LazyListScope.(GoalList, Int) -> Unit
                     renderList = { list, level ->
                         item(key = list.id) {
@@ -135,15 +118,10 @@ fun GoalListScreen(
                                 state = dragAndDropState,
                                 key = list.id,
                                 data = list,
-                                enabled = longPressedItemId == list.id,
+                                // ✅ ГОЛОВНА ЗМІНА: Використовуємо вбудований параметр
                                 dragAfterLongPress = true,
-
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .longPressForDragDetector(
-                                        scope = scope, // Тепер scope тут видимий
-                                        onLongPress = { longPressedItemId = list.id }
-                                    )
                                     .dropTarget(
                                         state = dragAndDropState,
                                         key = list.id,
@@ -154,7 +132,7 @@ fun GoalListScreen(
                                         }
                                     )
                             ) {
-                                val isCurrentlyDragging = dragAndDropState.draggedItem?.data?.id == list.id
+                                val isCurrentlyDragging = this.isDragging
                                 val allListsFlat = hierarchy.allLists
                                 val draggedItemIndex = allListsFlat.indexOfFirst { it.id == dragAndDropState.draggedItem?.data?.id }
                                 val currentItemIndex = allListsFlat.indexOfFirst { it.id == list.id }
@@ -171,7 +149,6 @@ fun GoalListScreen(
                                     isCurrentlyDragging = isCurrentlyDragging,
                                     isHovered = isHovered,
                                     isDraggingDown = isDraggingDown,
-                                    isPressed = false // Поки що не використовуємо
                                 )
                             }
                         }
@@ -179,13 +156,11 @@ fun GoalListScreen(
                         if (list.isExpanded) {
                             val children = hierarchy.childMap[list.id]?.sortedBy { it.order } ?: emptyList()
                             children.forEach { child ->
-                                // Рекурсивний виклик тепер дуже простий
                                 renderList(child, level + 1)
                             }
                         }
                     }
 
-                    // Перший виклик для списків верхнього рівня
                     hierarchy.topLevelLists.forEach { list ->
                         renderList(list, 0)
                     }
@@ -205,31 +180,9 @@ fun GoalListScreen(
     )
 }
 
-private fun Modifier.longPressForDragDetector(
-    scope: CoroutineScope,
-    onLongPress: () -> Unit
-): Modifier {
-    return this.pointerInput(scope, onLongPress) {
-        awaitEachGesture {
-            // Прибираємо зайвий блок awaitPointerEventScope.
-            // Ми вже знаходимось у потрібній області видимості.
-            var longPressJob: Job? = null
-            try {
-                // awaitFirstDown() та інші функції тепер доступні напряму.
-                awaitFirstDown(requireUnconsumed = false)
+// Кастомний детектор більше не потрібен
+// private fun Modifier.longPressForDragDetector(...) { ... }
 
-                longPressJob = scope.launch {
-                    delay(viewConfiguration.longPressTimeoutMillis)
-                    onLongPress()
-                }
-
-                waitForUpOrCancellation()
-            } finally {
-                longPressJob?.cancel()
-            }
-        }
-    }
-}
 
 @Composable
 private fun HandleDialogs(
