@@ -1,7 +1,6 @@
-// GoalListItemUI.kt
 package com.romankozak.forwardappmobile.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -12,13 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.GoalList
-import androidx.compose.foundation.clickable // Додайте цей імпорт
-import androidx.compose.ui.graphics.Color
-import androidx.compose.animation.animateColorAsState // ✅ 1. Додайте цей імпорт
-import androidx.compose.runtime.getValue // ✅ 2. Додайте цей імпорт
 
 @Composable
 fun GoalListRow(
@@ -31,24 +27,15 @@ fun GoalListRow(
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
-    isPressed: Boolean,
+    // Параметр isPressed більше не потрібен
     modifier: Modifier = Modifier
 ) {
-    // ✅ 3. Анімуємо зміну кольору
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isPressed && !isCurrentlyDragging) {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-        } else {
-            Color.Transparent
-        },
-        label = "background_animation"
-    )
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(start = (level * 24).dp)
     ) {
+        // Індикатор зверху
         if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
         }
@@ -56,13 +43,12 @@ fun GoalListRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(backgroundColor) // ✅ 4. Застосовуємо анімований колір
+                // Повертаємо звичайний клік для навігації
                 .clickable { onListClick(list.id) }
                 .alpha(if (isCurrentlyDragging) 0.6f else 1f)
                 .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // ... решта коду Row без змін
             if (hasChildren) {
                 IconButton(onClick = { onToggleExpanded(list) }) {
                     Icon(
@@ -87,6 +73,7 @@ fun GoalListRow(
             }
         }
 
+        // Індикатор знизу
         if (isHovered && isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
         }
