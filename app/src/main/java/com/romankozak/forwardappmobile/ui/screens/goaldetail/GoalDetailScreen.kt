@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,7 +52,10 @@ import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
+import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -273,6 +277,7 @@ fun GoalDetailScreen(
                                                 goalWithInstanceInfo
                                             )
                                         },
+                                        onItemClick = { viewModel.onEditGoal(goalWithInstanceInfo) },
                                         onToggle = {
                                             viewModel.toggleGoalCompleted(
                                                 goalWithInstanceInfo.goal

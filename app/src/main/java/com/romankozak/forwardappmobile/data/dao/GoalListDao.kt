@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GoalListDao {
-    @Query("SELECT * FROM goal_lists")
+    @Query("SELECT * FROM goal_lists ORDER BY goal_order ASC")
     fun getAllLists(): Flow<List<GoalList>>
 
     // --- Функції для синхронізації ---
@@ -45,4 +45,7 @@ interface GoalListDao {
     // Метод, що повертає Flow (для combine оператора)
     @Query("SELECT * FROM goal_lists WHERE id = :id")
     fun getGoalListByIdStream(id: String): Flow<GoalList?>
+
+    @Query("UPDATE goal_lists SET goal_order = :order WHERE id = :listId")
+    suspend fun updateOrder(listId: String, order: Long)
 }

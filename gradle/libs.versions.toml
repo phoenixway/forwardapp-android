@@ -39,7 +39,9 @@ compose-dnd = "0.3.0"
 
 [libraries]
 # --- ДОДАНО: Аліас для бібліотеки compose-dnd ---
+
 compose-dnd = { group = "com.mohamedrejeb.dnd", name = "compose-dnd", version.ref = "compose-dnd" }
+
 
 # AndroidX Core & Lifecycle
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

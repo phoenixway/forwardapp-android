@@ -99,8 +99,12 @@ data class GoalList(
     val parentId: String?,
     val createdAt: Long,
     val updatedAt: Long?,
+
     @ColumnInfo(name = "is_expanded", defaultValue = "1")
-    var isExpanded: Boolean = true
+    val isExpanded: Boolean = true,
+
+    @ColumnInfo(name = "goal_order", defaultValue = "0")
+    val order: Long = 0,
 )
 
 @Entity(tableName = "goal_instances")
