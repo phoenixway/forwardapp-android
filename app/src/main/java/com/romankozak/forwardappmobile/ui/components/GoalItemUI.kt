@@ -1,7 +1,9 @@
 package com.romankozak.forwardappmobile.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -63,7 +65,7 @@ fun formatDate(timestamp: Long): String {
 }
 
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class) // ✨ ЗМІНА: Додано ExperimentalFoundationApi
 @Composable
 fun GoalItem(
     goal: Goal,
@@ -71,6 +73,7 @@ fun GoalItem(
     obsidianVaultName: String,
     onToggle: () -> Unit,
     onItemClick: () -> Unit,
+    onLongClick: () -> Unit, // ✨ ЗМІНА: Додано обробник довгого натискання
     onTagClick: (String) -> Unit,
     onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
@@ -82,7 +85,11 @@ fun GoalItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onItemClick)
+            // ✨ ЗМІНА: Використовуємо combinedClickable для підтримки звичайного і довгого натискання
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onLongClick
+            )
             .background(backgroundColor)
     ) {
         Row(
@@ -92,14 +99,14 @@ fun GoalItem(
             Checkbox(checked = goal.completed, onCheckedChange = { onToggle() })
             Spacer(modifier = Modifier.width(8.dp))
             Column(
-                modifier = Modifier.weight(1f), // ✅ Цей рядок виправляє розтягування тексту
+                modifier = Modifier.weight(1f),
             ) {
                 MarkdownText(
                     text = parsedData.mainText,
                     isCompleted = goal.completed,
                     obsidianVaultName = obsidianVaultName,
                     onTagClick = onTagClick,
-                    onTextClick = onItemClick, // Передаємо основний клік
+                    onTextClick = onItemClick,
                     style = MaterialTheme.typography.bodyLarge
                 )
 

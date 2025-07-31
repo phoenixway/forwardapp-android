@@ -12,10 +12,10 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,10 +24,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,10 +51,7 @@ import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
-import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -73,6 +69,7 @@ fun GoalDetailScreen(
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val listHierarchy by viewModel.listHierarchyForChooser.collectAsState()
     val list by viewModel.goalList.collectAsState()
+    val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -116,7 +113,7 @@ fun GoalDetailScreen(
 
     LaunchedEffect(uiState.goalToHighlight) {
         val goalId = uiState.goalToHighlight
-        if (goalId != null) {
+        if (goalId != null && !isSelectionModeActive) {
             val index = goals.indexOfFirst { it.goal.id == goalId }
             if (index != -1) {
                 listState.animateScrollToItem(index)
@@ -127,7 +124,7 @@ fun GoalDetailScreen(
 
     LaunchedEffect(goals) {
         val newGoalInstanceId = uiState.newlyAddedGoalInstanceId
-        if (newGoalInstanceId != null) {
+        if (newGoalInstanceId != null && !isSelectionModeActive) {
             val index = goals.indexOfFirst { it.instanceId == newGoalInstanceId }
             if (index != -1) {
                 listState.animateScrollToItem(index)
@@ -147,23 +144,36 @@ fun GoalDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(list?.name ?: "Завантаження...") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+            // ✨ ЗМІНА: Адаптивний TopAppBar, що реагує на режим виділення
+            if (isSelectionModeActive) {
+                MultiSelectTopAppBar(
+                    selectedCount = uiState.selectedInstanceIds.size,
+                    onClearSelection = { viewModel.clearSelection() },
+                    onDelete = { viewModel.deleteSelectedGoals() },
+                    onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
+                    onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) }
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(list?.name ?: "Завантаження...") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        }
                     }
-                }
-            )
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            GoalInputBar(
-                inputMode = uiState.inputMode,
-                onModeChangeRequest = { viewModel.onModeChangeRequest() },
-                onTextChange = { viewModel.onInputTextChanged(it) },
-                onSubmit = { viewModel.submitInput(it) }
-            )
+            if (!isSelectionModeActive) { // ✨ Не показуємо поле вводу в режимі виділення
+                GoalInputBar(
+                    inputMode = uiState.inputMode,
+                    onModeChangeRequest = { viewModel.onInputModeChangeRequest() },
+                    onTextChange = { viewModel.onInputTextChanged(it) },
+                    onSubmit = { viewModel.submitInput(it) }
+                )
+            }
         }
     ) { paddingValues ->
         when {
@@ -189,6 +199,7 @@ fun GoalDetailScreen(
                     ) {
                         itemsIndexed(goals, key = { _, it -> it.instanceId }) { index, goalWithInstanceInfo ->
                             val isCurrentlyDragging = dragAndDropState.draggedItem?.key == goalWithInstanceInfo.instanceId
+                            val isSelected = goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
 
                             val elevation = animateDpAsState(if (isCurrentlyDragging) 8.dp else 0.dp, label = "elevationAnimation")
                             val scale by animateFloatAsState(if (isCurrentlyDragging) 1.02f else 1.0f, label = "scaleAnimation")
@@ -200,7 +211,6 @@ fun GoalDetailScreen(
                                 }
                             }
 
-                            // ✨ ЗМІНА №1: Визначаємо напрямок руху і стан наведення
                             val draggedItemIndex = remember(dragAndDropState.draggedItem) {
                                 goals.indexOfFirst { it.instanceId == dragAndDropState.draggedItem?.key }
                             }
@@ -210,13 +220,11 @@ fun GoalDetailScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-// У файлі GoalDetailScreen.kt, всередині Column в itemsIndexed
-
                                     .dropTarget(
                                         state = dragAndDropState,
                                         key = goalWithInstanceInfo.instanceId,
                                         onDrop = { draggedItemState ->
-                                            scrollDirection = 0 // Зупиняємо скрол при відпусканні
+                                            scrollDirection = 0
                                             val draggedData = draggedItemState.data
                                             val hoveredKey = dragAndDropState.hoveredDropTargetKey
 
@@ -229,22 +237,18 @@ fun GoalDetailScreen(
                                                 viewModel.moveGoal(fromIndex, toIndex, needsScroll)
                                             }
                                         },
-                                        // ✨ РІШЕННЯ: Повертаємо логіку, що вмикає автоскрол
                                         onDragEnter = {
                                             val visibleItems = listState.layoutInfo.visibleItemsInfo
                                             if (visibleItems.isNotEmpty()) {
-                                                // `index` з `itemsIndexed` - це індекс елемента, над яким ми зараз
                                                 scrollDirection = when (index) {
-                                                    visibleItems.first().index -> -1 // Якщо навели на верхній - скрол вгору
-                                                    visibleItems.last().index -> 1  // Якщо навели на нижній - скрол вниз
-                                                    else -> 0                       // В інших випадках - без скролу
+                                                    visibleItems.first().index -> -1
+                                                    visibleItems.last().index -> 1
+                                                    else -> 0
                                                 }
                                             }
                                         }
-
                                     )
                             ) {
-                                // ✨ ЗМІНА №2: Показуємо риску зверху, якщо тягнемо вгору
                                 if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
                                     HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
                                 }
@@ -256,6 +260,13 @@ fun GoalDetailScreen(
                                         derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
                                     }
                                     val associatedLists = associatedListsMap.getOrDefault(goalWithInstanceInfo.goal.id, emptyList())
+
+                                    // ✨ ЗМІНА: Визначаємо колір фону в залежності від стану виділення
+                                    val itemBackgroundColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surface
+                                    }
 
                                     SwipeableGoalItem(
                                         modifier = Modifier
@@ -272,23 +283,15 @@ fun GoalDetailScreen(
                                         obsidianVaultName = obsidianVaultName,
                                         onEdit = { viewModel.onEditGoal(goalWithInstanceInfo) },
                                         onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
-                                        onMore = {
-                                            viewModel.onGoalActionInitiated(
-                                                goalWithInstanceInfo
-                                            )
-                                        },
-                                        onItemClick = { viewModel.onEditGoal(goalWithInstanceInfo) },
-                                        onToggle = {
-                                            viewModel.toggleGoalCompleted(
-                                                goalWithInstanceInfo.goal
-                                            )
-                                        },
+                                        onMore = { viewModel.onGoalActionInitiated(goalWithInstanceInfo) },
+                                        // ✨ ЗМІНА: onItemClick тепер єдиний обробник натискань
+                                        onItemClick = { viewModel.onGoalClick(goalWithInstanceInfo) },
+                                        // ✨ ЗМІНА: onLongClick потрібен для активації режиму виділення
+                                        onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
+                                        backgroundColor = itemBackgroundColor, // ✨ Передаємо колір
+                                        onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
                                         onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
-                                        onAssociatedListClick = { listId: String ->
-                                            viewModel.onAssociatedListClicked(
-                                                listId
-                                            )
-                                        },
+                                        onAssociatedListClick = { listId: String -> viewModel.onAssociatedListClicked(listId) },
                                         dragHandle = {
                                             DraggableItem(
                                                 state = dragAndDropState,
@@ -310,14 +313,12 @@ fun GoalDetailScreen(
                                     )
                                 }
 
-                                // ✨ ЗМІНА №3: Показуємо риску знизу, якщо тягнемо вниз
                                 if (isHovered && isDraggingDown && !isCurrentlyDragging) {
                                     HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
                                 }
                             }
                         }
 
-                        // ✨ ЗМІНА №4: Оновлений блок для зони в кінці списку
                         item(key = "drop-zone-at-end") {
                             Box(
                                 modifier = Modifier
@@ -326,12 +327,9 @@ fun GoalDetailScreen(
                                     .dropTarget(
                                         state = dragAndDropState,
                                         key = "drop-zone-at-end",
-// onDrop для основного елемента в GoalDetailScreen.kt
                                         onDrop = { draggedItemState ->
                                             scrollDirection = 0
                                             val draggedData = draggedItemState.data
-
-                                            // ✨ ВИПРАВЛЕННЯ: Використовуємо hoveredDropTargetKey, щоб знайти ціль
                                             val hoveredKey = dragAndDropState.hoveredDropTargetKey
 
                                             val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
@@ -346,7 +344,6 @@ fun GoalDetailScreen(
                                         },
                                     )
                             ) {
-                                // ✨ Показуємо риску, коли наводимо на цю зону
                                 if (dragAndDropState.hoveredDropTargetKey == "drop-zone-at-end") {
                                     HorizontalDivider(
                                         modifier = Modifier.align(Alignment.TopCenter),
@@ -386,6 +383,72 @@ fun GoalDetailScreen(
             )
         }
     }
+}
+
+// ✨ НОВИЙ КОМПОНЕНТ: Контекстна панель для групових дій
+@Composable
+fun MultiSelectTopAppBar(
+    selectedCount: Int,
+    onClearSelection: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleComplete: () -> Unit,
+    onMoreActions: (GoalActionType) -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    TopAppBar(
+        title = { Text("$selectedCount виділено") },
+        navigationIcon = {
+            IconButton(onClick = onClearSelection) {
+                Icon(Icons.Default.Close, contentDescription = "Закрити режим виділення")
+            }
+        },
+        actions = {
+            IconButton(onClick = onToggleComplete) {
+                Icon(Icons.Default.DoneAll, contentDescription = "Відмітити виконаними/невиконаними")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Видалити виділені")
+            }
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Додаткові дії")
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Створити екземпляр в...") },
+                        leadingIcon = { Icon(Icons.Default.AddBox, null) },
+                        onClick = {
+                            onMoreActions(GoalActionType.CreateInstance)
+                            showMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Перемістити в...") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, null) },
+                        onClick = {
+                            onMoreActions(GoalActionType.MoveInstance)
+                            showMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Копіювати в...") },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
+                        onClick = {
+                            onMoreActions(GoalActionType.CopyGoal)
+                            showMenu = false
+                        }
+                    )
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    )
 }
 
 @Composable

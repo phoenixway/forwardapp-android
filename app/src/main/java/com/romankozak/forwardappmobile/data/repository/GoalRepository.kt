@@ -28,7 +28,6 @@ class GoalRepository @Inject constructor(
         return goalListDao.getGoalListById(id)
     }
 
-    // ✨ ЗМІНА: Метод тепер повертає ID створеного екземпляру (String).
     suspend fun createGoal(title: String, listId: String): String {
         val currentTime = System.currentTimeMillis()
         val newGoal = Goal(
@@ -39,7 +38,6 @@ class GoalRepository @Inject constructor(
             createdAt = currentTime,
             updatedAt = currentTime,
             tags = null,
-            // За замовчуванням, нові цілі не мають швидких посилань
             associatedListIds = emptyList()
         )
 
@@ -65,7 +63,6 @@ class GoalRepository @Inject constructor(
         goalDao.updateGoal(goal)
     }
 
-    // ✨ ЗМІНА: Повернуто до простої версії. Цей метод НЕ МАЄ чіпати Goal.associatedListIds.
     suspend fun createGoalInstance(goalId: String, targetListId: String) {
         val order = -System.currentTimeMillis()
         val newInstance = GoalInstance(
@@ -82,35 +79,84 @@ class GoalRepository @Inject constructor(
     }
 
     suspend fun copyGoal(goal: Goal, targetListId: String) {
-        // Створюємо повну копію цілі, включаючи її "швидкі посилання"
         val newGoal = goal.copy(id = UUID.randomUUID().toString())
         goalDao.insertGoal(newGoal)
-        // Створюємо екземпляр цієї нової цілі в цільовому списку
         createGoalInstance(newGoal.id, targetListId)
     }
 
-    // ✨ ЗМІНА: Повністю переписана логіка для правильного отримання даних
     fun getAssociatedListsForGoals(goalIds: List<String>): Flow<Map<String, List<GoalList>>> {
         if (goalIds.isEmpty()) return flowOf(emptyMap())
 
-        // 1. Отримуємо потік потрібних нам цілей
         val goalsFlow = goalDao.getGoalsByIds(goalIds)
-        // 2. Отримуємо потік усіх списків (для пошуку)
         val allListsFlow = goalListDao.getAllLists()
 
-        // 3. Комбінуємо два потоки
         return combine(goalsFlow, allListsFlow) { goals, allLists ->
             val listLookup = allLists.associateBy { it.id }
             val resultMap = mutableMapOf<String, List<GoalList>>()
 
-            // 4. Для кожної цілі знаходимо її асоційовані списки
             for (goal in goals) {
                 val associatedIds = goal.associatedListIds ?: emptyList()
-                // Використовуємо `mapNotNull`, щоб безпечно отримати списки з нашого кешу `listLookup`
                 val associatedLists = associatedIds.mapNotNull { listLookup[it] }
                 resultMap[goal.id] = associatedLists
             }
             resultMap
+        }
+    }
+
+    // ✨ --- МЕТОДИ ДЛЯ ГРУПОВИХ ОПЕРАЦІЙ --- ✨
+
+    suspend fun deleteGoalInstances(instanceIds: List<String>) {
+        if (instanceIds.isNotEmpty()) {
+            goalDao.deleteInstancesByIds(instanceIds)
+        }
+    }
+
+    suspend fun updateGoals(goals: List<Goal>) {
+        if (goals.isNotEmpty()) {
+            goalDao.updateGoals(goals)
+        }
+    }
+
+    suspend fun moveGoalInstances(instanceIds: List<String>, targetListId: String) {
+        if (instanceIds.isNotEmpty()) {
+            goalDao.updateInstanceListIds(instanceIds, targetListId)
+        }
+    }
+
+    suspend fun createGoalInstances(goalIds: List<String>, targetListId: String) {
+        if (goalIds.isNotEmpty()) {
+            val newInstances = goalIds.map { goalId ->
+                GoalInstance(
+                    instanceId = UUID.randomUUID().toString(),
+                    goalId = goalId,
+                    listId = targetListId,
+                    order = -System.currentTimeMillis()
+                )
+            }
+            goalDao.insertGoalInstances(newInstances)
+        }
+    }
+
+    suspend fun copyGoals(goalIds: List<String>, targetListId: String) {
+        if (goalIds.isNotEmpty()) {
+            val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
+            val newGoals = mutableListOf<Goal>()
+            val newInstances = mutableListOf<GoalInstance>()
+
+            originalGoals.forEach { goal ->
+                val newGoal = goal.copy(id = UUID.randomUUID().toString())
+                newGoals.add(newGoal)
+                newInstances.add(
+                    GoalInstance(
+                        instanceId = UUID.randomUUID().toString(),
+                        goalId = newGoal.id,
+                        listId = targetListId,
+                        order = -System.currentTimeMillis()
+                    )
+                )
+            }
+            goalDao.insertGoals(newGoals)
+            goalDao.insertGoalInstances(newInstances)
         }
     }
 

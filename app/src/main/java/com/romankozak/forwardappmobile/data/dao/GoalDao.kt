@@ -25,6 +25,10 @@ interface GoalDao {
     @Update
     suspend fun updateGoal(goal: Goal)
 
+    // ✨ ЗМІНА: Додано метод для оновлення кількох цілей одночасно
+    @Update
+    suspend fun updateGoals(goals: List<Goal>)
+
     @Query("DELETE FROM goals WHERE id = :id")
     suspend fun deleteGoalById(id: String)
 
@@ -37,9 +41,12 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE id = :id")
     suspend fun getGoalById(id: String): Goal?
 
-    // ✨ ЗМІНА: Додаємо новий метод для отримання кількох цілей за їх ID
     @Query("SELECT * FROM goals WHERE id IN (:ids)")
     fun getGoalsByIds(ids: List<String>): Flow<List<Goal>>
+
+    // ✨ ЗМІНА: Додано suspend-версію для одноразового отримання кількох цілей
+    @Query("SELECT * FROM goals WHERE id IN (:ids)")
+    suspend fun getGoalsByIdsSuspend(ids: List<String>): List<Goal>
 
     @Query("SELECT * FROM goals")
     suspend fun getAll(): List<Goal>
@@ -66,6 +73,10 @@ interface GoalDao {
     @Query("DELETE FROM goal_instances WHERE instance_id = :instanceId")
     suspend fun deleteInstanceById(instanceId: String)
 
+    // ✨ ЗМІНА: Додано метод для видалення кількох екземплярів за їх ID
+    @Query("DELETE FROM goal_instances WHERE instance_id IN (:instanceIds)")
+    suspend fun deleteInstancesByIds(instanceIds: List<String>)
+
     @Query("DELETE FROM goal_instances WHERE listId IN (:listIds)")
     suspend fun deleteInstancesForLists(listIds: List<String>)
 
@@ -88,9 +99,9 @@ interface GoalDao {
     @Query("UPDATE goal_instances SET listId = :targetListId WHERE instance_id = :instanceId")
     suspend fun updateInstanceListId(instanceId: String, targetListId: String)
 
-    // ✨ ЗМІНА: Видаляємо старі, неправильні методи
-    // fun getGoalIdListPairs(...) - ВИДАЛЕНО
-    // fun getAssociatedListsForGoals(...) - ВИДАЛЕНО
+    // ✨ ЗМІНА: Додано метод для переміщення кількох екземплярів до іншого списку
+    @Query("UPDATE goal_instances SET listId = :targetListId WHERE instance_id IN (:instanceIds)")
+    suspend fun updateInstanceListIds(instanceIds: List<String>, targetListId: String)
 
     @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%'")
     fun searchGoalsByText(query: String): Flow<List<Goal>>

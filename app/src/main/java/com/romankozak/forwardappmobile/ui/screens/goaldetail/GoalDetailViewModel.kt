@@ -27,20 +27,27 @@ sealed class UiEvent {
     data class ResetSwipeState(val instanceId: String) : UiEvent()
     data class ScrollTo(val index: Int) : UiEvent()
 }
+
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
     data class AwaitingActionChoice(val goalWithInstance: GoalWithInstanceInfo) : GoalActionDialogState()
-    data class AwaitingListChoice(val goalWithInstance: GoalWithInstanceInfo, val actionType: GoalActionType) : GoalActionDialogState()
+    // ✨ ЗМІНА: AwaitingListChoice тепер працює з множиною ID для підтримки групових дій
+    data class AwaitingListChoice(
+        val sourceInstanceIds: Set<String>,
+        val actionType: GoalActionType
+    ) : GoalActionDialogState()
 }
+
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, MoveToTop }
 enum class InputMode { AddGoal, SearchInList, SearchGlobal }
 
-// ✨ ЗМІНА: Додано поле для відстеження ID нової цілі
+// ✨ ЗМІНА: Додано поле для відстеження виділених цілей
 data class UiState(
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
     val inputMode: InputMode = InputMode.AddGoal,
-    val newlyAddedGoalInstanceId: String? = null
+    val newlyAddedGoalInstanceId: String? = null,
+    val selectedInstanceIds: Set<String> = emptySet() // ID екземплярів
 )
 data class ListHierarchy(
     val topLevelLists: List<GoalList>,
@@ -57,15 +64,6 @@ class GoalDetailViewModel @Inject constructor(
 
     private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("goalListId", "")
 
-    init {
-        viewModelScope.launch {
-            listIdFlow.collect { id ->
-                Log.d("DEBUG_VM", "Отримано новий listId зі StateHandle: '$id'")
-            }
-        }
-    }
-
-
     private val _uiState = MutableStateFlow(UiState(
         goalToHighlight = savedStateHandle.get<String>("goalToHighlight")
     ))
@@ -75,6 +73,10 @@ class GoalDetailViewModel @Inject constructor(
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
     private var recentlyDeletedGoal: GoalWithInstanceInfo? = null
+
+    val isSelectionModeActive: StateFlow<Boolean> = _uiState
+        .map { it.selectedInstanceIds.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val goalList: StateFlow<GoalList?> = listIdFlow.flatMapLatest { id ->
         if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
@@ -95,6 +97,7 @@ class GoalDetailViewModel @Inject constructor(
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val associatedListsMap: StateFlow<Map<String, List<GoalList>>> = filteredGoals.flatMapLatest { goals ->
         val goalIds = goals.map { it.goal.id }.distinct()
         goalRepository.getAssociatedListsForGoals(goalIds)
@@ -139,18 +142,15 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // ✨ ЗМІНА: Тепер метод зберігає ID нової цілі в UiState
     private fun addGoal(title: String) {
         val listId = listIdFlow.value
         if (listId.isEmpty()) return
         viewModelScope.launch {
             val newInstanceId = goalRepository.createGoal(title, listId)
-            // Оновлюємо стан, щоб UI знав про нову ціль
             _uiState.update { it.copy(newlyAddedGoalInstanceId = newInstanceId) }
         }
     }
 
-    // ✨ ЗМІНА: Додано новий метод, щоб UI міг повідомити, що скрол виконано
     fun onScrolledToNewGoal() {
         _uiState.update { it.copy(newlyAddedGoalInstanceId = null) }
     }
@@ -179,7 +179,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-   fun moveGoal(from: Int, to: Int, needsScroll: Boolean) {
+    fun moveGoal(from: Int, to: Int, needsScroll: Boolean) {
         val currentGoals = filteredGoals.value.toMutableList()
         if (from in currentGoals.indices && to in currentGoals.indices) {
             val item = currentGoals.removeAt(from)
@@ -189,8 +189,6 @@ class GoalDetailViewModel @Inject constructor(
                     goalWithInstanceInfo.copy(order = index.toLong())
                 }
                 updatedInstances.forEach { goalRepository.insertInstance(it.toGoalInstance()) }
-
-                // ✨ ЗМІНА №2: Виконуємо скрол тільки якщо needsScroll == true
                 if (needsScroll) {
                     _uiEventFlow.send(UiEvent.ScrollTo(to))
                 }
@@ -202,10 +200,6 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${goal.listId}/${goal.goal.id}"))
         }
-    }
-
-    fun onModeChangeRequest() {
-        _showInputModeDialog.value = true
     }
 
     fun onTagClicked(tag: String) {
@@ -224,6 +218,72 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(goalToHighlight = null) }
     }
 
+    // ✨ --- ЛОГІКА ДЛЯ РЕЖИМУ ВИДІЛЕННЯ --- ✨
+
+    fun onGoalLongClick(instanceId: String) {
+        _uiState.update {
+            it.copy(selectedInstanceIds = it.selectedInstanceIds + instanceId)
+        }
+    }
+
+    fun onGoalClick(instance: GoalWithInstanceInfo) {
+        if (_uiState.value.selectedInstanceIds.isNotEmpty()) {
+            _uiState.update {
+                val currentSelection = it.selectedInstanceIds
+                if (instance.instanceId in currentSelection) {
+                    it.copy(selectedInstanceIds = currentSelection - instance.instanceId)
+                } else {
+                    it.copy(selectedInstanceIds = currentSelection + instance.instanceId)
+                }
+            }
+        } else {
+            onEditGoal(instance)
+        }
+    }
+
+    fun clearSelection() {
+        _uiState.update { it.copy(selectedInstanceIds = emptySet()) }
+    }
+
+
+    // ✨ --- ЛОГІКА ДЛЯ ГРУПОВИХ ДІЙ (ВИКЛИКАЄТЬСЯ З TOP APP BAR) --- ✨
+
+    fun deleteSelectedGoals() {
+        viewModelScope.launch {
+            val idsToDelete = _uiState.value.selectedInstanceIds.toList()
+            goalRepository.deleteGoalInstances(idsToDelete)
+            _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Видалено цілей: ${idsToDelete.size}"))
+            clearSelection()
+        }
+    }
+
+    fun toggleCompletionForSelectedGoals() {
+        viewModelScope.launch {
+            val selectedIds = _uiState.value.selectedInstanceIds
+            if (selectedIds.isEmpty()) return@launch
+
+            val goalsToUpdate = filteredGoals.value
+                .filter { it.instanceId in selectedIds }
+                .map { it.goal.copy(completed = !it.goal.completed) }
+                .distinctBy { it.id }
+
+            goalRepository.updateGoals(goalsToUpdate)
+            clearSelection()
+        }
+    }
+
+    fun onBulkActionRequest(actionType: GoalActionType) {
+        val selectedIds = _uiState.value.selectedInstanceIds
+        if (selectedIds.isNotEmpty()) {
+            _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
+                sourceInstanceIds = selectedIds,
+                actionType = actionType
+            )
+        }
+    }
+
+    // ✨ --- ЛОГІКА ДЛЯ ДІАЛОГІВ ДІЙ (ОДИНОЧНИХ І ГРУПОВИХ) --- ✨
+
     fun onGoalActionInitiated(goal: GoalWithInstanceInfo) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(goal)
     }
@@ -232,18 +292,19 @@ class GoalDetailViewModel @Inject constructor(
         val currentState = _goalActionDialogState.value
         if (currentState is GoalActionDialogState.AwaitingActionChoice) {
             val goalToActOn = currentState.goalWithInstance
-
             when (actionType) {
                 GoalActionType.MoveToTop -> {
                     val fromIndex = filteredGoals.value.indexOfFirst { it.instanceId == goalToActOn.instanceId }
                     if (fromIndex > 0) {
-                        // ✨ ВИПРАВЛЕННЯ: Додаємо needsScroll = true
                         moveGoal(fromIndex, 0, needsScroll = true)
                     }
                     onDismissGoalActionDialogs()
                 }
                 else -> {
-                    _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(goalToActOn, actionType)
+                    _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
+                        sourceInstanceIds = setOf(goalToActOn.instanceId),
+                        actionType = actionType
+                    )
                 }
             }
         }
@@ -253,7 +314,7 @@ class GoalDetailViewModel @Inject constructor(
         val currentState = _goalActionDialogState.value
         val goalInstanceId = when (currentState) {
             is GoalActionDialogState.AwaitingActionChoice -> currentState.goalWithInstance.instanceId
-            is GoalActionDialogState.AwaitingListChoice -> currentState.goalWithInstance.instanceId
+            is GoalActionDialogState.AwaitingListChoice -> if (currentState.sourceInstanceIds.size == 1) currentState.sourceInstanceIds.first() else null
             else -> null
         }
         _goalActionDialogState.value = GoalActionDialogState.Hidden
@@ -263,17 +324,29 @@ class GoalDetailViewModel @Inject constructor(
     fun confirmGoalAction(targetListId: String) {
         val currentState = _goalActionDialogState.value
         if (currentState is GoalActionDialogState.AwaitingListChoice) {
-            val goal = currentState.goalWithInstance
+            val ids = currentState.sourceInstanceIds
             val actionType = currentState.actionType
-            viewModelScope.launch {
+
+            viewModelScope.launch(Dispatchers.IO) {
+                val goals = filteredGoals.value
+                    .filter { it.instanceId in ids }
+                val goalIds = goals.map { it.goal.id }.distinct()
+
                 when (actionType) {
-                    GoalActionType.CreateInstance -> goalRepository.createGoalInstance(goal.goal.id, targetListId)
-                    GoalActionType.MoveInstance -> goalRepository.moveGoalInstance(goal.instanceId, targetListId)
-                    GoalActionType.CopyGoal -> goalRepository.copyGoal(goal.goal, targetListId)
-                    GoalActionType.MoveToTop -> { /* Handled in onGoalActionSelected */ }
+                    GoalActionType.CreateInstance -> goalRepository.createGoalInstances(goalIds, targetListId)
+                    GoalActionType.MoveInstance -> goalRepository.moveGoalInstances(ids.toList(), targetListId)
+                    GoalActionType.CopyGoal -> goalRepository.copyGoals(goalIds, targetListId)
+                    GoalActionType.MoveToTop -> { /* Not applicable here */ }
                 }
-                _goalActionDialogState.value = GoalActionDialogState.Hidden
-                resetSwipe(goal.instanceId)
+
+                launch(Dispatchers.Main) {
+                    _goalActionDialogState.value = GoalActionDialogState.Hidden
+                    if (ids.size == 1) {
+                        resetSwipe(ids.first())
+                    } else {
+                        clearSelection()
+                    }
+                }
             }
         }
     }
@@ -284,6 +357,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    // --- Input Mode Logic ---
     fun onInputModeChangeRequest() {
         _showInputModeDialog.value = true
     }
@@ -296,7 +370,4 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(inputMode = mode, localSearchQuery = "") }
         _showInputModeDialog.value = false
     }
-
-
-
 }
