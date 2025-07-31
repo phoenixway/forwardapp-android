@@ -1,30 +1,21 @@
 package com.romankozak.forwardappmobile.ui.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GoalListRow(
     list: GoalList,
@@ -32,25 +23,32 @@ fun GoalListRow(
     hasChildren: Boolean,
     onListClick: (String) -> Unit,
     onToggleExpanded: (list: GoalList) -> Unit,
-    // ЗМІНЕНО: Єдина дія для запиту меню
-    onMenuRequested: (list: GoalList) -> Unit
+    onMenuRequested: (list: GoalList) -> Unit,
+    isCurrentlyDragging: Boolean,
+    isHovered: Boolean,
+    isDraggingDown: Boolean,
+    // Параметр isPressed більше не потрібен
+    modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = Modifier
+    Column(
+        modifier = modifier
             .fillMaxWidth()
             .padding(start = (level * 24).dp)
-            .combinedClickable(
-                onClick = { onListClick(list.id) },
-                onLongClick = { onMenuRequested(list) } // Довгий клік викликає меню
-            ),
-        shape = MaterialTheme.shapes.medium,
-        shadowElevation = 1.dp
     ) {
+        // Індикатор зверху
+        if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
+            HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
+        }
+
         Row(
-            modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                // Повертаємо звичайний клік для навігації
+                .clickable { onListClick(list.id) }
+                .alpha(if (isCurrentlyDragging) 0.6f else 1f)
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // ... (Іконка згортання/розгортання та Spacer залишаються без змін)
             if (hasChildren) {
                 IconButton(onClick = { onToggleExpanded(list) }) {
                     Icon(
@@ -66,13 +64,18 @@ fun GoalListRow(
                 text = list.name,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyLarge
             )
 
-            // Іконка меню тепер також просто викликає запит
             IconButton(onClick = { onMenuRequested(list) }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Дії зі списком")
             }
+        }
+
+        // Індикатор знизу
+        if (isHovered && isDraggingDown && !isCurrentlyDragging) {
+            HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
         }
     }
 }

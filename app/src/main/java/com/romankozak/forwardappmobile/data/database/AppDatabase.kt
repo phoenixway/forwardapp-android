@@ -17,10 +17,10 @@ import com.romankozak.forwardappmobile.data.dao.GoalListDao
 
 @Database(
     entities = [Goal::class, GoalList::class, GoalInstance::class],
-    version = 9, // ЗБІЛЬШЕНО: Версію оновлено до 9
+    version = 10,
     autoMigrations = [
-        // Попередні авто-міграції залишаються
-        AutoMigration(from = 7, to = 8)
+        AutoMigration(from = 7, to = 8),
+        AutoMigration(from = 9, to = 10)
     ],
     exportSchema = true
 )

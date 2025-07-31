@@ -40,6 +40,9 @@ private object Scales {
     val cost = (0..5).map { it.toFloat() }
     val risk = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
     val weights = (0..20).map { it * 0.1f } // Лінійна 0.0 -> 2.0 з кроком 0.1
+
+    // --- ДОДАНО: Текстові мітки для шкали вартості ---
+    val costLabels = listOf("немає", "дуже низькі", "низькі", "середні", "високі", "дуже високі")
 }
 
 @Composable
@@ -329,7 +332,8 @@ private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewMode
                             label = "Вартість",
                             value = uiState.cost,
                             onValueChange = viewModel::onCostChange,
-                            scale = Scales.cost
+                            scale = Scales.cost,
+                            valueLabels = Scales.costLabels // Передаємо текстові мітки
                         )
                         ParameterSlider(
                             label = "Ризик",
@@ -370,8 +374,8 @@ private fun ParameterSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     scale: List<Float>,
+    valueLabels: List<String>? = null // Новий необов'язковий параметр
 ) {
-    // Знаходимо найближчий індекс у шкалі для поточного значення
     val currentIndex = scale.indexOf(value).coerceAtLeast(0)
 
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -381,9 +385,16 @@ private fun ParameterSlider(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
+
+            // --- ОНОВЛЕНО: Логіка відображення тексту ---
+            val displayText = when {
+                valueLabels != null -> valueLabels.getOrElse(currentIndex) { value.toString() }
+                scale == Scales.weights -> "x${"%.1f".format(value)}"
+                else -> value.toInt().toString()
+            }
+
             Text(
-                // Форматуємо відображення: "x1.2" для ваг, ціле число для інших
-                text = if (scale == Scales.weights) "x${"%.1f".format(value)}" else value.toInt().toString(),
+                text = displayText,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -392,7 +403,6 @@ private fun ParameterSlider(
         Slider(
             value = currentIndex.toFloat(),
             onValueChange = { newIndex ->
-                // При зміні повзунка знаходимо відповідне значення у шкалі
                 val roundedIndex = newIndex.roundToInt().coerceIn(0, scale.lastIndex)
                 onValueChange(scale[roundedIndex])
             },
