@@ -202,4 +202,37 @@ class GoalListViewModel @Inject constructor(
             }
         }
     }
+    fun onListMoved(fromId: String, toId: String) {
+        if (fromId == toId) return
+
+        val allLists = _allListsFlat.value
+        val fromList = allLists.find { it.id == fromId }
+        val toList = allLists.find { it.id == toId }
+
+        // Перевіряємо, що обидва списки існують і є сиблінгами (мають однаковий parentId)
+        if (fromList == null || toList == null || fromList.parentId != toList.parentId) {
+            viewModelScope.launch {
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Переміщення можливе лише на одному рівні."))
+            }
+            return
+        }
+
+        // Отримуємо всіх сиблінгів для цієї групи та сортуємо їх за поточним порядком
+        val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
+        val mutableSiblings = siblings.toMutableList()
+
+        // Виконуємо переміщення всередині групи сиблінгів
+        val fromIndex = mutableSiblings.indexOf(fromList)
+        val toIndex = mutableSiblings.indexOf(toList)
+        if (fromIndex != -1 && toIndex != -1) {
+            mutableSiblings.add(toIndex, mutableSiblings.removeAt(fromIndex))
+        }
+
+        // Оновлюємо порядок тільки для зміненої групи
+        val updatedOrderIds = mutableSiblings.map { it.id }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            goalRepository.updateListsOrder(updatedOrderIds)
+        }
+    }
 }

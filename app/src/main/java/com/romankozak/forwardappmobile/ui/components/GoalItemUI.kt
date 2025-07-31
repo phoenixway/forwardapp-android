@@ -1,7 +1,9 @@
 package com.romankozak.forwardappmobile.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,7 +24,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// --- (код з парсингом іконок, форматуванням дати залишається без змін) ---
+// --- Допоміжна логіка для парсингу іконок ---
 private enum class IconCategory { IMPORTANCE, SCALE, ACTIVITY, CUSTOM }
 private data class IconConfig(val icon: String, val markers: List<String>, val category: IconCategory)
 private val ICON_CONFIGS: List<IconConfig> = listOf(
@@ -63,7 +65,7 @@ fun formatDate(timestamp: Long): String {
 }
 
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class) // ✨ ЗМІНА: Додано ExperimentalFoundationApi
 @Composable
 fun GoalItem(
     goal: Goal,
@@ -71,6 +73,7 @@ fun GoalItem(
     obsidianVaultName: String,
     onToggle: () -> Unit,
     onItemClick: () -> Unit,
+    onLongClick: () -> Unit, // ✨ ЗМІНА: Додано обробник довгого натискання
     onTagClick: (String) -> Unit,
     onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
@@ -82,7 +85,11 @@ fun GoalItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onItemClick)
+            // ✨ ЗМІНА: Використовуємо combinedClickable для підтримки звичайного і довгого натискання
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onLongClick
+            )
             .background(backgroundColor)
     ) {
         Row(
@@ -99,6 +106,7 @@ fun GoalItem(
                     isCompleted = goal.completed,
                     obsidianVaultName = obsidianVaultName,
                     onTagClick = onTagClick,
+                    onTextClick = onItemClick,
                     style = MaterialTheme.typography.bodyLarge
                 )
 
@@ -110,8 +118,7 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // --- ВІДОБРАЖЕННЯ ОЦІНКИ З ІКОНКОЮ ---
-                        if (goal.displayScore > 0) {
+                        if (goal.valueImportance > 0) {
                             ScoreBadge(score = goal.displayScore)
                         }
 
@@ -151,9 +158,6 @@ fun GoalItem(
     }
 }
 
-/**
- * Новий компонент для відображення оцінки з іконкою.
- */
 @Composable
 private fun ScoreBadge(score: Int) {
     Box(

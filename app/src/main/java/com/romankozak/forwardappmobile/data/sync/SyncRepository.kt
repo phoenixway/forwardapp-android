@@ -94,14 +94,20 @@ class SyncRepository @Inject constructor(
                     createdAt = dateStringToLong(it.createdAt) ?: 0L,
                     updatedAt = dateStringToLong(it.updatedAt), description = "",
                     tags = null,
-                    associatedListIds = it.associatedListIds
+                    associatedListIds = it.associatedListIds,
+
                 )
             }
             val importedLists = (backupFile.data.goalLists ?: emptyMap()).values.map {
                 GoalList(
-                    id = it.id, name = it.name, parentId = it.parentId,
-                    description = it.description, createdAt = dateStringToLong(it.createdAt) ?: 0L,
-                    updatedAt = dateStringToLong(it.updatedAt)
+                    id = it.id,
+                    name = it.name,
+                    parentId = it.parentId,
+                    description = it.description,
+                    createdAt = dateStringToLong(it.createdAt) ?: 0L,
+                    updatedAt = dateStringToLong(it.updatedAt),
+                    isExpanded = it.isExpanded ?: true,
+                    order = it.order ?: 0L
                 )
             }
 
@@ -208,7 +214,9 @@ class SyncRepository @Inject constructor(
                 createdAt = longToDateString(list.createdAt)!!,
                 updatedAt = longToDateString(list.updatedAt),
                 itemInstanceIds = listInstances.map { it.instanceId },
-                childListIds = childMap[list.id]?.map { it.id } ?: emptyList()
+                childListIds = childMap[list.id]?.map { it.id } ?: emptyList(),
+                isExpanded = list.isExpanded,
+                order = list.order
             )
         }
 

@@ -1,7 +1,7 @@
 // Файл: /app/build.gradle.kts
 
 val majorVersion = 2
-val minorVersion = 3
+val minorVersion = 5
 val patchVersion = 0
 val buildNumber = 30
 

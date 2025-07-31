@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -33,9 +32,10 @@ fun MarkdownText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
-    isCompleted: Boolean = false, // Для кольору та стилю тексту
-    obsidianVaultName: String = "", // Для посилань
-    onTagClick: (String) -> Unit = {} // Для тегів
+    isCompleted: Boolean = false,
+    obsidianVaultName: String = "",
+    onTagClick: (String) -> Unit = {},
+    onTextClick: () -> Unit = {} // ✨ ЗМІНА №1: Додано новий параметр для кліку по тексту
 ) {
     val context = LocalContext.current
     val tagColor = MaterialTheme.colorScheme.primary
@@ -64,34 +64,39 @@ fun MarkdownText(
         )
     }
 
+    // ✨ ЗМІНА №2: Оновлено логіку обробника кліків
     val handleClick: (Int) -> Unit = { offset ->
-        val annotatedString = buildAnnotatedString {
-            text.lines().forEach { line ->
-                val content = listRegex.find(line)?.destructured?.component2() ?: line
-                // ✨ ЗМІНА №1: Передаємо isCompleted у функцію
-                append(applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted))
-                append("\n")
-            }
-        }
+        // Цей рядок потрібен, щоб знайти анотації в тексті за зміщенням кліку
+        val annotatedString = applyInlineStyles(text, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
 
-        annotatedString.getStringAnnotations("SEARCH_TERM", start = offset, end = offset).firstOrNull()?.let { onTagClick(it.item) }
-        annotatedString.getStringAnnotations("OBSIDIAN_LINK", start = offset, end = offset).firstOrNull()?.let { annotation ->
-            val noteName = annotation.item
-            if (obsidianVaultName.isNotBlank()) {
-                try {
-                    val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
-                    val encodedFile = URLEncoder.encode(noteName, "UTF-8")
-                    val uri = Uri.parse("obsidian://open?vault=$encodedVault&file=$encodedFile")
-                    val intent = Intent(Intent.ACTION_VIEW, uri)
-                    context.startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, "Obsidian не встановлено", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Помилка відкриття Obsidian: ${e.message}", Toast.LENGTH_SHORT).show()
+        val searchTermClicked = annotatedString.getStringAnnotations("SEARCH_TERM", start = offset, end = offset).firstOrNull()
+        val obsidianLinkClicked = annotatedString.getStringAnnotations("OBSIDIAN_LINK", start = offset, end = offset).firstOrNull()
+
+        when {
+            // Якщо клікнули на тег, викликаємо onTagClick
+            searchTermClicked != null -> onTagClick(searchTermClicked.item)
+
+            // Якщо клікнули на посилання, відкриваємо Obsidian
+            obsidianLinkClicked != null -> {
+                val noteName = obsidianLinkClicked.item
+                if (obsidianVaultName.isNotBlank()) {
+                    try {
+                        val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
+                        val encodedFile = URLEncoder.encode(noteName, "UTF-8")
+                        val uri = Uri.parse("obsidian://open?vault=$encodedVault&file=$encodedFile")
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        context.startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        Toast.makeText(context, "Obsidian не встановлено", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Помилка відкриття Obsidian: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(context, "Назва Obsidian Vault не вказана.", Toast.LENGTH_LONG).show()
                 }
-            } else {
-                Toast.makeText(context, "Назва Obsidian Vault не вказана.", Toast.LENGTH_LONG).show()
             }
+            // В іншому випадку (клік по звичайному тексту) викликаємо onTextClick
+            else -> onTextClick()
         }
     }
 
@@ -104,7 +109,6 @@ fun MarkdownText(
                 line to false
             }
 
-            // ✨ ЗМІНА №2: Передаємо isCompleted у функцію
             val annotatedLine = applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
 
             val fullLine = if (isList) {
@@ -116,23 +120,16 @@ fun MarkdownText(
                 annotatedLine
             }
 
-            if (onTagClick != {} || obsidianVaultName.isNotBlank()) {
-                ClickableText(
-                    text = fullLine,
-                    style = finalTextStyle,
-                    onClick = handleClick
-                )
-            } else {
-                Text(
-                    text = fullLine,
-                    style = finalTextStyle
-                )
-            }
+            // ✨ ЗМІНА №3: Завжди використовуємо ClickableText для узгодженої поведінки
+            ClickableText(
+                text = fullLine,
+                style = finalTextStyle,
+                onClick = handleClick
+            )
         }
     }
 }
 
-// ✨ ЗМІНА №3: Додаємо isCompleted у параметри функції
 private fun applyInlineStyles(
     content: String,
     regex: Regex,
@@ -154,7 +151,6 @@ private fun applyInlineStyles(
                     val linkText = match.groups[9]?.value
                     val displayText = if (!linkText.isNullOrEmpty()) linkText else linkTarget
 
-                    // ✨ ЗМІНА №4: Комбінуємо стилі, якщо ціль виконана
                     val decoration = if (isCompleted) {
                         TextDecoration.combine(listOf(TextDecoration.Underline, TextDecoration.LineThrough))
                     } else {
