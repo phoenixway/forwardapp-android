@@ -65,7 +65,7 @@ fun GoalListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Forward") },
+                title = { Text("Backlogs") },
                 actions = {
                     IconButton(onClick = { viewModel.onAddNewListRequest() }) {
                         Icon(Icons.Default.Add, contentDescription = "Add new list")
