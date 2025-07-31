@@ -31,7 +31,6 @@ sealed class UiEvent {
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
     data class AwaitingActionChoice(val goalWithInstance: GoalWithInstanceInfo) : GoalActionDialogState()
-    // ✨ ЗМІНА: AwaitingListChoice тепер працює з множиною ID для підтримки групових дій
     data class AwaitingListChoice(
         val sourceInstanceIds: Set<String>,
         val actionType: GoalActionType
@@ -41,13 +40,12 @@ sealed class GoalActionDialogState {
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, MoveToTop }
 enum class InputMode { AddGoal, SearchInList, SearchGlobal }
 
-// ✨ ЗМІНА: Додано поле для відстеження виділених цілей
 data class UiState(
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
     val inputMode: InputMode = InputMode.AddGoal,
     val newlyAddedGoalInstanceId: String? = null,
-    val selectedInstanceIds: Set<String> = emptySet() // ID екземплярів
+    val selectedInstanceIds: Set<String> = emptySet()
 )
 data class ListHierarchy(
     val topLevelLists: List<GoalList>,
@@ -72,7 +70,9 @@ class GoalDetailViewModel @Inject constructor(
     private val _uiEventFlow = Channel<UiEvent>()
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
+    // ✨ ЗМІНА: Зберігаємо стан для скасування як одиночного, так і групового видалення
     private var recentlyDeletedGoal: GoalWithInstanceInfo? = null
+    private var recentlyDeletedInstances: List<GoalWithInstanceInfo>? = null
 
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedInstanceIds.isNotEmpty() }
@@ -155,20 +155,33 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(newlyAddedGoalInstanceId = null) }
     }
 
+    // ✨ ЗМІНА: Оновлено для очищення кешу групового видалення
     fun deleteGoal(goal: GoalWithInstanceInfo) {
         viewModelScope.launch {
+            recentlyDeletedInstances = null // Очищуємо кеш групового видалення
+            recentlyDeletedGoal = goal     // Зберігаємо одну ціль для скасування
             goalRepository.deleteGoalInstance(goal.instanceId)
-            recentlyDeletedGoal = goal
             _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Ціль видалено", action = "Скасувати"))
         }
     }
 
+    // ✨ ЗМІНА: Тепер обробляє скасування і для однієї, і для кількох цілей
     fun undoDelete() {
-        recentlyDeletedGoal?.let {
-            viewModelScope.launch {
+        viewModelScope.launch {
+            // Скасування одиночного видалення
+            recentlyDeletedGoal?.let {
                 goalRepository.insertInstance(it.toGoalInstance())
                 resetSwipe(it.instanceId)
                 recentlyDeletedGoal = null
+            }
+
+            // Скасування групового видалення
+            recentlyDeletedInstances?.let {
+                if (it.isNotEmpty()) {
+                    val instancesToRestore = it.map { info -> info.toGoalInstance() }
+                    goalRepository.insertGoalInstances(instancesToRestore)
+                    recentlyDeletedInstances = null
+                }
             }
         }
     }
@@ -218,7 +231,7 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(goalToHighlight = null) }
     }
 
-    // ✨ --- ЛОГІКА ДЛЯ РЕЖИМУ ВИДІЛЕННЯ --- ✨
+    // --- ЛОГІКА ДЛЯ РЕЖИМУ ВИДІЛЕННЯ ---
 
     fun onGoalLongClick(instanceId: String) {
         _uiState.update {
@@ -246,13 +259,21 @@ class GoalDetailViewModel @Inject constructor(
     }
 
 
-    // ✨ --- ЛОГІКА ДЛЯ ГРУПОВИХ ДІЙ (ВИКЛИКАЄТЬСЯ З TOP APP BAR) --- ✨
+    // --- ЛОГІКА ДЛЯ ГРУПОВИХ ДІЙ (ВИКЛИКАЄТЬСЯ З TOP APP BAR) ---
 
+    // ✨ ЗМІНА: Оновлено для збереження стану перед видаленням
     fun deleteSelectedGoals() {
         viewModelScope.launch {
-            val idsToDelete = _uiState.value.selectedInstanceIds.toList()
-            goalRepository.deleteGoalInstances(idsToDelete)
-            _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Видалено цілей: ${idsToDelete.size}"))
+            val selectedIds = _uiState.value.selectedInstanceIds
+            if (selectedIds.isEmpty()) return@launch
+
+            val instancesToDelete = filteredGoals.value.filter { it.instanceId in selectedIds }
+
+            recentlyDeletedGoal = null // Очищуємо кеш одиночного видалення
+            recentlyDeletedInstances = instancesToDelete // Зберігаємо список для скасування
+
+            goalRepository.deleteGoalInstances(instancesToDelete.map { it.instanceId })
+            _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Видалено цілей: ${instancesToDelete.size}", action = "Скасувати"))
             clearSelection()
         }
     }
@@ -282,7 +303,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // ✨ --- ЛОГІКА ДЛЯ ДІАЛОГІВ ДІЙ (ОДИНОЧНИХ І ГРУПОВИХ) --- ✨
+    // --- ЛОГІКА ДЛЯ ДІАЛОГІВ ДІЙ (ОДИНОЧНИХ І ГРУПОВИХ) ---
 
     fun onGoalActionInitiated(goal: GoalWithInstanceInfo) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(goal)
