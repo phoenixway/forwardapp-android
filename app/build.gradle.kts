@@ -1,8 +1,8 @@
 // Файл: /app/build.gradle.kts
 
 val majorVersion = 2
-val minorVersion = 3
-val patchVersion = 1
+val minorVersion = 4
+val patchVersion = 0
 val buildNumber = 30
 
 fun calculateVersionCode(): Int {

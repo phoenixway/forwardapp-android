@@ -111,7 +111,7 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (goal.displayScore > 0) {
+                        if (goal.valueImportance > 0) {
                             ScoreBadge(score = goal.displayScore)
                         }
 
