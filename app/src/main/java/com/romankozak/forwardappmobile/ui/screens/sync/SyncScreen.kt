@@ -31,13 +31,13 @@ fun SyncScreen(
 ) {
     val context = LocalContext.current
 
-    // --- ВИПРАВЛЕНО: Створюємо SyncRepository і передаємо його у фабрику ---
-    // Оскільки SyncRepository тепер також є Hilt-класом (@Singleton),
-    // в ідеалі ми мали б його ін'єктувати, але для швидкого виправлення
-    // створимо його тут вручну.
+    // This manual creation is for a quick fix, as noted in the comment.
+    // Hilt injection would be the ideal approach in a real app.
     val db = AppDatabase.getDatabase(context)
     val goalRepository = GoalRepository(db.goalDao(), db.goalListDao())
-    val syncRepo = SyncRepository(goalRepository)
+
+    // ✨ FIX: Added the missing 'db' and 'context' arguments
+    val syncRepo = SyncRepository(goalRepository, db, context)
 
     val viewModel: SyncViewModel = viewModel(factory = SyncViewModelFactory(syncRepo))
 

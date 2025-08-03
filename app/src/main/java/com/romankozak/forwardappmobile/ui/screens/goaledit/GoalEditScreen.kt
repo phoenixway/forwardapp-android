@@ -20,12 +20,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.components.MarkdownText
 import com.romankozak.forwardappmobile.ui.components.formatDate
 import com.romankozak.forwardappmobile.ui.screens.goaldetail.ListChooserDialog
@@ -40,8 +42,6 @@ private object Scales {
     val cost = (0..5).map { it.toFloat() }
     val risk = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
     val weights = (0..20).map { it * 0.1f } // Лінійна 0.0 -> 2.0 з кроком 0.1
-
-    // --- ДОДАНО: Текстові мітки для шкали вартості ---
     val costLabels = listOf("немає", "дуже низькі", "низькі", "середні", "високі", "дуже високі")
 }
 
@@ -114,7 +114,7 @@ fun GoalEditScreen(
                     OutlinedTextField(
                         value = uiState.goalDescription,
                         onValueChange = viewModel::onDescriptionChange,
-                        label = { Text("Опис (підтримує Markdown)") },
+                        label = { Text("Notes (Markdown supported)") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 120.dp),
@@ -161,7 +161,7 @@ fun GoalEditScreen(
                                 onClick = { /* Do nothing */ },
                                 label = { Text(list.name) },
                                 trailingIcon = {
-                                    if (uiState.associatedLists.size > 1) {
+
                                         Icon(
                                             Icons.Default.Cancel,
                                             contentDescription = "Видалити зі списку",
@@ -169,7 +169,7 @@ fun GoalEditScreen(
                                                 .size(InputChipDefaults.IconSize)
                                                 .clickable { viewModel.onRemoveListAssociation(list.id) },
                                         )
-                                    }
+
                                 },
                             )
                         }
@@ -229,6 +229,7 @@ fun GoalEditScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewModel) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -254,7 +255,17 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
             }
 
             AnimatedVisibility(visible = isExpanded) {
-                Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                Column(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // ✨ ДОДАНО: UI для вибору статусу оцінювання
+                    ScoringStatusSelector(
+                        selectedStatus = uiState.scoringStatus,
+                        onStatusSelected = viewModel::onScoringStatusChange,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
                     val rawScore = uiState.rawScore
                     val balanceText = "Баланс: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
                     val balanceColor = when {
@@ -262,33 +273,77 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                         rawScore > -0.2 -> LocalContentColor.current
                         else -> Color(0xFFC62828) // Strong Red
                     }
-                    Text(
-                        text = balanceText,
-                        color = balanceColor,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+
+                    if (uiState.scoringStatus == ScoringStatus.ASSESSED) {
+                        Text(
+                            text = balanceText,
+                            color = balanceColor,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+
+                    EvaluationTabs(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        isEnabled = uiState.isScoringEnabled // ✨ Передаємо доступність
                     )
-                    EvaluationTabs(uiState, viewModel)
                 }
             }
         }
     }
 }
 
+// ✨ НОВИЙ КОМПОНЕНТ
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScoringStatusSelector(
+    selectedStatus: ScoringStatus,
+    onStatusSelected: (ScoringStatus) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val statuses = ScoringStatus.values()
+    val labels = mapOf(
+        ScoringStatus.NOT_ASSESSED to "Не оцінено",
+        ScoringStatus.ASSESSED to "Оцінено",
+        ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Неможливо"
+    )
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+        statuses.forEachIndexed { index, status ->
+            SegmentedButton(
+                selected = selectedStatus == status,
+                onClick = { onStatusSelected(status) },
+                // ❗ ВИПРАВЛЕНО: Використовуємо SegmentedButtonDefaults.itemShape
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = statuses.size)
+            ) {
+                Text(labels[status] ?: "")
+            }
+        }
+    }
+}
+
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewModel) {
+private fun EvaluationTabs(
+    uiState: GoalEditUiState,
+    viewModel: GoalEditViewModel,
+    isEnabled: Boolean // ✨ Отримуємо доступність
+) {
     val tabTitles = listOf("Користь", "Витрати", "Ваги")
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
-    Column {
+    Column(
+        modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f) // ✨ Візуально затемнюємо
+    ) {
         TabRow(
             selectedTabIndex = pagerState.currentPage,
         ) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
+                    enabled = isEnabled, // ✨ Блокуємо таби
                     selected = pagerState.currentPage == index,
                     onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                     text = { Text(title) },
@@ -301,6 +356,7 @@ private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewMode
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
+            userScrollEnabled = isEnabled // ✨ Блокуємо свайп
         ) { page ->
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -312,13 +368,15 @@ private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewMode
                             label = "Важливість цінності",
                             value = uiState.valueImportance,
                             onValueChange = viewModel::onValueImportanceChange,
-                            scale = Scales.importance
+                            scale = Scales.importance,
+                            enabled = isEnabled
                         )
                         ParameterSlider(
                             label = "Вплив на цінність",
                             value = uiState.valueImpact,
                             onValueChange = viewModel::onValueImpactChange,
-                            scale = Scales.impact
+                            scale = Scales.impact,
+                            enabled = isEnabled
                         )
                     }
                     1 -> { // Витрати
@@ -326,20 +384,23 @@ private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewMode
                             label = "Зусилля",
                             value = uiState.effort,
                             onValueChange = viewModel::onEffortChange,
-                            scale = Scales.effort
+                            scale = Scales.effort,
+                            enabled = isEnabled
                         )
                         ParameterSlider(
                             label = "Вартість",
                             value = uiState.cost,
                             onValueChange = viewModel::onCostChange,
                             scale = Scales.cost,
-                            valueLabels = Scales.costLabels // Передаємо текстові мітки
+                            valueLabels = Scales.costLabels,
+                            enabled = isEnabled
                         )
                         ParameterSlider(
                             label = "Ризик",
                             value = uiState.risk,
                             onValueChange = viewModel::onRiskChange,
-                            scale = Scales.risk
+                            scale = Scales.risk,
+                            enabled = isEnabled
                         )
                     }
                     2 -> { // Ваги
@@ -347,19 +408,22 @@ private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewMode
                             label = "Вага зусиль",
                             value = uiState.weightEffort,
                             onValueChange = viewModel::onWeightEffortChange,
-                            scale = Scales.weights
+                            scale = Scales.weights,
+                            enabled = isEnabled
                         )
                         ParameterSlider(
                             label = "Вага вартості",
                             value = uiState.weightCost,
                             onValueChange = viewModel::onWeightCostChange,
-                            scale = Scales.weights
+                            scale = Scales.weights,
+                            enabled = isEnabled
                         )
                         ParameterSlider(
                             label = "Вага ризику",
                             value = uiState.weightRisk,
                             onValueChange = viewModel::onWeightRiskChange,
-                            scale = Scales.weights
+                            scale = Scales.weights,
+                            enabled = isEnabled
                         )
                     }
                 }
@@ -374,7 +438,8 @@ private fun ParameterSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     scale: List<Float>,
-    valueLabels: List<String>? = null // Новий необов'язковий параметр
+    enabled: Boolean, // ✨ Отримуємо доступність
+    valueLabels: List<String>? = null
 ) {
     val currentIndex = scale.indexOf(value).coerceAtLeast(0)
 
@@ -385,14 +450,11 @@ private fun ParameterSlider(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
-
-            // --- ОНОВЛЕНО: Логіка відображення тексту ---
             val displayText = when {
                 valueLabels != null -> valueLabels.getOrElse(currentIndex) { value.toString() }
                 scale == Scales.weights -> "x${"%.1f".format(value)}"
                 else -> value.toInt().toString()
             }
-
             Text(
                 text = displayText,
                 style = MaterialTheme.typography.bodyLarge,
@@ -401,6 +463,7 @@ private fun ParameterSlider(
             )
         }
         Slider(
+            enabled = enabled, // ✨ Блокуємо слайдер
             value = currentIndex.toFloat(),
             onValueChange = { newIndex ->
                 val roundedIndex = newIndex.roundToInt().coerceIn(0, scale.lastIndex)

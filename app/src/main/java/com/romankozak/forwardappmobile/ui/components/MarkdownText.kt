@@ -4,18 +4,24 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isUnspecified
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -35,7 +41,8 @@ fun MarkdownText(
     isCompleted: Boolean = false,
     obsidianVaultName: String = "",
     onTagClick: (String) -> Unit = {},
-    onTextClick: () -> Unit = {} // ✨ ЗМІНА №1: Додано новий параметр для кліку по тексту
+    onTextClick: () -> Unit = {},
+    onLongClick: () -> Unit = {} // ✨ ЗМІНА №1: Додано обробник довгого натискання
 ) {
     val context = LocalContext.current
     val tagColor = MaterialTheme.colorScheme.primary
@@ -64,42 +71,6 @@ fun MarkdownText(
         )
     }
 
-    // ✨ ЗМІНА №2: Оновлено логіку обробника кліків
-    val handleClick: (Int) -> Unit = { offset ->
-        // Цей рядок потрібен, щоб знайти анотації в тексті за зміщенням кліку
-        val annotatedString = applyInlineStyles(text, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
-
-        val searchTermClicked = annotatedString.getStringAnnotations("SEARCH_TERM", start = offset, end = offset).firstOrNull()
-        val obsidianLinkClicked = annotatedString.getStringAnnotations("OBSIDIAN_LINK", start = offset, end = offset).firstOrNull()
-
-        when {
-            // Якщо клікнули на тег, викликаємо onTagClick
-            searchTermClicked != null -> onTagClick(searchTermClicked.item)
-
-            // Якщо клікнули на посилання, відкриваємо Obsidian
-            obsidianLinkClicked != null -> {
-                val noteName = obsidianLinkClicked.item
-                if (obsidianVaultName.isNotBlank()) {
-                    try {
-                        val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
-                        val encodedFile = URLEncoder.encode(noteName, "UTF-8")
-                        val uri = Uri.parse("obsidian://open?vault=$encodedVault&file=$encodedFile")
-                        val intent = Intent(Intent.ACTION_VIEW, uri)
-                        context.startActivity(intent)
-                    } catch (e: ActivityNotFoundException) {
-                        Toast.makeText(context, "Obsidian не встановлено", Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Помилка відкриття Obsidian: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    Toast.makeText(context, "Назва Obsidian Vault не вказана.", Toast.LENGTH_LONG).show()
-                }
-            }
-            // В іншому випадку (клік по звичайному тексту) викликаємо onTextClick
-            else -> onTextClick()
-        }
-    }
-
     Column(modifier = modifier) {
         text.lines().forEach { line ->
             val listMatch = listRegex.find(line)
@@ -120,15 +91,57 @@ fun MarkdownText(
                 annotatedLine
             }
 
-            // ✨ ЗМІНА №3: Завжди використовуємо ClickableText для узгодженої поведінки
-            ClickableText(
+            // ✨ ЗМІНА №2: Повністю замінено ClickableText на Text з detectTapGestures
+            var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+            val gesture = Modifier.pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { _ -> onLongClick() },
+                    onTap = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
+                            val searchTermClicked = annotatedLine.getStringAnnotations("SEARCH_TERM", start = offset, end = offset).firstOrNull()
+                            val obsidianLinkClicked = annotatedLine.getStringAnnotations("OBSIDIAN_LINK", start = offset, end = offset).firstOrNull()
+
+                            when {
+                                searchTermClicked != null -> onTagClick(searchTermClicked.item)
+                                obsidianLinkClicked != null -> {
+                                    val noteName = obsidianLinkClicked.item
+                                    if (obsidianVaultName.isNotBlank()) {
+                                        try {
+                                            val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
+                                            val encodedFile = URLEncoder.encode(noteName, "UTF-8")
+                                            val uri = Uri.parse("obsidian://open?vault=$encodedVault&file=$encodedFile")
+                                            val intent = Intent(Intent.ACTION_VIEW, uri)
+                                            context.startActivity(intent)
+                                        } catch (e: ActivityNotFoundException) {
+                                            Toast.makeText(context, "Obsidian не встановлено", Toast.LENGTH_SHORT).show()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Помилка відкриття Obsidian: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Назва Obsidian Vault не вказана.", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                                else -> onTextClick()
+                            }
+                        }
+                    }
+                )
+            }
+
+            Text(
                 text = fullLine,
                 style = finalTextStyle,
-                onClick = handleClick
+                modifier = gesture,
+                onTextLayout = { result ->
+                    layoutResult = result
+                }
             )
         }
     }
 }
+
 
 private fun applyInlineStyles(
     content: String,
@@ -168,7 +181,7 @@ private fun applyInlineStyles(
                         "@" -> SpanStyle(color = projectColor, fontWeight = FontWeight.Medium)
                         else -> SpanStyle()
                     }
-                    Triple(fullTag, tagStyle, "SEARCH_TERM" to fullTag)
+                    Triple(tagName, tagStyle, "SEARCH_TERM" to fullTag)
                 }
                 else -> Triple("", SpanStyle(), null)
             }
@@ -176,6 +189,7 @@ private fun applyInlineStyles(
             if (annotation != null) pushStringAnnotation(annotation.first, annotation.second)
             withStyle(style = inlineStyle) { append(inlineContent) }
             if (annotation != null) pop()
+
             lastIndex = match.range.last + 1
         }
         if (lastIndex < content.length) append(content.substring(lastIndex))

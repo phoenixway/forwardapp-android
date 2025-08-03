@@ -1,11 +1,15 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+
 package com.romankozak.forwardappmobile.ui.screens.goallist
 
-import android.content.pm.PackageInfo
-import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
@@ -16,8 +20,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
@@ -29,14 +31,13 @@ import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.*
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalListScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
-    viewModel: GoalListViewModel = hiltViewModel()
+    viewModel: GoalListViewModel = hiltViewModel(),
 ) {
     val hierarchy by viewModel.listHierarchy.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
@@ -45,8 +46,17 @@ fun GoalListScreen(
     val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
 
-    // Єдиний стан, що нам потрібен для drag-and-drop
     val dragAndDropState = rememberDragAndDropState<GoalList>()
+
+    // Launcher for selecting a file to import
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            if (uri != null) {
+                viewModel.importFromFile(uri)
+            }
+        }
+    )
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -78,23 +88,35 @@ fun GoalListScreen(
                         Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                        DropdownMenuItem(text = { Text("Run Wi-Fi Server") }, onClick = {
-                            viewModel.onShowWifiServerDialog()
-                            menuExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text("Import from Wi-Fi") }, onClick = {
-                            viewModel.onShowWifiImportDialog()
-                            menuExpanded = false
-                        })
+                        DropdownMenuItem(
+                            text = { Text("Run Wi-Fi Server") },
+                            onClick = {
+                                viewModel.onShowWifiServerDialog()
+                                menuExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from Wi-Fi") },
+                            onClick = {
+                                viewModel.onShowWifiImportDialog()
+                                menuExpanded = false
+                            }
+                        )
                         HorizontalDivider()
-                        DropdownMenuItem(text = { Text("Settings") }, onClick = {
-                            viewModel.onShowSettingsDialog()
-                            menuExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text("About") }, onClick = {
-                            viewModel.onShowAboutDialog()
-                            menuExpanded = false
-                        })
+                        DropdownMenuItem(
+                            text = { Text("Settings") },
+                            onClick = {
+                                viewModel.onShowSettingsDialog()
+                                menuExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("About") },
+                            onClick = {
+                                viewModel.onShowAboutDialog()
+                                menuExpanded = false
+                            }
+                        )
                     }
                 }
             )
@@ -111,59 +133,14 @@ fun GoalListScreen(
                         .padding(paddingValues)
                         .fillMaxSize()
                 ) {
-                    lateinit var renderList: LazyListScope.(GoalList, Int) -> Unit
-                    renderList = { list, level ->
-                        item(key = list.id) {
-                            DraggableItem(
-                                state = dragAndDropState,
-                                key = list.id,
-                                data = list,
-                                // ✅ ГОЛОВНА ЗМІНА: Використовуємо вбудований параметр
-                                dragAfterLongPress = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .dropTarget(
-                                        state = dragAndDropState,
-                                        key = list.id,
-                                        onDrop = { draggedItemState ->
-                                            val draggedList = draggedItemState.data
-                                            val targetListId = list.id
-                                            viewModel.onListMoved(draggedList.id, targetListId)
-                                        }
-                                    )
-                            ) {
-                                val isCurrentlyDragging = this.isDragging
-                                val allListsFlat = hierarchy.allLists
-                                val draggedItemIndex = allListsFlat.indexOfFirst { it.id == dragAndDropState.draggedItem?.data?.id }
-                                val currentItemIndex = allListsFlat.indexOfFirst { it.id == list.id }
-                                val isHovered = dragAndDropState.hoveredDropTargetKey == list.id
-                                val isDraggingDown = draggedItemIndex != -1 && draggedItemIndex < currentItemIndex
-
-                                GoalListRow(
-                                    list = list,
-                                    level = level,
-                                    hasChildren = hierarchy.childMap.containsKey(list.id),
-                                    onListClick = { viewModel.onListClicked(it) },
-                                    onToggleExpanded = { viewModel.onToggleExpanded(it) },
-                                    onMenuRequested = { viewModel.onMenuRequested(it) },
-                                    isCurrentlyDragging = isCurrentlyDragging,
-                                    isHovered = isHovered,
-                                    isDraggingDown = isDraggingDown,
-                                )
-                            }
-                        }
-
-                        if (list.isExpanded) {
-                            val children = hierarchy.childMap[list.id]?.sortedBy { it.order } ?: emptyList()
-                            children.forEach { child ->
-                                renderList(child, level + 1)
-                            }
-                        }
-                    }
-
-                    hierarchy.topLevelLists.forEach { list ->
-                        renderList(list, 0)
-                    }
+                    renderGoalList(
+                        lists = hierarchy.topLevelLists,
+                        childMap = hierarchy.childMap,
+                        level = 0,
+                        dragAndDropState = dragAndDropState,
+                        viewModel = viewModel,
+                        allListsFlat = hierarchy.allLists
+                    )
                 }
             }
         }
@@ -176,12 +153,66 @@ fun GoalListScreen(
         showWifiServerDialog = showWifiServerDialog,
         wifiServerAddress = wifiServerAddress,
         showWifiImportDialog = showWifiImportDialog,
-        showSearchDialog = showSearchDialog
+        showSearchDialog = showSearchDialog,
+        onExport = { viewModel.exportToFile() },
+        onImport = { importLauncher.launch("application/json") }
     )
 }
 
-// Кастомний детектор більше не потрібен
-// private fun Modifier.longPressForDragDetector(...) { ... }
+private fun LazyListScope.renderGoalList(
+    lists: List<GoalList>,
+    childMap: Map<String, List<GoalList>>,
+    level: Int,
+    dragAndDropState: com.mohamedrejeb.compose.dnd.DragAndDropState<GoalList>,
+    viewModel: GoalListViewModel,
+    allListsFlat: List<GoalList>
+) {
+    lists.forEach { list ->
+        item(key = list.id) {
+            DraggableItem(
+                state = dragAndDropState,
+                key = list.id,
+                data = list,
+                dragAfterLongPress = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .dropTarget(
+                        state = dragAndDropState,
+                        key = list.id,
+                        onDrop = { draggedItemState ->
+                            val draggedList = draggedItemState.data
+                            viewModel.onListMoved(draggedList.id, list.id)
+                        }
+                    )
+            ) { // ✨ FIX: Removed the `isDragging` parameter from the lambda signature
+                // ✨ FIX: Accessing `isDragging` from the DraggableItemScope (this)
+                val isDragging = this.isDragging
+
+                val draggedItemIndex = allListsFlat.indexOfFirst { it.id == dragAndDropState.draggedItem?.data?.id }
+                val currentItemIndex = allListsFlat.indexOfFirst { it.id == list.id }
+                val isHovered = dragAndDropState.hoveredDropTargetKey == list.id
+                val isDraggingDown = draggedItemIndex != -1 && draggedItemIndex < currentItemIndex
+
+                GoalListRow(
+                    list = list,
+                    level = level,
+                    hasChildren = childMap.containsKey(list.id),
+                    onListClick = { viewModel.onListClicked(it) },
+                    onToggleExpanded = { viewModel.onToggleExpanded(it) },
+                    onMenuRequested = { viewModel.onMenuRequested(it) },
+                    isCurrentlyDragging = isDragging,
+                    isHovered = isHovered,
+                    isDraggingDown = isDraggingDown,
+                )
+            }
+        }
+
+        if (list.isExpanded) {
+            val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
+            renderGoalList(children, childMap, level + 1, dragAndDropState, viewModel, allListsFlat)
+        }
+    }
+}
 
 
 @Composable
@@ -192,12 +223,15 @@ private fun HandleDialogs(
     showWifiServerDialog: Boolean,
     wifiServerAddress: String?,
     showWifiImportDialog: Boolean,
-    showSearchDialog: Boolean
+    showSearchDialog: Boolean,
+    onExport: () -> Unit,
+    onImport: () -> Unit
 ) {
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
+    val stats by viewModel.appStatistics.collectAsState()
 
     when (val state = dialogState) {
-        is DialogState.Hidden -> {}
+        DialogState.Hidden -> {}
         is DialogState.AddList -> {
             val title = if (state.parentId == null) "Create new list" else "Create sublist"
             AddListDialog(
@@ -224,10 +258,7 @@ private fun HandleDialogs(
                 childMap = hierarchy.childMap,
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirmMove = { newParentId ->
-                    viewModel.onMoveListConfirmed(
-                        state.list,
-                        newParentId
-                    )
+                    viewModel.onMoveListConfirmed(state.list, newParentId)
                 }
             )
         }
@@ -247,22 +278,30 @@ private fun HandleDialogs(
                 onConfirm = { newName -> viewModel.onRenameListConfirmed(state.list, newName) }
             )
         }
-        is DialogState.AppSettings -> {
+        DialogState.AppSettings -> {
             SettingsDialog(
                 initialVaultName = obsidianVaultName,
                 onDismiss = { viewModel.dismissDialog() },
-                onSave = { newName -> viewModel.onSaveSettings(newName) }
+                onSave = { newName ->
+                    viewModel.onSaveSettings(newName)
+                },
+                onExport = onExport,
+                onImport = onImport
             )
         }
-        is DialogState.AboutApp -> {
-            AboutAppDialog(onDismiss = { viewModel.dismissDialog() })
+        DialogState.AboutApp -> {
+            AboutAppDialog(
+                stats = stats,
+                onDismiss = { viewModel.dismissDialog() }
+            )
         }
     }
 
     if (showWifiServerDialog) {
         WifiServerDialog(
             address = wifiServerAddress,
-            onDismiss = { viewModel.onDismissWifiServerDialog() })
+            onDismiss = { viewModel.onDismissWifiServerDialog() }
+        )
     }
 
     if (showWifiImportDialog) {
@@ -281,40 +320,4 @@ private fun HandleDialogs(
             onConfirm = { query -> viewModel.onPerformGlobalSearch(query) }
         )
     }
-}
-
-@Composable
-private fun AboutAppDialog(onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val packageInfo: PackageInfo? = remember {
-        try {
-            context.packageManager.getPackageInfo(context.packageName, 0)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("About Forward App") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Version: ${packageInfo?.versionName ?: "N/A"}")
-                val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo?.longVersionCode ?: -1
-                } else {
-                    @Suppress("DEPRECATION")
-                    packageInfo?.versionCode?.toLong() ?: -1
-                }
-                if (versionCode != -1L) {
-                    Text("Build: $versionCode")
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
-        }
-    )
 }

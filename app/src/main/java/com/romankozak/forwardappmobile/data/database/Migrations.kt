@@ -60,3 +60,25 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
         cursor.close()
     }
 }
+
+/**
+ * ✨ ДОДАНО: Міграція бази даних з версії 10 на 11.
+ * Впроваджує поле статусу оцінки цілі (неоціненно, неможливо-оцінити, оцінено).
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Крок 1: Додати нову колонку зі значенням за замовчуванням 'NOT_ASSESSED'.
+        db.execSQL("""
+            ALTER TABLE goals
+            ADD COLUMN scoring_status TEXT NOT NULL DEFAULT 'NOT_ASSESSED'
+        """.trimIndent())
+
+        // Крок 2: Оновити статус на 'ASSESSED' для існуючих цілей,
+        // які вже були оцінені (де важливість та вплив задані).
+        db.execSQL("""
+            UPDATE goals
+            SET scoring_status = 'ASSESSED'
+            WHERE valueImportance > 0 AND valueImpact > 0
+        """.trimIndent())
+    }
+}

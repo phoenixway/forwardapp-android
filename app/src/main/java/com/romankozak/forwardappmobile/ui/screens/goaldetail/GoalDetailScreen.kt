@@ -144,11 +144,13 @@ fun GoalDetailScreen(
 
     Scaffold(
         topBar = {
-            // ✨ ЗМІНА: Адаптивний TopAppBar, що реагує на режим виділення
             if (isSelectionModeActive) {
+                val areAllSelected = goals.isNotEmpty() && uiState.selectedInstanceIds.size == goals.size
                 MultiSelectTopAppBar(
                     selectedCount = uiState.selectedInstanceIds.size,
+                    areAllSelected = areAllSelected,
                     onClearSelection = { viewModel.clearSelection() },
+                    onSelectAll = { viewModel.selectAllGoals() }, // ✨ ПЕРЕДАЄМО ФУНКЦІЮ
                     onDelete = { viewModel.deleteSelectedGoals() },
                     onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
                     onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) }
@@ -306,6 +308,8 @@ fun GoalDetailScreen(
                                                     Icon(
                                                         imageVector = Icons.Default.DragHandle,
                                                         contentDescription = "Ручка для перетягування",
+                                                        // Робимо іконку напівпрозорою
+                                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                                     )
                                                 }
                                             }
@@ -389,7 +393,9 @@ fun GoalDetailScreen(
 @Composable
 fun MultiSelectTopAppBar(
     selectedCount: Int,
+    areAllSelected: Boolean, // ✨ ДОДАНО
     onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit, // ✨ ДОДАНО
     onDelete: () -> Unit,
     onToggleComplete: () -> Unit,
     onMoreActions: (GoalActionType) -> Unit
@@ -404,6 +410,9 @@ fun MultiSelectTopAppBar(
             }
         },
         actions = {
+            IconButton(onClick = onSelectAll, enabled = !areAllSelected) {
+                Icon(Icons.Default.SelectAll, contentDescription = "Вибрати все")
+            }
             IconButton(onClick = onToggleComplete) {
                 Icon(Icons.Default.DoneAll, contentDescription = "Відмітити виконаними/невиконаними")
             }
