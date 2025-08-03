@@ -11,6 +11,15 @@ import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+/**
+ * ✨ ДОДАНО: Enum для статусу оцінки
+ */
+enum class ScoringStatus {
+    NOT_ASSESSED,
+    IMPOSSIBLE_TO_ASSESS,
+    ASSESSED
+}
+
 class Converters {
     @TypeConverter
     fun fromString(value: String?): List<String>? {
@@ -27,6 +36,19 @@ class Converters {
             return null
         }
         return Gson().toJson(list)
+    }
+
+    /**
+     * ✨ ДОДАНО: Конвертер для ScoringStatus
+     */
+    @TypeConverter
+    fun fromScoringStatus(status: ScoringStatus?): String? {
+        return status?.name
+    }
+
+    @TypeConverter
+    fun toScoringStatus(value: String?): ScoringStatus? {
+        return value?.let { ScoringStatus.valueOf(it) }
     }
 }
 
@@ -75,6 +97,10 @@ data class Goal(
 
     @ColumnInfo(defaultValue = "0")
     val displayScore: Int = 0,
+
+    // ✨ ДОДАНО: Нове поле для статусу оцінки
+    @ColumnInfo(name = "scoring_status", defaultValue = "'NOT_ASSESSED'")
+    val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
 
     // --- Старі поля, які будуть використовуватися для міграції, а потім можуть бути видалені ---
     // Важливо, щоб їхні назви збігалися з тими, що були у вашій БД до міграції.

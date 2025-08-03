@@ -1,12 +1,16 @@
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.screens.goallist
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.sync.SyncRepository
-import com.romankozak.forwardappmobile.data.sync.WifiSyncServer
+import com.romankozak.forwardappmobile.WifiSyncServer
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +28,12 @@ sealed class GoalListUiEvent {
     data class ShowToast(val message: String) : GoalListUiEvent()
 }
 
+data class AppStatistics(
+    val listCount: Int = 0,
+    val goalCount: Int = 0
+)
+
+
 sealed class DialogState {
     object Hidden : DialogState()
     data class AddList(val parentId: String?) : DialogState()
@@ -32,18 +42,31 @@ sealed class DialogState {
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class RenameList(val list: GoalList) : DialogState()
     object AppSettings : DialogState()
-    object AboutApp : DialogState() // --- ДОДАНО: Новий стан для діалогу "Про додаток"
+    object AboutApp : DialogState()
 }
 
 @HiltViewModel
 class GoalListViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val settingsRepo: SettingsRepository,
-    private val application: Application
+    private val appDatabase: AppDatabase, // Inject AppDatabase
+    private val application: Application,
+    private val syncRepo: SyncRepository // Inject SyncRepository
 ) : ViewModel() {
 
     private val _allListsFlat = goalRepository.getAllGoalListsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val appStatistics: StateFlow<AppStatistics> =
+        combine(
+            _allListsFlat,
+            goalRepository.getAllGoalsCountFlow()
+        ) { allLists, allGoalsCount ->
+            AppStatistics(
+                listCount = allLists.size,
+                goalCount = allGoalsCount
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppStatistics())
 
     val listHierarchy: StateFlow<ListHierarchyData> = _allListsFlat.map { flatList ->
         val topLevel = flatList.filter { it.parentId == null }
@@ -72,7 +95,6 @@ class GoalListViewModel @Inject constructor(
     private val _uiEventChannel = Channel<GoalListUiEvent>()
     val uiEventFlow = _uiEventChannel.receiveAsFlow()
 
-    private val syncRepo = SyncRepository(goalRepository)
     private val wifiSyncServer = WifiSyncServer(syncRepo, application)
 
     init {
@@ -172,7 +194,6 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    // --- Навігація та UI події ---
     fun onAddNewListRequest() { _dialogState.value = DialogState.AddList(null) }
     fun onAddSublistRequest(parentList: GoalList) { _dialogState.value = DialogState.AddList(parentList.id) }
     fun onMoveListRequest(list: GoalList) { _dialogState.value = DialogState.MoveList(list) }
@@ -180,7 +201,7 @@ class GoalListViewModel @Inject constructor(
     fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
     fun onRenameRequest(list: GoalList) { _dialogState.value = DialogState.RenameList(list) }
     fun onShowSettingsDialog() { _dialogState.value = DialogState.AppSettings }
-    fun onShowAboutDialog() { _dialogState.value = DialogState.AboutApp } // --- ДОДАНО: Функція для показу діалогу
+    fun onShowAboutDialog() { _dialogState.value = DialogState.AboutApp }
     fun dismissDialog() { _dialogState.value = DialogState.Hidden }
     fun onListClicked(listId: String) { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId)) } }
     fun onDesktopAddressChange(newAddress: String) {
@@ -209,7 +230,6 @@ class GoalListViewModel @Inject constructor(
         val fromList = allLists.find { it.id == fromId }
         val toList = allLists.find { it.id == toId }
 
-        // Перевіряємо, що обидва списки існують і є сиблінгами (мають однаковий parentId)
         if (fromList == null || toList == null || fromList.parentId != toList.parentId) {
             viewModelScope.launch {
                 _uiEventChannel.send(GoalListUiEvent.ShowToast("Переміщення можливе лише на одному рівні."))
@@ -217,22 +237,43 @@ class GoalListViewModel @Inject constructor(
             return
         }
 
-        // Отримуємо всіх сиблінгів для цієї групи та сортуємо їх за поточним порядком
         val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
         val mutableSiblings = siblings.toMutableList()
 
-        // Виконуємо переміщення всередині групи сиблінгів
         val fromIndex = mutableSiblings.indexOf(fromList)
         val toIndex = mutableSiblings.indexOf(toList)
         if (fromIndex != -1 && toIndex != -1) {
             mutableSiblings.add(toIndex, mutableSiblings.removeAt(fromIndex))
         }
 
-        // Оновлюємо порядок тільки для зміненої групи
         val updatedOrderIds = mutableSiblings.map { it.id }
 
         viewModelScope.launch(Dispatchers.IO) {
             goalRepository.updateListsOrder(updatedOrderIds)
+        }
+    }
+
+    fun exportToFile() {
+        // ✨ FIX: Switched to IO Dispatcher
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = syncRepo.exportDatabaseToFile()
+            result.onSuccess { message ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
+            }.onFailure { error ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Export error: ${error.message}"))
+            }
+        }
+    }
+
+    fun importFromFile(uri: Uri) {
+        // ✨ FIX: Switched to IO Dispatcher
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = syncRepo.importDatabaseFromFile(uri)
+            result.onSuccess { message ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
+            }.onFailure { error ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
+            }
         }
     }
 }

@@ -118,4 +118,8 @@ interface GoalDao {
 
     @Query("SELECT count(*) FROM goal_instances WHERE listId = :listId")
     suspend fun getGoalCountInList(listId: String): Int
+
+
+    @Query("SELECT COUNT(*) FROM goals")
+    fun getAllGoalsCountFlow(): Flow<Int>
 }

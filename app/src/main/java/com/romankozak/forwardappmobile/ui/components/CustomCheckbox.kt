@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -36,7 +37,7 @@ fun CustomCheckbox(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 20.dp,
-    shape: Shape = RoundedCornerShape(3.dp),
+    shape: Shape = CircleShape,
     checkedColor: Color = MaterialTheme.colorScheme.primary,
     uncheckedColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     borderColor: Color = MaterialTheme.colorScheme.outline,

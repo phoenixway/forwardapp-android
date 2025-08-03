@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,21 +22,15 @@ sealed class GoalEditEvent {
 }
 
 data class GoalEditUiState(
-    // Основні дані
     val goalText: String = "",
     val goalDescription: String = "",
     val associatedLists: List<GoalList> = emptyList(),
-
-    // Стан UI
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
     val showListChooser: Boolean = false,
-
-    // Метадані
+    val isScoringEnabled: Boolean = true,
     val createdAt: Long? = null,
     val updatedAt: Long? = null,
-
-    // --- Поля для нової Системи Б ---
     val valueImportance: Float = 0f,
     val valueImpact: Float = 0f,
     val effort: Float = 0f,
@@ -44,8 +39,7 @@ data class GoalEditUiState(
     val weightEffort: Float = 1f,
     val weightCost: Float = 1f,
     val weightRisk: Float = 1f,
-
-    // --- Розраховані значення для UI ---
+    val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
 )
@@ -109,7 +103,9 @@ class GoalEditViewModel @Inject constructor(
                     weightCost = goal.weightCost,
                     weightRisk = goal.weightRisk,
                     rawScore = goal.rawScore,
-                    displayScore = goal.displayScore
+                    displayScore = goal.displayScore,
+                    scoringStatus = goal.scoringStatus,
+                    isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
                 )
             }
         } else {
@@ -119,26 +115,56 @@ class GoalEditViewModel @Inject constructor(
 
     private fun createNewGoal() {
         _uiState.update {
-            it.copy(isReady = true, isNewGoal = true)
+            it.copy(isReady = true, isNewGoal = true, scoringStatus = ScoringStatus.NOT_ASSESSED, isScoringEnabled = true)
         }
         updateScores()
     }
 
-    // --- Функції для оновлення параметрів ---
     fun onTextChange(newText: String) = _uiState.update { it.copy(goalText = newText) }
     fun onDescriptionChange(newDescription: String) = _uiState.update { it.copy(goalDescription = newDescription) }
-    fun onValueImportanceChange(value: Float) = updateState { it.copy(valueImportance = value) }
-    fun onValueImpactChange(value: Float) = updateState { it.copy(valueImpact = value) }
-    fun onEffortChange(value: Float) = updateState { it.copy(effort = value) }
-    fun onCostChange(value: Float) = updateState { it.copy(cost = value) }
-    fun onRiskChange(value: Float) = updateState { it.copy(risk = value) }
-    fun onWeightEffortChange(value: Float) = updateState { it.copy(weightEffort = value) }
-    fun onWeightCostChange(value: Float) = updateState { it.copy(weightCost = value) }
-    fun onWeightRiskChange(value: Float) = updateState { it.copy(weightRisk = value) }
 
-    private fun updateState(update: (GoalEditUiState) -> GoalEditUiState) {
-        _uiState.update(update)
-        updateScores() // Перерахунок при кожній зміні
+    fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
+    fun onValueImpactChange(value: Float) = onScoringParameterChange { it.copy(valueImpact = value) }
+    fun onEffortChange(value: Float) = onScoringParameterChange { it.copy(effort = value) }
+    fun onCostChange(value: Float) = onScoringParameterChange { it.copy(cost = value) }
+    fun onRiskChange(value: Float) = onScoringParameterChange { it.copy(risk = value) }
+    fun onWeightEffortChange(value: Float) = onScoringParameterChange { it.copy(weightEffort = value) }
+    fun onWeightCostChange(value: Float) = onScoringParameterChange { it.copy(weightCost = value) }
+    fun onWeightRiskChange(value: Float) = onScoringParameterChange { it.copy(weightRisk = value) }
+
+    fun onScoringStatusChange(newStatus: ScoringStatus) {
+        _uiState.update { currentState ->
+            var nextState = currentState.copy(
+                scoringStatus = newStatus,
+                isScoringEnabled = newStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
+            )
+            if (newStatus == ScoringStatus.NOT_ASSESSED || newStatus == ScoringStatus.IMPOSSIBLE_TO_ASSESS) {
+                nextState = nextState.copy(
+                    valueImportance = 0f,
+                    valueImpact = 0f,
+                    effort = 0f,
+                    cost = 0f,
+                    risk = 0f,
+                    weightEffort = 1f,
+                    weightCost = 1f,
+                    weightRisk = 1f
+                )
+            }
+            nextState
+        }
+        updateScores()
+    }
+
+    private fun onScoringParameterChange(update: (GoalEditUiState) -> GoalEditUiState) {
+        _uiState.update { currentState ->
+            val nextState = update(currentState)
+            if (currentState.scoringStatus == ScoringStatus.NOT_ASSESSED) {
+                nextState.copy(scoringStatus = ScoringStatus.ASSESSED)
+            } else {
+                nextState
+            }
+        }
+        updateScores()
     }
 
     private fun updateScores() {
@@ -176,9 +202,12 @@ class GoalEditViewModel @Inject constructor(
 
     private fun buildGoalFromState(state: GoalEditUiState): Goal {
         val currentTime = System.currentTimeMillis()
+        // ✨ FIX: Removed `.ifBlank { null }` to preserve whitespace in the description
+        val descriptionToSave = if (state.goalDescription.isEmpty()) null else state.goalDescription
+
         return currentGoal?.copy(
             text = state.goalText,
-            description = state.goalDescription.ifBlank { null },
+            description = descriptionToSave,
             updatedAt = currentTime,
             associatedListIds = state.associatedLists.map { it.id },
             valueImportance = state.valueImportance,
@@ -188,11 +217,12 @@ class GoalEditViewModel @Inject constructor(
             risk = state.risk,
             weightEffort = state.weightEffort,
             weightCost = state.weightCost,
-            weightRisk = state.weightRisk
+            weightRisk = state.weightRisk,
+            scoringStatus = state.scoringStatus
         ) ?: Goal(
             id = UUID.randomUUID().toString(),
             text = state.goalText,
-            description = state.goalDescription.ifBlank { null },
+            description = descriptionToSave,
             completed = false,
             createdAt = currentTime,
             updatedAt = currentTime,
@@ -205,7 +235,8 @@ class GoalEditViewModel @Inject constructor(
             risk = state.risk,
             weightEffort = state.weightEffort,
             weightCost = state.weightCost,
-            weightRisk = state.weightRisk
+            weightRisk = state.weightRisk,
+            scoringStatus = state.scoringStatus
         )
     }
 
@@ -216,8 +247,8 @@ class GoalEditViewModel @Inject constructor(
                 return@launch
             }
 
-            // Завжди перераховуємо перед збереженням
-            val goalToSave = GoalScoringManager.calculateScores(buildGoalFromState(_uiState.value))
+            val goalFromState = buildGoalFromState(_uiState.value)
+            val goalToSave = GoalScoringManager.calculateScores(goalFromState)
 
             if (currentGoal != null) {
                 goalRepository.updateGoal(goalToSave)

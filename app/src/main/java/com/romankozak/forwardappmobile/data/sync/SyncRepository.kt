@@ -1,23 +1,29 @@
 package com.romankozak.forwardappmobile.data.sync
 
+import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.util.Log
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
+import dagger.hilt.android.qualifiers.ApplicationContext // ✨ 1. ADD THIS IMPORT
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.serialization.gson.gson
+import java.io.FileInputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// --- Sealed class без змін ---
 sealed class SyncChange(
     val id: String,
     val type: String,
@@ -29,10 +35,11 @@ sealed class SyncChange(
     class Remove(id: String, entityType: String, description: String, val entity: Any) : SyncChange(id, "Видалення", entityType, description)
 }
 
-// --- ВИПРАВЛЕНО: Додаємо анотації для Hilt і змінюємо конструктор ---
 @Singleton
 class SyncRepository @Inject constructor(
-    private val goalRepository: GoalRepository
+    private val goalRepository: GoalRepository,
+    private val appDatabase: AppDatabase,
+    @ApplicationContext private val context: Context // ✨ 2. ADD THIS ANNOTATION
 ) {
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -75,6 +82,55 @@ class SyncRepository @Inject constructor(
         return format.format(Date(time))
     }
 
+    suspend fun exportDatabaseToFile(): Result<String> {
+        return try {
+            val backupJson = createBackupJsonString()
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "forward_app_backup_$timestamp.json"
+
+            val contentResolver = context.contentResolver
+            val contentValues = android.content.ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
+                }
+            }
+
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(backupJson.toByteArray())
+                }
+                Result.success("Експорт успішно завершено! Файл збережено в Downloads/ForwardApp.")
+            } else {
+                Result.failure(Exception("Не вдалося створити файл для збереження."))
+            }
+        } catch (e: Exception) {
+            Log.e("SyncRepository", "Помилка експорту в файл", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun importDatabaseFromFile(uri: Uri): Result<String> {
+        return try {
+            val jsonString = context.contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
+            if (jsonString.isNullOrBlank()) {
+                return Result.failure(Exception("Обраний файл порожній або пошкоджений."))
+            }
+
+            appDatabase.clearAllTables()
+
+            val report = createSyncReport(jsonString)
+            applyChanges(report.changes, jsonString)
+
+            Result.success("Імпорт успішно завершено!")
+        } catch (e: Exception) {
+            Log.e("SyncRepository", "Помилка імпорту з файлу", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun createSyncReport(jsonString: String): SyncReport {
         Log.d("SyncRepository", "JSON to parse: $jsonString")
 
@@ -84,18 +140,30 @@ class SyncRepository @Inject constructor(
 
             val changes = mutableListOf<SyncChange>()
 
-            // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
             val localLists = goalRepository.getAllGoalLists().associateBy { it.id }
             val localGoals = goalRepository.getAllGoals().associateBy { it.id }
 
             val importedGoals = (backupFile.data.goals ?: emptyMap()).values.map {
                 Goal(
-                    id = it.id, text = it.text, completed = it.completed,
+                    id = it.id,
+                    text = it.text,
+                    completed = it.completed,
                     createdAt = dateStringToLong(it.createdAt) ?: 0L,
-                    updatedAt = dateStringToLong(it.updatedAt), description = "",
-                    tags = null,
+                    updatedAt = dateStringToLong(it.updatedAt),
+                    description = it.description,
+                    tags = it.tags,
                     associatedListIds = it.associatedListIds,
-
+                    valueImportance = it.valueImportance,
+                    valueImpact = it.valueImpact,
+                    effort = it.effort,
+                    cost = it.cost,
+                    risk = it.risk,
+                    weightEffort = it.weightEffort,
+                    weightCost = it.weightCost,
+                    weightRisk = it.weightRisk,
+                    rawScore = it.rawScore,
+                    displayScore = it.displayScore,
+                    scoringStatus = it.scoringStatus
                 )
             }
             val importedLists = (backupFile.data.goalLists ?: emptyMap()).values.map {
@@ -116,7 +184,9 @@ class SyncRepository @Inject constructor(
                 if (localList == null) {
                     changes.add(SyncChange.Add(importedList.id, "Список", importedList.name, importedList))
                 } else if ((importedList.updatedAt ?: 0L) > (localList.updatedAt ?: 0L)) {
-                    changes.add(SyncChange.Update(importedList.id, "Список", importedList.name, localList, importedList))
+                    if (importedList != localList) {
+                        changes.add(SyncChange.Update(importedList.id, "Список", importedList.name, localList, importedList))
+                    }
                 }
             }
 
@@ -125,7 +195,9 @@ class SyncRepository @Inject constructor(
                 if (localGoal == null) {
                     changes.add(SyncChange.Add(importedGoal.id, "Ціль", importedGoal.text, importedGoal))
                 } else if ((importedGoal.updatedAt ?: 0L) > (localGoal.updatedAt ?: 0L)) {
-                    changes.add(SyncChange.Update(importedGoal.id, "Ціль", importedGoal.text, localGoal, importedGoal))
+                    if (importedGoal != localGoal) {
+                        changes.add(SyncChange.Update(importedGoal.id, "Ціль", importedGoal.text, localGoal, importedGoal))
+                    }
                 }
             }
 
@@ -145,7 +217,6 @@ class SyncRepository @Inject constructor(
         val goalsToApply = approvedChanges.mapNotNull { (it as? SyncChange.Add)?.entity as? Goal } +
                 approvedChanges.mapNotNull { (it as? SyncChange.Update)?.newEntity as? Goal }
 
-        // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
         if (listsToApply.isNotEmpty()) goalRepository.insertGoalLists(listsToApply)
         if (goalsToApply.isNotEmpty()) goalRepository.insertGoals(goalsToApply)
 
@@ -163,8 +234,6 @@ class SyncRepository @Inject constructor(
 
         if (affectedLists.isNotEmpty()) {
             val affectedListIds = affectedLists.map { it.id }
-
-            // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
             goalRepository.deleteInstancesForLists(affectedListIds)
 
             val newInstances = affectedLists.flatMap { list ->
@@ -179,26 +248,36 @@ class SyncRepository @Inject constructor(
                     }
                 }
             }
-
-            // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
             if (newInstances.isNotEmpty()) goalRepository.insertGoalInstances(newInstances)
         }
     }
 
     suspend fun createBackupJsonString(): String {
-        // --- ВИПРАВЛЕНО: Використовуємо goalRepository ---
         val lists = goalRepository.getAllGoalLists()
         val goals = goalRepository.getAllGoals()
         val instances = goalRepository.getAllGoalInstances()
 
-        val childMap = lists.filter { it.parentId != null }.groupBy { it.parentId!! }
-
         val desktopGoals = goals.associate {
             it.id to DesktopGoal(
-                id = it.id, text = it.text, completed = it.completed,
+                id = it.id,
+                text = it.text,
+                completed = it.completed,
                 createdAt = longToDateString(it.createdAt)!!,
                 updatedAt = longToDateString(it.updatedAt),
-                associatedListIds = it.associatedListIds
+                associatedListIds = it.associatedListIds,
+                description = it.description,
+                tags = it.tags,
+                valueImportance = it.valueImportance,
+                valueImpact = it.valueImpact,
+                effort = it.effort,
+                cost = it.cost,
+                risk = it.risk,
+                weightEffort = it.weightEffort,
+                weightCost = it.weightCost,
+                weightRisk = it.weightRisk,
+                rawScore = it.rawScore,
+                displayScore = it.displayScore,
+                scoringStatus = it.scoringStatus
             )
         }
 
@@ -214,23 +293,19 @@ class SyncRepository @Inject constructor(
                 createdAt = longToDateString(list.createdAt)!!,
                 updatedAt = longToDateString(list.updatedAt),
                 itemInstanceIds = listInstances.map { it.instanceId },
-                childListIds = childMap[list.id]?.map { it.id } ?: emptyList(),
                 isExpanded = list.isExpanded,
                 order = list.order
             )
         }
 
-        val rootListIds = lists.filter { it.parentId == null }.map { it.id }
-
         val desktopBackupData = DesktopBackupData(
             goals = desktopGoals,
             goalLists = desktopLists,
-            goalInstances = desktopInstances,
-            rootListIds = rootListIds
+            goalInstances = desktopInstances
         )
 
         val desktopBackupFile = DesktopBackupFile(
-            version = 2,
+            version = 4,
             exportedAt = longToDateString(System.currentTimeMillis())!!,
             data = desktopBackupData
         )

@@ -391,4 +391,12 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(inputMode = mode, localSearchQuery = "") }
         _showInputModeDialog.value = false
     }
+
+    fun selectAllGoals() {
+        // Отримуємо ID всіх цілей, що зараз відображаються
+        val allInstanceIds = filteredGoals.value.map { it.instanceId }.toSet()
+        // Оновлюємо стан, додаючи всі ID до списку виділених
+        _uiState.update { it.copy(selectedInstanceIds = allInstanceIds) }
+    }
+
 }

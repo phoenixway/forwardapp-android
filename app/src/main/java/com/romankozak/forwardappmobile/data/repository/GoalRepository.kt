@@ -210,4 +210,9 @@ class GoalRepository @Inject constructor(
             goalListDao.updateOrder(listId, index.toLong())
         }
     }
+
+    fun getAllGoalsCountFlow(): Flow<Int> {
+        // Цей метод має викликати відповідний метод з вашого GoalDao
+        return goalDao.getAllGoalsCountFlow()
+    }
 }
