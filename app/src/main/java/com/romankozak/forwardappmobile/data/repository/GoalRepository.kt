@@ -1,5 +1,8 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/data/repository/GoalRepository.kt
+
 package com.romankozak.forwardappmobile.data.repository
 
+import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalInstance
@@ -19,6 +22,45 @@ class GoalRepository @Inject constructor(
     private val goalDao: GoalDao,
     private val goalListDao: GoalListDao
 ) {
+
+    @Transaction
+    suspend fun moveGoalList(listToMove: GoalList, newParentId: String?) {
+        val oldParentId = listToMove.parentId
+
+        // 1. Оновити порядок у старому списку предків
+        if (oldParentId != null) {
+            val oldSiblings = goalListDao.getListsByParentId(oldParentId).toMutableList()
+            oldSiblings.removeIf { it.id == listToMove.id }
+            reorderAndSave(oldSiblings)
+        } else {
+            val oldSiblings = goalListDao.getTopLevelLists().toMutableList()
+            oldSiblings.removeIf { it.id == listToMove.id }
+            reorderAndSave(oldSiblings)
+        }
+
+        // 2. Отримати новий список "братів" для визначення порядку
+        val newSiblings = if (newParentId != null) {
+            goalListDao.getListsByParentId(newParentId)
+        } else {
+            goalListDao.getTopLevelLists()
+        }
+
+        // 3. Оновити сам елемент, встановивши йому новий parentId та порядок в кінці нового списку
+        val updatedList = listToMove.copy(
+            parentId = newParentId,
+            order = newSiblings.size.toLong()
+        )
+        goalListDao.update(updatedList)
+    }
+
+    private suspend fun reorderAndSave(lists: List<GoalList>) {
+        val updatedLists = lists.mapIndexed { index, list ->
+            list.copy(order = index.toLong())
+        }
+        // Використовуємо існуючий метод update, Room подбає про мапінг полів
+        updatedLists.forEach { goalListDao.update(it) }
+    }
+
     // Методи для GoalDetailViewModel
     fun getGoalsForListStream(listId: String): Flow<List<GoalWithInstanceInfo>> {
         return goalDao.getGoalsForListStream(listId)
@@ -103,8 +145,6 @@ class GoalRepository @Inject constructor(
         }
     }
 
-    // ✨ --- МЕТОДИ ДЛЯ ГРУПОВИХ ОПЕРАЦІЙ --- ✨
-
     suspend fun deleteGoalInstances(instanceIds: List<String>) {
         if (instanceIds.isNotEmpty()) {
             goalDao.deleteInstancesByIds(instanceIds)
@@ -160,7 +200,6 @@ class GoalRepository @Inject constructor(
         }
     }
 
-    // Методи для GoalListViewModel
     fun getAllGoalListsFlow(): Flow<List<GoalList>> {
         return goalListDao.getAllLists()
     }
@@ -187,7 +226,6 @@ class GoalRepository @Inject constructor(
         listsToDelete.forEach { goalListDao.delete(it) }
     }
 
-    // --- Методи для SyncRepository ---
     suspend fun getAllGoalLists(): List<GoalList> = goalListDao.getAll()
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
     suspend fun getAllGoalInstances(): List<GoalInstance> = goalDao.getAllInstances()
@@ -197,7 +235,6 @@ class GoalRepository @Inject constructor(
     suspend fun insertGoalInstances(instances: List<GoalInstance>) = goalDao.insertGoalInstances(instances)
     suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult> = goalDao.searchGoalsGlobal(query)
 
-    // --- Методи для GoalEditViewModel ---
     suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
     suspend fun getListsByIds(ids: List<String>): List<GoalList> = goalListDao.getListsByIds(ids)
     suspend fun insertGoal(goal: Goal) = goalDao.insertGoal(goal)
@@ -212,7 +249,6 @@ class GoalRepository @Inject constructor(
     }
 
     fun getAllGoalsCountFlow(): Flow<Int> {
-        // Цей метод має викликати відповідний метод з вашого GoalDao
         return goalDao.getAllGoalsCountFlow()
     }
 }

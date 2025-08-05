@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -63,10 +64,58 @@ class GoalEditViewModel @Inject constructor(
 
     val listHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
         .map { allLists ->
-            val topLevel = allLists.filter { it.parentId == null }
+            val topLevel = allLists.filter { it.parentId == null }.sortedBy { it.order }
             val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
             ListHierarchyData(allLists, topLevel, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+    private val _listChooserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
+    val listChooserExpandedIds = _listChooserExpandedIds.asStateFlow()
+
+    private val _listChooserFilterText = MutableStateFlow("")
+    val listChooserFilterText = _listChooserFilterText.asStateFlow()
+
+    val filteredListHierarchy: StateFlow<ListHierarchyData> =
+        combine(listChooserFilterText, listHierarchy) { filter, originalHierarchy ->
+            if (filter.isBlank() || originalHierarchy.allLists.isEmpty()) {
+                originalHierarchy
+            } else {
+                val lowercasedFilter = filter.lowercase()
+                val allListsById = originalHierarchy.allLists.associateBy { it.id }
+
+                val matchingIds = originalHierarchy.allLists
+                    .filter { it.name.lowercase().contains(lowercasedFilter) }
+                    .map { it.id }
+                    .toSet()
+
+                if (matchingIds.isEmpty()) {
+                    return@combine ListHierarchyData(originalHierarchy.allLists, emptyList(), emptyMap())
+                }
+
+                val visibleIds = matchingIds.toMutableSet()
+                val visitedInLoop = mutableSetOf<String>()
+
+                matchingIds.forEach { id ->
+                    visitedInLoop.clear()
+                    var current = allListsById[id]
+                    while (current != null) {
+                        if (!visitedInLoop.add(current.id)) {
+                            // Circular dependency detected, break loop
+                            break
+                        }
+                        visibleIds.add(current.id)
+                        current = current.parentId?.let { allListsById[it] }
+                    }
+                }
+
+                val finalVisibleLists = originalHierarchy.allLists.filter { it.id in visibleIds }
+                val topLevel = finalVisibleLists.filter { it.parentId == null || !visibleIds.contains(it.parentId) }.sortedBy { it.order }
+                val childMap = finalVisibleLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+
+                ListHierarchyData(originalHierarchy.allLists, topLevel, childMap)
+            }
+        }.flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(500), ListHierarchyData())
 
     init {
         viewModelScope.launch {
@@ -76,6 +125,47 @@ class GoalEditViewModel @Inject constructor(
                 createNewGoal()
             }
         }
+    }
+
+    fun onListChooserFilterChanged(text: String) {
+        _listChooserFilterText.value = text
+    }
+
+    fun onListChooserToggleExpanded(listId: String) {
+        val currentIds = _listChooserExpandedIds.value.toMutableSet()
+        if (listId in currentIds) {
+            currentIds.remove(listId)
+        } else {
+            currentIds.add(listId)
+        }
+        _listChooserExpandedIds.value = currentIds
+    }
+
+    fun onShowListChooser(initialSelectedId: String? = null) {
+        _uiState.update { it.copy(showListChooser = true) }
+
+        if (initialSelectedId != null) {
+            viewModelScope.launch(Dispatchers.Default) {
+                val allListsById = listHierarchy.value.allLists.associateBy { it.id }
+                val ancestorIds = mutableSetOf<String>()
+                var currentId: String? = initialSelectedId
+                while (currentId != null) {
+                    val parentId = allListsById[currentId]?.parentId
+                    parentId?.let { ancestorIds.add(it) }
+                    currentId = parentId
+                }
+                if (ancestorIds.isNotEmpty()) {
+                    val currentExpanded = _listChooserExpandedIds.value.toMutableSet()
+                    currentExpanded.addAll(ancestorIds)
+                    _listChooserExpandedIds.value = currentExpanded
+                }
+            }
+        }
+    }
+
+    fun onDismissListChooser() {
+        _uiState.update { it.copy(showListChooser = false) }
+        onListChooserFilterChanged("")
     }
 
     private suspend fun loadExistingGoal(goalId: String) {
@@ -122,7 +212,6 @@ class GoalEditViewModel @Inject constructor(
 
     fun onTextChange(newText: String) = _uiState.update { it.copy(goalText = newText) }
     fun onDescriptionChange(newDescription: String) = _uiState.update { it.copy(goalDescription = newDescription) }
-
     fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
     fun onValueImpactChange(value: Float) = onScoringParameterChange { it.copy(valueImpact = value) }
     fun onEffortChange(value: Float) = onScoringParameterChange { it.copy(effort = value) }
@@ -197,12 +286,8 @@ class GoalEditViewModel @Inject constructor(
         }
     }
 
-    fun onShowListChooser() = _uiState.update { it.copy(showListChooser = true) }
-    fun onDismissListChooser() = _uiState.update { it.copy(showListChooser = false) }
-
     private fun buildGoalFromState(state: GoalEditUiState): Goal {
         val currentTime = System.currentTimeMillis()
-        // ✨ FIX: Removed `.ifBlank { null }` to preserve whitespace in the description
         val descriptionToSave = if (state.goalDescription.isEmpty()) null else state.goalDescription
 
         return currentGoal?.copy(

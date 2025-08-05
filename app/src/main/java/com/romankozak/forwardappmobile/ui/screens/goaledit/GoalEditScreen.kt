@@ -27,10 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.MarkdownText
 import com.romankozak.forwardappmobile.ui.components.formatDate
-import com.romankozak.forwardappmobile.ui.screens.goaldetail.ListChooserDialog
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -51,8 +52,11 @@ fun GoalEditScreen(
     viewModel: GoalEditViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val listHierarchy by viewModel.listHierarchy.collectAsState()
     val context = LocalContext.current
+
+    val listChooserExpandedIds by viewModel.listChooserExpandedIds.collectAsState()
+    val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
+    val filteredListHierarchy by viewModel.filteredListHierarchy.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -152,8 +156,8 @@ fun GoalEditScreen(
                 item {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        mainAxisSpacing = 8.dp,
+                        crossAxisSpacing = 4.dp,
                     ) {
                         uiState.associatedLists.forEach { list ->
                             InputChip(
@@ -161,15 +165,13 @@ fun GoalEditScreen(
                                 onClick = { /* Do nothing */ },
                                 label = { Text(list.name) },
                                 trailingIcon = {
-
-                                        Icon(
-                                            Icons.Default.Cancel,
-                                            contentDescription = "Видалити зі списку",
-                                            modifier = Modifier
-                                                .size(InputChipDefaults.IconSize)
-                                                .clickable { viewModel.onRemoveListAssociation(list.id) },
-                                        )
-
+                                    Icon(
+                                        Icons.Default.Cancel,
+                                        contentDescription = "Видалити зі списку",
+                                        modifier = Modifier
+                                            .size(InputChipDefaults.IconSize)
+                                            .clickable { viewModel.onRemoveListAssociation(list.id) },
+                                    )
                                 },
                             )
                         }
@@ -220,11 +222,17 @@ fun GoalEditScreen(
     }
 
     if (uiState.showListChooser) {
-        ListChooserDialog(
-            topLevelLists = listHierarchy.topLevelLists,
-            childMap = listHierarchy.childMap,
-            onDismiss = { viewModel.onDismissListChooser() },
-            onConfirm = { listId -> viewModel.onAddListAssociation(listId) },
+        FilterableListChooser(
+            title = "Додати до списку",
+            filterText = listChooserFilterText,
+            onFilterTextChanged = viewModel::onListChooserFilterChanged,
+            topLevelLists = filteredListHierarchy.topLevelLists,
+            childMap = filteredListHierarchy.childMap,
+            expandedIds = listChooserExpandedIds,
+            onToggleExpanded = viewModel::onListChooserToggleExpanded,
+            onDismiss = viewModel::onDismissListChooser,
+            onConfirm = viewModel::onAddListAssociation,
+            disabledIds = uiState.associatedLists.map { it.id }.toSet()
         )
     }
 }
@@ -259,7 +267,6 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                     modifier = Modifier.padding(bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // ✨ ДОДАНО: UI для вибору статусу оцінювання
                     ScoringStatusSelector(
                         selectedStatus = uiState.scoringStatus,
                         onStatusSelected = viewModel::onScoringStatusChange,
@@ -287,7 +294,7 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                     EvaluationTabs(
                         uiState = uiState,
                         viewModel = viewModel,
-                        isEnabled = uiState.isScoringEnabled // ✨ Передаємо доступність
+                        isEnabled = uiState.isScoringEnabled
                     )
                 }
             }
@@ -295,7 +302,6 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
     }
 }
 
-// ✨ НОВИЙ КОМПОНЕНТ
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScoringStatusSelector(
@@ -314,7 +320,6 @@ private fun ScoringStatusSelector(
             SegmentedButton(
                 selected = selectedStatus == status,
                 onClick = { onStatusSelected(status) },
-                // ❗ ВИПРАВЛЕНО: Використовуємо SegmentedButtonDefaults.itemShape
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = statuses.size)
             ) {
                 Text(labels[status] ?: "")
@@ -329,21 +334,21 @@ private fun ScoringStatusSelector(
 private fun EvaluationTabs(
     uiState: GoalEditUiState,
     viewModel: GoalEditViewModel,
-    isEnabled: Boolean // ✨ Отримуємо доступність
+    isEnabled: Boolean
 ) {
     val tabTitles = listOf("Користь", "Витрати", "Ваги")
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
     Column(
-        modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f) // ✨ Візуально затемнюємо
+        modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f)
     ) {
         TabRow(
             selectedTabIndex = pagerState.currentPage,
         ) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
-                    enabled = isEnabled, // ✨ Блокуємо таби
+                    enabled = isEnabled,
                     selected = pagerState.currentPage == index,
                     onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                     text = { Text(title) },
@@ -356,7 +361,7 @@ private fun EvaluationTabs(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            userScrollEnabled = isEnabled // ✨ Блокуємо свайп
+            userScrollEnabled = isEnabled
         ) { page ->
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -438,7 +443,7 @@ private fun ParameterSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     scale: List<Float>,
-    enabled: Boolean, // ✨ Отримуємо доступність
+    enabled: Boolean,
     valueLabels: List<String>? = null
 ) {
     val currentIndex = scale.indexOf(value).coerceAtLeast(0)
@@ -463,7 +468,7 @@ private fun ParameterSlider(
             )
         }
         Slider(
-            enabled = enabled, // ✨ Блокуємо слайдер
+            enabled = enabled,
             value = currentIndex.toFloat(),
             onValueChange = { newIndex ->
                 val roundedIndex = newIndex.roundToInt().coerceIn(0, scale.lastIndex)
