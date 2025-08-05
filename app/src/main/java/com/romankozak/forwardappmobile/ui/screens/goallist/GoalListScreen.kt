@@ -43,6 +43,7 @@ import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.*
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
@@ -55,18 +56,6 @@ fun GoalListScreen(
     viewModel: GoalListViewModel = hiltViewModel(),
 ) {
     val hierarchy by viewModel.listHierarchy.collectAsState()
-
-    LaunchedEffect(hierarchy) {
-        println("--- HIERARCHY FOR UI ---")
-        println("TOP LEVEL COUNT: ${hierarchy.topLevelLists.size}")
-        println("CHILD MAP SIZE: ${hierarchy.childMap.size}")
-        if (hierarchy.topLevelLists.isNotEmpty()) {
-            val firstTopId = hierarchy.topLevelLists.first().id
-            println("CHILDREN FOR FIRST TOP (${hierarchy.topLevelLists.first().name}): ${hierarchy.childMap[firstTopId]?.size ?: 0}")
-        }
-        println("--- END HIERARCHY FOR UI ---")
-    }
-
     val dialogState by viewModel.dialogState.collectAsState()
     val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsState()
     val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
@@ -77,6 +66,10 @@ fun GoalListScreen(
     val planningMode by viewModel.planningMode.collectAsState()
     val planningSettings by viewModel.planningSettingsState.collectAsState()
     val dragAndDropState = rememberDragAndDropState<GoalList>()
+
+    val listChooserExpandedIds by viewModel.listChooserExpandedIds.collectAsState()
+    val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
+    val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
 
     BackHandler(enabled = isSearchActive) {
         viewModel.onToggleSearch(false)
@@ -172,13 +165,11 @@ fun GoalListScreen(
 
     HandleDialogs(
         dialogState = dialogState,
-        hierarchy = hierarchy,
         viewModel = viewModel,
-        showWifiServerDialog = showWifiServerDialog,
-        wifiServerAddress = wifiServerAddress,
-        showWifiImportDialog = showWifiImportDialog,
-        showSearchDialog = showSearchDialog,
-        onImportFromFile = onImportFromFile,
+        // Передаємо нові стани для діалогу
+        listChooserFilterText = listChooserFilterText,
+        listChooserExpandedIds = listChooserExpandedIds,
+        filteredListHierarchyForDialog = filteredListHierarchyForDialog
     )
 }
 
@@ -378,19 +369,31 @@ private fun LazyListScope.renderGoalList(
     }
 }
 
+private fun getDescendantIds(listId: String, childMap: Map<String, List<GoalList>>): Set<String> {
+    val descendants = mutableSetOf<String>()
+    val queue = ArrayDeque<String>()
+    queue.add(listId)
+    while (queue.isNotEmpty()) {
+        val currentId = queue.removeFirst()
+        childMap[currentId]?.forEach { child ->
+            descendants.add(child.id)
+            queue.add(child.id)
+        }
+    }
+    return descendants
+}
+
+
 @Composable
 private fun HandleDialogs(
     dialogState: DialogState,
-    hierarchy: ListHierarchyData,
     viewModel: GoalListViewModel,
-    showWifiServerDialog: Boolean,
-    wifiServerAddress: String?,
-    showWifiImportDialog: Boolean,
-    showSearchDialog: Boolean,
-    onImportFromFile: () -> Unit
+    // --- Отримуємо нові стани ---
+    listChooserFilterText: String,
+    listChooserExpandedIds: Set<String>,
+    filteredListHierarchyForDialog: ListHierarchyData
 ) {
     val stats by viewModel.appStatistics.collectAsState()
-
     val planningSettings by viewModel.planningSettingsState.collectAsState()
     val vaultName by viewModel.obsidianVaultName.collectAsState()
     val importLauncher = rememberLauncherForActivityResult(
@@ -398,6 +401,11 @@ private fun HandleDialogs(
         onResult = { uri -> if (uri != null) viewModel.importFromFile(uri) }
     )
     val onImportFromFile = { importLauncher.launch("application/json") }
+
+    val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsState()
+    val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
+    val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
+    val showSearchDialog by viewModel.showSearchDialog.collectAsState()
     
     when (val state = dialogState) {
         DialogState.Hidden -> {}
@@ -419,15 +427,21 @@ private fun HandleDialogs(
             )
         }
         is DialogState.MoveList -> {
-            MoveListDialog(
-                listToMove = state.list,
-                allListsFlat = hierarchy.allLists,
-                topLevelLists = hierarchy.topLevelLists,
-                childMap = hierarchy.childMap,
+            val disabledIds = remember(state.list.id, filteredListHierarchyForDialog.childMap) {
+                getDescendantIds(state.list.id, filteredListHierarchyForDialog.childMap) + state.list.id
+            }
+
+            FilterableListChooser(
+                title = "Перемістити '${state.list.name}'",
+                filterText = listChooserFilterText,
+                onFilterTextChanged = viewModel::onListChooserFilterChanged,
+                topLevelLists = filteredListHierarchyForDialog.topLevelLists,
+                childMap = filteredListHierarchyForDialog.childMap,
+                expandedIds = listChooserExpandedIds,
+                onToggleExpanded = viewModel::onListChooserToggleExpanded,
                 onDismiss = { viewModel.dismissDialog() },
-                onConfirmMove = { newParentId ->
-                    viewModel.onMoveListConfirmed(state.list, newParentId)
-                }
+                onConfirm = { newParentId -> viewModel.onMoveListConfirmed(newParentId) },
+                disabledIds = disabledIds
             )
         }
         is DialogState.ConfirmDelete -> {

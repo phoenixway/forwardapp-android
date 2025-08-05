@@ -48,4 +48,11 @@ interface GoalListDao {
 
     @Query("UPDATE goal_lists SET goal_order = :order WHERE id = :listId")
     suspend fun updateOrder(listId: String, order: Long)
+
+
+    @Query("SELECT * FROM goal_lists WHERE parentId = :parentId ORDER BY goal_order ASC")
+    suspend fun getListsByParentId(parentId: String): List<GoalList>
+
+    @Query("SELECT * FROM goal_lists WHERE parentId IS NULL ORDER BY goal_order ASC")
+    suspend fun getTopLevelLists(): List<GoalList>
 }
