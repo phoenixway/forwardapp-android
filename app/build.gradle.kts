@@ -130,5 +130,7 @@ dependencies {
 
     // --- ВИПРАВЛЕНО: Правильне підключення бібліотеки ---
     implementation(libs.compose.dnd)
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("com.google.accompanist:accompanist-flowlayout:0.36.0") // Може бути застарілим, перевірте останню версію
 }
 

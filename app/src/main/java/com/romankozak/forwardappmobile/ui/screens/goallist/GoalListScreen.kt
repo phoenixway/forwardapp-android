@@ -1,28 +1,43 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListScreen.kt
+
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goallist
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.google.accompanist.flowlayout.FlowRow
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
+import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
@@ -31,8 +46,8 @@ import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.*
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalListScreen(
     navController: NavController,
@@ -40,23 +55,39 @@ fun GoalListScreen(
     viewModel: GoalListViewModel = hiltViewModel(),
 ) {
     val hierarchy by viewModel.listHierarchy.collectAsState()
+
+    LaunchedEffect(hierarchy) {
+        println("--- HIERARCHY FOR UI ---")
+        println("TOP LEVEL COUNT: ${hierarchy.topLevelLists.size}")
+        println("CHILD MAP SIZE: ${hierarchy.childMap.size}")
+        if (hierarchy.topLevelLists.isNotEmpty()) {
+            val firstTopId = hierarchy.topLevelLists.first().id
+            println("CHILDREN FOR FIRST TOP (${hierarchy.topLevelLists.first().name}): ${hierarchy.childMap[firstTopId]?.size ?: 0}")
+        }
+        println("--- END HIERARCHY FOR UI ---")
+    }
+
     val dialogState by viewModel.dialogState.collectAsState()
     val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsState()
     val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
     val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
-
+    val isSearchActive by viewModel.isSearchActive.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val planningMode by viewModel.planningMode.collectAsState()
+    val planningSettings by viewModel.planningSettingsState.collectAsState()
     val dragAndDropState = rememberDragAndDropState<GoalList>()
 
-    // Launcher for selecting a file to import
+    BackHandler(enabled = isSearchActive) {
+        viewModel.onToggleSearch(false)
+    }
+
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
-        onResult = { uri ->
-            if (uri != null) {
-                viewModel.importFromFile(uri)
-            }
-        }
+        onResult = { uri -> if (uri != null) viewModel.importFromFile(uri) }
     )
+
+    val onImportFromFile = { importLauncher.launch("application/json") }
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -74,60 +105,51 @@ fun GoalListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Backlogs") },
-                actions = {
-                    IconButton(onClick = { viewModel.onAddNewListRequest() }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add new list")
-                    }
-                    IconButton(onClick = { viewModel.onShowSearchDialog() }) {
-                        Icon(Icons.Default.Search, contentDescription = "Global search")
-                    }
-                    var menuExpanded by remember { mutableStateOf(false) }
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-                    }
-                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Run Wi-Fi Server") },
-                            onClick = {
-                                viewModel.onShowWifiServerDialog()
-                                menuExpanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Import from Wi-Fi") },
-                            onClick = {
-                                viewModel.onShowWifiImportDialog()
-                                menuExpanded = false
-                            }
-                        )
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text("Settings") },
-                            onClick = {
-                                viewModel.onShowSettingsDialog()
-                                menuExpanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("About") },
-                            onClick = {
-                                viewModel.onShowAboutDialog()
-                                menuExpanded = false
-                            }
-                        )
-                    }
-                }
+            GoalListTopAppBar(
+                isSearchActive = isSearchActive,
+                searchQuery = searchQuery,
+                onQueryChange = viewModel::onSearchQueryChanged,
+                onToggleSearch = { viewModel.onToggleSearch(!isSearchActive) },
+                onAddNewList = { viewModel.onAddNewListRequest() },
+                onShowGlobalSearch = { viewModel.onShowSearchDialog() },
+                viewModel = viewModel,
+                onImportFromFile = { importLauncher.launch("application/json") }
+            )
+        },
+        bottomBar = {
+            GoalListBottomNav(
+                isSearchActive = isSearchActive,
+                onToggleSearch = viewModel::onToggleSearch,
+                showPlanningModes = planningSettings.showModes,
+                currentMode = planningMode,
+                onModeChange = viewModel::onPlanningModeChange
             )
         }
     ) { paddingValues ->
-        if (hierarchy.allLists.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("Create your first list")
+        val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
+
+        if (isListEmpty) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val emptyText = when {
+                    isSearchActive -> "No lists found for your query."
+                    planningMode is PlanningMode.Daily -> "No lists with tag '#${planningSettings.dailyTag}'"
+                    planningMode is PlanningMode.Medium -> "No lists with tag '#${planningSettings.mediumTag}'"
+                    planningMode is PlanningMode.Long -> "No lists with tag '#${planningSettings.longTag}'"
+                    else -> "Create your first list"
+                }
+                Text(emptyText, style = MaterialTheme.typography.bodyLarge)
             }
         } else {
-            DragAndDropContainer(state = dragAndDropState) {
+            DragAndDropContainer(
+                state = dragAndDropState,
+                enabled = !isSearchActive
+            ) {
                 LazyColumn(
                     modifier = Modifier
                         .padding(paddingValues)
@@ -139,7 +161,9 @@ fun GoalListScreen(
                         level = 0,
                         dragAndDropState = dragAndDropState,
                         viewModel = viewModel,
-                        allListsFlat = hierarchy.allLists
+                        allListsFlat = hierarchy.allLists,
+                        isSearchActive = isSearchActive,
+                        planningMode = planningMode
                     )
                 }
             }
@@ -154,18 +178,148 @@ fun GoalListScreen(
         wifiServerAddress = wifiServerAddress,
         showWifiImportDialog = showWifiImportDialog,
         showSearchDialog = showSearchDialog,
-        onExport = { viewModel.exportToFile() },
-        onImport = { importLauncher.launch("application/json") }
+        onImportFromFile = onImportFromFile,
     )
+}
+
+@Composable
+private fun GoalListTopAppBar(
+    isSearchActive: Boolean,
+    searchQuery: String,
+    onQueryChange: (String) -> Unit,
+    onToggleSearch: () -> Unit,
+    onAddNewList: () -> Unit,
+    onShowGlobalSearch: () -> Unit,
+    viewModel: GoalListViewModel,
+    onImportFromFile: () -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+
+    TopAppBar(
+        title = { if (!isSearchActive) Text("Backlogs") },
+        actions = {
+            if (isSearchActive) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp)
+                        .focusRequester(focusRequester),
+                    placeholder = { Text("Filter lists...") },
+                    shape = CircleShape,
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") },
+                    trailingIcon = {
+                        IconButton(onClick = onToggleSearch) {
+                            Icon(Icons.Default.Close, contentDescription = "Close filter")
+                        }
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                    ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
+                )
+                LaunchedEffect(Unit) {
+                    focusRequester.requestFocus()
+                }
+            } else {
+                IconButton(onClick = onAddNewList) { Icon(Icons.Default.Add, "Add new list") }
+                IconButton(onClick = onShowGlobalSearch) { Icon(Icons.Default.Search, "Global search") }
+                var menuExpanded by remember { mutableStateOf(false) }
+                IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Run Wi-Fi Server") }, onClick = {
+                        viewModel.onShowWifiServerDialog()
+                        menuExpanded = false
+                    })
+                    DropdownMenuItem(text = { Text("Import from Wi-Fi") }, onClick = {
+                        viewModel.onShowWifiImportDialog()
+                        menuExpanded = false
+                    })
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text("Export to file") }, onClick = {
+                        viewModel.exportToFile()
+                        menuExpanded = false
+                    })
+                    DropdownMenuItem(text = { Text("Import from file") }, onClick = {
+                        onImportFromFile()
+                        menuExpanded = false
+                    })
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text("Settings") }, onClick = {
+                        viewModel.onShowSettingsDialog()
+                        menuExpanded = false
+                    })
+                    DropdownMenuItem(text = { Text("About") }, onClick = {
+                        viewModel.onShowAboutDialog()
+                        menuExpanded = false
+                    })
+                }
+            }
+        }
+    )
+}
+
+
+@Composable
+private fun GoalListBottomNav(
+    isSearchActive: Boolean,
+    onToggleSearch: (Boolean) -> Unit,
+    showPlanningModes: Boolean,
+    currentMode: PlanningMode,
+    onModeChange: (PlanningMode) -> Unit
+) {
+    NavigationBar {
+        NavigationBarItem(
+            selected = isSearchActive,
+            onClick = { onToggleSearch(true) },
+            icon = { Icon(Icons.Outlined.FilterList, "Filter lists") },
+            label = { Text("Filter") }
+        )
+        NavigationBarItem(
+            selected = !isSearchActive && currentMode is PlanningMode.All,
+            onClick = { onModeChange(PlanningMode.All) },
+            icon = { Icon(Icons.Outlined.List, "All lists") },
+            label = { Text("All") }
+        )
+
+        if (showPlanningModes) {
+            NavigationBarItem(
+                selected = !isSearchActive && currentMode is PlanningMode.Daily,
+                onClick = { onModeChange(PlanningMode.Daily) },
+                icon = { Icon(Icons.Outlined.Today, "Daily") },
+                label = { Text("Daily") }
+            )
+            NavigationBarItem(
+                selected = !isSearchActive && currentMode is PlanningMode.Medium,
+                onClick = { onModeChange(PlanningMode.Medium) },
+                icon = { Icon(Icons.Outlined.QueryStats, "Medium-term") },
+                label = { Text("Medium") }
+            )
+            NavigationBarItem(
+                selected = !isSearchActive && currentMode is PlanningMode.Long,
+                onClick = { onModeChange(PlanningMode.Long) },
+                icon = { Icon(Icons.Outlined.TrackChanges, "Long-term") },
+                label = { Text("Long") }
+            )
+        }
+    }
 }
 
 private fun LazyListScope.renderGoalList(
     lists: List<GoalList>,
     childMap: Map<String, List<GoalList>>,
     level: Int,
-    dragAndDropState: com.mohamedrejeb.compose.dnd.DragAndDropState<GoalList>,
+    dragAndDropState: DragAndDropState<GoalList>,
     viewModel: GoalListViewModel,
-    allListsFlat: List<GoalList>
+    allListsFlat: List<GoalList>,
+    isSearchActive: Boolean,
+    planningMode: PlanningMode
 ) {
     lists.forEach { list ->
         item(key = list.id) {
@@ -184,10 +338,8 @@ private fun LazyListScope.renderGoalList(
                             viewModel.onListMoved(draggedList.id, list.id)
                         }
                     )
-            ) { // ✨ FIX: Removed the `isDragging` parameter from the lambda signature
-                // ✨ FIX: Accessing `isDragging` from the DraggableItemScope (this)
+            ) {
                 val isDragging = this.isDragging
-
                 val draggedItemIndex = allListsFlat.indexOfFirst { it.id == dragAndDropState.draggedItem?.data?.id }
                 val currentItemIndex = allListsFlat.indexOfFirst { it.id == list.id }
                 val isHovered = dragAndDropState.hoveredDropTargetKey == list.id
@@ -207,13 +359,24 @@ private fun LazyListScope.renderGoalList(
             }
         }
 
+        // ВИПРАВЛЕНА ЛОГІКА: тепер використовуємо list.isExpanded замість forceExpand
         if (list.isExpanded) {
             val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
-            renderGoalList(children, childMap, level + 1, dragAndDropState, viewModel, allListsFlat)
+            if (children.isNotEmpty()) {
+                renderGoalList(
+                    lists = children,
+                    childMap = childMap,
+                    level = level + 1,
+                    dragAndDropState = dragAndDropState,
+                    viewModel = viewModel,
+                    allListsFlat = allListsFlat,
+                    isSearchActive = isSearchActive,
+                    planningMode = planningMode
+                )
+            }
         }
     }
 }
-
 
 @Composable
 private fun HandleDialogs(
@@ -224,18 +387,23 @@ private fun HandleDialogs(
     wifiServerAddress: String?,
     showWifiImportDialog: Boolean,
     showSearchDialog: Boolean,
-    onExport: () -> Unit,
-    onImport: () -> Unit
+    onImportFromFile: () -> Unit
 ) {
-    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val stats by viewModel.appStatistics.collectAsState()
 
+    val planningSettings by viewModel.planningSettingsState.collectAsState()
+    val vaultName by viewModel.obsidianVaultName.collectAsState()
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri -> if (uri != null) viewModel.importFromFile(uri) }
+    )
+    val onImportFromFile = { importLauncher.launch("application/json") }
+    
     when (val state = dialogState) {
         DialogState.Hidden -> {}
         is DialogState.AddList -> {
-            val title = if (state.parentId == null) "Create new list" else "Create sublist"
             AddListDialog(
-                title = title,
+                title = if (state.parentId == null) "Create new list" else "Create sublist",
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { name -> viewModel.onAddList(name, state.parentId) }
             )
@@ -247,7 +415,7 @@ private fun HandleDialogs(
                 onMoveRequest = { viewModel.onMoveListRequest(it) },
                 onAddSublistRequest = { viewModel.onAddSublistRequest(it) },
                 onDeleteRequest = { viewModel.onDeleteRequest(it) },
-                onRenameRequest = { viewModel.onRenameRequest(it) }
+                onEditRequest = { viewModel.onEditRequest(it) }
             )
         }
         is DialogState.MoveList -> {
@@ -271,24 +439,28 @@ private fun HandleDialogs(
                 dismissButton = { TextButton(onClick = { viewModel.dismissDialog() }) { Text("Cancel") } }
             )
         }
-        is DialogState.RenameList -> {
-            RenameListDialog(
-                currentName = state.list.name,
+        is DialogState.EditList -> {
+            EditListDialog(
+                list = state.list,
                 onDismiss = { viewModel.dismissDialog() },
-                onConfirm = { newName -> viewModel.onRenameListConfirmed(state.list, newName) }
+                onConfirm = { newName, newTags ->
+                    viewModel.onEditListConfirmed(state.list, newName, newTags)
+                }
             )
         }
+
         DialogState.AppSettings -> {
-            SettingsDialog(
-                initialVaultName = obsidianVaultName,
+            SettingsDialog( // <-- Виклик єдиного діалогу
+                planningSettings = planningSettings,
+                initialVaultName = vaultName,
                 onDismiss = { viewModel.dismissDialog() },
-                onSave = { newName ->
-                    viewModel.onSaveSettings(newName)
+                // Виклик правильної функції з усіма 5 параметрами
+                onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName ->
+                    viewModel.saveSettings(showModes, dailyTag, mediumTag, longTag, newVaultName)
                 },
-                onExport = onExport,
-                onImport = onImport
             )
         }
+
         DialogState.AboutApp -> {
             AboutAppDialog(
                 stats = stats,
@@ -303,7 +475,6 @@ private fun HandleDialogs(
             onDismiss = { viewModel.onDismissWifiServerDialog() }
         )
     }
-
     if (showWifiImportDialog) {
         val desktopAddress by viewModel.desktopAddress.collectAsState()
         WifiImportDialog(
@@ -313,7 +484,6 @@ private fun HandleDialogs(
             onConfirm = { address -> viewModel.performWifiImport(address) }
         )
     }
-
     if (showSearchDialog) {
         GlobalSearchDialog(
             onDismiss = { viewModel.onDismissSearchDialog() },
@@ -321,3 +491,4 @@ private fun HandleDialogs(
         )
     }
 }
+
