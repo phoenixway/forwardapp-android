@@ -126,6 +126,8 @@ data class GoalList(
     val createdAt: Long,
     val updatedAt: Long?,
 
+    val tags: List<String>? = null,
+
     @ColumnInfo(name = "is_expanded", defaultValue = "1")
     val isExpanded: Boolean = true,
 

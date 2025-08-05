@@ -15,7 +15,7 @@ import com.romankozak.forwardappmobile.data.dao.GoalListDao
 
 @Database(
     entities = [Goal::class, GoalList::class, GoalInstance::class],
-    version = 11, // Версія оновлена, це правильно
+    version = 12, // ✨ ВЕРСІЯ ЗБІЛЬШЕНА ДО 12
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -39,8 +39,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "forward_app_database"
                 )
-                    // ✅ Цей рядок виправляє помилку, реєструючи обидві міграції
-                    .addMigrations(MIGRATION_8_9, MIGRATION_10_11)
+                    // ✨ ДОДАНО НОВУ МІГРАЦІЮ
+                    .addMigrations(MIGRATION_8_9, MIGRATION_10_11, MIGRATION_11_12)
                     .build()
                 INSTANCE = instance
                 instance

@@ -9,7 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color // <-- ДОДАНО: Вирішує помилку
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.romankozak.forwardappmobile.data.database.models.GoalList
@@ -21,11 +21,8 @@ fun ContextMenuDialog(
     onMoveRequest: (GoalList) -> Unit,
     onAddSublistRequest: (GoalList) -> Unit,
     onDeleteRequest: (GoalList) -> Unit,
-    // --- ДОДАНО ---
-    onRenameRequest: (GoalList) -> Unit
+    onEditRequest: (GoalList) -> Unit // ✨ Перейменовано
 ) {
-
-
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
             modifier = Modifier.width(300.dp),
@@ -39,7 +36,6 @@ fun ContextMenuDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Пункт "Перемістити список"
                 Text(
                     text = "Перемістити список",
                     style = MaterialTheme.typography.bodyLarge,
@@ -49,16 +45,18 @@ fun ContextMenuDialog(
                         .padding(vertical = 12.dp)
                 )
                 HorizontalDivider()
+
+                // ✨ Змінено текст та виклик
                 Text(
-                    text = "Перейменувати",
+                    text = "Редагувати",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onRenameRequest(list) }
+                        .clickable { onEditRequest(list) }
                         .padding(vertical = 12.dp)
                 )
                 HorizontalDivider()
-                // Пункт "Додати підсписок"
+
                 Text(
                     text = "Додати підсписок",
                     style = MaterialTheme.typography.bodyLarge,
@@ -69,11 +67,10 @@ fun ContextMenuDialog(
                 )
                 HorizontalDivider()
 
-                // --- ДОДАНО: Пункт "Видалити список" ---
                 Text(
                     text = "Видалити список",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Red, // Використовуємо імпортований Color
+                    color = MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onDeleteRequest(list) }
