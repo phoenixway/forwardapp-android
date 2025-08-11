@@ -273,13 +273,15 @@ class GoalListViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            // Використовуємо репозиторій для оновлення батька і пересортування
-            goalRepository.moveGoalList(listToMove, newParentId)
+            // goalRepository.moveGoalList не оновлює час, тому робимо це тут
+            val updatedList = listToMove.copy(
+                parentId = newParentId,
+                updatedAt = System.currentTimeMillis() // <-- ДОДАТИ
+            )
+            goalRepository.moveGoalList(updatedList, newParentId) // Передаємо оновлений список
         }
         dismissDialog()
     }
-
-    // ... (решта коду ViewModel без змін) ...
 
     fun dismissDialog() {
         _dialogState.value = DialogState.Hidden
@@ -516,10 +518,22 @@ class GoalListViewModel @Inject constructor(
             mutableSiblings.add(toIndex, mutableSiblings.removeAt(fromIndex))
         }
 
-        val updatedOrderIds = mutableSiblings.map { it.id }
+/*        val updatedOrderIds = mutableSiblings.map { it.id }
 
         viewModelScope.launch(Dispatchers.IO) {
             goalRepository.updateListsOrder(updatedOrderIds)
+        }*/
+
+        val listsToUpdate = mutableSiblings.mapIndexed { index, list ->
+            list.copy(
+                order = index.toLong(),
+                updatedAt = System.currentTimeMillis() // <-- ДОДАТИ
+            )
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            // Потрібен метод, що приймає список об'єктів
+            goalRepository.updateGoalLists(listsToUpdate)
         }
     }
 

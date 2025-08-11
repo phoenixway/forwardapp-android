@@ -183,7 +183,7 @@ fun GoalEditScreen(
                         onClick = { viewModel.onShowListChooser() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Додати пов'язаний список")
+                        Text("Add associated list")
                     }
                 }
 
@@ -253,7 +253,7 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    "Оцінка цілі",
+                    "Assertion",
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Icon(
@@ -274,7 +274,7 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                     )
 
                     val rawScore = uiState.rawScore
-                    val balanceText = "Баланс: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
+                    val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
                     val balanceColor = when {
                         rawScore > 0.2 -> Color(0xFF2E7D32) // Strong Green
                         rawScore > -0.2 -> LocalContentColor.current
@@ -311,9 +311,9 @@ private fun ScoringStatusSelector(
 ) {
     val statuses = ScoringStatus.values()
     val labels = mapOf(
-        ScoringStatus.NOT_ASSESSED to "Не оцінено",
-        ScoringStatus.ASSESSED to "Оцінено",
-        ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Неможливо"
+        ScoringStatus.NOT_ASSESSED to "Unset",
+        ScoringStatus.ASSESSED to "Set",
+        ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible"
     )
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         statuses.forEachIndexed { index, status ->
@@ -336,7 +336,7 @@ private fun EvaluationTabs(
     viewModel: GoalEditViewModel,
     isEnabled: Boolean
 ) {
-    val tabTitles = listOf("Користь", "Витрати", "Ваги")
+    val tabTitles = listOf("Gain", "Loss", "Weights")
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
@@ -370,14 +370,14 @@ private fun EvaluationTabs(
                 when (page) {
                     0 -> { // Користь
                         ParameterSlider(
-                            label = "Важливість цінності",
+                            label = "Value importance",
                             value = uiState.valueImportance,
                             onValueChange = viewModel::onValueImportanceChange,
                             scale = Scales.importance,
                             enabled = isEnabled
                         )
                         ParameterSlider(
-                            label = "Вплив на цінність",
+                            label = "Value gain impact",
                             value = uiState.valueImpact,
                             onValueChange = viewModel::onValueImpactChange,
                             scale = Scales.impact,
@@ -386,14 +386,14 @@ private fun EvaluationTabs(
                     }
                     1 -> { // Витрати
                         ParameterSlider(
-                            label = "Зусилля",
+                            label = "Efforts",
                             value = uiState.effort,
                             onValueChange = viewModel::onEffortChange,
                             scale = Scales.effort,
                             enabled = isEnabled
                         )
                         ParameterSlider(
-                            label = "Вартість",
+                            label = "Costs",
                             value = uiState.cost,
                             onValueChange = viewModel::onCostChange,
                             scale = Scales.cost,
@@ -401,7 +401,7 @@ private fun EvaluationTabs(
                             enabled = isEnabled
                         )
                         ParameterSlider(
-                            label = "Ризик",
+                            label = "Risk",
                             value = uiState.risk,
                             onValueChange = viewModel::onRiskChange,
                             scale = Scales.risk,
@@ -410,21 +410,21 @@ private fun EvaluationTabs(
                     }
                     2 -> { // Ваги
                         ParameterSlider(
-                            label = "Вага зусиль",
+                            label = "Efforts weight",
                             value = uiState.weightEffort,
                             onValueChange = viewModel::onWeightEffortChange,
                             scale = Scales.weights,
                             enabled = isEnabled
                         )
                         ParameterSlider(
-                            label = "Вага вартості",
+                            label = "Costs weight",
                             value = uiState.weightCost,
                             onValueChange = viewModel::onWeightCostChange,
                             scale = Scales.weights,
                             enabled = isEnabled
                         )
                         ParameterSlider(
-                            label = "Вага ризику",
+                            label = "Risk weight",
                             value = uiState.weightRisk,
                             onValueChange = viewModel::onWeightRiskChange,
                             scale = Scales.weights,

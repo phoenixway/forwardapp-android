@@ -23,7 +23,48 @@ class GoalRepository @Inject constructor(
     private val goalListDao: GoalListDao
 ) {
 
+    /**
+     * ОНОВЛЕНИЙ МЕТОД
+     * Тепер він приймає вже оновлений об'єкт `listToMove` з ViewModel,
+     * який містить правильний `parentId` та `updatedAt`.
+     * Його головне завдання - зберегти цей об'єкт і перевпорядкувати "сусідів".
+     */
     @Transaction
+    suspend fun moveGoalList(listToMove: GoalList, newParentId: String?) {
+        val oldParentId = listToMove.parentId
+
+        // Крок 1: Оновити порядок у старому списку, якщо він був
+        val oldSiblings = if (oldParentId != null) {
+            goalListDao.getListsByParentId(oldParentId)
+        } else {
+            goalListDao.getTopLevelLists()
+        }.filter { it.id != listToMove.id } // Виключаємо наш елемент
+
+        // Перевпорядковуємо старий список
+        updateGoalLists(
+            oldSiblings.mapIndexed { index, list ->
+                list.copy(order = index.toLong())
+            }
+        )
+
+        // Крок 2: Просто зберігаємо наш оновлений елемент.
+        // ViewModel вже встановив йому новий parentId, order та updatedAt.
+        goalListDao.update(listToMove)
+    }
+
+    /**
+     * НОВИЙ МЕТОД
+     * Дозволяє оновити кілька списків за один раз.
+     * Використовується для збереження нового порядку після drag-and-drop.
+     */
+    suspend fun updateGoalLists(lists: List<GoalList>) {
+        // Room не має пакетного @Update за замовчуванням, тому робимо це в циклі.
+        // Для невеликої кількості елементів це цілком прийнятно.
+        lists.forEach { goalListDao.update(it) }
+    }
+
+
+    /*@Transaction
     suspend fun moveGoalList(listToMove: GoalList, newParentId: String?) {
         val oldParentId = listToMove.parentId
 
@@ -51,7 +92,7 @@ class GoalRepository @Inject constructor(
             order = newSiblings.size.toLong()
         )
         goalListDao.update(updatedList)
-    }
+    }*/
 
     private suspend fun reorderAndSave(lists: List<GoalList>) {
         val updatedLists = lists.mapIndexed { index, list ->
