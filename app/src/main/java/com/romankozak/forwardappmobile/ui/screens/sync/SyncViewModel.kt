@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.sync
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.sync.ChangeType
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.data.sync.SyncReport
 import com.romankozak.forwardappmobile.data.sync.SyncRepository
@@ -51,12 +52,15 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
         _error.value = null
     }
 
-    fun toggleApproval(changeId: String) {
+    // НОВА ПРАВИЛЬНА ВЕРСІЯ для SyncViewModel.kt
+    fun toggleApproval(changeId: String, changeType: String) {
+        val compoundId = changeId + changeType // Створюємо такий самий комбінований ключ
         val currentIds = _approvedChangeIds.value.toMutableSet()
-        if (changeId in currentIds) {
-            currentIds.remove(changeId)
+
+        if (compoundId in currentIds) {
+            currentIds.remove(compoundId)
         } else {
-            currentIds.add(changeId)
+            currentIds.add(compoundId)
         }
         _approvedChangeIds.value = currentIds
     }
@@ -68,9 +72,30 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
 
             if (reportToApply != null && jsonToApply != null) {
                 val approved = reportToApply.changes.filter { it.id in _approvedChangeIds.value }
-                syncRepo.applyChanges(approved, jsonToApply)
+                syncRepo.applyChanges(approved)
             }
             onComplete()
+        }
+    }
+
+    // У файлі SyncViewModel.kt
+
+    fun selectAllChanges() {
+        report.value?.changes?.let { allChanges ->
+            _approvedChangeIds.value = allChanges.map { it.id + it.type.name }.toSet()
+        }
+    }
+
+    fun deselectAllChanges() {
+        _approvedChangeIds.value = emptySet()
+    }
+
+    fun selectRecommendedChanges() {
+        report.value?.changes?.let { allChanges ->
+            _approvedChangeIds.value = allChanges
+                .filter { it.type != ChangeType.Delete } // Обираємо все, крім видалень
+                .map { it.id + it.type.name }
+                .toSet()
         }
     }
 }

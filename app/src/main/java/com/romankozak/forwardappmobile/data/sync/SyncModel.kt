@@ -39,7 +39,8 @@ data class DesktopGoalList(
     val updatedAt: String?,
     val parentId: String?,
     val isExpanded: Boolean? = true,
-    val order: Long? = 0
+    val order: Long? = 0,
+    val tags: List<String>? = null
 )
 
 data class DesktopGoalInstance(
@@ -70,9 +71,4 @@ data class BackupFile(
     val version: Int = 3,
     val exportedAt: Long = System.currentTimeMillis(),
     val data: BackupData
-)
-
-// --- Класи для екрану схвалення змін ---
-data class SyncReport(
-    val changes: List<SyncChange>
 )
