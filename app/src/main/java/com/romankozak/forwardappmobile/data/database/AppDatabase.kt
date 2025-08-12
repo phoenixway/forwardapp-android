@@ -12,10 +12,12 @@ import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.GoalListDao
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 
 @Database(
-    entities = [Goal::class, GoalList::class, GoalInstance::class],
-    version = 12, // ✨ ВЕРСІЯ ЗБІЛЬШЕНА ДО 12
+    entities = [Goal::class, GoalList::class, GoalInstance::class, ActivityRecord::class],
+    version = 13,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -27,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao
+    abstract fun activityRecordDao(): ActivityRecordDao
 
     companion object {
         @Volatile
@@ -40,8 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "forward_app_database"
                 )
                     // ✨ ДОДАНО НОВУ МІГРАЦІЮ
-                    .addMigrations(MIGRATION_8_9, MIGRATION_10_11, MIGRATION_11_12)
-                    .build()
+                    .addMigrations(MIGRATION_8_9, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)                    .build()
                 INSTANCE = instance
                 instance
             }

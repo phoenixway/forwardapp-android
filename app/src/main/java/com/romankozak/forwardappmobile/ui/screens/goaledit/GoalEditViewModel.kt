@@ -8,10 +8,14 @@ import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -48,6 +52,8 @@ data class GoalEditUiState(
 @HiltViewModel
 class GoalEditViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
+    private val settingsRepository: SettingsRepository,
+    private val contextHandler: ContextHandler,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -100,7 +106,6 @@ class GoalEditViewModel @Inject constructor(
                     var current = allListsById[id]
                     while (current != null) {
                         if (!visitedInLoop.add(current.id)) {
-                            // Circular dependency detected, break loop
                             break
                         }
                         visibleIds.add(current.id)
@@ -117,8 +122,11 @@ class GoalEditViewModel @Inject constructor(
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(500), ListHierarchyData())
 
+    private val contextTagMap = mutableMapOf<String, String>()
+
     init {
         viewModelScope.launch {
+            contextHandler.initialize()
             if (goalId != null) {
                 loadExistingGoal(goalId)
             } else {
@@ -288,7 +296,7 @@ class GoalEditViewModel @Inject constructor(
 
     private fun buildGoalFromState(state: GoalEditUiState): Goal {
         val currentTime = System.currentTimeMillis()
-        val descriptionToSave = if (state.goalDescription.isEmpty()) null else state.goalDescription
+        val descriptionToSave = state.goalDescription.ifEmpty { null }
 
         return currentGoal?.copy(
             text = state.goalText,
@@ -326,6 +334,7 @@ class GoalEditViewModel @Inject constructor(
     }
 
     fun onSave() {
+        android.util.Log.d("ContextDebug", "SAVE ACTION TRIGGERED. Is new goal = ${uiState.value.isNewGoal}")
         viewModelScope.launch {
             if (_uiState.value.goalText.isBlank()) {
                 _events.send(GoalEditEvent.NavigateBack("Назва цілі не може бути пустою"))
@@ -336,7 +345,10 @@ class GoalEditViewModel @Inject constructor(
             val goalToSave = GoalScoringManager.calculateScores(goalFromState)
 
             if (currentGoal != null) {
+                // --- ЦЕ ОНОВЛЕННЯ ІСНУЮЧОЇ ЦІЛІ ---
                 goalRepository.updateGoal(goalToSave)
+                // Викликаємо нову функцію синхронізації, передаючи старий і новий стан
+                contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
             } else {
                 val listIdForNewGoal = initialListId
                 if (listIdForNewGoal == null) {
@@ -357,9 +369,83 @@ class GoalEditViewModel @Inject constructor(
                     listId = listIdForNewGoal,
                     order = order
                 )
-                goalRepository.insertInstance(newInstance)
+                contextHandler.handleContextsOnCreate(finalGoal)
             }
+
             _events.send(GoalEditEvent.NavigateBack("Збережено"))
+        }
+    }
+
+    // Замініть існуючу функцію loadContextSettings на цю
+    private suspend fun loadContextSettings() {
+        android.util.Log.d("ContextDebug", "Starting to load context settings...")
+
+        // ✨ ВИПРАВЛЕННЯ: Повністю відмовляємось від ненадійної рефлексії.
+        // Створюємо явний список ключів, які потрібно завантажити. Це 100% надійно.
+        val contextKeysList = listOf(
+            SettingsRepository.ContextKeys.BUY,
+            SettingsRepository.ContextKeys.PM,
+            SettingsRepository.ContextKeys.PAPER,
+            SettingsRepository.ContextKeys.MENTAL,
+            SettingsRepository.ContextKeys.PROVIDENCE,
+            SettingsRepository.ContextKeys.MANUAL,
+            SettingsRepository.ContextKeys.RESEARCH,
+            SettingsRepository.ContextKeys.DEVICE
+        )
+
+        android.util.Log.d("ContextDebug", "Processing an explicit list of ${contextKeysList.size} keys.")
+
+        val deferreds = contextKeysList.map { key -> // Тепер ітеруємо по надійному списку
+            viewModelScope.async(Dispatchers.IO) {
+                try {
+                    val contextName = key.name.removePrefix("context_tag_")
+                    val tag = settingsRepository.getContextTagFlow(key).first()
+
+                    android.util.Log.d("ContextDebug", "Loading -> Key: '${key.name}', Context: '$contextName', Tag: '$tag'")
+                    contextTagMap[contextName] = tag
+
+                } catch (e: Exception) {
+                    android.util.Log.e("ContextDebug", "Error loading a context setting for key ${key.name}", e)
+                }
+            }
+        }
+        deferreds.awaitAll()
+
+        android.util.Log.d("ContextDebug", "Finished loading settings. Final contextTagMap: $contextTagMap")
+    }
+// У файлі GoalEditViewModel.kt
+
+    private suspend fun handleContextBasedInstanceCreation(goal: Goal) {
+        // ✨ ОНОВЛЕНО: Більш гнучкий вираз, що підтримує @context та @{context}
+        val regex = "@\\{?(\\w+)\\}?".toRegex()
+
+        val matches = regex.findAll(goal.text)
+        val contexts = matches.map { it.groupValues[1] }.toSet()
+
+        android.util.Log.d("ContextDebug", "Goal: '${goal.text}'. Found contexts: $contexts")
+        if (contexts.isEmpty()) return
+
+        contexts.forEach { contextName ->
+            val tag = contextTagMap[contextName]
+            android.util.Log.d("ContextDebug", "Processing context: '$contextName'. Found tag in map: '$tag'")
+            if (tag != null) {
+                val targetListIds = goalRepository.findListIdsByTag(tag)
+                targetListIds.forEach { listId ->
+                    val exists = goalRepository.doesInstanceExist(goal.id, listId)
+                    android.util.Log.d("ContextDebug", "Checking list '$listId'. Instance exists: $exists")
+                    if (!exists) {
+                        android.util.Log.d("ContextDebug", "CREATING INSTANCE for goal ${goal.id} in list $listId")
+                        val order = goalRepository.getGoalCountInList(listId).toLong()
+                        val newInstance = GoalInstance(
+                            instanceId = UUID.randomUUID().toString(),
+                            goalId = goal.id,
+                            listId = listId,
+                            order = order
+                        )
+                        goalRepository.insertInstance(newInstance)
+                    }
+                }
+            }
         }
     }
 }

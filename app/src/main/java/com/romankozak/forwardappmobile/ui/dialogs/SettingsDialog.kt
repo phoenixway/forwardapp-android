@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
@@ -29,22 +31,30 @@ fun SettingsDialog(
     planningSettings: PlanningSettingsState,
     // State for Obsidian vault
     initialVaultName: String,
-    // Callbacks
+    initialContextTags: Map<String, String>,    // Callbacks
     onDismiss: () -> Unit,
-    onSave: (showModes: Boolean, dailyTag: String, mediumTag: String, longTag: String, vaultName: String) -> Unit,
+    // ✨ ОНОВЛЕНО: Сигнатура onSave для передачі нових даних
+    onSave: (
+        showModes: Boolean, dailyTag: String, mediumTag: String, longTag: String,
+        vaultName: String, contextTags: Map<String, String>
+    )  -> Unit,
 ) {
-    // Temporary states for edits within the dialog
+    // --- Temporary states for edits within the dialog ---
     var tempShowModes by remember(planningSettings.showModes) { mutableStateOf(planningSettings.showModes) }
     var tempDailyTag by remember(planningSettings.dailyTag) { mutableStateOf(planningSettings.dailyTag) }
     var tempMediumTag by remember(planningSettings.mediumTag) { mutableStateOf(planningSettings.mediumTag) }
     var tempLongTag by remember(planningSettings.longTag) { mutableStateOf(planningSettings.longTag) }
     var tempVaultName by remember(initialVaultName) { mutableStateOf(initialVaultName) }
 
+    val tempContextTags = remember { mutableStateOf(initialContextTags) }
+
+    val contextKeys = listOf("buy", "pm", "paper", "mental", "providence", "manual", "research", "device")
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Settings") },
         text = {
-            Column {
+            // Додано verticalScroll, щоб вміст прокручувався, якщо не вміщується на екрані
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 // --- Planning Modes Section ---
                 Text("Planning Modes", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
@@ -94,16 +104,34 @@ fun SettingsDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Divider(modifier = Modifier.padding(vertical = 24.dp))
+                Text("Context Tags", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                Text("Set tags to identify lists for specific contexts (e.g., @{manual}).")
+                Spacer(Modifier.height(16.dp))
+
+                contextKeys.forEach { contextKey ->
+                    OutlinedTextField(
+                        value = tempContextTags.value[contextKey] ?: "",
+                        onValueChange = { newValue ->
+                            val currentMap = tempContextTags.value.toMutableMap()
+                            currentMap[contextKey] = newValue
+                            tempContextTags.value = currentMap
+                        },
+                        label = { Text("${contextKey.replaceFirstChar { it.uppercase() }} Context Tag") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 onSave(
-                    tempShowModes,
-                    tempDailyTag,
-                    tempMediumTag,
-                    tempLongTag,
-                    tempVaultName
+                    tempShowModes, tempDailyTag, tempMediumTag, tempLongTag,
+                    tempVaultName, tempContextTags.value
                 )
                 onDismiss()
             }) {

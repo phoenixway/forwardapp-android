@@ -55,4 +55,7 @@ interface GoalListDao {
 
     @Query("SELECT * FROM goal_lists WHERE parentId IS NULL ORDER BY goal_order ASC")
     suspend fun getTopLevelLists(): List<GoalList>
+
+    @Query("SELECT * FROM goal_lists WHERE tags LIKE '%' || :tag || '%'")
+    suspend fun getListsByTag(tag: String): List<GoalList>
 }

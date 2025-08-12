@@ -37,3 +37,18 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
         db.execSQL("ALTER TABLE goal_lists ADD COLUMN tags TEXT")
     }
 }
+
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `activity_records` (
+                `id` TEXT NOT NULL, 
+                `text` TEXT NOT NULL, 
+                `createdAt` INTEGER NOT NULL, 
+                `startTime` INTEGER, 
+                `endTime` INTEGER, 
+                PRIMARY KEY(`id`)
+            )
+        """)
+    }
+}

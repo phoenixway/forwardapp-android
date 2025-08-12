@@ -9,17 +9,21 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,12 +34,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.google.accompanist.flowlayout.FlowRow
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
@@ -47,7 +48,6 @@ import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.*
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun GoalListScreen(
@@ -57,10 +57,6 @@ fun GoalListScreen(
 ) {
     val hierarchy by viewModel.listHierarchy.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
-    val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsState()
-    val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
-    val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
-    val showSearchDialog by viewModel.showSearchDialog.collectAsState()
     val isSearchActive by viewModel.isSearchActive.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val planningMode by viewModel.planningMode.collectAsState()
@@ -79,8 +75,6 @@ fun GoalListScreen(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri -> if (uri != null) viewModel.importFromFile(uri) }
     )
-
-    val onImportFromFile = { importLauncher.launch("application/json") }
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -111,6 +105,7 @@ fun GoalListScreen(
         },
         bottomBar = {
             GoalListBottomNav(
+                navController = navController,
                 isSearchActive = isSearchActive,
                 onToggleSearch = viewModel::onToggleSearch,
                 showPlanningModes = planningSettings.showModes,
@@ -166,7 +161,6 @@ fun GoalListScreen(
     HandleDialogs(
         dialogState = dialogState,
         viewModel = viewModel,
-        // Передаємо нові стани для діалогу
         listChooserFilterText = listChooserFilterText,
         listChooserExpandedIds = listChooserExpandedIds,
         filteredListHierarchyForDialog = filteredListHierarchyForDialog
@@ -259,6 +253,7 @@ private fun GoalListTopAppBar(
 
 @Composable
 private fun GoalListBottomNav(
+    navController: NavController,
     isSearchActive: Boolean,
     onToggleSearch: (Boolean) -> Unit,
     showPlanningModes: Boolean,
@@ -266,6 +261,12 @@ private fun GoalListBottomNav(
     onModeChange: (PlanningMode) -> Unit
 ) {
     NavigationBar {
+        NavigationBarItem(
+            selected = false,
+            onClick = { navController.navigate("activity_tracker_screen") },
+            icon = { Icon(Icons.Outlined.Timeline, "Activity Tracker") },
+            label = { Text("Track") }
+        )
         NavigationBarItem(
             selected = isSearchActive,
             onClick = { onToggleSearch(true) },
@@ -275,7 +276,7 @@ private fun GoalListBottomNav(
         NavigationBarItem(
             selected = !isSearchActive && currentMode is PlanningMode.All,
             onClick = { onModeChange(PlanningMode.All) },
-            icon = { Icon(Icons.Outlined.List, "All lists") },
+            icon = { Icon(Icons.AutoMirrored.Outlined.List, "All lists") },
             label = { Text("All") }
         )
 
@@ -350,7 +351,6 @@ private fun LazyListScope.renderGoalList(
             }
         }
 
-        // ВИПРАВЛЕНА ЛОГІКА: тепер використовуємо list.isExpanded замість forceExpand
         if (list.isExpanded) {
             val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
             if (children.isNotEmpty()) {
@@ -388,7 +388,6 @@ private fun getDescendantIds(listId: String, childMap: Map<String, List<GoalList
 private fun HandleDialogs(
     dialogState: DialogState,
     viewModel: GoalListViewModel,
-    // --- Отримуємо нові стани ---
     listChooserFilterText: String,
     listChooserExpandedIds: Set<String>,
     filteredListHierarchyForDialog: ListHierarchyData
@@ -396,17 +395,14 @@ private fun HandleDialogs(
     val stats by viewModel.appStatistics.collectAsState()
     val planningSettings by viewModel.planningSettingsState.collectAsState()
     val vaultName by viewModel.obsidianVaultName.collectAsState()
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri -> if (uri != null) viewModel.importFromFile(uri) }
-    )
-    val onImportFromFile = { importLauncher.launch("application/json") }
-
     val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsState()
     val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
     val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
-    
+
+    // ✨ ВИПРАВЛЕННЯ: Стан для тегів контекстів збирається тут
+    val contextTags by viewModel.contextTagsState.collectAsState()
+
     when (val state = dialogState) {
         DialogState.Hidden -> {}
         is DialogState.AddList -> {
@@ -464,14 +460,22 @@ private fun HandleDialogs(
         }
 
         DialogState.AppSettings -> {
-            SettingsDialog( // <-- Виклик єдиного діалогу
+            // ✨ ВИПРАВЛЕННЯ: Повністю коректний виклик SettingsDialog
+            SettingsDialog(
                 planningSettings = planningSettings,
                 initialVaultName = vaultName,
+                initialContextTags = contextTags,
                 onDismiss = { viewModel.dismissDialog() },
-                // Виклик правильної функції з усіма 5 параметрами
-                onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName ->
-                    viewModel.saveSettings(showModes, dailyTag, mediumTag, longTag, newVaultName)
-                },
+                onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName, newContextTags ->
+                    viewModel.saveSettings(
+                        show = showModes,
+                        daily = dailyTag,
+                        medium = mediumTag,
+                        long = longTag,
+                        vaultName = newVaultName,
+                        contextTags = newContextTags
+                    )
+                }
             )
         }
 
@@ -505,4 +509,3 @@ private fun HandleDialogs(
         )
     }
 }
-
