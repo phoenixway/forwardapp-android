@@ -303,6 +303,29 @@ class GoalListViewModel @Inject constructor(
     private val _desktopAddress = MutableStateFlow("")
     val desktopAddress: StateFlow<String> = _desktopAddress.asStateFlow()
 
+    val contextTagsState: StateFlow<Map<String, String>> = combine(
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.BUY),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.PM),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.PAPER),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MENTAL),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.PROVIDENCE),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MANUAL),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.RESEARCH),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.DEVICE)
+    ) { tags ->
+        mapOf(
+            "buy" to tags[0], "pm" to tags[1], "paper" to tags[2], "mental" to tags[3],
+            "providence" to tags[4], "manual" to tags[5], "research" to tags[6], "device" to tags[7]
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    // ✨ ЗМІНЕНО: Допоміжна мапа для збереження
+    private val contextKeyMap = mapOf(
+        "buy" to SettingsRepository.ContextKeys.BUY, "pm" to SettingsRepository.ContextKeys.PM,
+        "paper" to SettingsRepository.ContextKeys.PAPER, "mental" to SettingsRepository.ContextKeys.MENTAL,
+        "providence" to SettingsRepository.ContextKeys.PROVIDENCE, "manual" to SettingsRepository.ContextKeys.MANUAL,
+        "research" to SettingsRepository.ContextKeys.RESEARCH, "device" to SettingsRepository.ContextKeys.DEVICE
+    )
     private val _uiEventChannel = Channel<GoalListUiEvent>()
     val uiEventFlow = _uiEventChannel.receiveAsFlow()
 
@@ -559,13 +582,22 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    fun saveSettings(show: Boolean, daily: String, medium: String, long: String, vaultName: String) {
+    fun saveSettings(
+        show: Boolean, daily: String, medium: String, long: String, vaultName: String,
+        contextTags: Map<String, String>
+    ) {
         viewModelScope.launch {
             settingsRepo.saveShowPlanningModes(show)
             settingsRepo.saveDailyTag(daily.trim())
             settingsRepo.saveMediumTag(medium.trim())
             settingsRepo.saveLongTag(long.trim())
             settingsRepo.saveObsidianVaultName(vaultName.trim())
+
+            contextTags.forEach { (contextName, tagValue) ->
+                contextKeyMap[contextName]?.let { preferenceKey ->
+                    settingsRepo.saveContextTag(preferenceKey, tagValue.trim())
+                }
+            }
         }
     }
 }

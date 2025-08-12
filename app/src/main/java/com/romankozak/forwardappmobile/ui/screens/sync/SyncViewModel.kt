@@ -71,7 +71,7 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
             val jsonToApply = originalJsonString
 
             if (reportToApply != null && jsonToApply != null) {
-                val approved = reportToApply.changes.filter { it.id in _approvedChangeIds.value }
+                val approved = reportToApply.changes.filter { (it.id + it.type.name) in _approvedChangeIds.value }
                 syncRepo.applyChanges(approved)
             }
             onComplete()

@@ -122,4 +122,10 @@ interface GoalDao {
 
     @Query("SELECT COUNT(*) FROM goals")
     fun getAllGoalsCountFlow(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM goal_instances WHERE goalId = :goalId AND listId = :listId")
+    suspend fun getInstanceCount(goalId: String, listId: String): Int
+
+    @Query("DELETE FROM goal_instances WHERE goalId = :goalId AND listId = :listId")
+    suspend fun deleteInstanceByGoalAndList(goalId: String, listId: String)
 }

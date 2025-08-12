@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile
 
 import android.content.Context
 import androidx.room.Room
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.MIGRATION_8_9
 import com.romankozak.forwardappmobile.data.dao.GoalDao
@@ -40,5 +41,10 @@ object AppModule {
     @Provides
     fun provideGoalListDao(database: AppDatabase): GoalListDao {
         return database.goalListDao()
+    }
+
+    @Provides
+    fun provideActivityRecordDao(database: AppDatabase): ActivityRecordDao { // ✨ ДОДАНО
+        return database.activityRecordDao()
     }
 }

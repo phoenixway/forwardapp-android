@@ -292,4 +292,23 @@ class GoalRepository @Inject constructor(
     fun getAllGoalsCountFlow(): Flow<Int> {
         return goalDao.getAllGoalsCountFlow()
     }
+
+    suspend fun findListIdsByTag(tag: String): List<String> {
+        if (tag.isBlank()) return emptyList()
+        val listIds = goalListDao.getListsByTag(tag).map { it.id }
+
+        // ✨ ДОДАЙТЕ ЦЕЙ ЛОГ
+        android.util.Log.d("ContextDebug", "Searching for lists with tag: '$tag'. Found list IDs: $listIds")
+
+        return listIds
+    }
+
+    // ✨ ДОДАНО: Перевірка існування екземпляра
+    suspend fun doesInstanceExist(goalId: String, listId: String): Boolean {
+        return goalDao.getInstanceCount(goalId, listId) > 0
+    }
+
+    suspend fun deleteGoalInstanceByGoalIdAndListId(goalId: String, listId: String) {
+        goalDao.deleteInstanceByGoalAndList(goalId, listId)
+    }
 }

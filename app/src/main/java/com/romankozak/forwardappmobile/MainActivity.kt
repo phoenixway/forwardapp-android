@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.goaldetail.GoalDetailScreen
@@ -58,6 +59,10 @@ fun AppNavigation(
                 syncDataViewModel = syncDataViewModel,
                 viewModel = viewModel
             )
+        }
+
+        composable("activity_tracker_screen") {
+            ActivityTrackerScreen(navController = navController)
         }
 
         composable(
