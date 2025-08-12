@@ -460,22 +460,23 @@ private fun HandleDialogs(
         }
 
         DialogState.AppSettings -> {
-            // ✨ ВИПРАВЛЕННЯ: Повністю коректний виклик SettingsDialog
             SettingsDialog(
                 planningSettings = planningSettings,
                 initialVaultName = vaultName,
+                onManageContextsClick = { viewModel.onManageContextsRequest() }, // ✨ ОНОВЛЕНО
+                onDismiss = { viewModel.dismissDialog() },
+                onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName ->
+                    viewModel.saveSettings(showModes, dailyTag, mediumTag, longTag, newVaultName)
+                },
+            )
+        }
+
+        // ✨ ДОДАНО: Обробка нового стану для діалогу контекстів
+        DialogState.ReservedContextsSettings -> {
+            ReservedContextsDialog(
                 initialContextTags = contextTags,
                 onDismiss = { viewModel.dismissDialog() },
-                onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName, newContextTags ->
-                    viewModel.saveSettings(
-                        show = showModes,
-                        daily = dailyTag,
-                        medium = mediumTag,
-                        long = longTag,
-                        vaultName = newVaultName,
-                        contextTags = newContextTags
-                    )
-                }
+                onSave = { newTags -> viewModel.saveContextSettings(newTags) }
             )
         }
 

@@ -51,6 +51,7 @@ sealed class DialogState {
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class EditList(val list: GoalList) : DialogState()
     object AppSettings : DialogState()
+    object ReservedContextsSettings : DialogState()
     object AboutApp : DialogState()
 }
 
@@ -311,11 +312,15 @@ class GoalListViewModel @Inject constructor(
         settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.PROVIDENCE),
         settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MANUAL),
         settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.RESEARCH),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.DEVICE)
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.DEVICE),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MIDDLE), // <-- Додано
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.LONG)    // <-- Додано
     ) { tags ->
         mapOf(
             "buy" to tags[0], "pm" to tags[1], "paper" to tags[2], "mental" to tags[3],
-            "providence" to tags[4], "manual" to tags[5], "research" to tags[6], "device" to tags[7]
+            "providence" to tags[4], "manual" to tags[5], "research" to tags[6], "device" to tags[7],
+            "middle" to tags[8],
+            "long" to tags[9]
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
@@ -324,7 +329,9 @@ class GoalListViewModel @Inject constructor(
         "buy" to SettingsRepository.ContextKeys.BUY, "pm" to SettingsRepository.ContextKeys.PM,
         "paper" to SettingsRepository.ContextKeys.PAPER, "mental" to SettingsRepository.ContextKeys.MENTAL,
         "providence" to SettingsRepository.ContextKeys.PROVIDENCE, "manual" to SettingsRepository.ContextKeys.MANUAL,
-        "research" to SettingsRepository.ContextKeys.RESEARCH, "device" to SettingsRepository.ContextKeys.DEVICE
+        "research" to SettingsRepository.ContextKeys.RESEARCH, "device" to SettingsRepository.ContextKeys.DEVICE,
+        "middle" to SettingsRepository.ContextKeys.MIDDLE,
+        "long" to SettingsRepository.ContextKeys.LONG
     )
     private val _uiEventChannel = Channel<GoalListUiEvent>()
     val uiEventFlow = _uiEventChannel.receiveAsFlow()
@@ -581,10 +588,8 @@ class GoalListViewModel @Inject constructor(
             }
         }
     }
-
     fun saveSettings(
-        show: Boolean, daily: String, medium: String, long: String, vaultName: String,
-        contextTags: Map<String, String>
+        show: Boolean, daily: String, medium: String, long: String, vaultName: String
     ) {
         viewModelScope.launch {
             settingsRepo.saveShowPlanningModes(show)
@@ -592,12 +597,21 @@ class GoalListViewModel @Inject constructor(
             settingsRepo.saveMediumTag(medium.trim())
             settingsRepo.saveLongTag(long.trim())
             settingsRepo.saveObsidianVaultName(vaultName.trim())
+        }
+    }
 
-            contextTags.forEach { (contextName, tagValue) ->
+    // ✨ НОВА ФУНКЦІЯ: Для збереження налаштувань контекстів
+    fun saveContextSettings(newContextTags: Map<String, String>) {
+        viewModelScope.launch {
+            newContextTags.forEach { (contextName, tagValue) ->
                 contextKeyMap[contextName]?.let { preferenceKey ->
                     settingsRepo.saveContextTag(preferenceKey, tagValue.trim())
                 }
             }
         }
+    }
+
+    fun onManageContextsRequest() {
+        _dialogState.value = DialogState.ReservedContextsSettings
     }
 }

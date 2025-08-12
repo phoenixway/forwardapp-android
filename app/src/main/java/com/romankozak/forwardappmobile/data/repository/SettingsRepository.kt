@@ -38,6 +38,9 @@ class SettingsRepository @Inject constructor(
         val MANUAL = stringPreferencesKey("context_tag_manual")
         val RESEARCH = stringPreferencesKey("context_tag_research")
         val DEVICE = stringPreferencesKey("context_tag_device")
+        val MIDDLE = stringPreferencesKey("context_tag_middle")
+        val LONG = stringPreferencesKey("context_tag_long")
+
     }
 
     // ... (код для desktopAddress, obsidianVaultName, planning modes) ...
