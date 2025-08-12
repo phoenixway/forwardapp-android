@@ -38,7 +38,9 @@ class ContextHandler @Inject constructor(
             SettingsRepository.ContextKeys.PROVIDENCE,
             SettingsRepository.ContextKeys.MANUAL,
             SettingsRepository.ContextKeys.RESEARCH,
-            SettingsRepository.ContextKeys.DEVICE
+            SettingsRepository.ContextKeys.DEVICE,
+            SettingsRepository.ContextKeys.MIDDLE, // <-- Додано
+            SettingsRepository.ContextKeys.LONG    // <-- Додано
         )
 
         coroutineScope {
