@@ -73,8 +73,11 @@ fun SwipeableGoalItem(
     onAssociatedListClick: (String) -> Unit,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
-    backgroundColor: Color
-) {
+    backgroundColor: Color,
+    dragHandleModifier: Modifier = Modifier
+)
+
+     {
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -213,6 +216,7 @@ fun SwipeableGoalItem(
                     onTagClick = onTagClick,
                     onAssociatedListClick = onAssociatedListClick,
                     backgroundColor = Color.Transparent,
+                    dragHandleModifier = dragHandleModifier
                 )
             }
         }

@@ -35,9 +35,10 @@ hilt-navigation-compose = "1.2.0"
 
 # --- ДОДАНО: Версія для compose-dnd ---
 compose-dnd = "0.4.0"
-
+reorderable = "2.5.1"
 
 [libraries]
+
 # --- ДОДАНО: Аліас для бібліотеки compose-dnd ---
 
 compose-dnd = { group = "com.mohamedrejeb.dnd", name = "compose-dnd", version.ref = "compose-dnd" }
@@ -80,6 +81,7 @@ ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-conte
 
 # Logging
 kotlin-logging-jvm = { group = "io.github.microutils", name = "kotlin-logging-jvm", version.ref = "kotlin-logging" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 slf4j-android = { group = "org.slf4j", name = "slf4j-android", version.ref = "slf4j-android"}
 
 # Other Libraries

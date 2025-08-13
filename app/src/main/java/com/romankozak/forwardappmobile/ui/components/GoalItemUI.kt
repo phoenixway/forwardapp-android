@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material3.*
@@ -68,6 +69,7 @@ fun formatDate(timestamp: Long): String {
     return formatter.format(date)
 }
 
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/GoalItemUI.kt
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -82,6 +84,7 @@ fun GoalItem(
     onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
+    dragHandleModifier: Modifier = Modifier
 ) {
     val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text) }
     val contentAlpha = if (goal.completed) 0.5f else 1.0f
@@ -101,6 +104,8 @@ fun GoalItem(
                 .alpha(contentAlpha),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
+
             CustomCheckbox(
                 checked = goal.completed,
                 onCheckedChange = { onToggle() },
@@ -109,6 +114,7 @@ fun GoalItem(
                 borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 checkmarkColor = MaterialTheme.colorScheme.onPrimary
             )
+            // ... решта коду без змін
             Spacer(modifier = Modifier.width(8.dp))
             Column(
                 modifier = Modifier.weight(1f)
@@ -118,7 +124,7 @@ fun GoalItem(
                     isCompleted = goal.completed,
                     obsidianVaultName = obsidianVaultName,
                     onTagClick = onTagClick,
-                    onTextClick = onItemClick,
+                    //onTextClick = onItemClick,
                     style = MaterialTheme.typography.bodyLarge
                 )
 
@@ -161,7 +167,18 @@ fun GoalItem(
                     }
                 }
             }
+            IconButton(
+                onClick = { /* Клік на ручці нічого не робить */ },
+                modifier = dragHandleModifier.padding(end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = "Перетягнути для сортування",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+            }
         }
+
         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     }
 }

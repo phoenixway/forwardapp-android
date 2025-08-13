@@ -5,6 +5,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+
     }
 }
 
@@ -14,6 +15,8 @@ dependencyResolutionManagement {
         google()
         // --- ВАЖЛИВО: Додано репозиторій Maven Central ---
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+
     }
 }
 
