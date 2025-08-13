@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
-import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -50,6 +49,7 @@ data class UiState(
     val newlyAddedGoalInstanceId: String? = null,
     val selectedInstanceIds: Set<String> = emptySet(),
     val inputValue: TextFieldValue = TextFieldValue(""),
+    val resetTriggers: Map<String, Int> = emptyMap() // ✨ ДОДАНО
 )
 data class ListHierarchy(
     val topLevelLists: List<GoalList>,
@@ -61,11 +61,11 @@ data class ListHierarchy(
 class GoalDetailViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val settingsRepository: SettingsRepository,
-    private val contextHandler: ContextHandler, // ✨ 1. ДОДАНО ЗАЛЕЖНІСТЬ
+    private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("goalListId", "")
+    private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
 
     private val _uiState = MutableStateFlow(UiState(
         goalToHighlight = savedStateHandle.get<String>("goalToHighlight")
@@ -135,7 +135,7 @@ class GoalDetailViewModel @Inject constructor(
 
     val listHierarchyForChooser: StateFlow<ListHierarchy> = goalRepository.getAllGoalListsFlow()
         .map { allLists ->
-            val topLevelLists = allLists.filter { it.parentId == null }
+            val topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order }
             val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
             ListHierarchy(topLevelLists, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyMap()))
@@ -150,27 +150,24 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun submitInput() {
-        // Беремо текст безпосередньо зі стану
         val textToSubmit = _uiState.value.inputValue.text
         if (textToSubmit.isBlank()) return
 
         when (_uiState.value.inputMode) {
             InputMode.AddGoal -> addGoal(textToSubmit)
-            InputMode.SearchInList -> { /* Пошук вже виконується автоматично */ }
+            InputMode.SearchInList -> { /* Search is handled reactively */ }
             InputMode.SearchGlobal -> {
                 viewModelScope.launch { _uiEventFlow.send(UiEvent.Navigate("global_search_screen/$textToSubmit")) }
             }
         }
-        // Очищуємо поле вводу після відправки
         _uiState.update { it.copy(inputValue = TextFieldValue("")) }
     }
-    // ✨ 3. ОНОВЛЕНО: функція addGoal тепер викликає обробник контекстів
+
     private fun addGoal(title: String) {
         val listId = listIdFlow.value
         if (title.isBlank() || listId.isEmpty()) return
 
         viewModelScope.launch {
-            // Створюємо Goal і GoalInstance вручну, щоб мати доступ до об'єкта newGoal
             val currentTime = System.currentTimeMillis()
             val newGoal = Goal(
                 id = UUID.randomUUID().toString(),
@@ -180,11 +177,7 @@ class GoalDetailViewModel @Inject constructor(
                 updatedAt = currentTime,
                 associatedListIds = listOf(listId)
             )
-
-            // Зберігаємо основну ціль
             goalRepository.insertGoal(newGoal)
-
-            // Створюємо її екземпляр у поточному списку
             val order = goalRepository.getGoalCountInList(listId).toLong()
             val newInstance = GoalInstance(
                 instanceId = UUID.randomUUID().toString(),
@@ -193,11 +186,7 @@ class GoalDetailViewModel @Inject constructor(
                 order = order
             )
             goalRepository.insertInstance(newInstance)
-
-            // Викликаємо централізований обробник контекстів
             contextHandler.handleContextsOnCreate(newGoal)
-
-            // Оновлюємо UI, щоб прокрутити до нової цілі
             _uiState.update { it.copy(newlyAddedGoalInstanceId = newInstance.instanceId) }
         }
     }
@@ -239,18 +228,18 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun moveGoal(from: Int, to: Int, needsScroll: Boolean) {
+    fun moveGoal(fromIndex: Int, toIndex: Int, needsScroll: Boolean) {
         val currentGoals = filteredGoals.value.toMutableList()
-        if (from in currentGoals.indices && to in currentGoals.indices) {
-            val item = currentGoals.removeAt(from)
-            currentGoals.add(to, item)
+        if (fromIndex in currentGoals.indices && toIndex in currentGoals.indices) {
+            val item = currentGoals.removeAt(fromIndex)
+            currentGoals.add(toIndex, item)
             viewModelScope.launch {
                 val updatedInstances = currentGoals.mapIndexed { index, goalWithInstanceInfo ->
                     goalWithInstanceInfo.copy(order = index.toLong())
                 }
                 updatedInstances.forEach { goalRepository.insertInstance(it.toGoalInstance()) }
                 if (needsScroll) {
-                    _uiEventFlow.send(UiEvent.ScrollTo(to))
+                    _uiEventFlow.send(UiEvent.ScrollTo(toIndex))
                 }
             }
         }
@@ -278,7 +267,7 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(goalToHighlight = null) }
     }
 
-    // --- ЛОГІКА ДЛЯ РЕЖИМУ ВИДІЛЕННЯ ---
+    // --- SELECTION MODE LOGIC ---
 
     fun onGoalLongClick(instanceId: String) {
         _uiState.update {
@@ -305,7 +294,7 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(selectedInstanceIds = emptySet()) }
     }
 
-    // --- ЛОГІКА ДЛЯ ГРУПОВИХ ДІЙ (ВИКЛИКАЄТЬСЯ З TOP APP BAR) ---
+    // --- BULK ACTIONS LOGIC ---
 
     fun deleteSelectedGoals() {
         viewModelScope.launch {
@@ -348,7 +337,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- ЛОГІКА ДЛЯ ДІАЛОГІВ ДІЙ (ОДИНОЧНИХ І ГРУПОВИХ) ---
+    // --- ACTION DIALOGS LOGIC ---
 
     fun onGoalActionInitiated(goal: GoalWithInstanceInfo) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(goal)
@@ -394,9 +383,9 @@ class GoalDetailViewModel @Inject constructor(
             val actionType = currentState.actionType
 
             viewModelScope.launch(Dispatchers.IO) {
-                val goals = filteredGoals.value
+                val goalsToProcess = filteredGoals.value
                     .filter { it.instanceId in ids }
-                val goalIds = goals.map { it.goal.id }.distinct()
+                val goalIds = goalsToProcess.map { it.goal.id }.distinct()
 
                 when (actionType) {
                     GoalActionType.CreateInstance -> goalRepository.createGoalInstances(goalIds, targetListId)
@@ -419,7 +408,9 @@ class GoalDetailViewModel @Inject constructor(
 
     fun resetSwipe(instanceId: String) {
         viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.ResetSwipeState(instanceId))
+            val currentTriggers = _uiState.value.resetTriggers
+            val newTriggerValue = currentTriggers.getOrDefault(instanceId, 0) + 1
+            _uiState.update { it.copy(resetTriggers = currentTriggers + (instanceId to newTriggerValue)) }
         }
     }
 

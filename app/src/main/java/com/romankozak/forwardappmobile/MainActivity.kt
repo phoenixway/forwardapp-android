@@ -80,22 +80,19 @@ fun AppNavigation(
         }
 
         composable(
-            "goal_detail_screen/{goalListId}?goalId={goalToHighlight}", // <-- ВИПРАВЛЕНО
+            // 1. Змінюємо назву в самому маршруті з {goalListId} на {listId}
+            route = "goal_detail_screen/{listId}?goalToHighlight={goalToHighlight}",
             arguments = listOf(
-                navArgument("goalListId") { type = NavType.StringType }, // <-- ВИПРАВЛЕНО
-                navArgument("goalToHighlight") { // <-- Також привів до відповідності
+                // 2. Змінюємо назву аргументу з "goalListId" на "listId"
+                navArgument("listId") { type = NavType.StringType },
+                navArgument("goalToHighlight") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
                 }
             )
         ) {
-            // Hilt сам надасть GoalDetailViewModel.
-            // SavedStateHandle вже буде включено автоматично.
-            GoalDetailScreen(
-                navController = navController
-                // viewModel тут не потрібен, hiltViewModel() зробить все сам
-            )
+            GoalDetailScreen(navController = navController)
         }
 
 
