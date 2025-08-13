@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,6 +67,7 @@ fun GoalDetailScreen(
     val reorderableLazyListState = rememberReorderableLazyListState(
         lazyListState = listState,
         scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
+
         onMove = { from, to ->
             viewModel.moveGoal(from.index, to.index, false)
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -79,11 +81,18 @@ fun GoalDetailScreen(
                 if (to.index < firstVisible + scrollThreshold) {
                     listState.animateScrollToItem(max(0, to.index - scrollThreshold))
                 } else if (to.index > lastVisible - scrollThreshold) {
-                    listState.animateScrollToItem(min(listState.layoutInfo.totalItemsCount - 1,
-                        to.index + scrollThreshold))
+                    listState.animateScrollToItem(
+                        min(
+                            listState.layoutInfo.totalItemsCount - 1,
+                            to.index + scrollThreshold
+                        )
+                    )
                 }
-            }        }
-    )
+            }
+        },
+
+        )
+
     fun getCurrentWord(textValue: TextFieldValue): String? {
         val cursorPosition = textValue.selection.start
         if (cursorPosition == 0) return null
@@ -120,12 +129,15 @@ fun GoalDetailScreen(
                         }
                     }
                 }
+
                 is UiEvent.Navigate -> {
                     navController.navigate(event.route)
                 }
+
                 is UiEvent.ResetSwipeState -> {
                     // Ця логіка тепер у ViewModel
                 }
+
                 is UiEvent.ScrollTo -> {
                     coroutineScope.launch {
                         listState.animateScrollToItem(event.index.coerceAtLeast(0))
@@ -193,7 +205,9 @@ fun GoalDetailScreen(
                             val wordStart = currentText.substring(0, cursorPosition)
                                 .lastIndexOf(' ')
                                 .let { if (it == -1) 0 else it + 1 }
-                                .takeIf { currentText.substring(it, cursorPosition).startsWith("@") } ?: -1
+                                .takeIf {
+                                    currentText.substring(it, cursorPosition).startsWith("@")
+                                } ?: -1
 
                             if (wordStart != -1) {
                                 val textBefore = currentText.substring(0, wordStart)
@@ -202,7 +216,10 @@ fun GoalDetailScreen(
                                 val newCursorPosition = wordStart + context.length + 2
 
                                 viewModel.onInputTextChanged(
-                                    TextFieldValue(text = newText, selection = TextRange(newCursorPosition))
+                                    TextFieldValue(
+                                        text = newText,
+                                        selection = TextRange(newCursorPosition)
+                                    )
                                 )
                             }
                         }
@@ -219,11 +236,21 @@ fun GoalDetailScreen(
         }
     ) { paddingValues ->
         if (list == null) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator()
             }
         } else if (goals.isEmpty() && uiState.localSearchQuery.isBlank()) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
                 Text("У цьому списку ще немає цілей.")
             }
         } else {
@@ -231,7 +258,8 @@ fun GoalDetailScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(paddingValues)
+                ,
             ) {
                 itemsIndexed(
                     goals,
@@ -243,14 +271,24 @@ fun GoalDetailScreen(
                         enabled = !isSelectionModeActive
                     ) { isDragging ->
                         // Анімації для елемента, що перетягується
-                        val scale by animateFloatAsState(if (isDragging) 1.15f else 1f, label = "scale")
-                        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+                        val scale by animateFloatAsState(
+                            if (isDragging) 1.05f else 1f,
+                            label = "scale"
+                        )
+                        val elevation by animateDpAsState(
+                            if (isDragging) 8.dp else 0.dp,
+                            label = "elevation"
+                        )
 
                         val isHighlighted by remember(uiState.goalToHighlight) {
                             derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
                         }
-                        val associatedLists = associatedListsMap.getOrDefault(goalWithInstanceInfo.goal.id, emptyList())
-                        val isSelected = goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
+                        val associatedLists = associatedListsMap.getOrDefault(
+                            goalWithInstanceInfo.goal.id,
+                            emptyList()
+                        )
+                        val isSelected =
+                            goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
                         val itemBackgroundColor = if (isSelected) {
                             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                         } else {
@@ -259,6 +297,10 @@ fun GoalDetailScreen(
 
                         SwipeableGoalItem(
                             modifier = Modifier
+                                .animateItem(
+                                    fadeInSpec = tween(10300),
+                                    fadeOutSpec = tween(10300)
+                                )
                                 .graphicsLayer {
                                     scaleX = scale
                                     scaleY = scale
@@ -267,7 +309,10 @@ fun GoalDetailScreen(
                                     elevation = elevation,
                                     shape = RoundedCornerShape(8.dp)
                                 ),
-                            resetTrigger = uiState.resetTriggers.getOrDefault(goalWithInstanceInfo.instanceId, 0),
+                            resetTrigger = uiState.resetTriggers.getOrDefault(
+                                goalWithInstanceInfo.instanceId,
+                                0
+                            ),
                             goalWithInstance = goalWithInstanceInfo,
                             isHighlighted = isHighlighted,
                             isDragging = isDragging,
@@ -279,13 +324,18 @@ fun GoalDetailScreen(
                             backgroundColor = itemBackgroundColor,
                             onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
                             onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
-                            onAssociatedListClick = { listId: String -> viewModel.onAssociatedListClicked(listId) },
+                            onAssociatedListClick = { listId: String ->
+                                viewModel.onAssociatedListClicked(
+                                    listId
+                                )
+                            },
                             onItemClick = { viewModel.onGoalClick(goalWithInstanceInfo) },
                             onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
                             // ✨ ВИПРАВЛЕНО: Використовуємо draggableHandle з вашого прикладу
                             dragHandleModifier = if (!isSelectionModeActive) {
+
                                 Modifier.draggableHandle(
-                                    onDragStarted = {
+                                    onDragStarted = { _ -> // ✨ Виправлено: додано невикористовуваний параметр
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     }
                                 )
@@ -314,6 +364,7 @@ fun GoalDetailScreen(
                 onActionSelected = { viewModel.onGoalActionSelected(it) }
             )
         }
+
         is GoalActionDialogState.AwaitingListChoice -> {
             ListChooserDialog(
                 topLevelLists = listHierarchy.topLevelLists,

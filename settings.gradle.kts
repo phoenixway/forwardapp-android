@@ -22,3 +22,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "ForwardAppMobile"
 include(":app")
+
+include(":reorderable")
+project(":reorderable").projectDir = file("libs/reorderable")

@@ -133,6 +133,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("com.google.accompanist:accompanist-flowlayout:0.36.0") // Може бути застарілим, перевірте останню версію
 
-    implementation(libs.reorderable)
+    //implementation(libs.reorderable)
+
+    implementation(project(":reorderable"))
+
 }
 
