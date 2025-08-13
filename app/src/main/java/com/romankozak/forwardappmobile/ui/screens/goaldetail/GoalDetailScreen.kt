@@ -35,6 +35,8 @@ import com.romankozak.forwardappmobile.ui.dialogs.ListChooserDialog
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.lang.Integer.max
+import java.lang.Integer.min
 
 @Composable
 fun GoalDetailScreen(
@@ -59,13 +61,29 @@ fun GoalDetailScreen(
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val listState = rememberLazyListState()
+    val haptic = LocalHapticFeedback.current // Отримуємо доступ до HapticFeedback
+
     val reorderableLazyListState = rememberReorderableLazyListState(
         lazyListState = listState,
+        scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
         onMove = { from, to ->
             viewModel.moveGoal(from.index, to.index, false)
-        }
-    )
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
 
+            // Improved scrolling logic
+            val scrollThreshold = 2 // items
+            coroutineScope.launch {
+                val firstVisible = listState.firstVisibleItemIndex
+                val lastVisible = firstVisible + listState.layoutInfo.visibleItemsInfo.size - 1
+
+                if (to.index < firstVisible + scrollThreshold) {
+                    listState.animateScrollToItem(max(0, to.index - scrollThreshold))
+                } else if (to.index > lastVisible - scrollThreshold) {
+                    listState.animateScrollToItem(min(listState.layoutInfo.totalItemsCount - 1,
+                        to.index + scrollThreshold))
+                }
+            }        }
+    )
     fun getCurrentWord(textValue: TextFieldValue): String? {
         val cursorPosition = textValue.selection.start
         if (cursorPosition == 0) return null
@@ -200,8 +218,6 @@ fun GoalDetailScreen(
             }
         }
     ) { paddingValues ->
-        val haptic = LocalHapticFeedback.current
-
         if (list == null) {
             Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -226,14 +242,8 @@ fun GoalDetailScreen(
                         key = goalWithInstanceInfo.instanceId,
                         enabled = !isSelectionModeActive
                     ) { isDragging ->
-                        LaunchedEffect(isDragging) {
-                            if (isDragging) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                        }
-
                         // Анімації для елемента, що перетягується
-                        val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
+                        val scale by animateFloatAsState(if (isDragging) 1.15f else 1f, label = "scale")
                         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
 
                         val isHighlighted by remember(uiState.goalToHighlight) {
@@ -272,8 +282,13 @@ fun GoalDetailScreen(
                             onAssociatedListClick = { listId: String -> viewModel.onAssociatedListClicked(listId) },
                             onItemClick = { viewModel.onGoalClick(goalWithInstanceInfo) },
                             onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
+                            // ✨ ВИПРАВЛЕНО: Використовуємо draggableHandle з вашого прикладу
                             dragHandleModifier = if (!isSelectionModeActive) {
-                                Modifier.longPressDraggableHandle()
+                                Modifier.draggableHandle(
+                                    onDragStarted = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                )
                             } else {
                                 Modifier
                             }
