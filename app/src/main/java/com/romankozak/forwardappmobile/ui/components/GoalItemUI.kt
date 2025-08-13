@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.FlashOff // ✨ ДОДАНО: Іконка для "неможливо оцінити"
+import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus // ✨ ДОДАНО: Імпорт статусу
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,7 +41,7 @@ private val ICON_CONFIGS: List<IconConfig> = listOf(
     IconConfig("🛠️", listOf("#manual"), IconCategory.ACTIVITY),
     IconConfig("🧠", listOf("#mental", "#pm"), IconCategory.ACTIVITY),
     IconConfig("📱", listOf("#device"), IconCategory.ACTIVITY),
-    IconConfig("🔬", listOf("#research"), IconCategory.CUSTOM), // ✨ ДОДАНО
+    IconConfig("🔬", listOf("#research"), IconCategory.CUSTOM),
     IconConfig("🌫️", listOf("#unclear"), IconCategory.CUSTOM),
 )
 private data class ParsedGoalData(val icons: List<IconConfig>, val mainText: String)
@@ -69,7 +69,7 @@ fun formatDate(timestamp: Long): String {
 }
 
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class) // ✨ ЗМІНА: Додано ExperimentalFoundationApi
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
     goal: Goal,
@@ -77,44 +77,41 @@ fun GoalItem(
     obsidianVaultName: String,
     onToggle: () -> Unit,
     onItemClick: () -> Unit,
-    onLongClick: () -> Unit, // ✨ ЗМІНА: Додано обробник довгого натискання
+    onLongClick: () -> Unit,
     onTagClick: (String) -> Unit,
     onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
-    dragHandle: @Composable (() -> Unit)? = null
 ) {
     val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text) }
+    val contentAlpha = if (goal.completed) 0.5f else 1.0f
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            // ✨ ЗМІНА: Використовуємо combinedClickable для підтримки звичайного і довгого натискання
+            .background(backgroundColor)
             .combinedClickable(
                 onClick = onItemClick,
                 onLongClick = onLongClick
             )
-            .background(backgroundColor)
     ) {
-        val contentAlpha = if (goal.completed) 0.5f else 1.0f
-
         Row(
             modifier = Modifier
-                .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
-                .alpha(contentAlpha), // ✨ ЗАСТОСОВУЄМО ПРОЗОРІСТЬ
+                .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                .alpha(contentAlpha),
             verticalAlignment = Alignment.CenterVertically
         ) {
             CustomCheckbox(
                 checked = goal.completed,
                 onCheckedChange = { onToggle() },
                 checkedColor = MaterialTheme.colorScheme.primary,
-                uncheckedColor = Color.Transparent, // Внутрішня частина буде прозорою
-                borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), // Бліда рамка
-                checkmarkColor = MaterialTheme.colorScheme.onPrimary // Колір галочки для контрасту
+                uncheckedColor = Color.Transparent,
+                borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                checkmarkColor = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             ) {
                 MarkdownText(
                     text = parsedData.mainText,
@@ -122,12 +119,13 @@ fun GoalItem(
                     obsidianVaultName = obsidianVaultName,
                     onTagClick = onTagClick,
                     onTextClick = onItemClick,
-                    style = MaterialTheme.typography.bodyLarge,
-                    onLongClick = onLongClick
+                    style = MaterialTheme.typography.bodyLarge
                 )
 
-                // ✨ ЗМІНА: Перевірка наявності контенту тепер враховує scoringStatus
-                val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED || parsedData.icons.isNotEmpty() || associatedLists.isNotEmpty()
+                val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
+                        parsedData.icons.isNotEmpty() ||
+                        associatedLists.isNotEmpty()
+
                 if (hasStatusContent) {
                     Spacer(modifier = Modifier.height(10.dp))
                     FlowRow(
@@ -135,7 +133,6 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // ✨ ЗМІНА: Використовуємо новий компонент для відображення статусу
                         ScoreStatusBadge(goal = goal)
 
                         parsedData.icons.forEach { iconData ->
@@ -164,24 +161,16 @@ fun GoalItem(
                     }
                 }
             }
-
-            if (dragHandle != null) {
-                Spacer(modifier = Modifier.width(4.dp))
-                dragHandle()
-            }
         }
         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     }
 }
 
-/**
- * ✨ НОВИЙ КОМПОНЕНТ для відображення статусу оцінки цілі.
- */
+
 @Composable
 private fun ScoreStatusBadge(goal: Goal) {
     when (goal.scoringStatus) {
         ScoringStatus.ASSESSED -> {
-            // Показуємо оцінку, лише якщо вона більша за нуль
             if (goal.displayScore > 0) {
                 Box(
                     modifier = Modifier
@@ -209,7 +198,6 @@ private fun ScoreStatusBadge(goal: Goal) {
             }
         }
         ScoringStatus.IMPOSSIBLE_TO_ASSESS -> {
-            // Іконка для статусу "Неможливо оцінити"
             Box(
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), CircleShape)
@@ -224,7 +212,7 @@ private fun ScoreStatusBadge(goal: Goal) {
             }
         }
         ScoringStatus.NOT_ASSESSED -> {
-            // Нічого не відображаємо, як і було прохання
+            // Нічого не відображаємо
         }
     }
 }

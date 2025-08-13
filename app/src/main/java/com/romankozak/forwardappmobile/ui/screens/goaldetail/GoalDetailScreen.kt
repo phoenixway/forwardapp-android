@@ -1,644 +1,403 @@
-@file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
-
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import com.mohamedrejeb.compose.dnd.DragAndDropContainer
-import com.mohamedrejeb.compose.dnd.drag.DraggableItem
-import com.mohamedrejeb.compose.dnd.drop.dropTarget
-import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
-import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
-import kotlinx.coroutines.delay
+import com.romankozak.forwardappmobile.data.database.models.toGoalInstance
+import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
+import javax.inject.Inject
 
 
-@Composable
-fun GoalDetailScreen(
-    navController: NavController,
-    viewModel: GoalDetailViewModel = hiltViewModel()
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    val goals by viewModel.filteredGoals.collectAsState()
-    val goalActionState by viewModel.goalActionDialogState.collectAsState()
-    val showInputModeDialog by viewModel.showInputModeDialog.collectAsState()
-    val associatedListsMap by viewModel.associatedListsMap.collectAsState()
-    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
-    val listHierarchy by viewModel.listHierarchyForChooser.collectAsState()
-    val list by viewModel.goalList.collectAsState()
-    val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsState()
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-    var resetTriggers by remember { mutableStateOf(mapOf<String, Int>()) }
 
-    val listState = rememberLazyListState()
-    val dragAndDropState = rememberDragAndDropState<GoalWithInstanceInfo>()
-    var scrollDirection by remember { mutableStateOf(0) }
-    val isLoading = list == null
+@HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
+class GoalDetailViewModel @Inject constructor(
+    private val goalRepository: GoalRepository,
+    private val settingsRepository: SettingsRepository,
+    private val contextHandler: ContextHandler,
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
-    LaunchedEffect(Unit) {
-        viewModel.uiEventFlow.collect { event ->
-            when (event) {
-                is UiEvent.ShowSnackbar -> {
-                    coroutineScope.launch {
-                        val result = snackbarHostState.showSnackbar(
-                            message = event.message,
-                            actionLabel = event.action,
-                            duration = SnackbarDuration.Short
-                        )
-                        if (result == SnackbarResult.ActionPerformed) {
-                            viewModel.undoDelete()
+    private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+
+    private val _uiState = MutableStateFlow(UiState(
+        goalToHighlight = savedStateHandle.get<String>("goalToHighlight")
+    ))
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val _uiEventFlow = Channel<UiEvent>()
+    val uiEventFlow = _uiEventFlow.receiveAsFlow()
+
+    private var recentlyDeletedGoal: GoalWithInstanceInfo? = null
+    private var recentlyDeletedInstances: List<GoalWithInstanceInfo>? = null
+
+    val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
+
+    init {
+        viewModelScope.launch {
+            contextHandler.initialize()
+        }
+    }
+
+    val isSelectionModeActive: StateFlow<Boolean> = _uiState
+        .map { it.selectedInstanceIds.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val goalList: StateFlow<GoalList?> = listIdFlow.flatMapLatest { id ->
+        if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> =
+        combine(listIdFlow, _uiState) { id, state -> Pair(id, state) }
+            .flatMapLatest { (id, state) ->
+                if (id.isEmpty()) {
+                    flowOf(emptyList())
+                } else {
+                    goalRepository.getGoalsForListStream(id).map { goals ->
+                        if (state.inputMode == InputMode.SearchInList && state.localSearchQuery.isNotBlank()) {
+                            goals.filter { it.goal.text.lowercase().contains(state.localSearchQuery.lowercase()) }
+                        } else {
+                            goals
                         }
                     }
                 }
-                is UiEvent.ResetSwipeState -> {
-                    val currentTrigger = resetTriggers.getOrDefault(event.instanceId, 0)
-                    resetTriggers = resetTriggers + (event.instanceId to currentTrigger + 1)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val associatedListsMap: StateFlow<Map<String, List<GoalList>>> = filteredGoals.flatMapLatest { goals ->
+        val goalIds = goals.map { it.goal.id }.distinct()
+        goalRepository.getAssociatedListsForGoals(goalIds)
+            .map { fullMap ->
+                val currentListId = listIdFlow.value
+                val filteredMap = mutableMapOf<String, List<GoalList>>()
+                for ((goalId, lists) in fullMap) {
+                    filteredMap[goalId] = lists.filter { it.id != currentListId }
                 }
-                is UiEvent.Navigate -> {
-                    navController.navigate(event.route)
-                }
-                is UiEvent.ScrollTo -> {
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(event.index.coerceAtLeast(0))
-                    }
-                }
+                filteredMap
             }
-        }
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    LaunchedEffect(uiState.goalToHighlight) {
-        val goalId = uiState.goalToHighlight
-        if (goalId != null && !isSelectionModeActive) {
-            val index = goals.indexOfFirst { it.goal.id == goalId }
-            if (index != -1) {
-                listState.animateScrollToItem(index)
-                viewModel.onHighlightShown()
-            }
-        }
-    }
 
-    LaunchedEffect(goals) {
-        val newGoalInstanceId = uiState.newlyAddedGoalInstanceId
-        if (newGoalInstanceId != null && !isSelectionModeActive) {
-            val index = goals.indexOfFirst { it.instanceId == newGoalInstanceId }
-            if (index != -1) {
-                listState.animateScrollToItem(index)
-                viewModel.onScrolledToNewGoal()
-            }
-        }
-    }
+    private val _goalActionDialogState = MutableStateFlow<GoalActionDialogState>(GoalActionDialogState.Hidden)
+    val goalActionDialogState: StateFlow<GoalActionDialogState> = _goalActionDialogState.asStateFlow()
 
-    LaunchedEffect(scrollDirection) {
-        if (scrollDirection != 0) {
-            while (true) {
-                listState.scrollBy(20f * scrollDirection)
-                delay(16)
-            }
-        }
-    }
+    private val _showInputModeDialog = MutableStateFlow(false)
+    val showInputModeDialog: StateFlow<Boolean> = _showInputModeDialog.asStateFlow()
 
-    Scaffold(
-        topBar = {
-            if (isSelectionModeActive) {
-                val areAllSelected = goals.isNotEmpty() && uiState.selectedInstanceIds.size == goals.size
-                MultiSelectTopAppBar(
-                    selectedCount = uiState.selectedInstanceIds.size,
-                    areAllSelected = areAllSelected,
-                    onClearSelection = { viewModel.clearSelection() },
-                    onSelectAll = { viewModel.selectAllGoals() }, // ✨ ПЕРЕДАЄМО ФУНКЦІЮ
-                    onDelete = { viewModel.deleteSelectedGoals() },
-                    onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
-                    onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) }
-                )
-            } else {
-                TopAppBar(
-                    title = { Text(list?.name ?: "Завантаження...") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
-                        }
-                    }
-                )
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            if (!isSelectionModeActive) { // ✨ Не показуємо поле вводу в режимі виділення
-                GoalInputBar(
-                    inputMode = uiState.inputMode,
-                    onModeChangeRequest = { viewModel.onInputModeChangeRequest() },
-                    onTextChange = { viewModel.onInputTextChanged(it) },
-                    onSubmit = { viewModel.submitInput(it) }
-                )
-            }
-        }
-    ) { paddingValues ->
-        when {
-            isLoading -> {
-                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            goals.isEmpty() && uiState.localSearchQuery.isBlank() -> {
-                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    Text("У цьому списку ще немає цілей.")
-                }
-            }
-            else -> {
-                DragAndDropContainer(
-                    state = dragAndDropState
-                ) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ) {
-                        itemsIndexed(goals, key = { _, it -> it.instanceId }) { index, goalWithInstanceInfo ->
-                            val isCurrentlyDragging = dragAndDropState.draggedItem?.key == goalWithInstanceInfo.instanceId
-                            val isSelected = goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
+    val obsidianVaultName: StateFlow<String> = settingsRepository.obsidianVaultNameFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-                            val elevation = animateDpAsState(if (isCurrentlyDragging) 8.dp else 0.dp, label = "elevationAnimation")
-                            val scale by animateFloatAsState(if (isCurrentlyDragging) 1.02f else 1.0f, label = "scaleAnimation")
+    val listHierarchyForChooser: StateFlow<ListHierarchy> = goalRepository.getAllGoalListsFlow()
+        .map { allLists ->
+            val topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order }
+            val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+            ListHierarchy(topLevelLists, childMap)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyMap()))
 
-                            val haptic = LocalHapticFeedback.current
-                            LaunchedEffect(isCurrentlyDragging) {
-                                if (isCurrentlyDragging) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                }
-                            }
-
-                            val draggedItemIndex = remember(dragAndDropState.draggedItem) {
-                                goals.indexOfFirst { it.instanceId == dragAndDropState.draggedItem?.key }
-                            }
-                            val isHovered = dragAndDropState.hoveredDropTargetKey == goalWithInstanceInfo.instanceId
-                            val isDraggingDown = draggedItemIndex != -1 && draggedItemIndex < index
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .dropTarget(
-                                        state = dragAndDropState,
-                                        key = goalWithInstanceInfo.instanceId,
-                                        onDrop = { draggedItemState ->
-                                            scrollDirection = 0
-                                            val draggedData = draggedItemState.data
-                                            val hoveredKey = dragAndDropState.hoveredDropTargetKey
-
-                                            val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
-                                            val toIndex = goals.indexOfFirst { it.instanceId == hoveredKey }
-
-                                            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                                                val firstVisibleItemIndex = listState.firstVisibleItemIndex
-                                                val needsScroll = toIndex <= firstVisibleItemIndex
-                                                viewModel.moveGoal(fromIndex, toIndex, needsScroll)
-                                            }
-                                        },
-                                        onDragEnter = {
-                                            val visibleItems = listState.layoutInfo.visibleItemsInfo
-                                            if (visibleItems.isNotEmpty()) {
-                                                scrollDirection = when (index) {
-                                                    visibleItems.first().index -> -1
-                                                    visibleItems.last().index -> 1
-                                                    else -> 0
-                                                }
-                                            }
-                                        }
-                                    )
-                            ) {
-                                if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
-                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
-                                }
-
-                                Box(
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    val isHighlighted by remember(uiState.goalToHighlight) {
-                                        derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
-                                    }
-                                    val associatedLists = associatedListsMap.getOrDefault(goalWithInstanceInfo.goal.id, emptyList())
-
-                                    // ✨ ЗМІНА: Визначаємо колір фону в залежності від стану виділення
-                                    val itemBackgroundColor = if (isSelected) {
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                                    } else {
-                                        MaterialTheme.colorScheme.surface
-                                    }
-
-                                    SwipeableGoalItem(
-                                        modifier = Modifier
-                                            .scale(scale)
-                                            .shadow(elevation.value, RoundedCornerShape(8.dp)),
-                                        resetTrigger = resetTriggers.getOrDefault(
-                                            goalWithInstanceInfo.instanceId,
-                                            0
-                                        ),
-                                        goalWithInstance = goalWithInstanceInfo,
-                                        isHighlighted = isHighlighted,
-                                        isDragging = isCurrentlyDragging,
-                                        associatedLists = associatedLists,
-                                        obsidianVaultName = obsidianVaultName,
-                                        onEdit = { viewModel.onEditGoal(goalWithInstanceInfo) },
-                                        onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
-                                        onMore = { viewModel.onGoalActionInitiated(goalWithInstanceInfo) },
-                                        // ✨ ЗМІНА: onItemClick тепер єдиний обробник натискань
-                                        onItemClick = { viewModel.onGoalClick(goalWithInstanceInfo) },
-                                        // ✨ ЗМІНА: onLongClick потрібен для активації режиму виділення
-                                        onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
-                                        backgroundColor = itemBackgroundColor, // ✨ Передаємо колір
-                                        onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
-                                        onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
-                                        onAssociatedListClick = { listId: String -> viewModel.onAssociatedListClicked(listId) },
-                                        dragHandle = {
-                                            DraggableItem(
-                                                state = dragAndDropState,
-                                                key = goalWithInstanceInfo.instanceId,
-                                                data = goalWithInstanceInfo,
-                                                dropAnimationSpec = snap()
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier.size(48.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.DragHandle,
-                                                        contentDescription = "Ручка для перетягування",
-                                                        // Робимо іконку напівпрозорою
-                                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-
-                                if (isHovered && isDraggingDown && !isCurrentlyDragging) {
-                                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
-                                }
-                            }
-                        }
-
-                        item(key = "drop-zone-at-end") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(60.dp)
-                                    .dropTarget(
-                                        state = dragAndDropState,
-                                        key = "drop-zone-at-end",
-                                        onDrop = { draggedItemState ->
-                                            scrollDirection = 0
-                                            val draggedData = draggedItemState.data
-                                            val hoveredKey = dragAndDropState.hoveredDropTargetKey
-
-                                            val fromIndex = goals.indexOfFirst { it.instanceId == draggedData.instanceId }
-                                            val toIndex = goals.indexOfFirst { it.instanceId == hoveredKey }
-
-                                            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                                                val firstVisibleItemIndex = listState.firstVisibleItemIndex
-                                                val needsScroll = toIndex <= firstVisibleItemIndex
-
-                                                viewModel.moveGoal(fromIndex, toIndex, needsScroll)
-                                            }
-                                        },
-                                    )
-                            ) {
-                                if (dragAndDropState.hoveredDropTargetKey == "drop-zone-at-end") {
-                                    HorizontalDivider(
-                                        modifier = Modifier.align(Alignment.TopCenter),
-                                        thickness = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showInputModeDialog) {
-        InputModeDialog(
-            onDismiss = { viewModel.onDismissInputModeDialog() },
-            onSelect = { viewModel.onInputModeSelected(it) }
-        )
-    }
-
-    when (val state = goalActionState) {
-        is GoalActionDialogState.Hidden -> {}
-        is GoalActionDialogState.AwaitingActionChoice -> {
-            GoalActionChoiceDialog(
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onActionSelected = { viewModel.onGoalActionSelected(it) }
-            )
-        }
-        is GoalActionDialogState.AwaitingListChoice -> {
-            ListChooserDialog(
-                topLevelLists = listHierarchy.topLevelLists,
-                childMap = listHierarchy.childMap,
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onConfirm = { viewModel.confirmGoalAction(it) }
+    fun onInputTextChanged(newValue: TextFieldValue) {
+        _uiState.update {
+            it.copy(
+                inputValue = newValue,
+                localSearchQuery = if (it.inputMode == InputMode.SearchInList) newValue.text else ""
             )
         }
     }
-}
 
-// ✨ НОВИЙ КОМПОНЕНТ: Контекстна панель для групових дій
-@Composable
-fun MultiSelectTopAppBar(
-    selectedCount: Int,
-    areAllSelected: Boolean, // ✨ ДОДАНО
-    onClearSelection: () -> Unit,
-    onSelectAll: () -> Unit, // ✨ ДОДАНО
-    onDelete: () -> Unit,
-    onToggleComplete: () -> Unit,
-    onMoreActions: (GoalActionType) -> Unit
-) {
-    var showMenu by remember { mutableStateOf(false) }
+    fun submitInput() {
+        val textToSubmit = _uiState.value.inputValue.text
+        if (textToSubmit.isBlank()) return
 
-    TopAppBar(
-        title = { Text("$selectedCount виділено") },
-        navigationIcon = {
-            IconButton(onClick = onClearSelection) {
-                Icon(Icons.Default.Close, contentDescription = "Закрити режим виділення")
+        when (_uiState.value.inputMode) {
+            InputMode.AddGoal -> addGoal(textToSubmit)
+            InputMode.SearchInList -> { /* Search is handled reactively */ }
+            InputMode.SearchGlobal -> {
+                viewModelScope.launch { _uiEventFlow.send(UiEvent.Navigate("global_search_screen/$textToSubmit")) }
             }
-        },
-        actions = {
-            IconButton(onClick = onSelectAll, enabled = !areAllSelected) {
-                Icon(Icons.Default.SelectAll, contentDescription = "Вибрати все")
-            }
-            IconButton(onClick = onToggleComplete) {
-                Icon(Icons.Default.DoneAll, contentDescription = "Відмітити виконаними/невиконаними")
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Видалити виділені")
-            }
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Додаткові дії")
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Створити екземпляр в...") },
-                        leadingIcon = { Icon(Icons.Default.AddBox, null) },
-                        onClick = {
-                            onMoreActions(GoalActionType.CreateInstance)
-                            showMenu = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Перемістити в...") },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, null) },
-                        onClick = {
-                            onMoreActions(GoalActionType.MoveInstance)
-                            showMenu = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Копіювати в...") },
-                        leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
-                        onClick = {
-                            onMoreActions(GoalActionType.CopyGoal)
-                            showMenu = false
-                        }
-                    )
-                }
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    )
-}
+        }
+        _uiState.update { it.copy(inputValue = TextFieldValue("")) }
+    }
 
-@Composable
-fun GoalInputBar(
-    inputMode: InputMode,
-    onModeChangeRequest: () -> Unit,
-    onTextChange: (String) -> Unit,
-    onSubmit: (String) -> Unit
-) {
-    var textState by remember(inputMode) { mutableStateOf(TextFieldValue("")) }
-    val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
+    private fun addGoal(title: String) {
+        val listId = listIdFlow.value
+        if (title.isBlank() || listId.isEmpty()) return
 
-    LaunchedEffect(inputMode) {
-        if (inputMode != InputMode.AddGoal) {
-            focusRequester.requestFocus()
+        viewModelScope.launch {
+            val currentTime = System.currentTimeMillis()
+            val newGoal = Goal(
+                id = UUID.randomUUID().toString(),
+                text = title,
+                completed = false,
+                createdAt = currentTime,
+                updatedAt = currentTime,
+                associatedListIds = listOf(listId)
+            )
+            goalRepository.insertGoal(newGoal)
+            val order = goalRepository.getGoalCountInList(listId).toLong()
+            val newInstance = GoalInstance(
+                instanceId = UUID.randomUUID().toString(),
+                goalId = newGoal.id,
+                listId = listId,
+                order = order
+            )
+            goalRepository.insertInstance(newInstance)
+            contextHandler.handleContextsOnCreate(newGoal)
+            _uiState.update { it.copy(newlyAddedGoalInstanceId = newInstance.instanceId) }
         }
     }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp, top = 8.dp)
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-    ) {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            tonalElevation = 6.dp,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onModeChangeRequest) {
-                    Icon(
-                        imageVector = when (inputMode) {
-                            InputMode.AddGoal -> Icons.Default.Add
-                            InputMode.SearchInList, InputMode.SearchGlobal -> Icons.Default.Search
-                        },
-                        contentDescription = "Change Input Mode"
+
+    fun onScrolledToNewGoal() {
+        _uiState.update { it.copy(newlyAddedGoalInstanceId = null) }
+    }
+
+    fun deleteGoal(goal: GoalWithInstanceInfo) {
+        viewModelScope.launch {
+            recentlyDeletedInstances = null
+            recentlyDeletedGoal = goal
+            goalRepository.deleteGoalInstance(goal.instanceId)
+            _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Ціль видалено", action = "Скасувати"))
+        }
+    }
+
+    fun undoDelete() {
+        viewModelScope.launch {
+            recentlyDeletedGoal?.let {
+                goalRepository.insertInstance(it.toGoalInstance())
+                resetSwipe(it.instanceId)
+                recentlyDeletedGoal = null
+            }
+
+            recentlyDeletedInstances?.let {
+                if (it.isNotEmpty()) {
+                    val instancesToRestore = it.map { info -> info.toGoalInstance() }
+                    goalRepository.insertGoalInstances(instancesToRestore)
+                    recentlyDeletedInstances = null
+                }
+            }
+        }
+    }
+
+    fun toggleGoalCompleted(goal: Goal) {
+        viewModelScope.launch {
+            goalRepository.updateGoal(goal.copy(completed = !goal.completed))
+        }
+    }
+
+    fun moveGoal(fromIndex: Int, toIndex: Int, needsScroll: Boolean) {
+        val currentGoals = filteredGoals.value.toMutableList()
+        if (fromIndex in currentGoals.indices && toIndex in currentGoals.indices) {
+            val item = currentGoals.removeAt(fromIndex)
+            currentGoals.add(toIndex, item)
+            viewModelScope.launch {
+                val updatedInstances = currentGoals.mapIndexed { index, goalWithInstanceInfo ->
+                    goalWithInstanceInfo.copy(order = index.toLong())
+                }
+                updatedInstances.forEach { goalRepository.insertInstance(it.toGoalInstance()) }
+                if (needsScroll) {
+                    _uiEventFlow.send(UiEvent.ScrollTo(toIndex))
+                }
+            }
+        }
+    }
+
+    fun onEditGoal(goal: GoalWithInstanceInfo) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${goal.listId}/${goal.goal.id}"))
+        }
+    }
+
+    fun onTagClicked(tag: String) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("global_search_screen/%23$tag"))
+        }
+    }
+
+    fun onAssociatedListClicked(listId: String) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("goal_detail_screen/$listId"))
+        }
+    }
+
+    fun onHighlightShown() {
+        _uiState.update { it.copy(goalToHighlight = null) }
+    }
+
+    // --- SELECTION MODE LOGIC ---
+
+    fun onGoalLongClick(instanceId: String) {
+        _uiState.update {
+            it.copy(selectedInstanceIds = it.selectedInstanceIds + instanceId)
+        }
+    }
+
+    fun onGoalClick(instance: GoalWithInstanceInfo) {
+        if (_uiState.value.selectedInstanceIds.isNotEmpty()) {
+            _uiState.update {
+                val currentSelection = it.selectedInstanceIds
+                if (instance.instanceId in currentSelection) {
+                    it.copy(selectedInstanceIds = currentSelection - instance.instanceId)
+                } else {
+                    it.copy(selectedInstanceIds = currentSelection + instance.instanceId)
+                }
+            }
+        } else {
+            onEditGoal(instance)
+        }
+    }
+
+    fun clearSelection() {
+        _uiState.update { it.copy(selectedInstanceIds = emptySet()) }
+    }
+
+    // --- BULK ACTIONS LOGIC ---
+
+    fun deleteSelectedGoals() {
+        viewModelScope.launch {
+            val selectedIds = _uiState.value.selectedInstanceIds
+            if (selectedIds.isEmpty()) return@launch
+
+            val instancesToDelete = filteredGoals.value.filter { it.instanceId in selectedIds }
+
+            recentlyDeletedGoal = null
+            recentlyDeletedInstances = instancesToDelete
+
+            goalRepository.deleteGoalInstances(instancesToDelete.map { it.instanceId })
+            _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Видалено цілей: ${instancesToDelete.size}", action = "Скасувати"))
+            clearSelection()
+        }
+    }
+
+    fun toggleCompletionForSelectedGoals() {
+        viewModelScope.launch {
+            val selectedIds = _uiState.value.selectedInstanceIds
+            if (selectedIds.isEmpty()) return@launch
+
+            val goalsToUpdate = filteredGoals.value
+                .filter { it.instanceId in selectedIds }
+                .map { it.goal.copy(completed = !it.goal.completed) }
+                .distinctBy { it.id }
+
+            goalRepository.updateGoals(goalsToUpdate)
+            clearSelection()
+        }
+    }
+
+    fun onBulkActionRequest(actionType: GoalActionType) {
+        val selectedIds = _uiState.value.selectedInstanceIds
+        if (selectedIds.isNotEmpty()) {
+            _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
+                sourceInstanceIds = selectedIds,
+                actionType = actionType
+            )
+        }
+    }
+
+    // --- ACTION DIALOGS LOGIC ---
+
+    fun onGoalActionInitiated(goal: GoalWithInstanceInfo) {
+        _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(goal)
+    }
+
+    fun onGoalActionSelected(actionType: GoalActionType) {
+        val currentState = _goalActionDialogState.value
+        if (currentState is GoalActionDialogState.AwaitingActionChoice) {
+            val goalToActOn = currentState.goalWithInstance
+            when (actionType) {
+                GoalActionType.MoveToTop -> {
+                    val fromIndex = filteredGoals.value.indexOfFirst { it.instanceId == goalToActOn.instanceId }
+                    if (fromIndex > 0) {
+                        moveGoal(fromIndex, 0, needsScroll = true)
+                    }
+                    onDismissGoalActionDialogs()
+                }
+                else -> {
+                    _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
+                        sourceInstanceIds = setOf(goalToActOn.instanceId),
+                        actionType = actionType
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp)
-                ) {
-                    BasicTextField(
-                        value = textState,
-                        onValueChange = {
-                            textState = it
-                            onTextChange(it.text)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = {
-                            if (textState.text.isNotBlank()) {
-                                onSubmit(textState.text)
-                                textState = TextFieldValue("")
-                                focusManager.clearFocus()
-                            }
-                        }),
-                        singleLine = true,
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
-                    )
-                    if (textState.text.isEmpty()) {
-                        Text(
-                            text = when (inputMode) {
-                                InputMode.AddGoal -> "Додати нову ціль..."
-                                InputMode.SearchInList -> "Пошук в цьому списку..."
-                                InputMode.SearchGlobal -> "Глобальний пошук..."
-                            },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            }
+        }
+    }
+
+    fun onDismissGoalActionDialogs() {
+        val currentState = _goalActionDialogState.value
+        val goalInstanceId = when (currentState) {
+            is GoalActionDialogState.AwaitingActionChoice -> currentState.goalWithInstance.instanceId
+            is GoalActionDialogState.AwaitingListChoice -> if (currentState.sourceInstanceIds.size == 1) currentState.sourceInstanceIds.first() else null
+            else -> null
+        }
+        _goalActionDialogState.value = GoalActionDialogState.Hidden
+        goalInstanceId?.let { resetSwipe(it) }
+    }
+
+    fun confirmGoalAction(targetListId: String) {
+        val currentState = _goalActionDialogState.value
+        if (currentState is GoalActionDialogState.AwaitingListChoice) {
+            val ids = currentState.sourceInstanceIds
+            val actionType = currentState.actionType
+
+            viewModelScope.launch(Dispatchers.IO) {
+                val goalsToProcess = filteredGoals.value
+                    .filter { it.instanceId in ids }
+                val goalIds = goalsToProcess.map { it.goal.id }.distinct()
+
+                when (actionType) {
+                    GoalActionType.CreateInstance -> goalRepository.createGoalInstances(goalIds, targetListId)
+                    GoalActionType.MoveInstance -> goalRepository.moveGoalInstances(ids.toList(), targetListId)
+                    GoalActionType.CopyGoal -> goalRepository.copyGoals(goalIds, targetListId)
+                    GoalActionType.MoveToTop -> { /* Not applicable here */ }
+                }
+
+                launch(Dispatchers.Main) {
+                    _goalActionDialogState.value = GoalActionDialogState.Hidden
+                    if (ids.size == 1) {
+                        resetSwipe(ids.first())
+                    } else {
+                        clearSelection()
                     }
                 }
-                AnimatedVisibility(
-                    visible = textState.text.isNotBlank(),
-                    enter = fadeIn() + slideInHorizontally(initialOffsetX = { it / 2 }),
-                    exit = fadeOut() + slideOutHorizontally(targetOffsetX = { it / 2 })
-                ) {
-                    FilledTonalIconButton(onClick = {
-                        onSubmit(textState.text)
-                        textState = TextFieldValue("")
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.Send, "Submit")
-                    }
-                }
             }
         }
     }
-}
 
-
-@Composable
-fun GoalActionChoiceDialog(onDismiss: () -> Unit, onActionSelected: (GoalActionType) -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card {
-            Column {
-                Text("Create instance in another list", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onActionSelected(GoalActionType.CreateInstance) }
-                    .padding(16.dp))
-                HorizontalDivider()
-                Text("Move instance to another list", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onActionSelected(GoalActionType.MoveInstance) }
-                    .padding(16.dp))
-                HorizontalDivider()
-                Text("Copy goal to another list", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onActionSelected(GoalActionType.CopyGoal) }
-                    .padding(16.dp))
-                HorizontalDivider()
-                Text("Перемістити на вершину списку", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onActionSelected(GoalActionType.MoveToTop) }
-                    .padding(16.dp))
-            }
+    fun resetSwipe(instanceId: String) {
+        viewModelScope.launch {
+            val currentTriggers = _uiState.value.resetTriggers
+            val newTriggerValue = currentTriggers.getOrDefault(instanceId, 0) + 1
+            _uiState.update { it.copy(resetTriggers = currentTriggers + (instanceId to newTriggerValue)) }
         }
     }
-}
 
-@Composable
-fun ListChooserDialog(
-    topLevelLists: List<GoalList>,
-    childMap: Map<String, List<GoalList>>,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large) {
-            Column {
-                Text("Choose a list", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp))
-                LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                    fun renderList(list: GoalList, level: Int) {
-                        item(key = list.id) {
-                            Text(
-                                text = list.name,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onConfirm(list.id) }
-                                    .padding(start = (level * 24 + 16).dp, top = 8.dp, bottom = 8.dp, end = 16.dp)
-                            )
-                        }
-                        childMap[list.id]?.forEach { child ->
-                            renderList(child, level + 1)
-                        }
-                    }
-                    topLevelLists.forEach { renderList(it, 0) }
-                }
-            }
-        }
+    // --- Input Mode Logic ---
+    fun onInputModeChangeRequest() {
+        _showInputModeDialog.value = true
     }
-}
 
-@Composable
-fun InputModeDialog(onDismiss: () -> Unit, onSelect: (InputMode) -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card {
-            Column {
-                Text("Add Goal", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(InputMode.AddGoal) }
-                    .padding(16.dp))
-                HorizontalDivider()
-                Text("Search in List", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(InputMode.SearchInList) }
-                    .padding(16.dp))
-                HorizontalDivider()
-                Text("Search Globally", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(InputMode.SearchGlobal) }
-                    .padding(16.dp))
-            }
-        }
+    fun onDismissInputModeDialog() {
+        _showInputModeDialog.value = false
+    }
+
+    fun onInputModeSelected(mode: InputMode) {
+        _uiState.update { it.copy(inputMode = mode, localSearchQuery = "") }
+        _showInputModeDialog.value = false
+    }
+
+    fun selectAllGoals() {
+        val allInstanceIds = filteredGoals.value.map { it.instanceId }.toSet()
+        _uiState.update { it.copy(selectedInstanceIds = allInstanceIds) }
     }
 }

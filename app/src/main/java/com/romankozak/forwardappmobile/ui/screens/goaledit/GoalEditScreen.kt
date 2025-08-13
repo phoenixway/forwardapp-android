@@ -6,9 +6,12 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -23,26 +26,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
+import com.romankozak.forwardappmobile.ui.components.FullScreenMarkdownEditor
+import com.romankozak.forwardappmobile.ui.components.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.MarkdownText
 import com.romankozak.forwardappmobile.ui.components.formatDate
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-// --- Визначення шкал для UI ---
 private object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
     val importance = (1..12).map { it.toFloat() }
     val impact = listOf(1f, 2f, 3f, 5f, 8f, 13f)
     val cost = (0..5).map { it.toFloat() }
     val risk = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
-    val weights = (0..20).map { it * 0.1f } // Лінійна 0.0 -> 2.0 з кроком 0.1
+    val weights = (0..20).map { it * 0.1f }
     val costLabels = listOf("немає", "дуже низькі", "низькі", "середні", "високі", "дуже високі")
 }
 
@@ -57,6 +63,31 @@ fun GoalEditScreen(
     val listChooserExpandedIds by viewModel.listChooserExpandedIds.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val filteredListHierarchy by viewModel.filteredListHierarchy.collectAsState()
+    val allContexts by viewModel.allContextNames.collectAsState()
+
+    var showSuggestions by remember { mutableStateOf(false) }
+    var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    fun getCurrentWord(textValue: TextFieldValue): String? {
+        val cursorPosition = textValue.selection.start
+        if (cursorPosition == 0) return null
+        val textUpToCursor = textValue.text.substring(0, cursorPosition)
+        val lastSpaceIndex = textUpToCursor.lastIndexOf(' ')
+        val startIndex = if (lastSpaceIndex == -1) 0 else lastSpaceIndex + 1
+        val currentWord = textUpToCursor.substring(startIndex)
+        return currentWord.takeIf { it.startsWith("@") }
+    }
+
+    LaunchedEffect(uiState.goalText) {
+        val currentWord = getCurrentWord(uiState.goalText)
+        if (currentWord != null && currentWord.startsWith("@") && currentWord.length > 1) {
+            val query = currentWord.substring(1)
+            filteredContexts = allContexts.filter { it.startsWith(query, ignoreCase = true) }
+            showSuggestions = filteredContexts.isNotEmpty()
+        } else {
+            showSuggestions = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -83,7 +114,7 @@ fun GoalEditScreen(
                 actions = {
                     Button(
                         onClick = { viewModel.onSave() },
-                        enabled = uiState.isReady && uiState.goalText.isNotBlank(),
+                        enabled = uiState.isReady && uiState.goalText.text.isNotBlank(),
                     ) {
                         Text("Зберегти")
                     }
@@ -106,47 +137,68 @@ fun GoalEditScreen(
                 item { Spacer(Modifier.height(8.dp)) }
 
                 item {
-                    OutlinedTextField(
-                        value = uiState.goalText,
-                        onValueChange = viewModel::onTextChange,
-                        label = { Text("Назва цілі") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                    Column {
+                        OutlinedTextField(
+                            value = uiState.goalText,
+                            onValueChange = viewModel::onTextChange,
+                            label = { Text("Назва цілі") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
 
-                item {
-                    OutlinedTextField(
-                        value = uiState.goalDescription,
-                        onValueChange = viewModel::onDescriptionChange,
-                        label = { Text("Notes (Markdown supported)") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp),
-                    )
-                }
-
-                if (uiState.goalDescription.isNotBlank()) {
-                    item {
-                        Column {
-                            Text(
-                                "Попередній перегляд опису:",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        AnimatedVisibility(visible = showSuggestions) {
+                            LazyRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                MarkdownText(
-                                    text = uiState.goalDescription,
-                                    modifier = Modifier.padding(16.dp),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
+                                items(filteredContexts) { context ->
+                                    SuggestionChip(
+                                        onClick = {
+                                            val currentText = uiState.goalText.text
+                                            val cursorPosition = uiState.goalText.selection.start
+
+                                            val wordStart = currentText.substring(0, cursorPosition)
+                                                .lastIndexOf(' ')
+                                                .let { if (it == -1) 0 else it + 1 }
+                                                .takeIf { currentText.substring(it, cursorPosition).startsWith("@") }
+                                                ?: -1
+
+                                            if (wordStart != -1) {
+                                                val textBefore = currentText.substring(0, wordStart)
+                                                val textAfter = currentText.substring(cursorPosition)
+                                                val newText = "$textBefore@$context $textAfter"
+                                                val newCursorPosition = wordStart + context.length + 2
+
+                                                // ✨ ВИПРАВЛЕННЯ 1: Викликаємо метод через viewModel
+                                                viewModel.onTextChange(
+                                                    TextFieldValue(
+                                                        text = newText,
+                                                        selection = TextRange(newCursorPosition)
+                                                    )
+                                                )
+                                            }
+                                            // ✨ ВИПРАВЛЕННЯ 2: Використовуємо правильне ім'я змінної
+                                            showSuggestions = false
+                                        },
+                                        label = { Text("@$context") }
+                                    )
+                                }
                             }
                         }
-                    }
+                    }}
+
+
+                    item {
+                            LimitedMarkdownEditor(
+                                value = uiState.goalDescription,
+                                onValueChange = viewModel::onDescriptionChange,
+                                maxHeight = 150.dp, // Встановлюємо максимальну висоту
+                                onExpandClick = { viewModel.openDescriptionEditor() },
+                                        modifier = Modifier.fillMaxWidth()
+                            )
                 }
 
                 item {
@@ -221,6 +273,7 @@ fun GoalEditScreen(
         }
     }
 
+
     if (uiState.showListChooser) {
         FilterableListChooser(
             title = "Додати до списку",
@@ -235,9 +288,16 @@ fun GoalEditScreen(
             disabledIds = uiState.associatedLists.map { it.id }.toSet()
         )
     }
+
+    if (uiState.isDescriptionEditorOpen) {
+        FullScreenMarkdownEditor(
+            initialText = uiState.goalDescription,
+            onDismiss = { viewModel.closeDescriptionEditor() },
+            onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) }
+        )
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewModel) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -302,14 +362,13 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScoringStatusSelector(
     selectedStatus: ScoringStatus,
     onStatusSelected: (ScoringStatus) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val statuses = ScoringStatus.values()
+    val statuses = ScoringStatus.entries.toTypedArray()
     val labels = mapOf(
         ScoringStatus.NOT_ASSESSED to "Unset",
         ScoringStatus.ASSESSED to "Set",
@@ -329,7 +388,6 @@ private fun ScoringStatusSelector(
 }
 
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EvaluationTabs(
     uiState: GoalEditUiState,

@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.splineBasedDecay
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
@@ -18,11 +17,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
@@ -61,6 +58,7 @@ enum class SwipeState {
 
 @Composable
 fun SwipeableGoalItem(
+    modifier: Modifier = Modifier,
     resetTrigger: Int,
     goalWithInstance: GoalWithInstanceInfo,
     isHighlighted: Boolean,
@@ -70,14 +68,12 @@ fun SwipeableGoalItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMore: () -> Unit,
-    onItemClick: () -> Unit,
-    onLongClick: () -> Unit, // ✨ ЗМІНА: Додано для довгого натискання
     onToggle: () -> Unit,
     onTagClick: (String) -> Unit,
     onAssociatedListClick: (String) -> Unit,
-    dragHandle: @Composable () -> Unit,
-    backgroundColor: Color, // ✨ ЗМІНА: Додано для фону (в т.ч. для виділення)
-    modifier: Modifier = Modifier,
+    onItemClick: () -> Unit,
+    onLongClick: () -> Unit,
+    backgroundColor: Color
 ) {
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -124,10 +120,8 @@ fun SwipeableGoalItem(
             }
         }
 
-        // ✨ ЗМІНА: Колір тепер керується ззовні, але ми додаємо анімацію для зміни кольору свайпу
         val finalBackgroundColor by animateColorAsState(
             targetValue = if (swipeState.offset < 0) {
-                // Коли свайпаємо вліво, плавно змішуємо основний колір з кольором помилки
                 val fraction = (abs(swipeState.offset) / abs(deleteThresholdPx)).coerceIn(0f, 1f)
                 backgroundColor.copy(alpha = 1f - fraction * 0.6f)
                     .compositeOver(MaterialTheme.colorScheme.errorContainer.copy(alpha = fraction * 0.4f))
@@ -146,54 +140,46 @@ fun SwipeableGoalItem(
 
         val actionsAlpha = (abs(swipeState.offset) / actionsRevealPx).coerceIn(0f, 1f)
 
-        // ✨ ЗМІНА: Root Box тепер є просто контейнером, без фону чи тіні.
-        // Модифікатор з тінню буде застосовано до Surface.
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Цей Box містить дії, що з'являються позаду
-            Box(
-                modifier = Modifier.matchParentSize()
-            ) {
-                if (swipeState.offset > 0) {
-                    Row(
+            if (swipeState.offset > 0) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .fillMaxHeight()
+                        .alpha(actionsAlpha),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Surface(
+                        onClick = { onEdit(); resetSwipe() },
                         modifier = Modifier
-                            .align(Alignment.CenterStart)
                             .fillMaxHeight()
-                            .alpha(actionsAlpha),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            .width(88.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
                     ) {
-                        Surface(
-                            onClick = { onEdit(); resetSwipe() },
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(88.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.onPrimary)
-                            }
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.onPrimary)
                         }
-                        Surface(
-                            onClick = { onMore(); resetSwipe() },
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(88.dp),
-                            color = MaterialTheme.colorScheme.secondary,
-                            shape = RectangleShape
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(Icons.Default.SwapHoriz, "More", tint = MaterialTheme.colorScheme.onSecondary)
-                            }
+                    }
+                    Surface(
+                        onClick = { onMore(); resetSwipe() },
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(88.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        shape = RectangleShape
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(Icons.Default.SwapHoriz, "More", tint = MaterialTheme.colorScheme.onSecondary)
                         }
                     }
                 }
             }
 
-            // ✨ ЗМІНА: Surface тепер отримує тінь з `modifier` і має анімований фон
             Surface(
-                modifier = modifier // Модифікатор з тінню застосовується тут
+                modifier = modifier
                     .fillMaxWidth()
                     .offset {
                         val offsetValue = swipeState.offset
@@ -204,7 +190,7 @@ fun SwipeableGoalItem(
                         }
                     }
                     .anchoredDraggable(state = swipeState, orientation = Orientation.Horizontal),
-                color = finalBackgroundColor, // Колір застосовується до Surface
+                color = finalBackgroundColor,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 GoalItem(
@@ -219,11 +205,14 @@ fun SwipeableGoalItem(
                             resetSwipe()
                         }
                     },
-                    onLongClick = onLongClick, // Передаємо onLongClick
+                    onLongClick = {
+                        if (swipeState.currentValue == SwipeState.Normal) {
+                            onLongClick()
+                        }
+                    },
                     onTagClick = onTagClick,
                     onAssociatedListClick = onAssociatedListClick,
-                    backgroundColor = Color.Transparent, // GoalItem прозорий, бо живе на кольоровому Surface
-                    dragHandle = dragHandle
+                    backgroundColor = Color.Transparent,
                 )
             }
         }
