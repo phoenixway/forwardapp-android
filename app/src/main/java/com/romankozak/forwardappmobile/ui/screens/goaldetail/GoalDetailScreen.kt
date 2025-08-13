@@ -2,10 +2,8 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,13 +12,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextRange
@@ -28,8 +25,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.romankozak.forwardappmobile.ui.components.GoalInputBar
 import com.romankozak.forwardappmobile.ui.components.MultiSelectTopAppBar
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
@@ -38,7 +33,8 @@ import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.dialogs.InputModeDialog
 import com.romankozak.forwardappmobile.ui.dialogs.ListChooserDialog
 import kotlinx.coroutines.launch
-import sh.calvin.reorderable.rememberScroller
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun GoalDetailScreen(
@@ -63,17 +59,11 @@ fun GoalDetailScreen(
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val listState = rememberLazyListState()
-    val slowScroller = rememberScroller(
-        scrollableState = listState,
-        pixelPerSecond = 10f // Зменшіть це значення для ще повільнішої прокрутки
-    )
-
     val reorderableLazyListState = rememberReorderableLazyListState(
         lazyListState = listState,
         onMove = { from, to ->
             viewModel.moveGoal(from.index, to.index, false)
-        },
-        scroller = slowScroller // Передаємо створений Scroller
+        }
     )
 
     fun getCurrentWord(textValue: TextFieldValue): String? {
@@ -96,8 +86,6 @@ fun GoalDetailScreen(
             showSuggestions = false
         }
     }
-
-
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -224,7 +212,7 @@ fun GoalDetailScreen(
             }
         } else {
             LazyColumn(
-                state = listState, // Використовуємо оригінальний listState
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
@@ -233,35 +221,26 @@ fun GoalDetailScreen(
                     goals,
                     key = { _, item -> item.instanceId }
                 ) { index, goalWithInstanceInfo ->
-                    // Використовуйте ReorderableItem, якщо він доступний
-                    // Перевірте документацію, чи він ще підтримується
-                    // Якщо ні, вам потрібно використовувати модифікатор, але без isItemDragging
                     ReorderableItem(
                         state = reorderableLazyListState,
                         key = goalWithInstanceInfo.instanceId,
                         enabled = !isSelectionModeActive
-                    ) { isDragging -> // Цей параметр містить стан перетягування
-                        // Весь вміст елемента
-                        val elevation = animateDpAsState(
-                            if (isDragging) 8.dp else 0.dp,
-                            label = "elevationAnimation"
-                        )
-                        val scale by animateFloatAsState(
-                            if (isDragging) 1.02f else 1.0f,
-                            label = "scaleAnimation"
-                        )
-                        val isSelected = goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
-
+                    ) { isDragging ->
                         LaunchedEffect(isDragging) {
                             if (isDragging) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             }
                         }
 
+                        // Анімації для елемента, що перетягується
+                        val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
+                        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+
                         val isHighlighted by remember(uiState.goalToHighlight) {
                             derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
                         }
                         val associatedLists = associatedListsMap.getOrDefault(goalWithInstanceInfo.goal.id, emptyList())
+                        val isSelected = goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
                         val itemBackgroundColor = if (isSelected) {
                             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                         } else {
@@ -270,17 +249,18 @@ fun GoalDetailScreen(
 
                         SwipeableGoalItem(
                             modifier = Modifier
-                                .scale(scale)
-                                .animateItem(
-                                )
-                                .shadow(elevation.value, RoundedCornerShape(8.dp)
-
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                                .shadow(
+                                    elevation = elevation,
+                                    shape = RoundedCornerShape(8.dp)
                                 ),
                             resetTrigger = uiState.resetTriggers.getOrDefault(goalWithInstanceInfo.instanceId, 0),
                             goalWithInstance = goalWithInstanceInfo,
                             isHighlighted = isHighlighted,
-
-                            isDragging = isDragging, // Передаємо isDragging безпосередньо з лямбди
+                            isDragging = isDragging,
                             associatedLists = associatedLists,
                             obsidianVaultName = obsidianVaultName,
                             onEdit = { viewModel.onEditGoal(goalWithInstanceInfo) },
@@ -295,8 +275,8 @@ fun GoalDetailScreen(
                             dragHandleModifier = if (!isSelectionModeActive) {
                                 Modifier.longPressDraggableHandle()
                             } else {
-                                Modifier // В режимі вибору ручка неактивна
-                            }                        // Не передавайте dragHandle або indicator, якщо вони не підтримуються
+                                Modifier
+                            }
                         )
                     }
                 }
