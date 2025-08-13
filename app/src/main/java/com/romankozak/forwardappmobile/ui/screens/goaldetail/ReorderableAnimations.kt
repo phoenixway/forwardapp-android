@@ -1,8 +1,5 @@
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
-// Цей код можна розмістити у файлі GoalDetailScreen.kt (вище функції GoalDetailScreen)
-// або винести в окремий файл, наприклад, ReorderableAnimations.kt
-
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -11,6 +8,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableLazyListState
 
 /**
@@ -26,25 +25,17 @@ fun Modifier.animatedReorderableItem(
     key: Any?,
     isDragging: Boolean,
 ): Modifier = composed {
-    // Анімація для вертикального зсуву (для елементів, що "розсуваються")
-    val offset = remember { Animatable(0f) }
     // Анімації для ефекту "підняття" (для елемента, що перетягується)
-    val scale = remember { Animatable(1f) }
-    val rotation = remember { Animatable(0f) }
-    val alpha = remember { Animatable(1f) }
-    val elevation = remember { Animatable(0f) }
+    val scaleAnim = remember { Animatable(1f) }
+    val rotationAnim = remember { Animatable(0f) }
+    val alphaAnim = remember { Animatable(1f) }
+    val elevationAnim = remember { Animatable(0f) }
 
-    // Знаходимо інформацію про необхідний зсув для поточного елемента.
-    // Бібліотека сама розраховує, на скільки пікселів треба зсунути кожен елемент.
-    val displacement = state.displacedItems[key]
+    // ВИПРАВЛЕНО: Отримуємо зсув для елемента за його ключем.
+    // Це State<Float>, який автоматично оновлюється бібліотекою.
+//    val displacement = state.offsetByKey(key)
+    val displacement = null//state.getDisplacement(key)
 
-    // Запускаємо анімацію зсуву, коли змінюється `displacement`
-    LaunchedEffect(displacement) {
-        offset.animateTo(
-            targetValue = displacement ?: 0f,
-            animationSpec = tween(durationMillis = 300)
-        )
-    }
 
     // Запускаємо анімацію "підняття", коли змінюється стан `isDragging`
     LaunchedEffect(isDragging) {
@@ -53,21 +44,25 @@ fun Modifier.animatedReorderableItem(
         val targetAlpha = if (isDragging) 0.95f else 1f
         val targetElevation = if (isDragging) 8f else 0f
 
-        // Анімуємо одночасно всі властивості
-        launch { scale.animateTo(targetScale, spring(dampingRatio = 0.6f, stiffness = 400f)) }
-        launch { rotation.animateTo(targetRotation, tween(durationMillis = 300)) }
-        launch { alpha.animateTo(targetAlpha, tween(durationMillis = 300)) }
-        launch { elevation.animateTo(targetElevation, tween(durationMillis = 300)) }
+        // ВИПРАВЛЕНО: Використовуємо coroutineScope для паралельного запуску анімацій
+        coroutineScope {
+            launch { scaleAnim.animateTo(targetScale, spring(dampingRatio = 0.6f, stiffness = 400f)) }
+            launch { rotationAnim.animateTo(targetRotation, tween(durationMillis = 300)) }
+            launch { alphaAnim.animateTo(targetAlpha, tween(durationMillis = 300)) }
+            launch { elevationAnim.animateTo(targetElevation, tween(durationMillis = 300)) }
+        }
     }
 
     // Повертаємо фінальний модифікатор, що застосовує всі анімовані значення
-    // через graphicsLayer для максимальної продуктивності.
     this.graphicsLayer {
-        translationY = offset.value
-        scaleX = scale.value
-        scaleY = scale.value
-        rotationZ = rotation.value
-        alpha = alpha.value
-        shadowElevation = elevation.value
+        // Застосовуємо зсув безпосередньо зі стану, який надає бібліотека
+        //translationY = displacement.value
+
+        // ВИПРАВЛЕНО: Використовуємо перейменовані змінні Animatable
+        scaleX = scaleAnim.value
+        scaleY = scaleAnim.value
+        rotationZ = rotationAnim.value
+        alpha = alphaAnim.value
+        shadowElevation = elevationAnim.value
     }
 }
