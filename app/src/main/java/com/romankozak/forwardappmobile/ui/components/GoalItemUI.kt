@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.components
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -69,8 +70,6 @@ fun formatDate(timestamp: Long): String {
     return formatter.format(date)
 }
 
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/GoalItemUI.kt
-
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
@@ -93,19 +92,23 @@ fun GoalItem(
         modifier = modifier
             .fillMaxWidth()
             .background(backgroundColor)
-            .combinedClickable(
-                onClick = onItemClick,
-                onLongClick = onLongClick
-            )
     ) {
         Row(
             modifier = Modifier
+                .fillMaxWidth()
+                // ✨ ВИПРАВЛЕНО: Додано універсальний обробник для всього рядка.
+                // Дочірні елементи з власними кліками (текст, чекбокс) матимуть вищий пріоритет
+                // і перехоплять подію, що є бажаною поведінкою.
+                .pointerInput(onItemClick, onLongClick) {
+                    detectTapGestures(
+                        onLongPress = { onLongClick() },
+                        onTap = { onItemClick() }
+                    )
+                }
                 .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
                 .alpha(contentAlpha),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-
             CustomCheckbox(
                 checked = goal.completed,
                 onCheckedChange = { onToggle() },
@@ -114,8 +117,9 @@ fun GoalItem(
                 borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 checkmarkColor = MaterialTheme.colorScheme.onPrimary
             )
-            // ... решта коду без змін
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -124,7 +128,10 @@ fun GoalItem(
                     isCompleted = goal.completed,
                     obsidianVaultName = obsidianVaultName,
                     onTagClick = onTagClick,
-                    //onTextClick = onItemClick,
+                    // Передаємо onItemClick і onLongClick як запасні варіанти для MarkdownText.
+                    // Вони спрацюють, якщо не було натиснуто на тег/посилання.
+                    onTextClick = onItemClick,
+                    onLongClick = onLongClick,
                     style = MaterialTheme.typography.bodyLarge
                 )
 
