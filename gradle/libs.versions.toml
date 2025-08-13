@@ -34,7 +34,7 @@ hilt = "2.51.1"
 hilt-navigation-compose = "1.2.0"
 
 # --- ДОДАНО: Версія для compose-dnd ---
-compose-dnd = "0.3.0"
+compose-dnd = "0.4.0"
 
 
 [libraries]

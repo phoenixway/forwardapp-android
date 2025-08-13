@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
 import android.util.Log
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -47,7 +48,8 @@ data class UiState(
     val goalToHighlight: String? = null,
     val inputMode: InputMode = InputMode.AddGoal,
     val newlyAddedGoalInstanceId: String? = null,
-    val selectedInstanceIds: Set<String> = emptySet()
+    val selectedInstanceIds: Set<String> = emptySet(),
+    val inputValue: TextFieldValue = TextFieldValue(""),
 )
 data class ListHierarchy(
     val topLevelLists: List<GoalList>,
@@ -76,7 +78,8 @@ class GoalDetailViewModel @Inject constructor(
     private var recentlyDeletedGoal: GoalWithInstanceInfo? = null
     private var recentlyDeletedInstances: List<GoalWithInstanceInfo>? = null
 
-    // ✨ 2. ДОДАНО БЛОК init ДЛЯ ІНІЦІАЛІЗАЦІЇ ОБРОБНИКА
+    val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
+
     init {
         viewModelScope.launch {
             contextHandler.initialize()
@@ -137,20 +140,30 @@ class GoalDetailViewModel @Inject constructor(
             ListHierarchy(topLevelLists, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyMap()))
 
-    fun onInputTextChanged(text: String) {
-        _uiState.update { it.copy(localSearchQuery = text) }
-    }
-
-    fun submitInput(text: String) {
-        when (_uiState.value.inputMode) {
-            InputMode.AddGoal -> addGoal(text)
-            InputMode.SearchInList -> { /* Пошук вже виконується через combine */ }
-            InputMode.SearchGlobal -> {
-                viewModelScope.launch { _uiEventFlow.send(UiEvent.Navigate("global_search_screen/$text")) }
-            }
+    fun onInputTextChanged(newValue: TextFieldValue) {
+        _uiState.update {
+            it.copy(
+                inputValue = newValue,
+                localSearchQuery = if (it.inputMode == InputMode.SearchInList) newValue.text else ""
+            )
         }
     }
 
+    fun submitInput() {
+        // Беремо текст безпосередньо зі стану
+        val textToSubmit = _uiState.value.inputValue.text
+        if (textToSubmit.isBlank()) return
+
+        when (_uiState.value.inputMode) {
+            InputMode.AddGoal -> addGoal(textToSubmit)
+            InputMode.SearchInList -> { /* Пошук вже виконується автоматично */ }
+            InputMode.SearchGlobal -> {
+                viewModelScope.launch { _uiEventFlow.send(UiEvent.Navigate("global_search_screen/$textToSubmit")) }
+            }
+        }
+        // Очищуємо поле вводу після відправки
+        _uiState.update { it.copy(inputValue = TextFieldValue("")) }
+    }
     // ✨ 3. ОНОВЛЕНО: функція addGoal тепер викликає обробник контекстів
     private fun addGoal(title: String) {
         val listId = listIdFlow.value

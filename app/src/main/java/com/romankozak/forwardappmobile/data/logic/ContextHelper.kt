@@ -9,6 +9,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 import javax.inject.Inject
@@ -21,6 +24,8 @@ class ContextHandler @Inject constructor(
 ) {
     private val contextTagMap = mutableMapOf<String, String>()
     private var isInitialized = false
+    private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())
+    val contextNamesFlow: StateFlow<List<String>> = _contextNamesFlow.asStateFlow()
 
     suspend fun initialize() {
         if (isInitialized) return
@@ -57,6 +62,7 @@ class ContextHandler @Inject constructor(
             }
             deferreds.awaitAll()
         }
+        _contextNamesFlow.value = contextTagMap.keys.sorted()
         Log.d("ContextDebug", "ContextHandler: Finished loading settings. Final map: $contextTagMap")
     }
 

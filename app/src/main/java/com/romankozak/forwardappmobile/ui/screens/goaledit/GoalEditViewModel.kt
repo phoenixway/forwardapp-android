@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.goaledit
 
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,7 +28,6 @@ sealed class GoalEditEvent {
 }
 
 data class GoalEditUiState(
-    val goalText: String = "",
     val goalDescription: String = "",
     val associatedLists: List<GoalList> = emptyList(),
     val isReady: Boolean = false,
@@ -47,6 +47,8 @@ data class GoalEditUiState(
     val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
+    val goalText: TextFieldValue = TextFieldValue(""),
+    val isDescriptionEditorOpen: Boolean = false,
 )
 
 @HiltViewModel
@@ -176,6 +178,7 @@ class GoalEditViewModel @Inject constructor(
         onListChooserFilterChanged("")
     }
 
+    val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
     private suspend fun loadExistingGoal(goalId: String) {
         val goal = goalRepository.getGoalById(goalId)
         if (goal != null) {
@@ -185,8 +188,7 @@ class GoalEditViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    goalText = goal.text,
-                    goalDescription = goal.description ?: "",
+                    goalText = TextFieldValue(goal.text), // ✨ ОНОВЛЕНО                    goalDescription = goal.description ?: "",
                     associatedLists = lists,
                     isReady = true,
                     isNewGoal = false,
@@ -218,8 +220,9 @@ class GoalEditViewModel @Inject constructor(
         updateScores()
     }
 
-    fun onTextChange(newText: String) = _uiState.update { it.copy(goalText = newText) }
-    fun onDescriptionChange(newDescription: String) = _uiState.update { it.copy(goalDescription = newDescription) }
+    fun onTextChange(newValue: TextFieldValue) {
+        _uiState.update { it.copy(goalText = newValue) }
+    }    fun onDescriptionChange(newDescription: String) = _uiState.update { it.copy(goalDescription = newDescription) }
     fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
     fun onValueImpactChange(value: Float) = onScoringParameterChange { it.copy(valueImpact = value) }
     fun onEffortChange(value: Float) = onScoringParameterChange { it.copy(effort = value) }
@@ -299,7 +302,7 @@ class GoalEditViewModel @Inject constructor(
         val descriptionToSave = state.goalDescription.ifEmpty { null }
 
         return currentGoal?.copy(
-            text = state.goalText,
+            text = state.goalText.text, // ✨ ОНОВЛЕНО: .text
             description = descriptionToSave,
             updatedAt = currentTime,
             associatedListIds = state.associatedLists.map { it.id },
@@ -314,7 +317,7 @@ class GoalEditViewModel @Inject constructor(
             scoringStatus = state.scoringStatus
         ) ?: Goal(
             id = UUID.randomUUID().toString(),
-            text = state.goalText,
+            text = state.goalText.text, // ✨ ОНОВЛЕНО: .text
             description = descriptionToSave,
             completed = false,
             createdAt = currentTime,
@@ -336,7 +339,8 @@ class GoalEditViewModel @Inject constructor(
     fun onSave() {
         android.util.Log.d("ContextDebug", "SAVE ACTION TRIGGERED. Is new goal = ${uiState.value.isNewGoal}")
         viewModelScope.launch {
-            if (_uiState.value.goalText.isBlank()) {
+            // ✨ ВИПРАВЛЕННЯ: Звертаємось до .text, щоб перевірити рядок
+            if (_uiState.value.goalText.text.isBlank()) {
                 _events.send(GoalEditEvent.NavigateBack("Назва цілі не може бути пустою"))
                 return@launch
             }
@@ -345,16 +349,10 @@ class GoalEditViewModel @Inject constructor(
             val goalToSave = GoalScoringManager.calculateScores(goalFromState)
 
             if (currentGoal != null) {
-                // --- ЦЕ ОНОВЛЕННЯ ІСНУЮЧОЇ ЦІЛІ ---
                 goalRepository.updateGoal(goalToSave)
-                // Викликаємо нову функцію синхронізації, передаючи старий і новий стан
                 contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
             } else {
-                val listIdForNewGoal = initialListId
-                if (listIdForNewGoal == null) {
-                    _events.send(GoalEditEvent.NavigateBack("Не вдалося створити ціль: невідомий список."))
-                    return@launch
-                }
+                val listIdForNewGoal = initialListId ?: return@launch
 
                 val finalGoal = if (goalToSave.associatedListIds.isNullOrEmpty()){
                     goalToSave.copy(associatedListIds = listOf(listIdForNewGoal))
@@ -369,6 +367,7 @@ class GoalEditViewModel @Inject constructor(
                     listId = listIdForNewGoal,
                     order = order
                 )
+                goalRepository.insertInstance(newInstance)
                 contextHandler.handleContextsOnCreate(finalGoal)
             }
 
@@ -446,6 +445,23 @@ class GoalEditViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun openDescriptionEditor() {
+        _uiState.update { it.copy(isDescriptionEditorOpen = true) }
+    }
+
+    fun closeDescriptionEditor() {
+        _uiState.update { it.copy(isDescriptionEditorOpen = false) }
+    }
+
+    fun onDescriptionChangeAndCloseEditor(newDescription: String) {
+        _uiState.update {
+            it.copy(
+                goalDescription = newDescription,
+                isDescriptionEditorOpen = false
+            )
         }
     }
 }
