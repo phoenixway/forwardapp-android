@@ -4,11 +4,12 @@
 [versions]
 # Core Plugins & Tools -> Встановлюємо стабільну, сумісну пару
 agp = "8.11.1"
+javapoet = "1.13.0"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.25"
 
 # Compose -> Використовуємо актуальну стабільну версію BOM
-androidx-compose-bom = "2024.09.00"
+androidx-compose-bom = "2025.07.00"
 
 # AndroidX Libraries
 coreKtx = "1.13.1"
@@ -28,7 +29,7 @@ gson = "2.11.0"
 ktor = "2.3.12"
 kotlin-logging = "3.0.5"
 slf4j-android = "1.7.36"
-hilt = "2.51.1"
+hilt = "2.57"
 hilt-navigation-compose = "1.2.0"
 compose-dnd = "0.4.0"
 reorderable = "3.0.1-SNAPSHOT"
@@ -38,6 +39,7 @@ accompanist = "0.34.0"
 
 [libraries]
 # ВАША ЛОКАЛЬНА БІБЛІОТЕКА REORDERABLE - ВИПРАВЛЕНО
+javapoet = { module = "com.squareup:javapoet", version.ref = "javapoet" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable-android", version.ref = "reorderable" }
 
 compose-dnd = { group = "com.mohamedrejeb.dnd", name = "compose-dnd", version.ref = "compose-dnd" }
