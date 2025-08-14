@@ -9,6 +9,10 @@ plugins {
     // --- ДОДАНО: Плагіни для Hilt та Room ---
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+
+    //id("com.google.dagger.hilt.android")
+    //id("com.google.devtools.ksp")
+    kotlin("kapt")
 }
 
 android {
@@ -48,12 +52,11 @@ android {
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
-}
 
-configurations.all {
-    resolutionStrategy.eachDependency {
-        if (requested.group == "com.squareup" && requested.name == "javapoet") {
-            useVersion("1.13.0")
+    packaging {
+        resources {
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/io.netty.versions.properties"
         }
     }
 }
@@ -89,8 +92,10 @@ dependencies {
 
     // Hilt
     implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
+    //ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+    kapt(libs.hilt.compiler)
+
 
     // Ktor (Server & Client)
     // Ktor (Server & Client)
@@ -124,5 +129,6 @@ dependencies {
 //else6er
     implementation(libs.accompanist.flowlayout)
     implementation(libs.reorderable)
+    //implementation(libs.javapoet)
 
 }
