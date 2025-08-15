@@ -9,6 +9,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,7 +35,6 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import androidx.compose.foundation.BorderStroke // ✨ ВИПРАВЛЕНО: Додано відсутній імпорт
 
 @Composable
 fun ActivityTrackerScreen(
@@ -44,7 +44,7 @@ fun ActivityTrackerScreen(
     val log by viewModel.activityLog.collectAsState()
     val inputText by viewModel.inputText.collectAsState()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsState()
-    val editingRecord by viewModel.editingRecord.collectAsState() // ✨ НОВИЙ СТАН
+    val editingRecord by viewModel.editingRecord.collectAsState()
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -82,11 +82,10 @@ fun ActivityTrackerScreen(
         ActivityLog(
             log = log,
             modifier = Modifier.padding(paddingValues),
-            onEdit = viewModel::onEditRequest, // Лямбда залишається та сама, але її дія тепер інша
+            onEdit = viewModel::onEditRequest,
             onRestart = viewModel::onRestartActivity
         )
 
-        // ✨ ОНОВЛЕНО: Логіка відображення діалогу редагування
         editingRecord?.let { recordToEdit ->
             EditRecordDialog(
                 record = recordToEdit,
@@ -127,7 +126,6 @@ private fun ActivityTrackerTopAppBar(
     )
 }
 
-// ✨ ОНОВЛЕНО: Компонент логу тепер приймає лямбди для дій та використовує reverseLayout
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ActivityLog(
@@ -139,18 +137,17 @@ private fun ActivityLog(
     val groupedByDate = log.groupBy { toDateHeader(it.createdAt) }
     val lazyListState = rememberLazyListState()
 
-    // Автоматична прокрутка до низу при додаванні нового елемента
+    // ✨ ОНОВЛЕНО: Логіка прокрутки тепер веде до останнього елемента в списку
     LaunchedEffect(log.size) {
         if (log.isNotEmpty()) {
-            lazyListState.animateScrollToItem(0)
+            lazyListState.animateScrollToItem(log.lastIndex)
         }
     }
 
     LazyColumn(
         state = lazyListState,
         modifier = modifier.padding(horizontal = 12.dp),
-        // reverseLayout = true показує елементи знизу вверх, що природно для логу
-        reverseLayout = true
+        // ✨ ОНОВЛЕНО: Прибрано reverseLayout = true, щоб старіші елементи були зверху
     ) {
         if (log.isEmpty()) {
             item {
@@ -160,17 +157,6 @@ private fun ActivityLog(
             }
         } else {
             groupedByDate.forEach { (dateHeader, records) ->
-                // Порядок відображення записів всередині групи не змінюється, бо сортування вже зроблене в DAO
-                items(records, key = { it.id }) { record ->
-                    LogEntryItem(
-                        record = record,
-                        onEdit = onEdit,
-                        onRestart = onRestart
-                    )
-                    if (records.last() != record) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    }
-                }
                 stickyHeader {
                     Surface(modifier = Modifier.fillMaxWidth(), tonalElevation = 1.dp) {
                         Text(
@@ -181,12 +167,21 @@ private fun ActivityLog(
                         )
                     }
                 }
+                items(records, key = { it.id }) { record ->
+                    LogEntryItem(
+                        record = record,
+                        onEdit = onEdit,
+                        onRestart = onRestart
+                    )
+                    if (records.last() != record) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    }
+                }
             }
         }
     }
 }
 
-// ✨ ОНОВЛЕНО: LogEntryItem тепер підтримує різні стани (нотатка, активність) та дії
 @Composable
 private fun LogEntryItem(
     record: ActivityRecord,
@@ -194,7 +189,6 @@ private fun LogEntryItem(
     onRestart: (ActivityRecord) -> Unit
 ) {
     if (record.isTimeless) {
-        // --- Відображення для нотаток ---
         OutlinedCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -225,7 +219,6 @@ private fun LogEntryItem(
             }
         }
     } else {
-        // --- Відображення для активностей ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -393,7 +386,6 @@ private fun toDateHeader(timestamp: Long): String {
 
 private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
-    // Оскільки сортування тепер ASC, для експорту його треба розвернути, щоб новіші були зверху
     val groupedByDate = log.sortedByDescending { it.createdAt }.groupBy { toDateHeader(it.createdAt) }
     return buildString {
         groupedByDate.forEach { (dateHeader, records) ->
