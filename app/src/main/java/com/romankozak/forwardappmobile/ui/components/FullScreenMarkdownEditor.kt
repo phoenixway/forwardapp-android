@@ -18,6 +18,7 @@ fun FullScreenMarkdownEditor(
     onDismiss: () -> Unit,
     onSave: (String) -> Unit
 ) {
+    // Внутрішній стан для збереження тексту, поки діалог відкритий
     var text by remember { mutableStateOf(initialText) }
 
     Dialog(
@@ -27,27 +28,33 @@ fun FullScreenMarkdownEditor(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Edit Description") },
+                    title = { Text("Редагувати опис") },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Закрити")
                         }
                     },
                     actions = {
+                        // Кнопка "Зберегти" використовує внутрішній стан 'text'
                         IconButton(onClick = { onSave(text) }) {
-                            Icon(Icons.Default.Done, contentDescription = "Save")
+                            Icon(Icons.Default.Done, contentDescription = "Зберегти")
                         }
                     }
                 )
             }
         ) { paddingValues ->
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
+            // ✨ ОСНОВНА ЗМІНА:
+            // Замість старого WebView, тепер тут викликається наш новий компонент.
+            MarkdownEditorViewer(
+                initialText = text,
+                // Коли текст в редакторі змінюється, ми оновлюємо внутрішній стан.
+                onTextChange = { newText ->
+                    text = newText
+                },
+                // Передаємо відступи від Scaffold, щоб компонент правильно вписався в екран.
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                label = { Text("Notes (Markdown supported)") }
+                    .padding(paddingValues)
             )
         }
     }
