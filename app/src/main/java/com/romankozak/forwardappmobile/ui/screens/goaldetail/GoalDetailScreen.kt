@@ -309,7 +309,7 @@ fun GoalDetailScreen(
                                 0
                             ),
                             goalWithInstance = goalWithInstanceInfo,
-                            isHighlighted = isHighlighted,
+                         //   isHighlighted = isHighlighted,
                             isDragging = isDragging,
                             associatedLists = associatedLists,
                             obsidianVaultName = obsidianVaultName,
