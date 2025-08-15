@@ -1,21 +1,15 @@
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/SwipeableGoalItem.kt
+
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -27,14 +21,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -60,7 +47,6 @@ fun SwipeableGoalItem(
     modifier: Modifier = Modifier,
     resetTrigger: Int,
     goalWithInstance: GoalWithInstanceInfo,
-    isHighlighted: Boolean,
     isDragging: Boolean,
     associatedLists: List<GoalList>,
     obsidianVaultName: String,
@@ -74,214 +60,172 @@ fun SwipeableGoalItem(
     onSwipeStart: () -> Unit,
     isAnotherItemSwiped: Boolean,
     dragHandleModifier: Modifier = Modifier,
-    // ✨ ДОДАНО: Нові колбеки для правого свайпу
     onMoreActionsRequest: () -> Unit,
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
-    onCopyGoalRequest: () -> Unit
-)
-
-{
+    onCopyGoalRequest: () -> Unit,
+) {
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
 
-    var swipeResetKey by remember { mutableStateOf(0) }
-
-    LaunchedEffect(isDragging) {
-        if (!isDragging) {
-            swipeResetKey++
-        }
-    }
+    var swipeResetKey by remember { mutableIntStateOf(0) }
+    LaunchedEffect(isDragging) { if (!isDragging) swipeResetKey++ }
 
     key(swipeResetKey, resetTrigger) {
-        val swipeState = remember {
-            AnchoredDraggableState(
-                initialValue = SwipeState.Normal,
-                anchors = DraggableAnchors { SwipeState.Normal at 0f },
-                positionalThreshold = { distance: Float -> distance * 0.6f },
-                velocityThreshold = { with(density) { 100.dp.toPx() } },
-                snapAnimationSpec = tween(300, easing = FastOutSlowInEasing),
-                decayAnimationSpec = splineBasedDecay(density)
-            )
-        }
-
-        // ✨ ЗМІНЕНО: Збільшено відстань для правого свайпу, щоб розмістити 4 кнопки
         val actionsRevealPx = with(density) { 288.dp.toPx() }
         val actionsRevealPxNegative = with(density) { -180.dp.toPx() }
 
-        LaunchedEffect(Unit) {
-            swipeState.updateAnchors(
-                DraggableAnchors {
-                    SwipeState.Normal at 0f
-                    SwipeState.ActionsRevealedStart at actionsRevealPx
-                    SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
-                }
+        val anchors = DraggableAnchors {
+            SwipeState.ActionsRevealedStart at actionsRevealPx
+            SwipeState.Normal at 0f
+            SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
+        }
+
+        val confirmValueChange: (SwipeState) -> Boolean = { newValue ->
+            val current = SwipeState.Normal // Тимчасово встановлюємо значення за замовчуванням
+            !(current == SwipeState.ActionsRevealedStart && newValue == SwipeState.ActionsRevealedEnd) &&
+                    !(current == SwipeState.ActionsRevealedEnd && newValue == SwipeState.ActionsRevealedStart)
+        }
+
+        val swipeState = remember {
+            AnchoredDraggableState(
+                initialValue = SwipeState.Normal,
+                anchors = anchors,
+                positionalThreshold = { distance: Float -> distance * 0.6f },
+                velocityThreshold = { with(density) { 100.dp.toPx() } },
+                snapAnimationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                decayAnimationSpec = androidx.compose.animation.core.exponentialDecay(),
+                confirmValueChange = confirmValueChange,
             )
         }
 
-        val resetSwipe: () -> Unit = {
-            coroutineScope.launch {
-                swipeState.animateTo(SwipeState.Normal)
-            }
-        }
+        val resetSwipe = { coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) } }
 
-        LaunchedEffect(swipeState.currentValue) {
-            if (swipeState.currentValue != SwipeState.Normal) {
-                onSwipeStart()
-            }
+        LaunchedEffect(swipeState.settledValue) {
+            if (swipeState.settledValue != SwipeState.Normal) onSwipeStart()
         }
 
         LaunchedEffect(isAnotherItemSwiped) {
-            if (isAnotherItemSwiped) {
-                resetSwipe()
-            }
+            if (isAnotherItemSwiped) resetSwipe()
         }
 
-        val actionsAlpha = (abs(swipeState.offset) / actionsRevealPx).coerceIn(0f, 1f)
+        val offset = swipeState.requireOffset()
+        val actionsAlpha = (abs(offset) /
+                if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative)
+                ).coerceIn(0f, 1f)
 
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // ✨ ПОВНІСТЮ ОНОВЛЕНО: Блок для правого свайпу тепер містить 4 кнопки
-            if (swipeState.offset > 0) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // --- Кнопки дій справа (offset > 0) ---
+            if (offset > 0) {
                 Row(
                     modifier = Modifier
                         .matchParentSize()
                         .alpha(actionsAlpha),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     val buttonWidth = 72.dp
-                    // 1. More Actions (заглушка)
+
                     Surface(
                         onClick = { onMoreActionsRequest(); resetSwipe() },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(buttonWidth),
+                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
                         color = MaterialTheme.colorScheme.secondary,
-                        shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+                        shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp),
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.MoreVert, "Більше дій", tint = MaterialTheme.colorScheme.onSecondary)
                         }
                     }
-                    // 2. Create Instance (Clone)
+
                     Surface(
                         onClick = { onCreateInstanceRequest(); resetSwipe() },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(buttonWidth),
+                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
                         color = MaterialTheme.colorScheme.primary,
-                        shape = RectangleShape
+                        shape = RectangleShape,
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.AddLink, "Створити зв'язок", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
-                    // 3. Move Instance
+
                     Surface(
                         onClick = { onMoveInstanceRequest(); resetSwipe() },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(buttonWidth),
+                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
                         color = MaterialTheme.colorScheme.primary,
-                        shape = RectangleShape
+                        shape = RectangleShape,
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.AutoMirrored.Filled.Send, "Перемістити", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
-                    // 4. Copy Goal (Clone goal)
+
                     Surface(
                         onClick = { onCopyGoalRequest(); resetSwipe() },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(buttonWidth),
+                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
                         color = MaterialTheme.colorScheme.primary,
-                        shape = RectangleShape
+                        shape = RectangleShape,
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.ContentCopy, "Клонувати ціль", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 }
             }
-            else if (swipeState.offset < 0) {
+
+            // --- Кнопки дій зліва (offset < 0) ---
+            if (offset < 0) {
                 Row(
                     modifier = Modifier
                         .matchParentSize()
                         .alpha(actionsAlpha),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     Surface(
-                        onClick = {
-                            onDelete()
-                            resetSwipe()
-                        },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(88.dp),
+                        onClick = { onDelete(); resetSwipe() },
+                        modifier = Modifier.fillMaxHeight().width(88.dp),
                         color = MaterialTheme.colorScheme.error,
-                        shape = RectangleShape
+                        shape = RectangleShape,
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.Delete, "Видалити", tint = MaterialTheme.colorScheme.onError)
                         }
                     }
+
                     Surface(
-                        onClick = {
-                            // заглушка для нової дії
-                            resetSwipe()
-                        },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(88.dp),
+                        onClick = { resetSwipe() },
+                        modifier = Modifier.fillMaxHeight().width(88.dp),
                         color = MaterialTheme.colorScheme.tertiary,
-                        shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+                        shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.DeleteForever, "Видалити звідусіль", tint = MaterialTheme.colorScheme.onTertiary)
                         }
                     }
                 }
             }
 
-
+            // --- Основний контент ---
             Surface(
                 modifier = modifier
                     .fillMaxWidth()
-                    .offset {
-                        val offsetValue = swipeState.offset
-                        if (offsetValue.isFinite()) {
-                            IntOffset(offsetValue.roundToInt(), 0)
-                        } else {
-                            IntOffset.Zero
-                        }
-                    }
-                    .anchoredDraggable(state = swipeState, orientation = Orientation.Horizontal),
+                    .offset { IntOffset(offset.roundToInt(), 0) }
+                    .anchoredDraggable(
+                        state = swipeState,
+                        orientation = Orientation.Horizontal,
+                    ),
                 color = backgroundColor,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
             ) {
                 GoalItem(
                     goal = goalWithInstance.goal,
                     associatedLists = associatedLists,
                     obsidianVaultName = obsidianVaultName,
                     onToggle = onToggle,
-                    onItemClick = {
-                        if (swipeState.currentValue == SwipeState.Normal) {
-                            onItemClick()
-                        } else {
-                            resetSwipe()
-                        }
-                    },
-                    onLongClick = {
-                        if (swipeState.currentValue == SwipeState.Normal) {
-                            onLongClick()
-                        }
-                    },
+                    onItemClick = { if (swipeState.settledValue == SwipeState.Normal) onItemClick() else resetSwipe() },
+                    onLongClick = { if (swipeState.settledValue == SwipeState.Normal) onLongClick() },
                     onTagClick = onTagClick,
                     onAssociatedListClick = onAssociatedListClick,
                     backgroundColor = Color.Transparent,
-                    dragHandleModifier = dragHandleModifier
+                    dragHandleModifier = dragHandleModifier,
                 )
             }
         }
