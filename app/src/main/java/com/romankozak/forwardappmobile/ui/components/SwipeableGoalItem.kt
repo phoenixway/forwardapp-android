@@ -72,8 +72,12 @@ fun SwipeableGoalItem(
     LaunchedEffect(isDragging) { if (!isDragging) swipeResetKey++ }
 
     key(swipeResetKey, resetTrigger) {
-        val actionsRevealPx = with(density) { 288.dp.toPx() }
-        val actionsRevealPxNegative = with(density) { -180.dp.toPx() }
+        val actionsRevealPx = with(density) { 240.dp.toPx() } // Зменшено відстань для активації
+        val actionsRevealPxNegative = with(density) { -160.dp.toPx() } // Зменшено відстань для активації
+
+        // Додаткові пороги для більш контрольованого свайпу
+        val minSwipeDistance = with(density) { 32.dp.toPx() }
+        val maxSwipeDistance = with(density) { 320.dp.toPx() }
 
         val anchors = DraggableAnchors {
             SwipeState.ActionsRevealedStart at actionsRevealPx
@@ -81,22 +85,35 @@ fun SwipeableGoalItem(
             SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
         }
 
-        val confirmValueChange: (SwipeState) -> Boolean = { newValue ->
-            val current = SwipeState.Normal // Тимчасово встановлюємо значення за замовчуванням
-            !(current == SwipeState.ActionsRevealedStart && newValue == SwipeState.ActionsRevealedEnd) &&
-                    !(current == SwipeState.ActionsRevealedEnd && newValue == SwipeState.ActionsRevealedStart)
-        }
+        // Простіший підхід без використання swipeState в confirmValueChange
+        var lastConfirmedState by remember { mutableStateOf(SwipeState.Normal) }
 
         val swipeState = remember {
             AnchoredDraggableState(
                 initialValue = SwipeState.Normal,
                 anchors = anchors,
-                positionalThreshold = { distance: Float -> distance * 0.6f },
-                velocityThreshold = { with(density) { 100.dp.toPx() } },
-                snapAnimationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                positionalThreshold = { distance: Float -> distance * 0.8f },
+                velocityThreshold = { with(density) { 200.dp.toPx() } },
+                snapAnimationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
                 decayAnimationSpec = androidx.compose.animation.core.exponentialDecay(),
-                confirmValueChange = confirmValueChange,
+                confirmValueChange = { newValue ->
+                    val canChange = when {
+                        // Блокуємо прямий перехід між протилежними станами
+                        lastConfirmedState == SwipeState.ActionsRevealedStart && newValue == SwipeState.ActionsRevealedEnd -> false
+                        lastConfirmedState == SwipeState.ActionsRevealedEnd && newValue == SwipeState.ActionsRevealedStart -> false
+                        else -> true
+                    }
+                    if (canChange) {
+                        lastConfirmedState = newValue
+                    }
+                    canChange
+                },
             )
+        }
+
+        // Оновлюємо lastConfirmedState при зміні стану
+        LaunchedEffect(swipeState.settledValue) {
+            lastConfirmedState = swipeState.settledValue
         }
 
         val resetSwipe = { coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) } }
@@ -110,6 +127,7 @@ fun SwipeableGoalItem(
         }
 
         val offset = swipeState.requireOffset()
+            .coerceIn(-maxSwipeDistance, maxSwipeDistance) // Обмежуємо максимальний offset
         val actionsAlpha = (abs(offset) /
                 if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative)
                 ).coerceIn(0f, 1f)
