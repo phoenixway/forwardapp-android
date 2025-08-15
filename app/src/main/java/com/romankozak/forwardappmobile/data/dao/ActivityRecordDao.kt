@@ -14,7 +14,8 @@ interface ActivityRecordDao {
     @Update
     suspend fun update(record: ActivityRecord)
 
-    @Query("SELECT * FROM activity_records ORDER BY createdAt DESC")
+    // ✨ ОНОВЛЕНО: Змінено сортування на ASC, щоб старіші записи були першими
+    @Query("SELECT * FROM activity_records ORDER BY createdAt ASC")
     fun getAllRecordsStream(): Flow<List<ActivityRecord>>
 
     @Query("SELECT * FROM activity_records WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")

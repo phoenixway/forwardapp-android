@@ -15,9 +15,11 @@ import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -69,6 +71,12 @@ class GoalEditViewModel @Inject constructor(
     val events = _events.receiveAsFlow()
 
     private var currentGoal: Goal? = null
+
+    var markdown: String = "## Початковий текст"
+        private set
+
+    private var saveJob: Job? = null
+
 
     val listHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
         .map { allLists ->
@@ -188,7 +196,9 @@ class GoalEditViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    goalText = TextFieldValue(goal.text), // ✨ ОНОВЛЕНО                    goalDescription = goal.description ?: "",
+                    goalText = TextFieldValue(goal.text),
+                    // ✨ ВИПРАВЛЕНО: Цей рядок тепер коректно завантажує опис цілі
+                    goalDescription = goal.description ?: "",
                     associatedLists = lists,
                     isReady = true,
                     isNewGoal = false,
@@ -464,4 +474,15 @@ class GoalEditViewModel @Inject constructor(
             )
         }
     }
+
+    fun updateMarkdown(newText: String, goalId: Long) {
+        markdown = newText
+
+        saveJob?.cancel()
+        saveJob = viewModelScope.launch {
+            delay(1000L) // debounce 1 сек
+            goalRepository.updateMarkdown(goalId, newText)
+        }
+    }
+
 }

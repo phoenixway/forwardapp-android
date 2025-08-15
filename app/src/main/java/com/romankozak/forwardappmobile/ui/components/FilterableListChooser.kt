@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -109,15 +108,22 @@ private fun RecursiveSelectableListItem(
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
-                contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
-                modifier = Modifier
-                    .size(24.dp)
-                    .alpha(if (hasChildren) 1f else 0f)
-                    .clickable { onToggleExpanded(list.id) }
-            )
+            // ✨ ВИПРАВЛЕНО: Іконка рендериться тільки якщо є дочірні елементи.
+            // Для елементів без дітей використовується Spacer для збереження вирівнювання.
+            if (hasChildren) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
+                    contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onToggleExpanded(list.id) }
+                )
+            } else {
+                Spacer(modifier = Modifier.width(24.dp))
+            }
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Text(
                 text = list.name,
                 color = if (isEnabled) LocalContentColor.current else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)

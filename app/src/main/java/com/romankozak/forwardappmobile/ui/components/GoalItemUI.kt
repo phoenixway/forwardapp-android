@@ -32,19 +32,21 @@ import java.util.Locale
 // --- Допоміжна логіка для парсингу іконок ---
 private enum class IconCategory { IMPORTANCE, SCALE, ACTIVITY, CUSTOM }
 private data class IconConfig(val icon: String, val markers: List<String>, val category: IconCategory)
+
+// ✨ ВИПРАВЛЕНО: Маркери для іконок тепер використовують @контексти замість #тегів
 private val ICON_CONFIGS: List<IconConfig> = listOf(
-    IconConfig("🔥", listOf("#critical", "! ", "!"), IconCategory.IMPORTANCE),
-    IconConfig("⭐", listOf("#day", "+"), IconCategory.IMPORTANCE),
-    IconConfig("📌", listOf("#week", "++"), IconCategory.SCALE),
-    IconConfig("🗓️", listOf("#month"), IconCategory.SCALE),
-    IconConfig("🎯", listOf("#middle-term", "+++ "), IconCategory.SCALE),
-    IconConfig("🔭", listOf("#long-term", "~ ", "~"), IconCategory.SCALE),
-    IconConfig("✨", listOf("#str"), IconCategory.SCALE),
-    IconConfig("🛠️", listOf("#manual"), IconCategory.ACTIVITY),
-    IconConfig("🧠", listOf("#mental", "#pm"), IconCategory.ACTIVITY),
-    IconConfig("📱", listOf("#device"), IconCategory.ACTIVITY),
-    IconConfig("🔬", listOf("#research"), IconCategory.CUSTOM),
-    IconConfig("🌫️", listOf("#unclear"), IconCategory.CUSTOM),
+    IconConfig("🔥", listOf("@critical", "! ", "!"), IconCategory.IMPORTANCE),
+    IconConfig("⭐", listOf("@day", "+"), IconCategory.IMPORTANCE),
+    IconConfig("📌", listOf("@week", "++"), IconCategory.SCALE),
+    IconConfig("🗓️", listOf("@month"), IconCategory.SCALE),
+    IconConfig("🎯", listOf("@middle", "+++ "), IconCategory.SCALE),
+    IconConfig("🔭", listOf("@long", "~ ", "~"), IconCategory.SCALE),
+    IconConfig("✨", listOf("@str"), IconCategory.SCALE),
+    IconConfig("🛠️", listOf("@manual"), IconCategory.ACTIVITY),
+    IconConfig("🧠", listOf("@mental", "@pm"), IconCategory.ACTIVITY),
+    IconConfig("📱", listOf("@device"), IconCategory.ACTIVITY),
+    IconConfig("🔬", listOf("@research"), IconCategory.CUSTOM),
+    IconConfig("🌫️", listOf("@unclear"), IconCategory.CUSTOM),
 )
 private data class ParsedGoalData(val icons: List<IconConfig>, val mainText: String)
 private fun parseTextAndExtractIcons(text: String): ParsedGoalData {
@@ -96,9 +98,6 @@ fun GoalItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                // ✨ ВИПРАВЛЕНО: Додано універсальний обробник для всього рядка.
-                // Дочірні елементи з власними кліками (текст, чекбокс) матимуть вищий пріоритет
-                // і перехоплять подію, що є бажаною поведінкою.
                 .pointerInput(onItemClick, onLongClick) {
                     detectTapGestures(
                         onLongPress = { onLongClick() },
@@ -128,8 +127,6 @@ fun GoalItem(
                     isCompleted = goal.completed,
                     obsidianVaultName = obsidianVaultName,
                     onTagClick = onTagClick,
-                    // Передаємо onItemClick і onLongClick як запасні варіанти для MarkdownText.
-                    // Вони спрацюють, якщо не було натиснуто на тег/посилання.
                     onTextClick = onItemClick,
                     onLongClick = onLongClick,
                     style = MaterialTheme.typography.bodyLarge
