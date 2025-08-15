@@ -191,7 +191,7 @@ fun SwipeableGoalItem(
                     Surface(
                         onClick = { onCreateInstanceRequest(); resetSwipe() },
                         modifier = Modifier.fillMaxHeight().width(buttonWidth),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.tertiary,
                         shape = RectangleShape,
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -215,7 +215,7 @@ fun SwipeableGoalItem(
                     Surface(
                         onClick = { onCopyGoalRequest(); resetSwipe() },
                         modifier = Modifier.fillMaxHeight().width(buttonWidth),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.inversePrimary,
                         shape = RectangleShape,
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
