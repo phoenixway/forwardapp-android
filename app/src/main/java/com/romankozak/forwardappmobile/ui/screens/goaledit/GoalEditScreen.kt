@@ -1,3 +1,5 @@
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt
+
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goaledit
@@ -176,9 +178,7 @@ fun GoalEditScreen(
 
                 item {
                     LimitedMarkdownEditor(
-                        // Тепер ми передаємо об'єкт TextFieldValue, а не String
                         value = uiState.goalDescription,
-                        // А функція onDescriptionChange вже очікує TextFieldValue
                         onValueChange = viewModel::onDescriptionChange,
                         maxHeight = 150.dp,
                         onExpandClick = { viewModel.openDescriptionEditor() },
@@ -240,14 +240,22 @@ fun GoalEditScreen(
             expandedIds = listChooserExpandedIds,
             onToggleExpanded = viewModel::onListChooserToggleExpanded,
             onDismiss = viewModel::onDismissListChooser,
-            onConfirm = viewModel::onAddListAssociation,
+            // ✨ ВИПРАВЛЕНО 1: Використовуємо лямбду, щоб обробити nullable ID
+            onConfirm = { listId ->
+                // Ціль можна додати тільки до існуючого списку, тому ігноруємо null
+                if (listId != null) {
+                    viewModel.onAddListAssociation(listId)
+                }
+            },
+            // ✨ ВИПРАВЛЕНО 2: Цей параметр тут не потрібен, передаємо null
+            currentParentId = null,
             disabledIds = uiState.associatedLists.map { it.id }.toSet()
         )
     }
 
     if (uiState.isDescriptionEditorOpen) {
         FullScreenMarkdownEditor(
-            initialValue = uiState.goalDescription, // ✨ Змінено з initialText на initialValue
+            initialValue = uiState.goalDescription,
             onDismiss = { viewModel.closeDescriptionEditor() },
             onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) }
         )

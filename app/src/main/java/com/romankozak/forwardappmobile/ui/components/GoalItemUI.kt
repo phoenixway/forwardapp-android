@@ -8,9 +8,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -134,7 +139,8 @@ fun GoalItem(
 
                 val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
                         parsedData.icons.isNotEmpty() ||
-                        associatedLists.isNotEmpty()
+                        associatedLists.isNotEmpty() ||
+                        !goal.description.isNullOrBlank()
 
                 if (hasStatusContent) {
                     Spacer(modifier = Modifier.height(10.dp))
@@ -150,6 +156,17 @@ fun GoalItem(
                                 text = iconData.icon,
                                 style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.align(Alignment.CenterVertically)
+                            )
+                        }
+
+                        if (!goal.description.isNullOrBlank()) {
+                            Icon(
+                                imageVector = Icons.Outlined.StickyNote2,
+                                contentDescription = "Contains a note",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .align(Alignment.CenterVertically)
                             )
                         }
 

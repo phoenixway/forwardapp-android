@@ -437,6 +437,8 @@ private fun HandleDialogs(
                 onToggleExpanded = viewModel::onListChooserToggleExpanded,
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { newParentId -> viewModel.onMoveListConfirmed(newParentId) },
+                currentParentId = state.list.parentId, // <-- ДОДАЙТЕ ЦЕЙ РЯДОК
+
                 disabledIds = disabledIds
             )
         }

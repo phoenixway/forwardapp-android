@@ -33,7 +33,8 @@ fun FilterableListChooser(
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+    onConfirm: (String?) -> Unit, // ✨ ЗМІНЕНО: Тепер приймає nullable String
+    currentParentId: String?, // ✨ ДОДАНО: ID поточного батька для деактивації опції "Корінь"
     disabledIds: Set<String> = emptySet()
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -56,6 +57,20 @@ fun FilterableListChooser(
                         .fillMaxWidth()
                         .heightIn(max = 400.dp)
                 ) {
+                    // ✨ ДОДАНО: Статичний елемент для вибору кореневого рівня
+                    if (filterText.isBlank()) {
+                        item {
+                            val isAlreadyAtRoot = currentParentId == null
+                            SelectableRootItem(
+                                isEnabled = !isAlreadyAtRoot,
+                                onSelect = {
+                                    onConfirm(null)
+                                    onDismiss()
+                                }
+                            )
+                        }
+                    }
+
                     items(topLevelLists, key = { it.id }) { list ->
                         RecursiveSelectableListItem(
                             list = list,
@@ -84,6 +99,31 @@ fun FilterableListChooser(
     }
 }
 
+// ✨ ДОДАНО: Новий компонент для відображення опції "Корінь"
+@Composable
+private fun SelectableRootItem(
+    isEnabled: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = isEnabled, onClick = onSelect)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Spacer для вирівнювання з іншими елементами
+        Spacer(modifier = Modifier.width(24.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "Корінь (верхній рівень)",
+            fontWeight = FontWeight.Bold,
+            color = if (isEnabled) LocalContentColor.current else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        )
+    }
+}
+
+
 @Composable
 private fun RecursiveSelectableListItem(
     list: GoalList,
@@ -108,8 +148,6 @@ private fun RecursiveSelectableListItem(
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ✨ ВИПРАВЛЕНО: Іконка рендериться тільки якщо є дочірні елементи.
-            // Для елементів без дітей використовується Spacer для збереження вирівнювання.
             if (hasChildren) {
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
