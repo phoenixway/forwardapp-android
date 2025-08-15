@@ -26,13 +26,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalInputBar
 import com.romankozak.forwardappmobile.ui.components.MultiSelectTopAppBar
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.dialogs.InputModeDialog
-import com.romankozak.forwardappmobile.ui.dialogs.ListChooserDialog
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -48,12 +48,15 @@ fun GoalDetailScreen(
     val goals by viewModel.filteredGoals.collectAsState()
     val goalActionState by viewModel.goalActionDialogState.collectAsState()
     val showInputModeDialog by viewModel.showInputModeDialog.collectAsState()
-    val listHierarchy by viewModel.listHierarchyForChooser.collectAsState()
     val list by viewModel.goalList.collectAsState()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsState()
     val allContexts by viewModel.allContextNames.collectAsState()
     val associatedListsMap by viewModel.associatedListsMap.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
+
+    val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsState()
+    val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
+    val listChooserExpandedIds by viewModel.listChooserExpandedIds.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -62,18 +65,16 @@ fun GoalDetailScreen(
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val listState = rememberLazyListState()
-    val haptic = LocalHapticFeedback.current // Отримуємо доступ до HapticFeedback
+    val haptic = LocalHapticFeedback.current
 
     val reorderableLazyListState = rememberReorderableLazyListState(
         lazyListState = listState,
         scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
-
         onMove = { from, to ->
             viewModel.moveGoal(from.index, to.index, false)
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
 
-            // Improved scrolling logic
-            val scrollThreshold = 2 // items
+            val scrollThreshold = 2
             coroutineScope.launch {
                 val firstVisible = listState.firstVisibleItemIndex
                 val lastVisible = firstVisible + listState.layoutInfo.visibleItemsInfo.size - 1
@@ -90,8 +91,7 @@ fun GoalDetailScreen(
                 }
             }
         },
-
-        )
+    )
 
     fun getCurrentWord(textValue: TextFieldValue): String? {
         val cursorPosition = textValue.selection.start
@@ -129,15 +129,8 @@ fun GoalDetailScreen(
                         }
                     }
                 }
-
-                is UiEvent.Navigate -> {
-                    navController.navigate(event.route)
-                }
-
-                is UiEvent.ResetSwipeState -> {
-                    // Ця логіка тепер у ViewModel
-                }
-
+                is UiEvent.Navigate -> navController.navigate(event.route)
+                is UiEvent.ResetSwipeState -> { /* Handled in VM */ }
                 is UiEvent.ScrollTo -> {
                     coroutineScope.launch {
                         listState.animateScrollToItem(event.index.coerceAtLeast(0))
@@ -171,8 +164,8 @@ fun GoalDetailScreen(
 
     Scaffold(
         modifier = Modifier
-            .navigationBarsPadding() // ✨ ВИПРАВЛЕНО: Додано відступ для системної навігації
-            .imePadding(),           // Цей модифікатор залишається для клавіатури
+            .navigationBarsPadding()
+            .imePadding(),
         topBar = {
             if (isSelectionModeActive) {
                 MultiSelectTopAppBar(
@@ -273,7 +266,6 @@ fun GoalDetailScreen(
                         key = goalWithInstanceInfo.instanceId,
                         enabled = !isSelectionModeActive
                     ) { isDragging ->
-                        // Анімації для елемента, що перетягується
                         val scale by animateFloatAsState(
                             if (isDragging) 1.05f else 1f,
                             label = "scale"
@@ -321,9 +313,7 @@ fun GoalDetailScreen(
                             isDragging = isDragging,
                             associatedLists = associatedLists,
                             obsidianVaultName = obsidianVaultName,
-                            onEdit = { viewModel.onEditGoal(goalWithInstanceInfo) },
                             onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
-                            onMore = { viewModel.onGoalActionInitiated(goalWithInstanceInfo) },
                             backgroundColor = itemBackgroundColor,
                             onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
                             onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
@@ -334,11 +324,18 @@ fun GoalDetailScreen(
                             },
                             onItemClick = { viewModel.onGoalClick(goalWithInstanceInfo) },
                             onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
-                            // ✨ ВИПРАВЛЕНО: Використовуємо draggableHandle з вашого прикладу
-                            dragHandleModifier = if (!isSelectionModeActive) {
+                            onSwipeStart = { viewModel.onSwipeStart(goalWithInstanceInfo.instanceId) },
+                            isAnotherItemSwiped = uiState.swipedInstanceId != null && uiState.swipedInstanceId != goalWithInstanceInfo.instanceId,
 
+                            // ✨ ОНОВЛЕНО: Передаємо нові колбеки
+                            onMoreActionsRequest = { /* Заглушка для меню */ },
+                            onCreateInstanceRequest = { viewModel.onCreateInstanceRequest(goalWithInstanceInfo) },
+                            onMoveInstanceRequest = { viewModel.onMoveInstanceRequest(goalWithInstanceInfo) },
+                            onCopyGoalRequest = { viewModel.onCopyGoalRequest(goalWithInstanceInfo) },
+
+                            dragHandleModifier = if (!isSelectionModeActive) {
                                 Modifier.draggableHandle(
-                                    onDragStarted = { _ -> // ✨ Виправлено: додано невикористовуваний параметр
+                                    onDragStarted = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     }
                                 )
@@ -367,13 +364,32 @@ fun GoalDetailScreen(
                 onActionSelected = { viewModel.onGoalActionSelected(it) }
             )
         }
-
         is GoalActionDialogState.AwaitingListChoice -> {
-            ListChooserDialog(
-                topLevelLists = listHierarchy.topLevelLists,
-                childMap = listHierarchy.childMap,
+            val title = when (state.actionType) {
+                GoalActionType.CreateInstance -> "Створити зв'язок у..."
+                GoalActionType.MoveInstance -> "Перемістити до..."
+                GoalActionType.CopyGoal -> "Копіювати до..."
+                else -> "Виберіть список"
+            }
+            val currentListId = list?.id
+            val disabledIds = if (currentListId != null) setOf(currentListId) else emptySet()
+
+            FilterableListChooser(
+                title = title,
+                filterText = listChooserFilterText,
+                onFilterTextChanged = viewModel::onListChooserFilterChanged,
+                topLevelLists = filteredListHierarchy.topLevelLists,
+                childMap = filteredListHierarchy.childMap,
+                expandedIds = listChooserExpandedIds,
+                onToggleExpanded = viewModel::onListChooserToggleExpanded,
                 onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onConfirm = { viewModel.confirmGoalAction(it) }
+                onConfirm = { listId ->
+                    if (listId != null) {
+                        viewModel.confirmGoalAction(listId)
+                    }
+                },
+                currentParentId = null,
+                disabledIds = disabledIds
             )
         }
     }

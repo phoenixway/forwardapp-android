@@ -49,9 +49,11 @@ data class UiState(
     val newlyAddedGoalInstanceId: String? = null,
     val selectedInstanceIds: Set<String> = emptySet(),
     val inputValue: TextFieldValue = TextFieldValue(""),
-    val resetTriggers: Map<String, Int> = emptyMap() // ✨ ДОДАНО
+    val resetTriggers: Map<String, Int> = emptyMap(),
+    val swipedInstanceId: String? = null
 )
 data class ListHierarchy(
+    val allLists: List<GoalList> = emptyList(),
     val topLevelLists: List<GoalList>,
     val childMap: Map<String, List<GoalList>>
 )
@@ -133,12 +135,85 @@ class GoalDetailViewModel @Inject constructor(
     val obsidianVaultName: StateFlow<String> = settingsRepository.obsidianVaultNameFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    val listHierarchyForChooser: StateFlow<ListHierarchy> = goalRepository.getAllGoalListsFlow()
+    private val _listChooserFilterText = MutableStateFlow("")
+    val listChooserFilterText = _listChooserFilterText.asStateFlow()
+
+    private val _listChooserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
+    val listChooserExpandedIds = _listChooserExpandedIds.asStateFlow()
+
+    private val fullListHierarchy: StateFlow<ListHierarchy> = goalRepository.getAllGoalListsFlow()
         .map { allLists ->
             val topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order }
             val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            ListHierarchy(topLevelLists, childMap)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyMap()))
+            ListHierarchy(allLists, topLevelLists, childMap)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
+
+    val filteredListHierarchyForDialog: StateFlow<ListHierarchy> =
+        combine(listChooserFilterText, fullListHierarchy) { filter, originalHierarchy ->
+            if (filter.isBlank()) {
+                originalHierarchy
+            } else {
+                val allListsById = originalHierarchy.allLists.associateBy { it.id }
+                val matchingIds = originalHierarchy.allLists
+                    .filter { it.name.contains(filter, ignoreCase = true) }
+                    .map { it.id }
+                    .toSet()
+
+                if (matchingIds.isEmpty()) return@combine ListHierarchy(originalHierarchy.allLists, emptyList(), emptyMap())
+
+                val visibleIds = matchingIds.toMutableSet()
+                matchingIds.forEach { id ->
+                    var current = allListsById[id]
+                    while (current?.parentId != null) {
+                        visibleIds.add(current.parentId!!)
+                        current = allListsById[current.parentId]
+                    }
+                }
+
+                val finalVisibleLists = originalHierarchy.allLists.filter { it.id in visibleIds }
+                val topLevel = finalVisibleLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
+                val childMap = finalVisibleLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+                ListHierarchy(originalHierarchy.allLists, topLevel, childMap)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
+
+    fun onListChooserFilterChanged(text: String) {
+        _listChooserFilterText.value = text
+    }
+
+    fun onListChooserToggleExpanded(listId: String) {
+        _listChooserExpandedIds.value = _listChooserExpandedIds.value.toMutableSet().apply {
+            if (listId in this) remove(listId) else add(listId)
+        }
+    }
+
+    fun onSwipeStart(instanceId: String) {
+        if (_uiState.value.swipedInstanceId != instanceId) {
+            _uiState.update { it.copy(swipedInstanceId = instanceId) }
+        }
+    }
+
+    // ✨ ДОДАНО: Прямі методи для виклику дій зі свайпу
+    fun onCreateInstanceRequest(goal: GoalWithInstanceInfo) {
+        _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
+            sourceInstanceIds = setOf(goal.instanceId),
+            actionType = GoalActionType.CreateInstance
+        )
+    }
+
+    fun onMoveInstanceRequest(goal: GoalWithInstanceInfo) {
+        _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
+            sourceInstanceIds = setOf(goal.instanceId),
+            actionType = GoalActionType.MoveInstance
+        )
+    }
+
+    fun onCopyGoalRequest(goal: GoalWithInstanceInfo) {
+        _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
+            sourceInstanceIds = setOf(goal.instanceId),
+            actionType = GoalActionType.CopyGoal
+        )
+    }
 
     fun onInputTextChanged(newValue: TextFieldValue) {
         _uiState.update {
@@ -267,8 +342,6 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(goalToHighlight = null) }
     }
 
-    // --- SELECTION MODE LOGIC ---
-
     fun onGoalLongClick(instanceId: String) {
         _uiState.update {
             it.copy(selectedInstanceIds = it.selectedInstanceIds + instanceId)
@@ -293,8 +366,6 @@ class GoalDetailViewModel @Inject constructor(
     fun clearSelection() {
         _uiState.update { it.copy(selectedInstanceIds = emptySet()) }
     }
-
-    // --- BULK ACTIONS LOGIC ---
 
     fun deleteSelectedGoals() {
         viewModelScope.launch {
@@ -337,8 +408,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- ACTION DIALOGS LOGIC ---
-
     fun onGoalActionInitiated(goal: GoalWithInstanceInfo) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(goal)
     }
@@ -374,6 +443,10 @@ class GoalDetailViewModel @Inject constructor(
         }
         _goalActionDialogState.value = GoalActionDialogState.Hidden
         goalInstanceId?.let { resetSwipe(it) }
+
+        _uiState.update { it.copy(swipedInstanceId = null) }
+        _listChooserFilterText.value = ""
+        _listChooserExpandedIds.value = emptySet()
     }
 
     fun confirmGoalAction(targetListId: String) {
@@ -414,7 +487,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- Input Mode Logic ---
     fun onInputModeChangeRequest() {
         _showInputModeDialog.value = true
     }
