@@ -30,7 +30,7 @@ sealed class GoalEditEvent {
 }
 
 data class GoalEditUiState(
-    val goalDescription: String = "",
+    val goalDescription: TextFieldValue = TextFieldValue(""),
     val associatedLists: List<GoalList> = emptyList(),
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
@@ -198,7 +198,7 @@ class GoalEditViewModel @Inject constructor(
                 it.copy(
                     goalText = TextFieldValue(goal.text),
                     // ✨ ВИПРАВЛЕНО: Цей рядок тепер коректно завантажує опис цілі
-                    goalDescription = goal.description ?: "",
+                    goalDescription = TextFieldValue(goal.description ?: ""),
                     associatedLists = lists,
                     isReady = true,
                     isNewGoal = false,
@@ -232,7 +232,13 @@ class GoalEditViewModel @Inject constructor(
 
     fun onTextChange(newValue: TextFieldValue) {
         _uiState.update { it.copy(goalText = newValue) }
-    }    fun onDescriptionChange(newDescription: String) = _uiState.update { it.copy(goalDescription = newDescription) }
+    }
+
+    fun onDescriptionChange(newValue: TextFieldValue) {
+        _uiState.update { it.copy(goalDescription = newValue) }
+    }
+
+
     fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
     fun onValueImpactChange(value: Float) = onScoringParameterChange { it.copy(valueImpact = value) }
     fun onEffortChange(value: Float) = onScoringParameterChange { it.copy(effort = value) }
@@ -309,7 +315,7 @@ class GoalEditViewModel @Inject constructor(
 
     private fun buildGoalFromState(state: GoalEditUiState): Goal {
         val currentTime = System.currentTimeMillis()
-        val descriptionToSave = state.goalDescription.ifEmpty { null }
+        val descriptionToSave = state.goalDescription.text.ifEmpty { null }
 
         return currentGoal?.copy(
             text = state.goalText.text, // ✨ ОНОВЛЕНО: .text
@@ -469,7 +475,7 @@ class GoalEditViewModel @Inject constructor(
     fun onDescriptionChangeAndCloseEditor(newDescription: String) {
         _uiState.update {
             it.copy(
-                goalDescription = newDescription,
+                goalDescription = it.goalDescription.copy(text = newDescription),
                 isDescriptionEditorOpen = false
             )
         }

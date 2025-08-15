@@ -1,105 +1,101 @@
 package com.romankozak.forwardappmobile.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun LimitedMarkdownEditor(
-    value: String,
-    onValueChange: (String) -> Unit,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     maxHeight: Dp,
     onExpandClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     OutlinedCard(modifier = modifier) {
+        // Використовуємо SubcomposeLayout для вимірювання висоти тексту
         SubcomposeLayout { constraints ->
-            // --- Крок 1: Вимірюємо повну висоту контенту БЕЗ обмежень по висоті ---
+            // Вимірюємо повну висоту текстового поля
             val fullContentPlaceable = subcompose("fullContent") {
-                Box(Modifier.padding(16.dp)) {
-                    MarkdownText(text = value)
-                }
-            }[0].measure(constraints.copy(maxHeight = Constraints.Infinity))
+                // Використовуємо BasicTextField для точного вимірювання
+                BasicTextField(
+                    value = value,
+                    onValueChange = {}, // onValueChange не потрібен для вимірювання
+                    modifier = Modifier.padding(16.dp), // Важливо, щоб відступи збігалися
+                    textStyle = LocalTextStyle.current,
+                    readOnly = true
+                )
+            }[0].measure(constraints)
 
             val isOverflowing = fullContentPlaceable.height > maxHeight.toPx()
-            val editorMaxHeight = if (isOverflowing) maxHeight else Dp.Infinity
 
-            // --- Крок 2: Вимірюємо видиму частину редактора з ОБМЕЖЕННЯМИ ---
+            // Основний видимий компонент
             val editorPlaceable = subcompose("editor") {
-                Box(modifier = Modifier.heightIn(max = editorMaxHeight)) {
-                    MarkdownText(
-                        text = value.ifEmpty { "Notes (Markdown supported)" },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        style = if (value.isEmpty()) {
-                            LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        } else {
-                            LocalTextStyle.current
+                Column {
+                    Box(Modifier.heightIn(max = maxHeight)) {
+                        BasicTextField(
+                            value = value,
+                            onValueChange = onValueChange,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            textStyle = LocalTextStyle.current.copy(
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                            cursorBrush = SolidColor(LocalContentColor.current),
+                            decorationBox = { innerTextField ->
+                                // Placeholder, якщо поле пусте
+                                if (value.text.isEmpty()) {
+                                    Text(
+                                        text = "Notes...",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        )
+                    }
+                    // Показуємо кнопку "More...", тільки якщо є переповнення
+                    if (isOverflowing) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            TextButton(onClick = onExpandClick) {
+                                Text("More...")
+                            }
                         }
-                    )
-                    BasicTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        // ✨ ВИПРАВЛЕННЯ 1: Синхронізуємо стилі для коректної роботи курсора
-                        // Ми беремо поточний стиль тексту і просто робимо його прозорим.
-                        textStyle = LocalTextStyle.current.copy(color = Color.Transparent),
-                        cursorBrush = SolidColor(LocalContentColor.current)
-                    )
+                    }
                 }
             }[0].measure(constraints)
 
-            // --- Крок 3: Вимірюємо індикатор "More...", якщо він потрібен ---
-            val moreIndicatorPlaceable = if (isOverflowing) {
-                subcompose("moreIndicator") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .background(
-                                // ✨ ВИПРАВЛЕННЯ 2: Робимо градієнт щільнішим
-                                // Перехід починається лише з 40% висоти блоку.
-                                Brush.verticalGradient(
-                                    colorStops = arrayOf(
-                                        0.4f to Color.Transparent,
-                                        1.0f to MaterialTheme.colorScheme.surface
-                                    )
-                                )
-                            )
-                            .clickable(onClick = onExpandClick),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        TextButton(
-                            onClick = onExpandClick,
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text("More...")
-                        }
-                    }
-                }[0].measure(constraints)
-            } else {
-                null
-            }
-
-            // --- Крок 4: Розміщуємо все на екрані ---
             layout(editorPlaceable.width, editorPlaceable.height) {
                 editorPlaceable.placeRelative(0, 0)
-                moreIndicatorPlaceable?.placeRelative(0, editorPlaceable.height - moreIndicatorPlaceable.height)
             }
         }
     }
