@@ -176,12 +176,15 @@ fun GoalEditScreen(
 
                 item {
                     LimitedMarkdownEditor(
+                        // Тепер ми передаємо об'єкт TextFieldValue, а не String
                         value = uiState.goalDescription,
+                        // А функція onDescriptionChange вже очікує TextFieldValue
                         onValueChange = viewModel::onDescriptionChange,
                         maxHeight = 150.dp,
                         onExpandClick = { viewModel.openDescriptionEditor() },
                         modifier = Modifier.fillMaxWidth()
                     )
+
                 }
 
                 item {
@@ -244,7 +247,7 @@ fun GoalEditScreen(
 
     if (uiState.isDescriptionEditorOpen) {
         FullScreenMarkdownEditor(
-            initialText = uiState.goalDescription,
+            initialValue = uiState.goalDescription, // ✨ Змінено з initialText на initialValue
             onDismiss = { viewModel.closeDescriptionEditor() },
             onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) }
         )
