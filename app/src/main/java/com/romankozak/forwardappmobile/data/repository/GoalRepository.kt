@@ -311,4 +311,9 @@ class GoalRepository @Inject constructor(
     suspend fun deleteGoalInstanceByGoalIdAndListId(goalId: String, listId: String) {
         goalDao.deleteInstanceByGoalAndList(goalId, listId)
     }
+
+    suspend fun updateMarkdown(goalId: Long, markdown: String) {
+        goalDao.updateMarkdown(goalId, markdown)
+    }
+
 }

@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.romankozak.forwardappmobile"
-        minSdk = 36
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -29,7 +29,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
+/*    buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -37,7 +37,7 @@ android {
                 "proguard-rules.pro"
             )
         }
-    }
+    }*/
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -57,6 +57,34 @@ android {
         resources {
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore.jks")          // <- через =
+            storePassword = "defpass1"
+            keyAlias = "romanKeyAlias"
+            keyPassword = "defpass1"
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            // для дебажної версії змінюємо applicationId
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    splits {
+        abi {
+            isEnable = false // один APK для всіх архітектур
         }
     }
 }

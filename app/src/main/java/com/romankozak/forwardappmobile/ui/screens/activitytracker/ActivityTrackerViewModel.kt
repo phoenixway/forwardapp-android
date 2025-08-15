@@ -1,4 +1,4 @@
-// Створіть новий файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/activitytracker/ActivityTrackerViewModel.kt
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/activitytracker/ActivityTrackerViewModel.kt
 
 package com.romankozak.forwardappmobile.ui.screens.activitytracker
 
@@ -19,6 +19,10 @@ class ActivityTrackerViewModel @Inject constructor(
     private val _inputText = MutableStateFlow("")
     val inputText = _inputText.asStateFlow()
 
+    // ✨ НОВИЙ СТАН: Зберігає запис, що редагується, та контролює видимість діалогу
+    private val _editingRecord = MutableStateFlow<ActivityRecord?>(null)
+    val editingRecord = _editingRecord.asStateFlow()
+
     val activityLog: StateFlow<List<ActivityRecord>> = repository.getLogStream()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -36,6 +40,7 @@ class ActivityTrackerViewModel @Inject constructor(
     }
 
     fun onTimelessRecordClick() = viewModelScope.launch {
+        if (_inputText.value.isBlank()) return@launch
         repository.addTimelessRecord(_inputText.value)
         clearInput()
     }
@@ -45,16 +50,47 @@ class ActivityTrackerViewModel @Inject constructor(
         val ongoingActivity = lastOngoingActivity.value
         val now = System.currentTimeMillis()
 
-        // Якщо є активна задача, її потрібно завершити
         if (ongoingActivity != null) {
             repository.endLastActivity(now)
         }
 
-        // Якщо в полі є текст, починаємо нову задачу
         if (text.isNotBlank()) {
             repository.startActivity(text, now)
         }
 
+        clearInput()
+    }
+
+    // ✨ ОНОВЛЕНО: Тепер ця функція відкриває діалог для редагування
+    fun onEditRequest(record: ActivityRecord) {
+        _editingRecord.value = record
+    }
+
+    // ✨ НОВА ФУНКЦІЯ: Закриває діалог редагування
+    fun onEditDialogDismiss() {
+        _editingRecord.value = null
+    }
+
+    // ✨ НОВА ФУНКЦІЯ: Оновлює запис з новим текстом
+    fun onRecordUpdated(newText: String) = viewModelScope.launch {
+        val recordToUpdate = _editingRecord.value
+        if (recordToUpdate != null && newText.isNotBlank()) {
+            // Створюємо копію запису з новим текстом
+            val updatedRecord = recordToUpdate.copy(text = newText)
+            repository.updateRecord(updatedRecord)
+        }
+        onEditDialogDismiss() // Закриваємо діалог після збереження
+    }
+
+    fun onRestartActivity(record: ActivityRecord) = viewModelScope.launch {
+        val ongoingActivity = lastOngoingActivity.value
+        val now = System.currentTimeMillis()
+
+        if (ongoingActivity != null) {
+            repository.endLastActivity(now)
+        }
+
+        repository.startActivity(record.text, now)
         clearInput()
     }
 

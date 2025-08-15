@@ -1,4 +1,4 @@
-// Створіть новий файл: app/src/main/java/com/romankozak/forwardappmobile/data/repository/ActivityRepository.kt
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/data/repository/ActivityRepository.kt
 
 package com.romankozak.forwardappmobile.data.repository
 
@@ -37,6 +37,12 @@ class ActivityRepository @Inject constructor(
             activityRecordDao.update(finishedActivity)
         }
     }
+
+    // ✨ НОВА ФУНКЦІЯ: Оновлює існуючий запис в базі даних
+    suspend fun updateRecord(record: ActivityRecord) {
+        activityRecordDao.update(record)
+    }
+
     suspend fun clearLog() {
         activityRecordDao.clearAll()
     }

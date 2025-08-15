@@ -42,7 +42,7 @@ fun MarkdownText(
     obsidianVaultName: String = "",
     onTagClick: (String) -> Unit = {},
     onTextClick: () -> Unit = {},
-    onLongClick: () -> Unit = {} // ✨ ЗМІНА №1: Додано обробник довгого натискання
+    onLongClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val tagColor = MaterialTheme.colorScheme.primary
@@ -91,7 +91,6 @@ fun MarkdownText(
                 annotatedLine
             }
 
-            // ✨ ЗМІНА №2: Повністю замінено ClickableText на Text з detectTapGestures
             var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
             val gesture = Modifier.pointerInput(Unit) {
@@ -181,7 +180,8 @@ private fun applyInlineStyles(
                         "@" -> SpanStyle(color = projectColor, fontWeight = FontWeight.Medium)
                         else -> SpanStyle()
                     }
-                    Triple(tagName, tagStyle, "SEARCH_TERM" to fullTag)
+                    // ✨ ВИПРАВЛЕНО: Тепер у текст вставляється fullTag (напр. "@контекст"), а не просто tagName ("контекст")
+                    Triple(fullTag, tagStyle, "SEARCH_TERM" to fullTag)
                 }
                 else -> Triple("", SpanStyle(), null)
             }

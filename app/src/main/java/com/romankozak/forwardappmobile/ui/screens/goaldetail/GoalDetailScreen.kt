@@ -170,6 +170,9 @@ fun GoalDetailScreen(
     }
 
     Scaffold(
+        modifier = Modifier
+            .navigationBarsPadding() // ✨ ВИПРАВЛЕНО: Додано відступ для системної навігації
+            .imePadding(),           // Цей модифікатор залишається для клавіатури
         topBar = {
             if (isSelectionModeActive) {
                 MultiSelectTopAppBar(

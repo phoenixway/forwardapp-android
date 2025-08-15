@@ -8,15 +8,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -27,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,8 +34,8 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import androidx.compose.foundation.BorderStroke // ✨ ВИПРАВЛЕНО: Додано відсутній імпорт
 
-// --- Головна функція екрану ---
 @Composable
 fun ActivityTrackerScreen(
     navController: NavController,
@@ -46,6 +44,7 @@ fun ActivityTrackerScreen(
     val log by viewModel.activityLog.collectAsState()
     val inputText by viewModel.inputText.collectAsState()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsState()
+    val editingRecord by viewModel.editingRecord.collectAsState() // ✨ НОВИЙ СТАН
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -60,14 +59,11 @@ fun ActivityTrackerScreen(
                 }
             )
         },
-        // ✨ ОНОВЛЕНО: Тепер bottomBar - це Column з індикатором та панеллю вводу
         bottomBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // Додає відступ для системної панелі навігації (жести/кнопки)
                     .navigationBarsPadding()
-                    // Додає відступ знизу, коли з'являється клавіатура
                     .imePadding()
             ) {
                 InProgressIndicator(
@@ -77,7 +73,6 @@ fun ActivityTrackerScreen(
                     text = inputText,
                     isActivityOngoing = lastOngoingActivity != null,
                     onTextChange = viewModel::onInputTextChanged,
-                    // Замість onStartClick/onEndClick тепер єдина функція
                     onToggleStartStop = { viewModel.onToggleStartStop() },
                     onTimelessClick = viewModel::onTimelessRecordClick
                 )
@@ -86,22 +81,32 @@ fun ActivityTrackerScreen(
     ) { paddingValues ->
         ActivityLog(
             log = log,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+            onEdit = viewModel::onEditRequest, // Лямбда залишається та сама, але її дія тепер інша
+            onRestart = viewModel::onRestartActivity
         )
+
+        // ✨ ОНОВЛЕНО: Логіка відображення діалогу редагування
+        editingRecord?.let { recordToEdit ->
+            EditRecordDialog(
+                record = recordToEdit,
+                onDismiss = viewModel::onEditDialogDismiss,
+                onConfirm = viewModel::onRecordUpdated
+            )
+        }
 
         if (showClearConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showClearConfirmDialog = false },
-                title = { Text("Clear Log?") },
-                text = { Text("Are you sure you want to delete all activity records? This action cannot be undone.") },
-                confirmButton = { Button(onClick = { viewModel.onClearLogConfirm(); showClearConfirmDialog = false }) { Text("Delete") } },
-                dismissButton = { TextButton(onClick = { showClearConfirmDialog = false }) { Text("Cancel") } }
+                title = { Text("Очистити лог?") },
+                text = { Text("Ви впевнені, що хочете видалити всі записи? Цю дію неможливо буде скасувати.") },
+                confirmButton = { Button(onClick = { viewModel.onClearLogConfirm(); showClearConfirmDialog = false }) { Text("Видалити") } },
+                dismissButton = { TextButton(onClick = { showClearConfirmDialog = false }) { Text("Скасувати") } }
             )
         }
     }
 }
 
-// --- Верхня панель (без змін) ---
 @Composable
 private fun ActivityTrackerTopAppBar(
     onNavigateBack: () -> Unit,
@@ -110,82 +115,152 @@ private fun ActivityTrackerTopAppBar(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
-        title = { Text("Activity Tracker") },
-        navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+        title = { Text("Трекер Активності") },
+        navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
         actions = {
-            IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
+            IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Меню") }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                DropdownMenuItem(text = { Text("Export to Markdown") }, onClick = { onExportRequest(); menuExpanded = false })
-                DropdownMenuItem(text = { Text("Clear log") }, onClick = { onClearLogRequest(); menuExpanded = false })
+                DropdownMenuItem(text = { Text("Експорт в Markdown") }, onClick = { onExportRequest(); menuExpanded = false })
+                DropdownMenuItem(text = { Text("Очистити лог") }, onClick = { onClearLogRequest(); menuExpanded = false })
             }
         }
     )
 }
 
-// ✨ --- ОНОВЛЕНИЙ КОМПОНЕНТ ЛОГУ З НОВИМ СОРТУВАННЯМ ---
+// ✨ ОНОВЛЕНО: Компонент логу тепер приймає лямбди для дій та використовує reverseLayout
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ActivityLog(log: List<ActivityRecord>, modifier: Modifier = Modifier) {
+private fun ActivityLog(
+    log: List<ActivityRecord>,
+    modifier: Modifier = Modifier,
+    onEdit: (ActivityRecord) -> Unit,
+    onRestart: (ActivityRecord) -> Unit
+) {
     val groupedByDate = log.groupBy { toDateHeader(it.createdAt) }
+    val lazyListState = rememberLazyListState()
 
-    LazyColumn(modifier = modifier.padding(horizontal = 16.dp)) {
+    // Автоматична прокрутка до низу при додаванні нового елемента
+    LaunchedEffect(log.size) {
+        if (log.isNotEmpty()) {
+            lazyListState.animateScrollToItem(0)
+        }
+    }
+
+    LazyColumn(
+        state = lazyListState,
+        modifier = modifier.padding(horizontal = 12.dp),
+        // reverseLayout = true показує елементи знизу вверх, що природно для логу
+        reverseLayout = true
+    ) {
         if (log.isEmpty()) {
             item {
                 Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Log is empty. Start your first activity!")
+                    Text("Лог порожній. Почніть першу активність!")
                 }
             }
         } else {
             groupedByDate.forEach { (dateHeader, records) ->
-                stickyHeader {
-                    Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.background) {
-                        Text(text = dateHeader, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 8.dp))
+                // Порядок відображення записів всередині групи не змінюється, бо сортування вже зроблене в DAO
+                items(records, key = { it.id }) { record ->
+                    LogEntryItem(
+                        record = record,
+                        onEdit = onEdit,
+                        onRestart = onRestart
+                    )
+                    if (records.last() != record) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     }
                 }
-
-                // Розділяємо записи на "без часу" і "з часом"
-                val (timeless, timed) = records.sortedBy { it.createdAt }.partition { it.isTimeless }
-
-                // Спочатку відображаємо всі записи без часу
-                items(timeless, key = { "timeless-${it.id}" }) { record ->
-                    LogEntryItem(record)
-                }
-
-                // Потім відображаємо всі записи з часом
-                items(timed, key = { "timed-${it.id}" }) { record ->
-                    LogEntryItem(record)
+                stickyHeader {
+                    Surface(modifier = Modifier.fillMaxWidth(), tonalElevation = 1.dp) {
+                        Text(
+                            text = dateHeader,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// --- Один запис в лозі (без змін) ---
+// ✨ ОНОВЛЕНО: LogEntryItem тепер підтримує різні стани (нотатка, активність) та дії
 @Composable
-private fun LogEntryItem(record: ActivityRecord) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val timeText = when {
-            record.isOngoing -> "${timeFormat.format(Date(record.startTime!!))} - Now..."
-            record.isTimeless -> "•"
-            else -> "${timeFormat.format(Date(record.startTime!!))} - ${timeFormat.format(Date(record.endTime!!))}"
+private fun LogEntryItem(
+    record: ActivityRecord,
+    onEdit: (ActivityRecord) -> Unit,
+    onRestart: (ActivityRecord) -> Unit
+) {
+    if (record.isTimeless) {
+        // --- Відображення для нотаток ---
+        OutlinedCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Notes,
+                    contentDescription = "Нотатка",
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = record.text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                    fontStyle = FontStyle.Italic
+                )
+                Spacer(Modifier.width(8.dp))
+                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp))
+                }
+            }
         }
-        Text(
-            text = timeText,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.width(100.dp),
-            fontWeight = if(record.isTimeless) FontWeight.Bold else FontWeight.Normal,
-            color = if (record.isOngoing) MaterialTheme.colorScheme.primary else LocalContentColor.current
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = record.text, style = MaterialTheme.typography.bodyLarge)
+    } else {
+        // --- Відображення для активностей ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val timeText = when {
+                record.isOngoing -> "${timeFormat.format(Date(record.startTime!!))} - ..."
+                else -> "${timeFormat.format(Date(record.startTime!!))} - ${timeFormat.format(Date(record.endTime!!))}"
+            }
+            Text(
+                text = timeText,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.width(90.dp),
+                fontWeight = FontWeight.SemiBold,
+                color = if (record.isOngoing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text = record.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Row {
+                IconButton(onClick = { onRestart(record) }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
+                }
+            }
+        }
     }
 }
 
-// ✨ --- НОВИЙ ІНДИКАТОР, ЩО ПОКАЗУЄТЬСЯ НАД ПАНЕЛЛЮ ВВОДУ ---
+
 @Composable
 private fun InProgressIndicator(
     ongoingActivity: ActivityRecord?
@@ -222,11 +297,14 @@ private fun InProgressIndicator(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.HourglassTop, contentDescription = "In progress", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(text = ongoingActivity.text, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    }
+                    Text(
+                        text = ongoingActivity.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
                     Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -235,7 +313,6 @@ private fun InProgressIndicator(
 }
 
 
-// ✨ --- ОНОВЛЕНА ПАНЕЛЬ ВВОДУ, ЯКА ЗАВЖДИ ВИДИМА ---
 @Composable
 private fun ActivityInputBar(
     text: String,
@@ -253,12 +330,11 @@ private fun ActivityInputBar(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Поле вводу (без змін)
             TextField(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("What are you working on?") },
+                placeholder = { Text("Чим ви займаєтесь?") },
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
                     focusedIndicatorColor = Color.Transparent,
@@ -268,15 +344,13 @@ private fun ActivityInputBar(
             )
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Кнопка для запису без часу (без змін)
             IconButton(
                 onClick = onTimelessClick,
                 enabled = text.isNotBlank()
             ) {
-                Icon(Icons.Default.AddComment, "Make a record", tint = MaterialTheme.colorScheme.secondary)
+                Icon(Icons.Default.AddComment, "Зробити запис", tint = MaterialTheme.colorScheme.secondary)
             }
 
-            // ✨ ОНОВЛЕНО: Динамічна кнопка Старт/Стоп/Синхронізація
             IconButton(
                 onClick = onToggleStartStop,
                 enabled = text.isNotBlank() || isActivityOngoing
@@ -287,21 +361,18 @@ private fun ActivityInputBar(
 
                 if (isActivityOngoing) {
                     if (text.isNotBlank()) {
-                        // Стан: є активна задача І є текст для нової
                         icon = Icons.Default.Sync
-                        tint = MaterialTheme.colorScheme.tertiary // Нейтральний колір для "синхронізації"
-                        description = "Stop current and start new activity"
+                        tint = MaterialTheme.colorScheme.tertiary
+                        description = "Зупинити поточну та почати нову"
                     } else {
-                        // Стан: є активна задача, але немає тексту для нової
                         icon = Icons.Default.StopCircle
                         tint = MaterialTheme.colorScheme.error
-                        description = "Stop activity"
+                        description = "Зупинити"
                     }
                 } else {
-                    // Стан: немає активної задачі
                     icon = Icons.Default.PlayCircle
                     tint = MaterialTheme.colorScheme.primary
-                    description = "Start activity"
+                    description = "Почати"
                 }
 
                 Icon(
@@ -315,9 +386,6 @@ private fun ActivityInputBar(
     }
 }
 
-
-
-// --- Допоміжні функції (без змін) ---
 private fun toDateHeader(timestamp: Long): String {
     val sdf = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
@@ -325,22 +393,23 @@ private fun toDateHeader(timestamp: Long): String {
 
 private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val groupedByDate = log.groupBy { toDateHeader(it.createdAt) }
+    // Оскільки сортування тепер ASC, для експорту його треба розвернути, щоб новіші були зверху
+    val groupedByDate = log.sortedByDescending { it.createdAt }.groupBy { toDateHeader(it.createdAt) }
     return buildString {
         groupedByDate.forEach { (dateHeader, records) ->
             append("## $dateHeader\n\n")
-            val (timeless, timed) = records.sortedBy { it.createdAt }.partition { it.isTimeless }
+            val (timeless, timed) = records.partition { it.isTimeless }
             timeless.forEach { record ->
                 append("- ${record.text}\n")
             }
             timed.forEach { record ->
                 val timeText = when {
-                    record.isOngoing -> "`${sdfTime.format(Date(record.startTime!!))} - Now...`"
+                    record.isOngoing -> "`${sdfTime.format(Date(record.startTime!!))} - ...`"
                     else -> "`${sdfTime.format(Date(record.startTime!!))} - ${sdfTime.format(Date(record.endTime!!))}`"
                 }
                 append("- $timeText ${record.text}\n".trim())
             }
-            append("\n")
+            append("\n\n")
         }
     }
 }
@@ -349,5 +418,41 @@ private fun copyToClipboard(context: Context, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("Activity Log", text)
     clipboard.setPrimaryClip(clip)
-    Toast.makeText(context, "Log copied to clipboard!", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, "Лог скопійовано!", Toast.LENGTH_SHORT).show()
+}
+
+
+@Composable
+private fun EditRecordDialog(
+    record: ActivityRecord,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var text by remember(record) { mutableStateOf(record.text) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Редагувати запис") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Текст запису") }
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(text) },
+                enabled = text.isNotBlank()
+            ) {
+                Text("Зберегти")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+        }
+    )
 }

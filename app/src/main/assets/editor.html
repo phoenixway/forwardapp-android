@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Markdown Live Editor</title>
+    <style>
+        body { margin:0; font-family: sans-serif; height:100vh; }
+        #editor { height: 100%; }
+        .mermaid { background: #f9f9f9; padding: 5px; }
+    </style>
+    <script type="module">
+        import { EditorView, basicSetup } from "https://esm.sh/@codemirror/basic-setup";
+        import { markdown } from "https://esm.sh/@codemirror/lang-markdown";
+        import MarkdownIt from "https://esm.sh/markdown-it";
+        import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+
+        const md = new MarkdownIt({ html: true });
+        md.renderer.rules.fence = (tokens, idx) => {
+          const token = tokens[idx];
+          if (token.info.trim() === 'mermaid') {
+            return `<div class="mermaid">${token.content}</div>`;
+          }
+          return `<pre><code>${md.utils.escapeHtml(token.content)}</code></pre>`;
+        };
+
+        mermaid.initialize({ startOnLoad: false });
+
+        window.editor = new EditorView({
+          doc: "# Вітаю!\n\n```mermaid\nflowchart TD\nA-->B\nB-->C\n```",
+          extensions: [basicSetup, markdown()],
+          parent: document.querySelector("#editor")
+        });
+
+        function updatePreview() {
+          document.body.innerHTML = md.render(editor.state.doc.toString());
+          mermaid.run();
+          document.body.appendChild(editor.dom);
+
+          // Відправка тексту назад у Kotlin
+          if (window.AndroidBridge && window.AndroidBridge.onMarkdownChange) {
+            window.AndroidBridge.onMarkdownChange(editor.state.doc.toString());
+          }
+        }
+
+        editor.dispatch = (...args) => {
+          EditorView.prototype.dispatch.apply(editor, args);
+          updatePreview();
+        };
+
+        updatePreview();
+    </script>
+</head>
+<body>
+<div id="editor"></div>
+</body>
+</html>
