@@ -165,13 +165,39 @@ fun SwipeableGoalItem(
                 if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative)
                 ).coerceIn(0f, 1f)
 
+
+        // ✨ ДОДАНО: Динамічна форма, що змінюється залежно від напрямку свайпу
+        val dynamicShape = remember(offset) {
+            val cornerRadius = 8.dp
+            when {
+                // Свайп вправо: заокруглюємо тільки праві кути, ліві робимо гострими
+                offset > 0 -> RoundedCornerShape(
+                    topStart = 0.dp,
+                    bottomStart = 0.dp,
+                    topEnd = cornerRadius,
+                    bottomEnd = cornerRadius
+                )
+                // Свайп вліво: заокруглюємо тільки ліві кути, праві робимо гострими
+                offset < 0 -> RoundedCornerShape(
+                    topStart = cornerRadius,
+                    bottomStart = cornerRadius,
+                    topEnd = 0.dp,
+                    bottomEnd = 0.dp
+                )
+                // Немає свайпу: заокруглюємо всі кути
+                else -> RoundedCornerShape(cornerRadius)
+            }
+        }
+
+
         Box(modifier = Modifier.fillMaxWidth()) {
             // ✨ ВИПРАВЛЕНО: Повернено 4 кнопки, але зі зменшеною шириною
             Row(
                 modifier = Modifier
                     .matchParentSize()
                     .alpha(actionsAlpha)
-                    .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)), // Обрізаємо контейнер
+                //       .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)), // Обрізаємо контейнер
+                ,
                 horizontalArrangement = Arrangement.Start, // Розміщуємо кнопки щільно
             ) {
                 val buttonWidth = 60.dp
@@ -248,8 +274,8 @@ fun SwipeableGoalItem(
                     modifier = Modifier
                         .matchParentSize()
                         .alpha(actionsAlpha)
-                        .clip(RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)), // Обрізаємо контейнер
-                    horizontalArrangement = Arrangement.End, // Розміщуємо кнопки щільно
+                        //.clip(RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)), // Обрізаємо контейнер
+                    ,horizontalArrangement = Arrangement.End, // Розміщуємо кнопки щільно
                 ) {
                     Surface(onClick = { onDelete(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(88.dp), color = MaterialTheme.colorScheme.error) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.Delete, "Видалити", tint = MaterialTheme.colorScheme.onError) } }
                     Surface(onClick = { resetSwipe() }, modifier = Modifier.fillMaxHeight().width(88.dp), color = MaterialTheme.colorScheme.tertiary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.DeleteForever, "Видалити звідусіль", tint = MaterialTheme.colorScheme.onTertiary) } }
@@ -267,7 +293,7 @@ fun SwipeableGoalItem(
                         orientation = Orientation.Horizontal,
                     ),
                 color = backgroundColor,
-                shape = RoundedCornerShape(8.dp),
+                shape = dynamicShape, //RoundedCornerShape(8.dp),
             ) {
                 GoalItem(
                     goal = goalWithInstance.goal,
