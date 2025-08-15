@@ -1,58 +1,68 @@
 package com.romankozak.forwardappmobile.ui.components
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.LinearLayout
 
-class WebViewMarkdownRenderer @JvmOverloads constructor(
+@SuppressLint("SetJavaScriptEnabled")
+class WebViewMarkdownViewer @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : LinearLayout(context, attrs) {
 
-    private val webView: WebView
-    var onMarkdownChanged: ((String) -> Unit)? = null
+    private val webView: WebView = WebView(context)
+    private var isJsReady = false
+    private var pendingMarkdown: String? = null
 
     init {
         orientation = VERTICAL
-        webView = WebView(context)
-        webView.layoutParams = LayoutParams(
-            LayoutParams.MATCH_PARENT,
-            LayoutParams.MATCH_PARENT
-        )
+        webView.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         addView(webView)
 
         webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccess = true
-        webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
 
-        // JS Bridge для передачі даних назад у Kotlin
+        // Додаємо JS-міст, щоб отримувати повідомлення про готовність
         webView.addJavascriptInterface(JSBridge(), "AndroidBridge")
-
-        // Завантаження HTML редактора
-        webView.loadUrl("file:///android_asset/editor.html")
+        // Завантажуємо наш новий, спрощений HTML
+        webView.loadUrl("file:///android_asset/viewer.html")
     }
 
-    /** Оновлення тексту Markdown з Kotlin */
-    fun setMarkdown(markdown: String) {
-        val js = "editor.setValue(${escapeForJS(markdown)});"
-        webView.evaluateJavascript(js, null)
+    /**
+     * Головний метод, який отримує Markdown і відправляє його в WebView для рендерингу.
+     */
+    fun renderMarkdown(markdown: String) {
+        if (isJsReady) {
+            val escapedMarkdown = escapeForJS(markdown)
+            val jsCode = "window.renderMarkdown($escapedMarkdown);"
+            // Важливо виконувати JS в головному потоці
+            post { webView.evaluateJavascript(jsCode, null) }
+        } else {
+            // Якщо JS ще не готовий, зберігаємо текст, щоб показати його пізніше
+            pendingMarkdown = markdown
+        }
     }
 
     private fun escapeForJS(text: String): String {
-        return "'" + text.replace("\\", "\\\\")
+        return "'" + text
+            .replace("\\", "\\\\")
             .replace("'", "\\'")
             .replace("\n", "\\n")
             .replace("\r", "") + "'"
     }
 
+    // Простий міст для отримання одного повідомлення від JavaScript
     inner class JSBridge {
         @android.webkit.JavascriptInterface
-        fun onMarkdownChange(text: String) {
+        fun onJsReady() {
             post {
-                onMarkdownChanged?.invoke(text)
+                isJsReady = true
+                pendingMarkdown?.let {
+                    renderMarkdown(it)
+                    pendingMarkdown = null
+                }
             }
         }
     }

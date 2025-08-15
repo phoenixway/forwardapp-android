@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -57,7 +56,9 @@ fun LimitedMarkdownEditor(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp),
-                        textStyle = TextStyle(color = Color.Transparent),
+                        // ✨ ВИПРАВЛЕННЯ 1: Синхронізуємо стилі для коректної роботи курсора
+                        // Ми беремо поточний стиль тексту і просто робимо його прозорим.
+                        textStyle = LocalTextStyle.current.copy(color = Color.Transparent),
                         cursorBrush = SolidColor(LocalContentColor.current)
                     )
                 }
@@ -71,17 +72,20 @@ fun LimitedMarkdownEditor(
                             .fillMaxWidth()
                             .height(50.dp)
                             .background(
+                                // ✨ ВИПРАВЛЕННЯ 2: Робимо градієнт щільнішим
+                                // Перехід починається лише з 40% висоти блоку.
                                 Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface)
+                                    colorStops = arrayOf(
+                                        0.4f to Color.Transparent,
+                                        1.0f to MaterialTheme.colorScheme.surface
+                                    )
                                 )
                             )
                             .clickable(onClick = onExpandClick),
-                        // ✨ ЗМІНА: Вирівнювання по правому краю
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         TextButton(
                             onClick = onExpandClick,
-                            // ✨ ДОДАНО: Відступ справа для краси
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text("More...")

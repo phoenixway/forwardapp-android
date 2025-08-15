@@ -2,55 +2,112 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown Live Editor</title>
     <style>
-        body { margin:0; font-family: sans-serif; height:100vh; }
-        #editor { height: 100%; }
-        .mermaid { background: #f9f9f9; padding: 5px; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+        .container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+        #editor-container, #preview-container {
+            flex: 1;
+            width: 50%;
+            height: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #editor-container {
+            border-right: 1px solid #ccc;
+        }
+        #preview-container {
+            padding: 16px;
+        }
+        .cm-editor {
+            height: 100%;
+        }
+        .mermaid {
+            background: #f9f9f9;
+            padding: 5px;
+            border-radius: 4px;
+        }
     </style>
     <script type="module">
-        import { EditorView, basicSetup } from "https://esm.sh/@codemirror/basic-setup";
-        import { markdown } from "https://esm.sh/@codemirror/lang-markdown";
-        import MarkdownIt from "https://esm.sh/markdown-it";
-        import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+        window.onload = async () => {
+            const { EditorView, basicSetup } = await import("https://esm.sh/@codemirror/basic-setup");
+            const { markdown } = await import("https://esm.sh/@codemirror/lang-markdown");
+            const MarkdownIt = (await import("https://esm.sh/markdown-it")).default;
+            const mermaid = (await import("https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs")).default;
 
-        const md = new MarkdownIt({ html: true });
-        md.renderer.rules.fence = (tokens, idx) => {
-          const token = tokens[idx];
-          if (token.info.trim() === 'mermaid') {
-            return `<div class="mermaid">${token.content}</div>`;
-          }
-          return `<pre><code>${md.utils.escapeHtml(token.content)}</code></pre>`;
+            const md = new MarkdownIt({ html: true });
+            md.renderer.rules.fence = (tokens, idx) => {
+                const token = tokens[idx];
+                if (token.info.trim() === 'mermaid') {
+                    return `<div class="mermaid">${token.content}</div>`;
+                }
+                return `<pre><code>${md.utils.escapeHtml(token.content)}</code></pre>`;
+            };
+
+            mermaid.initialize({ startOnLoad: false });
+
+            const previewContainer = document.querySelector("#preview-container");
+
+            function renderPreview(state) {
+                const markdownText = state.doc.toString();
+                previewContainer.innerHTML = md.render(markdownText);
+                mermaid.run({ nodes: previewContainer.querySelectorAll('.mermaid') });
+
+                if (window.AndroidBridge && window.AndroidBridge.onMarkdownChange) {
+                    window.AndroidBridge.onMarkdownChange(markdownText);
+                }
+            }
+
+            window.setEditorContent = (content) => {
+                window.editor.dispatch({
+                    changes: { from: 0, to: window.editor.state.doc.length, insert: content }
+                });
+            };
+
+            window.editor = new EditorView({
+                doc: "",
+                extensions: [ basicSetup, markdown() ],
+                parent: document.querySelector("#editor-container")
+            });
+
+            // ✨ ОНОВЛЕНА, НАДІЙНА ЛОГІКА ВІДСТЕЖЕННЯ ЗМІН
+            const originalDispatch = editor.dispatch.bind(editor);
+            editor.dispatch = (transaction) => {
+                const oldDoc = editor.state.doc;
+                originalDispatch(transaction); // Застосовуємо зміни
+                const newDoc = editor.state.doc;
+
+                // Порівнюємо стан документу до і після. Якщо він змінився - оновлюємо.
+                if (oldDoc !== newDoc) {
+                    renderPreview(editor.state);
+                }
+            };
+
+            // Перший виклик для початкового стану
+            renderPreview(editor.state);
+
+            // Повідомляємо Kotlin, що все готово
+            if (window.AndroidBridge && window.AndroidBridge.onEditorReady) {
+                window.AndroidBridge.onEditorReady();
+            }
         };
-
-        mermaid.initialize({ startOnLoad: false });
-
-        window.editor = new EditorView({
-          doc: "# Вітаю!\n\n```mermaid\nflowchart TD\nA-->B\nB-->C\n```",
-          extensions: [basicSetup, markdown()],
-          parent: document.querySelector("#editor")
-        });
-
-        function updatePreview() {
-          document.body.innerHTML = md.render(editor.state.doc.toString());
-          mermaid.run();
-          document.body.appendChild(editor.dom);
-
-          // Відправка тексту назад у Kotlin
-          if (window.AndroidBridge && window.AndroidBridge.onMarkdownChange) {
-            window.AndroidBridge.onMarkdownChange(editor.state.doc.toString());
-          }
-        }
-
-        editor.dispatch = (...args) => {
-          EditorView.prototype.dispatch.apply(editor, args);
-          updatePreview();
-        };
-
-        updatePreview();
     </script>
 </head>
 <body>
-<div id="editor"></div>
+<div class="container">
+    <div id="editor-container"></div>
+    <div id="preview-container"></div>
+</div>
 </body>
 </html>
