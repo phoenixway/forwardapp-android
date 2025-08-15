@@ -26,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
@@ -166,7 +167,23 @@ fun SwipeableGoalItem(
 
         Box(modifier = Modifier.fillMaxWidth()) {
             // ✨ ВИПРАВЛЕНО: Повернено 4 кнопки, але зі зменшеною шириною
-            if (offset > 0) {
+            Row(
+                modifier = Modifier
+                    .matchParentSize()
+                    .alpha(actionsAlpha)
+                    .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)), // Обрізаємо контейнер
+                horizontalArrangement = Arrangement.Start, // Розміщуємо кнопки щільно
+            ) {
+                val buttonWidth = 60.dp
+
+                Surface(onClick = { onMoreActionsRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.secondary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.MoreVert, "Більше дій", tint = MaterialTheme.colorScheme.onSecondary) } }
+                Surface(onClick = { onCreateInstanceRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.primary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.AddLink, "Створити зв'язок", tint = MaterialTheme.colorScheme.onPrimary) } }
+                Surface(onClick = { onMoveInstanceRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.tertiary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.AutoMirrored.Filled.Send, "Перемістити", tint = MaterialTheme.colorScheme.onTertiary) } }
+                Surface(onClick = { onCopyGoalRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.inversePrimary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.ContentCopy, "Клонувати ціль", tint = MaterialTheme.colorScheme.primary) } }
+            }
+
+            /*if (offset > 0) {
+
                 Row(
                     modifier = Modifier
                         .matchParentSize()
@@ -222,39 +239,22 @@ fun SwipeableGoalItem(
                             Icon(Icons.Default.ContentCopy, "Клонувати ціль", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
-                }
-            }
+                }}*/
+
 
             // --- Кнопки дій зліва (offset < 0) ---
             if (offset < 0) {
                 Row(
                     modifier = Modifier
                         .matchParentSize()
-                        .alpha(actionsAlpha),
-                    horizontalArrangement = Arrangement.End,
+                        .alpha(actionsAlpha)
+                        .clip(RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)), // Обрізаємо контейнер
+                    horizontalArrangement = Arrangement.End, // Розміщуємо кнопки щільно
                 ) {
-                    Surface(
-                        onClick = { onDelete(); resetSwipe() },
-                        modifier = Modifier.fillMaxHeight().width(88.dp),
-                        color = MaterialTheme.colorScheme.error,
-                        shape = RectangleShape,
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Delete, "Видалити", tint = MaterialTheme.colorScheme.onError)
-                        }
-                    }
-
-                    Surface(
-                        onClick = { resetSwipe() },
-                        modifier = Modifier.fillMaxHeight().width(88.dp),
-                        color = MaterialTheme.colorScheme.tertiary,
-                        shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.DeleteForever, "Видалити звідусіль", tint = MaterialTheme.colorScheme.onTertiary)
-                        }
-                    }
+                    Surface(onClick = { onDelete(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(88.dp), color = MaterialTheme.colorScheme.error) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.Delete, "Видалити", tint = MaterialTheme.colorScheme.onError) } }
+                    Surface(onClick = { resetSwipe() }, modifier = Modifier.fillMaxHeight().width(88.dp), color = MaterialTheme.colorScheme.tertiary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.DeleteForever, "Видалити звідусіль", tint = MaterialTheme.colorScheme.onTertiary) } }
                 }
+
             }
 
             // --- Основний контент ---
