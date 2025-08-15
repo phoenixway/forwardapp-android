@@ -85,35 +85,61 @@ fun SwipeableGoalItem(
             SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
         }
 
-        // Простіший підхід без використання swipeState в confirmValueChange
+        // Більш надійне відстеження стану для блокування протилежного свайпу
         var lastConfirmedState by remember { mutableStateOf(SwipeState.Normal) }
+        var swipeDirection by remember { mutableStateOf<Int?>(null) } // 1 = право, -1 = ліво, null = не визначено
 
         val swipeState = remember {
             AnchoredDraggableState(
                 initialValue = SwipeState.Normal,
                 anchors = anchors,
-                positionalThreshold = { distance: Float -> distance * 0.8f },
-                velocityThreshold = { with(density) { 200.dp.toPx() } },
+                positionalThreshold = { distance: Float -> distance * 0.85f }, // Ще більше підвищуємо поріг
+                velocityThreshold = { with(density) { 250.dp.toPx() } }, // Ще більше підвищуємо поріг швидкості
                 snapAnimationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
                 decayAnimationSpec = androidx.compose.animation.core.exponentialDecay(),
                 confirmValueChange = { newValue ->
-                    val canChange = when {
-                        // Блокуємо прямий перехід між протилежними станами
-                        lastConfirmedState == SwipeState.ActionsRevealedStart && newValue == SwipeState.ActionsRevealedEnd -> false
-                        lastConfirmedState == SwipeState.ActionsRevealedEnd && newValue == SwipeState.ActionsRevealedStart -> false
-                        else -> true
+                    when {
+                        // Якщо повертаємося в нормальний стан - завжди дозволено
+                        newValue == SwipeState.Normal -> {
+                            swipeDirection = null
+                            lastConfirmedState = newValue
+                            true
+                        }
+                        // Якщо починаємо свайп з нормального стану
+                        lastConfirmedState == SwipeState.Normal -> {
+                            swipeDirection = when (newValue) {
+                                SwipeState.ActionsRevealedStart -> 1  // право
+                                SwipeState.ActionsRevealedEnd -> -1   // ліво
+                                else -> null
+                            }
+                            lastConfirmedState = newValue
+                            true
+                        }
+                        // Блокуємо протилежний напрям
+                        else -> {
+                            val newDirection = when (newValue) {
+                                SwipeState.ActionsRevealedStart -> 1
+                                SwipeState.ActionsRevealedEnd -> -1
+                                else -> null
+                            }
+
+                            val canChange = swipeDirection == null || swipeDirection == newDirection
+                            if (canChange) {
+                                lastConfirmedState = newValue
+                            }
+                            canChange
+                        }
                     }
-                    if (canChange) {
-                        lastConfirmedState = newValue
-                    }
-                    canChange
                 },
             )
         }
 
-        // Оновлюємо lastConfirmedState при зміні стану
+        // Оновлюємо стани при зміні значення та скидаємо напрям при поверненні в Normal
         LaunchedEffect(swipeState.settledValue) {
             lastConfirmedState = swipeState.settledValue
+            if (swipeState.settledValue == SwipeState.Normal) {
+                swipeDirection = null
+            }
         }
 
         val resetSwipe = { coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) } }
@@ -123,7 +149,30 @@ fun SwipeableGoalItem(
         }
 
         LaunchedEffect(isAnotherItemSwiped) {
-            if (isAnotherItemSwiped) resetSwipe()
+            if (isAnotherItemSwiped) {
+                swipeDirection = null // Скидаємо напрям при ресеті
+                resetSwipe()
+            }
+        }
+
+        // Додатковий контроль через offset для запобігання протилежному свайпу
+        LaunchedEffect(swipeState.settledValue) {
+            val currentOffset = try { swipeState.requireOffset() } catch (e: Exception) { 0f }
+
+            // Якщо offset і стан не співпадають за напрямом, повертаємо в нормальний стан
+            when (swipeState.settledValue) {
+                SwipeState.ActionsRevealedStart -> {
+                    if (currentOffset < 0) { // offset ліворуч, а стан праворуч
+                        resetSwipe()
+                    }
+                }
+                SwipeState.ActionsRevealedEnd -> {
+                    if (currentOffset > 0) { // offset праворуч, а стан ліворуч
+                        resetSwipe()
+                    }
+                }
+                else -> { /* Normal state */ }
+            }
         }
 
         val offset = swipeState.requireOffset()
