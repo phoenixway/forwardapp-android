@@ -1,3 +1,5 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/GoalItemUI.kt
+
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -8,13 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Notes
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FlashOff
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -38,7 +36,6 @@ import java.util.Locale
 private enum class IconCategory { IMPORTANCE, SCALE, ACTIVITY, CUSTOM }
 private data class IconConfig(val icon: String, val markers: List<String>, val category: IconCategory)
 
-// ✨ ВИПРАВЛЕНО: Маркери для іконок тепер використовують @контексти замість #тегів
 private val ICON_CONFIGS: List<IconConfig> = listOf(
     IconConfig("🔥", listOf("@critical", "! ", "!"), IconCategory.IMPORTANCE),
     IconConfig("⭐", listOf("@day", "+"), IconCategory.IMPORTANCE),
@@ -47,11 +44,13 @@ private val ICON_CONFIGS: List<IconConfig> = listOf(
     IconConfig("🎯", listOf("@middle", "+++ "), IconCategory.SCALE),
     IconConfig("🔭", listOf("@long", "~ ", "~"), IconCategory.SCALE),
     IconConfig("✨", listOf("@str"), IconCategory.SCALE),
+    IconConfig("🛒", listOf("@buy"), IconCategory.ACTIVITY), // ✨ ДОДАНО
     IconConfig("🛠️", listOf("@manual"), IconCategory.ACTIVITY),
     IconConfig("🧠", listOf("@mental", "@pm"), IconCategory.ACTIVITY),
     IconConfig("📱", listOf("@device"), IconCategory.ACTIVITY),
+    IconConfig("⛓️", listOf("@providence"), IconCategory.CUSTOM), // ✨ ДОДАНО
     IconConfig("🔬", listOf("@research"), IconCategory.CUSTOM),
-    IconConfig("🌫️", listOf("@unclear"), IconCategory.CUSTOM),
+    IconConfig("🌫️", listOf("@unclear"), IconCategory.CUSTOM)
 )
 private data class ParsedGoalData(val icons: List<IconConfig>, val mainText: String)
 private fun parseTextAndExtractIcons(text: String): ParsedGoalData {

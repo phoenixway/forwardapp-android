@@ -11,7 +11,6 @@ import com.romankozak.forwardappmobile.WifiSyncServer
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.sync.SyncRepository
@@ -23,6 +22,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
+
+
 
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
@@ -211,41 +214,16 @@ class GoalListViewModel @Inject constructor(
     private val _listChooserFilterText = MutableStateFlow("")
     val listChooserFilterText = _listChooserFilterText.asStateFlow()
 
+    // Цей StateFlow отримує повну ієрархію з іншого потоку `listHierarchy`
+    val fullHierarchyForDialog: StateFlow<ListHierarchyData> = listHierarchy
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+    // ЗАМІНА: Спрощена логіка з викликом хелпера
     val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
-        combine(listChooserFilterText, listHierarchy) { filter, originalHierarchy ->
-            if (filter.isBlank() || originalHierarchy.allLists.isEmpty()) {
-                originalHierarchy
-            } else {
-                val lowercasedFilter = filter.lowercase()
-                val allListsById = originalHierarchy.allLists.associateBy { it.id }
-                val matchingIds = originalHierarchy.allLists
-                    .filter { it.name.lowercase().contains(lowercasedFilter) }
-                    .map { it.id }
-                    .toSet()
-
-                if (matchingIds.isEmpty()) {
-                    return@combine ListHierarchyData(originalHierarchy.allLists, emptyList(), emptyMap())
-                }
-
-                val visibleIds = matchingIds.toMutableSet()
-                val visitedInLoop = mutableSetOf<String>()
-                matchingIds.forEach { id ->
-                    visitedInLoop.clear()
-                    var current = allListsById[id]
-                    while (current != null) {
-                        if (!visitedInLoop.add(current.id)) break
-                        visibleIds.add(current.id)
-                        current = current.parentId?.let { allListsById[it] }
-                    }
-                }
-
-                val finalVisibleLists = originalHierarchy.allLists.filter { it.id in visibleIds }
-                val topLevel = finalVisibleLists.filter { it.parentId == null || !visibleIds.contains(it.parentId) }.sortedBy { it.order }
-                val childMap = finalVisibleLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-                ListHierarchyData(originalHierarchy.allLists, topLevel, childMap)
-            }
+        combine(listChooserFilterText, fullHierarchyForDialog) { filter, originalHierarchy ->
+            HierarchyFilter.filter(originalHierarchy, filter)
         }.flowOn(Dispatchers.Default)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(500), ListHierarchyData())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
     // --- ✨ КРОК 2: Створюємо новий StateFlow для UI ---
     val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
@@ -363,8 +341,13 @@ class GoalListViewModel @Inject constructor(
     }
 
     fun onPlanningModeChange(mode: PlanningMode) {
+        if (_isSearchActive.value) {
+            _isSearchActive.value = false
+            _searchQuery.value = ""
+        }
         _planningMode.value = mode
     }
+
 
     fun onToggleExpanded(list: GoalList) {
         if (isSearchActive.value || planningMode.value != PlanningMode.All) {
