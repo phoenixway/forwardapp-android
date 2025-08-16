@@ -148,7 +148,8 @@ class GoalDetailViewModel @Inject constructor(
             ListHierarchy(allLists, topLevelLists, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
 
-    val filteredListHierarchyForDialog: StateFlow<ListHierarchy> =
+    // ✨ ВИПРАВЛЕНО: Логіка `combine` загорнута у `flow` для коректного використання `flowOn`
+    val filteredListHierarchyForDialog: StateFlow<ListHierarchy> = flow {
         combine(listChooserFilterText, fullListHierarchy) { filter, originalHierarchy ->
             if (filter.isBlank()) {
                 originalHierarchy
@@ -159,23 +160,32 @@ class GoalDetailViewModel @Inject constructor(
                     .map { it.id }
                     .toSet()
 
-                if (matchingIds.isEmpty()) return@combine ListHierarchy(originalHierarchy.allLists, emptyList(), emptyMap())
-
-                val visibleIds = matchingIds.toMutableSet()
-                matchingIds.forEach { id ->
-                    var current = allListsById[id]
-                    while (current?.parentId != null) {
-                        visibleIds.add(current.parentId!!)
-                        current = allListsById[current.parentId]
+                if (matchingIds.isEmpty()) {
+                    ListHierarchy(originalHierarchy.allLists, emptyList(), emptyMap())
+                } else {
+                    val visibleIds = matchingIds.toMutableSet()
+                    val visitedInTraversal = mutableSetOf<String>()
+                    matchingIds.forEach { id ->
+                        visitedInTraversal.clear()
+                        var current = allListsById[id]
+                        while (current != null) {
+                            if (!visitedInTraversal.add(current.id)) {
+                                break
+                            }
+                            visibleIds.add(current.id)
+                            current = current.parentId?.let { allListsById[it] }
+                        }
                     }
-                }
 
-                val finalVisibleLists = originalHierarchy.allLists.filter { it.id in visibleIds }
-                val topLevel = finalVisibleLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
-                val childMap = finalVisibleLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-                ListHierarchy(originalHierarchy.allLists, topLevel, childMap)
+                    val finalVisibleLists = originalHierarchy.allLists.filter { it.id in visibleIds }
+                    val topLevel = finalVisibleLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
+                    val childMap = finalVisibleLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+                    ListHierarchy(originalHierarchy.allLists, topLevel, childMap)
+                }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
+        }.collect { emit(it) } // `emit` передає результат назовні
+    }.flowOn(Dispatchers.Default) // Тепер `.flowOn` застосовується до правильного `flow`
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
 
     fun onListChooserFilterChanged(text: String) {
         _listChooserFilterText.value = text
@@ -193,7 +203,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // ✨ ДОДАНО: Прямі методи для виклику дій зі свайпу
     fun onCreateInstanceRequest(goal: GoalWithInstanceInfo) {
         _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
             sourceInstanceIds = setOf(goal.instanceId),
