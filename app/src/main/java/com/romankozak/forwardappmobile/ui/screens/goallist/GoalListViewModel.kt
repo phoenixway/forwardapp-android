@@ -204,9 +204,9 @@ class GoalListViewModel @Inject constructor(
             return@combine ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-    // --- ДОДАНО: Стан для керування новим діалогом переміщення ---
-    private val _listChooserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
-    val listChooserExpandedIds = _listChooserExpandedIds.asStateFlow()
+    // --- ✨ КРОК 1: Перейменовуємо стани для ясності ---
+    private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
+    val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
 
     private val _listChooserFilterText = MutableStateFlow("")
     val listChooserFilterText = _listChooserFilterText.asStateFlow()
@@ -246,22 +246,35 @@ class GoalListViewModel @Inject constructor(
             }
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(500), ListHierarchyData())
-    // --- КІНЕЦЬ НОВОГО БЛОКУ ---
+
+    // --- ✨ КРОК 2: Створюємо новий StateFlow для UI ---
+    val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
+        listChooserFilterText,
+        filteredListHierarchyForDialog,
+        listChooserUserExpandedIds
+    ) { filter, filteredHierarchy, userExpanded ->
+        if (filter.isBlank()) {
+            userExpanded
+        } else {
+            val forcedExpansion = filteredHierarchy.childMap.keys
+            userExpanded + forcedExpansion
+        }
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
 
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
 
-    // ... (решта коду ViewModel без змін до onMoveListConfirmed) ...
-
-    // ОНОВЛЕНО: обробники для нового діалогу
     fun onListChooserFilterChanged(text: String) {
         _listChooserFilterText.value = text
     }
 
+    // --- ✨ КРОК 3: Оновлюємо функцію, щоб вона працювала зі станом користувача ---
     fun onListChooserToggleExpanded(listId: String) {
-        val currentIds = _listChooserExpandedIds.value.toMutableSet()
+        val currentIds = _listChooserUserExpandedIds.value.toMutableSet()
         if (listId in currentIds) currentIds.remove(listId) else currentIds.add(listId)
-        _listChooserExpandedIds.value = currentIds
+        _listChooserUserExpandedIds.value = currentIds
     }
 
     fun onMoveListConfirmed(newParentId: String?) {
@@ -274,24 +287,23 @@ class GoalListViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            // goalRepository.moveGoalList не оновлює час, тому робимо це тут
             val updatedList = listToMove.copy(
                 parentId = newParentId,
-                updatedAt = System.currentTimeMillis() // <-- ДОДАТИ
+                updatedAt = System.currentTimeMillis()
             )
-            goalRepository.moveGoalList(updatedList, newParentId) // Передаємо оновлений список
+            goalRepository.moveGoalList(updatedList, newParentId)
         }
         dismissDialog()
     }
 
     fun dismissDialog() {
         _dialogState.value = DialogState.Hidden
-        // Скидаємо стан діалогу вибору при закритті
         _listChooserFilterText.value = ""
-        _listChooserExpandedIds.value = emptySet()
+        // --- ✨ КРОК 4: Скидаємо стан користувача при закритті ---
+        _listChooserUserExpandedIds.value = emptySet()
     }
 
-    // --- Існуючий код ViewModel ---
+    // --- (решта коду ViewModel без змін) ---
     private val _showWifiServerDialog = MutableStateFlow(false)
     val showWifiServerDialog: StateFlow<Boolean> = _showWifiServerDialog.asStateFlow()
 
@@ -313,8 +325,8 @@ class GoalListViewModel @Inject constructor(
         settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MANUAL),
         settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.RESEARCH),
         settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.DEVICE),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MIDDLE), // <-- Додано
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.LONG)    // <-- Додано
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MIDDLE),
+        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.LONG)
     ) { tags ->
         mapOf(
             "buy" to tags[0], "pm" to tags[1], "paper" to tags[2], "mental" to tags[3],
@@ -324,7 +336,6 @@ class GoalListViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    // ✨ ЗМІНЕНО: Допоміжна мапа для збереження
     private val contextKeyMap = mapOf(
         "buy" to SettingsRepository.ContextKeys.BUY, "pm" to SettingsRepository.ContextKeys.PM,
         "paper" to SettingsRepository.ContextKeys.PAPER, "mental" to SettingsRepository.ContextKeys.MENTAL,
@@ -548,21 +559,14 @@ class GoalListViewModel @Inject constructor(
             mutableSiblings.add(toIndex, mutableSiblings.removeAt(fromIndex))
         }
 
-/*        val updatedOrderIds = mutableSiblings.map { it.id }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            goalRepository.updateListsOrder(updatedOrderIds)
-        }*/
-
         val listsToUpdate = mutableSiblings.mapIndexed { index, list ->
             list.copy(
                 order = index.toLong(),
-                updatedAt = System.currentTimeMillis() // <-- ДОДАТИ
+                updatedAt = System.currentTimeMillis()
             )
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            // Потрібен метод, що приймає список об'єктів
             goalRepository.updateGoalLists(listsToUpdate)
         }
     }
@@ -600,7 +604,6 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    // ✨ НОВА ФУНКЦІЯ: Для збереження налаштувань контекстів
     fun saveContextSettings(newContextTags: Map<String, String>) {
         viewModelScope.launch {
             newContextTags.forEach { (contextName, tagValue) ->

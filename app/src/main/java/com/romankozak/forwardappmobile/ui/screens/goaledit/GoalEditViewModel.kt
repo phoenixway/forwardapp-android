@@ -85,8 +85,9 @@ class GoalEditViewModel @Inject constructor(
             ListHierarchyData(allLists, topLevel, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-    private val _listChooserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
-    val listChooserExpandedIds = _listChooserExpandedIds.asStateFlow()
+    // ✨ КРОК 1: Перейменовуємо стан, щоб він зберігав лише вибір користувача
+    private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
+    val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
 
     private val _listChooserFilterText = MutableStateFlow("")
     val listChooserFilterText = _listChooserFilterText.asStateFlow()
@@ -132,6 +133,23 @@ class GoalEditViewModel @Inject constructor(
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(500), ListHierarchyData())
 
+    // ✨ КРОК 2: Створюємо новий фінальний стан для UI
+    val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
+        listChooserFilterText,
+        filteredListHierarchy,
+        listChooserUserExpandedIds
+    ) { filter, filteredHierarchy, userExpanded ->
+        if (filter.isBlank()) {
+            userExpanded // Якщо фільтр вимкнено, повертаємо стан користувача
+        } else {
+            // Якщо фільтр активний, беремо всіх видимих батьків і додаємо до вибору користувача
+            val forcedExpansion = filteredHierarchy.childMap.keys
+            userExpanded + forcedExpansion
+        }
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+
     private val contextTagMap = mutableMapOf<String, String>()
 
     init {
@@ -149,14 +167,15 @@ class GoalEditViewModel @Inject constructor(
         _listChooserFilterText.value = text
     }
 
+    // ✨ КРОК 3: Функція тепер оновлює тільки стан користувача
     fun onListChooserToggleExpanded(listId: String) {
-        val currentIds = _listChooserExpandedIds.value.toMutableSet()
+        val currentIds = _listChooserUserExpandedIds.value.toMutableSet()
         if (listId in currentIds) {
             currentIds.remove(listId)
         } else {
             currentIds.add(listId)
         }
-        _listChooserExpandedIds.value = currentIds
+        _listChooserUserExpandedIds.value = currentIds
     }
 
     fun onShowListChooser(initialSelectedId: String? = null) {
@@ -173,9 +192,9 @@ class GoalEditViewModel @Inject constructor(
                     currentId = parentId
                 }
                 if (ancestorIds.isNotEmpty()) {
-                    val currentExpanded = _listChooserExpandedIds.value.toMutableSet()
+                    val currentExpanded = _listChooserUserExpandedIds.value.toMutableSet()
                     currentExpanded.addAll(ancestorIds)
-                    _listChooserExpandedIds.value = currentExpanded
+                    _listChooserUserExpandedIds.value = currentExpanded
                 }
             }
         }
@@ -184,6 +203,8 @@ class GoalEditViewModel @Inject constructor(
     fun onDismissListChooser() {
         _uiState.update { it.copy(showListChooser = false) }
         onListChooserFilterChanged("")
+        // ✨ КРОК 4: Скидаємо стан користувача при закритті
+        _listChooserUserExpandedIds.value = emptySet()
     }
 
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
@@ -197,7 +218,6 @@ class GoalEditViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     goalText = TextFieldValue(goal.text),
-                    // ✨ ВИПРАВЛЕНО: Цей рядок тепер коректно завантажує опис цілі
                     goalDescription = TextFieldValue(goal.description ?: ""),
                     associatedLists = lists,
                     isReady = true,
@@ -318,7 +338,7 @@ class GoalEditViewModel @Inject constructor(
         val descriptionToSave = state.goalDescription.text.ifEmpty { null }
 
         return currentGoal?.copy(
-            text = state.goalText.text, // ✨ ОНОВЛЕНО: .text
+            text = state.goalText.text,
             description = descriptionToSave,
             updatedAt = currentTime,
             associatedListIds = state.associatedLists.map { it.id },
@@ -333,7 +353,7 @@ class GoalEditViewModel @Inject constructor(
             scoringStatus = state.scoringStatus
         ) ?: Goal(
             id = UUID.randomUUID().toString(),
-            text = state.goalText.text, // ✨ ОНОВЛЕНО: .text
+            text = state.goalText.text,
             description = descriptionToSave,
             completed = false,
             createdAt = currentTime,
@@ -355,7 +375,6 @@ class GoalEditViewModel @Inject constructor(
     fun onSave() {
         android.util.Log.d("ContextDebug", "SAVE ACTION TRIGGERED. Is new goal = ${uiState.value.isNewGoal}")
         viewModelScope.launch {
-            // ✨ ВИПРАВЛЕННЯ: Звертаємось до .text, щоб перевірити рядок
             if (_uiState.value.goalText.text.isBlank()) {
                 _events.send(GoalEditEvent.NavigateBack("Назва цілі не може бути пустою"))
                 return@launch
@@ -391,12 +410,8 @@ class GoalEditViewModel @Inject constructor(
         }
     }
 
-    // Замініть існуючу функцію loadContextSettings на цю
     private suspend fun loadContextSettings() {
         android.util.Log.d("ContextDebug", "Starting to load context settings...")
-
-        // ✨ ВИПРАВЛЕННЯ: Повністю відмовляємось від ненадійної рефлексії.
-        // Створюємо явний список ключів, які потрібно завантажити. Це 100% надійно.
         val contextKeysList = listOf(
             SettingsRepository.ContextKeys.BUY,
             SettingsRepository.ContextKeys.PM,
@@ -410,7 +425,7 @@ class GoalEditViewModel @Inject constructor(
 
         android.util.Log.d("ContextDebug", "Processing an explicit list of ${contextKeysList.size} keys.")
 
-        val deferreds = contextKeysList.map { key -> // Тепер ітеруємо по надійному списку
+        val deferreds = contextKeysList.map { key ->
             viewModelScope.async(Dispatchers.IO) {
                 try {
                     val contextName = key.name.removePrefix("context_tag_")
@@ -428,10 +443,8 @@ class GoalEditViewModel @Inject constructor(
 
         android.util.Log.d("ContextDebug", "Finished loading settings. Final contextTagMap: $contextTagMap")
     }
-// У файлі GoalEditViewModel.kt
 
     private suspend fun handleContextBasedInstanceCreation(goal: Goal) {
-        // ✨ ОНОВЛЕНО: Більш гнучкий вираз, що підтримує @context та @{context}
         val regex = "@\\{?(\\w+)\\}?".toRegex()
 
         val matches = regex.findAll(goal.text)

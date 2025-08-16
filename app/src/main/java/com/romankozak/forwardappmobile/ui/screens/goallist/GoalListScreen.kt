@@ -63,7 +63,8 @@ fun GoalListScreen(
     val planningSettings by viewModel.planningSettingsState.collectAsState()
     val dragAndDropState = rememberDragAndDropState<GoalList>()
 
-    val listChooserExpandedIds by viewModel.listChooserExpandedIds.collectAsState()
+    // ✨ КРОК 1: Використовуємо правильну змінну зі стану ViewModel
+    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
 
@@ -162,7 +163,8 @@ fun GoalListScreen(
         dialogState = dialogState,
         viewModel = viewModel,
         listChooserFilterText = listChooserFilterText,
-        listChooserExpandedIds = listChooserExpandedIds,
+        // ✨ КРОК 2: Передаємо правильну змінну в `HandleDialogs`
+        listChooserExpandedIds = listChooserFinalExpandedIds,
         filteredListHierarchyForDialog = filteredListHierarchyForDialog
     )
 }
@@ -400,7 +402,6 @@ private fun HandleDialogs(
     val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
 
-    // ✨ ВИПРАВЛЕННЯ: Стан для тегів контекстів збирається тут
     val contextTags by viewModel.contextTagsState.collectAsState()
 
     when (val state = dialogState) {
@@ -437,8 +438,7 @@ private fun HandleDialogs(
                 onToggleExpanded = viewModel::onListChooserToggleExpanded,
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { newParentId -> viewModel.onMoveListConfirmed(newParentId) },
-                currentParentId = state.list.parentId, // <-- ДОДАЙТЕ ЦЕЙ РЯДОК
-
+                currentParentId = state.list.parentId,
                 disabledIds = disabledIds
             )
         }
@@ -465,7 +465,7 @@ private fun HandleDialogs(
             SettingsDialog(
                 planningSettings = planningSettings,
                 initialVaultName = vaultName,
-                onManageContextsClick = { viewModel.onManageContextsRequest() }, // ✨ ОНОВЛЕНО
+                onManageContextsClick = { viewModel.onManageContextsRequest() },
                 onDismiss = { viewModel.dismissDialog() },
                 onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName ->
                     viewModel.saveSettings(showModes, dailyTag, mediumTag, longTag, newVaultName)
@@ -473,7 +473,6 @@ private fun HandleDialogs(
             )
         }
 
-        // ✨ ДОДАНО: Обробка нового стану для діалогу контекстів
         DialogState.ReservedContextsSettings -> {
             ReservedContextsDialog(
                 initialContextTags = contextTags,

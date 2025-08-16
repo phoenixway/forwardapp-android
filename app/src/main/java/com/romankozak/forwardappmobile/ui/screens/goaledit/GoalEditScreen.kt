@@ -60,7 +60,7 @@ fun GoalEditScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    val listChooserExpandedIds by viewModel.listChooserExpandedIds.collectAsState()
+    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val filteredListHierarchy by viewModel.filteredListHierarchy.collectAsState()
     val allContexts by viewModel.allContextNames.collectAsState()
@@ -237,7 +237,7 @@ fun GoalEditScreen(
             onFilterTextChanged = viewModel::onListChooserFilterChanged,
             topLevelLists = filteredListHierarchy.topLevelLists,
             childMap = filteredListHierarchy.childMap,
-            expandedIds = listChooserExpandedIds,
+            expandedIds = listChooserFinalExpandedIds, // <-- Використовуємо новий стан
             onToggleExpanded = viewModel::onListChooserToggleExpanded,
             onDismiss = viewModel::onDismissListChooser,
             // ✨ ВИПРАВЛЕНО 1: Використовуємо лямбду, щоб обробити nullable ID
