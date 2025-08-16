@@ -23,4 +23,7 @@ interface ActivityRecordDao {
 
     @Query("DELETE FROM activity_records")
     suspend fun clearAll()
+
+    @Delete
+    suspend fun delete(record: ActivityRecord)
 }

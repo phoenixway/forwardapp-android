@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -24,9 +25,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -35,6 +41,7 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.math.max
 
 @Composable
 fun ActivityTrackerScreen(
@@ -45,6 +52,8 @@ fun ActivityTrackerScreen(
     val inputText by viewModel.inputText.collectAsState()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsState()
     val editingRecord by viewModel.editingRecord.collectAsState()
+    val recordToDelete by viewModel.recordToDelete.collectAsState()
+    val isEditingLastTimedRecord by viewModel.isEditingLastTimedRecord.collectAsState()
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -72,7 +81,7 @@ fun ActivityTrackerScreen(
                 ActivityInputBar(
                     text = inputText,
                     isActivityOngoing = lastOngoingActivity != null,
-                    onTextChange = viewModel::onInputTextChanged,
+                    onTextChange = { viewModel.onInputTextChanged(it) },
                     onToggleStartStop = { viewModel.onToggleStartStop() },
                     onTimelessClick = viewModel::onTimelessRecordClick
                 )
@@ -83,14 +92,25 @@ fun ActivityTrackerScreen(
             log = log,
             modifier = Modifier.padding(paddingValues),
             onEdit = viewModel::onEditRequest,
-            onRestart = viewModel::onRestartActivity
+            onRestart = viewModel::onRestartActivity,
+            onDelete = viewModel::onDeleteRequest
         )
-
         editingRecord?.let { recordToEdit ->
             EditRecordDialog(
                 record = recordToEdit,
                 onDismiss = viewModel::onEditDialogDismiss,
-                onConfirm = viewModel::onRecordUpdated
+                onConfirm = viewModel::onRecordUpdated,
+                isLastTimedRecord = isEditingLastTimedRecord
+            )
+        }
+
+        recordToDelete?.let { record ->
+            AlertDialog(
+                onDismissRequest = viewModel::onDeleteDismiss,
+                title = { Text("Видалити запис?") },
+                text = { Text("Ви впевнені, що хочете видалити запис: \"${record.text}\"?") },
+                confirmButton = { Button(onClick = viewModel::onDeleteConfirm) { Text("Видалити") } },
+                dismissButton = { TextButton(onClick = viewModel::onDeleteDismiss) { Text("Скасувати") } }
             )
         }
 
@@ -132,12 +152,12 @@ private fun ActivityLog(
     log: List<ActivityRecord>,
     modifier: Modifier = Modifier,
     onEdit: (ActivityRecord) -> Unit,
-    onRestart: (ActivityRecord) -> Unit
+    onRestart: (ActivityRecord) -> Unit,
+    onDelete: (ActivityRecord) -> Unit
 ) {
     val groupedByDate = log.groupBy { toDateHeader(it.createdAt) }
     val lazyListState = rememberLazyListState()
 
-    // ✨ ОНОВЛЕНО: Логіка прокрутки тепер веде до останнього елемента в списку
     LaunchedEffect(log.size) {
         if (log.isNotEmpty()) {
             lazyListState.animateScrollToItem(log.lastIndex)
@@ -147,7 +167,6 @@ private fun ActivityLog(
     LazyColumn(
         state = lazyListState,
         modifier = modifier.padding(horizontal = 12.dp),
-        // ✨ ОНОВЛЕНО: Прибрано reverseLayout = true, щоб старіші елементи були зверху
     ) {
         if (log.isEmpty()) {
             item {
@@ -167,11 +186,12 @@ private fun ActivityLog(
                         )
                     }
                 }
-                items(records, key = { it.id }) { record ->
+                items(records, key = { "${it.id}-${it.endTime}" }) { record ->
                     LogEntryItem(
                         record = record,
                         onEdit = onEdit,
-                        onRestart = onRestart
+                        onRestart = onRestart,
+                        onDelete = onDelete
                     )
                     if (records.last() != record) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -186,44 +206,30 @@ private fun ActivityLog(
 private fun LogEntryItem(
     record: ActivityRecord,
     onEdit: (ActivityRecord) -> Unit,
-    onRestart: (ActivityRecord) -> Unit
+    onRestart: (ActivityRecord) -> Unit,
+    onDelete: (ActivityRecord) -> Unit
 ) {
     if (record.isTimeless) {
         OutlinedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 6.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Filled.Notes,
-                    contentDescription = "Нотатка",
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(Icons.Filled.Notes, "Нотатка", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
-                Text(
-                    text = record.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                    fontStyle = FontStyle.Italic
-                )
+                Text(record.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), fontStyle = FontStyle.Italic)
                 Spacer(Modifier.width(8.dp))
-                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp))
-                }
+                IconButton(onClick = { onDelete(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
+                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp)) }
             }
         }
     } else {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.Top
         ) {
             val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
             val timeText = when {
@@ -233,21 +239,125 @@ private fun LogEntryItem(
             Text(
                 text = timeText,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.width(90.dp),
+                modifier = Modifier.width(90.dp).padding(top = 2.dp),
                 fontWeight = FontWeight.SemiBold,
                 color = if (record.isOngoing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Text(text = record.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.width(8.dp))
+
+            TextWithBadgeLayout(
+                modifier = Modifier.weight(1f),
+                text = record.text,
+                textStyle = MaterialTheme.typography.bodyLarge,
+                badge = {
+                    if (record.startTime != null && record.endTime != null) {
+                        val duration = record.endTime - record.startTime
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                text = formatDuration(duration),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            )
 
             Row {
-                IconButton(onClick = { onRestart(record) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                }
-                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
-                }
+                IconButton(onClick = { onRestart(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+                IconButton(onClick = { onDelete(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
+                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary) }
+            }
+        }
+    }
+}
+
+// ✨ ВИПРАВЛЕНО: Повністю переписаний компонент для усунення падіння та мерехтіння
+@Composable
+private fun TextWithBadgeLayout(
+    modifier: Modifier = Modifier,
+    text: String,
+    textStyle: TextStyle,
+    badge: @Composable () -> Unit
+) {
+    val textMeasurer = rememberTextMeasurer()
+
+    SubcomposeLayout(modifier = modifier) { constraints ->
+        // 1. Спочатку вимірюємо бейдж, щоб знати його розміри
+        /*val badgePlaceable = subcompose("badge", badge).firstOrNull()?.measure(constraints)
+        val badgeWidth = badgePlaceable?.width ?: 0
+        val badgeHeight = badgePlaceable?.height ?: 0
+        val horizontalGap = if (badgeWidth > 0) 8.dp.roundToPx() else 0*/
+
+        val badgePlaceable = subcompose("badge", badge).firstOrNull()?.measure(
+            Constraints(
+                minWidth = 0,
+                minHeight = 0,
+                maxWidth = Constraints.Infinity,
+                maxHeight = constraints.maxHeight
+            )
+        )
+        val badgeWidth = badgePlaceable?.width ?: 0
+        val badgeHeight = badgePlaceable?.height ?: 0
+        val horizontalGap = if (badgeWidth > 0) 8.dp.roundToPx() else 0
+
+
+        // 2. ✨ ВИПРАВЛЕНО: Гарантуємо, що ширина для тексту не буде від'ємною
+        val availableWidthForText = (constraints.maxWidth - badgeWidth - horizontalGap).coerceAtLeast(0)
+
+        // 3. Використовуємо TextMeasurer, щоб дізнатися, чи переноситься текст
+        /*val textLayoutResult = textMeasurer.measure(
+            text = AnnotatedString(text),
+            style = textStyle,
+            constraints = constraints.copy(maxWidth = availableWidthForText)
+        )*/
+
+        val safeTextConstraints = Constraints(
+            minWidth = 0,
+            maxWidth = availableWidthForText.coerceAtLeast(0),
+            minHeight = 0,
+            maxHeight = constraints.maxHeight
+        )
+
+        val textLayoutResult = textMeasurer.measure(
+            text = AnnotatedString(text),
+            style = textStyle,
+            constraints = safeTextConstraints
+        )
+
+
+        val isMultiLine = textLayoutResult.lineCount > 1
+
+        // 4. Тепер, коли ми маємо всю інформацію, вимірюємо фінальний текст і вибираємо верстку
+        if (isMultiLine) {
+            // Вертикальна верстка
+            val textPlaceable = subcompose("text_multi") { Text(text, style = textStyle) }.first().measure(constraints)
+            val verticalGap = if (badgeHeight > 0) 6.dp.roundToPx() else 0
+            val totalHeight = textPlaceable.height + verticalGap + badgeHeight
+
+            layout(constraints.maxWidth, totalHeight) {
+                textPlaceable.placeRelative(0, 0)
+                badgePlaceable?.placeRelative(0, textPlaceable.height + verticalGap)
+            }
+        } else {
+            // Горизонтальна верстка
+/*            val textPlaceable = subcompose("text_single") { Text(text, style = textStyle) }.first()
+                .measure(constraints.copy(maxWidth = availableWidthForText))*/
+
+            val textPlaceable = subcompose("text_single") {
+                Text(text, style = textStyle)
+            }.first().measure(safeTextConstraints)
+
+
+            val totalHeight = max(textPlaceable.height, badgeHeight)
+            layout(constraints.maxWidth, totalHeight) {
+                textPlaceable.placeRelative(0, (totalHeight - textPlaceable.height) / 2)
+                badgePlaceable?.placeRelative(textPlaceable.width + horizontalGap, (totalHeight - badgeHeight) / 2)
             }
         }
     }
@@ -414,37 +524,148 @@ private fun copyToClipboard(context: Context, text: String) {
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditRecordDialog(
     record: ActivityRecord,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String, Long?, Long?) -> Unit,
+    isLastTimedRecord: Boolean
 ) {
     var text by remember(record) { mutableStateOf(record.text) }
+    var startTime by remember(record) { mutableStateOf(record.startTime) }
+    var endTime by remember(record) { mutableStateOf(record.endTime) }
+
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Редагувати запис") },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Текст запису") }
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Текст запису") }
+                )
+                if (!record.isTimeless) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(onClick = { showStartTimePicker = true }, modifier = Modifier.weight(1f)) {
+                            Text(startTime?.let { timeFormatter.format(Date(it)) } ?: "Start")
+                        }
+                        Text("-")
+                        OutlinedButton(
+                            onClick = { showEndTimePicker = true },
+                            modifier = Modifier.weight(1f),
+                            enabled = !record.isOngoing
+                        ) {
+                            Text(endTime?.let { timeFormatter.format(Date(it)) } ?: "Зараз")
+                        }
+                        if (isLastTimedRecord && endTime != null) {
+                            IconButton(onClick = { endTime = null }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Зробити поточним")
+                            }
+                        }
+                    }
+                }
+            }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(text) },
+                onClick = {
+                    val isTimeInvalid = startTime != null && endTime != null && endTime!! < startTime!!
+                    if (isTimeInvalid) {
+                        Toast.makeText(context, "Час закінчення не може бути раніше часу початку", Toast.LENGTH_SHORT).show()
+                    } else {
+                        onConfirm(text, startTime, endTime)
+                    }
+                },
                 enabled = text.isNotBlank()
             ) {
                 Text("Зберегти")
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Скасувати")
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+    )
+
+    if (showStartTimePicker) {
+        TimePickerDialog(
+            initialTime = startTime ?: System.currentTimeMillis(),
+            onDismiss = { showStartTimePicker = false },
+            onConfirm = { newTime ->
+                startTime = newTime
+                showStartTimePicker = false
             }
+        )
+    }
+
+    if (showEndTimePicker) {
+        TimePickerDialog(
+            initialTime = endTime ?: System.currentTimeMillis(),
+            onDismiss = { showEndTimePicker = false },
+            onConfirm = { newTime ->
+                endTime = newTime
+                showEndTimePicker = false
+            }
+        )
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    initialTime: Long,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit
+) {
+    val calendar = Calendar.getInstance().apply { timeInMillis = initialTime }
+    val timePickerState = rememberTimePickerState(
+        initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+        initialMinute = calendar.get(Calendar.MINUTE),
+        is24Hour = true
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                val newCalendar = Calendar.getInstance().apply {
+                    timeInMillis = initialTime
+                    set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    set(Calendar.MINUTE, timePickerState.minute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                onConfirm(newCalendar.timeInMillis)
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        text = {
+            TimePicker(state = timePickerState)
         }
     )
+}
+
+private fun formatDuration(millis: Long): String {
+    val hours = TimeUnit.MILLISECONDS.toHours(millis)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
+        hours > 0 -> "${hours}h"
+        minutes > 0 -> "${minutes}m"
+        else -> "< 1m"
+    }
 }

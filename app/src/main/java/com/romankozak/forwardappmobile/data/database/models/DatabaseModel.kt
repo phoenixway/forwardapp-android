@@ -178,14 +178,6 @@ fun GoalWithInstanceInfo.toGoalInstance(): GoalInstance {
     )
 }
 
-/**
- * Представляє повну ієрархію списків цілей для зручного доступу в UI.
- */
-data class ListHierarchyData(
-    val allLists: List<GoalList> = emptyList(),
-    val topLevelLists: List<GoalList> = emptyList(),
-    val childMap: Map<String, List<GoalList>> = emptyMap()
-)
 
 data class GlobalSearchResult(
     @Embedded

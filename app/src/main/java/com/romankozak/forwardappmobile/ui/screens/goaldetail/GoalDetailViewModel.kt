@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter // Імпорт нашого хелпера
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData // Оновлений імпорт
 
 
 // --- ДОПОМІЖНІ КЛАСИ ТА СТАНИ ---
@@ -52,12 +54,6 @@ data class UiState(
     val resetTriggers: Map<String, Int> = emptyMap(),
     val swipedInstanceId: String? = null
 )
-data class ListHierarchy(
-    val allLists: List<GoalList> = emptyList(),
-    val topLevelLists: List<GoalList>,
-    val childMap: Map<String, List<GoalList>>
-)
-
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class GoalDetailViewModel @Inject constructor(
@@ -142,51 +138,25 @@ class GoalDetailViewModel @Inject constructor(
     private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
     val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
 
-    private val fullListHierarchy: StateFlow<ListHierarchy> = goalRepository.getAllGoalListsFlow()
+    private val fullListHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
         .map { allLists ->
             val topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order }
             val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            ListHierarchy(allLists, topLevelLists, childMap)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
+            // і використовуйте новий клас тут
+            ListHierarchyData(allLists, topLevelLists, childMap)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData(emptyList(), emptyList(), emptyMap()))
 
-    val filteredListHierarchyForDialog: StateFlow<ListHierarchy> = flow {
-        combine(listChooserFilterText, fullListHierarchy) { filter, originalHierarchy ->
-            if (filter.isBlank()) {
-                originalHierarchy
-            } else {
-                val allListsById = originalHierarchy.allLists.associateBy { it.id }
-                val matchingIds = originalHierarchy.allLists
-                    .filter { it.name.contains(filter, ignoreCase = true) }
-                    .map { it.id }
-                    .toSet()
 
-                if (matchingIds.isEmpty()) {
-                    ListHierarchy(originalHierarchy.allLists, emptyList(), emptyMap())
-                } else {
-                    val visibleIds = matchingIds.toMutableSet()
-                    val visitedInTraversal = mutableSetOf<String>()
-                    matchingIds.forEach { id ->
-                        visitedInTraversal.clear()
-                        var current = allListsById[id]
-                        while (current != null) {
-                            if (!visitedInTraversal.add(current.id)) {
-                                break
-                            }
-                            visibleIds.add(current.id)
-                            current = current.parentId?.let { allListsById[it] }
-                        }
-                    }
+    val fullHierarchyForDialog: StateFlow<ListHierarchyData> = fullListHierarchy
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-                    val finalVisibleLists = originalHierarchy.allLists.filter { it.id in visibleIds }
-                    val topLevel = finalVisibleLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
-                    val childMap = finalVisibleLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-                    ListHierarchy(originalHierarchy.allLists, topLevel, childMap)
-                }
-            }
-        }.collect { emit(it) }
-    }.flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
+    val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
+        combine(listChooserFilterText, fullHierarchyForDialog) { filter, originalHierarchy ->
+            HierarchyFilter.filter(originalHierarchy, filter)
+        }.flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
+     // Подальший код залишається без змін
     // ✨ КРОК 2: Створюємо новий фінальний стан для UI, який комбінує вибір користувача та примусово розгорнуті елементи
     val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
         listChooserFilterText,

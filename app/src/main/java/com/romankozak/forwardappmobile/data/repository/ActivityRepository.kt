@@ -46,4 +46,9 @@ class ActivityRepository @Inject constructor(
     suspend fun clearLog() {
         activityRecordDao.clearAll()
     }
+
+    suspend fun deleteRecord(record: ActivityRecord) {
+        activityRecordDao.delete(record)
+    }
+
 }

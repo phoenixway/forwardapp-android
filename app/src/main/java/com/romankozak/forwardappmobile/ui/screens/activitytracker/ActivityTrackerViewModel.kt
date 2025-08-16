@@ -19,9 +19,14 @@ class ActivityTrackerViewModel @Inject constructor(
     private val _inputText = MutableStateFlow("")
     val inputText = _inputText.asStateFlow()
 
-    // ✨ НОВИЙ СТАН: Зберігає запис, що редагується, та контролює видимість діалогу
     private val _editingRecord = MutableStateFlow<ActivityRecord?>(null)
     val editingRecord = _editingRecord.asStateFlow()
+
+    private val _recordToDelete = MutableStateFlow<ActivityRecord?>(null)
+    val recordToDelete = _recordToDelete.asStateFlow()
+
+    private val _isEditingLastTimedRecord = MutableStateFlow(false)
+    val isEditingLastTimedRecord = _isEditingLastTimedRecord.asStateFlow()
 
     val activityLog: StateFlow<List<ActivityRecord>> = repository.getLogStream()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -61,25 +66,46 @@ class ActivityTrackerViewModel @Inject constructor(
         clearInput()
     }
 
-    // ✨ ОНОВЛЕНО: Тепер ця функція відкриває діалог для редагування
+    // ✨ ВИПРАВЛЕНО: Логіка тепер явно фільтрує "коментарі"
     fun onEditRequest(record: ActivityRecord) {
+        // Ця логіка стосується тільки записів, що мають час
+        if (!record.isTimeless) {
+            // 1. Створюємо список тільки "справжніх" активностей (не коментарів)
+            val timedRecords = activityLog.value.filter { !it.isTimeless }
+            // 2. Знаходимо останню з них
+            val lastTimedRecord = timedRecords.lastOrNull()
+            // 3. Порівнюємо ID запису, що редагується, з ID останньої активності
+            _isEditingLastTimedRecord.value = (record.id == lastTimedRecord?.id)
+        } else {
+            // Коментарі ніколи не можуть бути "останньою активністю"
+            _isEditingLastTimedRecord.value = false
+        }
         _editingRecord.value = record
     }
 
-    // ✨ НОВА ФУНКЦІЯ: Закриває діалог редагування
     fun onEditDialogDismiss() {
         _editingRecord.value = null
+        _isEditingLastTimedRecord.value = false
     }
 
-    // ✨ НОВА ФУНКЦІЯ: Оновлює запис з новим текстом
-    fun onRecordUpdated(newText: String) = viewModelScope.launch {
+    fun onRecordUpdated(newText: String, newStartTime: Long?, newEndTime: Long?) = viewModelScope.launch {
         val recordToUpdate = _editingRecord.value
         if (recordToUpdate != null && newText.isNotBlank()) {
-            // Створюємо копію запису з новим текстом
-            val updatedRecord = recordToUpdate.copy(text = newText)
-            repository.updateRecord(updatedRecord)
+            val isTimeValid = if (newStartTime != null && newEndTime != null) newEndTime >= newStartTime else true
+
+            if (isTimeValid) {
+                if (newStartTime != null && newEndTime == null) {
+                    lastOngoingActivity.value?.let {
+                        if (it.id != recordToUpdate.id) {
+                            repository.endLastActivity(System.currentTimeMillis())
+                        }
+                    }
+                }
+                val updatedRecord = recordToUpdate.copy(text = newText, startTime = newStartTime, endTime = newEndTime)
+                repository.updateRecord(updatedRecord)
+            }
         }
-        onEditDialogDismiss() // Закриваємо діалог після збереження
+        onEditDialogDismiss()
     }
 
     fun onRestartActivity(record: ActivityRecord) = viewModelScope.launch {
@@ -92,6 +118,21 @@ class ActivityTrackerViewModel @Inject constructor(
 
         repository.startActivity(record.text, now)
         clearInput()
+    }
+
+    fun onDeleteRequest(record: ActivityRecord) {
+        _recordToDelete.value = record
+    }
+
+    fun onDeleteConfirm() = viewModelScope.launch {
+        _recordToDelete.value?.let {
+            repository.deleteRecord(it)
+        }
+        onDeleteDismiss()
+    }
+
+    fun onDeleteDismiss() {
+        _recordToDelete.value = null
     }
 
     fun onClearLogConfirm() = viewModelScope.launch {

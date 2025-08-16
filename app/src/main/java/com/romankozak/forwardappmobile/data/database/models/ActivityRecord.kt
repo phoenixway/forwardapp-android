@@ -20,4 +20,8 @@ data class ActivityRecord(
 
     val isOngoing: Boolean
         get() = startTime != null && endTime == null
+
+    // ✨ ДОДАНО: Допоміжна властивість для розрахунку тривалості
+    val durationInMillis: Long?
+        get() = if (startTime != null && endTime != null) endTime - startTime else null
 }
