@@ -138,8 +138,9 @@ class GoalDetailViewModel @Inject constructor(
     private val _listChooserFilterText = MutableStateFlow("")
     val listChooserFilterText = _listChooserFilterText.asStateFlow()
 
-    private val _listChooserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
-    val listChooserExpandedIds = _listChooserExpandedIds.asStateFlow()
+    // ✨ КРОК 1: Перейменовуємо стан, щоб він зберігав лише вибір користувача
+    private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
+    val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
 
     private val fullListHierarchy: StateFlow<ListHierarchy> = goalRepository.getAllGoalListsFlow()
         .map { allLists ->
@@ -148,7 +149,6 @@ class GoalDetailViewModel @Inject constructor(
             ListHierarchy(allLists, topLevelLists, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
 
-    // ✨ ВИПРАВЛЕНО: Логіка `combine` загорнута у `flow` для коректного використання `flowOn`
     val filteredListHierarchyForDialog: StateFlow<ListHierarchy> = flow {
         combine(listChooserFilterText, fullListHierarchy) { filter, originalHierarchy ->
             if (filter.isBlank()) {
@@ -183,16 +183,35 @@ class GoalDetailViewModel @Inject constructor(
                     ListHierarchy(originalHierarchy.allLists, topLevel, childMap)
                 }
             }
-        }.collect { emit(it) } // `emit` передає результат назовні
-    }.flowOn(Dispatchers.Default) // Тепер `.flowOn` застосовується до правильного `flow`
+        }.collect { emit(it) }
+    }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchy(emptyList(), emptyList(), emptyMap()))
+
+    // ✨ КРОК 2: Створюємо новий фінальний стан для UI, який комбінує вибір користувача та примусово розгорнуті елементи
+    val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
+        listChooserFilterText,
+        filteredListHierarchyForDialog,
+        listChooserUserExpandedIds
+    ) { filter, filteredHierarchy, userExpandedIds ->
+        if (filter.isBlank()) {
+            userExpandedIds // Якщо фільтр вимкнено, повертаємо стан користувача
+        } else {
+            // Якщо фільтр активний, беремо всіх видимих батьків і додаємо до вибору користувача
+            val allVisibleIds = filteredHierarchy.topLevelLists.map { it.id }.toSet() +
+                    filteredHierarchy.childMap.keys
+            userExpandedIds + allVisibleIds
+        }
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
 
     fun onListChooserFilterChanged(text: String) {
         _listChooserFilterText.value = text
     }
 
+    // ✨ КРОК 3: Функція тепер оновлює тільки стан користувача
     fun onListChooserToggleExpanded(listId: String) {
-        _listChooserExpandedIds.value = _listChooserExpandedIds.value.toMutableSet().apply {
+        _listChooserUserExpandedIds.value = _listChooserUserExpandedIds.value.toMutableSet().apply {
             if (listId in this) remove(listId) else add(listId)
         }
     }
@@ -455,7 +474,8 @@ class GoalDetailViewModel @Inject constructor(
 
         _uiState.update { it.copy(swipedInstanceId = null) }
         _listChooserFilterText.value = ""
-        _listChooserExpandedIds.value = emptySet()
+        // ✨ КРОК 4: При закритті діалогу також скидаємо стан користувача
+        _listChooserUserExpandedIds.value = emptySet()
     }
 
     fun confirmGoalAction(targetListId: String) {

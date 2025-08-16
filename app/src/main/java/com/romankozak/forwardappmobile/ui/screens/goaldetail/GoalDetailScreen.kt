@@ -56,7 +56,7 @@ fun GoalDetailScreen(
 
     val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
-    val listChooserExpandedIds by viewModel.listChooserExpandedIds.collectAsState()
+    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -380,7 +380,7 @@ fun GoalDetailScreen(
                 onFilterTextChanged = viewModel::onListChooserFilterChanged,
                 topLevelLists = filteredListHierarchy.topLevelLists,
                 childMap = filteredListHierarchy.childMap,
-                expandedIds = listChooserExpandedIds,
+                expandedIds = listChooserFinalExpandedIds, // <-- Використовуємо новий стан
                 onToggleExpanded = viewModel::onListChooserToggleExpanded,
                 onDismiss = { viewModel.onDismissGoalActionDialogs() },
                 onConfirm = { listId ->
