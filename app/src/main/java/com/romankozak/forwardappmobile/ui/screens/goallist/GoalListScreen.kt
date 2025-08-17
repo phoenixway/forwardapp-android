@@ -12,6 +12,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -92,6 +94,10 @@ fun GoalListScreen(
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()           // Спочатку розтягуємо на весь екран
+            .navigationBarsPadding() // Відступ для нижньої панелі навігації
+            .imePadding(),
         topBar = {
             GoalListTopAppBar(
                 isSearchActive = isSearchActive,

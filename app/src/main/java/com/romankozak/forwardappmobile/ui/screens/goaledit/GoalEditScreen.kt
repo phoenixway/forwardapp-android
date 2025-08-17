@@ -103,6 +103,10 @@ fun GoalEditScreen(
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .navigationBarsPadding() // Відступ для нижньої панелі навігації
+            .imePadding(),           // Відступ для клавіатури
         topBar = {
             TopAppBar(
                 title = { Text(if (uiState.isNewGoal) "Нова ціль" else "Редагувати ціль") },
