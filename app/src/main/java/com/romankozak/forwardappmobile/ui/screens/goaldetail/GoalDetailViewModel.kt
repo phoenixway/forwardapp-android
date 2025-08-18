@@ -1,3 +1,5 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/GoalDetailViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
 import androidx.compose.ui.text.input.TextFieldValue
@@ -8,10 +10,12 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.toGoalInstance
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,8 +24,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
-import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter // Імпорт нашого хелпера
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData // Оновлений імпорт
 
 
 // --- ДОПОМІЖНІ КЛАСИ ТА СТАНИ ---
@@ -30,6 +32,7 @@ sealed class UiEvent {
     data class Navigate(val route: String) : UiEvent()
     data class ResetSwipeState(val instanceId: String) : UiEvent()
     data class ScrollTo(val index: Int) : UiEvent()
+    data class NavigateBackAndReveal(val listId: String) : UiEvent()
 }
 
 sealed class GoalActionDialogState {
@@ -134,7 +137,6 @@ class GoalDetailViewModel @Inject constructor(
     private val _listChooserFilterText = MutableStateFlow("")
     val listChooserFilterText = _listChooserFilterText.asStateFlow()
 
-    // ✨ КРОК 1: Перейменовуємо стан, щоб він зберігав лише вибір користувача
     private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
     val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
 
@@ -142,7 +144,6 @@ class GoalDetailViewModel @Inject constructor(
         .map { allLists ->
             val topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order }
             val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            // і використовуйте новий клас тут
             ListHierarchyData(allLists, topLevelLists, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData(emptyList(), emptyList(), emptyMap()))
 
@@ -156,17 +157,14 @@ class GoalDetailViewModel @Inject constructor(
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-     // Подальший код залишається без змін
-    // ✨ КРОК 2: Створюємо новий фінальний стан для UI, який комбінує вибір користувача та примусово розгорнуті елементи
     val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
         listChooserFilterText,
         filteredListHierarchyForDialog,
         listChooserUserExpandedIds
     ) { filter, filteredHierarchy, userExpandedIds ->
         if (filter.isBlank()) {
-            userExpandedIds // Якщо фільтр вимкнено, повертаємо стан користувача
+            userExpandedIds
         } else {
-            // Якщо фільтр активний, беремо всіх видимих батьків і додаємо до вибору користувача
             val allVisibleIds = filteredHierarchy.topLevelLists.map { it.id }.toSet() +
                     filteredHierarchy.childMap.keys
             userExpandedIds + allVisibleIds
@@ -179,7 +177,6 @@ class GoalDetailViewModel @Inject constructor(
         _listChooserFilterText.value = text
     }
 
-    // ✨ КРОК 3: Функція тепер оновлює тільки стан користувача
     fun onListChooserToggleExpanded(listId: String) {
         _listChooserUserExpandedIds.value = _listChooserUserExpandedIds.value.toMutableSet().apply {
             if (listId in this) remove(listId) else add(listId)
@@ -251,7 +248,9 @@ class GoalDetailViewModel @Inject constructor(
                 associatedListIds = listOf(listId)
             )
             goalRepository.insertGoal(newGoal)
-            val order = goalRepository.getGoalCountInList(listId).toLong()
+
+            val order = -currentTime
+
             val newInstance = GoalInstance(
                 instanceId = UUID.randomUUID().toString(),
                 goalId = newGoal.id,
@@ -301,7 +300,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun moveGoal(fromIndex: Int, toIndex: Int, needsScroll: Boolean) {
+    fun moveGoal(fromIndex: Int, toIndex: Int, afterApiUpdate: Boolean) {
         val currentGoals = filteredGoals.value.toMutableList()
         if (fromIndex in currentGoals.indices && toIndex in currentGoals.indices) {
             val item = currentGoals.removeAt(fromIndex)
@@ -311,7 +310,7 @@ class GoalDetailViewModel @Inject constructor(
                     goalWithInstanceInfo.copy(order = index.toLong())
                 }
                 updatedInstances.forEach { goalRepository.insertInstance(it.toGoalInstance()) }
-                if (needsScroll) {
+                if (afterApiUpdate) {
                     _uiEventFlow.send(UiEvent.ScrollTo(toIndex))
                 }
             }
@@ -418,7 +417,7 @@ class GoalDetailViewModel @Inject constructor(
                 GoalActionType.MoveToTop -> {
                     val fromIndex = filteredGoals.value.indexOfFirst { it.instanceId == goalToActOn.instanceId }
                     if (fromIndex > 0) {
-                        moveGoal(fromIndex, 0, needsScroll = true)
+                        moveGoal(fromIndex, 0, afterApiUpdate = true)
                     }
                     onDismissGoalActionDialogs()
                 }
@@ -444,7 +443,6 @@ class GoalDetailViewModel @Inject constructor(
 
         _uiState.update { it.copy(swipedInstanceId = null) }
         _listChooserFilterText.value = ""
-        // ✨ КРОК 4: При закритті діалогу також скидаємо стан користувача
         _listChooserUserExpandedIds.value = emptySet()
     }
 
@@ -502,5 +500,50 @@ class GoalDetailViewModel @Inject constructor(
     fun selectAllGoals() {
         val allInstanceIds = filteredGoals.value.map { it.instanceId }.toSet()
         _uiState.update { it.copy(selectedInstanceIds = allInstanceIds) }
+    }
+
+    fun onRevealInExplorer(currentListId: String) {
+        if (currentListId.isEmpty()) return
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentListId))
+        }
+    }
+
+    /**
+     * ✨ ЗМІНЕНО: Сигнатура функції тепер приймає `id` для відповідності
+     * оновленому `FilterableListChooser`.
+     */
+    fun addNewList(id: String, parentId: String?, name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            // Викликаємо новий метод репозиторію, який приймає ID.
+            // Переконайтесь, що ви додали `createGoalListWithId` у ваш `GoalRepository`.
+            goalRepository.createGoalListWithId(id, name, parentId)
+
+            // ✨ ДОДАНО: Логіка для розкриття батьківських елементів у діалозі.
+            if (parentId != null) {
+                // `fullHierarchyForDialog` вже містить всі списки.
+                val allLists = fullHierarchyForDialog.value.allLists
+                val listLookup = allLists.associateBy { it.id }
+                val ancestorIds = findAncestorIds(parentId, listLookup)
+                _listChooserUserExpandedIds.update { currentIds ->
+                    currentIds + ancestorIds
+                }
+            }
+        }
+    }
+
+    /**
+     * ✨ ДОДАНО: Допоміжна функція для пошуку всіх батьківських ID.
+     * Така ж, як і в `GoalListViewModel`.
+     */
+    private fun findAncestorIds(startId: String?, listLookup: Map<String, GoalList>): Set<String> {
+        val ancestors = mutableSetOf<String>()
+        var currentId = startId
+        while (currentId != null && listLookup.containsKey(currentId)) {
+            ancestors.add(currentId)
+            currentId = listLookup[currentId]?.parentId
+        }
+        return ancestors
     }
 }

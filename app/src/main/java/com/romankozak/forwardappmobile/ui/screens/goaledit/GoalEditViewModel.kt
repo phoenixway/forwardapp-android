@@ -1,3 +1,5 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.screens.goaledit
 
 import androidx.compose.ui.text.input.TextFieldValue
@@ -13,6 +15,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,7 +27,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
-import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter // Імпорт нашого хелпера
 
 sealed class GoalEditEvent {
     data class NavigateBack(val message: String? = null) : GoalEditEvent()
@@ -86,7 +88,6 @@ class GoalEditViewModel @Inject constructor(
             ListHierarchyData(allLists, topLevel, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-    // ✨ КРОК 1: Перейменовуємо стан, щоб він зберігав лише вибір користувача
     private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
     val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
 
@@ -102,16 +103,14 @@ class GoalEditViewModel @Inject constructor(
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-    // ✨ КРОК 2: Створюємо новий фінальний стан для UI
     val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
         listChooserFilterText,
         filteredListHierarchy,
         listChooserUserExpandedIds
     ) { filter, filteredHierarchy, userExpanded ->
         if (filter.isBlank()) {
-            userExpanded // Якщо фільтр вимкнено, повертаємо стан користувача
+            userExpanded
         } else {
-            // Якщо фільтр активний, беремо всіх видимих батьків і додаємо до вибору користувача
             val forcedExpansion = filteredHierarchy.childMap.keys
             userExpanded + forcedExpansion
         }
@@ -136,7 +135,6 @@ class GoalEditViewModel @Inject constructor(
         _listChooserFilterText.value = text
     }
 
-    // ✨ КРОК 3: Функція тепер оновлює тільки стан користувача
     fun onListChooserToggleExpanded(listId: String) {
         val currentIds = _listChooserUserExpandedIds.value.toMutableSet()
         if (listId in currentIds) {
@@ -172,8 +170,43 @@ class GoalEditViewModel @Inject constructor(
     fun onDismissListChooser() {
         _uiState.update { it.copy(showListChooser = false) }
         onListChooserFilterChanged("")
-        // ✨ КРОК 4: Скидаємо стан користувача при закритті
         _listChooserUserExpandedIds.value = emptySet()
+    }
+
+    /**
+     * ✨ ЗМІНЕНО: Сигнатура функції тепер приймає `id` для відповідності
+     * оновленому `FilterableListChooser`.
+     */
+    fun addNewList(id: String, parentId: String?, name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            // Викликаємо новий метод репозиторію, який приймає ID.
+            // Переконайтесь, що ви додали `createGoalListWithId` у ваш `GoalRepository`.
+            goalRepository.createGoalListWithId(id, name, parentId)
+
+            // ✨ ДОДАНО: Логіка для розкриття батьківських елементів у діалозі.
+            if (parentId != null) {
+                val allLists = fullHierarchyForDialog.value.allLists
+                val listLookup = allLists.associateBy { it.id }
+                val ancestorIds = findAncestorIds(parentId, listLookup)
+                _listChooserUserExpandedIds.update { currentIds ->
+                    currentIds + ancestorIds
+                }
+            }
+        }
+    }
+
+    /**
+     * ✨ ДОДАНО: Допоміжна функція для пошуку всіх батьківських ID.
+     */
+    private fun findAncestorIds(startId: String?, listLookup: Map<String, GoalList>): Set<String> {
+        val ancestors = mutableSetOf<String>()
+        var currentId = startId
+        while (currentId != null && listLookup.containsKey(currentId)) {
+            ancestors.add(currentId)
+            currentId = listLookup[currentId]?.parentId
+        }
+        return ancestors
     }
 
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
@@ -472,5 +505,4 @@ class GoalEditViewModel @Inject constructor(
             goalRepository.updateMarkdown(goalId, newText)
         }
     }
-
 }

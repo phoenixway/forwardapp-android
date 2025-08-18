@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt
 
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 
@@ -65,7 +65,7 @@ fun GoalEditScreen(
     val filteredListHierarchy by viewModel.filteredListHierarchy.collectAsState()
     val allContexts by viewModel.allContextNames.collectAsState()
 
-    var showSuggestions by remember { mutableStateOf(false) }
+    var showSuggestions by remember { mutableStateOf(value = false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
 
     fun getCurrentWord(textValue: TextFieldValue): String? {
@@ -105,8 +105,8 @@ fun GoalEditScreen(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding() // Відступ для нижньої панелі навігації
-            .imePadding(),           // Відступ для клавіатури
+            .navigationBarsPadding()
+            .imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text(if (uiState.isNewGoal) "Нова ціль" else "Редагувати ціль") },
@@ -170,12 +170,12 @@ fun GoalEditScreen(
                                     viewModel.onTextChange(
                                         TextFieldValue(
                                             text = newText,
-                                            selection = TextRange(newCursorPosition)
-                                        )
+                                            selection = TextRange(newCursorPosition),
+                                        ),
                                     )
                                 }
                                 showSuggestions = false
-                            }
+                            },
                         )
                     }
                 }
@@ -186,7 +186,7 @@ fun GoalEditScreen(
                         onValueChange = viewModel::onDescriptionChange,
                         maxHeight = 150.dp,
                         onExpandClick = { viewModel.openDescriptionEditor() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
 
                 }
@@ -195,7 +195,7 @@ fun GoalEditScreen(
                     AssociatedListsSection(
                         associatedLists = uiState.associatedLists,
                         onRemoveList = viewModel::onRemoveListAssociation,
-                        onAddList = viewModel::onShowListChooser
+                        onAddList = viewModel::onShowListChooser,
                     )
                 }
 
@@ -218,7 +218,7 @@ fun GoalEditScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             val updatedAt = uiState.updatedAt
-                            if (updatedAt != null && updatedAt > createdAt + 1000) {
+                            if (updatedAt != null && (updatedAt > createdAt + 1000)) {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = "Оновлено: ${formatDate(updatedAt)}",
@@ -241,19 +241,18 @@ fun GoalEditScreen(
             onFilterTextChanged = viewModel::onListChooserFilterChanged,
             topLevelLists = filteredListHierarchy.topLevelLists,
             childMap = filteredListHierarchy.childMap,
-            expandedIds = listChooserFinalExpandedIds, // <-- Використовуємо новий стан
+            expandedIds = listChooserFinalExpandedIds,
             onToggleExpanded = viewModel::onListChooserToggleExpanded,
             onDismiss = viewModel::onDismissListChooser,
-            // ✨ ВИПРАВЛЕНО 1: Використовуємо лямбду, щоб обробити nullable ID
             onConfirm = { listId ->
-                // Ціль можна додати тільки до існуючого списку, тому ігноруємо null
-                if (listId != null) {
-                    viewModel.onAddListAssociation(listId)
-                }
+                listId?.let { viewModel.onAddListAssociation(it) }
             },
-            // ✨ ВИПРАВЛЕНО 2: Цей параметр тут не потрібен, передаємо null
             currentParentId = null,
-            disabledIds = uiState.associatedLists.map { it.id }.toSet()
+            disabledIds = uiState.associatedLists.map { it.id }.toSet(),
+            // ✨ ВИПРАВЛЕНО: Лямбда тепер відповідає оновленій сигнатурі
+            onAddNewList = { id, parentId, name ->
+                viewModel.addNewList(id, parentId, name)
+            },
         )
     }
 
@@ -261,7 +260,7 @@ fun GoalEditScreen(
         FullScreenMarkdownEditor(
             initialValue = uiState.goalDescription,
             onDismiss = { viewModel.closeDescriptionEditor() },
-            onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) }
+            onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) },
         )
     }
 }
@@ -270,20 +269,22 @@ fun GoalEditScreen(
 private fun AssociatedListsSection(
     associatedLists: List<GoalList>,
     onRemoveList: (String) -> Unit,
-    onAddList: () -> Unit
+    onAddList: () -> Unit,
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
                 "Пов'язані списки",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
 
             if (associatedLists.isNotEmpty()) {
                 FlowRow(
+// WARNING: 'fun FlowRow(modifier: Modifier = ..., mainAxisSize: SizeMode = ..., mainAxisAlignment: MainAxisAlignment = ..., mainAxisSpacing: Dp = ..., crossAxisAlignment: FlowCrossAxisAlignment = ..., crossAxisSpacing: Dp = ..., lastLineMainAxisAlignment: MainAxisAlignment = ..., content: @Composable() ComposableFunction0<Unit>): Unit' is deprecated. accompanist/FlowRow is deprecated.
+// For more migration information, please visit https://google.github.io/accompanist/flowlayout/.
                     modifier = Modifier.fillMaxWidth(),
                     mainAxisSpacing = 8.dp,
                     crossAxisSpacing = 4.dp,
@@ -309,7 +310,7 @@ private fun AssociatedListsSection(
                 Text(
                     "Ціль ще не пов'язана з жодним списком.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -328,7 +329,7 @@ private fun AssociatedListsSection(
 
 @Composable
 private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewModel) {
-    var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(value = false) }
 
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
@@ -355,12 +356,12 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     Column(
                         modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         ScoringStatusSelector(
                             selectedStatus = uiState.scoringStatus,
                             onStatusSelected = viewModel::onScoringStatusChange,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp),
                         )
 
                         val rawScore = uiState.rawScore
@@ -377,14 +378,14 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                                 color = balanceColor,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp),
                             )
                         }
 
                         EvaluationTabs(
                             uiState = uiState,
                             viewModel = viewModel,
-                            isEnabled = uiState.isScoringEnabled
+                            isEnabled = uiState.isScoringEnabled,
                         )
                     }
                 }
@@ -397,20 +398,20 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
 private fun ScoringStatusSelector(
     selectedStatus: ScoringStatus,
     onStatusSelected: (ScoringStatus) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val statuses = ScoringStatus.entries.toTypedArray()
     val labels = mapOf(
         ScoringStatus.NOT_ASSESSED to "Unset",
         ScoringStatus.ASSESSED to "Set",
-        ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible"
+        ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible",
     )
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         statuses.forEachIndexed { index, status ->
             SegmentedButton(
                 selected = selectedStatus == status,
                 onClick = { onStatusSelected(status) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = statuses.size)
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = statuses.size),
             ) {
                 Text(labels[status] ?: "")
             }
@@ -423,14 +424,14 @@ private fun ScoringStatusSelector(
 private fun EvaluationTabs(
     uiState: GoalEditUiState,
     viewModel: GoalEditViewModel,
-    isEnabled: Boolean
+    isEnabled: Boolean,
 ) {
     val tabTitles = listOf("Gain", "Loss", "Weights")
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
     Column(
-        modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f)
+        modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f),
     ) {
         TabRow(
             selectedTabIndex = pagerState.currentPage,
@@ -450,7 +451,7 @@ private fun EvaluationTabs(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            userScrollEnabled = isEnabled
+            userScrollEnabled = isEnabled,
         ) { page ->
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -463,14 +464,14 @@ private fun EvaluationTabs(
                             value = uiState.valueImportance,
                             onValueChange = viewModel::onValueImportanceChange,
                             scale = Scales.importance,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Value gain impact",
                             value = uiState.valueImpact,
                             onValueChange = viewModel::onValueImpactChange,
                             scale = Scales.impact,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                     }
                     1 -> { // Витрати
@@ -479,7 +480,7 @@ private fun EvaluationTabs(
                             value = uiState.effort,
                             onValueChange = viewModel::onEffortChange,
                             scale = Scales.effort,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Costs",
@@ -487,14 +488,14 @@ private fun EvaluationTabs(
                             onValueChange = viewModel::onCostChange,
                             scale = Scales.cost,
                             valueLabels = Scales.costLabels,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Risk",
                             value = uiState.risk,
                             onValueChange = viewModel::onRiskChange,
                             scale = Scales.risk,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                     }
                     2 -> { // Ваги
@@ -503,21 +504,21 @@ private fun EvaluationTabs(
                             value = uiState.weightEffort,
                             onValueChange = viewModel::onWeightEffortChange,
                             scale = Scales.weights,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Costs weight",
                             value = uiState.weightCost,
                             onValueChange = viewModel::onWeightCostChange,
                             scale = Scales.weights,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Risk weight",
                             value = uiState.weightRisk,
                             onValueChange = viewModel::onWeightRiskChange,
                             scale = Scales.weights,
-                            enabled = isEnabled
+                            enabled = isEnabled,
                         )
                     }
                 }
@@ -533,7 +534,7 @@ private fun ParameterSlider(
     onValueChange: (Float) -> Unit,
     scale: List<Float>,
     enabled: Boolean,
-    valueLabels: List<String>? = null
+    valueLabels: List<String>? = null,
 ) {
     val currentIndex = scale.indexOf(value).coerceAtLeast(0)
 
@@ -564,7 +565,7 @@ private fun ParameterSlider(
                 onValueChange(scale[roundedIndex])
             },
             valueRange = 0f..scale.lastIndex.toFloat(),
-            steps = (scale.size - 2).coerceAtLeast(0)
+            steps = (scale.size - 2).coerceAtLeast(0),
         )
     }
 }
