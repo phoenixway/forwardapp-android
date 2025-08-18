@@ -132,4 +132,13 @@ class ContextHandler @Inject constructor(
             ensureInstancesExist(newGoal, newContexts)
         }
     }
+
+
+    fun getContextTag(contextName: String): String? {
+        if (!isInitialized) {
+            Log.w("ContextDebug", "getContextTag called before handler was initialized!")
+        }
+        return contextTagMap[contextName]
+    }
+
 }

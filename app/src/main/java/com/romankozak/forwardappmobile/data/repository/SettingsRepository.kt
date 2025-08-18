@@ -41,6 +41,18 @@ class SettingsRepository @Inject constructor(
         val MIDDLE = stringPreferencesKey("context_tag_middle")
         val LONG = stringPreferencesKey("context_tag_long")
 
+        val EMOJI_BUY = stringPreferencesKey("context_emoji_buy")
+        val EMOJI_PM = stringPreferencesKey("context_emoji_pm")
+        val EMOJI_PAPER = stringPreferencesKey("context_emoji_paper")
+        val EMOJI_MENTAL = stringPreferencesKey("context_emoji_mental")
+        val EMOJI_PROVIDENCE = stringPreferencesKey("context_emoji_providence")
+        val EMOJI_MANUAL = stringPreferencesKey("context_emoji_manual")
+        val EMOJI_RESEARCH = stringPreferencesKey("context_emoji_research")
+        val EMOJI_DEVICE = stringPreferencesKey("context_emoji_device")
+        val EMOJI_MIDDLE = stringPreferencesKey("context_emoji_middle")
+        val EMOJI_LONG = stringPreferencesKey("context_emoji_long")
+
+
     }
 
     // ... (код для desktopAddress, obsidianVaultName, planning modes) ...
@@ -110,4 +122,15 @@ class SettingsRepository @Inject constructor(
     suspend fun saveContextTag(contextKey: Preferences.Key<String>, tag: String) {
         context.dataStore.edit { settings -> settings[contextKey] = tag }
     }
+
+    fun getContextEmojiFlow(emojiKey: Preferences.Key<String>): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[emojiKey] ?: "" // Повертаємо порожній рядок, якщо емодзі не встановлено
+        }
+    }
+
+    suspend fun saveContextEmoji(emojiKey: Preferences.Key<String>, emoji: String) {
+        context.dataStore.edit { settings -> settings[emojiKey] = emoji }
+    }
+
 }

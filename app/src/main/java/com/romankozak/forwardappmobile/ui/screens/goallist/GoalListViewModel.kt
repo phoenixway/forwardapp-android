@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
 
 
@@ -79,6 +80,8 @@ class GoalListViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
     private val application: Application,
     private val syncRepo: SyncRepository,
+    private val contextHandler: ContextHandler // <-- ДОДАЙТЕ ЦЕЙ РЯДОК
+
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -294,42 +297,50 @@ class GoalListViewModel @Inject constructor(
     private val _desktopAddress = MutableStateFlow("")
     val desktopAddress: StateFlow<String> = _desktopAddress.asStateFlow()
 
-    val contextTagsState: StateFlow<Map<String, String>> = combine(
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.BUY),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.PM),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.PAPER),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MENTAL),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.PROVIDENCE),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MANUAL),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.RESEARCH),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.DEVICE),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.MIDDLE),
-        settingsRepo.getContextTagFlow(SettingsRepository.ContextKeys.LONG)
-    ) { tags ->
-        mapOf(
-            "buy" to tags[0], "pm" to tags[1], "paper" to tags[2], "mental" to tags[3],
-            "providence" to tags[4], "manual" to tags[5], "research" to tags[6], "device" to tags[7],
-            "middle" to tags[8],
-            "long" to tags[9]
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    // Замініть стару мапу на цю
     private val contextKeyMap = mapOf(
-        "buy" to SettingsRepository.ContextKeys.BUY, "pm" to SettingsRepository.ContextKeys.PM,
-        "paper" to SettingsRepository.ContextKeys.PAPER, "mental" to SettingsRepository.ContextKeys.MENTAL,
-        "providence" to SettingsRepository.ContextKeys.PROVIDENCE, "manual" to SettingsRepository.ContextKeys.MANUAL,
-        "research" to SettingsRepository.ContextKeys.RESEARCH, "device" to SettingsRepository.ContextKeys.DEVICE,
-        "middle" to SettingsRepository.ContextKeys.MIDDLE,
-        "long" to SettingsRepository.ContextKeys.LONG
+        "buy" to (SettingsRepository.ContextKeys.BUY to SettingsRepository.ContextKeys.EMOJI_BUY),
+        "pm" to (SettingsRepository.ContextKeys.PM to SettingsRepository.ContextKeys.EMOJI_PM),
+        "paper" to (SettingsRepository.ContextKeys.PAPER to SettingsRepository.ContextKeys.EMOJI_PAPER),
+        "mental" to (SettingsRepository.ContextKeys.MENTAL to SettingsRepository.ContextKeys.EMOJI_MENTAL),
+        "providence" to (SettingsRepository.ContextKeys.PROVIDENCE to SettingsRepository.ContextKeys.EMOJI_PROVIDENCE),
+        "manual" to (SettingsRepository.ContextKeys.MANUAL to SettingsRepository.ContextKeys.EMOJI_MANUAL),
+        "research" to (SettingsRepository.ContextKeys.RESEARCH to SettingsRepository.ContextKeys.EMOJI_RESEARCH),
+        "device" to (SettingsRepository.ContextKeys.DEVICE to SettingsRepository.ContextKeys.EMOJI_DEVICE),
+        "middle" to (SettingsRepository.ContextKeys.MIDDLE to SettingsRepository.ContextKeys.EMOJI_MIDDLE),
+        "long" to (SettingsRepository.ContextKeys.LONG to SettingsRepository.ContextKeys.EMOJI_LONG)
     )
+
+    // Видаліть старий StateFlow `contextTagsState` і вставте цей на його місце
+    val reservedContextsState: StateFlow<Map<String, Pair<String, String>>> =
+        contextKeyMap.keys.map { contextName ->
+            val (tagKey, emojiKey) = contextKeyMap[contextName]!!
+            combine(
+                settingsRepo.getContextTagFlow(tagKey),
+                settingsRepo.getContextEmojiFlow(emojiKey)
+            ) { tag, emoji ->
+                contextName to (tag to emoji)
+            }
+        }.let { flows ->
+            combine(flows) { pairs ->
+                pairs.toMap()
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+
     private val _uiEventChannel = Channel<GoalListUiEvent>()
     val uiEventFlow = _uiEventChannel.receiveAsFlow()
 
     private val wifiSyncServer = WifiSyncServer(syncRepo, application)
+    val contextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
+
 
     init {
         viewModelScope.launch {
             _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
+            contextHandler.initialize() // <-- ДУЖЕ ВАЖЛИВО: ініціалізуємо тут
+
         }
     }
 
@@ -503,6 +514,9 @@ class GoalListViewModel @Inject constructor(
     fun onDismissWifiImportDialog() { _showWifiImportDialog.value = false }
     private val _showSearchDialog = MutableStateFlow(false)
     val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
+
+
+
     fun onShowSearchDialog() { _showSearchDialog.value = true }
     fun onDismissSearchDialog() { _showSearchDialog.value = false }
     fun onPerformGlobalSearch(query: String) {
@@ -587,11 +601,14 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    fun saveContextSettings(newContextTags: Map<String, String>) {
+    // Замініть стару функцію на цю
+    fun saveContextSettings(newContexts: Map<String, Pair<String, String>>) {
         viewModelScope.launch {
-            newContextTags.forEach { (contextName, tagValue) ->
-                contextKeyMap[contextName]?.let { preferenceKey ->
-                    settingsRepo.saveContextTag(preferenceKey, tagValue.trim())
+            newContexts.forEach { (contextName, pair) ->
+                val (tag, emoji) = pair
+                contextKeyMap[contextName]?.let { (tagKey, emojiKey) ->
+                    settingsRepo.saveContextTag(tagKey, tag.trim())
+                    settingsRepo.saveContextEmoji(emojiKey, emoji.trim())
                 }
             }
         }
@@ -599,5 +616,25 @@ class GoalListViewModel @Inject constructor(
 
     fun onManageContextsRequest() {
         _dialogState.value = DialogState.ReservedContextsSettings
+    }
+    // ... додайте цю функцію в кінець ViewModel, перед останньою фігурною дужкою ...
+
+    fun onContextSelected(contextName: String) {
+        viewModelScope.launch {
+            val targetTag = contextHandler.getContextTag(contextName)
+
+            if (targetTag.isNullOrBlank()) {
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Тег для контексту '$contextName' не знайдено або порожній"))
+                return@launch
+            }
+
+            val targetList = _allListsFlat.value.find { it.tags?.contains(targetTag) == true }
+
+            if (targetList != null) {
+                _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(targetList.id))
+            } else {
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Список з тегом '#$targetTag' не знайдено"))
+            }
+        }
     }
 }
