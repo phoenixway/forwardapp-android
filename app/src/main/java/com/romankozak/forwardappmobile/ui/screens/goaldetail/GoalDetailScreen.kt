@@ -167,13 +167,14 @@ fun GoalDetailScreen(
         }
     }
 
-    LaunchedEffect(uiState.newlyAddedGoalInstanceId) {
+    // Це гарантує, що ефект виконається, коли нова ціль з'явиться у списку.
+    LaunchedEffect(uiState.newlyAddedGoalInstanceId, goals) {
         val newGoalId = uiState.newlyAddedGoalInstanceId
         if (newGoalId != null) {
             val index = goals.indexOfFirst { it.instanceId == newGoalId }
             if (index != -1) {
                 listState.animateScrollToItem(index)
-                viewModel.onScrolledToNewGoal()
+                viewModel.onScrolledToNewGoal() // Скидаємо ID після успішної прокрутки
             }
         }
     }
