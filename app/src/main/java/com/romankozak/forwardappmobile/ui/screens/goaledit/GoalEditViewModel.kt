@@ -173,18 +173,11 @@ class GoalEditViewModel @Inject constructor(
         _listChooserUserExpandedIds.value = emptySet()
     }
 
-    /**
-     * ✨ ЗМІНЕНО: Сигнатура функції тепер приймає `id` для відповідності
-     * оновленому `FilterableListChooser`.
-     */
     fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            // Викликаємо новий метод репозиторію, який приймає ID.
-            // Переконайтесь, що ви додали `createGoalListWithId` у ваш `GoalRepository`.
             goalRepository.createGoalListWithId(id, name, parentId)
 
-            // ✨ ДОДАНО: Логіка для розкриття батьківських елементів у діалозі.
             if (parentId != null) {
                 val allLists = fullHierarchyForDialog.value.allLists
                 val listLookup = allLists.associateBy { it.id }
@@ -196,9 +189,6 @@ class GoalEditViewModel @Inject constructor(
         }
     }
 
-    /**
-     * ✨ ДОДАНО: Допоміжна функція для пошуку всіх батьківських ID.
-     */
     private fun findAncestorIds(startId: String?, listLookup: Map<String, GoalList>): Set<String> {
         val ancestors = mutableSetOf<String>()
         var currentId = startId
@@ -397,7 +387,8 @@ class GoalEditViewModel @Inject constructor(
 
                 goalRepository.insertGoal(finalGoal)
 
-                val order = goalRepository.getGoalCountInList(listIdForNewGoal).toLong()
+                // ✨ ВИПРАВЛЕНО: Використовуємо негативний timestamp, щоб розмістити нову ціль нагорі списку
+                val order = -System.currentTimeMillis()
                 val newInstance = GoalInstance(
                     instanceId = UUID.randomUUID().toString(),
                     goalId = finalGoal.id,
@@ -465,7 +456,8 @@ class GoalEditViewModel @Inject constructor(
                     android.util.Log.d("ContextDebug", "Checking list '$listId'. Instance exists: $exists")
                     if (!exists) {
                         android.util.Log.d("ContextDebug", "CREATING INSTANCE for goal ${goal.id} in list $listId")
-                        val order = goalRepository.getGoalCountInList(listId).toLong()
+                        // ✨ ВИПРАВЛЕНО: Використовуємо негативний timestamp, щоб розмістити новий екземпляр нагорі списку
+                        val order = -System.currentTimeMillis()
                         val newInstance = GoalInstance(
                             instanceId = UUID.randomUUID().toString(),
                             goalId = goal.id,

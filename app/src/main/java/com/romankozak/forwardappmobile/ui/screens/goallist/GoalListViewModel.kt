@@ -300,6 +300,17 @@ class GoalListViewModel @Inject constructor(
 
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
+            // ✨ ВИПРАВЛЕНО: Примусово вимикаємо всі фільтри перед показом списку.
+            // Це гарантує, що список буде видимим для підсвічування.
+            if (_isSearchActive.value) {
+                _isSearchActive.value = false
+                _searchQuery.value = ""
+            }
+            if (_planningMode.value !is PlanningMode.All) {
+                _planningMode.value = PlanningMode.All
+            }
+            // Кінець виправлення
+
             // Ця частина логіки залишається без змін
             val allLists = _allListsFlat.first { it.isNotEmpty() }
             val listLookup = allLists.associateBy { it.id }
@@ -318,8 +329,6 @@ class GoalListViewModel @Inject constructor(
                 }
             }
 
-            // ✨ ДОДАНО: Надсилаємо подію прокрутки перед підсвічуванням
-            // Це дозволить екрану спочатку прокрутитися, а потім елемент буде підсвічено.
             _uiEventChannel.send(GoalListUiEvent.ScrollToList(listId))
 
             _highlightedListId.value = listId
@@ -332,7 +341,6 @@ class GoalListViewModel @Inject constructor(
             }
         }
     }
-
 
     fun onToggleSearch(isActive: Boolean) {
         _isSearchActive.value = isActive

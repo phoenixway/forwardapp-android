@@ -81,14 +81,9 @@ class ContextHandler @Inject constructor(
                     val exists = goalRepository.doesInstanceExist(goal.id, listId)
                     if (!exists) {
                         Log.d("ContextDebug", "CONSISTENCY CHECK: Instance for context '$contextName' in list $listId is missing. Creating it.")
-                        val order = goalRepository.getGoalCountInList(listId).toLong()
-                        val newInstance = GoalInstance(
-                            instanceId = UUID.randomUUID().toString(),
-                            goalId = goal.id,
-                            listId = listId,
-                            order = order
-                        )
-                        goalRepository.insertInstance(newInstance)
+                        // ✨ ВИПРАВЛЕНО: Замість ручного створення екземпляра, ми викликаємо метод репозиторію.
+                        // Цей метод вже містить правильну логіку для додавання елемента нагору списку (order = -System.currentTimeMillis()).
+                        goalRepository.createGoalInstance(goal.id, listId)
                     }
                 }
             }
@@ -140,5 +135,4 @@ class ContextHandler @Inject constructor(
         }
         return contextTagMap[contextName]
     }
-
 }
