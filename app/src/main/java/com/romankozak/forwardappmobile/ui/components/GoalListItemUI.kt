@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -8,9 +11,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,12 +32,25 @@ fun GoalListRow(
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
-    // Параметр isPressed більше не потрібен
+    isHighlighted: Boolean,
     modifier: Modifier = Modifier
 ) {
+    // ✨ ПОВЕРНУЛИ АНІМАЦІЮ: Плавна зміна фону для підсвітки
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isHighlighted) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+        } else {
+            Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 500),
+        label = "Highlight Animation"
+    )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(backgroundColor)
             .padding(start = (level * 24).dp)
     ) {
         // Індикатор зверху
@@ -43,7 +61,6 @@ fun GoalListRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                // Повертаємо звичайний клік для навігації
                 .clickable { onListClick(list.id) }
                 .alpha(if (isCurrentlyDragging) 0.6f else 1f)
                 .padding(vertical = 4.dp),

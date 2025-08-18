@@ -1,3 +1,5 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/GoalDetailScreen.kt
+
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
@@ -13,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,8 +45,12 @@ import java.lang.Integer.min
 @Composable
 fun GoalDetailScreen(
     navController: NavController,
-    viewModel: GoalDetailViewModel = hiltViewModel()
+    viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
+    val listId = remember {
+        navController.currentBackStackEntry?.arguments?.getString("listId") ?: ""
+    }
+
     val uiState by viewModel.uiState.collectAsState()
     val goals by viewModel.filteredGoals.collectAsState()
     val goalActionState by viewModel.goalActionDialogState.collectAsState()
@@ -61,7 +68,7 @@ fun GoalDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    var showSuggestions by remember { mutableStateOf(false) }
+    var showSuggestions by remember { mutableStateOf(value = false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val listState = rememberLazyListState()
@@ -70,28 +77,27 @@ fun GoalDetailScreen(
     val reorderableLazyListState = rememberReorderableLazyListState(
         lazyListState = listState,
         scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
-        onMove = { from, to ->
-            viewModel.moveGoal(from.index, to.index, false)
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    ) { from, to ->
+        viewModel.moveGoal(from.index, to.index, afterApiUpdate = false)
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
 
-            val scrollThreshold = 2
-            coroutineScope.launch {
-                val firstVisible = listState.firstVisibleItemIndex
-                val lastVisible = firstVisible + listState.layoutInfo.visibleItemsInfo.size - 1
+        val scrollThreshold = 2
+        coroutineScope.launch {
+            val firstVisible = listState.firstVisibleItemIndex
+            val lastVisible = firstVisible + listState.layoutInfo.visibleItemsInfo.size - 1
 
-                if (to.index < firstVisible + scrollThreshold) {
-                    listState.animateScrollToItem(max(0, to.index - scrollThreshold))
-                } else if (to.index > lastVisible - scrollThreshold) {
-                    listState.animateScrollToItem(
-                        min(
-                            listState.layoutInfo.totalItemsCount - 1,
-                            to.index + scrollThreshold
-                        )
-                    )
-                }
+            if (to.index < (firstVisible + scrollThreshold)) {
+                listState.animateScrollToItem(max(0, to.index - scrollThreshold))
+            } else if (to.index > (lastVisible - scrollThreshold)) {
+                listState.animateScrollToItem(
+                    min(
+                        listState.layoutInfo.totalItemsCount - 1,
+                        to.index + scrollThreshold,
+                    ),
+                )
             }
-        },
-    )
+        }
+    }
 
     fun getCurrentWord(textValue: TextFieldValue): String? {
         val cursorPosition = textValue.selection.start
@@ -105,7 +111,7 @@ fun GoalDetailScreen(
 
     LaunchedEffect(uiState.inputValue) {
         val currentWord = getCurrentWord(uiState.inputValue)
-        if (currentWord != null && currentWord.length > 1) {
+        if ((currentWord != null) && (currentWord.length > 1)) {
             val query = currentWord.substring(1)
             filteredContexts = allContexts.filter { it.startsWith(query, ignoreCase = true) }
             showSuggestions = filteredContexts.isNotEmpty()
@@ -122,7 +128,7 @@ fun GoalDetailScreen(
                         val result = snackbarHostState.showSnackbar(
                             message = event.message,
                             actionLabel = event.action,
-                            duration = SnackbarDuration.Short
+                            duration = SnackbarDuration.Short,
                         )
                         if (result == SnackbarResult.ActionPerformed) {
                             viewModel.undoDelete()
@@ -130,10 +136,20 @@ fun GoalDetailScreen(
                     }
                 }
                 is UiEvent.Navigate -> navController.navigate(event.route)
-                is UiEvent.ResetSwipeState -> { /* Handled in VM */ }
+                is UiEvent.ResetSwipeState -> { /* Handled in VM */
+                }
                 is UiEvent.ScrollTo -> {
                     coroutineScope.launch {
                         listState.animateScrollToItem(event.index.coerceAtLeast(0))
+                    }
+                }
+                is UiEvent.NavigateBackAndReveal -> {
+                    try {
+                        val goalListBackStackEntry = navController.getBackStackEntry("goal_lists_screen")
+                        goalListBackStackEntry.savedStateHandle["list_to_reveal"] = event.listId
+                        navController.popBackStack("goal_lists_screen", inclusive = false)
+                    } catch (_: Exception) {
+                        navController.popBackStack()
                     }
                 }
             }
@@ -170,12 +186,12 @@ fun GoalDetailScreen(
             if (isSelectionModeActive) {
                 MultiSelectTopAppBar(
                     selectedCount = uiState.selectedInstanceIds.size,
-                    areAllSelected = goals.isNotEmpty() && uiState.selectedInstanceIds.size == goals.size,
+                    areAllSelected = goals.isNotEmpty() && (uiState.selectedInstanceIds.size == goals.size),
                     onClearSelection = { viewModel.clearSelection() },
                     onSelectAll = { viewModel.selectAllGoals() },
                     onDelete = { viewModel.deleteSelectedGoals() },
                     onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
-                    onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) }
+                    onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
                 )
             } else {
                 TopAppBar(
@@ -184,7 +200,15 @@ fun GoalDetailScreen(
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                         }
-                    }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.onRevealInExplorer(listId) }) {
+                            Icon(
+                                imageVector = Icons.Default.LocationSearching,
+                                contentDescription = "Reveal in Backlogs Explorer",
+                            )
+                        }
+                    },
                 )
             }
         },
@@ -214,29 +238,29 @@ fun GoalDetailScreen(
                                 viewModel.onInputTextChanged(
                                     TextFieldValue(
                                         text = newText,
-                                        selection = TextRange(newCursorPosition)
-                                    )
+                                        selection = TextRange(newCursorPosition),
+                                    ),
                                 )
                             }
-                        }
+                        },
                     )
                     GoalInputBar(
                         inputValue = uiState.inputValue,
                         inputMode = uiState.inputMode,
                         onModeChangeRequest = viewModel::onInputModeChangeRequest,
                         onSubmit = viewModel::submitInput,
-                        onValueChange = viewModel::onInputTextChanged
+                        onValueChange = viewModel::onInputTextChanged,
                     )
                 }
             }
-        }
+        },
     ) { paddingValues ->
         if (list == null) {
             Box(
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
             }
@@ -245,7 +269,7 @@ fun GoalDetailScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Text("У цьому списку ще немає цілей.")
             }
@@ -254,33 +278,29 @@ fun GoalDetailScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                ,
+                    .padding(paddingValues),
             ) {
                 itemsIndexed(
                     goals,
-                    key = { _, item -> item.instanceId }
+                    key = { _, item -> item.instanceId },
                 ) { index, goalWithInstanceInfo ->
                     ReorderableItem(
                         state = reorderableLazyListState,
                         key = goalWithInstanceInfo.instanceId,
-                        enabled = !isSelectionModeActive
+                        enabled = !isSelectionModeActive,
                     ) { isDragging ->
                         val scale by animateFloatAsState(
                             if (isDragging) 1.05f else 1f,
-                            label = "scale"
+                            label = "scale",
                         )
                         val elevation by animateDpAsState(
                             if (isDragging) 8.dp else 0.dp,
-                            label = "elevation"
+                            label = "elevation",
                         )
 
-                        val isHighlighted by remember(uiState.goalToHighlight) {
-                            derivedStateOf { uiState.goalToHighlight == goalWithInstanceInfo.goal.id }
-                        }
                         val associatedLists = associatedListsMap.getOrDefault(
                             goalWithInstanceInfo.goal.id,
-                            emptyList()
+                            emptyList(),
                         )
                         val isSelected =
                             goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
@@ -294,7 +314,7 @@ fun GoalDetailScreen(
                             modifier = Modifier
                                 .animateItem(
                                     fadeInSpec = tween(10300),
-                                    fadeOutSpec = tween(10300)
+                                    fadeOutSpec = tween(10300),
                                 )
                                 .graphicsLayer {
                                     scaleX = scale
@@ -302,14 +322,13 @@ fun GoalDetailScreen(
                                 }
                                 .shadow(
                                     elevation = elevation,
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(8.dp),
                                 ),
                             resetTrigger = uiState.resetTriggers.getOrDefault(
                                 goalWithInstanceInfo.instanceId,
-                                0
+                                0,
                             ),
                             goalWithInstance = goalWithInstanceInfo,
-                         //   isHighlighted = isHighlighted,
                             isDragging = isDragging,
                             associatedLists = associatedLists,
                             obsidianVaultName = obsidianVaultName,
@@ -319,29 +338,26 @@ fun GoalDetailScreen(
                             onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
                             onAssociatedListClick = { listId: String ->
                                 viewModel.onAssociatedListClicked(
-                                    listId
+                                    listId,
                                 )
                             },
                             onItemClick = { viewModel.onGoalClick(goalWithInstanceInfo) },
                             onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
                             onSwipeStart = { viewModel.onSwipeStart(goalWithInstanceInfo.instanceId) },
-                            isAnotherItemSwiped = uiState.swipedInstanceId != null && uiState.swipedInstanceId != goalWithInstanceInfo.instanceId,
-
-                            // ✨ ОНОВЛЕНО: Передаємо нові колбеки
+                            isAnotherItemSwiped = (uiState.swipedInstanceId != null) && (uiState.swipedInstanceId != goalWithInstanceInfo.instanceId),
                             onMoreActionsRequest = { /* Заглушка для меню */ },
                             onCreateInstanceRequest = { viewModel.onCreateInstanceRequest(goalWithInstanceInfo) },
                             onMoveInstanceRequest = { viewModel.onMoveInstanceRequest(goalWithInstanceInfo) },
                             onCopyGoalRequest = { viewModel.onCopyGoalRequest(goalWithInstanceInfo) },
-
                             dragHandleModifier = if (!isSelectionModeActive) {
                                 Modifier.draggableHandle(
                                     onDragStarted = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    }
+                                    },
                                 )
                             } else {
                                 Modifier
-                            }
+                            },
                         )
                     }
                 }
@@ -352,8 +368,9 @@ fun GoalDetailScreen(
     if (showInputModeDialog) {
         InputModeDialog(
             onDismiss = { viewModel.onDismissInputModeDialog() },
-            onSelect = { viewModel.onInputModeSelected(it) }
-        )
+        ) {
+            viewModel.onInputModeSelected(it)
+        }
     }
 
     when (val state = goalActionState) {
@@ -361,8 +378,9 @@ fun GoalDetailScreen(
         is GoalActionDialogState.AwaitingActionChoice -> {
             GoalActionChoiceDialog(
                 onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onActionSelected = { viewModel.onGoalActionSelected(it) }
-            )
+            ) {
+                viewModel.onGoalActionSelected(it)
+            }
         }
         is GoalActionDialogState.AwaitingListChoice -> {
             val title = when (state.actionType) {
@@ -372,7 +390,7 @@ fun GoalDetailScreen(
                 else -> "Виберіть список"
             }
             val currentListId = list?.id
-            val disabledIds = if (currentListId != null) setOf(currentListId) else emptySet()
+            val disabledIds = currentListId?.let { setOf(it) } ?: emptySet()
 
             FilterableListChooser(
                 title = title,
@@ -380,16 +398,18 @@ fun GoalDetailScreen(
                 onFilterTextChanged = viewModel::onListChooserFilterChanged,
                 topLevelLists = filteredListHierarchy.topLevelLists,
                 childMap = filteredListHierarchy.childMap,
-                expandedIds = listChooserFinalExpandedIds, // <-- Використовуємо новий стан
+                expandedIds = listChooserFinalExpandedIds,
                 onToggleExpanded = viewModel::onListChooserToggleExpanded,
                 onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onConfirm = { listId ->
-                    if (listId != null) {
-                        viewModel.confirmGoalAction(listId)
-                    }
+                onConfirm = { confirmedListId ->
+                    confirmedListId?.let { viewModel.confirmGoalAction(it) }
                 },
                 currentParentId = null,
-                disabledIds = disabledIds
+                disabledIds = disabledIds,
+                // ✨ ВИПРАВЛЕНО: Лямбда тепер відповідає оновленій сигнатурі
+                onAddNewList = { id, parentId, name ->
+                    viewModel.addNewList(id, parentId, name)
+                },
             )
         }
     }

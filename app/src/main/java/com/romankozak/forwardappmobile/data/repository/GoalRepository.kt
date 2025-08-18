@@ -315,5 +315,19 @@ class GoalRepository @Inject constructor(
     suspend fun updateMarkdown(goalId: Long, markdown: String) {
         goalDao.updateMarkdown(goalId, markdown)
     }
-
+    /**
+     * ✨ ДОДАНО: Новий метод для створення списку із заздалегідь згенерованим ID.
+     * Це потрібно, щоб UI міг одразу дізнатися ID нового елемента для підсвічування.
+     */
+    suspend fun createGoalListWithId(id: String, name: String, parentId: String?) {
+        val newList = GoalList(
+            id = id, // Використовуємо наданий ID
+            name = name,
+            parentId = parentId,
+            description = "",
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+        goalListDao.insert(newList)
+    }
 }
