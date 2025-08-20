@@ -82,10 +82,41 @@ class GoalDetailViewModel @Inject constructor(
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
 
     init {
+        // ✨ ДОДАНО: Логуємо доступ до списку при ініціалізації ViewModel
+        viewModelScope.launch {
+            listIdFlow.filter { it.isNotEmpty() }.collect { id ->
+                goalRepository.logListAccess(id)
+            }
+        }
+
         viewModelScope.launch {
             contextHandler.initialize()
         }
     }
+
+    // ✨ ДОДАНО: Стан для керування шторкою недавніх списків
+    private val _showRecentListsSheet = MutableStateFlow(false)
+    val showRecentListsSheet: StateFlow<Boolean> = _showRecentListsSheet.asStateFlow()
+
+    val recentLists: StateFlow<List<GoalList>> = goalRepository.getRecentLists()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun onShowRecentLists() {
+        _showRecentListsSheet.value = true
+    }
+
+    fun onDismissRecentLists() {
+        _showRecentListsSheet.value = false
+    }
+
+    fun onRecentListSelected(selectedListId: String) {
+        viewModelScope.launch {
+            onDismissRecentLists()
+            // Просто навігуємо на новий екран. Поточний екран додасться до back stack.
+            _uiEventFlow.send(UiEvent.Navigate("goal_detail_screen/$selectedListId"))
+        }
+    }
+
 
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedInstanceIds.isNotEmpty() }

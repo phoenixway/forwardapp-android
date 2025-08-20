@@ -10,6 +10,8 @@ import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.GoalListDao
+import com.romankozak.forwardappmobile.data.dao.RecentListDao
+import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
@@ -20,7 +22,8 @@ import javax.inject.Singleton
 @Singleton
 class GoalRepository @Inject constructor(
     private val goalDao: GoalDao,
-    private val goalListDao: GoalListDao
+    private val goalListDao: GoalListDao,
+    private val recentListDao: RecentListDao // ✨ ДОДАНО
 ) {
 
     /**
@@ -62,37 +65,6 @@ class GoalRepository @Inject constructor(
         // Для невеликої кількості елементів це цілком прийнятно.
         lists.forEach { goalListDao.update(it) }
     }
-
-
-    /*@Transaction
-    suspend fun moveGoalList(listToMove: GoalList, newParentId: String?) {
-        val oldParentId = listToMove.parentId
-
-        // 1. Оновити порядок у старому списку предків
-        if (oldParentId != null) {
-            val oldSiblings = goalListDao.getListsByParentId(oldParentId).toMutableList()
-            oldSiblings.removeIf { it.id == listToMove.id }
-            reorderAndSave(oldSiblings)
-        } else {
-            val oldSiblings = goalListDao.getTopLevelLists().toMutableList()
-            oldSiblings.removeIf { it.id == listToMove.id }
-            reorderAndSave(oldSiblings)
-        }
-
-        // 2. Отримати новий список "братів" для визначення порядку
-        val newSiblings = if (newParentId != null) {
-            goalListDao.getListsByParentId(newParentId)
-        } else {
-            goalListDao.getTopLevelLists()
-        }
-
-        // 3. Оновити сам елемент, встановивши йому новий parentId та порядок в кінці нового списку
-        val updatedList = listToMove.copy(
-            parentId = newParentId,
-            order = newSiblings.size.toLong()
-        )
-        goalListDao.update(updatedList)
-    }*/
 
     private suspend fun reorderAndSave(lists: List<GoalList>) {
         val updatedLists = lists.mapIndexed { index, list ->
@@ -329,5 +301,21 @@ class GoalRepository @Inject constructor(
             updatedAt = System.currentTimeMillis()
         )
         goalListDao.insert(newList)
+    }
+
+    /**
+     * ✨ ДОДАНО: Метод для логування відкриття списку.
+     */
+    suspend fun logListAccess(listId: String) {
+        val entry = RecentListEntry(listId = listId, lastAccessed = System.currentTimeMillis())
+        recentListDao.logAccess(entry)
+    }
+
+    /**
+     * ✨ ДОДАНО: Метод для отримання потоку недавніх списків.
+     * @param limit Кількість елементів історії для завантаження.
+     */
+    fun getRecentLists(limit: Int = 20): Flow<List<GoalList>> {
+        return recentListDao.getRecentLists(limit)
     }
 }

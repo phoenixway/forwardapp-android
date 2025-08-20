@@ -55,7 +55,8 @@ fun SyncScreen(
 ) {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
-    val goalRepository = GoalRepository(db.goalDao(), db.goalListDao())
+    // ✨ FIX: Added the missing db.recentListDao() parameter
+    val goalRepository = GoalRepository(db.goalDao(), db.goalListDao(), db.recentListDao())
     val syncRepo = SyncRepository(goalRepository, db, context)
     val viewModel: SyncViewModel = viewModel(factory = SyncViewModelFactory(syncRepo))
 
@@ -154,7 +155,8 @@ fun SyncScreen(
                             Spacer(Modifier.width(8.dp))
                             Button(onClick = { viewModel.deselectAllChanges() }) { Text("Зняти вибір") }
                         }
-                        Divider()
+                        // ✨ FIX: Replaced deprecated Divider with HorizontalDivider
+                        HorizontalDivider()
 
                         LazyColumn(modifier = Modifier.padding(horizontal = 8.dp)) {
                             groupedChanges.forEach { (changeType, changesInGroup) ->
@@ -200,7 +202,7 @@ private fun GroupHeader(
     onToggle: () -> Unit
 ) {
     val metadata = ChangeTypeMetadata.get(changeType = changeType)
-    val rotationAngle by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f)
+    val rotationAngle by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "rotation")
 
     Row(
         modifier = Modifier
@@ -228,8 +230,7 @@ private fun GroupHeader(
 
 @Composable
 private fun SyncChangeItem(change: SyncChange, isChecked: Boolean, onToggle: () -> Unit) {
-    val metadata = ChangeTypeMetadata.get(changeType = change.type)
-
+    // ✨ FIX: Removed unused 'metadata' variable
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -244,7 +245,6 @@ private fun SyncChangeItem(change: SyncChange, isChecked: Boolean, onToggle: () 
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Замість іконки типу зміни, можна використати Checkbox як головний індикатор
             Checkbox(
                 checked = isChecked,
                 onCheckedChange = { onToggle() },

@@ -8,16 +8,13 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,7 +31,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,8 +46,10 @@ import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
+import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.dialogs.*
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -82,6 +80,12 @@ fun GoalListScreen(
     val contextSettings by viewModel.reservedContextsState.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
+
+    // ✨ ДОДАНО: Отримуємо стан з ViewModel для шторки недавніх
+    val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
+    val recentLists by viewModel.recentLists.collectAsState()
+
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     LaunchedEffect(savedStateHandle) {
@@ -198,7 +202,6 @@ fun GoalListScreen(
 
                 is GoalListUiEvent.ScrollToList -> {
                     coroutineScope.launch {
-                        // Створюємо плаский список, який точно відповідає порядку елементів у LazyColumn
                         fun flattenHierarchy(
                             topLevel: List<GoalList>,
                             children: Map<String, List<GoalList>>
@@ -216,12 +219,17 @@ fun GoalListScreen(
                             return result
                         }
 
-                        // hierarchy.value містить актуальний стан (вже з розгорнутими батьками)
                         val displayedLists = flattenHierarchy(hierarchy.topLevelLists, hierarchy.childMap)
                         val index = displayedLists.indexOfFirst { it.id == event.listId }
                         if (index != -1) {
                             listState.animateScrollToItem(index)
                         }
+                    }
+                }
+                GoalListUiEvent.FocusSearchField -> {
+                    coroutineScope.launch {
+                        delay(100)
+                        focusRequester.requestFocus()
                     }
                 }
             }
@@ -240,9 +248,9 @@ fun GoalListScreen(
                 onQueryChange = viewModel::onSearchQueryChanged,
                 onToggleSearch = { viewModel.onToggleSearch(!isSearchActive) },
                 onAddNewList = { viewModel.onAddNewListRequest() },
-                onShowGlobalSearch = { viewModel.onShowSearchDialog() },
                 viewModel = viewModel,
                 onImportFromFile = { importLauncher.launch("application/json") },
+                focusRequester = focusRequester
             )
         },
         bottomBar = {
@@ -250,9 +258,11 @@ fun GoalListScreen(
                 navController = navController,
                 isSearchActive = isSearchActive,
                 onToggleSearch = viewModel::onToggleSearch,
+                onGlobalSearchClick = { viewModel.onShowSearchDialog() },
                 currentMode = planningMode,
                 onModeSelectorClick = { showPlanningModeSheet = true },
                 onContextsClick = { showContextSheet = true },
+                onRecentsClick = { viewModel.onShowRecentLists() } // ✨ ДОДАНО
             )
         },
     ) { paddingValues ->
@@ -278,7 +288,6 @@ fun GoalListScreen(
             DragAndDropContainer(state = dragAndDropState, enabled = !isSearchActive) {
                 LazyColumn(
                     state = listState,
-
                     modifier = Modifier
                         .padding(paddingValues)
                         .fillMaxSize(),
@@ -299,6 +308,14 @@ fun GoalListScreen(
         }
     }
 
+    // ✨ ДОДАНО: Відображаємо Bottom Sheet
+    RecentListsSheet(
+        showSheet = showRecentSheet,
+        recentLists = recentLists,
+        onDismiss = { viewModel.onDismissRecentLists() },
+        onListClick = { listId -> viewModel.onRecentListSelected(listId) }
+    )
+
     HandleDialogs(
         dialogState = dialogState,
         viewModel = viewModel,
@@ -315,12 +332,11 @@ private fun GoalListTopAppBar(
     onQueryChange: (String) -> Unit,
     onToggleSearch: () -> Unit,
     onAddNewList: () -> Unit,
-    onShowGlobalSearch: () -> Unit,
     viewModel: GoalListViewModel,
     onImportFromFile: () -> Unit,
+    focusRequester: FocusRequester
 ) {
     val focusManager = LocalFocusManager.current
-    val focusRequester = remember { FocusRequester() }
     TopAppBar(
         title = { if (!isSearchActive) Text("Backlogs") },
         actions = {
@@ -345,10 +361,8 @@ private fun GoalListTopAppBar(
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 )
-                LaunchedEffect(Unit) { focusRequester.requestFocus() }
             } else {
                 IconButton(onClick = onAddNewList) { Icon(Icons.Default.Add, "Add new list") }
-                IconButton(onClick = onShowGlobalSearch) { Icon(Icons.Default.Search, "Global search") }
                 var menuExpanded by remember { mutableStateOf(value = false) }
                 IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -407,28 +421,83 @@ private fun GoalListBottomNav(
     navController: NavController,
     isSearchActive: Boolean,
     onToggleSearch: (Boolean) -> Unit,
+    onGlobalSearchClick: () -> Unit,
     currentMode: PlanningMode,
     onModeSelectorClick: () -> Unit,
     onContextsClick: () -> Unit,
+    onRecentsClick: () -> Unit
 ) {
     NavigationBar {
         NavigationBarItem(
             selected = false,
             onClick = { navController.navigate("activity_tracker_screen") },
             icon = { Icon(Icons.Outlined.Timeline, "Activity Tracker") },
-            label = { Text("Track") },
+            // ✨ ЗМІНЕНО: Додано налаштування шрифту
+            label = {
+                Text(
+                    text = "Track",
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = onGlobalSearchClick,
+            icon = { Icon(Icons.Outlined.Search, "Global Search") },
+            // ✨ ЗМІНЕНО: Додано налаштування шрифту
+            label = {
+                Text(
+                    text = "Search",
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
         )
         NavigationBarItem(
             selected = isSearchActive,
             onClick = { onToggleSearch(true) },
-            icon = { Icon(Icons.Outlined.FilterList, "Filter lists") },
-            label = { Text("Filter") },
+            icon = { Icon(Icons.Outlined.FilterList, "Filter") },
+            // ✨ ЗМІНЕНО: Додано налаштування шрифту
+            label = {
+                Text(
+                    text = "Filter",
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
         )
         NavigationBarItem(
             selected = false,
             onClick = onContextsClick,
             icon = { Icon(Icons.Outlined.Style, "Contexts") },
-            label = { Text("Contexts") },
+            // ✨ ЗМІНЕНО: Додано налаштування шрифту
+            label = {
+                Text(
+                    text = "Contexts",
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+        )
+
+        NavigationBarItem(
+            selected = false,
+            onClick = onRecentsClick,
+            icon = { Icon(Icons.Outlined.History, "Recent Lists") },
+            // ✨ ЗМІНЕНО: Текст "Недавні" на "Recent" та додано налаштування шрифту
+            label = {
+                Text(
+                    text = "Recent",
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
         )
 
         val (currentIcon, currentLabel) = when (currentMode) {
@@ -439,54 +508,27 @@ private fun GoalListBottomNav(
         }
         val isSelected = !isSearchActive && (currentMode !is PlanningMode.All)
 
-        Box(
-            modifier = Modifier
-                .weight(1.0f)
-                .height(80.dp)
-                .selectable(
-                    selected = isSelected,
-                    onClick = onModeSelectorClick,
-                    role = Role.Tab,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                val iconColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                val textColor = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-
-                val indicatorColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                    label = "Indicator Color Animation",
+        NavigationBarItem(
+            selected = isSelected,
+            onClick = onModeSelectorClick,
+            icon = {
+                Icon(
+                    imageVector = currentIcon,
+                    contentDescription = "Change planning mode"
                 )
-
-                Box(
-                    modifier = Modifier
-                        .height(32.dp)
-                        .width(64.dp)
-                        .background(indicatorColor, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = currentIcon,
-                        contentDescription = "Change planning mode",
-                        tint = iconColor,
-                    )
-                }
+            },
+            // ✨ ЗМІНЕНО: Додано налаштування шрифту
+            label = {
                 Text(
                     text = currentLabel,
-                    color = textColor,
-                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-        }
+        )
     }
 }
-
 
 private fun LazyListScope.renderGoalList(
     lists: List<GoalList>,
@@ -592,7 +634,6 @@ private fun HandleDialogs(
 
     when (val state = dialogState) {
         DialogState.Hidden -> {}
-// GoalListScreen.kt -> HandleDialogs
         is DialogState.AddList -> {
             AddListDialog(
                 title = if (state.parentId == null) "Create new list" else "Create sublist",
@@ -624,8 +665,6 @@ private fun HandleDialogs(
             }
             FilterableListChooser(
                 title = "Перемістити '${state.list.name}'",
-// INFO: Smart cast to com.romankozak.forwardappmobile.ui.screens.goallist.DialogState.MoveList
-// INFO: Typo: In word 'Перемістити'
                 filterText = listChooserFilterText,
                 onFilterTextChanged = viewModel::onListChooserFilterChanged,
                 topLevelLists = filteredListHierarchyForDialog.topLevelLists,
@@ -635,10 +674,8 @@ private fun HandleDialogs(
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { newParentId -> viewModel.onMoveListConfirmed(newParentId) },
                 currentParentId = state.list.parentId,
-// INFO: Smart cast to com.romankozak.forwardappmobile.ui.screens.goallist.DialogState.MoveList
                 disabledIds = disabledIds,
                 onAddNewList = viewModel::addNewList,
-// INFO: Lambda argument can be moved out of parentheses
             )
         }
 

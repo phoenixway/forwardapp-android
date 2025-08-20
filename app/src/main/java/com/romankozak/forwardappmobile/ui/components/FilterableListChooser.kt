@@ -129,7 +129,7 @@ fun FilterableListChooser(
                                     onDismiss()
                                 },
                                 disabledIds = disabledIds,
-                                highlightedListId = highlightedListId, // ✨ ВИПРАВЛЕНО: Передаємо ID сюди
+                                highlightedListId = highlightedListId,
                                 onAddSublistRequest = { parent ->
                                     parentForNewList = parent
                                     isCreatingMode = true
@@ -192,7 +192,7 @@ private fun RecursiveSelectableListItem(
     onToggleExpanded: (String) -> Unit,
     onSelect: (String) -> Unit,
     disabledIds: Set<String>,
-    highlightedListId: String?, // ✨ ВИПРАВЛЕНО: Змінено параметр з Boolean на String?
+    highlightedListId: String?,
     onAddSublistRequest: (parentList: GoalList) -> Unit
 ) {
     val isExpanded = list.id in expandedIds
@@ -200,7 +200,6 @@ private fun RecursiveSelectableListItem(
     val hasChildren = children.isNotEmpty()
     val isEnabled = list.id !in disabledIds
 
-    // ✨ ВИПРАВЛЕНО: Перевірка тепер відбувається всередині компонента
     val isHighlighted = list.id == highlightedListId
 
     val backgroundColor by animateColorAsState(
@@ -254,7 +253,7 @@ private fun RecursiveSelectableListItem(
                     onToggleExpanded = onToggleExpanded,
                     onSelect = onSelect,
                     disabledIds = disabledIds,
-                    highlightedListId = highlightedListId, // ✨ ВИПРАВЛЕНО: Передаємо ID вглиб рекурсії
+                    highlightedListId = highlightedListId,
                     onAddSublistRequest = onAddSublistRequest
                 )
             }
