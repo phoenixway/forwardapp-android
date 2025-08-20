@@ -21,9 +21,9 @@ android {
 
     defaultConfig {
         applicationId = "com.romankozak.forwardappmobile"
-        minSdk = 24
+        minSdk = 29
         targetSdk = 36
-        versionCode = 5
+        versionCode = 6
         versionName = "4.0-beta2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

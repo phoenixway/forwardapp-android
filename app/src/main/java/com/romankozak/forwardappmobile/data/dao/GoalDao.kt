@@ -130,6 +130,9 @@ interface GoalDao {
     suspend fun deleteInstanceByGoalAndList(goalId: String, listId: String)
 
     @Query("UPDATE goals SET description = :markdown WHERE id = :goalId")
-    suspend fun updateMarkdown(goalId: Long, markdown: String)
+    suspend fun updateMarkdown(goalId: String, markdown: String)
+
+    @Query("SELECT * FROM goal_instances WHERE instance_id IN (:instanceIds)")
+    suspend fun getInstancesByIds(instanceIds: List<String>): List<GoalInstance>
 
 }

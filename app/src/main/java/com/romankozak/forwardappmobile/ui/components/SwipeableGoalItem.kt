@@ -67,6 +67,8 @@ fun SwipeableGoalItem(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
+    // ✨ ДОДАНО: Новий параметр для передачі в GoalItem
+    contextMarkerToHide: String? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -226,7 +228,7 @@ fun SwipeableGoalItem(
                     //shape = RoundedCornerShape(8.dp),
 
 
-                    ) {
+                ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
@@ -421,6 +423,8 @@ fun SwipeableGoalItem(
                     onAssociatedListClick = onAssociatedListClick,
                     backgroundColor = Color.Transparent,
                     dragHandleModifier = dragHandleModifier,
+                    // ✨ ДОДАНО: Передаємо параметр до GoalItem
+                    contextMarkerToHide = contextMarkerToHide
                 )
             }
         }

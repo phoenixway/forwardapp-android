@@ -64,6 +64,9 @@ fun GoalDetailScreen(
     val associatedListsMap by viewModel.associatedListsMap.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
 
+    val contextMarkerToHide by viewModel.currentListContextMarker.collectAsState()
+
+
     val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
@@ -354,6 +357,7 @@ fun GoalDetailScreen(
                             isDragging = isDragging,
                             associatedLists = associatedLists,
                             obsidianVaultName = obsidianVaultName,
+                            contextMarkerToHide = contextMarkerToHide,
                             onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
                             backgroundColor = itemBackgroundColor,
                             onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },

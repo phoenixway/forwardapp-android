@@ -1,5 +1,4 @@
 // Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/GoalItemUI.kt
-
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -89,7 +88,9 @@ fun GoalItem(
     onAssociatedListClick: (String) -> Unit,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier
+    dragHandleModifier: Modifier = Modifier,
+    // ✨ ДОДАНО: Новий параметр для приховування іконки контексту
+    contextMarkerToHide: String? = null
 ) {
     val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text) }
     val contentAlpha = if (goal.completed) 0.5f else 1.0f
@@ -150,13 +151,16 @@ fun GoalItem(
                     ) {
                         ScoreStatusBadge(goal = goal)
 
-                        parsedData.icons.forEach { iconData ->
-                            Text(
-                                text = iconData.icon,
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            )
-                        }
+                        // ✨ ЗМІНЕНО: Фільтруємо іконки перед відображенням
+                        parsedData.icons
+                            .filterNot { it.markers.contains(contextMarkerToHide) }
+                            .forEach { iconData ->
+                                Text(
+                                    text = iconData.icon,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                )
+                            }
 
                         if (!goal.description.isNullOrBlank()) {
                             Icon(
