@@ -1,3 +1,4 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
 package com.romankozak.forwardappmobile.ui.screens.goallist
 
 import android.app.Application
@@ -21,7 +22,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 sealed class GoalListUiEvent {
@@ -29,8 +29,8 @@ sealed class GoalListUiEvent {
     data class NavigateToDetails(val listId: String) : GoalListUiEvent()
     data class NavigateToGlobalSearch(val query: String) : GoalListUiEvent()
     data class ShowToast(val message: String) : GoalListUiEvent()
-    data class ScrollToList(val listId: String) : GoalListUiEvent() // ✨ ДОДАНО: Нова подія для прокрутки
-
+    data class ScrollToList(val listId: String) : GoalListUiEvent()
+    object FocusSearchField : GoalListUiEvent()
 }
 
 sealed class PlanningMode {
@@ -178,6 +178,7 @@ class GoalListViewModel @Inject constructor(
             val visibleIds = mutableSetOf<String>().apply {
                 addAll(ancestorIds)
                 addAll(descendantIds)
+                addAll(matchingLists.map { it.id })
             }
 
             val currentExpandedState = when {
@@ -298,10 +299,30 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
+    // ✨ ДОДАНО: Стан для керування шторкою недавніх списків
+    private val _showRecentListsSheet = MutableStateFlow(false)
+    val showRecentListsSheet: StateFlow<Boolean> = _showRecentListsSheet.asStateFlow()
+
+    val recentLists: StateFlow<List<GoalList>> = goalRepository.getRecentLists()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun onShowRecentLists() {
+        _showRecentListsSheet.value = true
+    }
+
+    fun onDismissRecentLists() {
+        _showRecentListsSheet.value = false
+    }
+
+    fun onRecentListSelected(listId: String) {
+        viewModelScope.launch {
+            onDismissRecentLists()
+            _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId))
+        }
+    }
+
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
-            // ✨ ВИПРАВЛЕНО: Примусово вимикаємо всі фільтри перед показом списку.
-            // Це гарантує, що список буде видимим для підсвічування.
             if (_isSearchActive.value) {
                 _isSearchActive.value = false
                 _searchQuery.value = ""
@@ -309,9 +330,7 @@ class GoalListViewModel @Inject constructor(
             if (_planningMode.value !is PlanningMode.All) {
                 _planningMode.value = PlanningMode.All
             }
-            // Кінець виправлення
 
-            // Ця частина логіки залишається без змін
             val allLists = _allListsFlat.first { it.isNotEmpty() }
             val listLookup = allLists.associateBy { it.id }
             val targetList = listLookup[listId]
@@ -346,8 +365,13 @@ class GoalListViewModel @Inject constructor(
         _isSearchActive.value = isActive
         if (!isActive) {
             _searchQuery.value = ""
+        } else {
+            viewModelScope.launch {
+                _uiEventChannel.send(GoalListUiEvent.FocusSearchField)
+            }
         }
     }
+
 
     fun onPlanningModeChange(mode: PlanningMode) {
         if (_isSearchActive.value) {
@@ -415,36 +439,22 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-// Стало
-// Ця функція більше не потрібна, оскільки її логіку повністю замінює `addNewList`
-    /*
-    fun onAddList(name: String, parentId: String?) {
-        viewModelScope.launch {
-            goalRepository.createGoalList(name, parentId)
-            dismissDialog()
-        }
-    }
-    */
-
-
     fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            goalRepository.createGoalListWithId(id, name, parentId) // Виклик нового методу
+            goalRepository.createGoalListWithId(id, name, parentId)
 
             if (parentId != null) {
                 val allLists = _allListsFlat.first()
                 val listLookup = allLists.associateBy { it.id }
                 val ancestorIds = findAncestorIds(parentId, listLookup)
                 _listChooserUserExpandedIds.update { currentIds ->
-                    currentIds + ancestorIds
+                    currentIds + ancestorIds + parentId
                 }
             }
         }
     }
 
-
-    // ✨ ДОДАНО: Допоміжна функція для пошуку всіх батьківських ID
     private fun findAncestorIds(startId: String?, listLookup: Map<String, GoalList>): Set<String> {
         val ancestors = mutableSetOf<String>()
         var currentId = startId

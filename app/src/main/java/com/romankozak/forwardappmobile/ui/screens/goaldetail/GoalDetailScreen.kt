@@ -4,6 +4,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationSearching
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +34,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalInputBar
 import com.romankozak.forwardappmobile.ui.components.MultiSelectTopAppBar
+import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
@@ -65,6 +68,10 @@ fun GoalDetailScreen(
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
 
+    // ✨ ДОДАНО: Отримуємо стан з ViewModel для шторки недавніх
+    val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
+    val recentLists by viewModel.recentLists.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -73,6 +80,10 @@ fun GoalDetailScreen(
 
     val listState = rememberLazyListState()
     val haptic = LocalHapticFeedback.current
+
+    BackHandler(enabled = isSelectionModeActive) {
+        viewModel.clearSelection()
+    }
 
     val reorderableLazyListState = rememberReorderableLazyListState(
         lazyListState = listState,
@@ -167,14 +178,13 @@ fun GoalDetailScreen(
         }
     }
 
-    // Це гарантує, що ефект виконається, коли нова ціль з'явиться у списку.
     LaunchedEffect(uiState.newlyAddedGoalInstanceId, goals) {
         val newGoalId = uiState.newlyAddedGoalInstanceId
         if (newGoalId != null) {
             val index = goals.indexOfFirst { it.instanceId == newGoalId }
             if (index != -1) {
                 listState.animateScrollToItem(index)
-                viewModel.onScrolledToNewGoal() // Скидаємо ID після успішної прокрутки
+                viewModel.onScrolledToNewGoal()
             }
         }
     }
@@ -245,13 +255,24 @@ fun GoalDetailScreen(
                             }
                         },
                     )
-                    GoalInputBar(
-                        inputValue = uiState.inputValue,
-                        inputMode = uiState.inputMode,
-                        onModeChangeRequest = viewModel::onInputModeChangeRequest,
-                        onSubmit = viewModel::submitInput,
-                        onValueChange = viewModel::onInputTextChanged,
-                    )
+                    // ✨ ДОДАНО: обгортка Row для іконки "Недавні" та поля вводу
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { viewModel.onShowRecentLists() }) {
+                            Icon(Icons.Outlined.History, contentDescription = "Показати недавні списки")
+                        }
+                        GoalInputBar(
+                            modifier = Modifier.weight(1f), // <-- Ваш рядок коду
+                            inputValue = uiState.inputValue,
+                            inputMode = uiState.inputMode,
+                            onModeChangeRequest = viewModel::onInputModeChangeRequest,
+                            onSubmit = viewModel::submitInput,
+                            onValueChange = viewModel::onInputTextChanged,
+                        )
+                    }
+
                 }
             }
         },
@@ -366,6 +387,14 @@ fun GoalDetailScreen(
         }
     }
 
+    // ✨ ДОДАНО: Відображаємо Bottom Sheet
+    RecentListsSheet(
+        showSheet = showRecentSheet,
+        recentLists = recentLists,
+        onDismiss = { viewModel.onDismissRecentLists() },
+        onListClick = { listId -> viewModel.onRecentListSelected(listId) }
+    )
+
     if (showInputModeDialog) {
         InputModeDialog(
             onDismiss = { viewModel.onDismissInputModeDialog() },
@@ -407,7 +436,6 @@ fun GoalDetailScreen(
                 },
                 currentParentId = null,
                 disabledIds = disabledIds,
-                // ✨ ВИПРАВЛЕНО: Лямбда тепер відповідає оновленій сигнатурі
                 onAddNewList = { id, parentId, name ->
                     viewModel.addNewList(id, parentId, name)
                 },

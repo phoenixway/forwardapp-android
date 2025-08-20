@@ -33,6 +33,7 @@ import com.romankozak.forwardappmobile.ui.screens.goaldetail.InputMode
 
 @Composable
 fun GoalInputBar(
+    modifier: Modifier = Modifier, // ✨ ЗМІНЕНО: Додано параметр modifier
     inputValue: TextFieldValue,
     inputMode: InputMode,
     onValueChange: (TextFieldValue) -> Unit,
@@ -47,7 +48,8 @@ fun GoalInputBar(
     }
 
     Surface(
-        modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+        // ✨ ЗМІНЕНО: Застосовано переданий modifier до кореневого елемента
+        modifier = modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
         shape = RoundedCornerShape(28.dp),
         tonalElevation = 6.dp,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant

@@ -2,8 +2,6 @@ package com.romankozak.forwardappmobile.data.database
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 
 /**
  * Міграція бази даних з версії 8 на 9.
@@ -26,18 +24,19 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
 }
 
 /**
- * ✨ ДОДАНО: Міграція бази даних з версії 11 на 12.
+ * Міграція бази даних з версії 11 на 12.
  * Додає підтримку тегів для списків цілей (GoalList).
  */
 val MIGRATION_11_12 = object : Migration(11, 12) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // Просто додаємо нову колонку 'tags' до таблиці 'goal_lists'.
-        // Оскільки поле в моделі є nullable, SQLite за замовчуванням заповнить
-        // існуючі рядки значенням NULL, що нам і потрібно.
         db.execSQL("ALTER TABLE goal_lists ADD COLUMN tags TEXT")
     }
 }
 
+/**
+ * Міграція бази даних з версії 12 на 13.
+ * Додає таблицю для відстеження активності.
+ */
 val MIGRATION_12_13 = object : Migration(12, 13) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("""
@@ -48,6 +47,23 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
                 `startTime` INTEGER, 
                 `endTime` INTEGER, 
                 PRIMARY KEY(`id`)
+            )
+        """)
+    }
+}
+
+/**
+ * ✨ ДОДАЙТЕ ЦЕЙ КОД: Міграція бази даних з версії 13 на 14.
+ * Додає таблицю для зберігання історії нещодавно відкритих списків.
+ */
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `recent_list_entries` (
+                `list_id` TEXT NOT NULL, 
+                `last_accessed` INTEGER NOT NULL, 
+                PRIMARY KEY(`list_id`), 
+                FOREIGN KEY(`list_id`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
         """)
     }

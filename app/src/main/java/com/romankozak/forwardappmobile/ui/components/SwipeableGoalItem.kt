@@ -36,6 +36,7 @@ import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 enum class SwipeState {
@@ -75,10 +76,17 @@ fun SwipeableGoalItem(
 
     key(swipeResetKey, resetTrigger) {
         // ✨ ВИПРАВЛЕНО: Відстань свайпу адаптовано під 4 вужчі кнопки
-        val actionsRevealPx = with(density) { 246.dp.toPx() }
-        val actionsRevealPxNegative = with(density) { -160.dp.toPx() }
+        //val actionsRevealPx = with(density) { 246.dp.toPx() }
+        //val actionsRevealPxNegative = with(density) { -160.dp.toPx() }
 
-        val maxSwipeDistance = with(density) { 320.dp.toPx() }
+        val leftActionsWidth = 60.dp * 4
+        val rightActionsWidth = 60.dp * 2
+
+        val actionsRevealPx = with(density) { leftActionsWidth.toPx() }
+        val actionsRevealPxNegative = with(density) { -(rightActionsWidth.toPx()) }
+
+        val maxSwipeDistance = max(actionsRevealPx, abs(actionsRevealPxNegative))
+
 
         val anchors = DraggableAnchors {
             SwipeState.ActionsRevealedStart at actionsRevealPx
@@ -104,6 +112,7 @@ fun SwipeableGoalItem(
                             lastConfirmedState = newValue
                             true
                         }
+
                         lastConfirmedState == SwipeState.Normal -> {
                             swipeDirection = when (newValue) {
                                 SwipeState.ActionsRevealedStart -> 1
@@ -113,6 +122,7 @@ fun SwipeableGoalItem(
                             lastConfirmedState = newValue
                             true
                         }
+
                         else -> {
                             val newDirection = when (newValue) {
                                 SwipeState.ActionsRevealedStart -> 1
@@ -152,11 +162,16 @@ fun SwipeableGoalItem(
         }
 
         LaunchedEffect(swipeState.settledValue) {
-            val currentOffset = try { swipeState.requireOffset() } catch (e: Exception) { 0f }
+            val currentOffset = try {
+                swipeState.requireOffset()
+            } catch (e: Exception) {
+                0f
+            }
             when (swipeState.settledValue) {
                 SwipeState.ActionsRevealedStart -> if (currentOffset < 0) resetSwipe()
                 SwipeState.ActionsRevealedEnd -> if (currentOffset > 0) resetSwipe()
-                else -> { /* Normal state */ }
+                else -> { /* Normal state */
+                }
             }
         }
 
@@ -195,17 +210,82 @@ fun SwipeableGoalItem(
             Row(
                 modifier = Modifier
                     .matchParentSize()
-                    .alpha(actionsAlpha)
+                    .alpha(actionsAlpha),
                 //       .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)), // Обрізаємо контейнер
-                ,
                 horizontalArrangement = Arrangement.Start, // Розміщуємо кнопки щільно
+                verticalAlignment = Alignment.CenterVertically, // Вирівнюємо по центру
+
             ) {
                 val buttonWidth = 60.dp
+                val buttonSize = 60.dp
 
-                Surface(onClick = { onMoreActionsRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.secondary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.MoreVert, "Більше дій", tint = MaterialTheme.colorScheme.onSecondary) } }
-                Surface(onClick = { onCreateInstanceRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.primary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.AddLink, "Створити зв'язок", tint = MaterialTheme.colorScheme.onPrimary) } }
-                Surface(onClick = { onMoveInstanceRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.tertiary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.AutoMirrored.Filled.Send, "Перемістити", tint = MaterialTheme.colorScheme.onTertiary) } }
-                Surface(onClick = { onCopyGoalRequest(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(buttonWidth), color = MaterialTheme.colorScheme.inversePrimary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.ContentCopy, "Клонувати ціль", tint = MaterialTheme.colorScheme.primary) } }
+                Surface(
+                    onClick = { onMoreActionsRequest(); resetSwipe() },
+                    modifier = Modifier.size(buttonSize),
+                    color = MaterialTheme.colorScheme.secondary,
+                    //shape = RoundedCornerShape(8.dp),
+
+
+                    ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            "Більше дій",
+                            tint = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+                }
+                Surface(
+                    onClick = { onCreateInstanceRequest(); resetSwipe() },
+                    modifier = Modifier.size(buttonSize),
+                    color = MaterialTheme.colorScheme.primary
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            Icons.Default.AddLink,
+                            "Створити зв'язок",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+                Surface(
+                    onClick = { onMoveInstanceRequest(); resetSwipe() },
+                    modifier = Modifier.size(buttonSize),
+                    color = MaterialTheme.colorScheme.tertiary
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            "Перемістити",
+                            tint = MaterialTheme.colorScheme.onTertiary
+                        )
+                    }
+                }
+                Surface(
+                    onClick = { onCopyGoalRequest(); resetSwipe() },
+                    modifier = Modifier.size(buttonSize),
+                    color = MaterialTheme.colorScheme.inversePrimary
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            "Клонувати ціль",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
 
             /*if (offset > 0) {
@@ -268,20 +348,55 @@ fun SwipeableGoalItem(
                 }}*/
 
 
-            // --- Кнопки дій зліва (offset < 0) ---
+// --- Кнопки дій зліва (offset < 0) ---
             if (offset < 0) {
                 Row(
                     modifier = Modifier
                         .matchParentSize()
-                        .alpha(actionsAlpha)
-                        //.clip(RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)), // Обрізаємо контейнер
-                    ,horizontalArrangement = Arrangement.End, // Розміщуємо кнопки щільно
+                        .alpha(actionsAlpha),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically, // Вирівнюємо по центру
                 ) {
-                    Surface(onClick = { onDelete(); resetSwipe() }, modifier = Modifier.fillMaxHeight().width(88.dp), color = MaterialTheme.colorScheme.error) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.Delete, "Видалити", tint = MaterialTheme.colorScheme.onError) } }
-                    Surface(onClick = { resetSwipe() }, modifier = Modifier.fillMaxHeight().width(88.dp), color = MaterialTheme.colorScheme.tertiary) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(Icons.Default.DeleteForever, "Видалити звідусіль", tint = MaterialTheme.colorScheme.onTertiary) } }
-                }
+                    val buttonSize = 60.dp
 
+                    Surface(
+                        onClick = { onDelete(); resetSwipe() },
+                        modifier = Modifier.size(buttonSize), // квадратна кнопка
+                        color = MaterialTheme.colorScheme.error,
+                        //shape = RoundedCornerShape(8.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                "Видалити",
+                                tint = MaterialTheme.colorScheme.onError
+                            )
+                        }
+                    }
+
+                    Surface(
+                        onClick = { resetSwipe() },
+                        modifier = Modifier.size(buttonSize), // квадратна кнопка
+                        color = MaterialTheme.colorScheme.tertiary,
+                        //shape = RoundedCornerShape(8.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                Icons.Default.DeleteForever,
+                                "Видалити звідусіль",
+                                tint = MaterialTheme.colorScheme.onTertiary
+                            )
+                        }
+                    }
+                }
             }
+
 
             // --- Основний контент ---
             Surface(
