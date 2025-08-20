@@ -2,6 +2,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -47,6 +48,7 @@ sealed class GoalActionDialogState {
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, MoveToTop }
 enum class InputMode { AddGoal, SearchInList, SearchGlobal }
 
+
 data class UiState(
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
@@ -80,6 +82,11 @@ class GoalDetailViewModel @Inject constructor(
     private var recentlyDeletedInstances: List<GoalWithInstanceInfo>? = null
 
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
+
+    // ✨ ДОДАНО: Потік для карти "тег -> ім'я контексту"
+    private val tagToContextNameMap: StateFlow<Map<String, String>> = contextHandler.tagToContextNameMap
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
 
     init {
         // ✨ ДОДАНО: Логуємо доступ до списку при ініціалізації ViewModel
@@ -125,6 +132,23 @@ class GoalDetailViewModel @Inject constructor(
     val goalList: StateFlow<GoalList?> = listIdFlow.flatMapLatest { id ->
         if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // ✨ ДОДАНО: Потік, що визначає контекстний маркер поточного списку для приховування в UI
+    val currentListContextMarker: StateFlow<String?> = combine(goalList, tagToContextNameMap) { list, tagMap ->
+        val listTags = list?.tags ?: emptyList()
+        Log.d("ContextDebug", "CHECK: Список '${list?.name}', Теги в БД: $listTags")
+        Log.d("ContextDebug", "CHECK: Карта тегів з налаштувань: $tagMap")
+
+        if (listTags.isEmpty()) return@combine null
+
+
+        val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in listTags }?.value
+
+        Log.d("ContextDebug", "CHECK: Знайдено ім'я контексту: $contextName")
+
+        contextName?.let { contextHandler.getContextMarker(it) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
 
     val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> =
         combine(listIdFlow, _uiState) { id, state -> Pair(id, state) }
@@ -269,30 +293,12 @@ class GoalDetailViewModel @Inject constructor(
         if (title.isBlank() || listId.isEmpty()) return
 
         viewModelScope.launch {
-            val currentTime = System.currentTimeMillis()
-            val newGoal = Goal(
-                id = UUID.randomUUID().toString(),
-                text = title,
-                completed = false,
-                createdAt = currentTime,
-                updatedAt = currentTime,
-                associatedListIds = listOf(listId)
-            )
-            goalRepository.insertGoal(newGoal)
-
-            val order = -currentTime
-
-            val newInstance = GoalInstance(
-                instanceId = UUID.randomUUID().toString(),
-                goalId = newGoal.id,
-                listId = listId,
-                order = order
-            )
-            goalRepository.insertInstance(newInstance)
-            contextHandler.handleContextsOnCreate(newGoal)
-            _uiState.update { it.copy(newlyAddedGoalInstanceId = newInstance.instanceId) }
+            // ✨ ЗМІНЕНО: Викликаємо новий централізований метод репозиторію
+            val newInstanceId = goalRepository.createGoalWithInstance(title, listId)
+            _uiState.update { it.copy(newlyAddedGoalInstanceId = newInstanceId) }
         }
     }
+
 
     fun onScrolledToNewGoal() {
         _uiState.update { it.copy(newlyAddedGoalInstanceId = null) }
@@ -302,7 +308,8 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch {
             recentlyDeletedInstances = null
             recentlyDeletedGoal = goal
-            goalRepository.deleteGoalInstance(goal.instanceId)
+            // ✨ ЗМІНЕНО: Викликаємо оновлений метод репозиторію
+            goalRepository.deleteGoalInstances(listOf(goal.instanceId))
             _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Ціль видалено", action = "Скасувати"))
         }
     }
@@ -310,6 +317,7 @@ class GoalDetailViewModel @Inject constructor(
     fun undoDelete() {
         viewModelScope.launch {
             recentlyDeletedGoal?.let {
+                // При скасуванні ми не повертаємо тег автоматично, користувач може додати його знову.
                 goalRepository.insertInstance(it.toGoalInstance())
                 resetSwipe(it.instanceId)
                 recentlyDeletedGoal = null
@@ -405,11 +413,13 @@ class GoalDetailViewModel @Inject constructor(
             recentlyDeletedGoal = null
             recentlyDeletedInstances = instancesToDelete
 
+            // ✨ ЗМІНЕНО: Викликаємо оновлений метод репозиторію
             goalRepository.deleteGoalInstances(instancesToDelete.map { it.instanceId })
             _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Видалено цілей: ${instancesToDelete.size}", action = "Скасувати"))
             clearSelection()
         }
     }
+
 
     fun toggleCompletionForSelectedGoals() {
         viewModelScope.launch {
@@ -477,6 +487,8 @@ class GoalDetailViewModel @Inject constructor(
         _listChooserUserExpandedIds.value = emptySet()
     }
 
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/GoalDetailViewModel.kt
+
     fun confirmGoalAction(targetListId: String) {
         val currentState = _goalActionDialogState.value
         if (currentState is GoalActionDialogState.AwaitingListChoice) {
@@ -484,17 +496,34 @@ class GoalDetailViewModel @Inject constructor(
             val actionType = currentState.actionType
 
             viewModelScope.launch(Dispatchers.IO) {
+                // Отримуємо ID цілей, над якими виконується дія
                 val goalsToProcess = filteredGoals.value
                     .filter { it.instanceId in ids }
                 val goalIds = goalsToProcess.map { it.goal.id }.distinct()
 
+                // Єдиний блок 'when', який викликає відповідні методи репозиторію.
+                // Репозиторій тепер сам відповідає за логіку синхронізації тегів.
                 when (actionType) {
-                    GoalActionType.CreateInstance -> goalRepository.createGoalInstances(goalIds, targetListId)
-                    GoalActionType.MoveInstance -> goalRepository.moveGoalInstances(ids.toList(), targetListId)
-                    GoalActionType.CopyGoal -> goalRepository.copyGoals(goalIds, targetListId)
-                    GoalActionType.MoveToTop -> { /* Not applicable here */ }
+                    GoalActionType.CreateInstance -> {
+                        goalRepository.createGoalInstances(goalIds, targetListId)
+                    }
+                    GoalActionType.MoveInstance -> {
+                        goalRepository.moveGoalInstances(ids.toList(), targetListId)
+                    }
+                    GoalActionType.CopyGoal -> {
+                        // Для копіювання ми повинні визначити маркер тут,
+                        // оскільки репозиторій створюватиме абсолютно нові цілі.
+                        val list = goalRepository.getGoalListById(targetListId)
+                        val listTags = list?.tags ?: emptyList()
+                        val contextName = tagToContextNameMap.value.entries.find { (tagKey, _) -> tagKey in listTags }?.value
+                        val markerToAdd = contextName?.let { contextHandler.getContextMarker(it) }
+
+                        goalRepository.copyGoals(goalIds, targetListId, markerToAdd)
+                    }
+                    GoalActionType.MoveToTop -> { /* Ця дія тут не обробляється */ }
                 }
 
+                // Оновлюємо UI після завершення операції в фоні
                 launch(Dispatchers.Main) {
                     _goalActionDialogState.value = GoalActionDialogState.Hidden
                     if (ids.size == 1) {

@@ -2,6 +2,7 @@
 
 package com.romankozak.forwardappmobile.data.repository
 
+import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -12,172 +13,80 @@ import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.GoalListDao
 import com.romankozak.forwardappmobile.data.dao.RecentListDao
 import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
+import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
+
+// ✨ ВИПРАВЛЕНО: Змінено 'private' на 'internal' для вирішення помилки компіляції
+internal enum class ContextTextAction { ADD, REMOVE }
 
 @Singleton
 class GoalRepository @Inject constructor(
     private val goalDao: GoalDao,
     private val goalListDao: GoalListDao,
-    private val recentListDao: RecentListDao // ✨ ДОДАНО
+    private val recentListDao: RecentListDao,
+    private val contextHandlerProvider: Provider<ContextHandler>
 ) {
+    private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
 
-    /**
-     * ОНОВЛЕНИЙ МЕТОД
-     * Тепер він приймає вже оновлений об'єкт `listToMove` з ViewModel,
-     * який містить правильний `parentId` та `updatedAt`.
-     * Його головне завдання - зберегти цей об'єкт і перевпорядкувати "сусідів".
-     */
-    @Transaction
-    suspend fun moveGoalList(listToMove: GoalList, newParentId: String?) {
-        val oldParentId = listToMove.parentId
-
-        // Крок 1: Оновити порядок у старому списку, якщо він був
-        val oldSiblings = if (oldParentId != null) {
-            goalListDao.getListsByParentId(oldParentId)
-        } else {
-            goalListDao.getTopLevelLists()
-        }.filter { it.id != listToMove.id } // Виключаємо наш елемент
-
-        // Перевпорядковуємо старий список
-        updateGoalLists(
-            oldSiblings.mapIndexed { index, list ->
-                list.copy(order = index.toLong())
-            }
-        )
-
-        // Крок 2: Просто зберігаємо наш оновлений елемент.
-        // ViewModel вже встановив йому новий parentId, order та updatedAt.
-        goalListDao.update(listToMove)
-    }
-
-    /**
-     * НОВИЙ МЕТОД
-     * Дозволяє оновити кілька списків за один раз.
-     * Використовується для збереження нового порядку після drag-and-drop.
-     */
-    suspend fun updateGoalLists(lists: List<GoalList>) {
-        // Room не має пакетного @Update за замовчуванням, тому робимо це в циклі.
-        // Для невеликої кількості елементів це цілком прийнятно.
-        lists.forEach { goalListDao.update(it) }
-    }
-
-    private suspend fun reorderAndSave(lists: List<GoalList>) {
-        val updatedLists = lists.mapIndexed { index, list ->
-            list.copy(order = index.toLong())
-        }
-        // Використовуємо існуючий метод update, Room подбає про мапінг полів
-        updatedLists.forEach { goalListDao.update(it) }
-    }
-
-    // Методи для GoalDetailViewModel
-    fun getGoalsForListStream(listId: String): Flow<List<GoalWithInstanceInfo>> {
-        return goalDao.getGoalsForListStream(listId)
-    }
-
-    suspend fun getGoalListById(id: String): GoalList? {
-        return goalListDao.getGoalListById(id)
-    }
-
-    suspend fun createGoal(title: String, listId: String): String {
+    suspend fun createGoalWithInstance(title: String, listId: String): String {
         val currentTime = System.currentTimeMillis()
         val newGoal = Goal(
             id = UUID.randomUUID().toString(),
             text = title,
-            description = "",
             completed = false,
             createdAt = currentTime,
-            updatedAt = currentTime,
-            tags = null,
-            associatedListIds = emptyList()
+            updatedAt = currentTime
         )
+        goalDao.insertGoal(newGoal)
 
-        val order = -currentTime
+        syncContextMarker(newGoal.id, listId, ContextTextAction.ADD)
 
         val newInstance = GoalInstance(
             instanceId = UUID.randomUUID().toString(),
             goalId = newGoal.id,
             listId = listId,
-            order = order
+            order = -currentTime
         )
+        goalDao.insertInstance(newInstance)
 
-        goalDao.insertGoalWithInstance(newGoal, newInstance)
+        val finalGoalState = goalDao.getGoalById(newGoal.id)!!
+        contextHandler.handleContextsOnCreate(finalGoalState)
 
         return newInstance.instanceId
     }
 
-    suspend fun deleteGoalInstance(instanceId: String) {
-        goalDao.deleteInstanceById(instanceId)
-    }
-
-    suspend fun updateGoal(goal: Goal) {
-        goalDao.updateGoal(goal)
-    }
-
-    suspend fun createGoalInstance(goalId: String, targetListId: String) {
-        val order = -System.currentTimeMillis()
-        val newInstance = GoalInstance(
-            instanceId = UUID.randomUUID().toString(),
-            goalId = goalId,
-            listId = targetListId,
-            order = order
-        )
-        goalDao.insertInstance(newInstance)
-    }
-
-    suspend fun moveGoalInstance(instanceId: String, targetListId: String) {
-        goalDao.updateInstanceListId(instanceId, targetListId)
-    }
-
-    suspend fun copyGoal(goal: Goal, targetListId: String) {
-        val newGoal = goal.copy(id = UUID.randomUUID().toString())
-        goalDao.insertGoal(newGoal)
-        createGoalInstance(newGoal.id, targetListId)
-    }
-
-    fun getAssociatedListsForGoals(goalIds: List<String>): Flow<Map<String, List<GoalList>>> {
-        if (goalIds.isEmpty()) return flowOf(emptyMap())
-
-        val goalsFlow = goalDao.getGoalsByIds(goalIds)
-        val allListsFlow = goalListDao.getAllLists()
-
-        return combine(goalsFlow, allListsFlow) { goals, allLists ->
-            val listLookup = allLists.associateBy { it.id }
-            val resultMap = mutableMapOf<String, List<GoalList>>()
-
-            for (goal in goals) {
-                val associatedIds = goal.associatedListIds ?: emptyList()
-                val associatedLists = associatedIds.mapNotNull { listLookup[it] }
-                resultMap[goal.id] = associatedLists
-            }
-            resultMap
-        }
-    }
-
     suspend fun deleteGoalInstances(instanceIds: List<String>) {
         if (instanceIds.isNotEmpty()) {
+            val instances = goalDao.getInstancesByIds(instanceIds)
+            instances.forEach { instance ->
+                syncContextMarker(instance.goalId, instance.listId, ContextTextAction.REMOVE)
+            }
             goalDao.deleteInstancesByIds(instanceIds)
-        }
-    }
-
-    suspend fun updateGoals(goals: List<Goal>) {
-        if (goals.isNotEmpty()) {
-            goalDao.updateGoals(goals)
         }
     }
 
     suspend fun moveGoalInstances(instanceIds: List<String>, targetListId: String) {
         if (instanceIds.isNotEmpty()) {
+            val instances = goalDao.getInstancesByIds(instanceIds)
+            instances.forEach { instance ->
+                syncContextMarker(instance.goalId, instance.listId, ContextTextAction.REMOVE)
+                syncContextMarker(instance.goalId, targetListId, ContextTextAction.ADD)
+            }
             goalDao.updateInstanceListIds(instanceIds, targetListId)
         }
     }
 
     suspend fun createGoalInstances(goalIds: List<String>, targetListId: String) {
         if (goalIds.isNotEmpty()) {
+            goalIds.forEach { goalId ->
+                syncContextMarker(goalId, targetListId, ContextTextAction.ADD)
+            }
             val newInstances = goalIds.map { goalId ->
                 GoalInstance(
                     instanceId = UUID.randomUUID().toString(),
@@ -190,14 +99,21 @@ class GoalRepository @Inject constructor(
         }
     }
 
-    suspend fun copyGoals(goalIds: List<String>, targetListId: String) {
+    suspend fun copyGoals(goalIds: List<String>, targetListId: String, markerToAdd: String?) {
         if (goalIds.isNotEmpty()) {
             val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
             val newGoals = mutableListOf<Goal>()
             val newInstances = mutableListOf<GoalInstance>()
 
             originalGoals.forEach { goal ->
-                val newGoal = goal.copy(id = UUID.randomUUID().toString())
+                var newGoalText = goal.text
+                if (markerToAdd != null && !goal.text.contains(markerToAdd)) {
+                    newGoalText = "${goal.text} $markerToAdd".trim()
+                }
+                val newGoal = goal.copy(
+                    id = UUID.randomUUID().toString(),
+                    text = newGoalText
+                )
                 newGoals.add(newGoal)
                 newInstances.add(
                     GoalInstance(
@@ -213,32 +129,92 @@ class GoalRepository @Inject constructor(
         }
     }
 
-    fun getAllGoalListsFlow(): Flow<List<GoalList>> {
-        return goalListDao.getAllLists()
+    private suspend fun syncContextMarker(goalId: String, listId: String, action: ContextTextAction) {
+        val list = goalListDao.getGoalListById(listId) ?: return
+        val listTags = list.tags.orEmpty()
+        if (listTags.isEmpty()) return
+
+        val tagMap = contextHandler.tagToContextNameMap.value
+        val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in listTags }?.value ?: return
+        val marker = contextHandler.getContextMarker(contextName) ?: return
+        val goal = goalDao.getGoalById(goalId) ?: return
+
+        val hasMarker = goal.text.contains(marker)
+        var newText = goal.text
+
+        if (action == ContextTextAction.ADD && !hasMarker) {
+            newText = "${goal.text} $marker".trim()
+        } else if (action == ContextTextAction.REMOVE && hasMarker) {
+            newText = goal.text.replace(Regex("\\s*${Regex.escape(marker)}\\s*"), " ").trim()
+        }
+
+        if (newText != goal.text) {
+            goalDao.updateGoal(goal.copy(text = newText, updatedAt = System.currentTimeMillis()))
+        }
     }
+
+    // --- Публічні методи, необхідні для GoalListViewModel ---
 
     suspend fun updateGoalList(list: GoalList) {
         goalListDao.update(list)
     }
 
-    suspend fun createGoalList(name: String, parentId: String?) {
-        val newList = GoalList(
-            id = UUID.randomUUID().toString(),
-            name = name,
-            parentId = parentId,
-            description = "",
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-        goalListDao.insert(newList)
+    suspend fun updateGoalLists(lists: List<GoalList>) {
+        lists.forEach { goalListDao.update(it) }
     }
 
+    @Transaction
     suspend fun deleteListsAndSubLists(listsToDelete: List<GoalList>) {
+        if (listsToDelete.isEmpty()) return
         val listIds = listsToDelete.map { it.id }
         goalDao.deleteInstancesForLists(listIds)
         listsToDelete.forEach { goalListDao.delete(it) }
     }
 
+    @Transaction
+    suspend fun moveGoalList(listToMove: GoalList, newParentId: String?) {
+        val listFromDb = goalListDao.getGoalListById(listToMove.id) ?: return
+        val oldParentId = listFromDb.parentId
+
+        if (oldParentId != newParentId) {
+            val oldSiblings = (if (oldParentId != null) {
+                goalListDao.getListsByParentId(oldParentId)
+            } else {
+                goalListDao.getTopLevelLists()
+            }).filter { it.id != listToMove.id }
+            updateGoalLists(oldSiblings.mapIndexed { index, list -> list.copy(order = index.toLong()) })
+        }
+
+        val newSiblings = (if (newParentId != null) {
+            goalListDao.getListsByParentId(newParentId)
+        } else {
+            goalListDao.getTopLevelLists()
+        }).filter { it.id != listToMove.id }
+
+        val finalListToMove = listToMove.copy(order = newSiblings.size.toLong())
+        goalListDao.update(finalListToMove)
+    }
+
+    // --- Інші публічні методи репозиторію ---
+
+    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult> = goalDao.searchGoalsGlobal(query)
+    fun getGoalsForListStream(listId: String): Flow<List<GoalWithInstanceInfo>> = goalDao.getGoalsForListStream(listId)
+    suspend fun getGoalListById(id: String): GoalList? = goalListDao.getGoalListById(id)
+    suspend fun updateGoal(goal: Goal) = goalDao.updateGoal(goal)
+    suspend fun updateGoals(goals: List<Goal>) = goalDao.updateGoals(goals)
+    fun getAssociatedListsForGoals(goalIds: List<String>): Flow<Map<String, List<GoalList>>> {
+        if (goalIds.isEmpty()) return flowOf(emptyMap())
+        val goalsFlow = goalDao.getGoalsByIds(goalIds)
+        val allListsFlow = goalListDao.getAllLists()
+        return combine(goalsFlow, allListsFlow) { goals, allLists ->
+            val listLookup = allLists.associateBy { it.id }
+            goals.associate { goal ->
+                val associatedLists = goal.associatedListIds?.mapNotNull { listLookup[it] } ?: emptyList()
+                goal.id to associatedLists
+            }
+        }
+    }
+    fun getAllGoalListsFlow(): Flow<List<GoalList>> = goalListDao.getAllLists()
     suspend fun getAllGoalLists(): List<GoalList> = goalListDao.getAll()
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
     suspend fun getAllGoalInstances(): List<GoalInstance> = goalDao.getAllInstances()
@@ -246,54 +222,19 @@ class GoalRepository @Inject constructor(
     suspend fun insertGoals(goals: List<Goal>) = goalDao.insertGoals(goals)
     suspend fun deleteInstancesForLists(listIds: List<String>) = goalDao.deleteInstancesForLists(listIds)
     suspend fun insertGoalInstances(instances: List<GoalInstance>) = goalDao.insertGoalInstances(instances)
-    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult> = goalDao.searchGoalsGlobal(query)
-
     suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
     suspend fun getListsByIds(ids: List<String>): List<GoalList> = goalListDao.getListsByIds(ids)
     suspend fun insertGoal(goal: Goal) = goalDao.insertGoal(goal)
-    suspend fun getGoalCountInList(listId: String): Int = goalDao.getGoalCountInList(listId)
     suspend fun insertInstance(instance: GoalInstance) = goalDao.insertInstance(instance)
     fun getGoalListByIdFlow(id: String): Flow<GoalList?> = goalListDao.getGoalListByIdStream(id)
+    suspend fun findListIdsByTag(tag: String): List<String> = goalListDao.getListsByTag(tag).map { it.id }
+    suspend fun doesInstanceExist(goalId: String, listId: String): Boolean = goalDao.getInstanceCount(goalId, listId) > 0
+    suspend fun deleteGoalInstanceByGoalIdAndListId(goalId: String, listId: String) = goalDao.deleteInstanceByGoalAndList(goalId, listId)
+    suspend fun getGoalsByIdsSuspend(ids: List<String>): List<Goal> = goalDao.getGoalsByIdsSuspend(ids)
 
-    suspend fun updateListsOrder(orderedIds: List<String>) {
-        orderedIds.forEachIndexed { index, listId ->
-            goalListDao.updateOrder(listId, index.toLong())
-        }
-    }
-
-    fun getAllGoalsCountFlow(): Flow<Int> {
-        return goalDao.getAllGoalsCountFlow()
-    }
-
-    suspend fun findListIdsByTag(tag: String): List<String> {
-        if (tag.isBlank()) return emptyList()
-        val listIds = goalListDao.getListsByTag(tag).map { it.id }
-
-        // ✨ ДОДАЙТЕ ЦЕЙ ЛОГ
-        android.util.Log.d("ContextDebug", "Searching for lists with tag: '$tag'. Found list IDs: $listIds")
-
-        return listIds
-    }
-
-    // ✨ ДОДАНО: Перевірка існування екземпляра
-    suspend fun doesInstanceExist(goalId: String, listId: String): Boolean {
-        return goalDao.getInstanceCount(goalId, listId) > 0
-    }
-
-    suspend fun deleteGoalInstanceByGoalIdAndListId(goalId: String, listId: String) {
-        goalDao.deleteInstanceByGoalAndList(goalId, listId)
-    }
-
-    suspend fun updateMarkdown(goalId: Long, markdown: String) {
-        goalDao.updateMarkdown(goalId, markdown)
-    }
-    /**
-     * ✨ ДОДАНО: Новий метод для створення списку із заздалегідь згенерованим ID.
-     * Це потрібно, щоб UI міг одразу дізнатися ID нового елемента для підсвічування.
-     */
     suspend fun createGoalListWithId(id: String, name: String, parentId: String?) {
         val newList = GoalList(
-            id = id, // Використовуємо наданий ID
+            id = id,
             name = name,
             parentId = parentId,
             description = "",
@@ -303,19 +244,14 @@ class GoalRepository @Inject constructor(
         goalListDao.insert(newList)
     }
 
-    /**
-     * ✨ ДОДАНО: Метод для логування відкриття списку.
-     */
     suspend fun logListAccess(listId: String) {
-        val entry = RecentListEntry(listId = listId, lastAccessed = System.currentTimeMillis())
-        recentListDao.logAccess(entry)
+        recentListDao.logAccess(RecentListEntry(listId = listId, lastAccessed = System.currentTimeMillis()))
+    }
+    fun getRecentLists(limit: Int = 20): Flow<List<GoalList>> = recentListDao.getRecentLists(limit)
+
+    suspend fun updateMarkdown(goalId: String, markdown: String) {
+        goalDao.updateMarkdown(goalId, markdown)
     }
 
-    /**
-     * ✨ ДОДАНО: Метод для отримання потоку недавніх списків.
-     * @param limit Кількість елементів історії для завантаження.
-     */
-    fun getRecentLists(limit: Int = 20): Flow<List<GoalList>> {
-        return recentListDao.getRecentLists(limit)
-    }
+    fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 }

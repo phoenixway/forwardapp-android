@@ -488,13 +488,14 @@ class GoalEditViewModel @Inject constructor(
         }
     }
 
-    fun updateMarkdown(newText: String, goalId: Long) {
+    fun updateMarkdown(newText: String) { // Більше не потрібен goalId як параметр
         markdown = newText
-
         saveJob?.cancel()
         saveJob = viewModelScope.launch {
-            delay(1000L) // debounce 1 сек
-            goalRepository.updateMarkdown(goalId, newText)
+            val goalToUpdateId = currentGoal?.id ?: return@launch // Отримуємо ID поточної цілі
+            delay(1000L)
+            goalRepository.updateMarkdown(goalToUpdateId, newText)
         }
     }
+
 }

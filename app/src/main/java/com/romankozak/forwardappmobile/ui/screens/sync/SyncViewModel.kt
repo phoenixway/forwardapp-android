@@ -1,3 +1,5 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/sync/SyncViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.screens.sync
 
 import android.util.Log
@@ -7,11 +9,17 @@ import com.romankozak.forwardappmobile.data.sync.ChangeType
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.data.sync.SyncReport
 import com.romankozak.forwardappmobile.data.sync.SyncRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
+// ✨ ЗМІНЕНО: Анотуємо ViewModel для Hilt
+@HiltViewModel
+class SyncViewModel @Inject constructor(
+    private val syncRepo: SyncRepository
+) : ViewModel() {
     private val _report = MutableStateFlow<SyncReport?>(null)
     val report = _report.asStateFlow()
 
@@ -35,14 +43,14 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
             try {
                 val syncReport = syncRepo.createSyncReport(jsonString)
                 _report.value = syncReport
-                _approvedChangeIds.value = syncReport.changes.map { it.id }.toSet()
+                // За замовчуванням схвалюємо всі зміни
+                _approvedChangeIds.value = syncReport.changes.map { it.id + it.type.name }.toSet()
                 _error.value = null
             } catch (e: Exception) {
                 Log.e("SyncViewModel", "Error creating sync report", e)
                 _error.value = e.message ?: "Сталася невідома помилка."
                 _report.value = null
             } finally {
-                // Очищуємо дані, щоб не використовувати їх повторно
                 syncDataViewModel.jsonString = null
             }
         }
@@ -52,11 +60,9 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
         _error.value = null
     }
 
-    // НОВА ПРАВИЛЬНА ВЕРСІЯ для SyncViewModel.kt
     fun toggleApproval(changeId: String, changeType: String) {
-        val compoundId = changeId + changeType // Створюємо такий самий комбінований ключ
+        val compoundId = changeId + changeType
         val currentIds = _approvedChangeIds.value.toMutableSet()
-
         if (compoundId in currentIds) {
             currentIds.remove(compoundId)
         } else {
@@ -68,17 +74,13 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
     fun applyChanges(onComplete: () -> Unit) {
         viewModelScope.launch {
             val reportToApply = report.value
-            val jsonToApply = originalJsonString
-
-            if (reportToApply != null && jsonToApply != null) {
+            if (reportToApply != null) {
                 val approved = reportToApply.changes.filter { (it.id + it.type.name) in _approvedChangeIds.value }
                 syncRepo.applyChanges(approved)
             }
             onComplete()
         }
     }
-
-    // У файлі SyncViewModel.kt
 
     fun selectAllChanges() {
         report.value?.changes?.let { allChanges ->
@@ -93,7 +95,7 @@ class SyncViewModel(private val syncRepo: SyncRepository) : ViewModel() {
     fun selectRecommendedChanges() {
         report.value?.changes?.let { allChanges ->
             _approvedChangeIds.value = allChanges
-                .filter { it.type != ChangeType.Delete } // Обираємо все, крім видалень
+                .filter { it.type != ChangeType.Delete }
                 .map { it.id + it.type.name }
                 .toSet()
         }

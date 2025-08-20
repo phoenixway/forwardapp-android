@@ -20,19 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.data.sync.ChangeType
 import com.romankozak.forwardappmobile.data.sync.SyncChange
-import com.romankozak.forwardappmobile.data.sync.SyncRepository
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 
-// Допоміжний об'єкт для метаданих, щоб зробити код чистішим
 private object ChangeTypeMetadata {
     data class Metadata(val title: String, val icon: ImageVector, val color: Color)
 
@@ -52,13 +47,10 @@ private object ChangeTypeMetadata {
 fun SyncScreen(
     syncDataViewModel: SyncDataViewModel,
     onSyncComplete: () -> Unit,
+    // ✨ ЗМІНЕНО: ViewModel тепер отримується через Hilt
+    viewModel: SyncViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
-    // ✨ FIX: Added the missing db.recentListDao() parameter
-    val goalRepository = GoalRepository(db.goalDao(), db.goalListDao(), db.recentListDao())
-    val syncRepo = SyncRepository(goalRepository, db, context)
-    val viewModel: SyncViewModel = viewModel(factory = SyncViewModelFactory(syncRepo))
+    // ❌ ВИДАЛЕНО: Весь код для ручного створення залежностей
 
     val report by viewModel.report.collectAsState()
     val approvedIds by viewModel.approvedChangeIds.collectAsState()
@@ -127,14 +119,7 @@ fun SyncScreen(
                 else -> {
                     val groupedChanges = remember(report) {
                         report!!.changes.groupBy { it.type }
-                            .toSortedMap(compareBy {
-                                when(it) {
-                                    ChangeType.Add -> 0
-                                    ChangeType.Update -> 1
-                                    ChangeType.Move -> 2
-                                    ChangeType.Delete -> 3
-                                }
-                            })
+                            .toSortedMap(compareBy { it.ordinal })
                     }
 
                     val expandedGroups = remember {
@@ -155,13 +140,10 @@ fun SyncScreen(
                             Spacer(Modifier.width(8.dp))
                             Button(onClick = { viewModel.deselectAllChanges() }) { Text("Зняти вибір") }
                         }
-                        // ✨ FIX: Replaced deprecated Divider with HorizontalDivider
                         HorizontalDivider()
-
                         LazyColumn(modifier = Modifier.padding(horizontal = 8.dp)) {
                             groupedChanges.forEach { (changeType, changesInGroup) ->
                                 val isExpanded = changeType in expandedGroups.value
-
                                 item {
                                     GroupHeader(
                                         changeType = changeType,
@@ -174,7 +156,6 @@ fun SyncScreen(
                                         }
                                     )
                                 }
-
                                 if (isExpanded) {
                                     items(changesInGroup, key = { it.id + it.type.name }) { change ->
                                         SyncChangeItem(
@@ -192,7 +173,6 @@ fun SyncScreen(
         }
     }
 }
-
 
 @Composable
 private fun GroupHeader(
@@ -230,7 +210,6 @@ private fun GroupHeader(
 
 @Composable
 private fun SyncChangeItem(change: SyncChange, isChecked: Boolean, onToggle: () -> Unit) {
-    // ✨ FIX: Removed unused 'metadata' variable
     Card(
         modifier = Modifier
             .fillMaxWidth()
