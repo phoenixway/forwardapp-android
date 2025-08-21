@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/SwipeableGoalItem.kt
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/SwipeableGoalItem.kt
 
 package com.romankozak.forwardappmobile.ui.components
 
@@ -26,9 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -67,8 +65,10 @@ fun SwipeableGoalItem(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
-    // ✨ ДОДАНО: Новий параметр для передачі в GoalItem
     contextMarkerToHide: String? = null,
+    emojiToHide: String? = null,
+
+    contextMarkerToEmojiMap: Map<String, String>
 ) {
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -77,10 +77,6 @@ fun SwipeableGoalItem(
     LaunchedEffect(isDragging) { if (!isDragging) swipeResetKey++ }
 
     key(swipeResetKey, resetTrigger) {
-        // ✨ ВИПРАВЛЕНО: Відстань свайпу адаптовано під 4 вужчі кнопки
-        //val actionsRevealPx = with(density) { 246.dp.toPx() }
-        //val actionsRevealPxNegative = with(density) { -160.dp.toPx() }
-
         val leftActionsWidth = 60.dp * 4
         val rightActionsWidth = 60.dp * 2
 
@@ -88,7 +84,6 @@ fun SwipeableGoalItem(
         val actionsRevealPxNegative = with(density) { -(rightActionsWidth.toPx()) }
 
         val maxSwipeDistance = max(actionsRevealPx, abs(actionsRevealPxNegative))
-
 
         val anchors = DraggableAnchors {
             SwipeState.ActionsRevealedStart at actionsRevealPx
@@ -114,7 +109,6 @@ fun SwipeableGoalItem(
                             lastConfirmedState = newValue
                             true
                         }
-
                         lastConfirmedState == SwipeState.Normal -> {
                             swipeDirection = when (newValue) {
                                 SwipeState.ActionsRevealedStart -> 1
@@ -124,14 +118,12 @@ fun SwipeableGoalItem(
                             lastConfirmedState = newValue
                             true
                         }
-
                         else -> {
                             val newDirection = when (newValue) {
                                 SwipeState.ActionsRevealedStart -> 1
                                 SwipeState.ActionsRevealedEnd -> -1
                                 else -> null
                             }
-
                             val canChange = swipeDirection == null || swipeDirection == newDirection
                             if (canChange) {
                                 lastConfirmedState = newValue
@@ -163,81 +155,42 @@ fun SwipeableGoalItem(
             }
         }
 
-        LaunchedEffect(swipeState.settledValue) {
-            val currentOffset = try {
-                swipeState.requireOffset()
-            } catch (e: Exception) {
-                0f
-            }
-            when (swipeState.settledValue) {
-                SwipeState.ActionsRevealedStart -> if (currentOffset < 0) resetSwipe()
-                SwipeState.ActionsRevealedEnd -> if (currentOffset > 0) resetSwipe()
-                else -> { /* Normal state */
-                }
-            }
-        }
-
         val offset = swipeState.requireOffset().coerceIn(-maxSwipeDistance, maxSwipeDistance)
         val actionsAlpha = (abs(offset) /
                 if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative)
                 ).coerceIn(0f, 1f)
 
-
-        // ✨ ДОДАНО: Динамічна форма, що змінюється залежно від напрямку свайпу
         val dynamicShape = remember(offset) {
             val cornerRadius = 8.dp
             when {
-                // Свайп вправо: заокруглюємо тільки праві кути, ліві робимо гострими
                 offset > 0 -> RoundedCornerShape(
-                    topStart = 0.dp,
-                    bottomStart = 0.dp,
-                    topEnd = cornerRadius,
-                    bottomEnd = cornerRadius
+                    topStart = 0.dp, bottomStart = 0.dp,
+                    topEnd = cornerRadius, bottomEnd = cornerRadius
                 )
-                // Свайп вліво: заокруглюємо тільки ліві кути, праві робимо гострими
                 offset < 0 -> RoundedCornerShape(
-                    topStart = cornerRadius,
-                    bottomStart = cornerRadius,
-                    topEnd = 0.dp,
-                    bottomEnd = 0.dp
+                    topStart = cornerRadius, bottomStart = cornerRadius,
+                    topEnd = 0.dp, bottomEnd = 0.dp
                 )
-                // Немає свайпу: заокруглюємо всі кути
                 else -> RoundedCornerShape(cornerRadius)
             }
         }
 
-
         Box(modifier = Modifier.fillMaxWidth()) {
-            // ✨ ВИПРАВЛЕНО: Повернено 4 кнопки, але зі зменшеною шириною
             Row(
                 modifier = Modifier
                     .matchParentSize()
                     .alpha(actionsAlpha),
-                //       .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)), // Обрізаємо контейнер
-                horizontalArrangement = Arrangement.Start, // Розміщуємо кнопки щільно
-                verticalAlignment = Alignment.CenterVertically, // Вирівнюємо по центру
-
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                val buttonWidth = 60.dp
                 val buttonSize = 60.dp
-
                 Surface(
                     onClick = { onMoreActionsRequest(); resetSwipe() },
                     modifier = Modifier.size(buttonSize),
                     color = MaterialTheme.colorScheme.secondary,
-                    //shape = RoundedCornerShape(8.dp),
-
-
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            "Більше дій",
-                            tint = MaterialTheme.colorScheme.onSecondary
-                        )
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(Icons.Default.MoreVert, "Більше дій", tint = MaterialTheme.colorScheme.onSecondary)
                     }
                 }
                 Surface(
@@ -245,15 +198,8 @@ fun SwipeableGoalItem(
                     modifier = Modifier.size(buttonSize),
                     color = MaterialTheme.colorScheme.primary
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            Icons.Default.AddLink,
-                            "Створити зв'язок",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(Icons.Default.AddLink, "Створити зв'язок", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
                 Surface(
@@ -261,15 +207,8 @@ fun SwipeableGoalItem(
                     modifier = Modifier.size(buttonSize),
                     color = MaterialTheme.colorScheme.tertiary
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Send,
-                            "Перемістити",
-                            tint = MaterialTheme.colorScheme.onTertiary
-                        )
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(Icons.AutoMirrored.Filled.Send, "Перемістити", tint = MaterialTheme.colorScheme.onTertiary)
                     }
                 }
                 Surface(
@@ -277,130 +216,42 @@ fun SwipeableGoalItem(
                     modifier = Modifier.size(buttonSize),
                     color = MaterialTheme.colorScheme.inversePrimary
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            Icons.Default.ContentCopy,
-                            "Клонувати ціль",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(Icons.Default.ContentCopy, "Клонувати ціль", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
 
-            /*if (offset > 0) {
-
-                Row(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .alpha(actionsAlpha),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    val buttonWidth = 60.dp // Ширина кожної кнопки
-
-                    // 1. More Actions (заглушка)
-                    Surface(
-                        onClick = { onMoreActionsRequest(); resetSwipe() },
-                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
-                        color = MaterialTheme.colorScheme.secondary,
-                        shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(Icons.Default.MoreVert, "Більше дій", tint = MaterialTheme.colorScheme.onSecondary)
-                        }
-                    }
-
-                    // 2. Create Instance
-                    Surface(
-                        onClick = { onCreateInstanceRequest(); resetSwipe() },
-                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
-                        color = MaterialTheme.colorScheme.tertiary,
-                        shape = RectangleShape,
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(Icons.Default.AddLink, "Створити зв'язок", tint = MaterialTheme.colorScheme.onPrimary)
-                        }
-                    }
-
-                    // 3. Move Instance
-                    Surface(
-                        onClick = { onMoveInstanceRequest(); resetSwipe() },
-                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RectangleShape,
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(Icons.AutoMirrored.Filled.Send, "Перемістити", tint = MaterialTheme.colorScheme.onPrimary)
-                        }
-                    }
-
-                    // 4. Copy Goal
-                    Surface(
-                        onClick = { onCopyGoalRequest(); resetSwipe() },
-                        modifier = Modifier.fillMaxHeight().width(buttonWidth),
-                        color = MaterialTheme.colorScheme.inversePrimary,
-                        shape = RectangleShape,
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(Icons.Default.ContentCopy, "Клонувати ціль", tint = MaterialTheme.colorScheme.onPrimary)
-                        }
-                    }
-                }}*/
-
-
-// --- Кнопки дій зліва (offset < 0) ---
             if (offset < 0) {
                 Row(
                     modifier = Modifier
                         .matchParentSize()
                         .alpha(actionsAlpha),
                     horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically, // Вирівнюємо по центру
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val buttonSize = 60.dp
-
                     Surface(
                         onClick = { onDelete(); resetSwipe() },
-                        modifier = Modifier.size(buttonSize), // квадратна кнопка
+                        modifier = Modifier.size(buttonSize),
                         color = MaterialTheme.colorScheme.error,
-                        //shape = RoundedCornerShape(8.dp),
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                "Видалити",
-                                tint = MaterialTheme.colorScheme.onError
-                            )
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(Icons.Default.Delete, "Видалити", tint = MaterialTheme.colorScheme.onError)
                         }
                     }
-
                     Surface(
-                        onClick = { resetSwipe() },
-                        modifier = Modifier.size(buttonSize), // квадратна кнопка
+                        onClick = { resetSwipe() }, // Placeholder for future action
+                        modifier = Modifier.size(buttonSize),
                         color = MaterialTheme.colorScheme.tertiary,
-                        //shape = RoundedCornerShape(8.dp),
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                Icons.Default.DeleteForever,
-                                "Видалити звідусіль",
-                                tint = MaterialTheme.colorScheme.onTertiary
-                            )
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(Icons.Default.DeleteForever, "Видалити звідусіль", tint = MaterialTheme.colorScheme.onTertiary)
                         }
                     }
                 }
             }
 
-
-            // --- Основний контент ---
             Surface(
                 modifier = modifier
                     .fillMaxWidth()
@@ -410,7 +261,7 @@ fun SwipeableGoalItem(
                         orientation = Orientation.Horizontal,
                     ),
                 color = backgroundColor,
-                shape = dynamicShape, //RoundedCornerShape(8.dp),
+                shape = dynamicShape,
             ) {
                 GoalItem(
                     goal = goalWithInstance.goal,
@@ -423,8 +274,10 @@ fun SwipeableGoalItem(
                     onAssociatedListClick = onAssociatedListClick,
                     backgroundColor = Color.Transparent,
                     dragHandleModifier = dragHandleModifier,
-                    // ✨ ДОДАНО: Передаємо параметр до GoalItem
-                    contextMarkerToHide = contextMarkerToHide
+                    //contextMarkerToHide = contextMarkerToHide,
+                    emojiToHide = emojiToHide,
+
+                    contextMarkerToEmojiMap = contextMarkerToEmojiMap
                 )
             }
         }

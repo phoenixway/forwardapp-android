@@ -1,3 +1,5 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/data/repository/SettingsRepository.kt
+
 package com.romankozak.forwardappmobile.data.repository
 
 import android.content.Context
@@ -6,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -28,7 +31,6 @@ class SettingsRepository @Inject constructor(
     private val mediumTagKey = stringPreferencesKey("medium_planning_tag")
     private val longTagKey = stringPreferencesKey("long_planning_tag")
 
-    // ✨ --- ЗМІНЕНО: Ключі для тегів КОНТЕКСТІВ --- ✨
     object ContextKeys {
         val BUY = stringPreferencesKey("context_tag_buy")
         val PM = stringPreferencesKey("context_tag_pm")
@@ -52,10 +54,9 @@ class SettingsRepository @Inject constructor(
         val EMOJI_MIDDLE = stringPreferencesKey("context_emoji_middle")
         val EMOJI_LONG = stringPreferencesKey("context_emoji_long")
 
-
+        val CUSTOM_CONTEXT_NAMES = stringSetPreferencesKey("custom_context_names")
     }
 
-    // ... (код для desktopAddress, obsidianVaultName, planning modes) ...
     val desktopAddressFlow: Flow<String> = context.dataStore.data
         .map { preferences -> preferences[desktopAddressKey] ?: "" }
 
@@ -68,10 +69,6 @@ class SettingsRepository @Inject constructor(
 
     suspend fun saveObsidianVaultName(name: String) {
         context.dataStore.edit { settings -> settings[obsidianVaultNameKey] = name }
-    }
-
-    suspend fun getObsidianVaultName(): String {
-        return obsidianVaultNameFlow.first()
     }
 
     val showPlanningModesFlow: Flow<Boolean> = context.dataStore.data
@@ -102,15 +99,12 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[longTagKey] = tag }
     }
 
-// Знайдіть цю функцію і замініть її повністю
+    // --- Reserved Contexts ---
 
     fun getContextTagFlow(contextKey: Preferences.Key<String>): Flow<String> {
         return context.dataStore.data.map { preferences ->
             val contextName = contextKey.name.removePrefix("context_tag_")
             val savedTag = preferences[contextKey]
-
-            // ✨ ВИПРАВЛЕННЯ: Повертаємо значення за замовчуванням,
-            // якщо збережений тег є null АБО порожнім/пробільним.
             if (savedTag.isNullOrBlank()) {
                 "${contextName}_context_tag"
             } else {
@@ -125,7 +119,7 @@ class SettingsRepository @Inject constructor(
 
     fun getContextEmojiFlow(emojiKey: Preferences.Key<String>): Flow<String> {
         return context.dataStore.data.map { preferences ->
-            preferences[emojiKey] ?: "" // Повертаємо порожній рядок, якщо емодзі не встановлено
+            preferences[emojiKey] ?: ""
         }
     }
 
@@ -133,4 +127,41 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[emojiKey] = emoji }
     }
 
+    // --- Custom Contexts ---
+
+    val customContextNamesFlow: Flow<Set<String>> = context.dataStore.data
+        .map { preferences -> preferences[ContextKeys.CUSTOM_CONTEXT_NAMES] ?: emptySet() }
+
+    // ✨ ВИПРАВЛЕНО: Змінено 'private' на 'public' (за замовчуванням)
+    suspend fun saveCustomContextNames(names: Set<String>) {
+        context.dataStore.edit { settings -> settings[ContextKeys.CUSTOM_CONTEXT_NAMES] = names }
+    }
+
+    private fun customContextTagKey(name: String) = stringPreferencesKey("custom_context_tag_${name.lowercase()}")
+    private fun customContextEmojiKey(name: String) = stringPreferencesKey("custom_context_emoji_${name.lowercase()}")
+
+    fun getCustomContextTagFlow(name: String): Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[customContextTagKey(name)] ?: "" }
+
+    suspend fun saveCustomContextTag(name: String, tag: String) {
+        context.dataStore.edit { settings -> settings[customContextTagKey(name)] = tag }
+    }
+
+    fun getCustomContextEmojiFlow(name: String): Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[customContextEmojiKey(name)] ?: "" }
+
+    suspend fun saveCustomContextEmoji(name: String, emoji: String) {
+        context.dataStore.edit { settings -> settings[customContextEmojiKey(name)] = emoji }
+    }
+
+    suspend fun deleteCustomContext(name: String) {
+        val currentNames = customContextNamesFlow.first().toMutableSet()
+        if (currentNames.remove(name)) {
+            saveCustomContextNames(currentNames)
+        }
+        context.dataStore.edit { settings ->
+            settings.remove(customContextTagKey(name))
+            settings.remove(customContextEmojiKey(name))
+        }
+    }
 }

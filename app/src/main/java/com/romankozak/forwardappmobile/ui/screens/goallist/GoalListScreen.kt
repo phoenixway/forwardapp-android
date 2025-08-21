@@ -1,9 +1,10 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListScreen.kt
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListScreen.kt
 
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goallist
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -77,12 +78,12 @@ fun GoalListScreen(
     var showPlanningModeSheet by remember { mutableStateOf(value = false) }
     var showContextSheet by remember { mutableStateOf(value = false) }
 
-    val contextSettings by viewModel.reservedContextsState.collectAsState()
+    val allContexts by viewModel.allContextsForDialog.collectAsState()
+
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
-    // ✨ ДОДАНО: Отримуємо стан з ViewModel для шторки недавніх
     val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
     val recentLists by viewModel.recentLists.collectAsState()
 
@@ -95,6 +96,38 @@ fun GoalListScreen(
                 viewModel.processRevealRequest(listId)
                 savedStateHandle["list_to_reveal"] = null
             }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEventFlow.collect { event ->
+            when (event) {
+                is GoalListUiEvent.NavigateToSyncScreenWithData -> {
+                    syncDataViewModel.jsonString = event.json
+                    navController.navigate("sync_screen")
+                }
+                is GoalListUiEvent.NavigateToDetails -> {
+                    navController.navigate("goal_detail_screen/${event.listId}")
+                }
+                is GoalListUiEvent.ShowToast -> {
+                    Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
+                }
+                is GoalListUiEvent.NavigateToGlobalSearch -> {
+                    navController.navigate("global_search_screen/${event.query}")
+                }
+                is GoalListUiEvent.ScrollToIndex -> {
+                    coroutineScope.launch {
+                        Log.d("REVEAL_DEBUG", "GoalListScreen: Команда отримана. Скролю до індексу ${event.index}")
+                        listState.animateScrollToItem(event.index)
+                    }
+                }
+                GoalListUiEvent.FocusSearchField -> {
+                    coroutineScope.launch {
+                        delay(100)
+                        focusRequester.requestFocus()
+                    }
+                }
+            }
+        }
     }
 
 
@@ -153,7 +186,7 @@ fun GoalListScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                if (contextSettings.isEmpty()) {
+                if (allContexts.isEmpty()) {
                     Text(
                         text = "Немає налаштованих контекстів.",
                         modifier = Modifier.padding(16.dp),
@@ -161,19 +194,18 @@ fun GoalListScreen(
                     )
                 } else {
                     LazyColumn {
-                        items(contextSettings.entries.toList().sortedBy { it.key }) { (contextName, settings) ->
-                            val (_, emoji) = settings
+                        items(allContexts, key = { it.name }) { context ->
                             ListItem(
-                                headlineContent = { Text(contextName.replaceFirstChar { it.uppercase() }) },
+                                headlineContent = { Text(context.name.replaceFirstChar { it.uppercase() }) },
                                 leadingContent = {
-                                    if (emoji.isNotBlank()) {
-                                        Text(emoji, fontSize = 24.sp)
+                                    if (context.emoji.isNotBlank()) {
+                                        Text(context.emoji, fontSize = 24.sp)
                                     } else {
-                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = contextName)
+                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
                                     }
                                 },
                                 modifier = Modifier.clickable {
-                                    viewModel.onContextSelected(contextName)
+                                    viewModel.onContextSelected(context.name)
                                     showContextSheet = false
                                 },
                             )
@@ -188,53 +220,7 @@ fun GoalListScreen(
     val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.importFromFile(it) }
     }
-    LaunchedEffect(Unit) {
-        viewModel.uiEventFlow.collect { event ->
-            when (event) {
-                is GoalListUiEvent.NavigateToSyncScreenWithData -> {
-                    syncDataViewModel.jsonString = event.json
-                    navController.navigate("sync_screen")
-                }
 
-                is GoalListUiEvent.NavigateToDetails -> navController.navigate("goal_detail_screen/${event.listId}")
-                is GoalListUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
-                is GoalListUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
-
-                is GoalListUiEvent.ScrollToList -> {
-                    coroutineScope.launch {
-                        fun flattenHierarchy(
-                            topLevel: List<GoalList>,
-                            children: Map<String, List<GoalList>>
-                        ): List<GoalList> {
-                            val result = mutableListOf<GoalList>()
-                            fun traverse(lists: List<GoalList>) {
-                                lists.forEach { list ->
-                                    result.add(list)
-                                    if (list.isExpanded) {
-                                        children[list.id]?.sortedBy { it.order }?.let(::traverse)
-                                    }
-                                }
-                            }
-                            traverse(topLevel)
-                            return result
-                        }
-
-                        val displayedLists = flattenHierarchy(hierarchy.topLevelLists, hierarchy.childMap)
-                        val index = displayedLists.indexOfFirst { it.id == event.listId }
-                        if (index != -1) {
-                            listState.animateScrollToItem(index)
-                        }
-                    }
-                }
-                GoalListUiEvent.FocusSearchField -> {
-                    coroutineScope.launch {
-                        delay(100)
-                        focusRequester.requestFocus()
-                    }
-                }
-            }
-        }
-    }
 
     Scaffold(
         modifier = Modifier
@@ -262,7 +248,7 @@ fun GoalListScreen(
                 currentMode = planningMode,
                 onModeSelectorClick = { showPlanningModeSheet = true },
                 onContextsClick = { showContextSheet = true },
-                onRecentsClick = { viewModel.onShowRecentLists() } // ✨ ДОДАНО
+                onRecentsClick = { viewModel.onShowRecentLists() }
             )
         },
     ) { paddingValues ->
@@ -308,7 +294,6 @@ fun GoalListScreen(
         }
     }
 
-    // ✨ ДОДАНО: Відображаємо Bottom Sheet
     RecentListsSheet(
         showSheet = showRecentSheet,
         recentLists = recentLists,
@@ -432,7 +417,6 @@ private fun GoalListBottomNav(
             selected = false,
             onClick = { navController.navigate("activity_tracker_screen") },
             icon = { Icon(Icons.Outlined.Timeline, "Activity Tracker") },
-            // ✨ ЗМІНЕНО: Додано налаштування шрифту
             label = {
                 Text(
                     text = "Track",
@@ -446,7 +430,6 @@ private fun GoalListBottomNav(
             selected = false,
             onClick = onGlobalSearchClick,
             icon = { Icon(Icons.Outlined.Search, "Global Search") },
-            // ✨ ЗМІНЕНО: Додано налаштування шрифту
             label = {
                 Text(
                     text = "Search",
@@ -460,7 +443,6 @@ private fun GoalListBottomNav(
             selected = isSearchActive,
             onClick = { onToggleSearch(true) },
             icon = { Icon(Icons.Outlined.FilterList, "Filter") },
-            // ✨ ЗМІНЕНО: Додано налаштування шрифту
             label = {
                 Text(
                     text = "Filter",
@@ -474,7 +456,6 @@ private fun GoalListBottomNav(
             selected = false,
             onClick = onContextsClick,
             icon = { Icon(Icons.Outlined.Style, "Contexts") },
-            // ✨ ЗМІНЕНО: Додано налаштування шрифту
             label = {
                 Text(
                     text = "Contexts",
@@ -489,7 +470,6 @@ private fun GoalListBottomNav(
             selected = false,
             onClick = onRecentsClick,
             icon = { Icon(Icons.Outlined.History, "Recent Lists") },
-            // ✨ ЗМІНЕНО: Текст "Недавні" на "Recent" та додано налаштування шрифту
             label = {
                 Text(
                     text = "Recent",
@@ -517,7 +497,6 @@ private fun GoalListBottomNav(
                     contentDescription = "Change planning mode"
                 )
             },
-            // ✨ ЗМІНЕНО: Додано налаштування шрифту
             label = {
                 Text(
                     text = currentLabel,
@@ -630,7 +609,7 @@ private fun HandleDialogs(
     val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
 
-    val contextSettings by viewModel.reservedContextsState.collectAsState()
+    val allContexts by viewModel.allContextsForDialog.collectAsState()
 
     when (val state = dialogState) {
         DialogState.Hidden -> {}
@@ -719,9 +698,9 @@ private fun HandleDialogs(
         }
         DialogState.ReservedContextsSettings -> {
             ReservedContextsDialog(
-                initialContexts = contextSettings,
+                initialContexts = allContexts,
                 onDismiss = { viewModel.dismissDialog() },
-                onSave = { newContexts -> viewModel.saveContextSettings(newContexts) },
+                onSave = { updatedContexts -> viewModel.saveAllContexts(updatedContexts) },
             )
         }
         is DialogState.AboutApp -> {

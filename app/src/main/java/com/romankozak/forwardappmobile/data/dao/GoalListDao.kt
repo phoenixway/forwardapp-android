@@ -27,6 +27,9 @@ interface GoalListDao {
     @Update
     suspend fun update(goalList: GoalList)
 
+    @Update
+    suspend fun update(lists: List<GoalList>): Int // <-- ЗМІНІТЬ ТУТ: додайте повернення Int
+
     @Delete
     suspend fun delete(goalList: GoalList)
 
