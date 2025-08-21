@@ -1,10 +1,8 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/SwipeableGoalItem.kt
-
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
@@ -30,8 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.max
@@ -47,14 +45,12 @@ enum class SwipeState {
 fun SwipeableGoalItem(
     modifier: Modifier = Modifier,
     resetTrigger: Int,
-    goalWithInstance: GoalWithInstanceInfo,
+    goal: Goal,
     isDragging: Boolean,
-    associatedLists: List<GoalList>,
-    obsidianVaultName: String,
     onDelete: () -> Unit,
     onToggle: () -> Unit,
     onTagClick: (String) -> Unit,
-    onAssociatedListClick: (String) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
     backgroundColor: Color,
@@ -65,10 +61,9 @@ fun SwipeableGoalItem(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
-    contextMarkerToHide: String? = null,
     emojiToHide: String? = null,
-
-    contextMarkerToEmojiMap: Map<String, String>
+    contextMarkerToEmojiMap: Map<String, String>,
+    obsidianVaultName: String
 ) {
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -179,7 +174,7 @@ fun SwipeableGoalItem(
             Row(
                 modifier = Modifier
                     .matchParentSize()
-                    .alpha(actionsAlpha),
+                    .alpha(if (offset > 0) actionsAlpha else 0f),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -226,7 +221,7 @@ fun SwipeableGoalItem(
                 Row(
                     modifier = Modifier
                         .matchParentSize()
-                        .alpha(actionsAlpha),
+                        .alpha(if (offset < 0) actionsAlpha else 0f),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -241,7 +236,7 @@ fun SwipeableGoalItem(
                         }
                     }
                     Surface(
-                        onClick = { resetSwipe() }, // Placeholder for future action
+                        onClick = { resetSwipe() },
                         modifier = Modifier.size(buttonSize),
                         color = MaterialTheme.colorScheme.tertiary,
                     ) {
@@ -264,19 +259,15 @@ fun SwipeableGoalItem(
                 shape = dynamicShape,
             ) {
                 GoalItem(
-                    goal = goalWithInstance.goal,
-                    associatedLists = associatedLists,
+                    goal = goal,
                     obsidianVaultName = obsidianVaultName,
                     onToggle = onToggle,
                     onItemClick = { if (swipeState.settledValue == SwipeState.Normal) onItemClick() else resetSwipe() },
                     onLongClick = { if (swipeState.settledValue == SwipeState.Normal) onLongClick() },
                     onTagClick = onTagClick,
-                    onAssociatedListClick = onAssociatedListClick,
-                    backgroundColor = Color.Transparent,
+                    onRelatedLinkClick = onRelatedLinkClick,
                     dragHandleModifier = dragHandleModifier,
-                    //contextMarkerToHide = contextMarkerToHide,
                     emojiToHide = emojiToHide,
-
                     contextMarkerToEmojiMap = contextMarkerToEmojiMap
                 )
             }

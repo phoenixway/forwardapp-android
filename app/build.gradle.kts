@@ -29,15 +29,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-/*    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }*/
+    /*    buildTypes {
+            release {
+                isMinifyEnabled = false
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+                )
+            }
+        }*/
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -89,7 +89,6 @@ android {
     }
 }
 
-
 dependencies {
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
@@ -97,22 +96,27 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore.preferences)
 
-    // Compose
+    // Compose BOM - це має бути першим
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
+
+    // Основні Compose бібліотеки
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Compose Foundation та Animation
     implementation(libs.compose.foundation)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.compose.foundation.layout)
+    implementation(libs.compose.animation.core)
     implementation(libs.compose.animation)
 
+    // Lifecycle для Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
@@ -124,24 +128,19 @@ dependencies {
 
     // Hilt
     implementation(libs.hilt.android)
-    //ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
     kapt(libs.hilt.compiler)
 
-
-    // Ktor (Server & Client)
     // Ktor (Server & Client)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     // --- ВИПРАВЛЕНО: Додано Ktor CIO Server Engine, необхідний для WifiSyncServer.kt ---
-    // Рекомендується додати аліас для цієї бібліотеки у ваш файл libs.versions.toml
     implementation("io.ktor:ktor-server-cio-jvm:2.3.12")
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.gson)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
-
 
     // Logging
     implementation(libs.kotlin.logging.jvm)
@@ -158,9 +157,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-//else6er
+
+    // Additional libraries
     implementation(libs.accompanist.flowlayout)
     implementation(libs.reorderable)
-    //implementation(libs.javapoet)
-
 }

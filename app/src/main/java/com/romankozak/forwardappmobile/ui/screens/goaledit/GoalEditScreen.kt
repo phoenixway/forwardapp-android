@@ -1,5 +1,4 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt
-
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt ---
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goaledit
@@ -30,15 +29,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowRow
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
-import com.romankozak.forwardappmobile.ui.components.formatDate
+import com.romankozak.forwardappmobile.ui.utils.formatDate
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -57,15 +58,15 @@ fun GoalEditScreen(
     navController: NavController,
     viewModel: GoalEditViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
-    val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
-    val filteredListHierarchy by viewModel.filteredListHierarchy.collectAsState()
-    val allContexts by viewModel.allContextNames.collectAsState()
+    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsStateWithLifecycle()
+    val listChooserFilterText by viewModel.listChooserFilterText.collectAsStateWithLifecycle()
+    val filteredListHierarchy by viewModel.filteredListHierarchy.collectAsStateWithLifecycle()
+    val allContexts by viewModel.allContextNames.collectAsStateWithLifecycle()
 
-    var showSuggestions by remember { mutableStateOf(value = false) }
+    var showSuggestions by remember { mutableStateOf(false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
 
     fun getCurrentWord(textValue: TextFieldValue): String? {
@@ -80,7 +81,7 @@ fun GoalEditScreen(
 
     LaunchedEffect(uiState.goalText) {
         val currentWord = getCurrentWord(uiState.goalText)
-        if (currentWord != null && currentWord.startsWith("@") && currentWord.length > 1) {
+        if (currentWord != null && currentWord.length > 1) {
             val query = currentWord.substring(1)
             filteredContexts = allContexts.filter { it.startsWith(query, ignoreCase = true) }
             showSuggestions = filteredContexts.isNotEmpty()
@@ -137,11 +138,12 @@ fun GoalEditScreen(
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 item { Spacer(Modifier.height(4.dp)) }
 
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                    Column {
                         OutlinedTextField(
                             value = uiState.goalText,
                             onValueChange = viewModel::onTextChange,
@@ -166,7 +168,8 @@ fun GoalEditScreen(
                                     val textBefore = currentText.substring(0, wordStart)
                                     val textAfter = currentText.substring(cursorPosition)
                                     val newText = "$textBefore@$context $textAfter"
-                                    val newCursorPosition = wordStart + context.length + 2
+                                    val newCursorPosition = textBefore.length + 1 + context.length + 1
+
                                     viewModel.onTextChange(
                                         TextFieldValue(
                                             text = newText,
@@ -188,19 +191,18 @@ fun GoalEditScreen(
                         onExpandClick = { viewModel.openDescriptionEditor() },
                         modifier = Modifier.fillMaxWidth(),
                     )
-
                 }
 
                 item {
-                    AssociatedListsSection(
-                        associatedLists = uiState.associatedLists,
-                        onRemoveList = viewModel::onRemoveListAssociation,
-                        onAddList = viewModel::onShowListChooser,
+                    RelatedLinksSection(
+                        relatedLinks = uiState.relatedLinks,
+                        onRemoveLink = viewModel::onRemoveListAssociation,
+                        onAddLink = viewModel::onShowListChooser,
                     )
                 }
 
                 item {
-                    EvaluationSection(uiState = uiState, viewModel = viewModel)
+                    EvaluationSection(uiState = uiState, onViewModelAction = viewModel)
                 }
 
                 item {
@@ -209,7 +211,7 @@ fun GoalEditScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp, bottom = 16.dp),
+                                .padding(top = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
@@ -233,10 +235,9 @@ fun GoalEditScreen(
         }
     }
 
-
     if (uiState.showListChooser) {
         FilterableListChooser(
-            title = "Додати до списку",
+            title = "Додати посилання на список",
             filterText = listChooserFilterText,
             onFilterTextChanged = viewModel::onListChooserFilterChanged,
             topLevelLists = filteredListHierarchy.topLevelLists,
@@ -244,15 +245,13 @@ fun GoalEditScreen(
             expandedIds = listChooserFinalExpandedIds,
             onToggleExpanded = viewModel::onListChooserToggleExpanded,
             onDismiss = viewModel::onDismissListChooser,
-            onConfirm = { listId ->
-                listId?.let { viewModel.onAddListAssociation(it) }
-            },
+            onConfirm = { listId -> listId?.let { viewModel.onAddListAssociation(it) } },
             currentParentId = null,
-            disabledIds = uiState.associatedLists.map { it.id }.toSet(),
-            // ✨ ВИПРАВЛЕНО: Лямбда тепер відповідає оновленій сигнатурі
-            onAddNewList = { id, parentId, name ->
-                viewModel.addNewList(id, parentId, name)
-            },
+            disabledIds = uiState.relatedLinks
+                .filter { it.type == LinkType.GOAL_LIST }
+                .map { it.target }
+                .toSet(),
+            onAddNewList = viewModel::addNewList,
         )
     }
 
@@ -265,62 +264,58 @@ fun GoalEditScreen(
     }
 }
 
+// --- ДОПОМІЖНІ КОМПОНЕНТИ ---
+
 @Composable
-private fun AssociatedListsSection(
-    associatedLists: List<GoalList>,
-    onRemoveList: (String) -> Unit,
-    onAddList: () -> Unit,
+private fun RelatedLinksSection(
+    relatedLinks: List<RelatedLink>,
+    onRemoveLink: (String) -> Unit,
+    onAddLink: () -> Unit,
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                "Пов'язані списки",
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Text("Пов'язані посилання", style = MaterialTheme.typography.titleMedium)
 
-            if (associatedLists.isNotEmpty()) {
+            if (relatedLinks.isNotEmpty()) {
                 FlowRow(
-// WARNING: 'fun FlowRow(modifier: Modifier = ..., mainAxisSize: SizeMode = ..., mainAxisAlignment: MainAxisAlignment = ..., mainAxisSpacing: Dp = ..., crossAxisAlignment: FlowCrossAxisAlignment = ..., crossAxisSpacing: Dp = ..., lastLineMainAxisAlignment: MainAxisAlignment = ..., content: @Composable() ComposableFunction0<Unit>): Unit' is deprecated. accompanist/FlowRow is deprecated.
-// For more migration information, please visit https://google.github.io/accompanist/flowlayout/.
                     modifier = Modifier.fillMaxWidth(),
                     mainAxisSpacing = 8.dp,
                     crossAxisSpacing = 4.dp,
                 ) {
-                    associatedLists.forEach { list ->
-                        InputChip(
-                            selected = false,
-                            onClick = { /* Do nothing */ },
-                            label = { Text(list.name) },
-                            trailingIcon = {
-                                Icon(
-                                    Icons.Default.Cancel,
-                                    contentDescription = "Видалити зі списку",
-                                    modifier = Modifier
-                                        .size(InputChipDefaults.IconSize)
-                                        .clickable { onRemoveList(list.id) },
-                                )
-                            },
-                        )
+                    relatedLinks.forEach { link ->
+                        if (link.type == LinkType.GOAL_LIST) {
+                            InputChip(
+                                selected = false,
+                                onClick = { /* TODO: Navigate to list on click */ },
+                                label = { Text(link.displayName ?: link.target) },
+                                trailingIcon = {
+                                    Icon(
+                                        Icons.Default.Cancel,
+                                        contentDescription = "Видалити посилання",
+                                        modifier = Modifier
+                                            .size(InputChipDefaults.IconSize)
+                                            .clickable { onRemoveLink(link.target) },
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             } else {
                 Text(
-                    "Ціль ще не пов'язана з жодним списком.",
+                    "Ціль ще не має пов'язаних посилань.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            OutlinedButton(
-                onClick = onAddList,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+            OutlinedButton(onClick = onAddLink, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, null, Modifier.size(ButtonDefaults.IconSize))
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                Text("Додати до списку")
+                Text("Додати посилання на список")
             }
         }
     }
@@ -328,8 +323,8 @@ private fun AssociatedListsSection(
 
 
 @Composable
-private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewModel) {
-    var isExpanded by remember { mutableStateOf(value = false) }
+private fun EvaluationSection(uiState: GoalEditUiState, onViewModelAction: GoalEditViewModel) {
+    var isExpanded by remember { mutableStateOf(false) }
 
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
@@ -341,10 +336,7 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(
-                    "Оцінка",
-                    style = MaterialTheme.typography.titleLarge,
-                )
+                Text("Оцінка", style = MaterialTheme.typography.titleLarge)
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
@@ -355,24 +347,23 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                 Column {
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     Column(
-                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+                        modifier = Modifier.padding(vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         ScoringStatusSelector(
                             selectedStatus = uiState.scoringStatus,
-                            onStatusSelected = viewModel::onScoringStatusChange,
+                            onStatusSelected = onViewModelAction::onScoringStatusChange,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
 
-                        val rawScore = uiState.rawScore
-                        val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
-                        val balanceColor = when {
-                            rawScore > 0.2 -> Color(0xFF2E7D32) // Strong Green
-                            rawScore > -0.2 -> LocalContentColor.current
-                            else -> Color(0xFFC62828) // Strong Red
-                        }
-
                         if (uiState.scoringStatus == ScoringStatus.ASSESSED) {
+                            val rawScore = uiState.rawScore
+                            val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
+                            val balanceColor = when {
+                                rawScore > 0.2 -> Color(0xFF2E7D32) // Strong Green
+                                rawScore > -0.2 -> LocalContentColor.current
+                                else -> Color(0xFFC62828) // Strong Red
+                            }
                             Text(
                                 text = balanceText,
                                 color = balanceColor,
@@ -384,7 +375,7 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
 
                         EvaluationTabs(
                             uiState = uiState,
-                            viewModel = viewModel,
+                            onViewModelAction = onViewModelAction,
                             isEnabled = uiState.isScoringEnabled,
                         )
                     }
@@ -419,23 +410,18 @@ private fun ScoringStatusSelector(
     }
 }
 
-
 @Composable
 private fun EvaluationTabs(
     uiState: GoalEditUiState,
-    viewModel: GoalEditViewModel,
+    onViewModelAction: GoalEditViewModel,
     isEnabled: Boolean,
 ) {
     val tabTitles = listOf("Gain", "Loss", "Weights")
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f),
-    ) {
-        TabRow(
-            selectedTabIndex = pagerState.currentPage,
-        ) {
+    Column(modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f)) {
+        TabRow(selectedTabIndex = pagerState.currentPage) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
                     enabled = isEnabled,
@@ -448,9 +434,7 @@ private fun EvaluationTabs(
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             userScrollEnabled = isEnabled,
         ) { page ->
             Column(
@@ -458,34 +442,34 @@ private fun EvaluationTabs(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (page) {
-                    0 -> { // Користь
+                    0 -> { // Gain
                         ParameterSlider(
                             label = "Value importance",
                             value = uiState.valueImportance,
-                            onValueChange = viewModel::onValueImportanceChange,
+                            onValueChange = onViewModelAction::onValueImportanceChange,
                             scale = Scales.importance,
                             enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Value gain impact",
                             value = uiState.valueImpact,
-                            onValueChange = viewModel::onValueImpactChange,
+                            onValueChange = onViewModelAction::onValueImpactChange,
                             scale = Scales.impact,
                             enabled = isEnabled,
                         )
                     }
-                    1 -> { // Витрати
+                    1 -> { // Loss
                         ParameterSlider(
                             label = "Efforts",
                             value = uiState.effort,
-                            onValueChange = viewModel::onEffortChange,
+                            onValueChange = onViewModelAction::onEffortChange,
                             scale = Scales.effort,
                             enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Costs",
                             value = uiState.cost,
-                            onValueChange = viewModel::onCostChange,
+                            onValueChange = onViewModelAction::onCostChange,
                             scale = Scales.cost,
                             valueLabels = Scales.costLabels,
                             enabled = isEnabled,
@@ -493,30 +477,30 @@ private fun EvaluationTabs(
                         ParameterSlider(
                             label = "Risk",
                             value = uiState.risk,
-                            onValueChange = viewModel::onRiskChange,
+                            onValueChange = onViewModelAction::onRiskChange,
                             scale = Scales.risk,
                             enabled = isEnabled,
                         )
                     }
-                    2 -> { // Ваги
+                    2 -> { // Weights
                         ParameterSlider(
                             label = "Efforts weight",
                             value = uiState.weightEffort,
-                            onValueChange = viewModel::onWeightEffortChange,
+                            onValueChange = onViewModelAction::onWeightEffortChange,
                             scale = Scales.weights,
                             enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Costs weight",
                             value = uiState.weightCost,
-                            onValueChange = viewModel::onWeightCostChange,
+                            onValueChange = onViewModelAction::onWeightCostChange,
                             scale = Scales.weights,
                             enabled = isEnabled,
                         )
                         ParameterSlider(
                             label = "Risk weight",
                             value = uiState.weightRisk,
-                            onValueChange = viewModel::onWeightRiskChange,
+                            onValueChange = onViewModelAction::onWeightRiskChange,
                             scale = Scales.weights,
                             enabled = isEnabled,
                         )
@@ -537,7 +521,6 @@ private fun ParameterSlider(
     valueLabels: List<String>? = null,
 ) {
     val currentIndex = scale.indexOf(value).coerceAtLeast(0)
-
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),

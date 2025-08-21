@@ -79,20 +79,36 @@ fun InputModeDialog(onDismiss: () -> Unit, onSelect: (InputMode) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column {
-                Text("Add Goal", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(InputMode.AddGoal) }
-                    .padding(16.dp))
+                // Option to Add Goal
+                Text(
+                    text = "Add Goal",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(InputMode.AddGoal) }
+                        .padding(16.dp)
+                )
                 HorizontalDivider()
-                Text("Search in List", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(InputMode.SearchInList) }
-                    .padding(16.dp))
+
+                // ✨ ADDED: Option to Add Note, reflecting the new InputMode enum
+                Text(
+                    text = "Add Note",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(InputMode.AddNote) }
+                        .padding(16.dp)
+                )
                 HorizontalDivider()
-                Text("Search Globally", modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(InputMode.SearchGlobal) }
-                    .padding(16.dp))
+
+                // Option to Search in the current list
+                Text(
+                    text = "Search in List",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(InputMode.SearchInList) }
+                        .padding(16.dp)
+                )
+
+                // ✨ REMOVED: The "Search Globally" option which caused the error
             }
         }
     }

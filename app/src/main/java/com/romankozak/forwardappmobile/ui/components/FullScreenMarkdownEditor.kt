@@ -13,15 +13,16 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 @OptIn(ExperimentalMaterial3Api::class)
+// Файл: FullScreenMarkdownEditor.kt (виправлена версія)
+
 @Composable
 fun FullScreenMarkdownEditor(
-    // ✨ ЗМІНА 1: Змінюємо тип вхідного параметра з String на TextFieldValue
     initialValue: TextFieldValue,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit
 ) {
-    // ✨ ЗМІНА 2: Ініціалізуємо внутрішній стан текстом з initialValue.text
-    var text by remember { mutableStateOf(initialValue.text) }
+    // ✨ ЗМІНА 1: Внутрішній стан тепер має тип TextFieldValue
+    var textFieldValue by remember { mutableStateOf(initialValue) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -37,19 +38,19 @@ fun FullScreenMarkdownEditor(
                         }
                     },
                     actions = {
-                        // Кнопка "Зберегти" передає звичайний String, як і очікує ViewModel
-                        IconButton(onClick = { onSave(text) }) {
+                        // ✨ ЗМІНА 2: При збереженні беремо текст з textFieldValue
+                        IconButton(onClick = { onSave(textFieldValue.text) }) {
                             Icon(Icons.Default.Done, contentDescription = "Зберегти")
                         }
                     }
                 )
             }
         ) { paddingValues ->
-            // Використовуємо наш універсальний компонент MarkdownEditorViewer
+            // ✨ ЗМІНА 3: Передаємо повний стан і функцію оновлення до дочірнього компонента
             MarkdownEditorViewer(
-                initialText = text,
-                onTextChange = { newText ->
-                    text = newText
+                value = textFieldValue,
+                onValueChange = { newTextFieldValue ->
+                    textFieldValue = newTextFieldValue
                 },
                 modifier = Modifier
                     .fillMaxSize()

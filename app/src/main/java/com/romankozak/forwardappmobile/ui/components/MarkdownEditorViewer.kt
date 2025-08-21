@@ -9,17 +9,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun MarkdownEditorViewer(
-    initialText: String,
-    onTextChange: (String) -> Unit,
+    // ✨ ЗМІНА 1: Оновлюємо сигнатуру для роботи з TextFieldValue
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var text by remember(initialText) { mutableStateOf(initialText) }
+    // ✨ ВИДАЛЕНО: Внутрішній стан `var text by remember...` більше не потрібен
     var isEditMode by remember { mutableStateOf(true) }
 
     Column(modifier = modifier) {
@@ -54,26 +56,24 @@ fun MarkdownEditorViewer(
                 .weight(1f)
         ) { isEditing ->
             if (isEditing) {
-                // НАТИВНИЙ РЕДАКТОР ANDROID
                 OutlinedTextField(
-                    value = text,
-                    onValueChange = { newText ->
-                        text = newText
-                        onTextChange(newText)
-                    },
+                    // ✨ ЗМІНА 2: Використовуємо передані value та onValueChange
+                    value = value,
+                    onValueChange = onValueChange,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                // WEBVIEW ДЛЯ РЕНДЕРИНГУ
                 AndroidView(
                     factory = { context ->
                         WebViewMarkdownViewer(context)
                     },
                     update = { viewer ->
-                        viewer.renderMarkdown(text)
+                        // ✨ ЗМІНА 3: Використовуємо текст з TextFieldValue
+                        viewer.renderMarkdown(value.text)
                     },
                     modifier = Modifier.fillMaxSize()
                 )
+
             }
         }
     }

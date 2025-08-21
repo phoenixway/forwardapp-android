@@ -1,5 +1,4 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/activitytracker/ActivityTrackerScreen.kt
-
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/activitytracker/ActivityTrackerScreen.kt ---
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.activitytracker
@@ -18,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +35,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import kotlinx.coroutines.delay
@@ -43,17 +44,24 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
+// ✨ ДОДАНО: Властивості-розширення, що виправляє помилки 'Unresolved reference'
+private val ActivityRecord.isTimeless: Boolean
+    get() = this.startTime == null
+
+private val ActivityRecord.isOngoing: Boolean
+    get() = this.startTime != null && this.endTime == null
+
 @Composable
 fun ActivityTrackerScreen(
     navController: NavController,
     viewModel: ActivityTrackerViewModel = hiltViewModel()
 ) {
-    val log by viewModel.activityLog.collectAsState()
-    val inputText by viewModel.inputText.collectAsState()
-    val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsState()
-    val editingRecord by viewModel.editingRecord.collectAsState()
-    val recordToDelete by viewModel.recordToDelete.collectAsState()
-    val isEditingLastTimedRecord by viewModel.isEditingLastTimedRecord.collectAsState()
+    val log by viewModel.activityLog.collectAsStateWithLifecycle()
+    val inputText by viewModel.inputText.collectAsStateWithLifecycle()
+    val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
+    val editingRecord by viewModel.editingRecord.collectAsStateWithLifecycle()
+    val recordToDelete by viewModel.recordToDelete.collectAsStateWithLifecycle()
+    val isEditingLastTimedRecord by viewModel.isEditingLastTimedRecord.collectAsStateWithLifecycle()
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -81,8 +89,8 @@ fun ActivityTrackerScreen(
                 ActivityInputBar(
                     text = inputText,
                     isActivityOngoing = lastOngoingActivity != null,
-                    onTextChange = { viewModel.onInputTextChanged(it) },
-                    onToggleStartStop = { viewModel.onToggleStartStop() },
+                    onTextChange = viewModel::onInputTextChanged,
+                    onToggleStartStop = viewModel::onToggleStartStop,
                     onTimelessClick = viewModel::onTimelessRecordClick
                 )
             }
@@ -155,12 +163,12 @@ private fun ActivityLog(
     onRestart: (ActivityRecord) -> Unit,
     onDelete: (ActivityRecord) -> Unit
 ) {
-    val groupedByDate = log.groupBy { toDateHeader(it.createdAt) }
+    val groupedByDate = remember(log) { log.groupBy { toDateHeader(it.createdAt) } }
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(log.size) {
         if (log.isNotEmpty()) {
-            lazyListState.animateScrollToItem(log.lastIndex)
+            lazyListState.animateScrollToItem(lazyListState.layoutInfo.totalItemsCount.coerceAtLeast(0))
         }
     }
 
@@ -186,7 +194,7 @@ private fun ActivityLog(
                         )
                     }
                 }
-                items(records, key = { "${it.id}-${it.endTime}" }) { record ->
+                items(records, key = { it.id }) { record ->
                     LogEntryItem(
                         record = record,
                         onEdit = onEdit,
@@ -218,7 +226,7 @@ private fun LogEntryItem(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Filled.Notes, "Нотатка", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+                Icon(Icons.AutoMirrored.Filled.Notes, "Нотатка", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
                 Text(record.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), fontStyle = FontStyle.Italic)
                 Spacer(Modifier.width(8.dp))
@@ -231,7 +239,7 @@ private fun LogEntryItem(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.Top
         ) {
-            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
             val timeText = when {
                 record.isOngoing -> "${timeFormat.format(Date(record.startTime!!))} - ..."
                 else -> "${timeFormat.format(Date(record.startTime!!))} - ${timeFormat.format(Date(record.endTime!!))}"
@@ -250,8 +258,8 @@ private fun LogEntryItem(
                 text = record.text,
                 textStyle = MaterialTheme.typography.bodyLarge,
                 badge = {
-                    if (record.startTime != null && record.endTime != null) {
-                        val duration = record.endTime - record.startTime
+                    if (!record.isOngoing && record.endTime != null) {
+                        val duration = record.endTime - record.startTime!!
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
@@ -277,7 +285,6 @@ private fun LogEntryItem(
     }
 }
 
-// ✨ ВИПРАВЛЕНО: Повністю переписаний компонент для усунення падіння та мерехтіння
 @Composable
 private fun TextWithBadgeLayout(
     modifier: Modifier = Modifier,
@@ -286,95 +293,73 @@ private fun TextWithBadgeLayout(
     badge: @Composable () -> Unit
 ) {
     val textMeasurer = rememberTextMeasurer()
-
     SubcomposeLayout(modifier = modifier) { constraints ->
-        // 1. Спочатку вимірюємо бейдж, щоб знати його розміри
-        /*val badgePlaceable = subcompose("badge", badge).firstOrNull()?.measure(constraints)
-        val badgeWidth = badgePlaceable?.width ?: 0
-        val badgeHeight = badgePlaceable?.height ?: 0
-        val horizontalGap = if (badgeWidth > 0) 8.dp.roundToPx() else 0*/
-
-        val badgePlaceable = subcompose("badge", badge).firstOrNull()?.measure(
-            Constraints(
-                minWidth = 0,
-                minHeight = 0,
-                maxWidth = Constraints.Infinity,
-                maxHeight = constraints.maxHeight
-            )
-        )
+        val badgePlaceable = subcompose("badge", badge).firstOrNull()?.measure(Constraints())
         val badgeWidth = badgePlaceable?.width ?: 0
         val badgeHeight = badgePlaceable?.height ?: 0
         val horizontalGap = if (badgeWidth > 0) 8.dp.roundToPx() else 0
 
-
-        // 2. ✨ ВИПРАВЛЕНО: Гарантуємо, що ширина для тексту не буде від'ємною
-        val availableWidthForText = (constraints.maxWidth - badgeWidth - horizontalGap).coerceAtLeast(0)
-
-        // 3. Використовуємо TextMeasurer, щоб дізнатися, чи переноситься текст
-        /*val textLayoutResult = textMeasurer.measure(
-            text = AnnotatedString(text),
-            style = textStyle,
-            constraints = constraints.copy(maxWidth = availableWidthForText)
-        )*/
-
-        val safeTextConstraints = Constraints(
-            minWidth = 0,
-            maxWidth = availableWidthForText.coerceAtLeast(0),
-            minHeight = 0,
-            maxHeight = constraints.maxHeight
-        )
-
         val textLayoutResult = textMeasurer.measure(
             text = AnnotatedString(text),
             style = textStyle,
-            constraints = safeTextConstraints
+            constraints = constraints
         )
+        val textPlaceable = subcompose("text_multi_or_single") {
+            Text(
+                text,
+                style = textStyle,
+                maxLines = if (textLayoutResult.lineCount > 1) Int.MAX_VALUE else 1,
+                overflow = if (textLayoutResult.lineCount > 1) androidx.compose.ui.text.style.TextOverflow.Clip else androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+        }.first().measure(constraints)
 
+        val isSingleLine = textLayoutResult.lineCount <= 1
 
-        val isMultiLine = textLayoutResult.lineCount > 1
+        if (isSingleLine) {
+            val textPlaceableForSingleLine = subcompose("text_single_line") {
+                Text(
+                    text,
+                    style = textStyle,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }.first().measure(
+                Constraints(
+                    maxWidth = (constraints.maxWidth - horizontalGap - badgeWidth).coerceAtLeast(0)
+                )
+            )
 
-        // 4. Тепер, коли ми маємо всю інформацію, вимірюємо фінальний текст і вибираємо верстку
-        if (isMultiLine) {
-            // Вертикальна верстка
-            val textPlaceable = subcompose("text_multi") { Text(text, style = textStyle) }.first().measure(constraints)
+            val totalHeight = max(textPlaceableForSingleLine.height, badgeHeight)
+            layout(constraints.maxWidth, totalHeight) {
+                textPlaceableForSingleLine.placeRelative(
+                    0,
+                    Alignment.CenterVertically.align(textPlaceableForSingleLine.height, totalHeight)
+                )
+                badgePlaceable?.placeRelative(
+                    textPlaceableForSingleLine.width + horizontalGap,
+                    Alignment.CenterVertically.align(badgeHeight, totalHeight)
+                )
+            }
+        } else {
             val verticalGap = if (badgeHeight > 0) 6.dp.roundToPx() else 0
             val totalHeight = textPlaceable.height + verticalGap + badgeHeight
-
             layout(constraints.maxWidth, totalHeight) {
                 textPlaceable.placeRelative(0, 0)
                 badgePlaceable?.placeRelative(0, textPlaceable.height + verticalGap)
-            }
-        } else {
-            // Горизонтальна верстка
-/*            val textPlaceable = subcompose("text_single") { Text(text, style = textStyle) }.first()
-                .measure(constraints.copy(maxWidth = availableWidthForText))*/
-
-            val textPlaceable = subcompose("text_single") {
-                Text(text, style = textStyle)
-            }.first().measure(safeTextConstraints)
-
-
-            val totalHeight = max(textPlaceable.height, badgeHeight)
-            layout(constraints.maxWidth, totalHeight) {
-                textPlaceable.placeRelative(0, (totalHeight - textPlaceable.height) / 2)
-                badgePlaceable?.placeRelative(textPlaceable.width + horizontalGap, (totalHeight - badgeHeight) / 2)
             }
         }
     }
 }
 
-
 @Composable
-private fun InProgressIndicator(
-    ongoingActivity: ActivityRecord?
-) {
+private fun InProgressIndicator(ongoingActivity: ActivityRecord?) {
     AnimatedVisibility(
         visible = ongoingActivity != null,
         enter = fadeIn() + slideInVertically(),
         exit = fadeOut() + slideOutVertically()
     ) {
         if (ongoingActivity != null) {
-            var elapsedTime by remember { mutableStateOf(System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)) }
+            var elapsedTime by remember { mutableLongStateOf(System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)) }
 
             LaunchedEffect(key1 = ongoingActivity.id) {
                 while (true) {
@@ -382,15 +367,7 @@ private fun InProgressIndicator(
                     delay(1000L)
                 }
             }
-
-            val hours = TimeUnit.MILLISECONDS.toHours(elapsedTime)
-            val minutes = TimeUnit.MILLISECONDS.toMinutes(elapsedTime) % 60
-            val seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60
-            val timeString = if (hours > 0) {
-                String.format("%02d:%02d:%02d", hours, minutes, seconds)
-            } else {
-                String.format("%02d:%02d", minutes, seconds)
-            }
+            val timeString = formatElapsedTime(elapsedTime)
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -415,6 +392,17 @@ private fun InProgressIndicator(
     }
 }
 
+@Composable
+private fun formatElapsedTime(elapsedTime: Long): String {
+    val hours = TimeUnit.MILLISECONDS.toHours(elapsedTime)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(elapsedTime) % 60
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60
+    return if (hours > 0) {
+        String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    }
+}
 
 @Composable
 private fun ActivityInputBar(
@@ -511,7 +499,7 @@ private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
                 }
                 append("- $timeText ${record.text}\n".trim())
             }
-            append("\n\n")
+            append("\n")
         }
     }
 }
@@ -522,7 +510,6 @@ private fun copyToClipboard(context: Context, text: String) {
     clipboard.setPrimaryClip(clip)
     Toast.makeText(context, "Лог скопійовано!", Toast.LENGTH_SHORT).show()
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -619,7 +606,6 @@ private fun EditRecordDialog(
         )
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

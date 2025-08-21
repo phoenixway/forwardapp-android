@@ -5,10 +5,14 @@
     <string name="send">Send</string>
 
     <string name="mode_add_goal">Add goal</string>
+    <string name="mode_add_note">Add note</string>
+
     <string name="mode_search_in_list">Search in list</string>
     <string name="mode_search_global">Global search</string>
 
     <string name="hint_add_goal">Add your goal..</string>
     <string name="hint_search_in_list">Find in this list…</string>
     <string name="hint_search_global">Search through all goals…</string>
+    <string name="hint_add_note">Create note</string>
+
 </resources>
