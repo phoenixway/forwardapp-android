@@ -1,5 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt
-
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt ---
 package com.romankozak.forwardappmobile.data.database
 
 import android.content.Context
@@ -8,20 +7,20 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.GoalListDao
-import com.romankozak.forwardappmobile.data.dao.RecentListDao
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.data.database.models.Converters
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.GoalInstance
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
+import com.romankozak.forwardappmobile.data.dao.* // Імпортуємо всі DAO
+import com.romankozak.forwardappmobile.data.database.models.* // Імпортуємо всі моделі
 
 @Database(
-    entities = [Goal::class, GoalList::class, GoalInstance::class, ActivityRecord::class, RecentListEntry::class],
-    version = 14, // ✨ 1. ЗБІЛЬШЕНО ВЕРСІЮ ДО 14
+    entities = [
+        Goal::class,
+        GoalList::class,
+        Note::class, // ✨ Додано
+        ListItem::class, // ✨ Додано
+        ActivityRecord::class,
+        RecentListEntry::class
+    ],
+    // ❌ GoalInstance::class ВИДАЛЕНО
+    version = 15, // ✨ 1. ЗБІЛЬШЕНО ВЕРСІЮ ДО 15
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -33,8 +32,10 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao
+    abstract fun noteDao(): NoteDao // ✨ Додано
+    abstract fun listItemDao(): ListItemDao // ✨ Додано
     abstract fun activityRecordDao(): ActivityRecordDao
-    abstract fun recentListDao(): RecentListDao // Тепер цей DAO розпізнається
+    abstract fun recentListDao(): RecentListDao
 
     companion object {
         @Volatile
@@ -47,13 +48,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "forward_app_database"
                 )
-                    // ✨ 2. ДОДАНО НОВУ МІГРАЦІЮ 13 -> 14
                     .addMigrations(
                         MIGRATION_8_9,
                         MIGRATION_10_11,
                         MIGRATION_11_12,
                         MIGRATION_12_13,
-                        MIGRATION_13_14 // Додано міграцію для нової таблиці
+                        MIGRATION_13_14,
+                        MIGRATION_14_15 // ✨ 2. МИ ДОДАМО ЦЮ МІГРАЦІЮ НА НАСТУПНОМУ КРОЦІ
                     )
                     .build()
                 INSTANCE = instance

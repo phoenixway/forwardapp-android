@@ -1,13 +1,9 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/data/logic/ContextHelper.kt
-
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/logic/ContextHandler.kt ---
 package com.romankozak.forwardappmobile.data.logic
 
-import android.util.Log
-import androidx.datastore.preferences.core.Preferences
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -36,38 +32,23 @@ class ContextHandler @Inject constructor(
     private val _contextMarkerToEmojiMap = MutableStateFlow<Map<String, String>>(emptyMap())
     val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = _contextMarkerToEmojiMap.asStateFlow()
 
-    private val contextMarkerMap = mutableMapOf(
-        "BUY" to "@buy", "PM" to "@pm", "PAPER" to "@paper", "MENTAL" to "@mental",
-        "PROVIDENCE" to "@providence", "MANUAL" to "@manual", "RESEARCH" to "@research",
-        "DEVICE" to "@device", "MIDDLE" to "@middle", "LONG" to "@long"
-    )
+    private val contextMarkerMap = mutableMapOf<String, String>()
 
     fun getContextMarker(contextName: String): String? {
-        val key = contextMarkerMap.keys.find { it.equals(contextName, ignoreCase = true) }
-        return key?.let { contextMarkerMap[it] }
+        return contextMarkerMap[contextName.uppercase()]
     }
 
     fun getContextTag(contextName: String): String? {
         return contextTagMap[contextName.lowercase()]
     }
 
-    // ✨ ВИПРАВЛЕНО: Метод тепер може викликатися повторно для оновлення налаштувань
     suspend fun initialize() {
-        // Просто викликаємо завантаження налаштувань.
-        // Більше ніяких очищень чи retainAll тут не потрібно.
         loadContextSettings()
     }
 
-
     private suspend fun loadContextSettings() {
-        // Створюємо тимчасові карти, щоб уникнути проблем з багатопоточністю
-        // та гарантувати, що дані будуть консистентними.
         val localContextTagMap = mutableMapOf<String, String>()
-        val localContextMarkerMap = mutableMapOf(
-            "BUY" to "@buy", "PM" to "@pm", "PAPER" to "@paper", "MENTAL" to "@mental",
-            "PROVIDENCE" to "@providence", "MANUAL" to "@manual", "RESEARCH" to "@research",
-            "DEVICE" to "@device", "MIDDLE" to "@middle", "LONG" to "@long"
-        )
+        val localContextMarkerMap = mutableMapOf<String, String>()
         val localMarkerToEmojiMap = mutableMapOf<String, String>()
 
         val reservedContextsInfo = listOf(
@@ -84,35 +65,27 @@ class ContextHandler @Inject constructor(
         )
 
         reservedContextsInfo.forEach { (name, tagKey, emojiKey) ->
-            try {
-                val tag = settingsRepository.getContextTagFlow(tagKey).first()
-                val emoji = settingsRepository.getContextEmojiFlow(emojiKey).first()
-                localContextTagMap[name.lowercase()] = tag
-                localContextMarkerMap[name.uppercase()]?.let { marker ->
-                    if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
-                }
-            } catch (e: Exception) {
-                Log.e("ContextDebug", "Error loading reserved context '$name'", e)
-            }
+            val tag = settingsRepository.getContextTagFlow(tagKey).first()
+            val emoji = settingsRepository.getContextEmojiFlow(emojiKey).first()
+            val marker = "@${name.lowercase()}"
+
+            localContextTagMap[name.lowercase()] = tag
+            localContextMarkerMap[name.uppercase()] = marker
+            if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
         }
 
         val customNames = settingsRepository.customContextNamesFlow.first()
         customNames.forEach { name ->
-            try {
-                val tag = settingsRepository.getCustomContextTagFlow(name).first()
-                val emoji = settingsRepository.getCustomContextEmojiFlow(name).first()
-                if (tag.isNotBlank()) {
-                    val marker = "@${name.lowercase()}"
-                    localContextTagMap[name.lowercase()] = tag
-                    localContextMarkerMap[name.uppercase()] = marker
-                    if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
-                }
-            } catch (e: Exception) {
-                Log.e("ContextDebug", "Error loading custom context '$name'", e)
+            val tag = settingsRepository.getCustomContextTagFlow(name).first()
+            val emoji = settingsRepository.getCustomContextEmojiFlow(name).first()
+            if (tag.isNotBlank()) {
+                val marker = "@${name.lowercase()}"
+                localContextTagMap[name.lowercase()] = tag
+                localContextMarkerMap[name.uppercase()] = marker
+                if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
             }
         }
 
-        // Тепер, коли всі дані зібрані, атомарно оновлюємо основні змінні класу
         contextTagMap.clear()
         contextTagMap.putAll(localContextTagMap)
 
@@ -126,48 +99,64 @@ class ContextHandler @Inject constructor(
 
     private fun parseContextsFromText(text: String): Set<String> {
         val regex = "@\\{?([\\w-]+)\\}?".toRegex()
-        return regex.findAll(text).map { it.groupValues[1] }.toSet()
+        return regex.findAll(text).map { it.groupValues[1].lowercase() }.toSet()
     }
 
-    private suspend fun ensureInstancesExist(goal: Goal, contexts: Set<String>) {
-        contexts.forEach { contextName ->
-            val tag = contextTagMap[contextName.lowercase()]
-            if (tag != null) {
-                val targetListIds = goalRepository.findListIdsByTag(tag)
-                targetListIds.forEach { listId ->
-                    if (!goalRepository.doesInstanceExist(goal.id, listId)) {
-                        goalRepository.createGoalInstances(listOf(goal.id), listId)
+    // ✨ ВИПРАВЛЕНО: Виклики suspend функцій тепер відбуваються паралельно у coroutine scope
+    private suspend fun ensureLinksExist(goal: Goal, contexts: Set<String>) = coroutineScope {
+        contexts.map { contextName ->
+            async {
+                val tag = contextTagMap[contextName.lowercase()]
+                if (tag != null) {
+                    val targetListIds = goalRepository.findListIdsByTag(tag)
+                    targetListIds.forEach { listId ->
+                        if (!goalRepository.doesLinkExist(goal.id, listId)) {
+                            goalRepository.createGoalLinks(listOf(goal.id), listId)
+                        }
+                    }
+                }
+            }
+        }.awaitAll() // Чекаємо завершення всіх паралельних операцій
+    }
+
+    /**
+     * Обробляє контексти при створенні нової цілі.
+     */
+    suspend fun handleContextsOnCreate(goal: Goal) {
+        val contexts = parseContextsFromText(goal.text)
+        if (contexts.isNotEmpty()) {
+            ensureLinksExist(goal, contexts)
+        }
+    }
+
+    /**
+     * Синхронізує контексти при оновленні тексту існуючої цілі.
+     */
+    suspend fun syncContextsOnUpdate(oldGoal: Goal, newGoal: Goal) = coroutineScope {
+        val oldContexts = parseContextsFromText(oldGoal.text)
+        val newContexts = parseContextsFromText(newGoal.text)
+
+        if (oldContexts == newContexts) return@coroutineScope
+
+        // ✨ ВИПРАВЛЕНО: Операції видалення також виконуються паралельно
+        val contextsToRemove = oldContexts - newContexts
+        val removalJobs = contextsToRemove.map { contextName ->
+            async {
+                val tag = contextTagMap[contextName.lowercase()]
+                if (tag != null) {
+                    val targetListIds = goalRepository.findListIdsByTag(tag)
+                    targetListIds.forEach { listId ->
+                        goalRepository.deleteLinkByEntityIdAndListId(entityId = oldGoal.id, listId = listId)
                     }
                 }
             }
         }
-    }
 
-    suspend fun handleContextsOnCreate(goal: Goal) {
-        initialize() // Ensure settings are loaded
-        val contexts = parseContextsFromText(goal.text)
-        if (contexts.isNotEmpty()) {
-            ensureInstancesExist(goal, contexts)
+        val contextsToAdd = newContexts - oldContexts
+        if (contextsToAdd.isNotEmpty()) {
+            ensureLinksExist(newGoal, contextsToAdd)
         }
-    }
 
-    suspend fun syncContextsOnUpdate(oldGoal: Goal, newGoal: Goal) {
-        initialize() // Ensure settings are loaded
-        val oldContexts = parseContextsFromText(oldGoal.text)
-        val newContexts = parseContextsFromText(newGoal.text)
-
-        val contextsToRemove = oldContexts - newContexts
-        contextsToRemove.forEach { contextName ->
-            val tag = contextTagMap[contextName.lowercase()]
-            if (tag != null) {
-                val targetListIds = goalRepository.findListIdsByTag(tag)
-                targetListIds.forEach { listId ->
-                    goalRepository.deleteGoalInstanceByGoalIdAndListId(goalId = oldGoal.id, listId = listId)
-                }
-            }
-        }
-        if (newContexts.isNotEmpty()) {
-            ensureInstancesExist(newGoal, newContexts)
-        }
+        removalJobs.awaitAll() // Чекаємо завершення всіх операцій видалення
     }
 }

@@ -1,19 +1,10 @@
-// File: AppModule.kt
-
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/AppModule.kt ---
 package com.romankozak.forwardappmobile
 
 import android.content.Context
 import androidx.room.Room
-import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.GoalListDao
-import com.romankozak.forwardappmobile.data.dao.RecentListDao
-import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.database.MIGRATION_10_11
-import com.romankozak.forwardappmobile.data.database.MIGRATION_11_12
-import com.romankozak.forwardappmobile.data.database.MIGRATION_12_13
-import com.romankozak.forwardappmobile.data.database.MIGRATION_13_14
-import com.romankozak.forwardappmobile.data.database.MIGRATION_8_9
+import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,13 +24,13 @@ object AppModule {
             AppDatabase::class.java,
             "forward_app_database"
         )
-            // Оновлено: Підключаємо всі необхідні міграції
             .addMigrations(
                 MIGRATION_8_9,
                 MIGRATION_10_11,
                 MIGRATION_11_12,
                 MIGRATION_12_13,
-                MIGRATION_13_14
+                MIGRATION_13_14,
+                MIGRATION_14_15 // ✨ ДОДАНО: Міграція на версію 15
             )
             .build()
     }
@@ -54,12 +45,23 @@ object AppModule {
         return database.goalListDao()
     }
 
+    // ✨ ДОДАНО: Провайдер для NoteDao
+    @Provides
+    fun provideNoteDao(database: AppDatabase): NoteDao {
+        return database.noteDao()
+    }
+
+    // ✨ ДОДАНО: Провайдер для ListItemDao
+    @Provides
+    fun provideListItemDao(database: AppDatabase): ListItemDao {
+        return database.listItemDao()
+    }
+
     @Provides
     fun provideActivityRecordDao(database: AppDatabase): ActivityRecordDao {
         return database.activityRecordDao()
     }
 
-    // ✨ ДОДАНО: Провайдер для нового RecentListDao, що виправляє помилку збірки
     @Provides
     fun provideRecentListDao(database: AppDatabase): RecentListDao {
         return database.recentListDao()

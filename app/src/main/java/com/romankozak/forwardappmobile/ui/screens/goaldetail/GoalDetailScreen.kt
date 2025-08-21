@@ -1,19 +1,18 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/GoalDetailScreen.kt
-
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -21,123 +20,56 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
+import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.components.GoalInputBar
 import com.romankozak.forwardappmobile.ui.components.MultiSelectTopAppBar
-import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
-import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
-import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import java.lang.Integer.max
-import java.lang.Integer.min
 
 @Composable
 fun GoalDetailScreen(
     navController: NavController,
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
-    val listId = remember {
-        navController.currentBackStackEntry?.arguments?.getString("listId") ?: ""
-    }
-
-    val uiState by viewModel.uiState.collectAsState()
-    val goals by viewModel.filteredGoals.collectAsState()
-    val goalActionState by viewModel.goalActionDialogState.collectAsState()
-    val list by viewModel.goalList.collectAsState()
-    val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsState()
-    val allContexts by viewModel.allContextNames.collectAsState()
-    val associatedListsMap by viewModel.associatedListsMap.collectAsState()
-    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
-    val emojiToHide by viewModel.currentListContextEmojiToHide.collectAsState()
-    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsState()
-    val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsState()
-    val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
-    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
-    val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
-    val recentLists by viewModel.recentLists.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+    val list by viewModel.goalList.collectAsStateWithLifecycle()
+    val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
+    val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
+    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-
-    var showSuggestions by remember { mutableStateOf(value = false) }
-    var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
-
     val listState = rememberLazyListState()
-    val haptic = LocalHapticFeedback.current
-
-    val isInputBarVisible by remember {
-        derivedStateOf {
-            listState.firstVisibleItemIndex == 0 ||
-                    listState.firstVisibleItemScrollOffset < listState.layoutInfo.visibleItemsInfo.lastOrNull()?.offset ?: 0
-        }
-    }
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
     }
 
-    val reorderableLazyListState = rememberReorderableLazyListState(
-        lazyListState = listState,
-        scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
-    ) { from, to ->
-        viewModel.moveGoal(from.index, to.index, afterApiUpdate = false)
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
-        val scrollThreshold = 2
-        coroutineScope.launch {
-            val firstVisible = listState.firstVisibleItemIndex
-            val lastVisible = firstVisible + listState.layoutInfo.visibleItemsInfo.size - 1
-
-            if (to.index < (firstVisible + scrollThreshold)) {
-                listState.animateScrollToItem(max(0, to.index - scrollThreshold))
-            } else if (to.index > (lastVisible - scrollThreshold)) {
-                listState.animateScrollToItem(
-                    min(
-                        listState.layoutInfo.totalItemsCount - 1,
-                        to.index + scrollThreshold,
-                    ),
-                )
-            }
-        }
-    }
-
-    fun getCurrentWord(textValue: TextFieldValue): String? {
-        val cursorPosition = textValue.selection.start
-        if (cursorPosition == 0) return null
-        val textUpToCursor = textValue.text.substring(0, cursorPosition)
-        val lastSpaceIndex = textUpToCursor.lastIndexOf(' ')
-        val startIndex = if (lastSpaceIndex == -1) 0 else lastSpaceIndex + 1
-        val currentWord = textUpToCursor.substring(startIndex)
-        return currentWord.takeIf { it.startsWith("@") }
-    }
-
-    LaunchedEffect(uiState.inputValue) {
-        val currentWord = getCurrentWord(uiState.inputValue)
-        if ((currentWord != null) && (currentWord.length > 1)) {
-            val query = currentWord.substring(1)
-            filteredContexts = allContexts.filter { it.startsWith(query, ignoreCase = true) }
-            showSuggestions = filteredContexts.isNotEmpty()
-        } else {
-            showSuggestions = false
-        }
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState = listState) { from, to ->
+        viewModel.moveItem(from.index, to.index)
     }
 
     LaunchedEffect(Unit) {
@@ -145,88 +77,57 @@ fun GoalDetailScreen(
             when (event) {
                 is UiEvent.ShowSnackbar -> {
                     coroutineScope.launch {
-                        val result = snackbarHostState.showSnackbar(
-                            message = event.message,
-                            actionLabel = event.action,
-                            duration = SnackbarDuration.Short,
-                        )
+                        val result = snackbarHostState.showSnackbar(message = event.message, actionLabel = event.action)
                         if (result == SnackbarResult.ActionPerformed) {
                             viewModel.undoDelete()
                         }
                     }
                 }
                 is UiEvent.Navigate -> navController.navigate(event.route)
-                is UiEvent.ResetSwipeState -> { /* Handled in VM */
-                }
-                is UiEvent.ScrollTo -> {
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(event.index.coerceAtLeast(0))
-                    }
-                }
                 is UiEvent.NavigateBackAndReveal -> {
-                    try {
-                        val goalListBackStackEntry = navController.getBackStackEntry("goal_lists_screen")
-                        goalListBackStackEntry.savedStateHandle["list_to_reveal"] = event.listId
-                        navController.popBackStack("goal_lists_screen", inclusive = false)
-                    } catch (_: Exception) {
-                        navController.popBackStack()
-                    }
+                    navController.previousBackStackEntry?.savedStateHandle?.set("list_to_reveal", event.listId)
+                    navController.popBackStack()
                 }
+                is UiEvent.ScrollTo -> coroutineScope.launch { listState.animateScrollToItem(event.index) }
+                is UiEvent.ResetSwipeState -> { /* Handled by Recomposition Keys */ }
             }
         }
     }
 
-    LaunchedEffect(uiState.goalToHighlight) {
-        val goalId = uiState.goalToHighlight
-        if (goalId != null && !isSelectionModeActive) {
-            val index = goals.indexOfFirst { it.goal.id == goalId }
+    LaunchedEffect(listContent.size) {
+        uiState.newlyAddedItemId?.let { id ->
+            val index = listContent.indexOfFirst { it.item.id == id }
             if (index != -1) {
                 listState.animateScrollToItem(index)
-                viewModel.onHighlightShown()
-            }
-        }
-    }
-
-    LaunchedEffect(uiState.newlyAddedGoalInstanceId, goals) {
-        val newGoalId = uiState.newlyAddedGoalInstanceId
-        if (newGoalId != null) {
-            val index = goals.indexOfFirst { it.instanceId == newGoalId }
-            if (index != -1) {
-                listState.animateScrollToItem(index)
-                viewModel.onScrolledToNewGoal()
+                viewModel.onScrolledToNewItem()
             }
         }
     }
 
     Scaffold(
-        modifier = Modifier
-            .navigationBarsPadding()
-            .imePadding(),
+        modifier = Modifier.navigationBarsPadding().imePadding(),
         topBar = {
             if (isSelectionModeActive) {
                 MultiSelectTopAppBar(
-                    selectedCount = uiState.selectedInstanceIds.size,
-                    areAllSelected = goals.isNotEmpty() && (uiState.selectedInstanceIds.size == goals.size),
-                    onClearSelection = { viewModel.clearSelection() },
-                    onSelectAll = { viewModel.selectAllGoals() },
-                    onDelete = { viewModel.deleteSelectedGoals() },
-                    onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
-                    onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
+                    selectedCount = uiState.selectedItemIds.size,
+                    areAllSelected = listContent.isNotEmpty() && (uiState.selectedItemIds.size == listContent.size),
+                    onClearSelection = viewModel::clearSelection,
+                    onSelectAll = viewModel::selectAllItems,
+                    onDelete = viewModel::deleteSelectedItems,
+                    onToggleComplete = viewModel::toggleCompletionForSelectedGoals,
+                    onMoreActions = { viewModel.onBulkActionRequest(it) },
                 )
             } else {
                 TopAppBar(
-                    title = { Text(list?.name ?: "Завантаження...") },
+                    title = { Text(list?.name ?: "Loading...", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.onRevealInExplorer(listId) }) {
-                            Icon(
-                                imageVector = Icons.Default.LocationSearching,
-                                contentDescription = "Reveal in Backlogs Explorer",
-                            )
+                        IconButton(onClick = { list?.id?.let { viewModel.onRevealInExplorer(it) } }) {
+                            Icon(Icons.Default.LocationSearching, contentDescription = "Reveal in lists")
                         }
                     },
                 )
@@ -234,211 +135,184 @@ fun GoalDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            AnimatedVisibility(
-                visible = !isSelectionModeActive && isInputBarVisible,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 4.dp)) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    SuggestionChipsRow(
-                        visible = showSuggestions,
-                        contexts = filteredContexts,
-                        onContextClick = { context ->
-                            val currentText = uiState.inputValue.text
-                            val cursorPosition = uiState.inputValue.selection.start
-                            val wordStart = currentText.substring(0, cursorPosition)
-                                .lastIndexOf(' ')
-                                .let { if (it == -1) 0 else it + 1 }
-                                .takeIf {
-                                    currentText.substring(it, cursorPosition).startsWith("@")
-                                } ?: -1
-
-                            if (wordStart != -1) {
-                                val textBefore = currentText.substring(0, wordStart)
-                                val textAfter = currentText.substring(cursorPosition)
-                                val newText = "$textBefore@$context $textAfter"
-                                val newCursorPosition = wordStart + context.length + 2
-
-                                viewModel.onInputTextChanged(
-                                    TextFieldValue(
-                                        text = newText,
-                                        selection = TextRange(newCursorPosition),
-                                    ),
-                                )
-                            }
-                        },
-                    )
-                    GoalInputBar(
-                        modifier = Modifier.fillMaxWidth(),
-                        inputValue = uiState.inputValue,
-                        inputMode = uiState.inputMode,
-                        onValueChange = viewModel::onInputTextChanged,
-                        onSubmit = viewModel::submitInput,
-                        onInputModeSelected = viewModel::onInputModeSelected,
-                        onRecentsClick = viewModel::onShowRecentLists
-                    )
-                }
+            AnimatedVisibility(visible = !isSelectionModeActive) {
+                GoalInputBar(
+                    inputValue = uiState.inputValue,
+                    onValueChange = viewModel::onInputTextChanged,
+                    onSubmit = viewModel::submitInput,
+                    modifier = Modifier.fillMaxWidth(),
+                    inputMode = uiState.inputMode,
+                    onInputModeSelected = viewModel::onInputModeSelected,
+                    onRecentsClick = viewModel::onShowRecentLists,
+                    // currentMode = uiState.inputMode,
+                    // onModeSelected = viewModel::onInputModeSelected,
+                )
             }
         },
     ) { paddingValues ->
-        if (list == null) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (goals.isEmpty() && uiState.localSearchQuery.isBlank()) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("У цьому списку ще немає цілей.")
-            }
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-            ) {
-                itemsIndexed(
-                    goals,
-                    key = { _, item -> item.instanceId },
-                ) { index, goalWithInstanceInfo ->
-                    ReorderableItem(
-                        state = reorderableLazyListState,
-                        key = goalWithInstanceInfo.instanceId,
-                        enabled = !isSelectionModeActive,
-                    ) { isDragging ->
-                        val scale by animateFloatAsState(
-                            if (isDragging) 1.05f else 1f,
-                            label = "scale",
-                        )
-                        val elevation by animateDpAsState(
-                            if (isDragging) 8.dp else 0.dp,
-                            label = "elevation",
-                        )
+        when {
+            list == null -> CenteredContent { CircularProgressIndicator() }
+            listContent.isEmpty() && uiState.localSearchQuery.isBlank() -> CenteredContent { Text("This list has no items yet.") }
+            listContent.isEmpty() && uiState.localSearchQuery.isNotBlank() -> CenteredContent { Text("No results found.") }
+            else -> {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                ) {
+                    itemsIndexed(items = listContent, key = { _, item -> item.item.id }) { index, content ->
+                        ReorderableItem(reorderableLazyListState, key = content.item.id) { isDragging ->
+                            val isSelected = content.item.id in uiState.selectedItemIds
+                            val backgroundColor by animateColorAsState(
+                                targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else Color.Transparent,
+                                label = "item_selection_color",
+                            )
 
-                        val associatedLists = associatedListsMap.getOrDefault(
-                            goalWithInstanceInfo.goal.id,
-                            emptyList(),
-                        )
-                        val isSelected =
-                            goalWithInstanceInfo.instanceId in uiState.selectedInstanceIds
-                        val itemBackgroundColor = if (isSelected) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        }
-
-                        SwipeableGoalItem(
-                            modifier = Modifier
-                                .animateItem(
-                                    fadeInSpec = tween(300),
-                                    fadeOutSpec = tween(300),
-                                )
-                                .graphicsLayer {
-                                    scaleX = scale
-                                    scaleY = scale
+                            when (content) {
+                                is ListItemContent.GoalItem -> {
+                                    SwipeableGoalItem(
+                                        modifier = Modifier
+                                            .padding(vertical = 2.dp, horizontal = 8.dp)
+                                            .animateItem(),
+                                        goal = content.goal,
+                                        backgroundColor = backgroundColor,
+                                        isDragging = isDragging,
+                                        obsidianVaultName = obsidianVaultName,
+                                        onDelete = { viewModel.deleteItem(content) },
+                                        onToggle = { viewModel.toggleGoalCompleted(content.goal) },
+                                        onItemClick = { viewModel.onItemClick(content) },
+                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                        onTagClick = viewModel::onTagClicked,
+                                        onRelatedLinkClick = { link -> handleRelatedLinkClick(link, context, navController) },
+                                        resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
+                                        onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
+                                        isAnotherItemSwiped = uiState.swipedItemId != null && uiState.swipedItemId != content.item.id,
+                                        onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
+                                        onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
+                                        onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
+                                        onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
+                                        contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                    )
                                 }
-                                .shadow(
-                                    elevation = elevation,
-                                    shape = RoundedCornerShape(8.dp),
-                                ),
-                            resetTrigger = uiState.resetTriggers.getOrDefault(
-                                goalWithInstanceInfo.instanceId,
-                                0,
-                            ),
-                            goalWithInstance = goalWithInstanceInfo,
-                            isDragging = isDragging,
-                            associatedLists = associatedLists,
-                            obsidianVaultName = obsidianVaultName,
-                            emojiToHide = emojiToHide,
-                            onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
-                            backgroundColor = itemBackgroundColor,
-                            onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
-                            onTagClick = { tag: String -> viewModel.onTagClicked(tag) },
-                            onAssociatedListClick = { listId: String ->
-                                viewModel.onAssociatedListClicked(
-                                    listId,
-                                )
-                            },
-                            onItemClick = { viewModel.onGoalClick(goalWithInstanceInfo) },
-                            onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
-                            onSwipeStart = { viewModel.onSwipeStart(goalWithInstanceInfo.instanceId) },
-                            isAnotherItemSwiped = (uiState.swipedInstanceId != null) && (uiState.swipedInstanceId != goalWithInstanceInfo.instanceId),
-                            onMoreActionsRequest = { viewModel.onGoalActionInitiated(goalWithInstanceInfo) },
-                            onCreateInstanceRequest = { viewModel.onCreateInstanceRequest(goalWithInstanceInfo) },
-                            onMoveInstanceRequest = { viewModel.onMoveInstanceRequest(goalWithInstanceInfo) },
-                            onCopyGoalRequest = { viewModel.onCopyGoalRequest(goalWithInstanceInfo) },
-                            contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-
-                            dragHandleModifier = if (!isSelectionModeActive) {
-                                Modifier.draggableHandle(
-                                    onDragStarted = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    },
-                                )
-                            } else {
-                                Modifier
-                            },
-                        )
+                                is ListItemContent.NoteItem, is ListItemContent.SublistItem -> {
+                                    val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
+                                    val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            .graphicsLayer { scaleX = scale; scaleY = scale }
+                                            .shadow(elevation, RoundedCornerShape(12.dp))
+                                            .animateItem(),
+                                    ) {
+                                        when (content) {
+                                            is ListItemContent.NoteItem -> NoteItemRow(
+                                                noteContent = content,
+                                                isSelected = isSelected,
+                                                onClick = { viewModel.onItemClick(content) },
+                                                onLongClick = { viewModel.onItemLongClick(content.item.id) }
+                                            )
+                                            is ListItemContent.SublistItem -> SublistItemRow(
+                                                sublistContent = content,
+                                                isSelected = isSelected,
+                                                onClick = { viewModel.onItemClick(content) },
+                                                onLongClick = { viewModel.onItemLongClick(content.item.id) }
+                                            )
+                                            else -> {}
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+}
 
-    RecentListsSheet(
-        showSheet = showRecentSheet,
-        recentLists = recentLists,
-        onDismiss = { viewModel.onDismissRecentLists() },
-        onListClick = { listId -> viewModel.onRecentListSelected(listId) }
+@Composable
+private fun CenteredContent(content: @Composable BoxScope.() -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center, content = content)
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun NoteItemRow(
+    modifier: Modifier = Modifier,
+    noteContent: ListItemContent.NoteItem,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        label = "note_color",
     )
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Text(
+            text = noteContent.note.content,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+    }
+}
 
-    when (val state = goalActionState) {
-        is GoalActionDialogState.Hidden -> {}
-        is GoalActionDialogState.AwaitingActionChoice -> {
-            GoalActionChoiceDialog(
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-            ) {
-                viewModel.onGoalActionSelected(it)
-            }
-        }
-        is GoalActionDialogState.AwaitingListChoice -> {
-            val title = when (state.actionType) {
-                GoalActionType.CreateInstance -> "Створити зв'язок у..."
-                GoalActionType.MoveInstance -> "Перемістити до..."
-                GoalActionType.CopyGoal -> "Копіювати до..."
-                else -> "Виберіть список"
-            }
-            val currentListId = list?.id
-            val disabledIds = currentListId?.let { setOf(it) } ?: emptySet()
-
-            FilterableListChooser(
-                title = title,
-                filterText = listChooserFilterText,
-                onFilterTextChanged = viewModel::onListChooserFilterChanged,
-                topLevelLists = filteredListHierarchy.topLevelLists,
-                childMap = filteredListHierarchy.childMap,
-                expandedIds = listChooserFinalExpandedIds,
-                onToggleExpanded = viewModel::onListChooserToggleExpanded,
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onConfirm = { confirmedListId ->
-                    confirmedListId?.let { viewModel.confirmGoalAction(it) }
-                },
-                currentParentId = null,
-                disabledIds = disabledIds,
-                onAddNewList = { id, parentId, name ->
-                    viewModel.addNewList(id, parentId, name)
-                },
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SublistItemRow(
+    modifier: Modifier = Modifier,
+    sublistContent: ListItemContent.SublistItem,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+        label = "sublist_color",
+    )
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.AutoMirrored.Filled.List, "Sublist", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Spacer(Modifier.width(16.dp))
+            Text(
+                text = sublistContent.sublist.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.Medium,
             )
         }
+    }
+}
+
+private fun handleRelatedLinkClick(link: RelatedLink, context: Context, navController: NavController) {
+    when (link.type) {
+        LinkType.URL -> {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link.target))
+                context.startActivity(intent)
+            } catch (_: Exception) {
+                Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show()
+            }
+        }
+        LinkType.GOAL_LIST -> navController.navigate("goal_detail_screen/${link.target}")
+        LinkType.NOTE -> { /* TODO: Implement navigation to a specific note */ }
+        LinkType.OBSIDIAN -> { /* TODO: Implement obsidian link handling */ }
     }
 }

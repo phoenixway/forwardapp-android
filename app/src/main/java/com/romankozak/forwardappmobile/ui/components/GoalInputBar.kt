@@ -1,5 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/GoalInputBar.kt
-
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/GoalInputBar.kt ---
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.animation.*
@@ -13,8 +12,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
@@ -38,8 +39,15 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.ui.screens.goaldetail.InputMode
 import kotlinx.coroutines.delay
+import kotlin.math.abs
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 
-private val modes = listOf(InputMode.AddGoal, InputMode.SearchInList, InputMode.SearchGlobal)
+
+// Список режимів з вашою новою вимогою
+private val modes = listOf(InputMode.AddGoal, InputMode.AddNote, InputMode.SearchInList, InputMode.SearchGlobal)
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +74,11 @@ fun GoalInputBar(
         InputMode.AddGoal -> Triple(
             MaterialTheme.colorScheme.surfaceContainer,
             MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.primary
+        )
+        InputMode.AddNote -> Triple(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer,
             MaterialTheme.colorScheme.primary
         )
         InputMode.SearchInList -> Triple(
@@ -188,7 +201,7 @@ fun GoalInputBar(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             val gradientAlpha by animateFloatAsState(
-                                targetValue = if (kotlin.math.abs(dragOffset) > 15f) 1f else 0f,
+                                targetValue = if (abs(dragOffset) > 15f) 1f else 0f,
                                 animationSpec = tween(150),
                                 label = "gradient_alpha_anim"
                             )
@@ -226,6 +239,7 @@ fun GoalInputBar(
                             ) { mode ->
                                 val icon = when (mode) {
                                     InputMode.AddGoal -> Icons.Default.Add
+                                    InputMode.AddNote -> Icons.AutoMirrored.Filled.Notes
                                     InputMode.SearchInList -> Icons.Default.Search
                                     InputMode.SearchGlobal -> Icons.Outlined.Search
                                 }
@@ -254,6 +268,7 @@ fun GoalInputBar(
                                 Text(
                                     text = when (mode) {
                                         InputMode.AddGoal -> stringResource(R.string.mode_add_goal)
+                                        InputMode.AddNote -> stringResource(R.string.mode_add_note)
                                         InputMode.SearchInList -> stringResource(R.string.mode_search_in_list)
                                         InputMode.SearchGlobal -> stringResource(R.string.mode_search_global)
                                     },
@@ -263,6 +278,7 @@ fun GoalInputBar(
                             leadingIcon = {
                                 val icon = when (mode) {
                                     InputMode.AddGoal -> Icons.Default.Add
+                                    InputMode.AddNote -> Icons.AutoMirrored.Filled.Notes
                                     InputMode.SearchInList -> Icons.Default.Search
                                     InputMode.SearchGlobal -> Icons.Outlined.Search
                                 }
@@ -277,11 +293,32 @@ fun GoalInputBar(
                 }
             }
 
+// File: GoalInputBar.kt
+// Основна область для TextField та підказки
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.CenterStart,
             ) {
+                // Підказка, що з'являється, коли поле пусте
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = inputValue.text.isEmpty(),
+                    enter = fadeIn(animationSpec = tween(200)),
+                    exit = fadeOut(animationSpec = tween(200)),
+                ) {
+                    Text(
+                        text = when (inputMode) {
+                            InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                            InputMode.AddNote -> stringResource(R.string.hint_add_note)
+                            InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
+                            InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = contentColor.copy(alpha = 0.7f),
+                    )
+                }
+
                 BasicTextField(
                     value = inputValue,
                     onValueChange = onValueChange,
@@ -290,63 +327,43 @@ fun GoalInputBar(
                         .focusRequester(focusRequester),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = {
-                        if (inputValue.text.isNotBlank()) onSubmit()
-                    }),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            if (inputValue.text.isNotBlank()) {
+                                onSubmit()
+                            }
+                        },
+                    ),
                     singleLine = true,
                     cursorBrush = SolidColor(contentColor),
-                    decorationBox = { innerTextField ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            // Підсвітка-підказка всередині TextField
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = inputValue.text.isEmpty(),
-                                enter = fadeIn(animationSpec = tween(200)),
-                                exit = fadeOut(animationSpec = tween(200))
-                            ) {
-                                Text(
-                                    text = when (inputMode) {
-                                        InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
-                                        InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
-                                        InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
-                                    },
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = contentColor.copy(alpha = 0.7f),
-                                )
-                            }
-                            innerTextField()
-                        }
-
-                    }
                 )
             }
 
-            Box(contentAlignment = Alignment.Center) {
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = inputValue.text.isNotBlank(),
-                    enter = fadeIn() + scaleIn(
-                        initialScale = 0.8f,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                    ),
-                    exit = fadeOut() + scaleOut(targetScale = 0.8f)
+            // Кнопка "Надіслати" винесена з окремого Box для коректної роботи
+            AnimatedVisibility(
+                visible = inputValue.text.isNotBlank(),
+                enter = fadeIn() + scaleIn(
+                    initialScale = 0.8f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                ),
+                exit = fadeOut() + scaleOut(targetScale = 0.8f)
+            ) {
+                FilledTonalIconButton(
+                    onClick = onSubmit,
+                    modifier = Modifier.size(44.dp),
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = contentColor.copy(alpha = 0.8f),
+                        contentColor = containerColor
+                    )
                 ) {
-                    FilledTonalIconButton(
-                        onClick = onSubmit,
-                        modifier = Modifier.size(44.dp),
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = contentColor.copy(alpha = 0.8f),
-                            contentColor = containerColor
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = stringResource(R.string.send),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = stringResource(R.string.send),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
-
         }
     }
 }
