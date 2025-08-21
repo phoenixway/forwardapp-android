@@ -28,6 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -41,7 +42,7 @@ import kotlinx.coroutines.delay
 
 private val modes = listOf(InputMode.AddGoal, InputMode.SearchInList, InputMode.SearchGlobal)
 
-@OptIn(ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GoalInputBar(
     modifier: Modifier = Modifier,
@@ -62,12 +63,12 @@ fun GoalInputBar(
 
     val currentModeIndex = modes.indexOf(inputMode)
 
-    // ✨ ЗМІНЕНО: Оновлена логіка кольорів для режиму "Додати" (Варіант 2)
     val (containerColor, contentColor, accentColor) = when (inputMode) {
         InputMode.AddGoal -> Triple(
-            MaterialTheme.colorScheme.surfaceContainer, // Нейтральний фон
-            MaterialTheme.colorScheme.primary,            // Яскравий акцент для контенту
+            MaterialTheme.colorScheme.surfaceContainer, // ЗМІНЕНО: Нейтральний фон
+            MaterialTheme.colorScheme.primary, // ЗМІНЕНО: Яскравий колір для контенту
             MaterialTheme.colorScheme.primary
+
         )
         InputMode.SearchInList -> Triple(
             MaterialTheme.colorScheme.secondaryContainer,
@@ -106,8 +107,8 @@ fun GoalInputBar(
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .fillMaxWidth(),
         shape = RoundedCornerShape(32.dp),
-        shadowElevation = 4.dp,
-        tonalElevation = 2.dp,
+        shadowElevation = 6.dp,
+        tonalElevation = 4.dp,
         color = animatedContainerColor,
     ) {
         Row(
@@ -128,93 +129,116 @@ fun GoalInputBar(
             }
 
             Box {
-                Surface(
-                    onClick = { showModeMenu = true },
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color.Transparent,
-                    contentColor = contentColor,
-                    //border = BorderStroke(1.dp, contentColor.copy(alpha = 0.5f)),
-                    modifier = Modifier
-                        .scale(buttonScale)
-                        .size(48.dp)
-                        .pointerInput(inputMode) {
-                            detectHorizontalDragGestures(
-                                onDragStart = {
-                                    isPressed = true
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                },
-                                onDragEnd = {
-                                    isPressed = false
-                                    val threshold = 50f
-                                    when {
-                                        dragOffset > threshold -> {
-                                            animationDirection = -1
-                                            val prevIndex = (currentModeIndex - 1 + modes.size) % modes.size
-                                            onInputModeSelected(modes[prevIndex])
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        }
-                                        dragOffset < -threshold -> {
-                                            animationDirection = 1
-                                            val nextIndex = (currentModeIndex + 1) % modes.size
-                                            onInputModeSelected(modes[nextIndex])
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        }
-                                    }
-                                    dragOffset = 0f
-                                }
-                            ) { _, dragAmount ->
-                                dragOffset += dragAmount
-                            }
-                        }
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        if (kotlin.math.abs(dragOffset) > 15f) {
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            colors = listOf(
-                                                if (dragOffset > 0) accentColor.copy(alpha = 0.2f) else Color.Transparent,
-                                                Color.Transparent,
-                                                if (dragOffset < 0) accentColor.copy(alpha = 0.2f) else Color.Transparent,
-                                            )
-                                        ),
-                                        shape = RoundedCornerShape(24.dp)
-                                    )
-                            )
-                        }
-
-                        AnimatedContent(
-                            targetState = inputMode,
-                            transitionSpec = {
-                                val slideIn = when (animationDirection) {
-                                    1 -> slideInHorizontally { it } + fadeIn(initialAlpha = 0.3f)
-                                    else -> slideInHorizontally { -it } + fadeIn(initialAlpha = 0.3f)
-                                }
-                                val slideOut = when (animationDirection) {
-                                    1 -> slideOutHorizontally { -it } + fadeOut(targetAlpha = 0.3f)
-                                    else -> slideOutHorizontally { it } + fadeOut(targetAlpha = 0.3f)
-                                }
-                                (slideIn togetherWith slideOut).using(
-                                    SizeTransform(clip = false)
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        Text(
+                            text = stringResource(R.string.swipe_to_change_mode),
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.inverseSurface,
+                                    RoundedCornerShape(8.dp)
                                 )
-                            },
-                            label = "mode_icon_animation"
-                        ) { mode ->
-                            val icon = when (mode) {
-                                InputMode.AddGoal -> Icons.Default.Add
-                                InputMode.SearchInList -> Icons.Default.Search
-                                InputMode.SearchGlobal -> Icons.Outlined.Search
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.inverseOnSurface
+                        )
+                    },
+                    state = rememberTooltipState()
+                ) {
+                    Surface(
+                        onClick = { showModeMenu = true },
+                        shape = RoundedCornerShape(24.dp),
+                        color = Color.Transparent,
+                        contentColor = contentColor,
+                        modifier = Modifier
+                            .scale(buttonScale)
+                            .size(48.dp)
+                            .pointerInput(inputMode) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = {
+                                        isPressed = true
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    },
+                                    onDragEnd = {
+                                        isPressed = false
+                                        val threshold = 50f
+                                        when {
+                                            dragOffset > threshold -> {
+                                                animationDirection = -1
+                                                val prevIndex = (currentModeIndex - 1 + modes.size) % modes.size
+                                                onInputModeSelected(modes[prevIndex])
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            }
+                                            dragOffset < -threshold -> {
+                                                animationDirection = 1
+                                                val nextIndex = (currentModeIndex + 1) % modes.size
+                                                onInputModeSelected(modes[nextIndex])
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            }
+                                        }
+                                        dragOffset = 0f
+                                    }
+                                ) { _, dragAmount ->
+                                    dragOffset += dragAmount
+                                }
                             }
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            val gradientAlpha by animateFloatAsState(
+                                targetValue = if (kotlin.math.abs(dragOffset) > 15f) 1f else 0f,
+                                animationSpec = tween(150),
+                                label = "gradient_alpha_anim"
                             )
+                            if (gradientAlpha > 0f) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .background(
+                                            brush = Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    if (dragOffset > 0) accentColor.copy(alpha = 0.4f * gradientAlpha) else Color.Transparent,
+                                                    Color.Transparent,
+                                                    if (dragOffset < 0) accentColor.copy(alpha = 0.4f * gradientAlpha) else Color.Transparent,
+                                                )
+                                            ),
+                                            shape = RoundedCornerShape(24.dp)
+                                        )
+                                )
+                            }
+
+                            AnimatedContent(
+                                targetState = inputMode,
+                                transitionSpec = {
+                                    val slideIn = when (animationDirection) {
+                                        1 -> slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(200))
+                                        else -> slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(200))
+                                    }
+                                    val slideOut = when (animationDirection) {
+                                        1 -> slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(200))
+                                        else -> slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(200))
+                                    }
+                                    (slideIn togetherWith slideOut).using(SizeTransform(clip = false))
+                                },
+                                label = "mode_icon_animation"
+                            ) { mode ->
+                                val icon = when (mode) {
+                                    InputMode.AddGoal -> Icons.Default.Add
+                                    InputMode.SearchInList -> Icons.Default.Search
+                                    InputMode.SearchGlobal -> Icons.Outlined.Search
+                                }
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer {
+                                            rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
+                                        }
+                                )
+                            }
                         }
                     }
                 }
@@ -247,7 +271,7 @@ fun GoalInputBar(
                             onClick = {
                                 onInputModeSelected(mode)
                                 showModeMenu = false
-                            }
+                            },
                         )
                     }
                 }
@@ -264,9 +288,7 @@ fun GoalInputBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = contentColor
-                    ),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = {
                         if (inputValue.text.isNotBlank()) onSubmit()
@@ -274,41 +296,54 @@ fun GoalInputBar(
                     singleLine = true,
                     cursorBrush = SolidColor(contentColor),
                     decorationBox = { innerTextField ->
-                        if (inputValue.text.isEmpty()) {
-                            Text(
-                                text = when (inputMode) {
-                                    InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
-                                    InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
-                                    InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
-                                },
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = contentColor.copy(alpha = 0.6f),
-                            )
+                        // ✨ ВИПРАВЛЕННЯ: `AnimatedVisibility` знаходиться всередині Box,
+                        // що є правильним контекстом і вирішує помилку.
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            this@Row.AnimatedVisibility(
+                                visible = inputValue.text.isEmpty(),
+                                enter = fadeIn(animationSpec = tween(200)),
+                                exit = fadeOut(animationSpec = tween(200))
+                            ) {
+                                Text(
+                                    text = when (inputMode) {
+                                        InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                                        InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
+                                        InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = contentColor.copy(alpha = 0.7f),
+                                )
+                            }
+                            innerTextField()
                         }
-                        innerTextField()
                     }
                 )
             }
 
-            AnimatedVisibility(
-                visible = inputValue.text.isNotBlank(),
-                enter = fadeIn() + scaleIn(initialScale = 0.8f),
-                exit = fadeOut() + scaleOut(targetScale = 0.8f),
-            ) {
-                FilledTonalIconButton(
-                    onClick = onSubmit,
-                    modifier = Modifier.size(44.dp),
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = contentColor.copy(alpha = 0.8f),
-                        contentColor = containerColor
-                    )
+            Box(contentAlignment = Alignment.Center) {
+                this@Row.AnimatedVisibility(
+                    visible = inputValue.text.isNotBlank(),
+                    enter = fadeIn() + scaleIn(
+                        initialScale = 0.8f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                    ),
+                    exit = fadeOut() + scaleOut(targetScale = 0.8f)
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = stringResource(R.string.send),
-                        modifier = Modifier.size(20.dp)
-                    )
+                    FilledTonalIconButton(
+                        onClick = onSubmit,
+                        modifier = Modifier.size(44.dp),
+                        shape = CircleShape,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = contentColor.copy(alpha = 0.8f),
+                            contentColor = containerColor
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(R.string.send),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
