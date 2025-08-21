@@ -2,13 +2,11 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
-import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.GoalInstance
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.GoalWithInstanceInfo
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
@@ -23,7 +21,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 
@@ -508,8 +505,6 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun onInputModeSelected(mode: InputMode) {
-        // ЦЕ КОНТРОЛЬНИЙ ЛОГ
-        Log.d("VIEWMODEL_DEBUG", "ViewModel отримав новий режим: $mode. Оновлюю стан.")
         _uiState.update { it.copy(inputMode = mode, localSearchQuery = "") }
     }
 
