@@ -83,9 +83,6 @@ class GoalDetailViewModel @Inject constructor(
     private val tagToContextNameMap: StateFlow<Map<String, String>> = contextHandler.tagToContextNameMap
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    //val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
-
-
     init {
         viewModelScope.launch {
             listIdFlow.filter { it.isNotEmpty() }.collect { id ->
@@ -130,40 +127,20 @@ class GoalDetailViewModel @Inject constructor(
         goalList,
         tagToContextNameMap
     ) { list, tagMap ->
-        Log.d("CONTEXT_DEBUG", "--- ViewModel Combine Block ---")
         val listTags = list?.tags ?: emptyList()
-        Log.d("CONTEXT_DEBUG", "Теги, знайдені у поточного списка: $listTags")
-        Log.d("CONTEXT_DEBUG", "Карта відомих контекстних тегів: $tagMap")
-
-        if (listTags.isEmpty()) {
-            Log.d("CONTEXT_DEBUG", "Результат: список тегів порожній, повертаю null.")
+        if (listTags.isEmpty() || tagMap.isEmpty()) {
             return@combine null
         }
-        if (tagMap.isEmpty()) {
-            Log.d("CONTEXT_DEBUG", "Результат: карта тегів порожня, повертаю null.")
-            return@combine null
-        }
-
         val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in listTags }?.value
-        Log.d("CONTEXT_DEBUG", "Знайдено відповідну назву контексту: $contextName")
-
-        val marker = contextName?.let { contextHandler.getContextMarker(it) }
-        Log.d("CONTEXT_DEBUG", "Фінальний маркер: $marker")
-        marker
+        contextName?.let { contextHandler.getContextMarker(it) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
 
     val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
-
-    // ✨ КРОК 2: ВИДАЛІТЬ СТАРІ ЛОГИ ЗВІДСИ
     val currentListContextEmojiToHide: StateFlow<String?> = combine(currentListContextMarker, contextMarkerToEmojiMap) { marker, emojiMap ->
-        // Видаліть звідси всі рядки Log.d, якщо вони є
         marker?.let { emojiMap[it] }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-
-
 
     val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> =
         combine(listIdFlow, _uiState) { id, state -> Pair(id, state) }
@@ -197,9 +174,6 @@ class GoalDetailViewModel @Inject constructor(
 
     private val _goalActionDialogState = MutableStateFlow<GoalActionDialogState>(GoalActionDialogState.Hidden)
     val goalActionDialogState: StateFlow<GoalActionDialogState> = _goalActionDialogState.asStateFlow()
-
-    private val _showInputModeDialog = MutableStateFlow(false)
-    val showInputModeDialog: StateFlow<Boolean> = _showInputModeDialog.asStateFlow()
 
     val obsidianVaultName: StateFlow<String> = settingsRepository.obsidianVaultNameFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
@@ -533,18 +507,12 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun onInputModeChangeRequest() {
-        _showInputModeDialog.value = true
-    }
-
-    fun onDismissInputModeDialog() {
-        _showInputModeDialog.value = false
-    }
-
     fun onInputModeSelected(mode: InputMode) {
+        // ЦЕ КОНТРОЛЬНИЙ ЛОГ
+        Log.d("VIEWMODEL_DEBUG", "ViewModel отримав новий режим: $mode. Оновлюю стан.")
         _uiState.update { it.copy(inputMode = mode, localSearchQuery = "") }
-        _showInputModeDialog.value = false
     }
+
 
     fun selectAllGoals() {
         val allInstanceIds = filteredGoals.value.map { it.instanceId }.toSet()
@@ -554,11 +522,9 @@ class GoalDetailViewModel @Inject constructor(
     fun onRevealInExplorer(currentListId: String) {
         if (currentListId.isEmpty()) return
         viewModelScope.launch {
-            Log.d("REVEAL_DEBUG", "GoalDetailViewModel: Ініційовано розкриття для списку $currentListId") // <-- ДОДАЙТЕ ЛОГ
             _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentListId))
         }
     }
-
 
     fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return

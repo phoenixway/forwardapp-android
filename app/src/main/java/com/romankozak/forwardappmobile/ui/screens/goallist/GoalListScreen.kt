@@ -1,5 +1,3 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListScreen.kt
-
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goallist
@@ -125,6 +123,9 @@ fun GoalListScreen(
                         delay(100)
                         focusRequester.requestFocus()
                     }
+                }
+                GoalListUiEvent.NavigateToSettings -> {
+                    navController.navigate("settings_screen")
                 }
             }
         }
@@ -384,7 +385,7 @@ private fun GoalListTopAppBar(
                     DropdownMenuItem(
                         text = { Text("Settings") },
                         onClick = {
-                            viewModel.onShowSettingsDialog()
+                            viewModel.onShowSettingsScreen()
                             menuExpanded = false
                         },
                     )
@@ -602,14 +603,10 @@ private fun HandleDialogs(
     filteredListHierarchyForDialog: ListHierarchyData,
 ) {
     val stats by viewModel.appStatistics.collectAsState()
-    val planningSettings by viewModel.planningSettingsState.collectAsState()
-    val vaultName by viewModel.obsidianVaultName.collectAsState()
     val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsState()
     val wifiServerAddress by viewModel.wifiServerAddress.collectAsState()
     val showWifiImportDialog by viewModel.showWifiImportDialog.collectAsState()
     val showSearchDialog by viewModel.showSearchDialog.collectAsState()
-
-    val allContexts by viewModel.allContextsForDialog.collectAsState()
 
     when (val state = dialogState) {
         DialogState.Hidden -> {}
@@ -678,29 +675,6 @@ private fun HandleDialogs(
                         newTags,
                     )
                 },
-            )
-        }
-        DialogState.AppSettings -> {
-            SettingsDialog(
-                planningSettings = planningSettings,
-                initialVaultName = vaultName,
-                onManageContextsClick = { viewModel.onManageContextsRequest() },
-                onDismiss = { viewModel.dismissDialog() },
-            ) { showModes, dailyTag, mediumTag, longTag, newVaultName ->
-                viewModel.saveSettings(
-                    showModes,
-                    dailyTag,
-                    mediumTag,
-                    longTag,
-                    newVaultName,
-                )
-            }
-        }
-        DialogState.ReservedContextsSettings -> {
-            ReservedContextsDialog(
-                initialContexts = allContexts,
-                onDismiss = { viewModel.dismissDialog() },
-                onSave = { updatedContexts -> viewModel.saveAllContexts(updatedContexts) },
             )
         }
         is DialogState.AboutApp -> {

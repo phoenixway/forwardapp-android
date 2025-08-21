@@ -6,12 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
+import com.romankozak.forwardappmobile.ui.screens.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
@@ -27,8 +32,6 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val syncDataViewModel: SyncDataViewModel by viewModels()
-    // Видаляємо db, бо Hilt тепер керує цим
-    // private val db by lazy { AppDatabase.getDatabase(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -52,12 +55,61 @@ fun AppNavigation(
         startDestination = "goal_lists_screen"
     ) {
         composable("goal_lists_screen") {
-            // Hilt сам надасть GoalListViewModel
             val viewModel: GoalListViewModel = hiltViewModel()
             GoalListScreen(
                 navController = navController,
                 syncDataViewModel = syncDataViewModel,
                 viewModel = viewModel
+            )
+        }
+
+        composable("settings_screen") { backStackEntry ->
+            val goalListViewModel: GoalListViewModel = hiltViewModel(
+                remember(backStackEntry) {
+                    navController.getBackStackEntry("goal_lists_screen")
+                }
+            )
+
+            val planningSettings by goalListViewModel.planningSettingsState.collectAsState()
+            val vaultName by goalListViewModel.obsidianVaultName.collectAsState()
+            val allContexts by goalListViewModel.allContextsForDialog.collectAsState()
+            val reservedContextCount = allContexts.count { it.isReserved }
+
+            SettingsScreen(
+                planningSettings = planningSettings,
+                initialVaultName = vaultName,
+                reservedContextCount = reservedContextCount,
+                onManageContextsClick = {
+                    navController.navigate("manage_contexts_screen")
+                },
+                onBack = { navController.popBackStack() },
+                onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName ->
+                    goalListViewModel.saveSettings(
+                        showModes,
+                        dailyTag,
+                        mediumTag,
+                        longTag,
+                        newVaultName
+                    )
+                }
+            )
+        }
+
+        composable("manage_contexts_screen") { backStackEntry ->
+            val goalListViewModel: GoalListViewModel = hiltViewModel(
+                remember(backStackEntry) {
+                    navController.getBackStackEntry("goal_lists_screen")
+                }
+            )
+            val allContexts by goalListViewModel.allContextsForDialog.collectAsState()
+
+            ManageContextsScreen(
+                initialContexts = allContexts,
+                onBack = { navController.popBackStack() },
+                onSave = { updatedContexts ->
+                    goalListViewModel.saveAllContexts(updatedContexts)
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -72,7 +124,6 @@ fun AppNavigation(
                 navArgument("goalId") { type = NavType.StringType }
             )
         ) {
-            // Hilt сам надасть GoalEditViewModel.
             GoalEditScreen(
                 navController = navController,
                 viewModel = hiltViewModel()
@@ -80,10 +131,8 @@ fun AppNavigation(
         }
 
         composable(
-            // 1. Змінюємо назву в самому маршруті з {goalListId} на {listId}
             route = "goal_detail_screen/{listId}?goalToHighlight={goalToHighlight}",
             arguments = listOf(
-                // 2. Змінюємо назву аргументу з "goalListId" на "listId"
                 navArgument("listId") { type = NavType.StringType },
                 navArgument("goalToHighlight") {
                     type = NavType.StringType
@@ -100,7 +149,6 @@ fun AppNavigation(
             "global_search_screen/{query}",
             arguments = listOf(navArgument("query") { type = NavType.StringType })
         ) {
-            // Hilt сам надасть GlobalSearchViewModel.
             GlobalSearchScreen(
                 viewModel = hiltViewModel(),
                 navController = navController
@@ -108,7 +156,6 @@ fun AppNavigation(
         }
 
         composable("sync_screen") {
-            // Цей ViewModel поки що не використовує Hilt, тому залишаємо як є.
             SyncScreen(
                 syncDataViewModel = syncDataViewModel,
                 onSyncComplete = { navController.popBackStack() }

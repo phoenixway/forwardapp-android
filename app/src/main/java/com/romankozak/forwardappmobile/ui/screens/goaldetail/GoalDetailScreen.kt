@@ -4,10 +4,16 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationSearching
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +43,6 @@ import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
-import com.romankozak.forwardappmobile.ui.dialogs.InputModeDialog
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
@@ -56,25 +60,20 @@ fun GoalDetailScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    Log.d("COMPOSE_DEBUG", "GoalDetailScreen recomposing. Current mode is: ${uiState.inputMode}")
+
     val goals by viewModel.filteredGoals.collectAsState()
     val goalActionState by viewModel.goalActionDialogState.collectAsState()
-    val showInputModeDialog by viewModel.showInputModeDialog.collectAsState()
     val list by viewModel.goalList.collectAsState()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsState()
     val allContexts by viewModel.allContextNames.collectAsState()
     val associatedListsMap by viewModel.associatedListsMap.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
-
-    //val contextMarkerToHide by viewModel.currentListContextMarker.collectAsState()
     val emojiToHide by viewModel.currentListContextEmojiToHide.collectAsState()
-
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsState()
-
-
     val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
-
     val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
     val recentLists by viewModel.recentLists.collectAsState()
 
@@ -86,6 +85,13 @@ fun GoalDetailScreen(
 
     val listState = rememberLazyListState()
     val haptic = LocalHapticFeedback.current
+
+    val isInputBarVisible by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 ||
+                    listState.firstVisibleItemScrollOffset < listState.layoutInfo.visibleItemsInfo.lastOrNull()?.offset ?: 0
+        }
+    }
 
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
@@ -231,8 +237,13 @@ fun GoalDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (!isSelectionModeActive) {
-                Column {
+            AnimatedVisibility(
+                visible = !isSelectionModeActive && isInputBarVisible,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 4.dp)) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     SuggestionChipsRow(
                         visible = showSuggestions,
                         contexts = filteredContexts,
@@ -261,23 +272,15 @@ fun GoalDetailScreen(
                             }
                         },
                     )
-                    Row(
+                    GoalInputBar(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { viewModel.onShowRecentLists() }) {
-                            Icon(Icons.Outlined.History, contentDescription = "Показати недавні списки")
-                        }
-                        GoalInputBar(
-                            modifier = Modifier.weight(1f),
-                            inputValue = uiState.inputValue,
-                            inputMode = uiState.inputMode,
-                            onModeChangeRequest = viewModel::onInputModeChangeRequest,
-                            onSubmit = viewModel::submitInput,
-                            onValueChange = viewModel::onInputTextChanged,
-                        )
-                    }
-
+                        inputValue = uiState.inputValue,
+                        inputMode = uiState.inputMode,
+                        onValueChange = viewModel::onInputTextChanged,
+                        onSubmit = viewModel::submitInput,
+                        onInputModeSelected = viewModel::onInputModeSelected,
+                        onRecentsClick = viewModel::onShowRecentLists
+                    )
                 }
             }
         },
@@ -360,8 +363,6 @@ fun GoalDetailScreen(
                             associatedLists = associatedLists,
                             obsidianVaultName = obsidianVaultName,
                             emojiToHide = emojiToHide,
-
-                            //contextMarkerToHide = contextMarkerToHide,
                             onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
                             backgroundColor = itemBackgroundColor,
                             onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
@@ -379,7 +380,6 @@ fun GoalDetailScreen(
                             onCreateInstanceRequest = { viewModel.onCreateInstanceRequest(goalWithInstanceInfo) },
                             onMoveInstanceRequest = { viewModel.onMoveInstanceRequest(goalWithInstanceInfo) },
                             onCopyGoalRequest = { viewModel.onCopyGoalRequest(goalWithInstanceInfo) },
-                            // ✨ ВИПРАВЛЕНО: Передаємо карту емодзі
                             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
 
                             dragHandleModifier = if (!isSelectionModeActive) {
@@ -404,14 +404,6 @@ fun GoalDetailScreen(
         onDismiss = { viewModel.onDismissRecentLists() },
         onListClick = { listId -> viewModel.onRecentListSelected(listId) }
     )
-
-    if (showInputModeDialog) {
-        InputModeDialog(
-            onDismiss = { viewModel.onDismissInputModeDialog() },
-        ) {
-            viewModel.onInputModeSelected(it)
-        }
-    }
 
     when (val state = goalActionState) {
         is GoalActionDialogState.Hidden -> {}
