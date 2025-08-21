@@ -39,6 +39,7 @@ import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.components.SwipeableGoalItem
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.dialogs.InputModeDialog
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -64,14 +65,16 @@ fun GoalDetailScreen(
     val associatedListsMap by viewModel.associatedListsMap.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
 
-    val contextMarkerToHide by viewModel.currentListContextMarker.collectAsState()
+    //val contextMarkerToHide by viewModel.currentListContextMarker.collectAsState()
+    val emojiToHide by viewModel.currentListContextEmojiToHide.collectAsState()
+
+    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsState()
 
 
     val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
 
-    // ✨ ДОДАНО: Отримуємо стан з ViewModel для шторки недавніх
     val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
     val recentLists by viewModel.recentLists.collectAsState()
 
@@ -258,7 +261,6 @@ fun GoalDetailScreen(
                             }
                         },
                     )
-                    // ✨ ДОДАНО: обгортка Row для іконки "Недавні" та поля вводу
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -267,7 +269,7 @@ fun GoalDetailScreen(
                             Icon(Icons.Outlined.History, contentDescription = "Показати недавні списки")
                         }
                         GoalInputBar(
-                            modifier = Modifier.weight(1f), // <-- Ваш рядок коду
+                            modifier = Modifier.weight(1f),
                             inputValue = uiState.inputValue,
                             inputMode = uiState.inputMode,
                             onModeChangeRequest = viewModel::onInputModeChangeRequest,
@@ -338,8 +340,8 @@ fun GoalDetailScreen(
                         SwipeableGoalItem(
                             modifier = Modifier
                                 .animateItem(
-                                    fadeInSpec = tween(10300),
-                                    fadeOutSpec = tween(10300),
+                                    fadeInSpec = tween(300),
+                                    fadeOutSpec = tween(300),
                                 )
                                 .graphicsLayer {
                                     scaleX = scale
@@ -357,7 +359,9 @@ fun GoalDetailScreen(
                             isDragging = isDragging,
                             associatedLists = associatedLists,
                             obsidianVaultName = obsidianVaultName,
-                            contextMarkerToHide = contextMarkerToHide,
+                            emojiToHide = emojiToHide,
+
+                            //contextMarkerToHide = contextMarkerToHide,
                             onDelete = { viewModel.deleteGoal(goalWithInstanceInfo) },
                             backgroundColor = itemBackgroundColor,
                             onToggle = { viewModel.toggleGoalCompleted(goalWithInstanceInfo.goal) },
@@ -371,10 +375,13 @@ fun GoalDetailScreen(
                             onLongClick = { viewModel.onGoalLongClick(goalWithInstanceInfo.instanceId) },
                             onSwipeStart = { viewModel.onSwipeStart(goalWithInstanceInfo.instanceId) },
                             isAnotherItemSwiped = (uiState.swipedInstanceId != null) && (uiState.swipedInstanceId != goalWithInstanceInfo.instanceId),
-                            onMoreActionsRequest = { /* Заглушка для меню */ },
+                            onMoreActionsRequest = { viewModel.onGoalActionInitiated(goalWithInstanceInfo) },
                             onCreateInstanceRequest = { viewModel.onCreateInstanceRequest(goalWithInstanceInfo) },
                             onMoveInstanceRequest = { viewModel.onMoveInstanceRequest(goalWithInstanceInfo) },
                             onCopyGoalRequest = { viewModel.onCopyGoalRequest(goalWithInstanceInfo) },
+                            // ✨ ВИПРАВЛЕНО: Передаємо карту емодзі
+                            contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+
                             dragHandleModifier = if (!isSelectionModeActive) {
                                 Modifier.draggableHandle(
                                     onDragStarted = {
@@ -391,7 +398,6 @@ fun GoalDetailScreen(
         }
     }
 
-    // ✨ ДОДАНО: Відображаємо Bottom Sheet
     RecentListsSheet(
         showSheet = showRecentSheet,
         recentLists = recentLists,

@@ -1,6 +1,7 @@
 // Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/GoalItemUI.kt
 package com.romankozak.forwardappmobile.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
@@ -31,44 +33,56 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// --- Допоміжна логіка для парсингу іконок ---
-private enum class IconCategory { IMPORTANCE, SCALE, ACTIVITY, CUSTOM }
-private data class IconConfig(val icon: String, val markers: List<String>, val category: IconCategory)
 
-private val ICON_CONFIGS: List<IconConfig> = listOf(
-    IconConfig("🔥", listOf("@critical", "! ", "!"), IconCategory.IMPORTANCE),
-    IconConfig("⭐", listOf("@day", "+"), IconCategory.IMPORTANCE),
-    IconConfig("📌", listOf("@week", "++"), IconCategory.SCALE),
-    IconConfig("🗓️", listOf("@month"), IconCategory.SCALE),
-    IconConfig("🎯", listOf("@middle", "+++ "), IconCategory.SCALE),
-    IconConfig("🔭", listOf("@long", "~ ", "~"), IconCategory.SCALE),
-    IconConfig("✨", listOf("@str"), IconCategory.SCALE),
-    IconConfig("🛒", listOf("@buy"), IconCategory.ACTIVITY), // ✨ ДОДАНО
-    IconConfig("🛠️", listOf("@manual"), IconCategory.ACTIVITY),
-    IconConfig("🧠", listOf("@mental", "@pm"), IconCategory.ACTIVITY),
-    IconConfig("📱", listOf("@device"), IconCategory.ACTIVITY),
-    IconConfig("⛓️", listOf("@providence"), IconCategory.CUSTOM), // ✨ ДОДАНО
-    IconConfig("🔬", listOf("@research"), IconCategory.CUSTOM),
-    IconConfig("🌫️", listOf("@unclear"), IconCategory.CUSTOM)
-)
-private data class ParsedGoalData(val icons: List<IconConfig>, val mainText: String)
-private fun parseTextAndExtractIcons(text: String): ParsedGoalData {
+private data class ParsedGoalData(val icons: List<String>, val mainText: String)
+
+private fun parseTextAndExtractIcons(
+    text: String,
+    contextMarkerToEmojiMap: Map<String, String>
+): ParsedGoalData {
     var currentText = text
-    val foundIcons = mutableSetOf<IconConfig>()
-    ICON_CONFIGS.forEach { config ->
-        config.markers.forEach { marker ->
-            val regex = Regex("(^|\\s)(${Regex.escape(marker)})(\\s|$)")
+    val foundIcons = mutableSetOf<String>()
+
+    // Спочатку обробляємо жорстко закодовані іконки, якщо вони є
+    val hardcodedIcons = mapOf(
+        "🔥" to listOf("@critical", "! ", "!"),
+        "⭐" to listOf("@day", "+"),
+        "📌" to listOf("@week", "++"),
+        "🗓️" to listOf("@month"),
+        "🎯" to listOf("+++ "),
+        "🔭" to listOf("~ ", "~"),
+        "✨" to listOf("@str"),
+        "🌫️" to listOf("@unclear")
+    )
+
+    hardcodedIcons.forEach { (icon, markers) ->
+        markers.forEach { marker ->
+            // Використовуємо lookbehind та lookahead для точного співпадіння
+            val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))")
             if (regex.containsMatchIn(currentText)) {
-                currentText = currentText.replace(regex, "$1$3")
-                foundIcons.add(config)
+                currentText = currentText.replace(regex, "")
+                foundIcons.add(icon)
             }
         }
     }
+
+    // Тепер динамічно обробляємо контексти на основі переданої карти
+    contextMarkerToEmojiMap.forEach { (marker, emoji) ->
+        // ✨ ВИПРАВЛЕНО: Додано RegexOption.IGNORE_CASE для ігнорування регістру
+        val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))", RegexOption.IGNORE_CASE)
+        if (regex.containsMatchIn(currentText)) {
+            currentText = currentText.replace(regex, "")
+            foundIcons.add(emoji)
+        }
+    }
+
+    // Видаляємо будь-які інші службові теги
     currentText = currentText.replace(Regex("\\[icon::\\s*([^]]+?)\\s*]"), "")
-    val sortedIcons = foundIcons.sortedBy { it.category.ordinal }
     val cleanedText = currentText.replace(Regex("\\s\\s+"), " ").trim()
-    return ParsedGoalData(icons = sortedIcons, mainText = cleanedText)
+    return ParsedGoalData(icons = foundIcons.toList(), mainText = cleanedText)
 }
+
+
 fun formatDate(timestamp: Long): String {
     val date = Date(timestamp)
     val formatter = SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault())
@@ -89,10 +103,21 @@ fun GoalItem(
     backgroundColor: Color,
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier,
-    // ✨ ДОДАНО: Новий параметр для приховування іконки контексту
-    contextMarkerToHide: String? = null
+    emojiToHide: String? = null,
+    contextMarkerToEmojiMap: Map<String, String>
 ) {
-    val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text) }
+    // ✨ ЗМІНЕНО: Передаємо карту в парсер
+    val parsedData = remember(goal.text, contextMarkerToEmojiMap) {
+        parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
+    }
+
+    Log.d("CONTEXT_DEBUG", "--- GoalItemUI ---")
+    Log.d("CONTEXT_DEBUG", "Текст завдання: ${goal.text}")
+    Log.d("CONTEXT_DEBUG", "Отримано emojiToHide: $emojiToHide")
+    Log.d("CONTEXT_DEBUG", "Розпізнані іконки: ${parsedData.icons}")
+    Log.d("CONTEXT_DEBUG", "--------------------")
+
+
     val contentAlpha = if (goal.completed) 0.5f else 1.0f
 
     Column(
@@ -151,13 +176,13 @@ fun GoalItem(
                     ) {
                         ScoreStatusBadge(goal = goal)
 
-                        // ✨ ЗМІНЕНО: Фільтруємо іконки перед відображенням
                         parsedData.icons
-                            .filterNot { it.markers.contains(contextMarkerToHide) }
-                            .forEach { iconData ->
+                            .filterNot { it == emojiToHide }
+                            .forEach { icon ->
                                 Text(
-                                    text = iconData.icon,
-                                    style = MaterialTheme.typography.labelMedium,
+                                    text = icon,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontSize = 16.sp, // Збільшуємо розмір для кращої видимості
                                     modifier = Modifier.align(Alignment.CenterVertically)
                                 )
                             }
@@ -203,7 +228,7 @@ fun GoalItem(
             }
         }
 
-        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     }
 }
 

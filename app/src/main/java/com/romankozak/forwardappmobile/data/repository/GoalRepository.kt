@@ -159,8 +159,11 @@ class GoalRepository @Inject constructor(
         goalListDao.update(list)
     }
 
-    suspend fun updateGoalLists(lists: List<GoalList>) {
-        lists.forEach { goalListDao.update(it) }
+    suspend fun updateGoalLists(lists: List<GoalList>): Int { // <-- ЗМІНІТЬ ТУТ: додайте повернення Int
+        if (lists.isNotEmpty()) {
+            return goalListDao.update(lists) // <-- ЗМІНІТЬ ТУТ: поверніть результат
+        }
+        return 0
     }
 
     @Transaction

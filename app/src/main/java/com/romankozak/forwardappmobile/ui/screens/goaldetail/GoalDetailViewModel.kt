@@ -27,7 +27,6 @@ import java.util.UUID
 import javax.inject.Inject
 
 
-// --- ДОПОМІЖНІ КЛАСИ ТА СТАНИ ---
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
@@ -47,7 +46,6 @@ sealed class GoalActionDialogState {
 
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, MoveToTop }
 enum class InputMode { AddGoal, SearchInList, SearchGlobal }
-
 
 data class UiState(
     val localSearchQuery: String = "",
@@ -82,26 +80,23 @@ class GoalDetailViewModel @Inject constructor(
     private var recentlyDeletedInstances: List<GoalWithInstanceInfo>? = null
 
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
-
-    // ✨ ДОДАНО: Потік для карти "тег -> ім'я контексту"
     private val tagToContextNameMap: StateFlow<Map<String, String>> = contextHandler.tagToContextNameMap
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    //val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
+
 
     init {
-        // ✨ ДОДАНО: Логуємо доступ до списку при ініціалізації ViewModel
         viewModelScope.launch {
             listIdFlow.filter { it.isNotEmpty() }.collect { id ->
                 goalRepository.logListAccess(id)
             }
         }
-
         viewModelScope.launch {
             contextHandler.initialize()
         }
     }
 
-    // ✨ ДОДАНО: Стан для керування шторкою недавніх списків
     private val _showRecentListsSheet = MutableStateFlow(false)
     val showRecentListsSheet: StateFlow<Boolean> = _showRecentListsSheet.asStateFlow()
 
@@ -119,11 +114,9 @@ class GoalDetailViewModel @Inject constructor(
     fun onRecentListSelected(selectedListId: String) {
         viewModelScope.launch {
             onDismissRecentLists()
-            // Просто навігуємо на новий екран. Поточний екран додасться до back stack.
             _uiEventFlow.send(UiEvent.Navigate("goal_detail_screen/$selectedListId"))
         }
     }
-
 
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedInstanceIds.isNotEmpty() }
@@ -133,21 +126,43 @@ class GoalDetailViewModel @Inject constructor(
         if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // ✨ ДОДАНО: Потік, що визначає контекстний маркер поточного списку для приховування в UI
-    val currentListContextMarker: StateFlow<String?> = combine(goalList, tagToContextNameMap) { list, tagMap ->
+    private val currentListContextMarker: StateFlow<String?> = combine(
+        goalList,
+        tagToContextNameMap
+    ) { list, tagMap ->
+        Log.d("CONTEXT_DEBUG", "--- ViewModel Combine Block ---")
         val listTags = list?.tags ?: emptyList()
-        Log.d("ContextDebug", "CHECK: Список '${list?.name}', Теги в БД: $listTags")
-        Log.d("ContextDebug", "CHECK: Карта тегів з налаштувань: $tagMap")
+        Log.d("CONTEXT_DEBUG", "Теги, знайдені у поточного списка: $listTags")
+        Log.d("CONTEXT_DEBUG", "Карта відомих контекстних тегів: $tagMap")
 
-        if (listTags.isEmpty()) return@combine null
-
+        if (listTags.isEmpty()) {
+            Log.d("CONTEXT_DEBUG", "Результат: список тегів порожній, повертаю null.")
+            return@combine null
+        }
+        if (tagMap.isEmpty()) {
+            Log.d("CONTEXT_DEBUG", "Результат: карта тегів порожня, повертаю null.")
+            return@combine null
+        }
 
         val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in listTags }?.value
+        Log.d("CONTEXT_DEBUG", "Знайдено відповідну назву контексту: $contextName")
 
-        Log.d("ContextDebug", "CHECK: Знайдено ім'я контексту: $contextName")
-
-        contextName?.let { contextHandler.getContextMarker(it) }
+        val marker = contextName?.let { contextHandler.getContextMarker(it) }
+        Log.d("CONTEXT_DEBUG", "Фінальний маркер: $marker")
+        marker
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+
+    val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
+
+
+    // ✨ КРОК 2: ВИДАЛІТЬ СТАРІ ЛОГИ ЗВІДСИ
+    val currentListContextEmojiToHide: StateFlow<String?> = combine(currentListContextMarker, contextMarkerToEmojiMap) { marker, emojiMap ->
+        // Видаліть звідси всі рядки Log.d, якщо вони є
+        marker?.let { emojiMap[it] }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+
 
 
     val filteredGoals: StateFlow<List<GoalWithInstanceInfo>> =
@@ -227,7 +242,6 @@ class GoalDetailViewModel @Inject constructor(
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-
     fun onListChooserFilterChanged(text: String) {
         _listChooserFilterText.value = text
     }
@@ -293,12 +307,10 @@ class GoalDetailViewModel @Inject constructor(
         if (title.isBlank() || listId.isEmpty()) return
 
         viewModelScope.launch {
-            // ✨ ЗМІНЕНО: Викликаємо новий централізований метод репозиторію
             val newInstanceId = goalRepository.createGoalWithInstance(title, listId)
             _uiState.update { it.copy(newlyAddedGoalInstanceId = newInstanceId) }
         }
     }
-
 
     fun onScrolledToNewGoal() {
         _uiState.update { it.copy(newlyAddedGoalInstanceId = null) }
@@ -308,7 +320,6 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch {
             recentlyDeletedInstances = null
             recentlyDeletedGoal = goal
-            // ✨ ЗМІНЕНО: Викликаємо оновлений метод репозиторію
             goalRepository.deleteGoalInstances(listOf(goal.instanceId))
             _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Ціль видалено", action = "Скасувати"))
         }
@@ -317,12 +328,10 @@ class GoalDetailViewModel @Inject constructor(
     fun undoDelete() {
         viewModelScope.launch {
             recentlyDeletedGoal?.let {
-                // При скасуванні ми не повертаємо тег автоматично, користувач може додати його знову.
                 goalRepository.insertInstance(it.toGoalInstance())
                 resetSwipe(it.instanceId)
                 recentlyDeletedGoal = null
             }
-
             recentlyDeletedInstances?.let {
                 if (it.isNotEmpty()) {
                     val instancesToRestore = it.map { info -> info.toGoalInstance() }
@@ -407,30 +416,23 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val selectedIds = _uiState.value.selectedInstanceIds
             if (selectedIds.isEmpty()) return@launch
-
             val instancesToDelete = filteredGoals.value.filter { it.instanceId in selectedIds }
-
             recentlyDeletedGoal = null
             recentlyDeletedInstances = instancesToDelete
-
-            // ✨ ЗМІНЕНО: Викликаємо оновлений метод репозиторію
             goalRepository.deleteGoalInstances(instancesToDelete.map { it.instanceId })
             _uiEventFlow.send(UiEvent.ShowSnackbar(message = "Видалено цілей: ${instancesToDelete.size}", action = "Скасувати"))
             clearSelection()
         }
     }
 
-
     fun toggleCompletionForSelectedGoals() {
         viewModelScope.launch {
             val selectedIds = _uiState.value.selectedInstanceIds
             if (selectedIds.isEmpty()) return@launch
-
             val goalsToUpdate = filteredGoals.value
                 .filter { it.instanceId in selectedIds }
                 .map { it.goal.copy(completed = !it.goal.completed) }
                 .distinctBy { it.id }
-
             goalRepository.updateGoals(goalsToUpdate)
             clearSelection()
         }
@@ -487,8 +489,6 @@ class GoalDetailViewModel @Inject constructor(
         _listChooserUserExpandedIds.value = emptySet()
     }
 
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/GoalDetailViewModel.kt
-
     fun confirmGoalAction(targetListId: String) {
         val currentState = _goalActionDialogState.value
         if (currentState is GoalActionDialogState.AwaitingListChoice) {
@@ -496,34 +496,23 @@ class GoalDetailViewModel @Inject constructor(
             val actionType = currentState.actionType
 
             viewModelScope.launch(Dispatchers.IO) {
-                // Отримуємо ID цілей, над якими виконується дія
                 val goalsToProcess = filteredGoals.value
                     .filter { it.instanceId in ids }
                 val goalIds = goalsToProcess.map { it.goal.id }.distinct()
 
-                // Єдиний блок 'when', який викликає відповідні методи репозиторію.
-                // Репозиторій тепер сам відповідає за логіку синхронізації тегів.
                 when (actionType) {
-                    GoalActionType.CreateInstance -> {
-                        goalRepository.createGoalInstances(goalIds, targetListId)
-                    }
-                    GoalActionType.MoveInstance -> {
-                        goalRepository.moveGoalInstances(ids.toList(), targetListId)
-                    }
+                    GoalActionType.CreateInstance -> goalRepository.createGoalInstances(goalIds, targetListId)
+                    GoalActionType.MoveInstance -> goalRepository.moveGoalInstances(ids.toList(), targetListId)
                     GoalActionType.CopyGoal -> {
-                        // Для копіювання ми повинні визначити маркер тут,
-                        // оскільки репозиторій створюватиме абсолютно нові цілі.
                         val list = goalRepository.getGoalListById(targetListId)
                         val listTags = list?.tags ?: emptyList()
                         val contextName = tagToContextNameMap.value.entries.find { (tagKey, _) -> tagKey in listTags }?.value
                         val markerToAdd = contextName?.let { contextHandler.getContextMarker(it) }
-
                         goalRepository.copyGoals(goalIds, targetListId, markerToAdd)
                     }
-                    GoalActionType.MoveToTop -> { /* Ця дія тут не обробляється */ }
+                    GoalActionType.MoveToTop -> { /* Not applicable here */ }
                 }
 
-                // Оновлюємо UI після завершення операції в фоні
                 launch(Dispatchers.Main) {
                     _goalActionDialogState.value = GoalActionDialogState.Hidden
                     if (ids.size == 1) {
@@ -565,24 +554,17 @@ class GoalDetailViewModel @Inject constructor(
     fun onRevealInExplorer(currentListId: String) {
         if (currentListId.isEmpty()) return
         viewModelScope.launch {
+            Log.d("REVEAL_DEBUG", "GoalDetailViewModel: Ініційовано розкриття для списку $currentListId") // <-- ДОДАЙТЕ ЛОГ
             _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentListId))
         }
     }
 
-    /**
-     * ✨ ЗМІНЕНО: Сигнатура функції тепер приймає `id` для відповідності
-     * оновленому `FilterableListChooser`.
-     */
+
     fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            // Викликаємо новий метод репозиторію, який приймає ID.
-            // Переконайтесь, що ви додали `createGoalListWithId` у ваш `GoalRepository`.
             goalRepository.createGoalListWithId(id, name, parentId)
-
-            // ✨ ДОДАНО: Логіка для розкриття батьківських елементів у діалозі.
             if (parentId != null) {
-                // `fullHierarchyForDialog` вже містить всі списки.
                 val allLists = fullHierarchyForDialog.value.allLists
                 val listLookup = allLists.associateBy { it.id }
                 val ancestorIds = findAncestorIds(parentId, listLookup)
@@ -593,10 +575,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    /**
-     * ✨ ДОДАНО: Допоміжна функція для пошуку всіх батьківських ID.
-     * Така ж, як і в `GoalListViewModel`.
-     */
     private fun findAncestorIds(startId: String?, listLookup: Map<String, GoalList>): Set<String> {
         val ancestors = mutableSetOf<String>()
         var currentId = startId

@@ -3,6 +3,7 @@
 package com.romankozak.forwardappmobile.data.logic
 
 import android.util.Log
+import androidx.datastore.preferences.core.Preferences
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -26,14 +27,16 @@ class ContextHandler @Inject constructor(
     private val goalRepository: GoalRepository by lazy { goalRepositoryProvider.get() }
 
     private val contextTagMap = mutableMapOf<String, String>()
-    private var isInitialized = false
     private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())
     val contextNamesFlow: StateFlow<List<String>> = _contextNamesFlow.asStateFlow()
 
     private val _tagToContextNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
     val tagToContextNameMap: StateFlow<Map<String, String>> = _tagToContextNameMap.asStateFlow()
 
-    private val contextMarkerMap = mapOf(
+    private val _contextMarkerToEmojiMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = _contextMarkerToEmojiMap.asStateFlow()
+
+    private val contextMarkerMap = mutableMapOf(
         "BUY" to "@buy", "PM" to "@pm", "PAPER" to "@paper", "MENTAL" to "@mental",
         "PROVIDENCE" to "@providence", "MANUAL" to "@manual", "RESEARCH" to "@research",
         "DEVICE" to "@device", "MIDDLE" to "@middle", "LONG" to "@long"
@@ -44,50 +47,85 @@ class ContextHandler @Inject constructor(
         return key?.let { contextMarkerMap[it] }
     }
 
-    // ✨ ДОДАНО: Повертаємо загублений метод
     fun getContextTag(contextName: String): String? {
-        if (!isInitialized) {
-            Log.w("ContextDebug", "getContextTag called before handler was initialized!")
-        }
-        // Ключі в contextTagMap зберігаються у нижньому регістрі (e.g., "buy", "pm")
         return contextTagMap[contextName.lowercase()]
     }
 
+    // ✨ ВИПРАВЛЕНО: Метод тепер може викликатися повторно для оновлення налаштувань
     suspend fun initialize() {
-        if (isInitialized) return
+        // Просто викликаємо завантаження налаштувань.
+        // Більше ніяких очищень чи retainAll тут не потрібно.
         loadContextSettings()
-        isInitialized = true
     }
 
+
     private suspend fun loadContextSettings() {
-        val contextKeysList = listOf(
-            SettingsRepository.ContextKeys.BUY, SettingsRepository.ContextKeys.PM,
-            SettingsRepository.ContextKeys.PAPER, SettingsRepository.ContextKeys.MENTAL,
-            SettingsRepository.ContextKeys.PROVIDENCE, SettingsRepository.ContextKeys.MANUAL,
-            SettingsRepository.ContextKeys.RESEARCH, SettingsRepository.ContextKeys.DEVICE,
-            SettingsRepository.ContextKeys.MIDDLE, SettingsRepository.ContextKeys.LONG
+        // Створюємо тимчасові карти, щоб уникнути проблем з багатопоточністю
+        // та гарантувати, що дані будуть консистентними.
+        val localContextTagMap = mutableMapOf<String, String>()
+        val localContextMarkerMap = mutableMapOf(
+            "BUY" to "@buy", "PM" to "@pm", "PAPER" to "@paper", "MENTAL" to "@mental",
+            "PROVIDENCE" to "@providence", "MANUAL" to "@manual", "RESEARCH" to "@research",
+            "DEVICE" to "@device", "MIDDLE" to "@middle", "LONG" to "@long"
         )
-        coroutineScope {
-            val deferreds = contextKeysList.map { key ->
-                async(Dispatchers.IO) {
-                    try {
-                        // Приводимо до нижнього регістру для консистентності
-                        val contextName = key.name.removePrefix("context_tag_").lowercase()
-                        val tag = settingsRepository.getContextTagFlow(key).first()
-                        contextTagMap[contextName] = tag
-                    } catch (e: Exception) {
-                        Log.e("ContextDebug", "Error loading context for key ${key.name}", e)
-                    }
+        val localMarkerToEmojiMap = mutableMapOf<String, String>()
+
+        val reservedContextsInfo = listOf(
+            Triple("BUY", SettingsRepository.ContextKeys.BUY, SettingsRepository.ContextKeys.EMOJI_BUY),
+            Triple("PM", SettingsRepository.ContextKeys.PM, SettingsRepository.ContextKeys.EMOJI_PM),
+            Triple("PAPER", SettingsRepository.ContextKeys.PAPER, SettingsRepository.ContextKeys.EMOJI_PAPER),
+            Triple("MENTAL", SettingsRepository.ContextKeys.MENTAL, SettingsRepository.ContextKeys.EMOJI_MENTAL),
+            Triple("PROVIDENCE", SettingsRepository.ContextKeys.PROVIDENCE, SettingsRepository.ContextKeys.EMOJI_PROVIDENCE),
+            Triple("MANUAL", SettingsRepository.ContextKeys.MANUAL, SettingsRepository.ContextKeys.EMOJI_MANUAL),
+            Triple("RESEARCH", SettingsRepository.ContextKeys.RESEARCH, SettingsRepository.ContextKeys.EMOJI_RESEARCH),
+            Triple("DEVICE", SettingsRepository.ContextKeys.DEVICE, SettingsRepository.ContextKeys.EMOJI_DEVICE),
+            Triple("MIDDLE", SettingsRepository.ContextKeys.MIDDLE, SettingsRepository.ContextKeys.EMOJI_MIDDLE),
+            Triple("LONG", SettingsRepository.ContextKeys.LONG, SettingsRepository.ContextKeys.EMOJI_LONG)
+        )
+
+        reservedContextsInfo.forEach { (name, tagKey, emojiKey) ->
+            try {
+                val tag = settingsRepository.getContextTagFlow(tagKey).first()
+                val emoji = settingsRepository.getContextEmojiFlow(emojiKey).first()
+                localContextTagMap[name.lowercase()] = tag
+                localContextMarkerMap[name.uppercase()]?.let { marker ->
+                    if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
                 }
+            } catch (e: Exception) {
+                Log.e("ContextDebug", "Error loading reserved context '$name'", e)
             }
-            deferreds.awaitAll()
         }
-        _contextNamesFlow.value = contextTagMap.keys.sorted()
-        _tagToContextNameMap.value = contextTagMap.entries.associate { (k, v) -> v to k }
+
+        val customNames = settingsRepository.customContextNamesFlow.first()
+        customNames.forEach { name ->
+            try {
+                val tag = settingsRepository.getCustomContextTagFlow(name).first()
+                val emoji = settingsRepository.getCustomContextEmojiFlow(name).first()
+                if (tag.isNotBlank()) {
+                    val marker = "@${name.lowercase()}"
+                    localContextTagMap[name.lowercase()] = tag
+                    localContextMarkerMap[name.uppercase()] = marker
+                    if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
+                }
+            } catch (e: Exception) {
+                Log.e("ContextDebug", "Error loading custom context '$name'", e)
+            }
+        }
+
+        // Тепер, коли всі дані зібрані, атомарно оновлюємо основні змінні класу
+        contextTagMap.clear()
+        contextTagMap.putAll(localContextTagMap)
+
+        contextMarkerMap.clear()
+        contextMarkerMap.putAll(localContextMarkerMap)
+
+        _contextNamesFlow.value = localContextTagMap.keys.sorted()
+        _tagToContextNameMap.value = localContextTagMap.entries.associate { (k, v) -> v to k }
+        _contextMarkerToEmojiMap.value = localMarkerToEmojiMap
     }
 
     private fun parseContextsFromText(text: String): Set<String> {
-        val regex = "@\\{?(\\w+)\\}?".toRegex()
+        val regex = "@\\{?([\\w-]+)\\}?".toRegex()
         return regex.findAll(text).map { it.groupValues[1] }.toSet()
     }
 
@@ -106,7 +144,7 @@ class ContextHandler @Inject constructor(
     }
 
     suspend fun handleContextsOnCreate(goal: Goal) {
-        if (!isInitialized) initialize()
+        initialize() // Ensure settings are loaded
         val contexts = parseContextsFromText(goal.text)
         if (contexts.isNotEmpty()) {
             ensureInstancesExist(goal, contexts)
@@ -114,7 +152,7 @@ class ContextHandler @Inject constructor(
     }
 
     suspend fun syncContextsOnUpdate(oldGoal: Goal, newGoal: Goal) {
-        if (!isInitialized) initialize()
+        initialize() // Ensure settings are loaded
         val oldContexts = parseContextsFromText(oldGoal.text)
         val newContexts = parseContextsFromText(newGoal.text)
 
