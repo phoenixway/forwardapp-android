@@ -330,6 +330,7 @@ class GoalListViewModel @Inject constructor(
 
 // Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
 
+
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
             Log.d("REVEAL_DEBUG", "ViewModel: processRevealRequest розпочато")
@@ -352,24 +353,15 @@ class GoalListViewModel @Inject constructor(
                 return@launch
             }
 
-            // Знаходимо всіх предків та розгортаємо їх
-            val ancestorsToExpand = mutableListOf<String>()
-            var currentParentId = targetList.parentId
+            // Використовуємо існуючу функцію для знаходження предків
+            val ancestorIds = mutableSetOf<String>()
+            val visitedAncestors = mutableSetOf<String>()
+            findAncestorsRecursive(listId, listLookup, ancestorIds, visitedAncestors)
 
-            while (currentParentId != null) {
-                val parent = listLookup[currentParentId]
-                if (parent != null) {
-                    ancestorsToExpand.add(parent.id)
-                    currentParentId = parent.parentId
-                } else {
-                    break
-                }
-            }
+            Log.d("REVEAL_DEBUG", "ViewModel: Знайдено ${ancestorIds.size} предків для розгортання: $ancestorIds")
 
-            Log.d("REVEAL_DEBUG", "ViewModel: Знайдено ${ancestorsToExpand.size} предків для розгортання: $ancestorsToExpand")
-
-            // Розгортаємо всіх предків
-            ancestorsToExpand.forEach { ancestorId ->
+            // Розгортаємо всіх предків (крім самого цільового списку)
+            ancestorIds.filter { it != listId }.forEach { ancestorId ->
                 val ancestor = listLookup[ancestorId]
                 if (ancestor != null && !ancestor.isExpanded) {
                     Log.d("REVEAL_DEBUG", "ViewModel: Розгортаємо предка: ${ancestor.name} (ID: ${ancestor.id})")
@@ -424,7 +416,6 @@ class GoalListViewModel @Inject constructor(
             }
         }
     }
-
     fun onToggleSearch(isActive: Boolean) {
         _isSearchActive.value = isActive
         if (!isActive) {
