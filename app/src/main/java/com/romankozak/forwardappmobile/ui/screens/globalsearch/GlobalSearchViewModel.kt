@@ -38,17 +38,23 @@ class GlobalSearchViewModel @Inject constructor(
     }
 
     private fun performSearch() {
-        // Запит не може бути пустим, але робимо перевірку
+        // The query cannot be empty, but we check just in case
         if (query.isBlank()) {
             _uiState.update { it.copy(isLoading = false) }
             return
         }
 
         viewModelScope.launch {
-            // --- ВИПРАВЛЕНО: Використовуємо новий метод з GoalRepository ---
+            // Fetch results from the repository
             val results = goalRepository.searchGoalsGlobal("%$query%")
+
+            // FIX: Remove duplicate search results before they are passed to the UI.
+            // The .distinct() call ensures every item in the list is unique.
+            val distinctResults = results.distinct()
+
             _uiState.update {
-                it.copy(results = results, isLoading = false)
+                // Update the state with the sanitized, distinct list
+                it.copy(results = distinctResults, isLoading = false)
             }
         }
     }
