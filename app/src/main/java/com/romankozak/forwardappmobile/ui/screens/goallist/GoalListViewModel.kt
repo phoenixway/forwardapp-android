@@ -1,10 +1,8 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
-
 package com.romankozak.forwardappmobile.ui.screens.goallist
 
 import android.app.Application
 import android.net.Uri
-import android.util.Log
+import android.util.Log // <--- ДОДАНО ІМПОРТ
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,10 +28,12 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
+// ... (sealed класи та data класи залишаються без змін)
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
     data class NavigateToDetails(val listId: String) : GoalListUiEvent()
     data class NavigateToGlobalSearch(val query: String) : GoalListUiEvent()
+    object NavigateToSettings : GoalListUiEvent()
     data class ShowToast(val message: String) : GoalListUiEvent()
     data class ScrollToIndex(val index: Int) : GoalListUiEvent()
     object FocusSearchField : GoalListUiEvent()
@@ -58,8 +58,6 @@ sealed class DialogState {
     data class ContextMenu(val list: GoalList) : DialogState()
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class EditList(val list: GoalList) : DialogState()
-    object AppSettings : DialogState()
-    object ReservedContextsSettings : DialogState()
     object AboutApp : DialogState()
 }
 
@@ -78,6 +76,7 @@ private data class FilterState(
     val settings: PlanningSettingsState,
 )
 
+
 @HiltViewModel
 class GoalListViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
@@ -88,6 +87,7 @@ class GoalListViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    // ... (решта полів ViewModel без змін)
     private val _highlightedListId = MutableStateFlow<String?>(null)
     val highlightedListId: StateFlow<String?> = _highlightedListId.asStateFlow()
     private val _searchQuery = MutableStateFlow("")
@@ -119,20 +119,27 @@ class GoalListViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val debouncedSearchQuery = searchQuery
+        .debounce(350L)
+        .distinctUntilChanged()
 
     val appStatistics: StateFlow<AppStatistics> =
         combine(_allListsFlat, goalRepository.getAllGoalsCountFlow()) { allLists, allGoalsCount ->
             AppStatistics(listCount = allLists.size, goalCount = allGoalsCount)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppStatistics())
+
     private val filterStateFlow: StateFlow<FilterState> = combine(
         _allListsFlat,
-        searchQuery,
+        debouncedSearchQuery,
         isSearchActive,
         planningMode,
         planningSettingsState
     ) { flatList, query, searchActive, mode, settings ->
         FilterState(flatList, query, searchActive, mode, settings)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FilterState(emptyList(), "", false, PlanningMode.All, PlanningSettingsState()))
+
+    // ================== ОСНОВНИЙ БЛОК З ЛОГАМИ ==================
     val listHierarchy: StateFlow<ListHierarchyData> =
         combine(
             filterStateFlow,
@@ -141,79 +148,123 @@ class GoalListViewModel @Inject constructor(
             _expandedInMediumMode,
             _expandedInLongMode,
         ) { filterState, expandedSearch, expandedDaily, expandedMedium, expandedLong ->
-            val (flatList, query, searchActive, mode, settings) = filterState
-            val isFilterActive = (searchActive && query.isNotBlank()) || (mode != PlanningMode.All)
-            if (!isFilterActive) {
-                val topLevel = flatList.filter { it.parentId == null }.sortedBy { it.order }
-                val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
-                val displayLists = flatList.map { list -> list.copy(isExpanded = list.isExpanded) }
-                return@combine ListHierarchyData(allLists = displayLists, topLevelLists = topLevel, childMap = childMap)
-            }
-            val listLookup = flatList.associateBy { it.id }
-            val fullChildMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
-            val matchingLists = if (searchActive && query.isNotBlank()) {
-                flatList.filter { it.name.contains(query, ignoreCase = true) }
-            } else {
-                val targetTag = when (mode) {
-                    PlanningMode.Daily -> settings.dailyTag
-                    PlanningMode.Medium -> settings.mediumTag
-                    PlanningMode.Long -> settings.longTag
+            try {
+                Log.d("FLOW_DEBUG", "Combine started. Query: '${filterState.query}', SearchActive: ${filterState.searchActive}, Mode: ${filterState.mode}")
+
+                val (flatList, query, searchActive, mode, settings) = filterState
+                val isFilterActive = (searchActive && query.isNotBlank()) || (mode != PlanningMode.All)
+
+                if (!isFilterActive) {
+                    val topLevel = flatList.filter { it.parentId == null }.sortedBy { it.order }
+                    val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
+                    val displayLists = flatList.map { list -> list.copy(isExpanded = list.isExpanded) }
+                    val result = ListHierarchyData(allLists = displayLists, topLevelLists = topLevel, childMap = childMap)
+                    Log.d("FLOW_DEBUG", "Combine finished (no filter). Emitting ${result.topLevelLists.size} top-level lists.")
+                    return@combine result
+                }
+
+                Log.d("FLOW_DEBUG", "Filter is active. flatList size: ${flatList.size}")
+
+                val listLookup = flatList.associateBy { it.id }
+                val fullChildMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
+
+                val matchingLists = if (searchActive && query.isNotBlank()) {
+                    flatList.filter { it.name.contains(query, ignoreCase = true) }
+                } else {
+                    val targetTag = when (mode) {
+                        PlanningMode.Daily -> settings.dailyTag
+                        PlanningMode.Medium -> settings.mediumTag
+                        PlanningMode.Long -> settings.longTag
+                        else -> null
+                    }
+                    if (targetTag != null) flatList.filter { it.tags?.contains(targetTag) == true } else emptyList()
+                }
+                Log.d("FLOW_DEBUG", "Found ${matchingLists.size} matching lists.")
+
+                val descendantIds = mutableSetOf<String>()
+                val ancestorIds = mutableSetOf<String>()
+                val visitedAncestors = mutableSetOf<String>()
+                val visitedDescendants = mutableSetOf<String>()
+
+                matchingLists.forEach { list ->
+                    findAncestorsRecursive(list.id, listLookup, ancestorIds, visitedAncestors)
+                    findDescendantsRecursive(list.id, fullChildMap, descendantIds, visitedDescendants)
+                }
+
+                val visibleIds = mutableSetOf<String>().apply {
+                    addAll(ancestorIds)
+                    addAll(descendantIds)
+                    addAll(matchingLists.map { it.id })
+                }
+                Log.d("FLOW_DEBUG", "Total visible IDs: ${visibleIds.size}")
+
+                val currentExpandedState = when {
+                    searchActive -> expandedSearch
+                    mode is PlanningMode.Daily -> expandedDaily
+                    mode is PlanningMode.Medium -> expandedMedium
+                    mode is PlanningMode.Long -> expandedLong
                     else -> null
                 }
-                if (targetTag != null) flatList.filter { it.tags?.contains(targetTag) == true } else emptyList()
-            }
-            val descendantIds = mutableSetOf<String>()
-            val ancestorIds = mutableSetOf<String>()
-            val visitedAncestors = mutableSetOf<String>()
-            val visitedDescendants = mutableSetOf<String>()
-            matchingLists.forEach { list ->
-                findAncestorsRecursive(list.id, listLookup, ancestorIds, visitedAncestors)
-                findDescendantsRecursive(list.id, fullChildMap, descendantIds, visitedDescendants)
-            }
-            val visibleIds = mutableSetOf<String>().apply {
-                addAll(ancestorIds)
-                addAll(descendantIds)
-                addAll(matchingLists.map { it.id })
-            }
-            val currentExpandedState = when {
-                searchActive -> expandedSearch
-                mode is PlanningMode.Daily -> expandedDaily
-                mode is PlanningMode.Medium -> expandedMedium
-                mode is PlanningMode.Long -> expandedLong
-                else -> null
-            }
-            val shouldInitialize = currentExpandedState == null && matchingLists.isNotEmpty()
-            val currentExpandedIds = if (shouldInitialize) visibleIds else (currentExpandedState ?: emptySet())
-            if (shouldInitialize) {
-                when {
-                    searchActive -> _expandedInSearchMode.value = visibleIds
-                    mode is PlanningMode.Daily -> _expandedInDailyMode.value = visibleIds
-                    mode is PlanningMode.Medium -> _expandedInMediumMode.value = visibleIds
-                    mode is PlanningMode.Long -> _expandedInLongMode.value = visibleIds
+                val shouldInitialize = currentExpandedState == null && matchingLists.isNotEmpty()
+                val currentExpandedIds = if (shouldInitialize) visibleIds else (currentExpandedState ?: emptySet())
+
+                if (shouldInitialize) {
+                    Log.d("FLOW_DEBUG", "Initializing expanded state for the current filter.")
+                    when {
+                        searchActive -> _expandedInSearchMode.value = visibleIds
+                        mode is PlanningMode.Daily -> _expandedInDailyMode.value = visibleIds
+                        mode is PlanningMode.Medium -> _expandedInMediumMode.value = visibleIds
+                        mode is PlanningMode.Long -> _expandedInLongMode.value = visibleIds
+                    }
                 }
+
+                val visibleLists = flatList.filter { it.id in visibleIds }
+                val displayLists = visibleLists.map { list ->
+                    list.copy(isExpanded = currentExpandedIds.contains(list.id))
+                }
+                val topLevel = displayLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
+                val childMap = displayLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+
+                val result = ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
+                Log.d("FLOW_DEBUG", "Combine finished successfully (with filter). Emitting ${result.topLevelLists.size} top-level lists.")
+                return@combine result
+
+            } catch (e: Exception) {
+                // ЦЕЙ ЛОГ ПОКАЖЕ ПОМИЛКУ, ЯКЩО ВОНА ВИНКНЕ ВСЕРЕДИНІ ЛОГІКИ
+                Log.e("FLOW_DEBUG", "!!! Exception in combine block !!!", e)
+                return@combine ListHierarchyData() // Повертаємо порожній стан, щоб додаток не впав
             }
-            val visibleLists = flatList.filter { it.id in visibleIds }
-            val displayLists = visibleLists.map { list ->
-                list.copy(isExpanded = currentExpandedIds.contains(list.id))
+        }.flowOn(Dispatchers.Default)
+            .catch { e ->
+                // ЦЕЙ ЛОГ СПІЙМАЄ ПОМИЛКИ, ЩО МОГЛИ СТАТИСЯ ДО combine АБО В flowOn
+                Log.e("FLOW_DEBUG", "!!! Exception in upstream flow or dispatcher !!!", e)
+                emit(ListHierarchyData())
             }
-            val topLevel = displayLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
-            val childMap = displayLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            return@combine ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+    // ================== КІНЕЦЬ БЛОКУ З ЛОГАМИ ==================
 
     private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
     val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
     private val _listChooserFilterText = MutableStateFlow("")
     val listChooserFilterText = _listChooserFilterText.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val debouncedListChooserFilterText = listChooserFilterText
+        .debounce(300L)
+        .distinctUntilChanged()
+
     val fullHierarchyForDialog: StateFlow<ListHierarchyData> = listHierarchy
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
     val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
-        combine(listChooserFilterText, fullHierarchyForDialog) { filter, originalHierarchy ->
+        combine(debouncedListChooserFilterText, fullHierarchyForDialog) { filter, originalHierarchy ->
             HierarchyFilter.filter(originalHierarchy, filter)
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
     val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
-        listChooserFilterText,
+        debouncedListChooserFilterText,
         filteredListHierarchyForDialog,
         listChooserUserExpandedIds
     ) { filter, filteredHierarchy, userExpanded ->
@@ -225,6 +276,8 @@ class GoalListViewModel @Inject constructor(
         }
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    // ... (решта файлу ViewModel без змін)
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
     private val _showWifiServerDialog = MutableStateFlow(false)
@@ -321,29 +374,16 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
-
-
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
-
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
-
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goallist/GoalListViewModel.kt
-
-
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
             Log.d("REVEAL_DEBUG", "ViewModel: processRevealRequest розпочато")
 
-            // 1. Скидаємо фільтри, щоб працювати з повною ієрархією
             _isSearchActive.value = false
             _planningMode.value = PlanningMode.All
 
-            // 2. Отримуємо актуальний стан даних
             val allLists = _allListsFlat.first { it.isNotEmpty() }
             Log.d("REVEAL_DEBUG", "ViewModel: Отримано повний список з ${allLists.size} елементів.")
 
-            // 3. КЛЮЧОВЕ ВИПРАВЛЕННЯ: Знаходимо всіх предків цільового списку та розгортаємо їх
             val listLookup = allLists.associateBy { it.id }
             val targetList = listLookup[listId]
 
@@ -353,14 +393,12 @@ class GoalListViewModel @Inject constructor(
                 return@launch
             }
 
-            // Використовуємо існуючу функцію для знаходження предків
             val ancestorIds = mutableSetOf<String>()
             val visitedAncestors = mutableSetOf<String>()
             findAncestorsRecursive(listId, listLookup, ancestorIds, visitedAncestors)
 
             Log.d("REVEAL_DEBUG", "ViewModel: Знайдено ${ancestorIds.size} предків для розгортання: $ancestorIds")
 
-            // Розгортаємо всіх предків (крім самого цільового списку)
             ancestorIds.filter { it != listId }.forEach { ancestorId ->
                 val ancestor = listLookup[ancestorId]
                 if (ancestor != null && !ancestor.isExpanded) {
@@ -369,10 +407,8 @@ class GoalListViewModel @Inject constructor(
                 }
             }
 
-            // Чекаємо, поки зміни застосуються
             delay(100)
 
-            // 4. Отримуємо оновлені дані після розгортання
             val updatedLists = _allListsFlat.first()
             val topLevel = updatedLists.filter { it.parentId == null }.sortedBy { it.order }
 
@@ -382,7 +418,6 @@ class GoalListViewModel @Inject constructor(
 
                 currentLists.forEach { list ->
                     result.add(list)
-                    // Перевіряємо, чи список розгорнутий
                     if (list.isExpanded) {
                         val children = updatedListLookup.values
                             .filter { it.parentId == list.id }
@@ -399,7 +434,6 @@ class GoalListViewModel @Inject constructor(
             val index = displayedLists.indexOfFirst { it.id == listId }
             Log.d("REVEAL_DEBUG", "ViewModel: Обчислено індекс: $index на основі ${displayedLists.size} видимих елементів.")
 
-            // 5. Відправляємо команду UI
             if (index != -1) {
                 _uiEventChannel.send(GoalListUiEvent.ScrollToIndex(index))
                 Log.d("REVEAL_DEBUG", "ViewModel: Команду ScrollToIndex($index) відправлено до UI.")
@@ -408,7 +442,6 @@ class GoalListViewModel @Inject constructor(
                 _uiEventChannel.send(GoalListUiEvent.ShowToast("Could not find list after expanding ancestors."))
             }
 
-            // Логіка підсвічування
             _highlightedListId.value = listId
             delay(1500)
             if (_highlightedListId.value == listId) {
@@ -459,8 +492,10 @@ class GoalListViewModel @Inject constructor(
     }
 
     fun onSearchQueryChanged(query: String) {
-        _expandedInSearchMode.value = null
         _searchQuery.value = query
+        if (_expandedInSearchMode.value != null) {
+            _expandedInSearchMode.value = null
+        }
     }
 
     fun onShowWifiServerDialog() {
@@ -524,26 +559,16 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-//    private fun findAncestorsRecursive(
-//        listId: String?,
-//        listLookup: Map<String, GoalList>,
-//        ids: MutableSet<String>,
-//        visited: MutableSet<String>,
-//    ) {
-//        if (listId == null || !visited.add(listId)) return
-//        ids.add(listId)
-//        val parent = listLookup[listId]
-//        findAncestorsRecursive(parent?.parentId, listLookup, ids, visited)
-//    }
-
     private fun findAncestorsRecursive(
         listId: String?,
         listLookup: Map<String, GoalList>,
         ids: MutableSet<String>,
-        visited: MutableSet<String> // visited більше не потрібен, але залишимо для сумісності
+        visited: MutableSet<String> // Тепер цей параметр буде використовуватися
     ) {
         var currentId = listId
-        while (currentId != null) {
+        // Цикл зупиниться, якщо ми дійдемо до кореня (null)
+        // або якщо ми вдруге натрапимо на той самий ID (цикл)
+        while (currentId != null && visited.add(currentId)) {
             ids.add(currentId)
             currentId = listLookup[currentId]?.parentId
         }
@@ -607,7 +632,13 @@ class GoalListViewModel @Inject constructor(
     fun onMenuRequested(list: GoalList) { _dialogState.value = DialogState.ContextMenu(list) }
     fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
     fun onEditRequest(list: GoalList) { _dialogState.value = DialogState.EditList(list) }
-    fun onShowSettingsDialog() { _dialogState.value = DialogState.AppSettings }
+
+    fun onShowSettingsScreen() {
+        viewModelScope.launch {
+            _uiEventChannel.send(GoalListUiEvent.NavigateToSettings)
+        }
+    }
+
     fun onShowAboutDialog() { _dialogState.value = DialogState.AboutApp }
     fun onListClicked(listId: String) { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId)) } }
     fun onDesktopAddressChange(newAddress: String) {
@@ -696,10 +727,6 @@ class GoalListViewModel @Inject constructor(
             settingsRepo.saveLongTag(long.trim())
             settingsRepo.saveObsidianVaultName(vaultName.trim())
         }
-    }
-
-    fun onManageContextsRequest() {
-        _dialogState.value = DialogState.ReservedContextsSettings
     }
 
     fun onContextSelected(contextName: String) {

@@ -38,6 +38,9 @@ accompanist = "0.34.0"
 
 
 [libraries]
+compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
+compose-animation = { group = "androidx.compose.animation", name = "animation" }
+
 # ВАША ЛОКАЛЬНА БІБЛІОТЕКА REORDERABLE - ВИПРАВЛЕНО
 javapoet = { module = "com.squareup:javapoet", version.ref = "javapoet" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable-android", version.ref = "reorderable" }
