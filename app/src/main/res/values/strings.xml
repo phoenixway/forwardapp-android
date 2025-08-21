@@ -1,12 +1,14 @@
 <resources>
-    <string name="app_name">ForwardApp Mobile</string>
-    <string name="recent_lists">Недавні списки</string>
-    <string name="mode_add_goal">Додати ціль</string>
-    <string name="mode_search_in_list">Пошук в списку</string>
-    <string name="mode_search_global">Глобальний пошук</string>
-    <string name="hint_add_goal">Що хочете досягти?</string>
-    <string name="hint_search_in_list">Знайти в цьому списку…</string>
-    <string name="hint_search_global">Пошук серед усіх цілей…</string>
-    <string name="send">Відправити</string>
-    <string name="swipe_to_change_mode">Свайпніть, щоб змінити режим</string>
+    <string name="app_name">ForwardApp</string>
+    <string name="recent_lists">Show recent lists</string>
+    <string name="swipe_to_change_mode">Swipe to change mode</string>
+    <string name="send">Send</string>
+
+    <string name="mode_add_goal">Add goal</string>
+    <string name="mode_search_in_list">Search in list</string>
+    <string name="mode_search_global">Global search</string>
+
+    <string name="hint_add_goal">Add your goal..</string>
+    <string name="hint_search_in_list">Find in this list…</string>
+    <string name="hint_search_global">Search through all goals…</string>
 </resources>

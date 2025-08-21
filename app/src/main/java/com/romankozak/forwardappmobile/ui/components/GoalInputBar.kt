@@ -4,7 +4,6 @@ package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
@@ -59,16 +58,15 @@ fun GoalInputBar(
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var isPressed by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
-    var animationDirection by remember { mutableStateOf(1) }
+    var animationDirection by remember { mutableIntStateOf(1) }
 
     val currentModeIndex = modes.indexOf(inputMode)
 
     val (containerColor, contentColor, accentColor) = when (inputMode) {
         InputMode.AddGoal -> Triple(
-            MaterialTheme.colorScheme.surfaceContainer, // ЗМІНЕНО: Нейтральний фон
-            MaterialTheme.colorScheme.primary, // ЗМІНЕНО: Яскравий колір для контенту
+            MaterialTheme.colorScheme.surfaceContainer,
+            MaterialTheme.colorScheme.primary,
             MaterialTheme.colorScheme.primary
-
         )
         InputMode.SearchInList -> Triple(
             MaterialTheme.colorScheme.secondaryContainer,
@@ -98,8 +96,10 @@ fun GoalInputBar(
     )
 
     LaunchedEffect(inputMode) {
-        delay(60)
-        focusRequester.requestFocus()
+        if (inputMode != InputMode.AddGoal) {
+            delay(60)
+            focusRequester.requestFocus()
+        }
     }
 
     Surface(
@@ -296,10 +296,9 @@ fun GoalInputBar(
                     singleLine = true,
                     cursorBrush = SolidColor(contentColor),
                     decorationBox = { innerTextField ->
-                        // ✨ ВИПРАВЛЕННЯ: `AnimatedVisibility` знаходиться всередині Box,
-                        // що є правильним контекстом і вирішує помилку.
                         Box(contentAlignment = Alignment.CenterStart) {
-                            this@Row.AnimatedVisibility(
+                            // Підсвітка-підказка всередині TextField
+                            androidx.compose.animation.AnimatedVisibility(
                                 visible = inputValue.text.isEmpty(),
                                 enter = fadeIn(animationSpec = tween(200)),
                                 exit = fadeOut(animationSpec = tween(200))
@@ -316,12 +315,13 @@ fun GoalInputBar(
                             }
                             innerTextField()
                         }
+
                     }
                 )
             }
 
             Box(contentAlignment = Alignment.Center) {
-                this@Row.AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = inputValue.text.isNotBlank(),
                     enter = fadeIn() + scaleIn(
                         initialScale = 0.8f,
@@ -346,6 +346,7 @@ fun GoalInputBar(
                     }
                 }
             }
+
         }
     }
 }

@@ -4,7 +4,6 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaldetail
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -60,8 +59,6 @@ fun GoalDetailScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
-    Log.d("COMPOSE_DEBUG", "GoalDetailScreen recomposing. Current mode is: ${uiState.inputMode}")
-
     val goals by viewModel.filteredGoals.collectAsState()
     val goalActionState by viewModel.goalActionDialogState.collectAsState()
     val list by viewModel.goalList.collectAsState()
