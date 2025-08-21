@@ -86,11 +86,15 @@ interface GoalDao {
     @Query("SELECT * FROM goal_instances")
     suspend fun getAllInstances(): List<GoalInstance>
 
+    @Update
+    suspend fun updateInstances(instances: List<GoalInstance>)
+
+    // 2. Модифікуємо існуючий метод
     @Transaction
     suspend fun updateInstancesOrder(instances: List<GoalWithInstanceInfo>) {
-        instances.forEach {
-            updateInstance(it.toGoalInstance())
-        }
+        // Конвертуємо весь список одразу і викликаємо один пакетний запит
+        val goalInstances = instances.map { it.toGoalInstance() }
+        updateInstances(goalInstances)
     }
 
     @Update
@@ -108,12 +112,12 @@ interface GoalDao {
 
     @Transaction
     @Query("""
-        SELECT g.*, gl.id as listId, gl.name as listName
-        FROM goals g
-        JOIN goal_instances gi ON g.id = gi.goalId
-        JOIN goal_lists gl ON gi.listId = gl.id
-        WHERE g.text LIKE :query
-    """)
+    SELECT DISTINCT g.*, gl.id as listId, gl.name as listName
+    FROM goals g
+    JOIN goal_instances gi ON g.id = gi.goalId
+    JOIN goal_lists gl ON gi.listId = gl.id
+    WHERE g.text LIKE :query
+""")
     suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult>
 
     @Query("SELECT count(*) FROM goal_instances WHERE listId = :listId")
