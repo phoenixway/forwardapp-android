@@ -33,7 +33,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,70 +41,46 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalInputBar
 import com.romankozak.forwardappmobile.ui.components.MultiSelectTopAppBar
-// --- ПОЧАТОК ЗМІН ---
-import com.romankozak.forwardappmobile.ui.components.RecentListsSheet // Додаємо необхідний імпорт
-// --- КІНЕЦЬ ЗМІН ---
+import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.listItemsRenderers.*
+import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import java.lang.Integer.max
-import java.lang.Integer.min
 
 @Composable
 fun GoalDetailScreen(
     navController: NavController,
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
-    val listId = remember {
-        navController.currentBackStackEntry?.arguments?.getString("listId") ?: ""
-    }
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val list by viewModel.goalList.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
-
-    // --- ПОЧАТОК ЗМІН ---
-    // 1. Отримуємо стан для RecentListsSheet з ViewModel
     val showRecentListsSheet by viewModel.showRecentListsSheet.collectAsStateWithLifecycle()
     val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
-    // --- КІНЕЦЬ ЗМІН ---
-
     val haptic = LocalHapticFeedback.current
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val localContext = LocalContext.current
-
+    val emojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val density = LocalDensity.current
-    val imeBottom = WindowInsets.ime.getBottom(density)
-    val isKeyboardVisible by remember(imeBottom) {
-        derivedStateOf { imeBottom > 0 }
+    val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
+    val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsStateWithLifecycle()
+    val listChooserFilterText by viewModel.listChooserFilterText.collectAsStateWithLifecycle()
+    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsStateWithLifecycle()
+
+    val listId = remember {
+        navController.currentBackStackEntry?.arguments?.getString("listId") ?: ""
     }
 
-    LaunchedEffect(listContent) {
-        val newItemId = uiState.newlyAddedItemId
-        // Перевіряємо, чи є ID нового елемента, і чи цей елемент вже є першим у списку
-        if (newItemId != null && listContent.firstOrNull()?.item?.id == newItemId) {
-            // Запускаємо прокрутку
-            coroutineScope.launch {
-                listState.animateScrollToItem(0)
-            }
-            // Скидаємо тригер, щоб прокрутка не повторювалася
-            viewModel.onScrolledToNewItem()
-        }
-    }
-
-    BackHandler(enabled = isSelectionModeActive) {
-        viewModel.clearSelection()
-    }
-
+    // --- ЗМІНА №1: Оновлюємо логіку "Підсвітити в беклогах" ---
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
@@ -124,17 +99,28 @@ fun GoalDetailScreen(
                 }
                 is UiEvent.ScrollTo -> listState.animateScrollToItem(event.index)
                 is UiEvent.NavigateBackAndReveal -> {
-                    // Встановлюємо результат для попереднього екрану
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("list_to_reveal", event.listId)
-                    // Повертаємось назад
-                    navController.popBackStack()
+                    // Встановлюємо результат для екрану зі списками
+                    navController.getBackStackEntry("goal_lists_screen")
+                        .savedStateHandle
+                        .set("list_to_reveal", event.listId)
+                    // Повертаємось на екран зі списками, очищуючи всі проміжні екрани
+                    navController.popBackStack("goal_lists_screen", inclusive = false)
                 }
-
                 else -> {}
             }
         }
+    }
+
+    LaunchedEffect(listContent) {
+        val newItemId = uiState.newlyAddedItemId
+        if (newItemId != null && listContent.firstOrNull()?.item?.id == newItemId) {
+            coroutineScope.launch { listState.animateScrollToItem(0) }
+            viewModel.onScrolledToNewItem()
+        }
+    }
+
+    BackHandler(enabled = isSelectionModeActive) {
+        viewModel.clearSelection()
     }
 
     val reorderableLazyListState = rememberReorderableLazyListState(
@@ -144,7 +130,6 @@ fun GoalDetailScreen(
         viewModel.moveItem(from.index, to.index)
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
-
     val isAnyItemDragging = reorderableLazyListState.isAnyItemDragging
 
     Scaffold(
@@ -176,7 +161,6 @@ fun GoalDetailScreen(
                             )
                         }
                     }
-
                 )
             }
         },
@@ -200,121 +184,165 @@ fun GoalDetailScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-        ) {
-            itemsIndexed(listContent, key = { _, item -> item.item.id }) { index, content ->
-                ReorderableItem(reorderableLazyListState, key = content.item.id) { isDragging ->
-                    val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
-                    val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
-                    val itemModifier = Modifier
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .shadow(elevation, RoundedCornerShape(12.dp))
-
-                    when (content) {
-                        is ListItemContent.GoalItem -> {
-                            val isSelected = content.item.id in uiState.selectedItemIds
-                            val backgroundColor by animateColorAsState(
-                                targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface,
-                                label = "goal_background_color"
-                            )
-
-                            SwipeableListItem(
-                                modifier = itemModifier,
-                                isDragging = isDragging,
-                                isAnyItemDragging = isAnyItemDragging,
-                                resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                backgroundColor = backgroundColor,
-                                onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                                isAnotherItemSwiped = uiState.swipedItemId != null && uiState.swipedItemId != content.item.id,
-                                onDelete = { viewModel.deleteItem(content) },
-                                onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                                onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
-                                onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                                onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) }
-                            ) {
-                                GoalItem(
-                                    goal = content.goal,
-                                    obsidianVaultName = obsidianVaultName,
-                                    onToggle = { viewModel.toggleGoalCompletedWithState(content.goal, it) },
-                                    onItemClick = { viewModel.onItemClick(content) },
-                                    onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                    onTagClick = { viewModel.onTagClicked(it) },
-                                    onRelatedLinkClick = { handleRelatedLinkClick(it, localContext, navController) },
-                                    dragHandleModifier = Modifier.longPressDraggableHandle(
-                                        onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
-                                    ),
-                                    contextMarkerToEmojiMap = contextMarkerToEmojiMap
-                                )
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+            ) {
+                itemsIndexed(listContent, key = { _, item -> item.item.id }) { index, content ->
+                    ReorderableItem(reorderableLazyListState, key = content.item.id) { isDragging ->
+                        val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
+                        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+                        val itemModifier = Modifier
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
                             }
-                        }
-                        is ListItemContent.NoteItem -> {
-                            val isSelected = content.item.id in uiState.selectedItemIds
-                            val backgroundColor by animateColorAsState(
-                                targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface,
-                                label = "note_background_color"
-                            )
+                            .shadow(elevation, RoundedCornerShape(12.dp))
 
-                            SwipeableListItem(
-                                modifier = itemModifier,
-                                isDragging = isDragging,
-                                isAnyItemDragging = isAnyItemDragging,
-                                resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                backgroundColor = backgroundColor,
-                                onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                                isAnotherItemSwiped = uiState.swipedItemId != null && uiState.swipedItemId != content.item.id,
-                                onDelete = { viewModel.deleteItem(content) },
-                                onMoreActionsRequest = {},
-                                onCreateInstanceRequest = {},
-                                onMoveInstanceRequest = {},
-                                onCopyGoalRequest = {}
-                            ) {
-                                NoteItemRow(
-                                    noteContent = content,
-                                    isSelected = isSelected,
-                                    onClick = { viewModel.onItemClick(content) },
-                                    onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                    dragHandleModifier = Modifier.longPressDraggableHandle(
-                                        onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
+                        when (content) {
+                            is ListItemContent.GoalItem -> {
+                                val isSelected = content.item.id in uiState.selectedItemIds
+                                val backgroundColor by animateColorAsState(
+                                    targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface,
+                                    label = "goal_background_color"
+                                )
+
+                                SwipeableListItem(
+                                    modifier = itemModifier,
+                                    isDragging = isDragging,
+                                    isAnyItemDragging = isAnyItemDragging,
+                                    resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
+                                    backgroundColor = backgroundColor,
+                                    onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
+                                    isAnotherItemSwiped = uiState.swipedItemId != null && uiState.swipedItemId != content.item.id,
+                                    onDelete = { viewModel.deleteItem(content) },
+                                    onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
+                                    onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
+                                    onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
+                                    onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) }
+                                ) {
+                                    GoalItem(
+                                        goal = content.goal,
+                                        obsidianVaultName = obsidianVaultName,
+                                        onToggle = { viewModel.toggleGoalCompletedWithState(content.goal, it) },
+                                        onItemClick = { viewModel.onItemClick(content) },
+                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                        onTagClick = { viewModel.onTagClicked(it) },
+                                        onRelatedLinkClick = {
+                                            handleRelatedLinkClick(it, localContext, navController)
+                                        },
+                                        dragHandleModifier = Modifier.longPressDraggableHandle(
+                                            onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
+                                        ),
+                                        contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                        emojiToHide = emojiToHide
                                     )
+                                }
+                            }
+                            is ListItemContent.NoteItem -> {
+                                val isSelected = content.item.id in uiState.selectedItemIds
+                                val backgroundColor by animateColorAsState(
+                                    targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface,
+                                    label = "note_background_color"
+                                )
+
+                                SwipeableListItem(
+                                    modifier = itemModifier,
+                                    isDragging = isDragging,
+                                    isAnyItemDragging = isAnyItemDragging,
+                                    resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
+                                    backgroundColor = backgroundColor,
+                                    onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
+                                    isAnotherItemSwiped = uiState.swipedItemId != null && uiState.swipedItemId != content.item.id,
+                                    onDelete = { viewModel.deleteItem(content) },
+                                    onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
+                                    onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
+                                    onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
+                                    onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) }
+                                ) {
+                                    NoteItemRow(
+                                        noteContent = content,
+                                        isSelected = isSelected,
+                                        onClick = { viewModel.onItemClick(content) },
+                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                        dragHandleModifier = Modifier.longPressDraggableHandle(
+                                            onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
+                                        )
+                                    )
+                                }
+                            }
+                            is ListItemContent.SublistItem -> {
+                                SublistItemRow(
+                                    modifier = itemModifier,
+                                    sublistContent = content,
+                                    isSelected = content.item.id in uiState.selectedItemIds,
+                                    onClick = { viewModel.onItemClick(content) },
+                                    onLongClick = { viewModel.onItemLongClick(content.item.id) }
                                 )
                             }
-                        }
-                        is ListItemContent.SublistItem -> {
-                            val isSelected = content.item.id in uiState.selectedItemIds
-                            SublistItemRow(
-                                modifier = itemModifier,
-                                sublistContent = content,
-                                isSelected = isSelected,
-                                onClick = { viewModel.onItemClick(content) },
-                                onLongClick = { viewModel.onItemLongClick(content.item.id) }
-                            )
                         }
                     }
                 }
             }
         }
+    }
 
-        // --- ПОЧАТОК ЗМІН ---
-        // 2. Додаємо RecentListsSheet в Scaffold.
-        // Він буде автоматично показуватись/ховатись залежно від стану showRecentListsSheet.
-        RecentListsSheet(
-            showSheet = showRecentListsSheet,
-            recentLists = recentLists,
-            onDismiss = { viewModel.onDismissRecentLists() },
-            onListClick = { listId -> viewModel.onRecentListSelected(listId) }
-        )
-        // --- КІНЕЦЬ ЗМІН ---
+    RecentListsSheet(
+        showSheet = showRecentListsSheet,
+        recentLists = recentLists,
+        onDismiss = { viewModel.onDismissRecentLists() },
+        onListClick = { listId -> viewModel.onRecentListSelected(listId) }
+    )
+
+    when (val state = goalActionState) {
+        is GoalActionDialogState.Hidden -> {}
+        is GoalActionDialogState.AwaitingActionChoice -> {
+            GoalActionChoiceDialog(
+                onDismiss = { viewModel.onDismissGoalActionDialogs() },
+                onActionSelected = { actionType ->
+                    viewModel.onGoalActionSelected(actionType, state.itemContent)
+                }
+            )
+        }
+        is GoalActionDialogState.AwaitingListChoice -> {
+            val title = when (state.actionType) {
+                GoalActionType.CreateInstance -> "Створити посилання у..."
+                GoalActionType.MoveInstance -> "Перемістити до..."
+                GoalActionType.CopyGoal -> "Копіювати до..."
+                else -> "Виберіть список"
+            }
+
+            FilterableListChooser(
+                title = title,
+                filterText = listChooserFilterText,
+                onFilterTextChanged = { viewModel.onListChooserFilterChanged(it) },
+                topLevelLists = filteredListHierarchy.topLevelLists,
+                childMap = filteredListHierarchy.childMap,
+                expandedIds = listChooserFinalExpandedIds,
+                onToggleExpanded = { viewModel.onListChooserToggleExpanded(it) },
+                onDismiss = { viewModel.onDismissGoalActionDialogs() },
+                onConfirm = { confirmedListId ->
+                    confirmedListId?.let { viewModel.confirmGoalAction(it) }
+                },
+                currentParentId = null,
+                disabledIds = setOf(listId),
+                onAddNewList = { id, parentId, name ->
+                    viewModel.addNewList(id, parentId, name)
+                },
+            )
+        }
     }
 }
 
-private fun handleRelatedLinkClick(link: RelatedLink, context: Context, navController: NavController) {
+// --- ЗМІНА №2: Оновлюємо логіку кліку по зв'язаному списку ---
+private fun handleRelatedLinkClick(
+    link: RelatedLink,
+    context: Context,
+    navController: NavController
+) {
     when (link.type) {
         LinkType.URL -> {
             try {
@@ -324,7 +352,14 @@ private fun handleRelatedLinkClick(link: RelatedLink, context: Context, navContr
                 Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show()
             }
         }
-        LinkType.GOAL_LIST -> navController.navigate("goal_detail_screen/${link.target}")
+        LinkType.GOAL_LIST -> {
+            // При переході на інший детальний екран, видаляємо попередній зі стеку
+            navController.navigate("goal_detail_screen/${link.target}") {
+                popUpTo(navController.currentDestination!!.id!!) {
+                    inclusive = true
+                }
+            }
+        }
         LinkType.NOTE -> { /* TODO */ }
         LinkType.OBSIDIAN -> { /* TODO */ }
     }

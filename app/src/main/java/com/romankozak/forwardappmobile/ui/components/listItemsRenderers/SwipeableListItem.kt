@@ -131,11 +131,11 @@ fun SwipeableListItem(
             )
         }
 
-        LaunchedEffect(isAnyItemDragging) {
+/*        LaunchedEffect(isAnyItemDragging) {
             if (isAnyItemDragging && !isDragging && swipeState.currentValue != SwipeState.Normal) {
                 coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) }
             }
-        }
+        }*/
 
         val resetSwipe = { coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) } }
 
@@ -205,7 +205,9 @@ fun SwipeableListItem(
                     .anchoredDraggable(
                         state = swipeState,
                         orientation = Orientation.Horizontal,
-                        enabled = !isAnyItemDragging
+                        //enabled = !isAnyItemDragging,
+                        enabled = !isDragging
+
                     ),
                 color = backgroundColor,
                 shape = dynamicShape,

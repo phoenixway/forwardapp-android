@@ -28,10 +28,8 @@ fun NoteEditScreen(
     viewModel: NoteEditViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // val context = LocalContext.current // Більше не потрібен для сповіщень
-
-    val snackbarHostState = remember { SnackbarHostState() } // Стан для Snackbar
-    val scope = rememberCoroutineScope() // Для запуску показу Snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -49,8 +47,7 @@ fun NoteEditScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }, // Додайте це
-
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         modifier = Modifier
             .fillMaxSize()
             .navigationBarsPadding()
@@ -78,7 +75,7 @@ fun NoteEditScreen(
                     AnimatedContent(
                         targetState = uiState.isSaveButtonEnabled,
                         label = "save_button_animation",
-                        modifier = Modifier.padding(end = 8.dp), // Однаковий відступ для обох станів
+                        modifier = Modifier.padding(end = 8.dp),
                     ) { isEnabled ->
                         if (isEnabled) {
                             Button(
@@ -88,16 +85,15 @@ fun NoteEditScreen(
                                 Text("Зберегти", style = MaterialTheme.typography.labelMedium)
                             }
                         } else {
-                            // Використовуємо той самий стиль, що й кнопка, але без дії
                             Text(
                                 text = "Збережено",
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), // Імітуємо розмір кнопки
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
                     }
-                }, // <--- ОСНОВНА ПОМИЛКА БУЛА ТУТ: відсутність коми
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
@@ -120,7 +116,6 @@ fun NoteEditScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
             ) {
-                // Заголовок — з більшою читабельністю
                 OutlinedTextField(
                     value = uiState.title,
                     onValueChange = viewModel::onTitleChange,
@@ -147,8 +142,6 @@ fun NoteEditScreen(
                     ),
                 )
 
-                // Markdown-редактор — тепер з більшою "диханням"
-                // Якщо MarkdownEditorViewer НЕ підтримує placeholder — обгорни в Column з умовою
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -162,20 +155,22 @@ fun NoteEditScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
 
-                    // Placeholder поверх, якщо текст порожній
                     if (uiState.content.text.isEmpty()) {
                         Text(
                             text = "Почніть писати тут... Підтримується Markdown: **жирний**, *курсив*, списки тощо.",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            // --- ПОЧАТОК ЗМІН ---
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .align(Alignment.TopStart),
+                                // .fillMaxSize() // 1. Видалено: цей модифікатор не потрібен для плейсхолдера
+                                .align(Alignment.TopStart)
+                                // 2. Змінено padding: додано значний верхній відступ,
+                                // щоб змістити плейсхолдер нижче кнопок "Редактор"/"Перегляд".
+                                .padding(start = 16.dp, top = 52.dp, end = 16.dp, bottom = 16.dp),
+                            // --- КІНЕЦЬ ЗМІН ---
                         )
                     }
                 }
 
-                // Статусний рядок: помилка + лічильник
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -184,7 +179,6 @@ fun NoteEditScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    // Помилка — з анімацією появи
                     AnimatedVisibility(visible = uiState.error != null) {
                         Text(
                             text = uiState.error ?: "",
@@ -196,7 +190,6 @@ fun NoteEditScreen(
                         )
                     }
 
-                    // Лічильник символів
                     Text(
                         text = "${uiState.content.text.length}/5000",
                         style = MaterialTheme.typography.labelSmall,
