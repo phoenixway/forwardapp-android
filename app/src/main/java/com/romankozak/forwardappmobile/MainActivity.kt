@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -24,6 +25,7 @@ import com.romankozak.forwardappmobile.ui.screens.goaldetail.GoalDetailScreen
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListScreen
 import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListViewModel
+import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,6 +38,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContent {
             ForwardAppMobileTheme {
                 AppNavigation(syncDataViewModel = syncDataViewModel)
@@ -160,6 +164,15 @@ fun AppNavigation(
                 syncDataViewModel = syncDataViewModel,
                 onSyncComplete = { navController.popBackStack() }
             )
+        }
+        composable(
+            route = "note_edit_screen/{listId}/{noteId}",
+            arguments = listOf(
+                navArgument("listId") { type = NavType.StringType },
+                navArgument("noteId") { type = NavType.StringType }
+            )
+        ) {
+            NoteEditScreen(navController = navController)
         }
     }
 }
