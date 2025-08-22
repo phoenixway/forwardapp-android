@@ -1,33 +1,33 @@
 package com.romankozak.forwardappmobile.ui.components.listItemsRenderers
 
 import android.util.Log
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.FlashOff
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,8 +42,6 @@ import java.util.Locale
 
 private data class ParsedGoalData(val icons: List<String>, val mainText: String)
 
-// --- Вставте цей оновлений код у файл app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/GoalItem.kt ---
-
 private fun parseTextAndExtractIcons(
     text: String,
     contextMarkerToEmojiMap: Map<String, String>
@@ -51,10 +49,9 @@ private fun parseTextAndExtractIcons(
     var currentText = text
     val foundIcons = mutableSetOf<String>()
 
-    // Створюємо єдину мапу всіх маркерів, де пріоритет надається користувацьким налаштуванням
     val allMarkersToIcons = mutableMapOf<String, String>()
 
-    // 1. Спочатку додаємо жорстко закодовані іконки
+    // Жорстко закодовані іконки
     val hardcodedIconsData = mapOf(
         "🔥" to listOf("@critical", "! ", "!"),
         "⭐" to listOf("@day", "+"),
@@ -71,38 +68,295 @@ private fun parseTextAndExtractIcons(
         }
     }
 
-    // 2. Додаємо користувацькі емодзі, перезаписуючи жорстко закодовані у разі збігу маркерів
     allMarkersToIcons.putAll(contextMarkerToEmojiMap)
 
-    // 3. Сортуємо маркери за довжиною (від найдовшого), щоб уникнути конфліктів (напр., "++" обробити раніше, ніж "+")
     val sortedMarkers = allMarkersToIcons.keys.sortedByDescending { it.length }
 
     sortedMarkers.forEach { marker ->
         val icon = allMarkersToIcons[marker] ?: return@forEach
-
-        // Ігноруємо регістр тільки для маркерів, що починаються з "@"
         val regexOptions = if (marker.startsWith("@")) setOf(RegexOption.IGNORE_CASE) else emptySet()
         val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))", regexOptions)
 
-        // Перевіряємо наявність маркера перед тим, як модифікувати текст
         if (regex.containsMatchIn(currentText)) {
             foundIcons.add(icon)
-            // Замінюємо маркер на пробіл, щоб не з'єднувати слова, які були по боках
             currentText = currentText.replace(regex, " ")
         }
     }
 
-    // 4. Видаляємо застарілі маркери іконок та зайві пробіли
     currentText = currentText.replace(Regex("\\[icon::\\s*([^]]+?)\\s*]"), "")
     val cleanedText = currentText.replace(Regex("\\s+"), " ").trim()
 
     return ParsedGoalData(icons = foundIcons.toList(), mainText = cleanedText)
 }
 
-fun formatDate(timestamp: Long): String {
-    val date = Date(timestamp)
-    val formatter = SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault())
-    return formatter.format(date)
+@Composable
+fun EnhancedCustomCheckbox(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptic = LocalHapticFeedback.current
+
+    val animatedColor by animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "checkbox_color"
+    )
+
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.outline,
+        label = "checkbox_border"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (checked) 1.1f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "checkbox_scale"
+    )
+
+    Box(
+        modifier = modifier
+            .size(26.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(8.dp))
+            .background(animatedColor)
+            .border(2.dp, animatedBorderColor, RoundedCornerShape(8.dp))
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onCheckedChange(!checked)
+            }
+            .semantics {
+                role = Role.Checkbox
+                this.stateDescription = if (checked) "Виконано" else "Не виконано"
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedVisibility(
+            visible = checked,
+            enter = scaleIn(
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+            ) + fadeIn(),
+            exit = scaleOut(
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+            ) + fadeOut()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun EnhancedScoreStatusBadge(goal: Goal) {
+    when (goal.scoringStatus) {
+        ScoringStatus.ASSESSED -> {
+            if (goal.displayScore > 0) {
+                val animatedColor by animateColorAsState(
+                    targetValue = when {
+                        goal.displayScore >= 80 -> Color(0xFF4CAF50) // Зелений для високих балів
+                        goal.displayScore >= 60 -> Color(0xFFFF9800) // Помаранчевий для середніх
+                        goal.displayScore >= 40 -> Color(0xFFFFEB3B) // Жовтий
+                        else -> Color(0xFFE91E63) // Рожевий для низьких
+                    },
+                    label = "score_color"
+                )
+
+                var isVisible by remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                    isVisible = true
+                }
+
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                    ) + fadeIn()
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = animatedColor.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, animatedColor.copy(alpha = 0.3f)),
+                        modifier = Modifier.semantics {
+                            contentDescription = "Оцінка: ${goal.displayScore} з 100"
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ElectricBolt,
+                                contentDescription = null,
+                                tint = animatedColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "${goal.displayScore}/100",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp
+                                ),
+                                color = animatedColor,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        ScoringStatus.IMPOSSIBLE_TO_ASSESS -> {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .padding(2.dp)
+                    .semantics {
+                        contentDescription = "Неможливо оцінити"
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FlashOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .padding(6.dp)
+                )
+            }
+        }
+        ScoringStatus.NOT_ASSESSED -> {
+            // Нічого не відображаємо
+        }
+    }
+}
+
+@Composable
+fun EnhancedRelatedLinkChip(
+    link: RelatedLink,
+    onClick: () -> Unit
+) {
+    val chipColor = when (link.type) {
+        LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
+        LinkType.NOTE -> MaterialTheme.colorScheme.secondary
+        LinkType.URL -> MaterialTheme.colorScheme.tertiary
+        LinkType.OBSIDIAN -> Color(0xFF8B5CF6) // Фіолетовий для Obsidian
+    }
+
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "chip_scale"
+    )
+
+    Surface(
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { onClick() }
+                )
+            }
+            .semantics {
+                contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"
+                role = Role.Button
+            },
+        shape = RoundedCornerShape(20.dp),
+        color = chipColor.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, chipColor.copy(alpha = 0.25f)),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = when (link.type) {
+                    LinkType.GOAL_LIST -> Icons.Default.ListAlt
+                    LinkType.NOTE -> Icons.Default.Notes
+                    LinkType.URL -> Icons.Default.Link
+                    LinkType.OBSIDIAN -> Icons.Default.Book
+                },
+                contentDescription = null,
+                tint = chipColor,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = link.displayName ?: link.target,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.25.sp
+                ),
+                color = chipColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+fun AnimatedContextEmoji(
+    emoji: String,
+    modifier: Modifier = Modifier
+) {
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(emoji) {
+        kotlinx.coroutines.delay(100) // Невелика затримка для каскадної анімації
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = scaleIn(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        ) + fadeIn(),
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                    shape = CircleShape
+                )
+                .padding(8.dp)
+                .semantics {
+                    contentDescription = "Контекст: $emoji"
+                }
+        ) {
+            Text(
+                text = emoji,
+                style = MaterialTheme.typography.bodyLarge,
+                fontSize = 18.sp,
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -124,123 +378,231 @@ fun GoalItem(
         parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
     }
 
+    // Покращена анімація фону
     val targetColor = when {
-        goal.completed -> MaterialTheme.colorScheme.surfaceVariant
+        goal.completed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
         else -> MaterialTheme.colorScheme.surface
     }
 
     val background by animateColorAsState(
         targetValue = targetColor,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "bgAnim"
+    )
+
+    // Анімація підняття карти
+    var isPressed by remember { mutableStateOf(false) }
+    val elevation by animateDpAsState(
+        targetValue = if (isPressed) 8.dp else 3.dp,
+        label = "elevation"
     )
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .semantics {
+                contentDescription = "Завдання: ${parsedData.mainText}"
+                if (goal.completed) {
+                    stateDescription = "Виконано"
+                }
+            },
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(1.dp)
+        elevation = CardDefaults.elevatedCardElevation(elevation)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // ЗОНА 1: Клікабельний контент
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(onItemClick, onLongClick) {
-                        detectTapGestures(
-                            onLongPress = { onLongClick() },
-                            onTap = { onItemClick() }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = if (goal.completed) {
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
+                                Color.Transparent,
+                                Color.Transparent
+                            )
                         )
+                    } else {
+                        Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
                     }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CustomCheckbox(
-                    checked = goal.completed,
-                    onCheckedChange = onToggle
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    MarkdownText(
-                        text = parsedData.mainText,
-                        isCompleted = goal.completed,
-                        obsidianVaultName = obsidianVaultName,
-                        onTagClick = onTagClick,
-                        onTextClick = onItemClick,
-                        onLongClick = onLongClick
+                // ЗОНА 1: Клікабельний контент
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .pointerInput(onItemClick, onLongClick) {
+                            detectTapGestures(
+                                onPress = {
+                                    isPressed = true
+                                    tryAwaitRelease()
+                                    isPressed = false
+                                },
+                                onLongPress = { onLongClick() },
+                                onTap = { onItemClick() }
+                            )
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    EnhancedCustomCheckbox(
+                        checked = goal.completed,
+                        onCheckedChange = onToggle
                     )
 
-                    // --- ПОЧАТОК ЗМІН: Відновлюємо FlowRow з усією інформацією ---
-                    val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
-                            parsedData.icons.isNotEmpty() ||
-                            !goal.description.isNullOrBlank() ||
-                            !goal.relatedLinks.isNullOrEmpty()
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    if (hasStatusContent) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
+                    Column(modifier = Modifier.weight(1f)) {
+                        MarkdownText(
+                            text = parsedData.mainText,
+                            isCompleted = goal.completed,
+                            obsidianVaultName = obsidianVaultName,
+                            onTagClick = onTagClick,
+                            onTextClick = onItemClick,
+                            onLongClick = onLongClick,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                lineHeight = 22.sp,
+                                letterSpacing = 0.15.sp,
+                                fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium
+                            )
+                        )
+
+                        // Покращена секція з додатковою інформацією
+                        val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
+                                parsedData.icons.isNotEmpty() ||
+                                !goal.description.isNullOrBlank() ||
+                                !goal.relatedLinks.isNullOrEmpty()
+
+                        AnimatedVisibility(
+                            visible = hasStatusContent,
+                            enter = slideInVertically(
+                                initialOffsetY = { -it },
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                            ) + fadeIn()
                         ) {
-                            // 1. Бейдж з очками
-                            ScoreStatusBadge(goal = goal)
+                            Column {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    // 1. Покращений бейдж з очками
+                                    EnhancedScoreStatusBadge(goal = goal)
 
-                            // 2. Іконки контекстів (@day, @week, etc.)
-                            parsedData.icons
-                                .filterNot { it == emojiToHide }
-                                .forEach { icon ->
-                                    Text(
-                                        text = icon,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontSize = 16.sp,
-                                        modifier = Modifier.align(Alignment.CenterVertically)
-                                    )
+                                    // 2. Анімовані іконки контекстів
+                                    parsedData.icons
+                                        .filterNot { it == emojiToHide }
+                                        .forEachIndexed { index, icon ->
+                                            key(icon) {
+                                                var delayedVisible by remember { mutableStateOf(false) }
+                                                LaunchedEffect(Unit) {
+                                                    kotlinx.coroutines.delay(index * 50L) // Каскадна анімація
+                                                    delayedVisible = true
+                                                }
+                                                AnimatedVisibility(
+                                                    visible = delayedVisible,
+                                                    enter = scaleIn(
+                                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                                                    ) + fadeIn()
+                                                ) {
+                                                    AnimatedContextEmoji(
+                                                        emoji = icon,
+                                                        modifier = Modifier.align(Alignment.CenterVertically)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                    // 3. Покращений індикатор наявності нотатки
+                                    if (!goal.description.isNullOrBlank()) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                                            modifier = Modifier
+                                                .align(Alignment.CenterVertically)
+                                                .semantics {
+                                                    contentDescription = "Містить нотатку"
+                                                }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.StickyNote2,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .padding(6.dp)
+                                            )
+                                        }
+                                    }
+
+                                    // 4. Покращені пов'язані посилання
+                                    goal.relatedLinks?.forEachIndexed { index, link ->
+                                        key(link.target + link.type.name) {
+                                            var delayedVisible by remember { mutableStateOf(false) }
+                                            LaunchedEffect(Unit) {
+                                                kotlinx.coroutines.delay((parsedData.icons.size + index) * 50L)
+                                                delayedVisible = true
+                                            }
+                                            AnimatedVisibility(
+                                                visible = delayedVisible,
+                                                enter = slideInHorizontally(
+                                                    initialOffsetX = { it },
+                                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                                                ) + fadeIn()
+                                            ) {
+                                                EnhancedRelatedLinkChip(
+                                                    link = link,
+                                                    onClick = { onRelatedLinkClick(link) }
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
-
-                            // 3. Індикатор наявності нотатки (опису)
-                            if (!goal.description.isNullOrBlank()) {
-                                Icon(
-                                    imageVector = Icons.Outlined.StickyNote2,
-                                    contentDescription = "Contains a note",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .align(Alignment.CenterVertically)
-                                )
-                            }
-
-                            // 4. Пов'язані посилання (використовуємо сучасні relatedLinks)
-                            goal.relatedLinks?.forEach { link ->
-                                RelatedLinkChip(link = link, onClick = { onRelatedLinkClick(link) })
                             }
                         }
                     }
-                    // --- КІНЕЦЬ ЗМІН ---
                 }
-            }
 
-            // ЗОНА 2: Ручка для перетягування
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(end = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DragHandle,
-                    contentDescription = "Drag to reorder",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = dragHandleModifier
-                        .size(36.dp)
-                        .pointerInput(Unit) { detectTapGestures { } }
-                )
+                // ЗОНА 2: Покращена ручка для перетягування
+                Surface(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(end = 8.dp),
+                    color = Color.Transparent
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            modifier = Modifier
+                                .semantics {
+                                    contentDescription = "Перетягнути для переупорядкування"
+                                }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DragHandle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = dragHandleModifier
+                                    .size(40.dp)
+                                    .padding(8.dp)
+                                    .pointerInput(Unit) { detectTapGestures { } }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
