@@ -1,8 +1,12 @@
 package com.romankozak.forwardappmobile.ui.components.listItemsRenderers
 
+import android.util.Log
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,11 +21,13 @@ import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,12 +36,13 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
-import com.romankozak.forwardappmobile.ui.components.MarkdownText
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 private data class ParsedGoalData(val icons: List<String>, val mainText: String)
+
+// --- Вставте цей оновлений код у файл app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/GoalItem.kt ---
 
 private fun parseTextAndExtractIcons(
     text: String,
@@ -44,7 +51,11 @@ private fun parseTextAndExtractIcons(
     var currentText = text
     val foundIcons = mutableSetOf<String>()
 
-    val hardcodedIcons = mapOf(
+    // Створюємо єдину мапу всіх маркерів, де пріоритет надається користувацьким налаштуванням
+    val allMarkersToIcons = mutableMapOf<String, String>()
+
+    // 1. Спочатку додаємо жорстко закодовані іконки
+    val hardcodedIconsData = mapOf(
         "🔥" to listOf("@critical", "! ", "!"),
         "⭐" to listOf("@day", "+"),
         "📌" to listOf("@week", "++"),
@@ -54,27 +65,37 @@ private fun parseTextAndExtractIcons(
         "✨" to listOf("@str"),
         "🌫️" to listOf("@unclear")
     )
-
-    hardcodedIcons.forEach { (icon, markers) ->
+    hardcodedIconsData.forEach { (icon, markers) ->
         markers.forEach { marker ->
-            val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))")
-            if (regex.containsMatchIn(currentText)) {
-                currentText = currentText.replace(regex, "")
-                foundIcons.add(icon)
-            }
+            allMarkersToIcons[marker] = icon
         }
     }
 
-    contextMarkerToEmojiMap.forEach { (marker, emoji) ->
-        val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))", RegexOption.IGNORE_CASE)
+    // 2. Додаємо користувацькі емодзі, перезаписуючи жорстко закодовані у разі збігу маркерів
+    allMarkersToIcons.putAll(contextMarkerToEmojiMap)
+
+    // 3. Сортуємо маркери за довжиною (від найдовшого), щоб уникнути конфліктів (напр., "++" обробити раніше, ніж "+")
+    val sortedMarkers = allMarkersToIcons.keys.sortedByDescending { it.length }
+
+    sortedMarkers.forEach { marker ->
+        val icon = allMarkersToIcons[marker] ?: return@forEach
+
+        // Ігноруємо регістр тільки для маркерів, що починаються з "@"
+        val regexOptions = if (marker.startsWith("@")) setOf(RegexOption.IGNORE_CASE) else emptySet()
+        val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))", regexOptions)
+
+        // Перевіряємо наявність маркера перед тим, як модифікувати текст
         if (regex.containsMatchIn(currentText)) {
-            currentText = currentText.replace(regex, "")
-            foundIcons.add(emoji)
+            foundIcons.add(icon)
+            // Замінюємо маркер на пробіл, щоб не з'єднувати слова, які були по боках
+            currentText = currentText.replace(regex, " ")
         }
     }
 
+    // 4. Видаляємо застарілі маркери іконок та зайві пробіли
     currentText = currentText.replace(Regex("\\[icon::\\s*([^]]+?)\\s*]"), "")
-    val cleanedText = currentText.replace(Regex("\\s\\s+"), " ").trim()
+    val cleanedText = currentText.replace(Regex("\\s+"), " ").trim()
+
     return ParsedGoalData(icons = foundIcons.toList(), mainText = cleanedText)
 }
 
@@ -83,6 +104,7 @@ fun formatDate(timestamp: Long): String {
     val formatter = SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault())
     return formatter.format(date)
 }
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
@@ -102,49 +124,63 @@ fun GoalItem(
         parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
     }
 
-    val contentAlpha = if (goal.completed) 0.5f else 1.0f
+    val targetColor = when {
+        goal.completed -> MaterialTheme.colorScheme.surfaceVariant
+        else -> MaterialTheme.colorScheme.surface
+    }
 
-    Column(
-        modifier = modifier.fillMaxWidth()
+    val background by animateColorAsState(
+        targetValue = targetColor,
+        label = "bgAnim"
+    )
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = background),
+        elevation = CardDefaults.elevatedCardElevation(1.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-                .alpha(contentAlpha),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Чекбокс без додаткових модифікаторів
-            Box(modifier = Modifier.wrapContentSize()) {
-                CustomCheckbox(
-                    checked = goal.completed,
-                    onCheckedChange = onToggle,
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Основний контент
-            Box(
+            // ЗОНА 1: Клікабельний контент
+            Row(
                 modifier = Modifier
                     .weight(1f)
-
+                    .pointerInput(onItemClick, onLongClick) {
+                        detectTapGestures(
+                            onLongPress = { onLongClick() },
+                            onTap = { onItemClick() }
+                        )
+                    }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                CustomCheckbox(
+                    checked = goal.completed,
+                    onCheckedChange = onToggle
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
                     MarkdownText(
                         text = parsedData.mainText,
                         isCompleted = goal.completed,
                         obsidianVaultName = obsidianVaultName,
                         onTagClick = onTagClick,
                         onTextClick = onItemClick,
-                        onLongClick = onLongClick,
-                        style = MaterialTheme.typography.bodyLarge
+                        onLongClick = onLongClick
                     )
 
+                    // --- ПОЧАТОК ЗМІН: Відновлюємо FlowRow з усією інформацією ---
                     val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
-                            !goal.relatedLinks.isNullOrEmpty() ||
+                            parsedData.icons.isNotEmpty() ||
                             !goal.description.isNullOrBlank() ||
-                            parsedData.icons.isNotEmpty()
+                            !goal.relatedLinks.isNullOrEmpty()
 
                     if (hasStatusContent) {
                         Spacer(modifier = Modifier.height(10.dp))
@@ -153,8 +189,10 @@ fun GoalItem(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
+                            // 1. Бейдж з очками
                             ScoreStatusBadge(goal = goal)
 
+                            // 2. Іконки контекстів (@day, @week, etc.)
                             parsedData.icons
                                 .filterNot { it == emojiToHide }
                                 .forEach { icon ->
@@ -166,6 +204,7 @@ fun GoalItem(
                                     )
                                 }
 
+                            // 3. Індикатор наявності нотатки (опису)
                             if (!goal.description.isNullOrBlank()) {
                                 Icon(
                                     imageVector = Icons.Outlined.StickyNote2,
@@ -177,106 +216,32 @@ fun GoalItem(
                                 )
                             }
 
+                            // 4. Пов'язані посилання (використовуємо сучасні relatedLinks)
                             goal.relatedLinks?.forEach { link ->
                                 RelatedLinkChip(link = link, onClick = { onRelatedLinkClick(link) })
                             }
                         }
                     }
+                    // --- КІНЕЦЬ ЗМІН ---
                 }
             }
 
-            Icon(
-                imageVector = Icons.Default.DragHandle,
-                contentDescription = "Перетягнути для сортування",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                modifier = dragHandleModifier
-                    .padding(end = 8.dp)
-                    .size(32.dp) // достатній розмір для захвату
-            )
-
-        }
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-    }
-}
-
-@Composable
-private fun RelatedLinkChip(link: RelatedLink, onClick: () -> Unit) {
-    val icon = when (link.type) {
-        LinkType.GOAL_LIST -> Icons.Default.ListAlt
-        LinkType.NOTE -> Icons.Default.Notes
-        LinkType.URL -> Icons.Default.Link
-        LinkType.OBSIDIAN -> Icons.Default.Book
-    }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(imageVector = icon, contentDescription = link.type.name, modifier = Modifier.size(14.dp))
-            Text(
-                text = link.displayName ?: link.target,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun ScoreStatusBadge(goal: Goal) {
-    when (goal.scoringStatus) {
-        ScoringStatus.ASSESSED -> {
-            if (goal.displayScore > 0) {
-                Box(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ElectricBolt,
-                            contentDescription = "Оцінено",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "${goal.displayScore}/100",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-        }
-        ScoringStatus.IMPOSSIBLE_TO_ASSESS -> {
+            // ЗОНА 2: Ручка для перетягування
             Box(
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), CircleShape)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .fillMaxHeight()
+                    .padding(end = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.FlashOff,
-                    contentDescription = "Неможливо оцінити",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    modifier = Modifier.size(14.dp)
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = "Drag to reorder",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = dragHandleModifier
+                        .size(36.dp)
+                        .pointerInput(Unit) { detectTapGestures { } }
                 )
             }
-        }
-        ScoringStatus.NOT_ASSESSED -> {
-            // Нічого не відображаємо
         }
     }
 }

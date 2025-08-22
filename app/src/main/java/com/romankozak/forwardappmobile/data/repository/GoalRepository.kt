@@ -88,27 +88,7 @@ class GoalRepository @Inject constructor(
     /**
      * Створює нову нотатку і додає посилання на неї у вказаний список.
      */
-    suspend fun addNoteToList(content: String, listId: String): String {
-        val currentTime = System.currentTimeMillis()
-        val newNote = Note(
-            id = UUID.randomUUID().toString(),
-            title = null,
-            content = content,
-            createdAt = currentTime,
-            updatedAt = currentTime
-        )
-        noteDao.insertNote(newNote)
 
-        val newListItem = ListItem(
-            id = UUID.randomUUID().toString(),
-            listId = listId,
-            itemType = ListItemType.NOTE,
-            entityId = newNote.id,
-            order = -currentTime
-        )
-        listItemDao.insertItem(newListItem)
-        return newListItem.id
-    }
 
     /**
      * Створює посилання на існуючий список і додає його як елемент у поточний список.
@@ -353,4 +333,42 @@ class GoalRepository @Inject constructor(
         goalListDao.update(finalListToMove)
     }
 
+    /**
+     * Отримує одну нотатку за її ID.
+     */
+    suspend fun getNoteById(id: String): Note? = noteDao.getNoteById(id)
+
+    /**
+     * Оновлює існуючу нотатку в базі даних.
+     */
+    suspend fun updateNote(note: Note) = noteDao.updateNote(note)
+
+    suspend fun addNoteToList(content: String, listId: String): String {
+        val currentTime = System.currentTimeMillis()
+        val newNote = Note(
+            id = UUID.randomUUID().toString(),
+            title = null,
+            content = content,
+            createdAt = currentTime,
+            updatedAt = currentTime
+        )
+        // Викликаємо нову, перевантажену версію
+        return addNoteToList(newNote, listId)
+    }
+
+    // Нова перевантажена версія
+    @Transaction
+    suspend fun addNoteToList(note: Note, listId: String): String {
+        noteDao.insertNote(note)
+        val newListItem = ListItem(
+            id = UUID.randomUUID().toString(),
+            listId = listId,
+            itemType = ListItemType.NOTE,
+            entityId = note.id,
+            order = -System.currentTimeMillis()
+        )
+        listItemDao.insertItem(newListItem)
+        return newListItem.id
+    }
 }
+

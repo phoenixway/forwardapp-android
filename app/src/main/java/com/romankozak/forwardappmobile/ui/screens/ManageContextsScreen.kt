@@ -149,6 +149,8 @@ private fun SectionHeader(title: String) {
     }
 }
 
+// Замініть цю функцію у файлі ManageContextsScreen.kt
+
 @Composable
 private fun ContextEditorItem(
     context: UiContext,
@@ -205,7 +207,20 @@ private fun ContextEditorItem(
             ) {
                 OutlinedTextField(
                     value = context.emoji,
-                    onValueChange = { onValueChange(context.copy(emoji = it.take(1))) }, // Only 1 emoji
+                    // --- ПОЧАТОК ВИПРАВЛЕННЯ ---
+                    onValueChange = { newText ->
+                        // Використовуємо BreakIterator, щоб знайти перший повний символ (графему),
+                        // що коректно працює зі складними емодзі на всіх версіях Android.
+                        if (newText.isNotEmpty()) {
+                            val breakIterator = java.text.BreakIterator.getCharacterInstance()
+                            breakIterator.setText(newText)
+                            val firstCharacterEnd = breakIterator.next()
+                            onValueChange(context.copy(emoji = newText.substring(0, firstCharacterEnd)))
+                        } else {
+                            onValueChange(context.copy(emoji = ""))
+                        }
+                    },
+                    // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
                     label = { Text("Emoji") },
                     modifier = Modifier.width(90.dp),
                     textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),

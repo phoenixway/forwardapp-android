@@ -81,24 +81,17 @@ class GoalDetailViewModel @Inject constructor(
         if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val listContent: StateFlow<List<ListItemContent>> =
+    private val rawListContent: Flow<List<ListItemContent>> =
         combine(
             listIdFlow,
             _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
-            _refreshTrigger // Додаємо trigger для примусового оновлення
+            _refreshTrigger
         ) { id, query, _ -> Pair(id, query) }
             .flatMapLatest { (id, query) ->
                 if (id.isEmpty()) {
                     flowOf(emptyList())
                 } else {
                     goalRepository.getListContentStream(id).map { content ->
-                        Log.d("GoalDetailViewModel", "New content from DB: ${content.size} items")
-                        content.forEach { item ->
-                            if (item is ListItemContent.GoalItem) {
-                                Log.d("GoalDetailViewModel", "Goal: ${item.goal.text}, completed: ${item.goal.completed}")
-                            }
-                        }
-
                         if (query.isNotBlank()) {
                             content.filter { itemContent ->
                                 val textToSearch = when (itemContent) {
@@ -113,7 +106,40 @@ class GoalDetailViewModel @Inject constructor(
                         }
                     }
                 }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            }
+
+    // 2. Створюємо потік з мапою [ID -> Назва] для всіх списків
+    private val allListsMap: Flow<Map<String, String>> = goalRepository.getAllGoalListsFlow()
+        .map { lists -> lists.associate { it.id to it.name } }
+        .flowOn(Dispatchers.Default)
+
+    // 3. Комбінуємо "сирий" контент і мапу назв, щоб створити фінальний "збагачений" контент
+    val listContent: StateFlow<List<ListItemContent>> = combine(
+        rawListContent,
+        allListsMap
+    ) { content, listMap ->
+        content.map { listItem ->
+            // Збагачуємо тільки GoalItem, оскільки лише він має relatedLinks
+            if (listItem is ListItemContent.GoalItem) {
+                val enrichedLinks = listItem.goal.relatedLinks?.map { link ->
+                    // Якщо це посилання на список, шукаємо його актуальну назву в мапі
+                    if (link.type == LinkType.GOAL_LIST) {
+                        link.copy(displayName = listMap[link.target] ?: link.target)
+                    } else {
+                        link // Інші типи посилань залишаємо без змін
+                    }
+                }
+                // Повертаємо копію GoalItem з оновленими посиланнями
+                listItem.copy(
+                    goal = listItem.goal.copy(relatedLinks = enrichedLinks)
+                )
+            } else {
+                // Інші типи елементів (нотатки, під-списки) повертаємо як є
+                listItem
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedItemIds.isNotEmpty() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -323,18 +349,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun onItemClick(item: ListItemContent) {
-        if (isSelectionModeActive.value) {
-            toggleSelection(item.item.id)
-        } else {
-            when (item) {
-                is ListItemContent.GoalItem -> onEditGoal(item.goal)
-                is ListItemContent.NoteItem -> { /* TODO: Navigate to Note Editor */ }
-                is ListItemContent.SublistItem -> onNavigateToList(item.sublist.id)
-            }
-        }
-    }
-
     fun onItemLongClick(itemId: String) {
         _uiState.update {
             it.copy(selectedItemIds = it.selectedItemIds + itemId)
@@ -389,18 +403,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    private fun onEditGoal(goal: Goal) {
-        viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${listIdFlow.value}/${goal.id}"))
-        }
-    }
-
-    private fun onNavigateToList(listId: String) {
-        viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.Navigate("goal_detail_screen/$listId"))
-        }
-    }
-
     fun onTagClicked(tag: String) {
         viewModelScope.launch {
             _uiEventFlow.send(UiEvent.Navigate("global_search_screen/%23$tag"))
@@ -414,6 +416,14 @@ class GoalDetailViewModel @Inject constructor(
     fun onDismissRecentLists() {
         _showRecentListsSheet.value = false
     }
+
+    // --- ПОЧАТОК ЗМІН ---
+    // Нова функція для обробки вибору списку з bottom sheet
+    fun onRecentListSelected(listId: String) {
+        onNavigateToList(listId) // Використовуємо існуючу логіку для навігації
+        onDismissRecentLists()   // Ховаємо sheet після вибору
+    }
+    // --- КІНЕЦЬ ЗМІН ---
 
     fun onRevealInExplorer(currentListId: String) {
         if (currentListId.isEmpty()) return
@@ -496,6 +506,43 @@ class GoalDetailViewModel @Inject constructor(
                     swipedItemId = null // Також скидаємо id елемента, що був свайпнутий
                 )
             }
+        }
+    }
+
+    // File: GoalDetailViewModel.kt
+
+    fun onItemClick(item: ListItemContent) {
+        Log.d("ClickDebug", "ViewModel.onItemClick called for item type: ${item.item.itemType}")
+
+        if (isSelectionModeActive.value) {
+            toggleSelection(item.item.id)
+        } else {
+            Log.d("ClickDebug", "Selection mode is OFF. Processing navigation...")
+            when (item) {
+                is ListItemContent.GoalItem -> onEditGoal(item.goal)
+                // Додаємо обробку кліку по нотатці
+                is ListItemContent.NoteItem -> onEditNote(item.note)
+                is ListItemContent.SublistItem -> onNavigateToList(item.sublist.id)
+            }
+        }
+    }
+
+    private fun onEditGoal(goal: Goal) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${listIdFlow.value}/${goal.id}"))
+        }
+    }
+
+    // Нова функція для навігації на екран редагування нотатки
+    private fun onEditNote(note: Note) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("note_edit_screen/${listIdFlow.value}/${note.id}"))
+        }
+    }
+
+    private fun onNavigateToList(listId: String) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("goal_detail_screen/$listId"))
         }
     }
 }
