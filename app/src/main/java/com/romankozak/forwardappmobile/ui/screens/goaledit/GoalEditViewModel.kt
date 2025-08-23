@@ -10,27 +10,25 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
-import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 
 sealed class GoalEditEvent {
     data class NavigateBack(val message: String? = null) : GoalEditEvent()
+    data class Navigate(val route: String) : GoalEditEvent()
 }
 
-// ✨ ОНОВЛЕНО: Стан тепер використовує `relatedLinks`
 data class GoalEditUiState(
     val goalText: TextFieldValue = TextFieldValue(""),
     val goalDescription: TextFieldValue = TextFieldValue(""),
     val relatedLinks: List<RelatedLink> = emptyList(),
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
-    val showListChooser: Boolean = false,
     val isScoringEnabled: Boolean = true,
     val createdAt: Long? = null,
     val updatedAt: Long? = null,
@@ -68,31 +66,13 @@ class GoalEditViewModel @Inject constructor(
 
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
 
-
-    private val _eventChannel = Channel<GoalEditEvent>()
-    val eventFlow = _eventChannel.receiveAsFlow()
-
-
-    val listHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
-        .map { allLists ->
-            val topLevel = allLists.filter { it.parentId == null }.sortedBy { it.order }
-            val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            ListHierarchyData(allLists, topLevel, childMap)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
-
-
     init {
-        // Запускаємо колектор для selectedListId в окремому потоці
-        viewModelScope.launch {
-            savedStateHandle.getStateFlow<String?>("selectedListId", null).collect { listId ->
-                if (listId != null) {
-                    onSelectRelatedList(listId)
-                    savedStateHandle["selectedListId"] = null
-                }
-            }
-        }
+        // --- ЗМІНА 1: Прибираємо прослуховування результату звідси ---
+        // viewModelScope.launch {
+        //     savedStateHandle.getStateFlow<String?>("selectedListId", null).collect { ... }
+        // }
+        // --- КІНЕЦЬ ЗМІНИ 1 ---
 
-        // Основну ініціалізацію запускаємо окремо
         viewModelScope.launch {
             contextHandler.initialize()
             if (goalId != null) {
@@ -103,44 +83,50 @@ class GoalEditViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadExistingGoal(goalId: String) {
-        // Логування
-        Log.d("GoalEditViewModel", "Спроба завантажити ціль з ID: $goalId")
-        val goal = goalRepository.getGoalById(goalId)
-        Log.d("GoalEditViewModel", "Результат завантаження: ${if (goal != null) "ЗНАЙДЕНО" else "НЕ ЗНАЙДЕНО"}")
+    // --- ЗМІНА 2: Створюємо нову публічну функцію для обробки результату ---
+    fun onListChooserResult(listId: String) {
+        val TAG = "NavResultDebug"
+        Log.d(TAG, "[GoalEditViewModel] onListChooserResult: Екран повідомив про результат '$listId'")
+        Log.d(TAG, "[GoalEditViewModel] Current relatedLinks count: ${_uiState.value.relatedLinks.size}")
+        onAddListAssociation(listId)
+        Log.d(TAG, "[GoalEditViewModel] After processing - relatedLinks count: ${_uiState.value.relatedLinks.size}")
 
-          if (goal != null) {
-              currentGoal = goal
-              _uiState.update {
-it.copy(
-                goalText = TextFieldValue(goal.text),
-                goalDescription = TextFieldValue(goal.description ?: ""),
-                relatedLinks = goal.relatedLinks ?: emptyList(),
-                isReady = true,
-                isNewGoal = false,
-                createdAt = goal.createdAt,
-                updatedAt = goal.updatedAt,
-                valueImportance = goal.valueImportance,
-                valueImpact = goal.valueImpact,
-                effort = goal.effort,
-                cost = goal.cost,
-                risk = goal.risk,
-                weightEffort = goal.weightEffort,
-                weightCost = goal.weightCost,
-                weightRisk = goal.weightRisk,
-                rawScore = goal.rawScore,
-                displayScore = goal.displayScore,
-                scoringStatus = goal.scoringStatus,
-                isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
-             )
-              }
-              } else {
-              _events.send(GoalEditEvent.NavigateBack("Ціль не знайдено"))
-              }
+    }
+    // --- КІНЕЦЬ ЗМІНИ 2 ---
+
+    private suspend fun loadExistingGoal(goalId: String) {
+        val goal = goalRepository.getGoalById(goalId)
+        if (goal != null) {
+            currentGoal = goal
+            _uiState.update {
+                it.copy(
+                    goalText = TextFieldValue(goal.text),
+                    goalDescription = TextFieldValue(goal.description ?: ""),
+                    relatedLinks = goal.relatedLinks ?: emptyList(),
+                    isReady = true,
+                    isNewGoal = false,
+                    createdAt = goal.createdAt,
+                    updatedAt = goal.updatedAt,
+                    valueImportance = goal.valueImportance,
+                    valueImpact = goal.valueImpact,
+                    effort = goal.effort,
+                    cost = goal.cost,
+                    risk = goal.risk,
+                    weightEffort = goal.weightEffort,
+                    weightCost = goal.weightCost,
+                    weightRisk = goal.weightRisk,
+                    rawScore = goal.rawScore,
+                    displayScore = goal.displayScore,
+                    scoringStatus = goal.scoringStatus,
+                    isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
+                )
+            }
+        } else {
+            _events.send(GoalEditEvent.NavigateBack("Ціль не знайдено"))
         }
+    }
 
     private fun createNewGoal() {
-        // Логіка для створення нової цілі, яка просто ініціалізує UI
         _uiState.update {
             it.copy(
                 isReady = true,
@@ -163,15 +149,11 @@ it.copy(
             val goalToSave = GoalScoringManager.calculateScores(goalFromState)
 
             if (currentGoal != null) {
-                // Оновлення існуючої цілі
                 goalRepository.updateGoal(goalToSave)
                 contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
             } else {
-                // ✨ ВИПРАВЛЕНО: Створення нової цілі значно спрощено
-                initialListId ?: return@launch // Потрібен ID списку для створення
+                initialListId ?: return@launch
                 goalRepository.addGoalToList(goalToSave.text, initialListId)
-                // Контексти та інші властивості, які могли бути в `goalToSave`,
-                // будуть оброблені у `handleContextsOnCreate` або ігноруються при першому створенні
             }
 
             _events.send(GoalEditEvent.NavigateBack("Збережено"))
@@ -194,7 +176,7 @@ it.copy(
             text = state.goalText.text,
             description = descriptionToSave,
             updatedAt = currentTime,
-            relatedLinks = state.relatedLinks, // ✨ ОНОВЛЕНО
+            relatedLinks = state.relatedLinks,
             valueImportance = state.valueImportance,
             valueImpact = state.valueImpact,
             effort = state.effort,
@@ -207,7 +189,6 @@ it.copy(
         )
     }
 
-    // --- ОБРОБНИКИ ЗМІН UI ---
     fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(goalText = newValue) }
     fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(goalDescription = newValue) }
     fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
@@ -237,34 +218,42 @@ it.copy(
         _uiState.update { it.copy(rawScore = updatedGoal.rawScore, displayScore = updatedGoal.displayScore) }
     }
 
-    // --- УПРАВЛІННЯ RELATED LINKS ---
-    fun onShowListChooser() = _uiState.update { it.copy(showListChooser = true) }
-    fun onDismissListChooser() = _uiState.update { it.copy(showListChooser = false) }
-
-    fun onAddListAssociation(listId: String) {
-        val list = listHierarchy.value.allLists.find { it.id == listId }
-        val newLink = RelatedLink(
-            type = LinkType.GOAL_LIST,
-            target = listId,
-            displayName = list?.name
-        )
-        _uiState.update {
-            if (it.relatedLinks.any { link -> link.target == listId && link.type == LinkType.GOAL_LIST }) it
-            else it.copy(relatedLinks = it.relatedLinks + newLink)
-        }
-        onDismissListChooser()
-    }
-
-    fun onRemoveListAssociation(listIdToRemove: String) {
-        _uiState.update {
-            it.copy(relatedLinks = it.relatedLinks.filterNot { link -> link.target == listIdToRemove && link.type == LinkType.GOAL_LIST })
+    fun onAddLinkRequest() {
+        viewModelScope.launch {
+            val disabledIds = _uiState.value.relatedLinks
+                .filter { it.type == LinkType.GOAL_LIST }
+                .joinToString(",") { it.target }
+            val title = URLEncoder.encode("Додати посилання на список", "UTF-8")
+            _events.send(GoalEditEvent.Navigate("list_chooser_screen/$title?disabledIds=$disabledIds"))
         }
     }
 
-    fun addNewList(id: String, parentId: String?, name: String) {
-        if (name.isBlank()) return
-        viewModelScope.launch { goalRepository.createGoalListWithId(id, name, parentId) }
+    private fun onAddListAssociation(listId: String) {
+        viewModelScope.launch {
+            val listName = goalRepository.getGoalListById(listId)?.name
+            val newLink = RelatedLink(
+                type = LinkType.GOAL_LIST,
+                target = listId,
+                displayName = listName
+            )
+            val TAG = "NavResultDebug"
+            Log.d(TAG, "[GoalEditViewModel] Before update - relatedLinks count: ${_uiState.value.relatedLinks.size}")
+
+            _uiState.update {
+                if (it.relatedLinks.any { link -> link.target == listId && link.type == LinkType.GOAL_LIST }) it
+                else it.copy(relatedLinks = it.relatedLinks + newLink)
+            }
+
+            Log.d(TAG, "[GoalEditViewModel] After update - relatedLinks count: ${_uiState.value.relatedLinks.size}")
+        }
     }
+
+    fun onRemoveLinkAssociation(targetToRemove: String) {
+        _uiState.update {
+            it.copy(relatedLinks = it.relatedLinks.filterNot { link -> link.target == targetToRemove })
+        }
+    }
+
     fun openDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = true) }
     fun closeDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = false) }
     fun onDescriptionChangeAndCloseEditor(newDescription: String) {
@@ -274,16 +263,15 @@ it.copy(
         )}
     }
 
-    fun onSelectRelatedList(listId: String) {
-        val newLink = RelatedLink(
-            type = LinkType.GOAL_LIST,
-            target = listId,
-            displayName = null // Назва буде отримана з БД пізніше, якщо потрібно
-        )
+    fun onAddWebLinkRequest() {
+        viewModelScope.launch {
+            _events.send(GoalEditEvent.NavigateBack("Додавання веб-посилань буде реалізовано пізніше"))
+        }
+    }
 
-        _uiState.update {
-            if (it.relatedLinks.any { link -> link.target == listId && link.type == LinkType.GOAL_LIST }) it
-            else it.copy(relatedLinks = it.relatedLinks + newLink)
+    fun onAddObsidianLinkRequest() {
+        viewModelScope.launch {
+            _events.send(GoalEditEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
         }
     }
 }

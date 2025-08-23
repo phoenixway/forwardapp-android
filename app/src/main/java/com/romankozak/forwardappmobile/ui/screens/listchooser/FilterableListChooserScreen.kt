@@ -41,10 +41,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import kotlinx.coroutines.delay
 import java.util.*
+import com.romankozak.forwardappmobile.R
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -157,8 +159,8 @@ fun FilterableListChooserScreen(
                         OutlinedTextField(
                             value = filterText,
                             onValueChange = onFilterTextChanged,
-                            label = { Text("Пошук списків") },
-                            placeholder = { Text("Введіть назву списку...") },
+                            label = { Text(stringResource(R.string.search_lists)) },
+                            placeholder = { Text(stringResource(R.string.search_placeholder)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
@@ -186,7 +188,7 @@ fun FilterableListChooserScreen(
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         }
                                     ) {
-                                        Icon(Icons.Default.Close, "Очистити")
+                                        Icon(Icons.Default.Close, stringResource(R.string.clear_search))
                                     }
                                 }
                             },
@@ -236,7 +238,7 @@ fun FilterableListChooserScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        "Показувати вкладені списки",
+                                        stringResource(R.string.show_nested_lists),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = if (showDescendants)
                                             MaterialTheme.colorScheme.onPrimaryContainer
@@ -246,7 +248,7 @@ fun FilterableListChooserScreen(
                                     Spacer(modifier = Modifier.weight(1f))
                                     AnimatedContent(targetState = showDescendants) { isOn ->
                                         Text(
-                                            text = if (isOn) "Увімкнено" else "Вимкнено",
+                                            text = stringResource(if (isOn) R.string.enabled else R.string.disabled),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = if (showDescendants)
                                                 MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -261,6 +263,11 @@ fun FilterableListChooserScreen(
                         // Статистика результатів пошуку
                         if (filterText.isNotBlank()) {
                             val filteredCount = chooserUiState.topLevelLists.size
+                            val listsWord = if (filteredCount == 1)
+                                stringResource(R.string.list_singular)
+                            else
+                                stringResource(R.string.lists_plural)
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -275,7 +282,7 @@ fun FilterableListChooserScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "Знайдено: $filteredCount ${if (filteredCount == 1) "список" else "списків"}",
+                                    stringResource(R.string.found_lists, filteredCount, listsWord),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -304,12 +311,12 @@ fun FilterableListChooserScreen(
                                 if (filterText.isBlank()) {
                                     item {
                                         RootListItem(
-                                            text = "🏠 Корінь (верхній рівень)",
+                                            text = stringResource(R.string.root_level),
                                             isEnabled = currentParentId != null,
                                             onClick = {
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 onConfirm(null)
-                                                onNavigateBack()
+                                                //onNavigateBack()
                                             }
                                         )
                                     }
@@ -325,7 +332,7 @@ fun FilterableListChooserScreen(
                                         onSelect = { id ->
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             onConfirm(id)
-                                            onNavigateBack()
+                                           // onNavigateBack()
                                         },
                                         disabledIds = disabledIds,
                                         highlightedListId = highlightedListId,
@@ -377,12 +384,12 @@ fun FilterableListChooserScreen(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Add, "Створити")
+                        Icon(Icons.Default.Add, stringResource(R.string.create_button))
                         AnimatedVisibility(visible = !listState.isScrollInProgress) {
                             Row {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "Створити",
+                                    stringResource(R.string.create_button),
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             }
@@ -427,7 +434,7 @@ private fun CreateListForm(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "Створення нового списку",
+                stringResource(R.string.creating_new_list),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -441,8 +448,8 @@ private fun CreateListForm(
                     onNameChange(it)
                     isError = it.isNotBlank() && it.length < 3
                 },
-                label = { Text("Назва нового списку") },
-                placeholder = { Text("Наприклад: Робочі завдання") },
+                label = { Text(stringResource(R.string.new_list_name_label)) },
+                placeholder = { Text(stringResource(R.string.new_list_name_placeholder)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
@@ -450,9 +457,9 @@ private fun CreateListForm(
                 isError = isError,
                 supportingText = {
                     if (isError) {
-                        Text("Мінімум 3 символи")
+                        Text(stringResource(R.string.minimum_3_characters))
                     } else if (name.isNotBlank()) {
-                        Text("${name.length}/50 символів")
+                        Text(stringResource(R.string.character_counter, name.length))
                     }
                 },
                 keyboardActions = KeyboardActions(
@@ -475,7 +482,7 @@ private fun CreateListForm(
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Скасувати")
+                    Text(stringResource(R.string.cancel))
                 }
                 Button(
                     onClick = onCreate,
@@ -484,7 +491,7 @@ private fun CreateListForm(
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Створити")
+                    Text(stringResource(R.string.create))
                 }
             }
         }
@@ -513,16 +520,19 @@ private fun EnhancedEmptyState(hasFilter: Boolean) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = if (hasFilter) "Списки не знайдено" else "Немає списків",
+                text = if (hasFilter)
+                    stringResource(R.string.lists_not_found)
+                else
+                    stringResource(R.string.no_lists),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = if (hasFilter)
-                    "Спробуйте змінити критерії пошуку"
+                    stringResource(R.string.try_change_search_criteria)
                 else
-                    "Створіть свій перший список натиснувши кнопку '+'",
+                    stringResource(R.string.create_first_list_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -598,7 +608,7 @@ private fun RecursiveSelectableListItem(
                     ) {
                         Icon(
                             Icons.Default.ChevronRight,
-                            contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
+                            contentDescription = stringResource(if (isExpanded) R.string.collapse else R.string.expand),
                             modifier = Modifier
                                 .size(16.dp)
                                 .rotate(rotation),
@@ -646,7 +656,7 @@ private fun RecursiveSelectableListItem(
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Додати підсписок",
+                            contentDescription = stringResource(R.string.add_sublist),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
