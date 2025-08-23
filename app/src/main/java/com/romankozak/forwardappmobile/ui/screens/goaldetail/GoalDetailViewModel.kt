@@ -21,6 +21,7 @@ import javax.inject.Inject
 import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import kotlinx.coroutines.delay
+import java.net.URLEncoder
 
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
@@ -30,14 +31,10 @@ sealed class UiEvent {
     data class NavigateBackAndReveal(val listId: String) : UiEvent()
 }
 
+// Стан діалогу спрощено, оскільки він більше не очікує вибору списку
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
     data class AwaitingActionChoice(val itemContent: ListItemContent) : GoalActionDialogState()
-    data class AwaitingListChoice(
-        val sourceItemIds: Set<String>,
-        val sourceGoalIds: Set<String>,
-        val actionType: GoalActionType
-    ) : GoalActionDialogState()
 }
 
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, MoveToTop }
@@ -174,53 +171,10 @@ class GoalDetailViewModel @Inject constructor(
 
     private var recentlyDeletedItems: List<ListItemContent>? = null
 
-    private val _listChooserFilterText = MutableStateFlow("")
-    val listChooserFilterText = _listChooserFilterText.asStateFlow()
-
-    private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
-    val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
-
-    private val fullListHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
-        .map { allLists ->
-            val topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order }
-            val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            ListHierarchyData(allLists, topLevelLists, childMap)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData(emptyList(), emptyList(), emptyMap()))
-
-    val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
-        combine(listChooserFilterText, fullListHierarchy) { filter, originalHierarchy ->
-            // --- ПОЧАТОК ЗМІН: Створюємо максимально глибоку копію ---
-            val copiedAllLists = originalHierarchy.allLists.map { it.copy() }
-            val safeHierarchy = ListHierarchyData(
-                allLists = copiedAllLists,
-                topLevelLists = copiedAllLists.filter { it.parentId == null }.sortedBy { it.order },
-                childMap = copiedAllLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            )
-            HierarchyFilter.filter(safeHierarchy, filter)
-            // --- КІНЕЦЬ ЗМІН ---
-        }.flowOn(Dispatchers.Default)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
-
-    fun onListChooserFilterChanged(text: String) {
-        Log.d("FilterDebug", "[GoalDetailVM] Filter text changed to: '$text'") // --- ДОДАНО ЛОГУВАННЯ ---
-        _listChooserFilterText.value = text
-    }
-
-
-    val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
-        listChooserFilterText,
-        filteredListHierarchyForDialog,
-        listChooserUserExpandedIds
-    ) { filter, filteredHierarchy, userExpandedIds ->
-        if (filter.isBlank()) {
-            userExpandedIds
-        } else {
-            val allVisibleIds = filteredHierarchy.topLevelLists.map { it.id }.toSet() +
-                    filteredHierarchy.childMap.keys
-            userExpandedIds + allVisibleIds
-        }
-    }.flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    // Поля для збереження дії, яка очікує на вибір списку
+    private var pendingAction: GoalActionType? = null
+    private var pendingSourceItemIds: Set<String> = emptySet()
+    private var pendingSourceGoalIds: Set<String> = emptySet()
 
     init {
         viewModelScope.launch {
@@ -233,39 +187,91 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun onListChooserToggleExpanded(listId: String) {
-        _listChooserUserExpandedIds.value = _listChooserUserExpandedIds.value.toMutableSet().apply {
-            if (listId in this) remove(listId) else add(listId)
-        }
-    }
+    // Нова функція для обробки результату з екрана вибору
+    fun onListChooserResult(targetListId: String) {
+        val actionType = pendingAction ?: return
+        val itemIds = pendingSourceItemIds.toList()
+        val goalIds = pendingSourceGoalIds.toList()
 
-    fun addNewList(id: String, parentId: String?, name: String) {
-        if (name.isBlank()) return
-        viewModelScope.launch {
-            goalRepository.createGoalListWithId(id, name, parentId)
-        }
-    }
-
-    fun confirmGoalAction(targetListId: String) {
-        val currentState = _goalActionDialogState.value
-        if (currentState is GoalActionDialogState.AwaitingListChoice) {
-            val itemIds = currentState.sourceItemIds.toList()
-            val goalIds = currentState.sourceGoalIds.toList()
-            val actionType = currentState.actionType
-
-            viewModelScope.launch(Dispatchers.IO) {
-                when (actionType) {
-                    GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetListId)
-                    // Дія MoveInstance використовує itemIds, тому працюватиме і для нотаток
-                    GoalActionType.MoveInstance -> goalRepository.moveListItems(itemIds, targetListId)
-                    GoalActionType.CopyGoal -> goalRepository.copyGoalsToList(goalIds, targetListId)
-                    else -> {}
-                }
-                launch(Dispatchers.Main) { onDismissGoalActionDialogs() }
+        viewModelScope.launch(Dispatchers.IO) {
+            when (actionType) {
+                GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetListId)
+                GoalActionType.MoveInstance -> goalRepository.moveListItems(itemIds, targetListId)
+                GoalActionType.CopyGoal -> goalRepository.copyGoalsToList(goalIds, targetListId)
+                else -> {}
             }
         }
+        // Очищуємо збережену дію
+        pendingAction = null
+        pendingSourceItemIds = emptySet()
+        pendingSourceGoalIds = emptySet()
+        clearSelection()
     }
 
+    // Приватна функція для ініціювання навігації на екран вибору
+    private fun navigateToListChooser(title: String) {
+        viewModelScope.launch {
+            val encodedTitle = URLEncoder.encode(title, "UTF-8")
+            val disabledIds = listIdFlow.value
+            _uiEventFlow.send(UiEvent.Navigate("list_chooser_screen/$encodedTitle?disabledIds=$disabledIds"))
+        }
+    }
+
+    // Функція, що викликається після вибору дії (наприклад, "Перемістити")
+    fun onGoalActionSelected(actionType: GoalActionType, item: ListItemContent) {
+        val (itemIds, goalIds) = when (item) {
+            is ListItemContent.GoalItem -> Pair(setOf(item.item.id), setOf(item.goal.id))
+            is ListItemContent.NoteItem -> Pair(setOf(item.item.id), emptySet())
+            else -> return
+        }
+
+        val isActionApplicable = when (actionType) {
+            GoalActionType.MoveInstance -> true
+            GoalActionType.CreateInstance, GoalActionType.CopyGoal -> item is ListItemContent.GoalItem
+            else -> false
+        }
+        if (!isActionApplicable) return
+
+        // Зберігаємо дію та ініціюємо навігацію
+        pendingAction = actionType
+        pendingSourceItemIds = itemIds
+        pendingSourceGoalIds = goalIds
+
+        val title = when (actionType) {
+            GoalActionType.CreateInstance -> "Створити посилання у..."
+            GoalActionType.MoveInstance -> "Перемістити до..."
+            GoalActionType.CopyGoal -> "Копіювати до..."
+            else -> "Виберіть список"
+        }
+        onDismissGoalActionDialogs() // Закриваємо діалог вибору дії
+        navigateToListChooser(title)
+    }
+
+    // Функція для масових дій
+    fun onBulkActionRequest(actionType: GoalActionType) {
+        val selectedIds = _uiState.value.selectedItemIds
+        if (selectedIds.isNotEmpty()) {
+            val sourceGoalIds = listContent.value
+                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
+                .map { it.item.entityId }
+                .toSet()
+
+            pendingAction = actionType
+            pendingSourceItemIds = selectedIds
+            pendingSourceGoalIds = sourceGoalIds
+
+            val title = when (actionType) {
+                GoalActionType.CreateInstance -> "Створити посилання у..."
+                GoalActionType.MoveInstance -> "Перемістити до..."
+                GoalActionType.CopyGoal -> "Копіювати до..."
+                else -> "Виберіть список"
+            }
+            onDismissGoalActionDialogs()
+            navigateToListChooser(title)
+        }
+    }
+
+    // Решта функцій ViewModel залишається без змін...
     fun onInputTextChanged(newValue: TextFieldValue) {
         _uiState.update { it.copy(inputValue = newValue) }
         if (_uiState.value.inputMode == InputMode.SearchInList) {
@@ -309,7 +315,10 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onDismissGoalActionDialogs() {
         _goalActionDialogState.value = GoalActionDialogState.Hidden
-        _uiState.update { it.copy(swipedItemId = null, selectedItemIds = emptySet()) }
+        _uiState.update { it.copy(swipedItemId = null) }
+        if (!isSelectionModeActive.value) {
+            clearSelection()
+        }
     }
 
     fun moveItem(fromIndex: Int, toIndex: Int) {
@@ -424,52 +433,6 @@ class GoalDetailViewModel @Inject constructor(
         _goalActionDialogState.value = GoalActionDialogState.AwaitingActionChoice(item)
     }
 
-    // --- ПОЧАТОК ЗМІН: Оновлено логіку для підтримки нотаток ---
-    fun onGoalActionSelected(actionType: GoalActionType, item: ListItemContent) {
-        when (item) {
-            is ListItemContent.GoalItem -> {
-                // Стандартна логіка для цілей
-                _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
-                    sourceItemIds = setOf(item.item.id),
-                    sourceGoalIds = setOf(item.goal.id),
-                    actionType = actionType
-                )
-            }
-            is ListItemContent.NoteItem -> {
-                // Дія "Перемістити" є універсальною, оскільки працює з ID елемента списку (ListItem).
-                // Інші дії (копіювання, створення посилання) є специфічними для цілей.
-                if (actionType == GoalActionType.MoveInstance) {
-                    _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
-                        sourceItemIds = setOf(item.item.id),
-                        sourceGoalIds = emptySet(), // Для переміщення ID самої сутності не потрібен
-                        actionType = actionType
-                    )
-                }
-                // Наразі інші дії для нотаток не обробляються, але їх можна додати тут у майбутньому.
-            }
-            is ListItemContent.SublistItem -> {
-                // Дії для підсписків не застосовуються
-            }
-        }
-    }
-    // --- КІНЕЦЬ ЗМІН ---
-
-    fun onBulkActionRequest(actionType: GoalActionType) {
-        val selectedIds = _uiState.value.selectedItemIds
-        if (selectedIds.isNotEmpty()) {
-            val sourceGoalIds = listContent.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { it.item.entityId }
-                .toSet()
-
-            _goalActionDialogState.value = GoalActionDialogState.AwaitingListChoice(
-                sourceItemIds = selectedIds,
-                sourceGoalIds = sourceGoalIds,
-                actionType = actionType
-            )
-        }
-    }
-
     fun toggleGoalCompletedWithState(goal: Goal, isChecked: Boolean) {
         viewModelScope.launch {
             try {
@@ -506,8 +469,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // File: GoalDetailViewModel.kt
-
     private fun onEditGoal(goal: Goal) {
         viewModelScope.launch {
             _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${listIdFlow.value}?goalId=${goal.id}"))
@@ -520,4 +481,11 @@ class GoalDetailViewModel @Inject constructor(
     private fun onNavigateToList(listId: String) {
         viewModelScope.launch { _uiEventFlow.send(UiEvent.Navigate("goal_detail_screen/$listId")) }
     }
+
+    fun forceRefresh() {
+        viewModelScope.launch {
+            _refreshTrigger.value++
+        }
+    }
+
 }

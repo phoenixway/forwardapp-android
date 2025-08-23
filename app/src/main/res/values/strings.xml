@@ -17,5 +17,38 @@
     <string name="no_lists_created">Немає жодного списку. Створіть перший!</string>
     <string name="new_top_level_list">Новий список верхнього рівня</string>
     <string name="root_list_label">Корінь (верхній рівень)</string>
+    <string name="back">Назад</string>
+    <string name="create_new_sublist_title">Новий підсписок: \'%1$s\'</string>
+    <string name="create_new_list_title">Новий список</string>
+    <string name="search_lists">Пошук списків</string>
+    <string name="search_placeholder">Введіть назву списку…</string>
+    <string name="clear_search">Очистити</string>
+    <string name="show_nested_lists">Показувати вкладені списки</string>
+    <string name="enabled">Увімкнено</string>
+    <string name="disabled">Вимкнено</string>
+    <string name="found_lists">Знайдено: %1$d %2$s</string>
+    <string name="list_singular">список</string>
+    <string name="lists_plural">списків</string>
+    <string name="root_level">🏠 Корінь (верхній рівень)</string>
+    <string name="create_button">Створити</string>
+    <string name="expand">Розгорнути</string>
+    <string name="collapse">Згорнути</string>
+    <string name="add_sublist">Додати підсписок</string>
+
+    <!-- CreateListForm -->
+    <string name="creating_new_list">Створення нового списку</string>
+    <string name="new_list_name_label">Назва нового списку</string>
+    <string name="new_list_name_placeholder">Наприклад: Робочі завдання</string>
+    <string name="minimum_3_characters">Мінімум 3 символи</string>
+    <string name="character_counter">%1$d/50 символів</string>
+    <string name="cancel">Скасувати</string>
+    <string name="create">Створити</string>
+
+    <!-- Empty States -->
+    <string name="lists_not_found">Списки не знайдено</string>
+    <string name="no_lists">Немає списків</string>
+    <string name="try_change_search_criteria">Спробуйте змінити критерії пошуку</string>
+    <string name="create_first_list_hint">Створіть свій перший список натиснувши кнопку \'+\'</string>
+
 
 </resources>

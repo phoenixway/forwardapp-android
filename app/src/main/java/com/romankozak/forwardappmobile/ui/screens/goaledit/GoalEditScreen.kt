@@ -3,20 +3,22 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaledit
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,24 +26,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
-import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
+import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import com.romankozak.forwardappmobile.ui.utils.formatDate
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
 
 private object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
@@ -58,42 +68,55 @@ fun GoalEditScreen(
     navController: NavController,
     viewModel: GoalEditViewModel = hiltViewModel(),
 ) {
+    // --- Основні стани та контекст ---
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(viewModel.events) {
+    // --- Налаштування для отримання результатів від інших екранів ---
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val navGraphEntry = remember(currentBackStackEntry) {
+        navController.getBackStackEntry("app_graph")
+    }
+    val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
+
+
+    // --- Обробка навігаційних подій від ViewModel ---
+    LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
             when (event) {
+                // ЗМІНЕНО: Тепер перед поверненням назад ми встановлюємо результат
                 is GoalEditEvent.NavigateBack -> {
                     event.message?.let {
                         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                     }
+                    // Повідомляємо попередній екран, що потрібно оновити дані
+                    resultViewModel.setResult("refresh_needed", true)
                     navController.popBackStack()
+                }
+                is GoalEditEvent.Navigate -> {
+                    navController.navigate(event.route)
                 }
             }
         }
     }
 
-    LaunchedEffect(viewModel.eventFlow) {
-        viewModel.eventFlow.collect { event ->
-            when (event) {
-                is GoalEditEvent.NavigateBack -> {
-                    navController.popBackStack()
-                    event.message?.let {
-                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                    }
-                }
+    // --- Отримання результату від екрана вибору списку ---
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            // Перевіряємо, чи повернувся ID обраного списку
+            val selectedListId = resultViewModel.consumeResult<String>("selectedListId")
+            if (selectedListId != null) {
+                viewModel.onListChooserResult(selectedListId)
             }
         }
     }
 
 
-
+    // --- Логіка для підказок контекстів (@...) ---
     val allContexts by viewModel.allContextNames.collectAsStateWithLifecycle()
-
     var showSuggestions by remember { mutableStateOf(false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
-
 
     fun getCurrentWord(textValue: TextFieldValue): String? {
         val cursorPosition = textValue.selection.start
@@ -115,20 +138,6 @@ fun GoalEditScreen(
             showSuggestions = false
         }
     }
-
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is GoalEditEvent.NavigateBack -> {
-                    event.message?.let {
-                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                    }
-                    navController.popBackStack()
-                }
-            }
-        }
-    }
-
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -222,16 +231,10 @@ fun GoalEditScreen(
                 item {
                     RelatedLinksSection(
                         relatedLinks = uiState.relatedLinks,
-                        onRemoveLink = viewModel::onRemoveListAssociation,
-                        onAddLink = { // <--- ЗМІНА ТУТ
-                            // Отримуємо ID поточної цілі та пов'язаних списків, які потрібно відключити
-                            val currentGoalId = uiState.relatedLinks.firstOrNull { it.type == LinkType.GOAL_LIST }?.target
-                            val disabledIds = uiState.relatedLinks.filter { it.type == LinkType.GOAL_LIST }.map { it.target }.toSet()
-                            val disabledIdsString = disabledIds.joinToString(",")
-
-                            // Викликаємо навігацію до екрана вибору списку
-                            navController.navigate("list_chooser_screen/${currentGoalId}?disabledIds=$disabledIdsString")
-                        },
+                        onRemoveLink = viewModel::onRemoveLinkAssociation,
+                        onAddLink = viewModel::onAddLinkRequest,
+                        onAddWebLink = viewModel::onAddWebLinkRequest,
+                        onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
                     )
                 }
 
@@ -278,58 +281,261 @@ fun GoalEditScreen(
     }
 }
 
-// --- ДОПОМІЖНІ КОМПОНЕНТИ ---
-
 @Composable
 private fun RelatedLinksSection(
     relatedLinks: List<RelatedLink>,
     onRemoveLink: (String) -> Unit,
     onAddLink: () -> Unit,
+    onAddWebLink: () -> Unit,
+    onAddObsidianLink: () -> Unit,
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Пов'язані посилання", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Пов'язані посилання", style = MaterialTheme.typography.titleMedium)
+
+                if (relatedLinks.isNotEmpty()) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    ) {
+                        Text(
+                            text = relatedLinks.size.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
 
             if (relatedLinks.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    mainAxisSpacing = 8.dp,
-                    crossAxisSpacing = 4.dp,
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    relatedLinks.forEach { link ->
-                        if (link.type == LinkType.GOAL_LIST) {
-                            InputChip(
-                                selected = false,
-                                onClick = { /* TODO: Navigate to list on click */ },
-                                label = { Text(link.displayName ?: link.target) },
-                                trailingIcon = {
-                                    Icon(
-                                        Icons.Default.Cancel,
-                                        contentDescription = "Видалити посилання",
-                                        modifier = Modifier
-                                            .size(InputChipDefaults.IconSize)
-                                            .clickable { onRemoveLink(link.target) },
-                                    )
-                                },
-                            )
-                        }
+                    items(relatedLinks) { link ->
+                        LinkItem(
+                            link = link,
+                            onRemove = { onRemoveLink(link.target) },
+                            onClick = { /* TODO: Navigate based on link type */ }
+                        )
                     }
                 }
             } else {
-                Text(
-                    "Ціль ще не має пов'язаних посилань.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Ціль ще не має пов'язаних посилань",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
-            OutlinedButton(onClick = onAddLink, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Add, null, Modifier.size(ButtonDefaults.IconSize))
-                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                Text("Додати посилання на список")
+            AddLinksButtons(
+                onAddListLink = onAddLink,
+                onAddWebLink = onAddWebLink,
+                onAddObsidianLink = onAddObsidianLink
+            )
+        }
+    }
+}
+
+@Composable
+private fun LinkItem(
+    link: RelatedLink,
+    onRemove: () -> Unit,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = when (link.type) {
+            LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+            LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        },
+        border = BorderStroke(
+            1.dp,
+            when (link.type) {
+                LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                else -> MaterialTheme.colorScheme.outline
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = when (link.type) {
+                        LinkType.GOAL_LIST -> Icons.Default.List
+                        LinkType.URL -> Icons.Default.Language
+                        LinkType.OBSIDIAN -> Icons.Default.Note
+                        else -> Icons.Default.Link
+                    },
+                    contentDescription = null,
+                    tint = when (link.type) {
+                        LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
+                        LinkType.URL -> MaterialTheme.colorScheme.secondary
+                        LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = link.displayName ?: link.target,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Text(
+                        text = when (link.type) {
+                            LinkType.GOAL_LIST -> "Список цілей"
+                            LinkType.URL -> "Веб-посилання"
+                            LinkType.OBSIDIAN -> "Obsidian нотатка"
+                            else -> "Посилання"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Видалити посилання",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddLinksButtons(
+    onAddListLink: () -> Unit,
+    onAddWebLink: () -> Unit,
+    onAddObsidianLink: () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (isExpanded) {
+            OutlinedButton(
+                onClick = onAddListLink,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.List,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати список цілей")
+            }
+
+            OutlinedButton(
+                onClick = onAddWebLink,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Language,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати веб-посилання")
+            }
+
+            OutlinedButton(
+                onClick = onAddObsidianLink,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Note,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати Obsidian нотатку")
+            }
+
+            TextButton(
+                onClick = { isExpanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.ExpandLess, contentDescription = null)
+                Spacer(Modifier.width(4.dp))
+                Text("Згорнути")
+            }
+        } else {
+            OutlinedButton(
+                onClick = { isExpanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати посилання")
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
@@ -564,7 +770,5 @@ private fun ParameterSlider(
             valueRange = 0f..scale.lastIndex.toFloat(),
             steps = (scale.size - 2).coerceAtLeast(0),
         )
-
-
     }
 }

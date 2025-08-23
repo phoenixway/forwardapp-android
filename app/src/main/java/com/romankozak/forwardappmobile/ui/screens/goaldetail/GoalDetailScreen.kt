@@ -7,6 +7,7 @@ package com.romankozak.forwardappmobile.ui.screens.goaldetail
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -36,17 +37,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalInputBar
 import com.romankozak.forwardappmobile.ui.components.MultiSelectTopAppBar
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.listItemsRenderers.*
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
+import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -72,15 +78,36 @@ fun GoalDetailScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
-    val filteredListHierarchy by viewModel.filteredListHierarchyForDialog.collectAsStateWithLifecycle()
-    val listChooserFilterText by viewModel.listChooserFilterText.collectAsStateWithLifecycle()
-    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsStateWithLifecycle()
 
     val listId = remember {
         navController.currentBackStackEntry?.arguments?.getString("listId") ?: ""
     }
 
-    // --- ЗМІНА №1: Оновлюємо логіку "Підсвітити в беклогах" ---
+    // Блок для отримання результатів від інших екранів (включно з list_chooser_screen)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val navGraphEntry = remember(currentBackStackEntry) {
+        navController.getBackStackEntry("app_graph")
+    }
+    val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            // Перевірка результату від вибору списку
+            val selectedListId = resultViewModel.consumeResult<String>("selectedListId")
+            if (selectedListId != null) {
+                viewModel.onListChooserResult(selectedListId)
+            }
+
+            // Перевірка, чи потрібно оновити екран після редагування
+            val needsRefresh = resultViewModel.consumeResult<Boolean>("refresh_needed")
+            if (needsRefresh == true) {
+                viewModel.forceRefresh()
+            }
+        }
+    }
+
+
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
@@ -99,11 +126,9 @@ fun GoalDetailScreen(
                 }
                 is UiEvent.ScrollTo -> listState.animateScrollToItem(event.index)
                 is UiEvent.NavigateBackAndReveal -> {
-                    // Встановлюємо результат для екрану зі списками
                     navController.getBackStackEntry("goal_lists_screen")
                         .savedStateHandle
                         .set("list_to_reveal", event.listId)
-                    // Повертаємось на екран зі списками, очищуючи всі проміжні екрани
                     navController.popBackStack("goal_lists_screen", inclusive = false)
                 }
                 else -> {}
@@ -297,6 +322,7 @@ fun GoalDetailScreen(
         onListClick = { listId -> viewModel.onRecentListSelected(listId) }
     )
 
+    // Тепер тут залишився тільки діалог вибору ДІЇ, а не списку
     when (val state = goalActionState) {
         is GoalActionDialogState.Hidden -> {}
         is GoalActionDialogState.AwaitingActionChoice -> {
@@ -307,37 +333,9 @@ fun GoalDetailScreen(
                 }
             )
         }
-        is GoalActionDialogState.AwaitingListChoice -> {
-            val title = when (state.actionType) {
-                GoalActionType.CreateInstance -> "Створити посилання у..."
-                GoalActionType.MoveInstance -> "Перемістити до..."
-                GoalActionType.CopyGoal -> "Копіювати до..."
-                else -> "Виберіть список"
-            }
-
-            FilterableListChooser(
-                title = title,
-                filterText = listChooserFilterText,
-                onFilterTextChanged = { viewModel.onListChooserFilterChanged(it) },
-                topLevelLists = filteredListHierarchy.topLevelLists,
-                childMap = filteredListHierarchy.childMap,
-                expandedIds = listChooserFinalExpandedIds,
-                onToggleExpanded = { viewModel.onListChooserToggleExpanded(it) },
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onConfirm = { confirmedListId ->
-                    confirmedListId?.let { viewModel.confirmGoalAction(it) }
-                },
-                currentParentId = null,
-                disabledIds = setOf(listId),
-                onAddNewList = { id, parentId, name ->
-                    viewModel.addNewList(id, parentId, name)
-                },
-            )
-        }
     }
 }
 
-// --- ЗМІНА №2: Оновлюємо логіку кліку по зв'язаному списку ---
 private fun handleRelatedLinkClick(
     link: RelatedLink,
     context: Context,
@@ -353,7 +351,6 @@ private fun handleRelatedLinkClick(
             }
         }
         LinkType.GOAL_LIST -> {
-            // При переході на інший детальний екран, видаляємо попередній зі стеку
             navController.navigate("goal_detail_screen/${link.target}") {
                 popUpTo(navController.currentDestination!!.id!!) {
                     inclusive = true

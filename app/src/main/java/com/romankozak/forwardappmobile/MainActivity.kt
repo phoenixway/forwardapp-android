@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -11,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,8 +32,10 @@ import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChoo
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
+import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.net.URLDecoder
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -55,10 +60,14 @@ fun AppNavigation(
     syncDataViewModel: SyncDataViewModel,
 ) {
     val navController = rememberNavController()
+    val navGraphRoute = "app_graph"
+
 
     NavHost(
         navController = navController,
-        startDestination = "goal_lists_screen"
+        startDestination = "goal_lists_screen",
+        route = navGraphRoute
+
     ) {
         composable("goal_lists_screen") {
             val viewModel: GoalListViewModel = hiltViewModel()
@@ -184,41 +193,70 @@ fun AppNavigation(
 
 // Файл: MainActivity.kt
 
-        composable("list_chooser_screen/{currentParentId}?disabledIds={disabledIds}") { backStackEntry ->
+        composable(
+            route = "list_chooser_screen/{title}?disabledIds={disabledIds}",
+            arguments = listOf(
+                navArgument("title") { type = NavType.StringType },
+                navArgument("disabledIds") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
             val viewModel: FilterableListChooserViewModel = hiltViewModel()
-            val currentParentId = backStackEntry.arguments?.getString("currentParentId")
+
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(navGraphRoute)
+            }
+            // 2. Отримуємо спільну ViewModel, прив'язану до цього графа
+            val resultViewModel: NavigationResultViewModel = viewModel(parentEntry)
+            // --- КІНЕЦЬ ЗМІНИ 3 ---
+
+
+            val TAG = "NavResultDebug" // Тег для логування
+
+            val title = backStackEntry.arguments?.getString("title")?.let {
+                URLDecoder.decode(it, "UTF-8")
+            } ?: "Виберіть список"
             val disabledIds = backStackEntry.arguments?.getString("disabledIds")?.split(",")?.toSet() ?: emptySet()
 
-            val chooserUiState by viewModel.chooserState.collectAsState()
-            val expandedIds by viewModel.expandedIds.collectAsState()
-            // --- ПОЧАТОК ЗМІН: Отримуємо новий стан з ViewModel ---
-            val showDescendants by viewModel.showDescendants.collectAsState()
-            // --- КІНЕЦЬ ЗМІН ---
+            val chooserUiState by viewModel.chooserState.collectAsStateWithLifecycle()
+            val filterText by viewModel.filterText.collectAsStateWithLifecycle()
+            val expandedIds by viewModel.expandedIds.collectAsStateWithLifecycle()
+            val showDescendants by viewModel.showDescendants.collectAsStateWithLifecycle()
+
+            val prevBse = navController.previousBackStackEntry
+            Log.d("NavInstanceDebug", "[ChooserScreen] Previous SavedStateHandle hashCode: ${prevBse?.savedStateHandle.hashCode()}")
 
             FilterableListChooserScreen(
-                title = "Виберіть список",
-                filterText = viewModel.filterText.collectAsState().value,
+                title = title,
+                filterText = filterText,
                 onFilterTextChanged = viewModel::updateFilterText,
                 chooserUiState = chooserUiState,
                 expandedIds = expandedIds,
                 onToggleExpanded = viewModel::toggleExpanded,
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
+                onNavigateBack = { navController.popBackStack() },
                 onConfirm = { selectedId ->
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("selectedListId", selectedId)
-                    navController.popBackStack()
+                    Log.d(TAG, "[ChooserScreen] onConfirm: User selected ID: '$selectedId'")
+                    val previousBackStackEntry = navController.previousBackStackEntry
+                    if (previousBackStackEntry != null) {
+                        Log.d(TAG, "[ChooserScreen] Found previous screen: ${previousBackStackEntry.destination.route}")
+                        Log.d(TAG, "[ChooserScreen] Setting result ('$selectedId') with key 'selectedListId'...")
+                        // Встановлюємо результат у спільну ViewModel
+                        resultViewModel.setResult("selectedListId", selectedId)
+                        // Повертаємось на попередній екран ОДИН раз
+                        navController.popBackStack()
+                        Log.d(TAG, "[ChooserScreen] Result set. Called popBackStack...")
+                    } else {
+                        Log.e(TAG, "[ChooserScreen] ERROR: Could not find previousBackStackEntry!")
+                    }
                 },
-                currentParentId = currentParentId,
+                currentParentId = null,
                 disabledIds = disabledIds,
                 onAddNewList = viewModel::addNewList,
-                // --- ПОЧАТОК ЗМІН: Передаємо нові параметри в UI ---
                 showDescendants = showDescendants,
                 onToggleShowDescendants = viewModel::toggleShowDescendants
-                // --- КІНЕЦЬ ЗМІН ---
             )
         }
-    }}
+}}
 
