@@ -1,6 +1,7 @@
 // --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditViewModel.kt ---
 package com.romankozak.forwardappmobile.ui.screens.goaledit
 
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -67,7 +68,11 @@ class GoalEditViewModel @Inject constructor(
 
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
 
-    // ... (код для list chooser та ієрархії залишається без змін) ...
+
+    private val _eventChannel = Channel<GoalEditEvent>()
+    val eventFlow = _eventChannel.receiveAsFlow()
+
+
     val listHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
         .map { allLists ->
             val topLevel = allLists.filter { it.parentId == null }.sortedBy { it.order }
@@ -75,29 +80,19 @@ class GoalEditViewModel @Inject constructor(
             ListHierarchyData(allLists, topLevel, childMap)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-    private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
-    val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
-
-    private val _listChooserFilterText = MutableStateFlow("")
-    val listChooserFilterText = _listChooserFilterText.asStateFlow()
-
-    val filteredListHierarchy: StateFlow<ListHierarchyData> =
-        combine(listChooserFilterText, listHierarchy) { filter, originalHierarchy ->
-            HierarchyFilter.filter(originalHierarchy, filter)
-        }.flowOn(Dispatchers.Default)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
-
-    val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
-        listChooserFilterText,
-        filteredListHierarchy,
-        listChooserUserExpandedIds
-    ) { filter, filteredHierarchy, userExpanded ->
-        if (filter.isBlank()) userExpanded
-        else userExpanded + filteredHierarchy.childMap.keys
-    }.flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     init {
+        // Запускаємо колектор для selectedListId в окремому потоці
+        viewModelScope.launch {
+            savedStateHandle.getStateFlow<String?>("selectedListId", null).collect { listId ->
+                if (listId != null) {
+                    onSelectRelatedList(listId)
+                    savedStateHandle["selectedListId"] = null
+                }
+            }
+        }
+
+        // Основну ініціалізацію запускаємо окремо
         viewModelScope.launch {
             contextHandler.initialize()
             if (goalId != null) {
@@ -109,40 +104,50 @@ class GoalEditViewModel @Inject constructor(
     }
 
     private suspend fun loadExistingGoal(goalId: String) {
+        // Логування
+        Log.d("GoalEditViewModel", "Спроба завантажити ціль з ID: $goalId")
         val goal = goalRepository.getGoalById(goalId)
-        if (goal != null) {
-            currentGoal = goal
-            _uiState.update {
-                it.copy(
-                    goalText = TextFieldValue(goal.text),
-                    goalDescription = TextFieldValue(goal.description ?: ""),
-                    relatedLinks = goal.relatedLinks ?: emptyList(), // ✨ ОНОВЛЕНО
-                    isReady = true,
-                    isNewGoal = false,
-                    createdAt = goal.createdAt,
-                    updatedAt = goal.updatedAt,
-                    valueImportance = goal.valueImportance,
-                    valueImpact = goal.valueImpact,
-                    effort = goal.effort,
-                    cost = goal.cost,
-                    risk = goal.risk,
-                    weightEffort = goal.weightEffort,
-                    weightCost = goal.weightCost,
-                    weightRisk = goal.weightRisk,
-                    rawScore = goal.rawScore,
-                    displayScore = goal.displayScore,
-                    scoringStatus = goal.scoringStatus,
-                    isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
-                )
-            }
-        } else {
-            _events.send(GoalEditEvent.NavigateBack("Ціль не знайдено"))
+        Log.d("GoalEditViewModel", "Результат завантаження: ${if (goal != null) "ЗНАЙДЕНО" else "НЕ ЗНАЙДЕНО"}")
+
+          if (goal != null) {
+              currentGoal = goal
+              _uiState.update {
+it.copy(
+                goalText = TextFieldValue(goal.text),
+                goalDescription = TextFieldValue(goal.description ?: ""),
+                relatedLinks = goal.relatedLinks ?: emptyList(),
+                isReady = true,
+                isNewGoal = false,
+                createdAt = goal.createdAt,
+                updatedAt = goal.updatedAt,
+                valueImportance = goal.valueImportance,
+                valueImpact = goal.valueImpact,
+                effort = goal.effort,
+                cost = goal.cost,
+                risk = goal.risk,
+                weightEffort = goal.weightEffort,
+                weightCost = goal.weightCost,
+                weightRisk = goal.weightRisk,
+                rawScore = goal.rawScore,
+                displayScore = goal.displayScore,
+                scoringStatus = goal.scoringStatus,
+                isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
+             )
+              }
+              } else {
+              _events.send(GoalEditEvent.NavigateBack("Ціль не знайдено"))
+              }
         }
-    }
 
     private fun createNewGoal() {
+        // Логіка для створення нової цілі, яка просто ініціалізує UI
         _uiState.update {
-            it.copy(isReady = true, isNewGoal = true, scoringStatus = ScoringStatus.NOT_ASSESSED, isScoringEnabled = true)
+            it.copy(
+                isReady = true,
+                isNewGoal = true,
+                scoringStatus = ScoringStatus.NOT_ASSESSED,
+                isScoringEnabled = true
+            )
         }
         updateScores()
     }
@@ -256,11 +261,6 @@ class GoalEditViewModel @Inject constructor(
         }
     }
 
-    // --- ІНШІ МЕТОДИ ---
-    fun onListChooserFilterChanged(text: String) { _listChooserFilterText.value = text }
-    fun onListChooserToggleExpanded(listId: String) {
-        _listChooserUserExpandedIds.update { if (listId in it) it - listId else it + listId }
-    }
     fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
         viewModelScope.launch { goalRepository.createGoalListWithId(id, name, parentId) }
@@ -272,5 +272,18 @@ class GoalEditViewModel @Inject constructor(
             goalDescription = it.goalDescription.copy(text = newDescription),
             isDescriptionEditorOpen = false
         )}
+    }
+
+    fun onSelectRelatedList(listId: String) {
+        val newLink = RelatedLink(
+            type = LinkType.GOAL_LIST,
+            target = listId,
+            displayName = null // Назва буде отримана з БД пізніше, якщо потрібно
+        )
+
+        _uiState.update {
+            if (it.relatedLinks.any { link -> link.target == listId && link.type == LinkType.GOAL_LIST }) it
+            else it.copy(relatedLinks = it.relatedLinks + newLink)
+        }
     }
 }
