@@ -189,9 +189,23 @@ class GoalDetailViewModel @Inject constructor(
 
     val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
         combine(listChooserFilterText, fullListHierarchy) { filter, originalHierarchy ->
-            HierarchyFilter.filter(originalHierarchy, filter)
+            // --- ПОЧАТОК ЗМІН: Створюємо максимально глибоку копію ---
+            val copiedAllLists = originalHierarchy.allLists.map { it.copy() }
+            val safeHierarchy = ListHierarchyData(
+                allLists = copiedAllLists,
+                topLevelLists = copiedAllLists.filter { it.parentId == null }.sortedBy { it.order },
+                childMap = copiedAllLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+            )
+            HierarchyFilter.filter(safeHierarchy, filter)
+            // --- КІНЕЦЬ ЗМІН ---
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+    fun onListChooserFilterChanged(text: String) {
+        Log.d("FilterDebug", "[GoalDetailVM] Filter text changed to: '$text'") // --- ДОДАНО ЛОГУВАННЯ ---
+        _listChooserFilterText.value = text
+    }
+
 
     val listChooserFinalExpandedIds: StateFlow<Set<String>> = combine(
         listChooserFilterText,
@@ -218,8 +232,6 @@ class GoalDetailViewModel @Inject constructor(
             contextHandler.initialize()
         }
     }
-
-    fun onListChooserFilterChanged(text: String) { _listChooserFilterText.value = text }
 
     fun onListChooserToggleExpanded(listId: String) {
         _listChooserUserExpandedIds.value = _listChooserUserExpandedIds.value.toMutableSet().apply {
@@ -494,10 +506,13 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    private fun onEditGoal(goal: Goal) {
-        viewModelScope.launch { _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${listIdFlow.value}/${goal.id}")) }
-    }
+    // File: GoalDetailViewModel.kt
 
+    private fun onEditGoal(goal: Goal) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${listIdFlow.value}?goalId=${goal.id}"))
+        }
+    }
     private fun onEditNote(note: Note) {
         viewModelScope.launch { _uiEventFlow.send(UiEvent.Navigate("note_edit_screen/${listIdFlow.value}/${note.id}")) }
     }

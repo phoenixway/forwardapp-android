@@ -25,6 +25,8 @@ import com.romankozak.forwardappmobile.ui.screens.goaldetail.GoalDetailScreen
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListScreen
 import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListViewModel
+import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
+import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
@@ -122,10 +124,14 @@ fun AppNavigation(
         }
 
         composable(
-            route = "goal_edit_screen/{listId}/{goalId}",
+            route = "goal_edit_screen/{listId}?goalId={goalId}",
             arguments = listOf(
                 navArgument("listId") { type = NavType.StringType },
-                navArgument("goalId") { type = NavType.StringType }
+                navArgument("goalId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
             )
         ) {
             GoalEditScreen(
@@ -174,5 +180,45 @@ fun AppNavigation(
         ) {
             NoteEditScreen(navController = navController)
         }
-    }
-}
+        // File: MainActivity.kt
+
+// Файл: MainActivity.kt
+
+        composable("list_chooser_screen/{currentParentId}?disabledIds={disabledIds}") { backStackEntry ->
+            val viewModel: FilterableListChooserViewModel = hiltViewModel()
+            val currentParentId = backStackEntry.arguments?.getString("currentParentId")
+            val disabledIds = backStackEntry.arguments?.getString("disabledIds")?.split(",")?.toSet() ?: emptySet()
+
+            val chooserUiState by viewModel.chooserState.collectAsState()
+            val expandedIds by viewModel.expandedIds.collectAsState()
+            // --- ПОЧАТОК ЗМІН: Отримуємо новий стан з ViewModel ---
+            val showDescendants by viewModel.showDescendants.collectAsState()
+            // --- КІНЕЦЬ ЗМІН ---
+
+            FilterableListChooserScreen(
+                title = "Виберіть список",
+                filterText = viewModel.filterText.collectAsState().value,
+                onFilterTextChanged = viewModel::updateFilterText,
+                chooserUiState = chooserUiState,
+                expandedIds = expandedIds,
+                onToggleExpanded = viewModel::toggleExpanded,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onConfirm = { selectedId ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedListId", selectedId)
+                    navController.popBackStack()
+                },
+                currentParentId = currentParentId,
+                disabledIds = disabledIds,
+                onAddNewList = viewModel::addNewList,
+                // --- ПОЧАТОК ЗМІН: Передаємо нові параметри в UI ---
+                showDescendants = showDescendants,
+                onToggleShowDescendants = viewModel::toggleShowDescendants
+                // --- КІНЕЦЬ ЗМІН ---
+            )
+        }
+    }}
+

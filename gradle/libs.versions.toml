@@ -32,6 +32,7 @@ compose-dnd = "0.4.0"
 reorderable = "3.0.1-SNAPSHOT"
 
 accompanist = "0.34.0"
+#foundationDesktop = "1.7.0"
 
 [libraries]
 # ДОДАНІ БІБЛІОТЕКИ ДЛЯ АНІМАЦІЇ
@@ -102,6 +103,7 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 
 # Rest
 accompanist-flowlayout = { group = "com.google.accompanist", name = "accompanist-flowlayout", version.ref = "accompanist" }
+#androidx-foundation-desktop = { group = "androidx.compose.foundation", name = "foundation-desktop", version.ref = "foundationDesktop" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

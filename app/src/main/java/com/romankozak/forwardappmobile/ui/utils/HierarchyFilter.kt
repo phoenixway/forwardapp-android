@@ -14,7 +14,7 @@ object HierarchyFilter {
         }
 
         val filteredLists = originalHierarchy.allLists.filter {
-            it.name.contains(query, ignoreCase = true)
+            it.name?.contains(query, ignoreCase = true) == true
         }
 
         val allRelevantIds = filteredLists.flatMap { findParentIds(it, originalHierarchy) }
@@ -34,14 +34,14 @@ object HierarchyFilter {
         )
     }
 
+
     private fun findParentIds(
         list: GoalList,
         hierarchy: ListHierarchyData
     ): Set<String> {
         val parents = mutableSetOf<String>()
         var currentParentId = list.parentId
-        while (currentParentId != null) {
-            parents.add(currentParentId)
+        while (currentParentId != null && parents.add(currentParentId)) {
             currentParentId = hierarchy.allLists.find { it.id == currentParentId }?.parentId
         }
         return parents

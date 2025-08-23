@@ -244,18 +244,12 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
     }
 }
 
+// --- ПОЧАТОК ЗМІН: Оновлено дизайн посилань ---
 @Composable
 fun EnhancedRelatedLinkChip(
     link: RelatedLink,
     onClick: () -> Unit
 ) {
-    val chipColor = when (link.type) {
-        LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
-        LinkType.NOTE -> MaterialTheme.colorScheme.secondary
-        LinkType.URL -> MaterialTheme.colorScheme.tertiary
-        LinkType.OBSIDIAN -> Color(0xFF8B5CF6)
-    }
-
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
@@ -263,35 +257,29 @@ fun EnhancedRelatedLinkChip(
         label = "chip_scale"
     )
 
+    // Використовуємо більш нейтральні кольори з теми
+    val backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val contentColor = MaterialTheme.colorScheme.primary
+    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
     Surface(
         modifier = Modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                    },
+                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
                     onTap = { onClick() }
                 )
             }
-            .semantics {
-                contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"
-                role = Role.Button
-            },
+            .semantics { contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"; role = Role.Button },
         shape = RoundedCornerShape(12.dp),
-        color = chipColor.copy(alpha = 0.12f),
-        border = BorderStroke(0.6.dp, chipColor.copy(alpha = 0.25f)),
-        shadowElevation = 0.5.dp
+        color = backgroundColor,
+        border = BorderStroke(0.7.dp, borderColor),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
                 imageVector = when (link.type) {
@@ -301,23 +289,24 @@ fun EnhancedRelatedLinkChip(
                     LinkType.OBSIDIAN -> Icons.Default.Book
                 },
                 contentDescription = null,
-                tint = chipColor,
-                modifier = Modifier.size(10.dp)
+                tint = contentColor,
+                modifier = Modifier.size(12.dp)
             )
             Text(
                 text = link.displayName ?: link.target,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.15.sp,
-                    fontSize = 10.sp // Розмір шрифту посилань
+                    fontSize = 10.sp
                 ),
-                color = chipColor,
+                color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
+
 
 @Composable
 fun AnimatedContextEmoji(

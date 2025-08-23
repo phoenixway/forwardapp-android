@@ -14,5 +14,8 @@
     <string name="hint_search_in_list">Find in this list…</string>
     <string name="hint_search_global">Search through all goals…</string>
     <string name="hint_add_note">Create note</string>
+    <string name="no_lists_created">Немає жодного списку. Створіть перший!</string>
+    <string name="new_top_level_list">Новий список верхнього рівня</string>
+    <string name="root_list_label">Корінь (верхній рівень)</string>
 
 </resources>

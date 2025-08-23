@@ -61,13 +61,39 @@ fun GoalEditScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsStateWithLifecycle()
-    val listChooserFilterText by viewModel.listChooserFilterText.collectAsStateWithLifecycle()
-    val filteredListHierarchy by viewModel.filteredListHierarchy.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel.events) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is GoalEditEvent.NavigateBack -> {
+                    event.message?.let {
+                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                    }
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(viewModel.eventFlow) {
+        viewModel.eventFlow.collect { event ->
+            when (event) {
+                is GoalEditEvent.NavigateBack -> {
+                    navController.popBackStack()
+                    event.message?.let {
+                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+
+
     val allContexts by viewModel.allContextNames.collectAsStateWithLifecycle()
 
     var showSuggestions by remember { mutableStateOf(false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
+
 
     fun getCurrentWord(textValue: TextFieldValue): String? {
         val cursorPosition = textValue.selection.start
@@ -197,7 +223,15 @@ fun GoalEditScreen(
                     RelatedLinksSection(
                         relatedLinks = uiState.relatedLinks,
                         onRemoveLink = viewModel::onRemoveListAssociation,
-                        onAddLink = viewModel::onShowListChooser,
+                        onAddLink = { // <--- ЗМІНА ТУТ
+                            // Отримуємо ID поточної цілі та пов'язаних списків, які потрібно відключити
+                            val currentGoalId = uiState.relatedLinks.firstOrNull { it.type == LinkType.GOAL_LIST }?.target
+                            val disabledIds = uiState.relatedLinks.filter { it.type == LinkType.GOAL_LIST }.map { it.target }.toSet()
+                            val disabledIdsString = disabledIds.joinToString(",")
+
+                            // Викликаємо навігацію до екрана вибору списку
+                            navController.navigate("list_chooser_screen/${currentGoalId}?disabledIds=$disabledIdsString")
+                        },
                     )
                 }
 
@@ -233,26 +267,6 @@ fun GoalEditScreen(
                 }
             }
         }
-    }
-
-    if (uiState.showListChooser) {
-        FilterableListChooser(
-            title = "Додати посилання на список",
-            filterText = listChooserFilterText,
-            onFilterTextChanged = viewModel::onListChooserFilterChanged,
-            topLevelLists = filteredListHierarchy.topLevelLists,
-            childMap = filteredListHierarchy.childMap,
-            expandedIds = listChooserFinalExpandedIds,
-            onToggleExpanded = viewModel::onListChooserToggleExpanded,
-            onDismiss = viewModel::onDismissListChooser,
-            onConfirm = { listId -> listId?.let { viewModel.onAddListAssociation(it) } },
-            currentParentId = null,
-            disabledIds = uiState.relatedLinks
-                .filter { it.type == LinkType.GOAL_LIST }
-                .map { it.target }
-                .toSet(),
-            onAddNewList = viewModel::addNewList,
-        )
     }
 
     if (uiState.isDescriptionEditorOpen) {
@@ -550,5 +564,7 @@ private fun ParameterSlider(
             valueRange = 0f..scale.lastIndex.toFloat(),
             steps = (scale.size - 2).coerceAtLeast(0),
         )
+
+
     }
 }

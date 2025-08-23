@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 // Файл: /app/build.gradle.kts
@@ -95,6 +96,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore.preferences)
+    //implementation(libs.androidx.foundation.desktop)
 
     // Compose BOM - це має бути першим
     val composeBom = platform(libs.androidx.compose.bom)
@@ -161,4 +163,7 @@ dependencies {
     // Additional libraries
     implementation(libs.accompanist.flowlayout)
     implementation(libs.reorderable)
+    implementation("androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
+
 }
