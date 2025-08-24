@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.romankozak.forwardappmobile.ui.components.notesEditors.MarkdownEditorViewer
 
 @OptIn(ExperimentalMaterial3Api::class)
 // Файл: FullScreenMarkdownEditor.kt (виправлена версія)
