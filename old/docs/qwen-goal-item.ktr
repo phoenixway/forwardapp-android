@@ -1,0 +1,425 @@
+package com.romankozak.forwardappmobile.ui.components.listItemsRenderers
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.romankozak.forwardappmobile.data.database.models.*
+
+private data class ParsedGoalData(val icons: List<String>, val mainText: String)
+
+private fun parseTextAndExtractIcons(
+    text: String,
+    contextMarkerToEmojiMap: Map<String, String>,
+): ParsedGoalData {
+    var currentText = text
+    val foundIcons = mutableSetOf<String>()
+
+    val allMarkersToIcons = mutableMapOf<String, String>()
+
+    // Жорстко закодовані іконки
+    val hardcodedIconsData = mapOf(
+        "🔥" to listOf("@critical", "! ", "!"),
+        "⭐" to listOf("@day", "+"),
+        "📌" to listOf("@week", "++"),
+        "🗓️" to listOf("@month"),
+        "🎯" to listOf("+++ "),
+        "🔭" to listOf("~ ", "~"),
+        "✨" to listOf("@str"),
+        "🌫️" to listOf("@unclear"),
+    )
+    hardcodedIconsData.forEach { (icon, markers) ->
+        markers.forEach { marker ->
+            allMarkersToIcons[marker] = icon
+        }
+    }
+
+    allMarkersToIcons.putAll(contextMarkerToEmojiMap)
+
+    val sortedMarkers = allMarkersToIcons.keys.sortedByDescending { it.length }
+
+    sortedMarkers.forEach { marker ->
+        val icon = allMarkersToIcons[marker] ?: return@forEach
+        val regexOptions = if (marker.startsWith("@")) setOf(RegexOption.IGNORE_CASE) else emptySet()
+        val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))", regexOptions)
+
+        if (regex.containsMatchIn(currentText)) {
+            foundIcons.add(icon)
+            currentText = currentText.replace(regex, " ")
+        }
+    }
+
+    currentText = currentText.replace(Regex("\\[icon::\\s*([^]]+?)\\s*]"), "")
+    val cleanedText = currentText.replace(Regex("\\s+"), " ").trim()
+
+    return ParsedGoalData(icons = foundIcons.toList(), mainText = cleanedText)
+}
+
+@Composable
+fun EnhancedCustomCheckbox(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptic = LocalHapticFeedback.current
+
+    val animatedColor by animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 300f),
+        label = "checkbox_color",
+    )
+
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        animationSpec = tween(durationMillis = 150),
+        label = "checkbox_border",
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (checked) 1.05f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "checkbox_scale",
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(6.dp))
+            .background(animatedColor)
+            .border(1.5.dp, animatedBorderColor, RoundedCornerShape(6.dp))
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onCheckedChange(!checked)
+            }
+            .semantics { role = Role.Checkbox },
+        contentAlignment = Alignment.Center,
+    ) {
+        AnimatedVisibility(visible = checked, enter = fadeIn() + scaleIn(initialScale = 0.6f), exit = fadeOut()) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(12.dp),
+            )
+        }
+    }
+}
+
+@Composable
+fun EnhancedScoreStatusBadge(goal: Goal) {
+    when (goal.scoringStatus) {
+        ScoringStatus.ASSESSED -> {
+            if (goal.displayScore > 0) {
+                val color = when {
+                    goal.displayScore >= 80 -> Color(0xFF4CAF50)
+                    goal.displayScore >= 60 -> Color(0xFFFF9800)
+                    goal.displayScore >= 40 -> Color(0xFFFFEB3B)
+                    else -> Color(0xFFE91E63)
+                }
+
+                AssistChip(
+                    onClick = { },
+                    label = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ElectricBolt,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "${goal.displayScore}/100",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = color,
+                                modifier = Modifier.alpha(0.9f)
+                            )
+                        }
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = color.copy(alpha = 0.1f),
+                        labelColor = color
+                    ),
+                    border = BorderStroke(1.dp, color.copy(alpha = 0.2f)),
+                    modifier = Modifier.height(24.dp)
+                )
+            }
+        }
+
+        ScoringStatus.IMPOSSIBLE_TO_ASSESS -> {
+            AssistChip(
+                onClick = { },
+                label = {
+                    Icon(
+                        imageVector = Icons.Default.FlashOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(12.dp)
+                    )
+                },
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.height(24.dp)
+            )
+        }
+
+        ScoringStatus.NOT_ASSESSED -> {
+            // Нічого не відображаємо
+        }
+    }
+}
+
+// ❌ Ця функція не використовується — можна видалити
+// @Composable
+// fun EnhancedRelatedLinkChip(link: RelatedLink, onClick: () -> Unit) { ... }
+
+// ❌ Ця функція не використовується — можна видалити
+// @Composable
+// fun AnimatedContextEmoji(emoji: String, modifier: Modifier = Modifier) { ... }
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@Composable
+fun GoalItem(
+    goal: Goal,
+    obsidianVaultName: String,
+    onToggle: (Boolean) -> Unit,
+    onItemClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onTagClick: (String) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+    modifier: Modifier = Modifier,
+    dragHandleModifier: Modifier = Modifier,
+    emojiToHide: String? = null,
+    contextMarkerToEmojiMap: Map<String, String>,
+) {
+    val parsedData = remember(goal.text, contextMarkerToEmojiMap) {
+        parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
+    }
+
+    val targetColor = when {
+        goal.completed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+        else -> MaterialTheme.colorScheme.surface
+    }
+
+    val background by animateColorAsState(
+        targetValue = targetColor,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 300f),
+        label = "bgAnim",
+    )
+
+    var isPressed by remember { mutableStateOf(false) }
+    val elevation by animateDpAsState(targetValue = if (isPressed) 4.dp else 2.dp, label = "elevation")
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = background),
+        elevation = CardDefaults.elevatedCardElevation(elevation),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // --- Клікабельна зона ---
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                isPressed = true
+                                tryAwaitRelease()
+                                isPressed = false
+                            },
+                            onLongPress = { onLongClick() },
+                            onTap = { onItemClick() },
+                        )
+                    }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // 1. Менший чекбокс
+                EnhancedCustomCheckbox(
+                    checked = goal.completed,
+                    onCheckedChange = onToggle,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    // 2. Головний текст — єдиний великий елемент
+                    MarkdownText(
+                        text = parsedData.mainText,
+                        isCompleted = goal.completed,
+                        obsidianVaultName = obsidianVaultName,
+                        onTagClick = onTagClick,
+                        onTextClick = onItemClick,
+                        onLongClick = onLongClick,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            lineHeight = 22.sp,
+                            letterSpacing = 0.15.sp,
+                            fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                        )
+                    )
+
+                    val hasStatusContent by remember {
+                        derivedStateOf {
+                            goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
+                                    parsedData.icons.isNotEmpty() ||
+                                    goal.description != null ||
+                                    !goal.relatedLinks.isNullOrEmpty()
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = hasStatusContent,
+                        enter = slideInVertically(initialOffsetY = { -it / 2 }) + fadeIn(),
+                        exit = fadeOut(),
+                    ) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            // 3. Менший бейдж оцінки
+                            EnhancedScoreStatusBadge(goal = goal)
+
+                            // 4. Менші іконки контексту
+                            parsedData.icons
+                                .filterNot { it == emojiToHide }
+                                .forEach { icon ->
+                                    key(icon) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                                                .padding(4.dp)
+                                                .semantics { contentDescription = "Контекст: $icon" },
+                                        ) {
+                                            Text(
+                                                text = icon,
+                                                fontSize = 14.sp,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                            )
+                                        }
+                                    }
+                                }
+
+                            // 5. Менший індикатор нотатки
+                            if (goal.description != null) {
+                                AssistChip(
+                                    onClick = { },
+                                    label = {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    ),
+                                    modifier = Modifier.height(24.dp)
+                                )
+                            }
+
+                            // 6. Менші чипи посилань
+                            goal.relatedLinks?.forEach { link ->
+                                key(link.target + link.type.name) {
+                                    AssistChip(
+                                        onClick = { onRelatedLinkClick(link) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = when (link.type) {
+                                                    LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
+                                                    LinkType.NOTE -> Icons.AutoMirrored.Filled.Notes
+                                                    LinkType.URL -> Icons.Default.Link
+                                                    LinkType.OBSIDIAN -> Icons.Default.Book
+                                                },
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        },
+                                        label = {
+                                            Text(
+                                                text = link.displayName ?: link.target,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = when (link.type) {
+                                                LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primaryContainer
+                                                LinkType.NOTE -> MaterialTheme.colorScheme.secondaryContainer
+                                                LinkType.URL -> MaterialTheme.colorScheme.tertiaryContainer
+                                                LinkType.OBSIDIAN -> Color(0xFF8B5CF6).copy(alpha = 0.1f)
+                                            },
+                                            labelColor = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        modifier = Modifier.height(24.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 7. Менша ручка перетягування
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(end = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = dragHandleModifier
+                        .size(20.dp)
+                        .padding(4.dp)
+                )
+            }
+        }
+    }
+}

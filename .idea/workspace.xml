@@ -11,7 +11,20 @@
   <component name="ChangeListManager">
     <list default="true" id="09c4d5d7-eda6-4d44-a38e-92690dfcb42b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/file-system.probe" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/FullScreenMarkdownEditor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/FullScreenMarkdownEditor.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/LimitedMarkdownEditor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/notesEditors/LimitedMarkdownEditor.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/MarkdownEditorViewer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/notesEditors/MarkdownEditorViewer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/SimpleNotesEditor.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/WebViewMarkdownRenderer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/notesEditors/WebViewMarkdownRenderer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/NoteItemRow.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/NoteItemRow.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/SimpleGoalItem.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/SublistItemRow.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/SublistItemRow.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/qwen-goal-item.ktr" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/noteedit/NoteEditScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/noteedit/NoteEditScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,6 +112,7 @@
 }</component>
   <component name="RecentsManager">
     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
+      <recent name="com.romankozak.forwardappmobile.ui.components.notesEditors" />
       <recent name="com.romankozak.forwardappmobile.ui.screens.listchooser" />
       <recent name="com.romankozak.forwardappmobile.ui.components.listItemsRenderers" />
       <recent name="com.romankozak.forwardappmobile.ui.components.swipable" />
@@ -198,17 +212,17 @@
       <map>
         <entry key="com.romankozak.forwardappmobile">
           <value>
-            <CheckInfo lastCheckTimestamp="1755928176624" />
+            <CheckInfo lastCheckTimestamp="1756022697491" />
           </value>
         </entry>
         <entry key="com.romankozak.forwardappmobile.debug">
           <value>
-            <CheckInfo lastCheckTimestamp="1755928176624" />
+            <CheckInfo lastCheckTimestamp="1756022697489" />
           </value>
         </entry>
         <entry key="com.romankozak.forwardappmobile.debug.test">
           <value>
-            <CheckInfo lastCheckTimestamp="1755928176625" />
+            <CheckInfo lastCheckTimestamp="1756022697490" />
           </value>
         </entry>
       </map>

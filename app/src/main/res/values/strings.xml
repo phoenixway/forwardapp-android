@@ -50,5 +50,12 @@
     <string name="try_change_search_criteria">Спробуйте змінити критерії пошуку</string>
     <string name="create_first_list_hint">Створіть свій перший список натиснувши кнопку \'+\'</string>
 
+   <!-- Рядки для Markdown редактора -->
+    <string name="edit_description">Редагувати опис</string>
+    <string name="editor">Редактор</string>
+    <string name="preview">Перегляд</string>
+    <string name="toggle_to_preview_mode">Перейти в режим перегляду</string>
+    <string name="toggle_to_edit_mode">Перейти в режим редагування</string>
+    <string name="description_placeholder_with_markdown_hint">Введіть опис...\n\n**жирний**, *курсив*, - список, # заголовок</string>
 
 </resources>

@@ -3,7 +3,6 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaledit
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -40,12 +39,11 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.components.FullScreenMarkdownEditor
-import com.romankozak.forwardappmobile.ui.components.LimitedMarkdownEditor
+import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import com.romankozak.forwardappmobile.ui.utils.formatDate

@@ -4,7 +4,8 @@ package com.romankozak.forwardappmobile.ui.components.listItemsRenderers
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
@@ -25,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteItemRow(
     noteContent: ListItemContent.NoteItem,
@@ -36,7 +37,6 @@ fun NoteItemRow(
     dragHandleModifier: Modifier = Modifier,
     maxLines: Int = 3,
 ) {
-    // --- ПОЧАТОК ЗМІН: Повна перебудова за стилем GoalItem ---
     val background by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
         else MaterialTheme.colorScheme.surface,
@@ -67,7 +67,6 @@ fun NoteItemRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Клікабельна частина
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -81,12 +80,22 @@ fun NoteItemRow(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.StickyNote2,
-                    contentDescription = "Нотатка",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
+                // Icon styled to match the checkbox size
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Transparent)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.StickyNote2,
+                        contentDescription = "Нотатка",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
@@ -95,8 +104,10 @@ fun NoteItemRow(
                     if (!note.title.isNullOrBlank()) {
                         Text(
                             text = note.title,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -117,7 +128,7 @@ fun NoteItemRow(
                 }
             }
 
-            // Ручка для перетягування (ідентична GoalItem)
+            // Drag handle identical to GoalItem
             Surface(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -146,6 +157,5 @@ fun NoteItemRow(
                 }
             }
         }
-        // --- КІНЕЦЬ ЗМІН ---
     }
 }

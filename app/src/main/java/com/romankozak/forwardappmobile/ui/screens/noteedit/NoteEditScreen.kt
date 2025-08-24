@@ -1,7 +1,6 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/noteedit/NoteEditScreen.kt
 package com.romankozak.forwardappmobile.ui.screens.noteedit
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -13,12 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.components.MarkdownEditorViewer
+import com.romankozak.forwardappmobile.ui.components.notesEditors.MarkdownEditorViewer
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
