@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.domain.OllamaService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,8 +18,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URL
 import java.net.URLEncoder
+import java.util.UUID
 import javax.inject.Inject
 
 sealed class UiEvent {
@@ -56,6 +59,7 @@ data class UiState(
 class GoalDetailViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val settingsRepository: SettingsRepository,
+    private val ollamaService: OllamaService,
     private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -342,25 +346,129 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/BacklogViewModel.kt ---
+// ... (всередині класу GoalDetailViewModel)
+
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/BacklogViewModel.kt
+
+
     fun submitInput() {
-        val textToSubmit = _uiState.value.inputValue.text
+        val textToSubmit = _uiState.value.inputValue.text.trim()
         if (textToSubmit.isBlank()) return
 
-        viewModelScope.launch {
-            val newItemId = when (_uiState.value.inputMode) {
-                InputMode.AddGoal -> goalRepository.addGoalToList(textToSubmit, listIdFlow.value)
-                InputMode.AddNote -> goalRepository.addNoteToList(textToSubmit, listIdFlow.value)
+        val currentListId = listIdFlow.value
+        if (currentListId.isBlank()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val inputMode = _uiState.value.inputMode
+
+            val newItemId: String? = when (inputMode) {
+                InputMode.AddGoal -> {
+                    goalRepository.addGoalToList(textToSubmit, currentListId)
+                }
+                InputMode.AddNote -> {
+                    val words = textToSubmit.split(Regex("\\s+"))
+                    val isTooLongForTitle = textToSubmit.length > 60 || words.size > 5
+
+                    if (isTooLongForTitle) {
+                        val initialNote = Note(
+                            id = UUID.randomUUID().toString(),
+                            title = "Генерація заголовку...",
+                            content = textToSubmit,
+                            createdAt = System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        val generatedItemId = goalRepository.addNoteToList(initialNote, currentListId)
+
+                        // Оновлюємо UI відразу після додавання нотатки
+                        withContext(Dispatchers.Main) {
+                            _refreshTrigger.value++
+                        }
+
+                        // Генеруємо заголовок асинхронно
+                        launch {
+                            val baseUrl = settingsRepository.ollamaUrlFlow.first()
+                            val fastModel = settingsRepository.ollamaFastModelFlow.first()
+
+                            if (baseUrl.isNotBlank() && fastModel.isNotBlank()) {
+                                val result = ollamaService.generateTitle(baseUrl, fastModel, textToSubmit)
+
+                                result.onSuccess { generatedTitle ->
+                                    Log.d("GoalDetailViewModel", "Successfully generated title: '$generatedTitle'")
+                                    val updatedNote = initialNote.copy(
+                                        title = generatedTitle,
+                                        updatedAt = System.currentTimeMillis()
+                                    )
+                                    goalRepository.updateNote(updatedNote)
+                                    Log.d("GoalDetailViewModel", "Updated note with new title")
+
+                                    // Оновлюємо UI після генерації заголовку
+                                    withContext(Dispatchers.Main) {
+                                        _refreshTrigger.value++
+                                        Log.d("GoalDetailViewModel", "UI refresh triggered after title generation")
+                                    }
+                                }.onFailure { error ->
+                                    Log.e("GoalDetailViewModel", "Ollama failed, using fallback title. Error: ${error.message}")
+                                    val fallbackTitle = textToSubmit.split(Regex("\\s+")).take(5).joinToString(" ") + "..."
+                                    val updatedNote = initialNote.copy(
+                                        title = fallbackTitle,
+                                        updatedAt = System.currentTimeMillis()
+                                    )
+                                    goalRepository.updateNote(updatedNote)
+                                    Log.d("GoalDetailViewModel", "Updated note with fallback title: '$fallbackTitle'")
+
+                                    // Оновлюємо UI після fallback заголовку
+                                    withContext(Dispatchers.Main) {
+                                        _refreshTrigger.value++
+                                        Log.d("GoalDetailViewModel", "UI refresh triggered after fallback title")
+                                    }
+                                }
+                            } else {
+                                val fallbackTitle = textToSubmit.split(Regex("\\s+")).take(5).joinToString(" ") + "..."
+                                val updatedNote = initialNote.copy(
+                                    title = fallbackTitle,
+                                    updatedAt = System.currentTimeMillis()
+                                )
+                                goalRepository.updateNote(updatedNote)
+
+                                // Оновлюємо UI після fallback заголовку
+                                withContext(Dispatchers.Main) {
+                                    _refreshTrigger.value++
+                                }
+                            }
+                        }
+
+                        generatedItemId
+                    } else {
+                        val newNote = Note(
+                            id = UUID.randomUUID().toString(),
+                            title = textToSubmit,
+                            content = "",
+                            createdAt = System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        goalRepository.addNoteToList(newNote, currentListId)
+                    }
+                }
                 InputMode.SearchInList -> null
                 InputMode.SearchGlobal -> {
                     _uiEventFlow.send(UiEvent.Navigate("global_search_screen/$textToSubmit"))
                     null
                 }
             }
-            _uiState.update {
-                it.copy(
-                    inputValue = TextFieldValue(""),
-                    newlyAddedItemId = newItemId ?: it.newlyAddedItemId
-                )
+
+            withContext(Dispatchers.Main) {
+                _uiState.update {
+                    it.copy(
+                        inputValue = TextFieldValue(""),
+                        newlyAddedItemId = newItemId
+                    )
+                }
+
+                // Оновлюємо UI для випадків без генерації заголовку
+                if (inputMode != InputMode.AddNote || !(_uiState.value.inputValue.text.length > 60 || _uiState.value.inputValue.text.split(Regex("\\s+")).size > 5)) {
+                    _refreshTrigger.value++
+                }
             }
         }
     }

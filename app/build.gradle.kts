@@ -10,6 +10,7 @@ plugins {
     // --- ДОДАНО: Плагіни для Hilt та Room ---
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // Додайте цей рядок
 
     //id("com.google.dagger.hilt.android")
     //id("com.google.devtools.ksp")
@@ -166,7 +167,18 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
 
-        //implementation("com.google.mediapipe:tasks-text:0.10.14")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    //implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+
+
+    // OkHttp (для налаштування тайм-аутів, опціонально, але рекомендовано)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Jetpack DataStore (якщо ще не додано, для збереження налаштувань)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
 
 }

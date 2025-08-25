@@ -20,7 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
-import com.romankozak.forwardappmobile.ui.screens.SettingsScreen
+import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
