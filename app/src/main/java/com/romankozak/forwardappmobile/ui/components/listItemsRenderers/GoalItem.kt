@@ -1,6 +1,6 @@
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/GoalItem.kt ---
 package com.romankozak.forwardappmobile.ui.components.listItemsRenderers
 
-import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -13,14 +13,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -36,9 +37,6 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private data class ParsedGoalData(val icons: List<String>, val mainText: String)
 
@@ -51,7 +49,6 @@ private fun parseTextAndExtractIcons(
 
     val allMarkersToIcons = mutableMapOf<String, String>()
 
-    // Жорстко закодовані іконки
     val hardcodedIconsData = mapOf(
         "🔥" to listOf("@critical", "! ", "!"),
         "⭐" to listOf("@day", "+"),
@@ -209,7 +206,7 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.2.sp,
-                                    fontSize = 10.sp // Залишаємо 10.sp як у посилань
+                                    fontSize = 10.sp
                                 ),
                                 color = animatedColor,
                             )
@@ -220,10 +217,9 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
         }
         ScoringStatus.IMPOSSIBLE_TO_ASSESS -> {
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier
-                    .padding(1.dp)
                     .semantics {
                         contentDescription = "Неможливо оцінити"
                     }
@@ -233,7 +229,7 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(16.dp)
                         .padding(3.dp)
                 )
             }
@@ -244,7 +240,6 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
     }
 }
 
-// --- ПОЧАТОК ЗМІН: Оновлено дизайн посилань ---
 @Composable
 fun EnhancedRelatedLinkChip(
     link: RelatedLink,
@@ -257,7 +252,6 @@ fun EnhancedRelatedLinkChip(
         label = "chip_scale"
     )
 
-    // Використовуємо більш нейтральні кольори з теми
     val backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val contentColor = MaterialTheme.colorScheme.primary
     val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -283,8 +277,8 @@ fun EnhancedRelatedLinkChip(
         ) {
             Icon(
                 imageVector = when (link.type) {
-                    LinkType.GOAL_LIST -> Icons.Default.ListAlt
-                    LinkType.NOTE -> Icons.Default.Notes
+                    LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
+                    LinkType.NOTE -> Icons.AutoMirrored.Filled.Notes
                     LinkType.URL -> Icons.Default.Link
                     LinkType.OBSIDIAN -> Icons.Default.Book
                 },
@@ -350,10 +344,33 @@ fun AnimatedContextEmoji(
     }
 }
 
+@Composable
+private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                shape = CircleShape
+            )
+            .padding(4.dp)
+            .semantics {
+                contentDescription = "Містить нотатку"
+            }
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
     goal: Goal,
+    isSelected: Boolean,
     obsidianVaultName: String,
     onToggle: (Boolean) -> Unit,
     onItemClick: () -> Unit,
@@ -370,6 +387,7 @@ fun GoalItem(
     }
 
     val targetColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
         goal.completed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
         else -> MaterialTheme.colorScheme.surface
     }
@@ -389,6 +407,12 @@ fun GoalItem(
         label = "elevation"
     )
 
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = tween(200),
+        label = "border_color_anim"
+    )
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -401,13 +425,14 @@ fun GoalItem(
             },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(elevation)
+        elevation = CardDefaults.elevatedCardElevation(elevation),
+        border = BorderStroke(2.dp, animatedBorderColor)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = if (goal.completed) {
+                    brush = if (goal.completed && !isSelected) {
                         Brush.horizontalGradient(
                             colors = listOf(
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
@@ -509,24 +534,7 @@ fun GoalItem(
                                         }
 
                                     if (!goal.description.isNullOrBlank()) {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                                            modifier = Modifier
-                                                .align(Alignment.CenterVertically)
-                                                .semantics {
-                                                    contentDescription = "Містить нотатку"
-                                                }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.StickyNote2,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                modifier = Modifier
-                                                    .size(14.dp)
-                                                    .padding(3.dp)
-                                            )
-                                        }
+                                        NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
                                     }
 
                                     goal.relatedLinks?.forEachIndexed { index, link ->

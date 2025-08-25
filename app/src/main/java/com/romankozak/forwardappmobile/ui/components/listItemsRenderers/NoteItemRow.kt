@@ -4,8 +4,8 @@ package com.romankozak.forwardappmobile.ui.components.listItemsRenderers
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
@@ -38,7 +37,8 @@ fun NoteItemRow(
     maxLines: Int = 3,
 ) {
     val background by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        // --- ЗМІНЕНО: Більш насичений колір ---
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.surface,
         animationSpec = spring(),
         label = "note_background_color"
@@ -48,6 +48,13 @@ fun NoteItemRow(
     val elevation by animateDpAsState(
         targetValue = if (isPressed) 4.dp else 1.dp,
         label = "elevation"
+    )
+
+    // --- ЗМІНЕНО: Анімація для рамки ---
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = tween(200),
+        label = "border_color_anim"
     )
 
     Card(
@@ -61,8 +68,10 @@ fun NoteItemRow(
             },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(elevation)
+        elevation = CardDefaults.elevatedCardElevation(elevation),
+        border = BorderStroke(2.dp, animatedBorderColor) // Додано рамку
     ) {
+        // ... (решта коду NoteItemRow залишається без змін)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -80,36 +89,30 @@ fun NoteItemRow(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icon styled to match the checkbox size
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color.Transparent)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.StickyNote2,
-                        contentDescription = "Нотатка",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(10.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Outlined.StickyNote2,
+                    contentDescription = "Нотатка",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     val note = noteContent.note
                     if (!note.title.isNullOrBlank()) {
+                        val goalTextStyle = MaterialTheme.typography.bodySmall.copy(
+                            lineHeight = 16.sp,
+                            letterSpacing = 0.1.sp,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
                         Text(
                             text = note.title,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            style = goalTextStyle.merge(MaterialTheme.typography.bodyLarge),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            // --- ВИДАЛЕНО: maxLines = 1 та overflow ---
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                     }
@@ -128,7 +131,6 @@ fun NoteItemRow(
                 }
             }
 
-            // Drag handle identical to GoalItem
             Surface(
                 modifier = Modifier
                     .fillMaxHeight()

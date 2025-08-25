@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import android.util.Log
 import com.google.gson.Gson
-import com.romankozak.forwardappmobile.data.sync.SyncRepository
+import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import io.ktor.serialization.gson.gson
 import io.ktor.server.application.call
 import io.ktor.server.application.install

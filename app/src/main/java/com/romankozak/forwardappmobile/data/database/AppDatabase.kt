@@ -14,13 +14,13 @@ import com.romankozak.forwardappmobile.data.database.models.* // Імпорту�
     entities = [
         Goal::class,
         GoalList::class,
-        Note::class, // ✨ Додано
-        ListItem::class, // ✨ Додано
+        Note::class,
+        ListItem::class,
         ActivityRecord::class,
-        RecentListEntry::class
+        RecentListEntry::class,
+        LinkItemEntity::class // ✨ 1. ДОДАНО НОВУ СУТНІСТЬ
     ],
-    // ❌ GoalInstance::class ВИДАЛЕНО
-    version = 15, // ✨ 1. ЗБІЛЬШЕНО ВЕРСІЮ ДО 15
+    version = 16, // ✨ 2. ЗБІЛЬШЕНО ВЕРСІЮ ДО 16
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -32,10 +32,12 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao
-    abstract fun noteDao(): NoteDao // ✨ Додано
-    abstract fun listItemDao(): ListItemDao // ✨ Додано
+    abstract fun noteDao(): NoteDao
+    abstract fun listItemDao(): ListItemDao
     abstract fun activityRecordDao(): ActivityRecordDao
     abstract fun recentListDao(): RecentListDao
+    abstract fun linkItemDao(): LinkItemDao
+
 
     companion object {
         @Volatile
@@ -54,7 +56,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_11_12,
                         MIGRATION_12_13,
                         MIGRATION_13_14,
-                        MIGRATION_14_15 // ✨ 2. МИ ДОДАМО ЦЮ МІГРАЦІЮ НА НАСТУПНОМУ КРОЦІ
+                        MIGRATION_14_15,
+                        MIGRATION_15_16,
                     )
                     .build()
                 INSTANCE = instance

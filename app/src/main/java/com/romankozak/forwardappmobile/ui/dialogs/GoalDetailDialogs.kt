@@ -9,8 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.ui.screens.goaldetail.GoalActionType
-import com.romankozak.forwardappmobile.ui.screens.goaldetail.InputMode
+import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
+import com.romankozak.forwardappmobile.ui.screens.backlog.InputMode
 
 @Composable
 fun GoalActionChoiceDialog(onDismiss: () -> Unit, onActionSelected: (GoalActionType) -> Unit) {

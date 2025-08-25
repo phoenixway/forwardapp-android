@@ -88,7 +88,6 @@ class NoteEditViewModel @Inject constructor(
         updateSaveButtonState() // Інтегровано з v1
     }
 
-    // Інтегровано з v1: Централізована логіка для керування станом кнопки збереження
     private fun updateSaveButtonState() {
         val state = _uiState.value
         val hasChanges = currentNote?.let {
@@ -96,12 +95,14 @@ class NoteEditViewModel @Inject constructor(
                     it.content != state.content.text
         } ?: true // Для нової нотатки зміни є завжди
 
-        val isContentValid = state.content.text.isNotBlank()
+        // Перевіряємо, чи є валідним або заголовок, або вміст
+        val isNoteValid = state.title.text.isNotBlank() || state.content.text.isNotBlank()
 
         _uiState.update {
             it.copy(
-                isSaveButtonEnabled = hasChanges && isContentValid,
-                error = if (isContentValid) null else "Вміст не може бути пустим"
+                isSaveButtonEnabled = hasChanges && isNoteValid,
+                // Оновлюємо повідомлення про помилку, якщо обидва поля порожні
+                error = if (isNoteValid) null else "Заголовок або вміст мають бути заповнені"
             )
         }
     }

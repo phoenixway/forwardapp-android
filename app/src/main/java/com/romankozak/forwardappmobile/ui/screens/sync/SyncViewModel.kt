@@ -5,10 +5,10 @@ package com.romankozak.forwardappmobile.ui.screens.sync
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.sync.ChangeType
+import com.romankozak.forwardappmobile.data.repository.ChangeType
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import com.romankozak.forwardappmobile.data.sync.SyncReport
-import com.romankozak.forwardappmobile.data.sync.SyncRepository
+import com.romankozak.forwardappmobile.data.repository.SyncReport
+import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

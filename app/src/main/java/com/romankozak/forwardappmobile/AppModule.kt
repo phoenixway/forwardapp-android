@@ -30,40 +30,52 @@ object AppModule {
                 MIGRATION_11_12,
                 MIGRATION_12_13,
                 MIGRATION_13_14,
-                MIGRATION_14_15 // ✨ ДОДАНО: Міграція на версію 15
+                MIGRATION_14_15,
+                MIGRATION_15_16 // ✨ ВИПРАВЛЕНО: Додано відсутню міграцію
             )
             .build()
     }
 
     @Provides
+    @Singleton // ✨ ДОДАНО: Найкраща практика - робити DAO синглтонами
     fun provideGoalDao(database: AppDatabase): GoalDao {
         return database.goalDao()
     }
 
     @Provides
+    @Singleton // ✨ ДОДАНО
     fun provideGoalListDao(database: AppDatabase): GoalListDao {
         return database.goalListDao()
     }
 
-    // ✨ ДОДАНО: Провайдер для NoteDao
     @Provides
+    @Singleton // ✨ ДОДАНО
     fun provideNoteDao(database: AppDatabase): NoteDao {
         return database.noteDao()
     }
 
-    // ✨ ДОДАНО: Провайдер для ListItemDao
     @Provides
+    @Singleton // ✨ ДОДАНО
     fun provideListItemDao(database: AppDatabase): ListItemDao {
         return database.listItemDao()
     }
 
     @Provides
+    @Singleton // ✨ ДОДАНО
     fun provideActivityRecordDao(database: AppDatabase): ActivityRecordDao {
         return database.activityRecordDao()
     }
 
     @Provides
+    @Singleton // ✨ ДОДАНО
     fun provideRecentListDao(database: AppDatabase): RecentListDao {
         return database.recentListDao()
+    }
+
+    // ✨ ДОДАНО: Провайдер для нового LinkItemDao, без якого була помилка Hilt
+    @Provides
+    @Singleton
+    fun provideLinkItemDao(database: AppDatabase): LinkItemDao {
+        return database.linkItemDao()
     }
 }
