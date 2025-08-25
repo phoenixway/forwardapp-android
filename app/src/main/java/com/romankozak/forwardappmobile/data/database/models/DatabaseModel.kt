@@ -4,20 +4,20 @@ package com.romankozak.forwardappmobile.data.database.models
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-// ✨ ДОДАНО: Enum для типів елементів у списку
 enum class ListItemType {
     GOAL,
     NOTE,
-    LIST_LINK
+    SUBLIST,
+    LINK_ITEM
 }
 
-// ✨ ДОДАНО: Enum для типів пов'язаних посилань
 enum class LinkType {
     GOAL_LIST,
     NOTE,
@@ -25,20 +25,19 @@ enum class LinkType {
     OBSIDIAN
 }
 
-// ✨ ДОДАНО: Клас для представлення універсального посилання
 data class RelatedLink(
     val type: LinkType,
-    val target: String, // ID, URL-адреса, або Obsidian URI
+    val target: String,
     val displayName: String? = null
 )
 
 enum class ScoringStatus {
     NOT_ASSESSED,
-    IMPOSSIBLE_TO_ASSESS,
+    IMPOSSIBLE_TO_ASSESS, // <-- Виправлено на два 'S'
     ASSESSED
 }
 
-@TypeConverters(Converters::class) // ✨ НЕ ЗАБУДЬТЕ ДОДАТИ ЦЕЙ АНОТАЦІЮ, ЯКЩО CONVERTERS ВИЗНАЧЕНО В ОКРЕМОМУ ФАЙЛІ
+@TypeConverters(Converters::class)
 class Converters {
     private val gson = Gson()
 
@@ -67,7 +66,6 @@ class Converters {
     @TypeConverter
     fun toListItemType(value: String?): ListItemType? = value?.let { ListItemType.valueOf(it) }
 
-    // ✨ ДОДАНО: Конвертери для RelatedLink
     private val relatedLinkListType = object : TypeToken<List<RelatedLink>>() {}.type
 
     @TypeConverter
@@ -81,7 +79,27 @@ class Converters {
         if (json == null) return null
         return gson.fromJson(json, relatedLinkListType)
     }
+
+    @TypeConverter
+    fun fromRelatedLink(link: RelatedLink?): String? {
+        if (link == null) return null
+        return gson.toJson(link, RelatedLink::class.java)
+    }
+
+    @TypeConverter
+    fun toRelatedLink(json: String?): RelatedLink? {
+        if (json == null) return null
+        return gson.fromJson(json, RelatedLink::class.java)
+    }
 }
+
+@Entity(tableName = "link_items")
+data class LinkItemEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "link_data")
+    val linkData: RelatedLink
+)
+
 
 @Entity(tableName = "goals")
 data class Goal(
@@ -92,10 +110,7 @@ data class Goal(
     val createdAt: Long,
     val updatedAt: Long?,
     val tags: List<String>? = null,
-    // ✨ ЗАМІНА: associatedListIds -> relatedLinks
     val relatedLinks: List<RelatedLink>? = null,
-
-    // ... решта полів Goal без змін ...
     @ColumnInfo(defaultValue = "0.0")
     val valueImportance: Float = 0f,
     @ColumnInfo(defaultValue = "0.0")
@@ -143,7 +158,6 @@ data class GoalList(
     val order: Long = 0
 )
 
-// ✨ ДОДАНО: Нова сутність для нотаток
 @Entity(tableName = "notes")
 data class Note(
     @PrimaryKey val id: String,
@@ -153,14 +167,13 @@ data class Note(
     val updatedAt: Long?
 )
 
-// ✨ ЗАМІНА: GoalInstance замінено на універсальний ListItem
 @Entity(tableName = "list_items",
     foreignKeys = [
-        androidx.room.ForeignKey(
+        ForeignKey(
             entity = GoalList::class,
             parentColumns = ["id"],
             childColumns = ["listId"],
-            onDelete = androidx.room.ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
@@ -174,38 +187,13 @@ data class ListItem(
     val order: Long
 )
 
-// ✨ ЗАМІНА: Sealed class для представлення контенту в UI
 sealed class ListItemContent {
     abstract val item: ListItem
     data class GoalItem(val goal: Goal, override val item: ListItem) : ListItemContent()
     data class NoteItem(val note: Note, override val item: ListItem) : ListItemContent()
     data class SublistItem(val sublist: GoalList, override val item: ListItem) : ListItemContent()
+    data class LinkItem(val link: LinkItemEntity, override val item: ListItem) : ListItemContent()
 }
-
-// Сутності ActivityRecord та RecentListEntry залишаються без змін
-
-/*@Entity(tableName = "activity_records")
-data class ActivityRecord(
-    @PrimaryKey val id: String,
-    val text: String,
-    val createdAt: Long,
-    val startTime: Long?,
-    val endTime: Long?
-)*/
-
-@Entity(
-    tableName = "recent_list_entries",
-    primaryKeys = ["list_id"],
-    foreignKeys = [
-        androidx.room.ForeignKey(
-            entity = GoalList::class,
-            parentColumns = ["id"],
-            childColumns = ["list_id"],
-            onDelete = androidx.room.ForeignKey.CASCADE
-        )
-    ]
-)
-
 
 data class GlobalSearchResult(
     @Embedded

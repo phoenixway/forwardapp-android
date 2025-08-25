@@ -102,14 +102,14 @@ class ContextHandler @Inject constructor(
         return regex.findAll(text).map { it.groupValues[1].lowercase() }.toSet()
     }
 
-    // ✨ ВИПРАВЛЕНО: Виклики suspend функцій тепер відбуваються паралельно у coroutine scope
     private suspend fun ensureLinksExist(goal: Goal, contexts: Set<String>) = coroutineScope {
         contexts.map { contextName ->
             async {
                 val tag = contextTagMap[contextName.lowercase()]
                 if (tag != null) {
                     val targetListIds = goalRepository.findListIdsByTag(tag)
-                    targetListIds.forEach { listId ->
+                    // ✨ ВИПРАВЛЕНО: Використовуємо 'for' цикл замість 'forEach'
+                    for (listId in targetListIds) {
                         if (!goalRepository.doesLinkExist(goal.id, listId)) {
                             goalRepository.createGoalLinks(listOf(goal.id), listId)
                         }
@@ -138,14 +138,14 @@ class ContextHandler @Inject constructor(
 
         if (oldContexts == newContexts) return@coroutineScope
 
-        // ✨ ВИПРАВЛЕНО: Операції видалення також виконуються паралельно
         val contextsToRemove = oldContexts - newContexts
         val removalJobs = contextsToRemove.map { contextName ->
             async {
                 val tag = contextTagMap[contextName.lowercase()]
                 if (tag != null) {
                     val targetListIds = goalRepository.findListIdsByTag(tag)
-                    targetListIds.forEach { listId ->
+                    // ✨ ВИПРАВЛЕНО: Використовуємо 'for' цикл замість 'forEach'
+                    for (listId in targetListIds) {
                         goalRepository.deleteLinkByEntityIdAndListId(entityId = oldGoal.id, listId = listId)
                     }
                 }

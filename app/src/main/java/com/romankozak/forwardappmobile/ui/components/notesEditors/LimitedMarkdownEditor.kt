@@ -1,6 +1,7 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/notesEditors/LimitedMarkdownEditor.kt
 package com.romankozak.forwardappmobile.ui.components.notesEditors
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,11 +17,14 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,75 +37,59 @@ fun LimitedMarkdownEditor(
     onExpandClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // State to track if the text is overflowing. We check it again when the text changes.
+    var isOverflowing by remember(value.text) { mutableStateOf(false) }
+    val textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+    val density = LocalDensity.current
+
     OutlinedCard(modifier = modifier) {
-        // --- START OF FIX ---
-        // Read the text style here, in the @Composable context.
-        val textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
-        // --- END OF FIX ---
-
-        // Use SubcomposeLayout to measure the height of the text
-        SubcomposeLayout(modifier = Modifier.fillMaxWidth()) { constraints ->
-            // Measure the full height using Text, as it's more reliable for this.
-            // CRITICAL: We pass the same width and padding modifiers
-            // to ensure the text wraps identically to the visible field.
-            val fullContentPlaceable = subcompose("fullContent") {
-                Text(
-                    // Use a space to measure height even for an empty field
-                    text = value.text.ifEmpty { " " },
+        Column {
+            // This Box will handle the clipping and scrolling for the text field.
+            Box(
+                modifier = Modifier
+                    .heightIn(max = maxHeight)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    textStyle = textStyle,
                     modifier = Modifier
-                        .fillMaxWidth() // This forces the text to wrap
+                        .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
-                    style = textStyle
-                )
-            }[0].measure(constraints)
-
-            val isOverflowing = fullContentPlaceable.height > maxHeight.toPx()
-
-            // The main visible component
-            val editorPlaceable = subcompose("editor") {
-                Column {
-                    val scrollState = rememberScrollState()
-                    Box(
-                        Modifier
-                            .heightIn(max = maxHeight)
-                            .verticalScroll(scrollState) // Add scrolling for better UX
-                    ) {
-                        BasicTextField(
-                            value = value,
-                            onValueChange = onValueChange,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            textStyle = textStyle, // Use the same style
-                            cursorBrush = SolidColor(LocalContentColor.current),
-                            decorationBox = { innerTextField ->
-                                // Placeholder if the field is empty
-                                if (value.text.isEmpty()) {
-                                    Text(
-                                        text = "Notes...",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        )
-                    }
-                    // Show the "More..." button only if there is an overflow
-                    if (isOverflowing) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            TextButton(onClick = onExpandClick) {
-                                Text("More...")
-                            }
+                    cursorBrush = SolidColor(LocalContentColor.current),
+                    onTextLayout = {
+                        // This callback is invoked when the text layout is calculated.
+                        // We convert maxHeight from Dp to Px to compare it with the text's height.
+                        val maxHeightPx = with(density) { maxHeight.toPx() }
+                        // Update the overflow state based on the comparison.
+                        isOverflowing = it.size.height > maxHeightPx
+                    },
+                    decorationBox = { innerTextField ->
+                        // Placeholder if the field is empty
+                        if (value.text.isEmpty()) {
+                            Text(
+                                text = "Notes...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
+                        innerTextField()
+                    }
+                )
+            }
+
+            // Show the "More..." button only if there is an overflow.
+            // Animate its appearance and disappearance.
+            AnimatedVisibility(visible = isOverflowing) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    TextButton(onClick = onExpandClick) {
+                        Text("More...")
                     }
                 }
-            }[0].measure(constraints)
-
-            layout(editorPlaceable.width, editorPlaceable.height) {
-                editorPlaceable.placeRelative(0, 0)
             }
         }
     }

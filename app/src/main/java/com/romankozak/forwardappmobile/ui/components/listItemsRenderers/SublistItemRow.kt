@@ -4,6 +4,8 @@ package com.romankozak.forwardappmobile.ui.components.listItemsRenderers
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -55,7 +57,8 @@ fun SublistItemRow(
     dragHandleModifier: Modifier = Modifier
 ) {
     val background by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        // --- ЗМІНЕНО: Більш насичений колір ---
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.surface,
         animationSpec = spring(),
         label = "sublist_background_color"
@@ -67,6 +70,13 @@ fun SublistItemRow(
         label = "elevation"
     )
 
+    // --- ЗМІНЕНО: Анімація для рамки ---
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = tween(200),
+        label = "border_color_anim"
+    )
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -76,8 +86,10 @@ fun SublistItemRow(
             },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(elevation)
+        elevation = CardDefaults.elevatedCardElevation(elevation),
+        border = BorderStroke(2.dp, animatedBorderColor) // Додано рамку
     ) {
+        // ... (решта коду SublistItemRow залишається без змін)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -95,7 +107,6 @@ fun SublistItemRow(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icon styled to match the checkbox size
                 Box(
                     modifier = Modifier
                         .size(16.dp)
@@ -142,7 +153,6 @@ fun SublistItemRow(
                 }
             }
 
-            // Drag handle identical to GoalItem
             Surface(
                 modifier = Modifier
                     .fillMaxHeight()

@@ -59,4 +59,5 @@ interface GoalDao {
 
     @Query("UPDATE goals SET description = :markdown WHERE id = :goalId")
     suspend fun updateMarkdown(goalId: String, markdown: String)
+
 }

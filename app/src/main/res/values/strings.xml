@@ -58,4 +58,30 @@
     <string name="toggle_to_edit_mode">Перейти в режим редагування</string>
     <string name="description_placeholder_with_markdown_hint">Введіть опис...\n\n**жирний**, *курсив*, - список, # заголовок</string>
 
+    <string name="more_actions_content_description">Більше дій</string>
+    <string name="add_link_to_list">+ посилання на список</string>
+    <string name="add_web_link">+ веб-посилання</string>
+    <string name="add_obsidian_link">+ посилання на Obsidian</string>
+
+    <string name="add_link_dialog_title">Додати веб-посилання</string>
+    <string name="add_obsidian_link_dialog_title">Додати посилання на нотатку</string>
+    <string name="url_placeholder">https://example.com</string>
+    <string name="obsidian_placeholder">Назва нотатки</string>
+    <string name="add_button">Додати</string>
+    <string name="loading">Завантаження...</string>
+    <string name="back_button_description">Назад</string>
+    <string name="reveal_in_backlogs">Показати у списках</string>
+    <string name="error_could_not_open_link">Не вдалося відкрити посилання</string>
+    <string name="error_obsidian_vault_not_set">Назва Obsidian Vault не вказана в налаштуваннях</string>
+    <string name="error_link_open_failed">Не вдалося відкрити посилання. Можливо, програма не встановлена.</string>
+    <string name="link_icon_description">Іконка посилання</string>
+    <string name="drag_handle_description">Перетягнути</string>
+    <string name="link_type_goal_list">Посилання на список</string>
+    <string name="link_type_obsidian_note">Нотатка Obsidian</string>
+    <string name="link_type_generic">Посилання</string>
+    <string name="dialog_placeholder_name_optional">Назва (необов\'язково)</string>
+    <string name="dialog_placeholder_note_name">Назва нотатки</string>
+    <string name="dialog_placeholder_name">Назва</string>
+    <string name="dialog_placeholder_address">Адреса</string>
+
 </resources>

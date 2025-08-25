@@ -6,7 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import com.romankozak.forwardappmobile.ui.screens.goaldetail.GoalActionType
+import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

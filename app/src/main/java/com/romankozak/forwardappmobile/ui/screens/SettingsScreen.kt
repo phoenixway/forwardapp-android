@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.goallist.PlanningSettingsState
+import com.romankozak.forwardappmobile.ui.screens.backlogs.PlanningSettingsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

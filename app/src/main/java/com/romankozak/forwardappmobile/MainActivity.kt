@@ -24,10 +24,10 @@ import com.romankozak.forwardappmobile.ui.screens.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
-import com.romankozak.forwardappmobile.ui.screens.goaldetail.GoalDetailScreen
+import com.romankozak.forwardappmobile.ui.screens.backlog.GoalDetailScreen
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
-import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListScreen
-import com.romankozak.forwardappmobile.ui.screens.goallist.GoalListViewModel
+import com.romankozak.forwardappmobile.ui.screens.backlogs.GoalListScreen
+import com.romankozak.forwardappmobile.ui.screens.backlogs.GoalListViewModel
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen

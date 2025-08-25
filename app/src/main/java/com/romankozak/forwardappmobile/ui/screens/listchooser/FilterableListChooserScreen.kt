@@ -9,7 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.* // Важливо: переконайтесь, що цей імпорт є
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -69,14 +69,12 @@ fun FilterableListChooserScreen(
     var newListName by remember { mutableStateOf("") }
     var parentForNewList by remember { mutableStateOf<GoalList?>(null) }
     var highlightedListId by remember { mutableStateOf<String?>(null) }
-    var isSearchFocused by remember { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val searchFocusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
     val listState = rememberLazyListState()
 
-    // Автоматичне приховування підсвічування
     LaunchedEffect(highlightedListId) {
         if (highlightedListId != null) {
             delay(3000L)
@@ -84,12 +82,8 @@ fun FilterableListChooserScreen(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Покращений TopAppBar з анімаціями
+    Scaffold(
+        topBar = {
             TopAppBar(
                 title = {
                     AnimatedContent(
@@ -122,245 +116,17 @@ fun FilterableListChooserScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (isCreatingMode)
                         MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surface
+                    else
+                        MaterialTheme.colorScheme.surface
                 )
             )
-
-            AnimatedContent(
-                targetState = isCreatingMode,
-                transitionSpec = {
-                    (slideInVertically { it } + fadeIn(tween(300)) + expandVertically()) with
-                            (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
-                },
-                modifier = Modifier.fillMaxSize()
-            ) { creating ->
-                if (creating) {
-                    CreateListForm(
-                        name = newListName,
-                        onNameChange = { newListName = it },
-                        onCancel = {
-                            isCreatingMode = false
-                            keyboardController?.hide()
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        },
-                        onCreate = {
-                            val id = UUID.randomUUID().toString()
-                            onAddNewList(id, parentForNewList?.id, newListName)
-                            highlightedListId = id
-                            isCreatingMode = false
-                            keyboardController?.hide()
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        },
-                        modifier = Modifier.padding(16.dp)
-                    )
-                } else {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // Компактне поле пошуку
-                        OutlinedTextField(
-                            value = filterText,
-                            onValueChange = onFilterTextChanged,
-                            label = { Text(stringResource(R.string.search_lists)) },
-                            placeholder = { Text(stringResource(R.string.search_placeholder)) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .focusRequester(searchFocusRequester),
-                            singleLine = true,
-                            leadingIcon = {
-                                AnimatedContent(targetState = filterText.isNotEmpty()) { hasText ->
-                                    if (hasText) {
-                                        Icon(Icons.Filled.Search, null,
-                                            tint = MaterialTheme.colorScheme.primary)
-                                    } else {
-                                        Icon(Icons.Outlined.Search, null)
-                                    }
-                                }
-                            },
-                            trailingIcon = {
-                                AnimatedVisibility(
-                                    visible = filterText.isNotEmpty(),
-                                    enter = scaleIn() + fadeIn(),
-                                    exit = scaleOut() + fadeOut()
-                                ) {
-                                    IconButton(
-                                        onClick = {
-                                            onFilterTextChanged("")
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        }
-                                    ) {
-                                        Icon(Icons.Default.Close, stringResource(R.string.clear_search))
-                                    }
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(
-                                onSearch = { keyboardController?.hide() }
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                focusedLabelColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-
-                        // Опція показу вкладених списків
-                        AnimatedVisibility(
-                            visible = filterText.isNotBlank(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        onToggleShowDescendants()
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    },
-                                color = if (showDescendants)
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        if (showDescendants) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = if (showDescendants)
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        stringResource(R.string.show_nested_lists),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (showDescendants)
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    AnimatedContent(targetState = showDescendants) { isOn ->
-                                        Text(
-                                            text = stringResource(if (isOn) R.string.enabled else R.string.disabled),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (showDescendants)
-                                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                            else
-                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Статистика результатів пошуку
-                        if (filterText.isNotBlank()) {
-                            val filteredCount = chooserUiState.topLevelLists.size
-                            val listsWord = if (filteredCount == 1)
-                                stringResource(R.string.list_singular)
-                            else
-                                stringResource(R.string.lists_plural)
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Outlined.FilterList,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    stringResource(R.string.found_lists, filteredCount, listsWord),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // Проміжок між фільтром і списками
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Список елементів
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = 80.dp
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            if (chooserUiState.topLevelLists.isEmpty()) {
-                                item {
-                                    EnhancedEmptyState(hasFilter = filterText.isNotBlank())
-                                }
-                            } else {
-                                if (filterText.isBlank()) {
-                                    item {
-                                        RootListItem(
-                                            text = stringResource(R.string.root_level),
-                                            isEnabled = currentParentId != null,
-                                            onClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                onConfirm(null)
-                                                //onNavigateBack()
-                                            }
-                                        )
-                                    }
-                                }
-
-                                items(chooserUiState.topLevelLists, key = { it.id }) { list ->
-                                    RecursiveSelectableListItem(
-                                        list = list,
-                                        childMap = chooserUiState.childMap,
-                                        level = 0,
-                                        expandedIds = expandedIds,
-                                        onToggleExpanded = onToggleExpanded,
-                                        onSelect = { id ->
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onConfirm(id)
-                                           // onNavigateBack()
-                                        },
-                                        disabledIds = disabledIds,
-                                        highlightedListId = highlightedListId,
-                                        onAddSublistRequest = { parent ->
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            parentForNewList = parent
-                                            newListName = ""
-                                            isCreatingMode = true
-                                        },
-                                        filterText = filterText,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Покращений FAB
-        if (!isCreatingMode) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomEnd
-            ) {
+        },
+        floatingActionButton = {
+            if (!isCreatingMode) {
                 val fabScale by animateFloatAsState(
                     targetValue = if (listState.isScrollInProgress) 0.8f else 1f,
-                    animationSpec = spring()
+                    animationSpec = spring(),
+                    label = "fabScaleAnimation"
                 )
 
                 FloatingActionButton(
@@ -371,7 +137,7 @@ fun FilterableListChooserScreen(
                         isCreatingMode = true
                     },
                     modifier = Modifier
-                        .padding(bottom = 80.dp, end = 16.dp)
+                        .padding(bottom = 16.dp, end = 16.dp)
                         .scale(fabScale),
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -398,9 +164,238 @@ fun FilterableListChooserScreen(
                 }
             }
         }
+    ) { innerPadding ->
+        AnimatedContent(
+            targetState = isCreatingMode,
+            transitionSpec = {
+                (slideInVertically { it } + fadeIn(tween(300)) + expandVertically()) with
+                        (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
+            },
+            // --- ПОЧАТОК КЛЮЧОВОЇ ЗМІНИ ---
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding) // Відступ від Scaffold (для TopAppBar)
+                .imePadding()         // <-- ОСЬ ЦЕЙ РЯДОК ВСЕ ВИРІШУЄ
+            // --- КІНЕЦЬ КЛЮЧОВОЇ ЗМІНИ ---
+        ) { creating ->
+            if (creating) {
+                CreateListForm(
+                    name = newListName,
+                    onNameChange = { newListName = it },
+                    onCancel = {
+                        isCreatingMode = false
+                        keyboardController?.hide()
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    },
+                    onCreate = {
+                        val id = UUID.randomUUID().toString()
+                        onAddNewList(id, parentForNewList?.id, newListName)
+                        highlightedListId = id
+                        isCreatingMode = false
+                        keyboardController?.hide()
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    OutlinedTextField(
+                        value = filterText,
+                        onValueChange = onFilterTextChanged,
+                        label = { Text(stringResource(R.string.search_lists)) },
+                        placeholder = { Text(stringResource(R.string.search_placeholder)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .focusRequester(searchFocusRequester),
+                        singleLine = true,
+                        leadingIcon = {
+                            AnimatedContent(targetState = filterText.isNotEmpty(), label = "searchIconAnimation") { hasText ->
+                                if (hasText) {
+                                    Icon(Icons.Filled.Search, null,
+                                        tint = MaterialTheme.colorScheme.primary)
+                                } else {
+                                    Icon(Icons.Outlined.Search, null)
+                                }
+                            }
+                        },
+                        trailingIcon = {
+                            AnimatedVisibility(
+                                visible = filterText.isNotEmpty(),
+                                enter = scaleIn() + fadeIn(),
+                                exit = scaleOut() + fadeOut()
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        onFilterTextChanged("")
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                ) {
+                                    Icon(Icons.Default.Close, stringResource(R.string.clear_search))
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = { keyboardController?.hide() }
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+
+                    // ... (решта коду Column залишається без змін)
+
+                    AnimatedVisibility(
+                        visible = filterText.isNotBlank(),
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    onToggleShowDescendants()
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                },
+                            color = if (showDescendants)
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (showDescendants) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = if (showDescendants)
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    stringResource(R.string.show_nested_lists),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (showDescendants)
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                AnimatedContent(targetState = showDescendants, label = "showDescendantsTextAnimation") { isOn ->
+                                    Text(
+                                        text = stringResource(if (isOn) R.string.enabled else R.string.disabled),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (showDescendants)
+                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (filterText.isNotBlank()) {
+                        val filteredCount = chooserUiState.topLevelLists.size
+                        val listsWord = if (filteredCount == 1)
+                            stringResource(R.string.list_singular)
+                        else
+                            stringResource(R.string.lists_plural)
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Outlined.FilterList,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                stringResource(R.string.found_lists, filteredCount, listsWord),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = 80.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        if (chooserUiState.topLevelLists.isEmpty()) {
+                            item {
+                                EnhancedEmptyState(hasFilter = filterText.isNotBlank())
+                            }
+                        } else {
+                            if (filterText.isBlank()) {
+                                item {
+                                    RootListItem(
+                                        text = stringResource(R.string.root_level),
+                                        isEnabled = currentParentId != null,
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            onConfirm(null)
+                                        }
+                                    )
+                                }
+                            }
+
+                            items(chooserUiState.topLevelLists, key = { it.id }) { list ->
+                                RecursiveSelectableListItem(
+                                    list = list,
+                                    childMap = chooserUiState.childMap,
+                                    level = 0,
+                                    expandedIds = expandedIds,
+                                    onToggleExpanded = onToggleExpanded,
+                                    onSelect = { id ->
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onConfirm(id)
+                                    },
+                                    disabledIds = disabledIds,
+                                    highlightedListId = highlightedListId,
+                                    onAddSublistRequest = { parent ->
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        parentForNewList = parent
+                                        newListName = ""
+                                        isCreatingMode = true
+                                    },
+                                    filterText = filterText,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
+
+// ... решта файлу залишається без змін ...
+// CreateListForm, EnhancedEmptyState, RecursiveSelectableListItem, etc.
+// ...
 @Composable
 private fun CreateListForm(
     name: String,
@@ -562,7 +557,8 @@ private fun RecursiveSelectableListItem(
 
     val cardElevation by animateFloatAsState(
         targetValue = if (isHighlighted) 8f else 2f,
-        animationSpec = spring()
+        animationSpec = spring(),
+        label = "cardElevationAnimation"
     )
 
     val cardColor by animateColorAsState(
@@ -571,12 +567,14 @@ private fun RecursiveSelectableListItem(
             !isEnabled -> MaterialTheme.colorScheme.surfaceVariant
             else -> MaterialTheme.colorScheme.surface
         },
-        animationSpec = tween(500)
+        animationSpec = tween(500),
+        label = "cardColorAnimation"
     )
 
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 90f else 0f,
-        animationSpec = spring(dampingRatio = 0.6f)
+        animationSpec = spring(dampingRatio = 0.6f),
+        label = "rotationAnimation"
     )
 
     Column {

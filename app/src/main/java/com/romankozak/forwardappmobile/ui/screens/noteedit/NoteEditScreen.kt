@@ -2,20 +2,25 @@
 package com.romankozak.forwardappmobile.ui.screens.noteedit
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.ui.components.notesEditors.MarkdownEditorViewer
 import kotlinx.coroutines.launch
 
@@ -28,15 +33,14 @@ fun NoteEditScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var isEditMode by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is NoteEditEvent.NavigateBack -> {
                     event.message?.let {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(it)
-                        }
+                        scope.launch { snackbarHostState.showSnackbar(it) }
                     }
                     navController.popBackStack()
                 }
@@ -48,15 +52,14 @@ fun NoteEditScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding()
-            .imePadding(),
+            .navigationBarsPadding(),
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
                         text = if (uiState.isNewNote) "Нова нотатка" else "Редагувати",
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.titleLarge,
                     )
                 },
@@ -70,6 +73,15 @@ fun NoteEditScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { isEditMode = !isEditMode }) {
+                        Icon(
+                            imageVector = if (isEditMode) Icons.Default.Visibility else Icons.Default.Edit,
+                            contentDescription = stringResource(
+                                if (isEditMode) R.string.toggle_to_preview_mode else R.string.toggle_to_edit_mode,
+                            ),
+                        )
+                    }
+
                     AnimatedContent(
                         targetState = uiState.isSaveButtonEnabled,
                         label = "save_button_animation",
@@ -78,7 +90,7 @@ fun NoteEditScreen(
                         if (isEnabled) {
                             Button(
                                 onClick = { viewModel.onSave() },
-                                shape = MaterialTheme.shapes.small,
+                                shape = RoundedCornerShape(50),
                             ) {
                                 Text("Зберегти", style = MaterialTheme.typography.labelMedium)
                             }
@@ -96,7 +108,7 @@ fun NoteEditScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
             )
-        }
+        },
     ) { paddingValues ->
         if (!uiState.isReady) {
             Box(
@@ -109,92 +121,77 @@ fun NoteEditScreen(
                 )
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-            ) {
-                OutlinedTextField(
-                    value = uiState.title,
-                    onValueChange = viewModel::onTitleChange,
-                    label = {
-                        Text(
-                            "Заголовок (необов'язково)",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    },
-                    placeholder = {
-                        Text(
-                            "Наприклад: Ідеї для проекту",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.medium,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                    ),
+            NoteEditor(
+                title = uiState.title,
+                onTitleChange = viewModel::onTitleChange,
+                content = uiState.content,
+                onContentChange = viewModel::onContentChange,
+                isEditMode = isEditMode,
+                modifier = Modifier.padding(paddingValues),
+            )
+        }
+    }
+}
+
+@Composable
+fun NoteEditor(
+    title: TextFieldValue,
+    onTitleChange: (TextFieldValue) -> Unit,
+    content: TextFieldValue,
+    onContentChange: (TextFieldValue) -> Unit,
+    isEditMode: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(top = 8.dp),
+    ) {
+        // 🔹 спільний горизонтальний відступ для обох полів
+        val horizontalPadding = 16.dp
+
+        OutlinedTextField(
+            value = title,
+            onValueChange = onTitleChange,
+            placeholder = { Text("Заголовок (необов'язково)") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = horizontalPadding, end = horizontalPadding, bottom = 8.dp),
+            textStyle = MaterialTheme.typography.titleMedium,
+            maxLines = 3,
+            singleLine = false,
+            shape = MaterialTheme.shapes.medium,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            ),
+        )
+
+        MarkdownEditorViewer(
+            value = content,
+            onValueChange = onContentChange,
+            isEditMode = isEditMode,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(start = horizontalPadding, end = horizontalPadding)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                    shape = MaterialTheme.shapes.medium
                 )
+        )
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = 14.dp)
-                        .clip(MaterialTheme.shapes.medium)
-                ) {
-                    MarkdownEditorViewer(
-                        value = uiState.content,
-                        onValueChange = viewModel::onContentChange,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    if (uiState.content.text.isEmpty()) {
-                        Text(
-                            text = "Почніть писати тут... Підтримується Markdown: **жирний**, *курсив*, списки тощо.",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            // --- ПОЧАТОК ЗМІН ---
-                            modifier = Modifier
-                                // .fillMaxSize() // 1. Видалено: цей модифікатор не потрібен для плейсхолдера
-                                .align(Alignment.TopStart)
-                                // 2. Змінено padding: додано значний верхній відступ,
-                                // щоб змістити плейсхолдер нижче кнопок "Редактор"/"Перегляд".
-                                .padding(start = 16.dp, top = 52.dp, end = 16.dp, bottom = 16.dp),
-                            // --- КІНЕЦЬ ЗМІН ---
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    AnimatedVisibility(visible = uiState.error != null) {
-                        Text(
-                            text = uiState.error ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier
-                                .animateContentSize()
-                                .weight(1f, fill = false),
-                        )
-                    }
-
-                    Text(
-                        text = "${uiState.content.text.length}/5000",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, end = 20.dp), // трохи відступ праворуч
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Text(
+                text = "${content.text.length}/5000",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
         }
     }
 }

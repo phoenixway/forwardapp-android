@@ -24,7 +24,7 @@ android {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 29
         targetSdk = 36
-        versionCode = 8
+        versionCode = 12
         versionName = "4.0-beta3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -165,5 +165,8 @@ dependencies {
     implementation(libs.reorderable)
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
+
+        //implementation("com.google.mediapipe:tasks-text:0.10.14")
+
 
 }

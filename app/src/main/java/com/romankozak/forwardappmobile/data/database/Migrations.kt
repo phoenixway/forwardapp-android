@@ -57,7 +57,7 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
 }
 
 /**
- * ✨ ДОДАЙТЕ ЦЕЙ КОД: Міграція бази даних з версії 13 на 14.
+ * Міграція бази даних з версії 13 на 14.
  * Додає таблицю для зберігання історії нещодавно відкритих списків.
  */
 val MIGRATION_13_14 = object : Migration(13, 14) {
@@ -75,23 +75,21 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
 
 val MIGRATION_14_15 = object : Migration(14, 15) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // --- ЧАСТИНА 1: Створення нових таблиць (без змін) ---
+        // --- ЧАСТИНА 1: Створення нових таблиць ---
         db.execSQL("CREATE TABLE IF NOT EXISTS `notes` (`id` TEXT NOT NULL, `title` TEXT, `content` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, PRIMARY KEY(`id`))")
         db.execSQL("CREATE TABLE IF NOT EXISTS `list_items` (`id` TEXT NOT NULL, `listId` TEXT NOT NULL, `itemType` TEXT NOT NULL, `entityId` TEXT NOT NULL, `item_order` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`listId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_list_items_listId` ON `list_items` (`listId`)")
 
-        // --- ЧАСТИНА 2: Перенесення даних з GoalInstance до ListItem (без змін) ---
+        // --- ЧАСТИНА 2: Перенесення даних з GoalInstance до ListItem ---
         db.execSQL("""
             INSERT INTO `list_items` (id, listId, itemType, entityId, item_order)
             SELECT instance_id, listId, 'GOAL', goalId, goal_order FROM goal_instances
         """)
 
-        // --- ЧАСТИНА 3: Видалення старої таблиці GoalInstance (без змін) ---
+        // --- ЧАСТИНА 3: Видалення старої таблиці GoalInstance ---
         db.execSQL("DROP TABLE `goal_instances`")
 
         // --- ЧАСТИНА 4: Міграція associatedListIds -> relatedLinks у таблиці Goal ---
-
-        // a. ✨ ВИПРАВЛЕНО: Створити нову таблицю з ПРАВИЛЬНОЮ структурою (з усіма DEFAULT)
         db.execSQL("""
             CREATE TABLE `goals_new` (
                 `id` TEXT NOT NULL, 
@@ -121,8 +119,6 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
             )
         """)
 
-        // b. Програмно конвертувати дані та скопіювати їх (цей код тепер працюватиме правильно)
-        // Ця частина коду залишається без змін, оскільки вона лише готує дані для вставки
         val cursor = db.query("SELECT id, associatedListIds FROM goals WHERE associatedListIds IS NOT NULL")
         val gson = com.google.gson.Gson()
         val listStringType = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
@@ -150,15 +146,23 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
             SELECT id, text, description, completed, createdAt, updatedAt, tags, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoring_status, parentValueImportance, impactOnParentGoal, timeCost, financialCost FROM `goals`
         """)
 
-        // Оновлюємо поле relatedLinks для тих цілей, де воно було
         relatedLinkList.forEach { (goalId, jsonNew) ->
             db.execSQL("UPDATE goals_new SET relatedLinks = ? WHERE id = ?", arrayOf(jsonNew, goalId))
         }
 
-        // c. Видалити стару таблицю
         db.execSQL("DROP TABLE `goals`")
-
-        // d. Перейменувати нову таблицю
         db.execSQL("ALTER TABLE `goals_new` RENAME TO `goals`")
+    }
+}
+
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `link_items` (
+                `id` TEXT NOT NULL, 
+                `link_data` TEXT NOT NULL, 
+                PRIMARY KEY(`id`)
+            )
+        """)
     }
 }

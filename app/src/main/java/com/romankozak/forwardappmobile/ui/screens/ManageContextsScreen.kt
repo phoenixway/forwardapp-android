@@ -40,6 +40,9 @@ fun ManageContextsScreen(
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text("Manage Contexts") },
@@ -149,8 +152,6 @@ private fun SectionHeader(title: String) {
     }
 }
 
-// Замініть цю функцію у файлі ManageContextsScreen.kt
-
 @Composable
 private fun ContextEditorItem(
     context: UiContext,
@@ -207,7 +208,6 @@ private fun ContextEditorItem(
             ) {
                 OutlinedTextField(
                     value = context.emoji,
-                    // --- ПОЧАТОК ВИПРАВЛЕННЯ ---
                     onValueChange = { newText ->
                         // Використовуємо BreakIterator, щоб знайти перший повний символ (графему),
                         // що коректно працює зі складними емодзі на всіх версіях Android.
@@ -220,7 +220,6 @@ private fun ContextEditorItem(
                             onValueChange(context.copy(emoji = ""))
                         }
                     },
-                    // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
                     label = { Text("Emoji") },
                     modifier = Modifier.width(90.dp),
                     textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),

@@ -42,7 +42,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
-import com.romankozak.forwardappmobile.ui.components.FullScreenMarkdownEditor
+import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
