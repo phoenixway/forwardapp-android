@@ -24,12 +24,21 @@ class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
+    // --- Існуючі ключі ---
     private val desktopAddressKey = stringPreferencesKey("desktop_address")
     private val obsidianVaultNameKey = stringPreferencesKey("obsidian_vault_name")
     private val showPlanningModesKey = booleanPreferencesKey("show_planning_modes")
     private val dailyTagKey = stringPreferencesKey("daily_planning_tag")
     private val mediumTagKey = stringPreferencesKey("medium_planning_tag")
     private val longTagKey = stringPreferencesKey("long_planning_tag")
+
+    // --- Ключі для Ollama (ДОДАНО) ---
+    companion object {
+        val OLLAMA_URL_KEY = stringPreferencesKey("ollama_url")
+        val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
+        val OLLAMA_SMART_MODEL_KEY = stringPreferencesKey("ollama_smart_model")
+    }
+
 
     object ContextKeys {
         val BUY = stringPreferencesKey("context_tag_buy")
@@ -97,6 +106,28 @@ class SettingsRepository @Inject constructor(
 
     suspend fun saveLongTag(tag: String) {
         context.dataStore.edit { settings -> settings[longTagKey] = tag }
+    }
+
+    // --- Ollama Settings (ДОДАНО) ---
+
+    val ollamaUrlFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[OLLAMA_URL_KEY] ?: "http://10.0.2.2:11434" }
+
+    val ollamaFastModelFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[OLLAMA_FAST_MODEL_KEY] ?: "" }
+
+    val ollamaSmartModelFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[OLLAMA_SMART_MODEL_KEY] ?: "" }
+
+    suspend fun saveOllamaUrl(url: String) {
+        context.dataStore.edit { settings -> settings[OLLAMA_URL_KEY] = url }
+    }
+
+    suspend fun saveOllamaModels(fastModel: String, smartModel: String) {
+        context.dataStore.edit { settings ->
+            settings[OLLAMA_FAST_MODEL_KEY] = fastModel
+            settings[OLLAMA_SMART_MODEL_KEY] = smartModel
+        }
     }
 
     // --- Reserved Contexts ---
