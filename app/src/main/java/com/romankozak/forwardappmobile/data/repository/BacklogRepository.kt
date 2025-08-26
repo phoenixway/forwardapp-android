@@ -8,7 +8,9 @@ import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDao
 import com.romankozak.forwardappmobile.data.dao.RecentListDao
+import com.romankozak.forwardappmobile.data.database.models.GlobalLinkSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListItem
@@ -246,11 +248,20 @@ class GoalRepository @Inject constructor(
 
     fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 
-    // ... (решта методів залишається без змін)
-
-    // --- ІНШІ ПУБЛІЧНІ МЕТОДИ ---
-
-    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult> = goalDao.searchGoalsGlobal(query)
+    @Transaction
+    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResultItem> {
+        val goalResults = goalDao.searchGoalsGlobal(query).map {
+            GlobalSearchResultItem.GoalItem(it)
+        }
+        val linkResults = linkItemDao.searchLinksGlobal(query).map {
+            GlobalSearchResultItem.LinkItem(it)
+        }
+        // ADDED: Search for sublists by their name.
+        val sublistResults = goalListDao.searchSublistsGlobal(query).map {
+            GlobalSearchResultItem.SublistItem(it)
+        }
+        return goalResults + linkResults + sublistResults
+    }
 
     suspend fun logListAccess(listId: String) {
         recentListDao.logAccess(RecentListEntry(listId = listId, lastAccessed = System.currentTimeMillis()))
@@ -362,5 +373,7 @@ class GoalRepository @Inject constructor(
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
     suspend fun getAllNotes(): List<Note> = noteDao.getAll()
     suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
+
+
 
 }
