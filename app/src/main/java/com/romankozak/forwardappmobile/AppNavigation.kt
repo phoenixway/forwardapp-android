@@ -124,24 +124,32 @@ fun AppNavigation(
         }
 
         composable(
-            // МОДИФІКОВАНО: маршрут тепер включає визначення необов'язкового параметра
-            route = "goal_detail_screen/{listId}?itemIdToHighlight={itemIdToHighlight}",
+            // МОДИФІКОВАНО: маршрут тепер включає обидва необов'язкові параметри
+            route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}",
 
-            // МОДИФІКОВАНО: список аргументів тепер оголошує новий параметр
+            // МОДИФІКОВАНО: список аргументів оголошує всі три параметри
             arguments = listOf(
                 navArgument("listId") {
                     type = NavType.StringType
                 },
+                // Аргумент для підсвічування звичайної цілі
+                navArgument("goalId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                // Аргумент для підсвічування будь-якого іншого елемента (напр. посилання)
                 navArgument("itemIdToHighlight") {
                     type = NavType.StringType
-                    nullable = true        // Вказуємо, що він може бути відсутнім
-                    defaultValue = null    // Значення за замовчуванням
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) {
             // Ваш виклик GoalDetailScreen залишається без змін
             GoalDetailScreen(navController = navController)
         }
+
 
 
         composable(

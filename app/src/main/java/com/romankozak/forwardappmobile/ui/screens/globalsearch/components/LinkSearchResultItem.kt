@@ -1,4 +1,5 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/LinkSearchResultItem.kt ---
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/LinkSearchResultItem.kt
+
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
 import androidx.compose.foundation.clickable
@@ -8,7 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Link // Make sure this import is present
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,13 +23,14 @@ import com.romankozak.forwardappmobile.data.database.models.LinkType
 fun LinkSearchResultItem(
     result: GlobalLinkSearchResult,
     onClick: () -> Unit,
-    onOpenInObsidian: () -> Unit, // ADDED: Specific handler for opening in Obsidian
+    onOpenInObsidian: () -> Unit,
+    onGoToTargetList: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick), // Main click navigates to the item in a list
+            .clickable(onClick = onClick), // Main click shows item in context
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
@@ -38,7 +40,7 @@ fun LinkSearchResultItem(
             Icon(
                 imageVector = when (result.link.linkData.type) {
                     LinkType.URL -> Icons.Default.Language
-                    LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                    LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note   // MODIFIED: Changed to Icons.Default.Link
                     LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
                     else -> Icons.Default.Link
                 },
@@ -61,28 +63,28 @@ fun LinkSearchResultItem(
                 )
             }
             Spacer(Modifier.width(8.dp))
-            // Action icons on the right
+
+            // MODIFIED: Action icons on the right
             when (result.link.linkData.type) {
                 LinkType.GOAL_LIST -> {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = "Відкрити в Forward",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    IconButton(onClick = onGoToTargetList) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = "Перейти до списку",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 LinkType.OBSIDIAN -> {
-                    // ADDED: Specific button to open in Obsidian
                     IconButton(onClick = onOpenInObsidian) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Note,
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                             contentDescription = "Відкрити в Obsidian",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                else -> {
-                    // Placeholder for other potential actions
-                }
+                else -> { /* No action button for other types like URL */ }
             }
         }
     }

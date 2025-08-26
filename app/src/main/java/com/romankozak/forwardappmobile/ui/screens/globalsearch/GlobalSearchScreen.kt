@@ -1,3 +1,5 @@
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/GlobalSearchScreen.kt
+
 package com.romankozak.forwardappmobile.ui.screens.globalsearch
 
 import android.content.Context
@@ -101,16 +103,23 @@ fun GlobalSearchScreen(
                             )
                         }
                         is GlobalSearchResultItem.LinkItem -> {
-                            val linkData = result.searchResult.link.linkData
+                            val searchResult = result.searchResult
+                            val linkData = searchResult.link.linkData
                             LinkSearchResultItem(
-                                result = result.searchResult,
+                                result = searchResult,
                                 onClick = {
-                                    val route = "goal_detail_screen/${result.searchResult.listId}?itemIdToHighlight=${result.searchResult.listItemId}"
-                                    Log.d("HighlightDebug", "[1. NAV] Navigating with route: $route")
+                                    // MODIFIED: Main click ALWAYS navigates to the item's location to highlight it.
+                                    val route = "goal_detail_screen/${searchResult.listId}?itemIdToHighlight=${searchResult.listItemId}"
+                                    Log.d("HighlightDebug", "[1. NAV] Navigating to item in context: $route")
+                                    navController.navigate(route)
+                                },
+                                onGoToTargetList = {
+                                    // MODIFIED: Secondary action for GOAL_LIST links goes to the target list.
+                                    val route = "goal_detail_screen/${linkData.target}"
+                                    Log.d("HighlightDebug", "[1. NAV] Navigating to target list: $route")
                                     navController.navigate(route)
                                 },
                                 onOpenInObsidian = {
-                                    // Secondary action opens the Obsidian link externally
                                     handleRelatedLinkClick(
                                         link = linkData,
                                         obsidianVaultName = obsidianVaultName,
