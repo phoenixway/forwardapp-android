@@ -201,3 +201,28 @@ data class GlobalSearchResult(
     val listId: String,
     val listName: String
 )
+
+// ADDED: Data class to hold link search results
+data class GlobalLinkSearchResult(
+    @Embedded
+    val link: LinkItemEntity,
+    val listId: String,
+    val listName: String,
+    val listItemId: String, // ADDED: The ID of the ListItem that holds the link
+
+)
+
+sealed class GlobalSearchResultItem {
+    data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem()
+    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem()
+    data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem()
+}
+
+// Цей код має бути у файлі DatabaseModel.kt
+
+data class GlobalSublistSearchResult(
+    @Embedded
+    val sublist: GoalList,
+    val parentListId: String,
+    val parentListName: String,
+)

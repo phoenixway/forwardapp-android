@@ -6,7 +6,9 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
+import com.romankozak.forwardappmobile.data.database.models.GlobalSublistSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import kotlinx.coroutines.flow.Flow
 
@@ -62,4 +64,16 @@ interface GoalListDao {
 
     @Query("SELECT id FROM goal_lists WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getListIdsByTag(tag: String): List<String>
+
+    // Додайте цей метод до вашого інтерфейсу GoalListDao
+
+    @Transaction
+    @Query("""
+    SELECT sublist.*, parent_list.id as parentListId, parent_list.name as parentListName
+    FROM goal_lists AS sublist
+    INNER JOIN list_items AS li ON sublist.id = li.entityId
+    INNER JOIN goal_lists AS parent_list ON li.listId = parent_list.id
+    WHERE li.itemType = 'SUBLIST' AND sublist.name LIKE :query
+""")
+    suspend fun searchSublistsGlobal(query: String): List<GlobalSublistSearchResult>
 }

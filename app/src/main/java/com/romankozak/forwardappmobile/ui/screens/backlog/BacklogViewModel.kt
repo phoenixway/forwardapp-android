@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
+import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +31,6 @@ sealed class UiEvent {
     data class ResetSwipeState(val itemId: String) : UiEvent()
     data class ScrollTo(val index: Int) : UiEvent()
     data class NavigateBackAndReveal(val listId: String) : UiEvent()
-    // ✨ ДОДАНО: Нова подія для обробки кліку на посилання
     data class HandleLinkClick(val link: RelatedLink) : UiEvent()
 }
 
@@ -51,7 +51,9 @@ data class UiState(
     val resetTriggers: Map<String, Int> = emptyMap(),
     val swipedItemId: String? = null,
     val showAddWebLinkDialog: Boolean = false,
-    val showAddObsidianLinkDialog: Boolean = false
+    val showAddObsidianLinkDialog: Boolean = false,
+    val itemToHighlight: String? = null, // ADDED: For generic item highlighting
+
 )
 
 @HiltViewModel
@@ -68,7 +70,9 @@ class GoalDetailViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(
         UiState(
-            goalToHighlight = savedStateHandle.get<String>("goalToHighlight")
+            goalToHighlight = savedStateHandle.get<String>("goalId"),
+            itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"), // ADDED
+
         )
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -122,7 +126,6 @@ class GoalDetailViewModel @Inject constructor(
                                     is ListItemContent.GoalItem -> itemContent.goal.text
                                     is ListItemContent.NoteItem -> itemContent.note.content
                                     is ListItemContent.SublistItem -> itemContent.sublist.name
-                                    // ✨ ВИПРАВЛЕНО: Додано обробку LinkItem для пошуку
                                     is ListItemContent.LinkItem -> itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
                                 }
                                 textToSearch.contains(query, ignoreCase = true)
@@ -183,6 +186,11 @@ class GoalDetailViewModel @Inject constructor(
     private var pendingSourceGoalIds: Set<String> = emptySet()
 
     init {
+        val goalId = savedStateHandle.get<String>("goalId")
+        val itemId = savedStateHandle.get<String>("itemIdToHighlight") // ADDED
+        //Log.d("HighlightDebug", "[КРОК 2] ViewModel створено. goalId: $goalId, itemId: $itemId") // MODIFIED
+        Log.d("HighlightDebug", "[2. VM_INIT] ViewModel created. Received goalId: '$goalId', itemIdToHighlight: '$itemId'")
+
         viewModelScope.launch {
             listIdFlow.filter { it.isNotEmpty() }.collect { id ->
                 goalRepository.logListAccess(id)
@@ -193,6 +201,11 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    fun onHighlightShown() {
+        Log.d("HighlightDebug", "[КРОК 7] View викликав onHighlightShown. Очищуємо стани підсвічування.")
+        // MODIFIED: Clear both highlighting states
+        _uiState.update { it.copy(goalToHighlight = null, itemToHighlight = null) }
+    }
     fun onListChooserResult(targetListId: String) {
         val actionType = pendingAction ?: return
         val itemIds = pendingSourceItemIds.toList()
@@ -210,7 +223,6 @@ class GoalDetailViewModel @Inject constructor(
                         target = targetListId,
                         displayName = targetList?.name ?: "Список без назви"
                     )
-                    // --- ЗМІНЕНО: Оновлення стану для прокручування ---
                     val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
                     _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                 }
@@ -233,13 +245,11 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun onGoalActionSelected(actionType: GoalActionType, item: ListItemContent) {
-        // --- ЗМІНЕНО: Додано обробку LinkItem та SublistItem ---
         val (itemIds, goalIds) = when (item) {
             is ListItemContent.GoalItem -> Pair(setOf(item.item.id), setOf(item.goal.id))
             is ListItemContent.NoteItem -> Pair(setOf(item.item.id), emptySet())
             is ListItemContent.LinkItem -> Pair(setOf(item.item.id), emptySet())
             is ListItemContent.SublistItem -> Pair(setOf(item.item.id), emptySet())
-            else -> return
         }
 
         val isActionApplicable = when (actionType) {
@@ -301,7 +311,6 @@ class GoalDetailViewModel @Inject constructor(
                 name
             }
             val link = RelatedLink(type = LinkType.URL, target = url, displayName = displayName)
-            // --- ЗМІНЕНО: Оновлення стану для прокручування ---
             val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
         }
@@ -311,7 +320,6 @@ class GoalDetailViewModel @Inject constructor(
     fun onAddObsidianLinkConfirm(noteName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val link = RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
-            // --- ЗМІНЕНО: Оновлення стану для прокручування ---
             val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
         }
@@ -346,12 +354,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/BacklogViewModel.kt ---
-// ... (всередині класу GoalDetailViewModel)
-
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/BacklogViewModel.kt
-
-
     fun submitInput() {
         val textToSubmit = _uiState.value.inputValue.text.trim()
         if (textToSubmit.isBlank()) return
@@ -380,12 +382,10 @@ class GoalDetailViewModel @Inject constructor(
                         )
                         val generatedItemId = goalRepository.addNoteToList(initialNote, currentListId)
 
-                        // Оновлюємо UI відразу після додавання нотатки
                         withContext(Dispatchers.Main) {
                             _refreshTrigger.value++
                         }
 
-                        // Генеруємо заголовок асинхронно
                         launch {
                             val baseUrl = settingsRepository.ollamaUrlFlow.first()
                             val fastModel = settingsRepository.ollamaFastModelFlow.first()
@@ -394,33 +394,23 @@ class GoalDetailViewModel @Inject constructor(
                                 val result = ollamaService.generateTitle(baseUrl, fastModel, textToSubmit)
 
                                 result.onSuccess { generatedTitle ->
-                                    Log.d("GoalDetailViewModel", "Successfully generated title: '$generatedTitle'")
                                     val updatedNote = initialNote.copy(
                                         title = generatedTitle,
                                         updatedAt = System.currentTimeMillis()
                                     )
                                     goalRepository.updateNote(updatedNote)
-                                    Log.d("GoalDetailViewModel", "Updated note with new title")
-
-                                    // Оновлюємо UI після генерації заголовку
                                     withContext(Dispatchers.Main) {
                                         _refreshTrigger.value++
-                                        Log.d("GoalDetailViewModel", "UI refresh triggered after title generation")
                                     }
-                                }.onFailure { error ->
-                                    Log.e("GoalDetailViewModel", "Ollama failed, using fallback title. Error: ${error.message}")
+                                }.onFailure {
                                     val fallbackTitle = textToSubmit.split(Regex("\\s+")).take(5).joinToString(" ") + "..."
                                     val updatedNote = initialNote.copy(
                                         title = fallbackTitle,
                                         updatedAt = System.currentTimeMillis()
                                     )
                                     goalRepository.updateNote(updatedNote)
-                                    Log.d("GoalDetailViewModel", "Updated note with fallback title: '$fallbackTitle'")
-
-                                    // Оновлюємо UI після fallback заголовку
                                     withContext(Dispatchers.Main) {
                                         _refreshTrigger.value++
-                                        Log.d("GoalDetailViewModel", "UI refresh triggered after fallback title")
                                     }
                                 }
                             } else {
@@ -430,8 +420,6 @@ class GoalDetailViewModel @Inject constructor(
                                     updatedAt = System.currentTimeMillis()
                                 )
                                 goalRepository.updateNote(updatedNote)
-
-                                // Оновлюємо UI після fallback заголовку
                                 withContext(Dispatchers.Main) {
                                     _refreshTrigger.value++
                                 }
@@ -465,7 +453,6 @@ class GoalDetailViewModel @Inject constructor(
                     )
                 }
 
-                // Оновлюємо UI для випадків без генерації заголовку
                 if (inputMode != InputMode.AddNote || !(_uiState.value.inputValue.text.length > 60 || _uiState.value.inputValue.text.split(Regex("\\s+")).size > 5)) {
                     _refreshTrigger.value++
                 }
@@ -577,7 +564,6 @@ class GoalDetailViewModel @Inject constructor(
 
     fun undoDelete() {
         viewModelScope.launch {
-            // TODO: Implement proper undo logic.
             _uiEventFlow.send(UiEvent.ShowSnackbar("Undo not implemented yet."))
         }
     }
@@ -611,13 +597,11 @@ class GoalDetailViewModel @Inject constructor(
                 is ListItemContent.GoalItem -> onEditGoal(item.goal)
                 is ListItemContent.NoteItem -> onEditNote(item.note)
                 is ListItemContent.SublistItem -> onNavigateToList(item.sublist.id)
-                // ✨ ВИПРАВЛЕНО: Додано обробку кліку на LinkItem
                 is ListItemContent.LinkItem -> onLinkItemClick(item.link.linkData)
             }
         }
     }
 
-    // ✨ ДОДАНО: Нова приватна функція для обробки кліку на посилання
     private fun onLinkItemClick(link: RelatedLink) {
         viewModelScope.launch {
             _uiEventFlow.send(UiEvent.HandleLinkClick(link))

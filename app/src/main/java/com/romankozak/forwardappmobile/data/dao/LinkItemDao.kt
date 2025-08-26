@@ -5,6 +5,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
+import com.romankozak.forwardappmobile.data.database.models.GlobalLinkSearchResult
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 
@@ -18,4 +20,16 @@ interface LinkItemDao {
 
     @Query("SELECT * FROM list_items")
     suspend fun getAll(): List<ListItem>
+
+    @Transaction
+    @Query("""
+    SELECT li.*, l.listId as listId, gl.name as listName, l.id as listItemId
+    FROM link_items li
+    INNER JOIN list_items l ON li.id = l.entityId
+    INNER JOIN goal_lists gl ON l.listId = gl.id
+    WHERE l.itemType = 'LINK_ITEM' AND li.link_data LIKE :query
+""")
+    suspend fun searchLinksGlobal(query: String): List<GlobalLinkSearchResult>
+
+
 }

@@ -38,7 +38,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.ui.screens.backlog.InputMode
+import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 
