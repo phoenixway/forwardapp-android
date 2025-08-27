@@ -72,7 +72,10 @@ private data class FilterState(
     val searchActive: Boolean,
     val mode: PlanningMode,
     val settings: PlanningSettingsState,
-)
+    )
+
+enum class DropPosition { BEFORE, AFTER }
+
 
 
 @HiltViewModel
@@ -667,28 +670,56 @@ class GoalListViewModel @Inject constructor(
             }
             return
         }
+
         val allLists = _allListsFlat.value
         val fromList = allLists.find { it.id == fromId }
         val toList = allLists.find { it.id == toId }
-        if (fromList == null || toList == null || fromList.parentId != toList.parentId) {
+
+        if (fromList == null || toList == null) return
+
+        val listsToUpdate: List<GoalList>
+
+        // Сценарій 1: Елементи є сиблінгами (стандартне сортування)
+        if (fromList.parentId == toList.parentId) {
+            val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
+            val mutableSiblings = siblings.toMutableList()
+            val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
+            val toIndex = mutableSiblings.indexOfFirst { it.id == toId }
+
+            if (fromIndex != -1 && toIndex != -1) {
+                val movedItem = mutableSiblings.removeAt(fromIndex)
+                mutableSiblings.add(toIndex, movedItem)
+                listsToUpdate = mutableSiblings.mapIndexed { index, list ->
+                    list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
+                }
+            } else {
+                return // Не вдалося знайти індекси, виходимо
+            }
+        }
+        // Сценарій 2: Елемент кинули на його прямого батька (робимо його першим сиблінгом)
+        else if (fromList.parentId == toList.id) {
+            val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
+            val mutableSiblings = siblings.toMutableList()
+            val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
+
+            if (fromIndex != -1) {
+                val movedItem = mutableSiblings.removeAt(fromIndex)
+                mutableSiblings.add(0, movedItem) // Вставляємо на першу позицію
+                listsToUpdate = mutableSiblings.mapIndexed { index, list ->
+                    list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
+                }
+            } else {
+                return // Не вдалося знайти індекс, виходимо
+            }
+        }
+        // Сценарій 3: Інші невалідні переміщення
+        else {
             viewModelScope.launch {
                 _uiEventChannel.send(GoalListUiEvent.ShowToast("Moving is only possible on the same level."))
             }
             return
         }
-        val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
-        val mutableSiblings = siblings.toMutableList()
-        val fromIndex = mutableSiblings.indexOf(fromList)
-        val toIndex = mutableSiblings.indexOf(toList)
-        if (fromIndex != -1 && toIndex != -1) {
-            mutableSiblings.add(toIndex, mutableSiblings.removeAt(fromIndex))
-        }
-        val listsToUpdate = mutableSiblings.mapIndexed { index, list ->
-            list.copy(
-                order = index.toLong(),
-                updatedAt = System.currentTimeMillis()
-            )
-        }
+
         viewModelScope.launch(Dispatchers.IO) {
             goalRepository.updateGoalLists(listsToUpdate)
         }
@@ -776,4 +807,102 @@ class GoalListViewModel @Inject constructor(
         _listChooserFilterText.value = ""
         _listChooserUserExpandedIds.value = emptySet()
     }
+
+
+    // У GoalListViewModel.kt
+// ВИДАЛІТЬ СТАРУ onListMovedToTop і ДОДАЙТЕ ЦЮ НОВУ ФУНКЦІЮ
+
+    fun onListMovedToNewParentOrTop(listToMove: GoalList, newParentId: String) {
+        // Захист від неможливих дій: переміщення списку всередину самого себе
+        if (listToMove.id == newParentId) return
+        if (isSearchActive.value) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            // Сценарій 1: Елемент просто сортується в межах свого поточного списку
+            // (його кинули в зону над його ж групою сиблінгів)
+            if (listToMove.parentId == newParentId) {
+                val allLists = _allListsFlat.first()
+                val siblings = allLists.filter { it.parentId == newParentId }.sortedBy { it.order }
+
+                if (siblings.firstOrNull()?.id == listToMove.id) return@launch // Вже перший
+
+                val mutableSiblings = siblings.toMutableList()
+                val fromIndex = mutableSiblings.indexOfFirst { it.id == listToMove.id }
+
+                if (fromIndex != -1) {
+                    val movedItem = mutableSiblings.removeAt(fromIndex)
+                    mutableSiblings.add(0, movedItem) // Ставимо на перше місце
+
+                    val listsToUpdate = mutableSiblings.mapIndexed { index, list ->
+                        list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
+                    }
+                    goalRepository.updateGoalLists(listsToUpdate)
+                }
+            }
+            // Сценарій 2: Елемент переміщується до нового батьківського списку
+            else {
+                // Створюємо оновлену копію списку з новим батьком.
+                // Репозиторій сам подбає про оновлення порядкових номерів (order).
+                val updatedList = listToMove.copy(
+                    parentId = newParentId,
+                    updatedAt = System.currentTimeMillis()
+                )
+                goalRepository.moveGoalList(updatedList, newParentId)
+            }
+        }
+    }
+
+    fun onListReorder(fromId: String, toId: String, position: DropPosition) {
+        if (fromId == toId) return
+        if (isSearchActive.value) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val allLists = _allListsFlat.first()
+            val fromList = allLists.find { it.id == fromId }
+            val toList = allLists.find { it.id == toId }
+
+            // Переконуємось, що ми переміщуємо елементи на одному рівні (сиблінгів)
+            if (fromList == null || toList == null || fromList.parentId != toList.parentId) {
+                // Якщо батьки різні, це може бути спроба перемістити в нову групу.
+                // Наразі ігноруємо, але сюди можна додати логіку ре-парентінгу в майбутньому.
+                return@launch
+            }
+
+            val parentId = fromList.parentId
+            val siblings = allLists.filter { it.parentId == parentId }.sortedBy { it.order }
+            val mutableSiblings = siblings.toMutableList()
+
+            val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
+            val toIndex = mutableSiblings.indexOfFirst { it.id == toId }
+
+            if (fromIndex == -1 || toIndex == -1) return@launch
+
+            val movedItem = mutableSiblings.removeAt(fromIndex)
+
+            // Розраховуємо правильний індекс для вставки
+            val insertionIndex = when {
+                // Якщо тягнемо вниз (fromIndex < toIndex)
+                fromIndex < toIndex -> {
+                    // Вставка ПЕРЕД ціллю: toIndex-1. Вставка ПІСЛЯ цілі: toIndex.
+                    if (position == DropPosition.BEFORE) toIndex - 1 else toIndex
+                }
+                // Якщо тягнемо вгору (fromIndex > toIndex)
+                else -> {
+                    // Вставка ПЕРЕД ціллю: toIndex. Вставка ПІСЛЯ цілі: toIndex+1.
+                    if (position == DropPosition.BEFORE) toIndex else toIndex + 1
+                }
+            }
+
+            // Переконуємось, що індекс в межах списку
+            val finalIndex = insertionIndex.coerceIn(0, mutableSiblings.size)
+            mutableSiblings.add(finalIndex, movedItem)
+
+            val listsToUpdate = mutableSiblings.mapIndexed { index, list ->
+                list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
+            }
+            goalRepository.updateGoalLists(listsToUpdate)
+        }
+    }
+
+
 }
