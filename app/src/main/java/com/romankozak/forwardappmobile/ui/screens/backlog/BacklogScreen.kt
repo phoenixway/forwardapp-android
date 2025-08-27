@@ -49,8 +49,8 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.ui.components.GoalInputBar
-import com.romankozak.forwardappmobile.ui.components.MultiSelectTopAppBar
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.GoalInputBar
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.MultiSelectTopAppBar
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*

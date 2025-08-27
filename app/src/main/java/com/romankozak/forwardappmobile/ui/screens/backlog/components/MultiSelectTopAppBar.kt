@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.components
+package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
