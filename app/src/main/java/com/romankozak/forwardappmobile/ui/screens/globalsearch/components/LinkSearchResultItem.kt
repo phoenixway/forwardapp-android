@@ -9,7 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Link // Make sure this import is present
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,12 +25,13 @@ fun LinkSearchResultItem(
     onClick: () -> Unit,
     onOpenInObsidian: () -> Unit,
     onGoToTargetList: () -> Unit,
+    onOpenUrl: () -> Unit, // ADDED: Handler for the "open URL" button
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick), // Main click shows item in context
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
@@ -40,7 +41,7 @@ fun LinkSearchResultItem(
             Icon(
                 imageVector = when (result.link.linkData.type) {
                     LinkType.URL -> Icons.Default.Language
-                    LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note   // MODIFIED: Changed to Icons.Default.Link
+                    LinkType.OBSIDIAN -> Icons.Default.Link
                     LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
                     else -> Icons.Default.Link
                 },
@@ -64,7 +65,6 @@ fun LinkSearchResultItem(
             }
             Spacer(Modifier.width(8.dp))
 
-            // MODIFIED: Action icons on the right
             when (result.link.linkData.type) {
                 LinkType.GOAL_LIST -> {
                     IconButton(onClick = onGoToTargetList) {
@@ -78,13 +78,23 @@ fun LinkSearchResultItem(
                 LinkType.OBSIDIAN -> {
                     IconButton(onClick = onOpenInObsidian) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            imageVector = Icons.AutoMirrored.Filled.Note,
                             contentDescription = "Відкрити в Obsidian",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                else -> { /* No action button for other types like URL */ }
+                // ADDED: Action button for URL links
+                LinkType.URL -> {
+                    IconButton(onClick = onOpenUrl) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = "Відкрити посилання",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                else -> { /* No action button for other types */ }
             }
         }
     }

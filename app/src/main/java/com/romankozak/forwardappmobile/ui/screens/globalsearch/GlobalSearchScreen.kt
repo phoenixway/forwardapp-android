@@ -108,18 +108,24 @@ fun GlobalSearchScreen(
                             LinkSearchResultItem(
                                 result = searchResult,
                                 onClick = {
-                                    // MODIFIED: Main click ALWAYS navigates to the item's location to highlight it.
                                     val route = "goal_detail_screen/${searchResult.listId}?itemIdToHighlight=${searchResult.listItemId}"
                                     Log.d("HighlightDebug", "[1. NAV] Navigating to item in context: $route")
                                     navController.navigate(route)
                                 },
                                 onGoToTargetList = {
-                                    // MODIFIED: Secondary action for GOAL_LIST links goes to the target list.
                                     val route = "goal_detail_screen/${linkData.target}"
                                     Log.d("HighlightDebug", "[1. NAV] Navigating to target list: $route")
                                     navController.navigate(route)
                                 },
                                 onOpenInObsidian = {
+                                    handleRelatedLinkClick(
+                                        link = linkData,
+                                        obsidianVaultName = obsidianVaultName,
+                                        context = context
+                                    )
+                                },
+                                // ADDED: Passing the handler for the new button
+                                onOpenUrl = {
                                     handleRelatedLinkClick(
                                         link = linkData,
                                         obsidianVaultName = obsidianVaultName,
