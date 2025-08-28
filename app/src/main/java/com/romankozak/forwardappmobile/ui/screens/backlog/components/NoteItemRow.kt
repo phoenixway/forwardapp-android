@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/NoteItemRow.kt
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/NoteItemRow.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.animation.animateColorAsState
@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,15 +29,20 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 fun NoteItemRow(
     noteContent: ListItemContent.NoteItem,
     isSelected: Boolean,
+    isHighlighted: Boolean, // ADDED: For consistency with other items
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier,
+    endAction: @Composable () -> Unit = {}, // MODIFIED: Replaced dragHandleModifier
     maxLines: Int = 3,
 ) {
+    // MODIFIED: Background color now supports highlighting
     val background by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surface,
+        targetValue = when {
+            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+            isSelected -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.surface
+        },
         animationSpec = spring(),
         label = "note_background_color"
     )
@@ -100,36 +104,27 @@ fun NoteItemRow(
                     val hasTitle = !note.title.isNullOrBlank()
                     val hasContent = note.content.isNotBlank()
 
-                    // --- ВИПРАВЛЕНО: Відображати заголовок, тільки якщо він існує ---
                     if (hasTitle) {
-                        val goalTextStyle = MaterialTheme.typography.bodySmall.copy(
-                            lineHeight = 16.sp,
-                            letterSpacing = 0.1.sp,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-
                         Text(
-                            text = note.title!!, // Безпечно, оскільки hasTitle є true
-                            style = goalTextStyle.merge(MaterialTheme.typography.bodyLarge),
+                            text = note.title!!,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            ),
                             color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    // --- ВИПРАВЛЕНО: Додавати відступ тільки якщо є і заголовок, і контент ---
                     if (hasTitle && hasContent) {
                         Spacer(modifier = Modifier.height(2.dp))
                     }
 
-                    // --- ВИПРАВЛЕНО: Відображати контент, тільки якщо він існує ---
                     if (hasContent) {
                         Text(
                             text = note.content.trim(),
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                lineHeight = 16.sp,
-                                letterSpacing = 0.1.sp,
-                                fontSize = 12.sp
-                            ),
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                             maxLines = if (isSelected) Int.MAX_VALUE else maxLines,
                             overflow = TextOverflow.Ellipsis,
@@ -138,33 +133,8 @@ fun NoteItemRow(
                 }
             }
 
-            Surface(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(end = 4.dp),
-                color = Color.Transparent
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        modifier = Modifier.semantics { contentDescription = "Перетягнути нотатку" }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DragHandle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = dragHandleModifier
-                                .size(24.dp)
-                                .padding(4.dp)
-                                .pointerInput(Unit) { detectTapGestures { } }
-                        )
-                    }
-                }
-            }
+            // MODIFIED: Replaced the hardcoded drag handle with the flexible endAction slot
+            endAction()
         }
     }
 }

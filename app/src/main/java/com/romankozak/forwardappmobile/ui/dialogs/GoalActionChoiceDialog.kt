@@ -2,80 +2,88 @@ package com.romankozak.forwardappmobile.ui.dialogs
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.MoveDown
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 
 @Composable
-fun ContextMenuDialog(
-    list: GoalList,
-    onDismissRequest: () -> Unit,
-    onMoveRequest: (GoalList) -> Unit,
-    onAddSublistRequest: (GoalList) -> Unit,
-    onDeleteRequest: (GoalList) -> Unit,
-    onEditRequest: (GoalList) -> Unit // ✨ Перейменовано
+fun GoalActionChoiceDialog(
+    itemContent: ListItemContent,
+    onDismiss: () -> Unit,
+    onActionSelected: (GoalActionType) -> Unit,
 ) {
-    Dialog(onDismissRequest = onDismissRequest) {
+    Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier.width(300.dp),
-            shape = MaterialTheme.shapes.large
+            shape = MaterialTheme.shapes.large,
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = list.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+            Column {
+                // Ця дія доступна для всіх типів ListItem
+                DialogActionItem(
+                    text = "Перемістити елемент",
+                    icon = Icons.Default.MoveDown,
+                    onClick = {
+                        onActionSelected(GoalActionType.MoveInstance)
+                        onDismiss()
+                    },
                 )
-                Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Перемістити список",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onMoveRequest(list) }
-                        .padding(vertical = 12.dp)
-                )
-                HorizontalDivider()
-
-                // ✨ Змінено текст та виклик
-                Text(
-                    text = "Редагувати",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onEditRequest(list) }
-                        .padding(vertical = 12.dp)
-                )
-                HorizontalDivider()
-
-                Text(
-                    text = "Додати підсписок",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onAddSublistRequest(list) }
-                        .padding(vertical = 12.dp)
-                )
-                HorizontalDivider()
-
-                Text(
-                    text = "Видалити список",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onDeleteRequest(list) }
-                        .padding(vertical = 12.dp)
-                )
+                // Ці дії доступні тільки для цілей (GoalItem)
+                if (itemContent is ListItemContent.GoalItem) {
+                    HorizontalDivider()
+                    DialogActionItem(
+                        text = "Створити посилання (ярлик)",
+                        icon = Icons.Default.Link,
+                        onClick = {
+                            onActionSelected(GoalActionType.CreateInstance)
+                            onDismiss()
+                        },
+                    )
+                    HorizontalDivider()
+                    DialogActionItem(
+                        text = "Клонувати (повна копія)",
+                        icon = Icons.Default.ContentCopy,
+                        onClick = {
+                            onActionSelected(GoalActionType.CopyGoal)
+                            onDismiss()
+                        },
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun DialogActionItem(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(text = text, style = MaterialTheme.typography.bodyLarge)
     }
 }

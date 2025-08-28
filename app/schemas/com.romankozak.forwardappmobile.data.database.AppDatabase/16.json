@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 16,
-    "identityHash": "0b3f904614a1221bbad9717be3653092",
+    "identityHash": "27d36548b7c83f21062f5be60fac2546",
     "entities": [
       {
         "tableName": "goals",
@@ -173,7 +173,7 @@
       },
       {
         "tableName": "goal_lists",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -227,6 +227,13 @@
           {
             "fieldPath": "order",
             "columnName": "goal_order",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "isAttachmentsExpanded",
+            "columnName": "is_attachments_expanded",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
@@ -463,7 +470,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0b3f904614a1221bbad9717be3653092')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '27d36548b7c83f21062f5be60fac2546')"
     ]
   }
 }

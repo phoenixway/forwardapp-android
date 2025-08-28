@@ -18,9 +18,9 @@ import com.romankozak.forwardappmobile.data.database.models.* // Імпорту�
         ListItem::class,
         ActivityRecord::class,
         RecentListEntry::class,
-        LinkItemEntity::class // ✨ 1. ДОДАНО НОВУ СУТНІСТЬ
+        LinkItemEntity::class
     ],
-    version = 16, // ✨ 2. ЗБІЛЬШЕНО ВЕРСІЮ ДО 16
+    version = 17, // MODIFIED: Version incremented to 17
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -58,6 +58,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_13_14,
                         MIGRATION_14_15,
                         MIGRATION_15_16,
+                        MIGRATION_16_17, // MODIFIED: Added the new migration
                     )
                     .build()
                 INSTANCE = instance

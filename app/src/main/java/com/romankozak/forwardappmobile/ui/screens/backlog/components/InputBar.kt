@@ -52,6 +52,8 @@ fun GoalInputBar(
     onAddListLinkClick: () -> Unit,
     onShowAddWebLinkDialog: () -> Unit,
     onShowAddObsidianLinkDialog: () -> Unit,
+    onAddListShortcutClick: () -> Unit, // ADDED
+
 ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
@@ -163,7 +165,7 @@ fun GoalInputBar(
                                         }
                                         dragOffset = 0f
                                     }
-                                ) { _, dragAmount -> dragOffset += dragAmount }
+                                ) { _, dragAmount -> dragAmount }
                             }
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -203,11 +205,11 @@ fun GoalInputBar(
                 DropdownMenu(
                     expanded = showModeMenu,
                     onDismissRequest = { showModeMenu = false },
-                    modifier = Modifier.width(240.dp)
+                    modifier = Modifier.width(260.dp)
                 ) {
-                    // Search
+                    // Group 1: Search
                     DropdownMenuItem(
-                        text = { Text("Search in List", style = MaterialTheme.typography.bodyMedium) },
+                        text = { Text(stringResource(R.string.menu_search_in_list), style = MaterialTheme.typography.bodyMedium) },
                         leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             onInputModeSelected(InputMode.SearchInList)
@@ -215,7 +217,7 @@ fun GoalInputBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Search Everywhere", style = MaterialTheme.typography.bodyMedium) },
+                        text = { Text(stringResource(R.string.menu_search_everywhere), style = MaterialTheme.typography.bodyMedium) },
                         leadingIcon = { Icon(Icons.Outlined.TravelExplore, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             onInputModeSelected(InputMode.SearchGlobal)
@@ -225,63 +227,53 @@ fun GoalInputBar(
 
                     Divider()
 
-                    // Links
+                    // Group 2: Add Attachments
                     DropdownMenuItem(
-                        text = { Text("Add List Link") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Link,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
+                        text = { Text(stringResource(R.string.menu_add_list_link)) },
+                        leadingIcon = { Icon(Icons.Outlined.Link, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showModeMenu = false
                             onAddListLinkClick()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add Web Link") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Public,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
+                        text = { Text(stringResource(R.string.menu_add_web_link)) },
+                        leadingIcon = { Icon(Icons.Outlined.Public, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showModeMenu = false
                             onShowAddWebLinkDialog()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add Obsidian Link") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.DataObject,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
+                        text = { Text(stringResource(R.string.menu_add_obsidian_link)) },
+                        leadingIcon = { Icon(Icons.Outlined.DataObject, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showModeMenu = false
                             onShowAddObsidianLinkDialog()
                         }
                     )
-
-                    Divider()
-
-                    // Add
                     DropdownMenuItem(
-                        text = { Text("Add Note", style = MaterialTheme.typography.bodyMedium) },
+                        text = { Text(stringResource(R.string.menu_add_note)) },
                         leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Notes, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             onInputModeSelected(InputMode.AddNote)
                             showModeMenu = false
                         }
                     )
+
+                    Divider()
+
+                    // Group 3: Add Backlog Items
                     DropdownMenuItem(
-                        text = { Text("Add Goal", style = MaterialTheme.typography.bodyMedium) },
+                        text = { Text(stringResource(R.string.menu_add_list_shortcut)) },
+                        leadingIcon = { Icon(Icons.Outlined.PlaylistAdd, null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            onAddListShortcutClick()
+                            showModeMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.menu_add_goal_component), style = MaterialTheme.typography.bodyMedium) },
                         leadingIcon = { Icon(Icons.Outlined.Add, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             onInputModeSelected(InputMode.AddGoal)
@@ -290,9 +282,6 @@ fun GoalInputBar(
                     )
                 }
             }
-
-
-
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -330,7 +319,7 @@ fun GoalInputBar(
                 )
             }
             AnimatedVisibility(
-                visible = inputValue.text.isNotBlank(),
+                visible = inputValue.text.isNotBlank() && (inputMode == InputMode.AddGoal || inputMode == InputMode.AddNote),
                 enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
                 exit = fadeOut() + scaleOut(targetScale = 0.8f)
             ) {
@@ -339,7 +328,7 @@ fun GoalInputBar(
                     modifier = Modifier.size(44.dp),
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = contentColor.copy(alpha = 0.8f),
+                        containerColor = accentColor,
                         contentColor = containerColor
                     )
                 ) {

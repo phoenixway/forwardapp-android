@@ -84,4 +84,37 @@
     <string name="dialog_placeholder_name">Назва</string>
     <string name="dialog_placeholder_address">Адреса</string>
 
+    <string name="attachments_header">Додатки</string>
+    <string name="delete_attachment_description">Видалити додаток</string>
+    <string name="add_attachment_description">Додати новий додаток</string>
+    <string name="add_attachment_button">Додати додаток</string>
+    <string name="attachment_type_note">Нотатку</string>
+    <string name="attachment_type_web_link">Веб-посилання</string>
+    <string name="attachment_type_obsidian">Посилання Obsidian</string>
+    <string name="attachment_type_list_link">Посилання на список</string>
+
+    <string name="no_attachments_message">Додатки відсутні.\nНатисніть +, щоб додати перший.</string>
+
+    <string name="goal_item_semantics">Goal: %1$s</string>
+    <string name="sublist_item_semantics">Another backlog as backlog item: %1$s</string>
+    <string name="sublist_item_icon_description">Іконка під-списку</string>
+
+
+    <string name="menu_search_in_list">Пошук в списку</string>
+    <string name="menu_search_everywhere">Шукати всюди</string>
+    <string name="menu_add_list_link">Attach link to backlog</string>
+    <string name="menu_add_web_link">Add web link</string>
+    <string name="menu_add_obsidian_link">Add Obsidian link</string>
+    <string name="menu_add_note">Add note</string>
+    <string name="menu_add_list_shortcut">Add link to another backlog</string>
+    <string name="menu_add_goal_component">Додати ціль</string>
+
+
+    <string name="note_content_description">Нотатки..</string>
+    <string name="note_without_title">Note</string>
+    <string name="link_content_description">Нотатки..</string>
+
+
+
+
 </resources>

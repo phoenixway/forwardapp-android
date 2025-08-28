@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaldetail/BacklogViewModel.kt ---
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
 import android.util.Log
@@ -11,6 +10,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
+import com.romankozak.forwardappmobile.ui.components.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +25,7 @@ import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 
+// ... (sealed classes UiEvent, GoalActionDialogState and enums are unchanged)
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
@@ -39,7 +40,7 @@ sealed class GoalActionDialogState {
     data class AwaitingActionChoice(val itemContent: ListItemContent) : GoalActionDialogState()
 }
 
-enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, MoveToTop, AddLinkToList }
+enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
 
 data class UiState(
     val localSearchQuery: String = "",
@@ -52,9 +53,9 @@ data class UiState(
     val swipedItemId: String? = null,
     val showAddWebLinkDialog: Boolean = false,
     val showAddObsidianLinkDialog: Boolean = false,
-    val itemToHighlight: String? = null, // ADDED: For generic item highlighting
-
+    val itemToHighlight: String? = null,
 )
+
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -71,8 +72,7 @@ class GoalDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(
         UiState(
             goalToHighlight = savedStateHandle.get<String>("goalId"),
-            itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"), // ADDED
-
+            itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"),
         )
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -81,16 +81,31 @@ class GoalDetailViewModel @Inject constructor(
     private val _uiEventFlow = Channel<UiEvent>()
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
+    // НОВИЙ ПІДХІД: `_listContent` є приватним станом для миттєвих оновлень UI
+    private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
+
+    // Публічні потоки, які UI буде використовувати. Вони базуються на `_listContent`.
+    val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
+
+    val draggableItems: StateFlow<List<ListItemContent>> = _listContent.map { content ->
+        content.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val attachmentItems: StateFlow<List<ListItemContent>> = _listContent.map { content ->
+        content.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
     val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
     val goalList: StateFlow<GoalList?> = listIdFlow.flatMapLatest { id ->
         if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val tagToContextNameMap: StateFlow<Map<String, String>> = contextHandler.tagToContextNameMap
+    val tagToContextNameMap: StateFlow<Map<String, String>> = contextHandler.tagToContextNameMap
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    private val currentListContextMarker: StateFlow<String?> = combine(
+    val currentListContextMarker: StateFlow<String?> = combine(
         goalList,
         tagToContextNameMap
     ) { list, tagMap ->
@@ -109,7 +124,7 @@ class GoalDetailViewModel @Inject constructor(
         marker?.let { emojiMap[it] }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val rawListContent: Flow<List<ListItemContent>> =
+    private val databaseContentStream: Flow<List<ListItemContent>> =
         combine(
             listIdFlow,
             _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
@@ -137,32 +152,7 @@ class GoalDetailViewModel @Inject constructor(
                 }
             }
 
-    private val allListsMap: Flow<Map<String, String>> = goalRepository.getAllGoalListsFlow()
-        .map { lists -> lists.associate { it.id to it.name } }
-        .flowOn(Dispatchers.Default)
-
-    val listContent: StateFlow<List<ListItemContent>> = combine(
-        rawListContent,
-        allListsMap
-    ) { content, listMap ->
-        content.map { listItem ->
-            if (listItem is ListItemContent.GoalItem) {
-                val enrichedLinks = listItem.goal.relatedLinks?.map { link ->
-                    if (link.type == LinkType.GOAL_LIST) {
-                        link.copy(displayName = listMap[link.target] ?: link.target)
-                    } else {
-                        link
-                    }
-                }
-                listItem.copy(
-                    goal = listItem.goal.copy(relatedLinks = enrichedLinks)
-                )
-            } else {
-                listItem
-            }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
+    // ... (other properties)
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedItemIds.isNotEmpty() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -180,16 +170,21 @@ class GoalDetailViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private var recentlyDeletedItems: List<ListItemContent>? = null
-
     private var pendingAction: GoalActionType? = null
     private var pendingSourceItemIds: Set<String> = emptySet()
     private var pendingSourceGoalIds: Set<String> = emptySet()
 
     init {
         val goalId = savedStateHandle.get<String>("goalId")
-        val itemId = savedStateHandle.get<String>("itemIdToHighlight") // ADDED
-        //Log.d("HighlightDebug", "[КРОК 2] ViewModel створено. goalId: $goalId, itemId: $itemId") // MODIFIED
+        val itemId = savedStateHandle.get<String>("itemIdToHighlight")
         Log.d("HighlightDebug", "[2. VM_INIT] ViewModel created. Received goalId: '$goalId', itemIdToHighlight: '$itemId'")
+
+        // НОВИЙ ПІДХІД: Слухаємо зміни з бази даних і оновлюємо наш локальний стан `_listContent`
+        viewModelScope.launch {
+            databaseContentStream.collect { dbContent ->
+                _listContent.value = dbContent
+            }
+        }
 
         viewModelScope.launch {
             listIdFlow.filter { it.isNotEmpty() }.collect { id ->
@@ -201,11 +196,41 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    // ... (other functions from onHighlightShown to onDismissGoalActionDialogs are unchanged)
     fun onHighlightShown() {
-        Log.d("HighlightDebug", "[КРОК 7] View викликав onHighlightShown. Очищуємо стани підсвічування.")
-        // MODIFIED: Clear both highlighting states
         _uiState.update { it.copy(goalToHighlight = null, itemToHighlight = null) }
     }
+
+    fun toggleAttachmentsVisibility() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentList = goalList.value ?: return@launch
+            val newState = !currentList.isAttachmentsExpanded
+            goalRepository.updateGoalList(currentList.copy(isAttachmentsExpanded = newState))
+        }
+    }
+
+    fun onAddNewNoteRequested() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val newNote = Note(
+                id = UUID.randomUUID().toString(),
+                title = "",
+                content = "",
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            goalRepository.addNoteToList(newNote, listIdFlow.value)
+            _uiEventFlow.send(UiEvent.Navigate("note_edit_screen/${listIdFlow.value}/${newNote.id}"))
+        }
+    }
+
+    fun onSwipeStateReset(itemId: String) {
+        _uiState.update {
+            val newTriggers = it.resetTriggers.toMutableMap()
+            newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
+            it.copy(resetTriggers = newTriggers)
+        }
+    }
+
     fun onListChooserResult(targetListId: String) {
         val actionType = pendingAction ?: return
         val itemIds = pendingSourceItemIds.toList()
@@ -226,7 +251,10 @@ class GoalDetailViewModel @Inject constructor(
                     val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
                     _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                 }
-                else -> {}
+                GoalActionType.ADD_LIST_SHORTCUT -> {
+                    val newItemId = goalRepository.addListLinkToList(targetListId, listIdFlow.value)
+                    _uiState.update { it.copy(newlyAddedItemId = newItemId) }
+                }
             }
         }
 
@@ -235,7 +263,6 @@ class GoalDetailViewModel @Inject constructor(
         pendingSourceGoalIds = emptySet()
         clearSelection()
     }
-
     private fun navigateToListChooser(title: String) {
         viewModelScope.launch {
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
@@ -276,7 +303,7 @@ class GoalDetailViewModel @Inject constructor(
     fun onBulkActionRequest(actionType: GoalActionType) {
         val selectedIds = _uiState.value.selectedItemIds
         if (selectedIds.isNotEmpty()) {
-            val sourceGoalIds = listContent.value
+            val sourceGoalIds = _listContent.value
                 .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
                 .map { it.item.entityId }
                 .toSet()
@@ -301,6 +328,13 @@ class GoalDetailViewModel @Inject constructor(
         pendingSourceItemIds = emptySet()
         pendingSourceGoalIds = emptySet()
         navigateToListChooser("Додати посилання на список...")
+    }
+
+    fun onAddListShortcutRequest() {
+        pendingAction = GoalActionType.ADD_LIST_SHORTCUT
+        pendingSourceItemIds = emptySet()
+        pendingSourceGoalIds = emptySet()
+        navigateToListChooser("Додати ярлик на список...")
     }
 
     fun onAddWebLinkConfirm(url: String, name: String?) {
@@ -355,14 +389,14 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun submitInput() {
-        val textToSubmit = _uiState.value.inputValue.text.trim()
+        val textToSubmit = uiState.value.inputValue.text.trim()
         if (textToSubmit.isBlank()) return
 
         val currentListId = listIdFlow.value
         if (currentListId.isBlank()) return
 
         viewModelScope.launch(Dispatchers.IO) {
-            val inputMode = _uiState.value.inputMode
+            val inputMode = uiState.value.inputMode
 
             val newItemId: String? = when (inputMode) {
                 InputMode.AddGoal -> {
@@ -392,27 +426,14 @@ class GoalDetailViewModel @Inject constructor(
 
                             if (baseUrl.isNotBlank() && fastModel.isNotBlank()) {
                                 val result = ollamaService.generateTitle(baseUrl, fastModel, textToSubmit)
-
-                                result.onSuccess { generatedTitle ->
-                                    val updatedNote = initialNote.copy(
-                                        title = generatedTitle,
-                                        updatedAt = System.currentTimeMillis()
-                                    )
-                                    goalRepository.updateNote(updatedNote)
-                                    withContext(Dispatchers.Main) {
-                                        _refreshTrigger.value++
-                                    }
-                                }.onFailure {
-                                    val fallbackTitle = textToSubmit.split(Regex("\\s+")).take(5).joinToString(" ") + "..."
-                                    val updatedNote = initialNote.copy(
-                                        title = fallbackTitle,
-                                        updatedAt = System.currentTimeMillis()
-                                    )
-                                    goalRepository.updateNote(updatedNote)
-                                    withContext(Dispatchers.Main) {
-                                        _refreshTrigger.value++
-                                    }
+                                val finalTitle = result.getOrElse {
+                                    textToSubmit.split(Regex("\\s+")).take(5).joinToString(" ") + "..."
                                 }
+                                val updatedNote = initialNote.copy(
+                                    title = finalTitle,
+                                    updatedAt = System.currentTimeMillis()
+                                )
+                                goalRepository.updateNote(updatedNote)
                             } else {
                                 val fallbackTitle = textToSubmit.split(Regex("\\s+")).take(5).joinToString(" ") + "..."
                                 val updatedNote = initialNote.copy(
@@ -420,12 +441,8 @@ class GoalDetailViewModel @Inject constructor(
                                     updatedAt = System.currentTimeMillis()
                                 )
                                 goalRepository.updateNote(updatedNote)
-                                withContext(Dispatchers.Main) {
-                                    _refreshTrigger.value++
-                                }
                             }
                         }
-
                         generatedItemId
                     } else {
                         val newNote = Note(
@@ -452,8 +469,7 @@ class GoalDetailViewModel @Inject constructor(
                         newlyAddedItemId = newItemId
                     )
                 }
-
-                if (inputMode != InputMode.AddNote || !(_uiState.value.inputValue.text.length > 60 || _uiState.value.inputValue.text.split(Regex("\\s+")).size > 5)) {
+                if (inputMode != InputMode.AddNote || !(uiState.value.inputValue.text.length > 60 || uiState.value.inputValue.text.split(Regex("\\s+")).size > 5)) {
                     _refreshTrigger.value++
                 }
             }
@@ -470,18 +486,35 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    // ПОВНІСТЮ ПЕРЕПИСАНА ФУНКЦІЯ для оптимістичного оновлення
     fun moveItem(fromIndex: Int, toIndex: Int) {
-        val currentItems = listContent.value.toMutableList()
-        if (fromIndex !in currentItems.indices || toIndex !in currentItems.indices) return
+        val currentDraggable = draggableItems.value.toMutableList()
 
-        val itemToMove = currentItems.removeAt(fromIndex)
-        currentItems.add(toIndex, itemToMove)
+        if (fromIndex !in currentDraggable.indices || toIndex !in currentDraggable.indices) {
+            return
+        }
 
+        // 1. Виконуємо переміщення локально
+        val itemToMove = currentDraggable.removeAt(fromIndex)
+        currentDraggable.add(toIndex, itemToMove)
+
+        val reorderedFullList = attachmentItems.value + currentDraggable
+
+        // 2. Миттєво оновлюємо стан UI (Оптимістичне оновлення)
+        _listContent.value = reorderedFullList
+
+        // 3. У фоні зберігаємо зміни в базу даних
         viewModelScope.launch(Dispatchers.IO) {
-            val updatedItems = currentItems.mapIndexed { index, content ->
-                content.item.copy(order = index.toLong())
+            try {
+                val updatedItems = reorderedFullList.mapIndexed { index, content ->
+                    content.item.copy(order = index.toLong())
+                }
+                goalRepository.updateListItemsOrder(updatedItems)
+            } catch (e: Exception) {
+                Log.e("GoalDetailViewModel", "Error updating item order", e)
+                // Опціонально: якщо збереження не вдалося, можна повернути стан назад
+                // _listContent.value = originalList
             }
-            goalRepository.updateListItemsOrder(updatedItems)
         }
     }
 
@@ -508,7 +541,10 @@ class GoalDetailViewModel @Inject constructor(
 
     fun selectAllItems() {
         _uiState.update {
-            it.copy(selectedItemIds = listContent.value.map { content -> content.item.id }.toSet())
+            val itemsToSelect = draggableItems.value
+                .map { it.item.id }
+                .toSet()
+            it.copy(selectedItemIds = itemsToSelect)
         }
     }
 
@@ -518,19 +554,20 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val idsToDelete = _uiState.value.selectedItemIds
             if (idsToDelete.isEmpty()) return@launch
-            recentlyDeletedItems = listContent.value.filter { it.item.id in idsToDelete }
+            recentlyDeletedItems = _listContent.value.filter { it.item.id in idsToDelete }
             goalRepository.deleteListItems(idsToDelete.toList())
             clearSelection()
             _uiEventFlow.send(UiEvent.ShowSnackbar("Видалено елементів: ${idsToDelete.size}", "Скасувати"))
         }
     }
 
+    // ... (rest of the file is unchanged)
     fun toggleCompletionForSelectedGoals() {
         viewModelScope.launch {
             val selectedIds = _uiState.value.selectedItemIds
             if (selectedIds.isEmpty()) return@launch
 
-            val goalsToUpdate = listContent.value
+            val goalsToUpdate = _listContent.value
                 .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
                 .map { (it as ListItemContent.GoalItem).goal }
                 .distinctBy { it.id }
@@ -624,6 +661,13 @@ class GoalDetailViewModel @Inject constructor(
     fun forceRefresh() {
         viewModelScope.launch {
             _refreshTrigger.value++
+        }
+    }
+
+    fun onExistingItemSelected(goalId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Re-use the existing repository function to create a link to the goal
+            goalRepository.createGoalLinks(listOf(goalId), listIdFlow.value)
         }
     }
 }

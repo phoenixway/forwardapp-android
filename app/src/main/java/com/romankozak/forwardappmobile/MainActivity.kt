@@ -16,9 +16,9 @@ class MainActivity : ComponentActivity() {
     private val syncDataViewModel: SyncDataViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        //enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        //WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             ForwardAppMobileTheme {

@@ -21,11 +21,9 @@ interface GoalListDao {
     @Query("SELECT * FROM goal_lists")
     suspend fun getAll(): List<GoalList>
 
-    // ✨ ВИПРАВЛЕНО: прибрано зайве `.Companion`
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLists(lists: List<GoalList>)
 
-    // ✨ ВИПРАВЛЕНО: прибрано зайве `.Companion`
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(goalList: GoalList)
 
@@ -64,8 +62,6 @@ interface GoalListDao {
 
     @Query("SELECT id FROM goal_lists WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getListIdsByTag(tag: String): List<String>
-
-    // Додайте цей метод до вашого інтерфейсу GoalListDao
 
     @Transaction
     @Query("""
