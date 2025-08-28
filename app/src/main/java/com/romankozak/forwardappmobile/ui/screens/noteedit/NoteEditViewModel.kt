@@ -1,6 +1,7 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/noteedit/NoteEditViewModel.kt
 package com.romankozak.forwardappmobile.ui.screens.noteedit
 
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -107,11 +108,23 @@ class NoteEditViewModel @Inject constructor(
         }
     }
 
+
     fun onSave() {
-        if (!_uiState.value.isSaveButtonEnabled) return // Додаткова перевірка
+        val state = _uiState.value
+        val TAG = "SaveDebug" // Створимо тег для логів
+
+        Log.d(TAG, "onSave() called.")
+        Log.d(TAG, "Is button enabled in state? ${state.isSaveButtonEnabled}")
+
+        if (!state.isSaveButtonEnabled) {
+            Log.d(TAG, "Save aborted: Button is not enabled.")
+            return
+        }
 
         viewModelScope.launch {
-            val state = _uiState.value
+            Log.d(TAG, "Coroutine launched.")
+            Log.d(TAG, "Is new note? ${state.isNewNote}")
+            Log.d(TAG, "Initial ListId: $initialListId")
 
             val noteToSave = currentNote?.copy(
                 title = state.title.text.ifBlank { null },
@@ -126,13 +139,21 @@ class NoteEditViewModel @Inject constructor(
             )
 
             if (state.isNewNote) {
-                initialListId ?: return@launch
+                if (initialListId == null) {
+                    // ЦЕ НАЙБІЛЬШ ІМОВІРНА ПРИЧИНА ДЛЯ НОВИХ НОТАТОК
+                    Log.e(TAG, "Save aborted for new note: initialListId is NULL!")
+                    return@launch
+                }
+                Log.d(TAG, "Saving new note to list $initialListId...")
                 goalRepository.addNoteToList(noteToSave, initialListId)
             } else {
+                Log.d(TAG, "Updating existing note...")
                 goalRepository.updateNote(noteToSave)
             }
 
+            Log.d(TAG, "Sending NavigateBack event...")
             _events.send(NoteEditEvent.NavigateBack("Збережено"))
         }
     }
+
 }

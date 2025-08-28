@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogScreen.kt
-
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
@@ -18,6 +16,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -25,17 +24,23 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -49,9 +54,7 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.GoalInputBar
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.MultiSelectTopAppBar
-import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
+import com.romankozak.forwardappmobile.ui.components.*
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddLinkDialog
@@ -69,16 +72,18 @@ fun GoalDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+
+    // ОНОВЛЕНО: Отримуємо готові, відфільтровані списки з ViewModel
+    val draggableItems by viewModel.draggableItems.collectAsStateWithLifecycle()
+    val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
+
     val list by viewModel.goalList.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val showRecentListsSheet by viewModel.showRecentListsSheet.collectAsStateWithLifecycle()
     val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
-    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val localContext = LocalContext.current
-    val emojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
@@ -94,6 +99,10 @@ fun GoalDetailScreen(
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            val pickedGoalId = resultViewModel.consumeResult<String>("picked_goal_id")
+            if (pickedGoalId != null) {
+                viewModel.onExistingItemSelected(pickedGoalId)
+            }
             val selectedListId = resultViewModel.consumeResult<String>("selectedListId")
             if (selectedListId != null) {
                 viewModel.onListChooserResult(selectedListId)
@@ -122,7 +131,6 @@ fun GoalDetailScreen(
                     }
                 }
                 is UiEvent.ScrollTo -> {
-                    Log.d("HighlightDebug", "[КРОК 5.1] View отримав команду ScrollTo(index=${event.index})")
                     listState.animateScrollToItem(event.index)
                 }
                 is UiEvent.NavigateBackAndReveal -> {
@@ -133,49 +141,38 @@ fun GoalDetailScreen(
                 is UiEvent.HandleLinkClick -> {
                     handleRelatedLinkClick(event.link, obsidianVaultName, localContext, navController)
                 }
-                else -> {}
+                is UiEvent.ResetSwipeState -> {
+                    viewModel.onSwipeStateReset(event.itemId)
+                }
             }
         }
     }
 
-    // MODIFIED: Corrected highlighting logic
-    LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, listContent) {
+    LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, draggableItems, attachmentItems) {
         val goalId = uiState.goalToHighlight
         val itemId = uiState.itemToHighlight
-
-        // 1. Exit early if there's nothing to highlight or if the list content isn't ready yet.
-        if ((goalId == null && itemId == null) || listContent.isEmpty()) {
+        val fullList = attachmentItems + draggableItems // Відтворюємо повний список для пошуку індекса
+        if ((goalId == null && itemId == null) || fullList.isEmpty()) {
             return@LaunchedEffect
         }
-
-        Log.d("HighlightDebug", "[КРОК 3] LaunchedEffect спрацював. goalId: $goalId, itemId: $itemId, listContent.size: ${listContent.size}")
-
-        // 2. Find the index only when content is available.
         val index = when {
-            goalId != null -> listContent.indexOfFirst { (it is ListItemContent.GoalItem) && it.goal.id == goalId }
-            itemId != null -> listContent.indexOfFirst { it.item.id == itemId }
+            goalId != null -> fullList.indexOfFirst { (it is ListItemContent.GoalItem) && it.goal.id == goalId }
+            itemId != null -> fullList.indexOfFirst { it.item.id == itemId }
             else -> -1
         }
-
-        Log.d("HighlightDebug", "[КРОК 4] Шукаємо індекс. Результат: $index")
-
         if (index != -1) {
-            Log.d("HighlightDebug", "[КРОК 5] Елемент знайдено. Прокручуємо до індексу $index і чекаємо...")
             listState.animateScrollToItem(index)
-            delay(2500L) // Delay for the user to see the highlight
+            delay(2500L)
         } else {
-            Log.d("HighlightDebug", "[ПОМИЛКА] Елемент для підсвічування НЕ ЗНАЙДЕНО у списку.")
-            delay(500L) // Short delay before clearing state if not found
+            delay(500L)
         }
-
-        // 3. Clear the highlight state only AFTER attempting to scroll/highlight.
-        Log.d("HighlightDebug", "[КРОК 6] Затримка закінчилась. Викликаємо ViewModel для очищення стану.")
         viewModel.onHighlightShown()
     }
 
-    LaunchedEffect(listContent) {
+    LaunchedEffect(draggableItems, attachmentItems) {
         val newItemId = uiState.newlyAddedItemId
-        if ((newItemId != null) && (listContent.firstOrNull()?.item?.id == newItemId)) {
+        val fullList = attachmentItems + draggableItems // Відтворюємо повний список
+        if ((newItemId != null) && (fullList.firstOrNull()?.item?.id == newItemId)) {
             coroutineScope.launch { listState.animateScrollToItem(0) }
             viewModel.onScrolledToNewItem()
         }
@@ -189,19 +186,22 @@ fun GoalDetailScreen(
         lazyListState = listState,
         scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
     ) { from, to ->
-        viewModel.moveItem(from.index, to.index)
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        try {
+            // Now indices correspond directly to draggableItems
+            viewModel.moveItem(from.index, to.index)
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        } catch (e: Exception) {
+            Log.e("DragAndDrop", "Error during drag operation", e)
+        }
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(),
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             if (isSelectionModeActive) {
                 MultiSelectTopAppBar(
                     selectedCount = uiState.selectedItemIds.size,
-                    areAllSelected = listContent.isNotEmpty() && (uiState.selectedItemIds.size == listContent.size),
+                    areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
                     onClearSelection = { viewModel.clearSelection() },
                     onSelectAll = { viewModel.selectAllItems() },
                     onDelete = { viewModel.deleteSelectedItems() },
@@ -217,6 +217,15 @@ fun GoalDetailScreen(
                         }
                     },
                     actions = {
+                        list?.let {
+                            IconButton(onClick = { viewModel.toggleAttachmentsVisibility() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Attachment,
+                                    contentDescription = "Додатки",
+                                    tint = if (it.isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         IconButton(onClick = { viewModel.onRevealInExplorer(listId) }) {
                             Icon(
                                 imageVector = Icons.Default.LocationSearching,
@@ -229,7 +238,11 @@ fun GoalDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            Column(modifier = Modifier.navigationBarsPadding()) {
+            Column(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding()
+            ) {
                 AnimatedVisibility(
                     visible = !isSelectionModeActive,
                     enter = slideInVertically { it } + fadeIn(),
@@ -245,6 +258,7 @@ fun GoalDetailScreen(
                         onAddListLinkClick = { viewModel.onAddListLinkRequest() },
                         onShowAddWebLinkDialog = { viewModel.onShowAddWebLinkDialog() },
                         onShowAddObsidianLinkDialog = { viewModel.onShowAddObsidianLinkDialog() },
+                        onAddListShortcutClick = { viewModel.onAddListShortcutRequest() },
                     )
                 }
             }
@@ -257,7 +271,31 @@ fun GoalDetailScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
             ) {
-                itemsIndexed(listContent, key = { _, item -> item.item.id }) { _, content ->
+                // Attachments section (non-draggable)
+                item {
+                    list?.let {
+                        AttachmentsSection(
+                            attachments = attachmentItems,
+                            isExpanded = it.isAttachmentsExpanded,
+                            onAddAttachment = { type ->
+                                when (type) {
+                                    AttachmentType.NOTE -> viewModel.onAddNewNoteRequested()
+                                    AttachmentType.WEB_LINK -> viewModel.onShowAddWebLinkDialog()
+                                    AttachmentType.OBSIDIAN_LINK -> viewModel.onShowAddObsidianLinkDialog()
+                                    AttachmentType.LIST_LINK -> viewModel.onAddListLinkRequest()
+                                }
+                            },
+                            onDeleteItem = { item -> viewModel.deleteItem(item) },
+                            onItemClick = { item -> viewModel.onItemClick(item) }
+                        )
+                    }
+                }
+
+                // Draggable items only
+                itemsIndexed(
+                    items = draggableItems,
+                    key = { _, item -> item.item.id }
+                ) { index, content ->
                     ReorderableItem(reorderableLazyListState, key = content.item.id) { isDragging ->
                         val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
                         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
@@ -271,8 +309,37 @@ fun GoalDetailScreen(
                         val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
                                 (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                        if (isHighlighted) {
-                            Log.d("HighlightDebug", "[3. RENDER] MATCH! Item ID '${content.item.id}' should be highlighted. State ID: '${uiState.itemToHighlight}'")
+                        val dragHandle = @Composable {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(end = 4.dp),
+                                color = Color.Transparent
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                        modifier = Modifier.semantics { contentDescription = "Перетягнути" }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DragHandle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            modifier = Modifier
+                                                .longPressDraggableHandle(
+                                                    onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
+                                                )
+                                                .size(24.dp)
+                                                .padding(4.dp)
+                                                .pointerInput(Unit) { detectTapGestures { } }
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         when (content) {
@@ -293,89 +360,32 @@ fun GoalDetailScreen(
                                     onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
                                 ) {
                                     GoalItem(
-                                        goal = content.goal,
-                                        isSelected = isSelected,
-                                        isHighlighted = isHighlighted,
-                                        obsidianVaultName = obsidianVaultName,
-                                        onToggle = { viewModel.toggleGoalCompletedWithState(content.goal, it) },
-                                        onItemClick = { viewModel.onItemClick(content) },
-                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                        onTagClick = { viewModel.onTagClicked(it) },
-                                        onRelatedLinkClick = {
-                                            handleRelatedLinkClick(it, obsidianVaultName, localContext, navController)
+                                        goalContent = content,
+                                        onCheckedChange = { isChecked ->
+                                            viewModel.toggleGoalCompletedWithState(content.goal, isChecked)
                                         },
-                                        dragHandleModifier = Modifier.longPressDraggableHandle(
-                                            onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                                        ),
-                                        contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                                        emojiToHide = emojiToHide,
-                                    )
-                                }
-                            }
-                            is ListItemContent.NoteItem -> {
-                                val isSelected = content.item.id in uiState.selectedItemIds
-                                SwipeableListItem(
-                                    modifier = itemModifier,
-                                    isDragging = isDragging,
-                                    isAnyItemDragging = reorderableLazyListState.isAnyItemDragging,
-                                    resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                    backgroundColor = Color.Transparent,
-                                    onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
-                                    onDelete = { viewModel.deleteItem(content) },
-                                    onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                                    onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
-                                    onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                                    onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
-                                ) {
-                                    NoteItemRow(
-                                        noteContent = content,
-                                        isSelected = isSelected,
                                         onClick = { viewModel.onItemClick(content) },
                                         onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                        dragHandleModifier = Modifier.longPressDraggableHandle(
-                                            onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                                        ),
+                                        isSelected = isSelected,
+                                        isHighlighted = isHighlighted,
+                                        endAction = dragHandle,
                                     )
                                 }
                             }
+
                             is ListItemContent.SublistItem -> {
                                 SublistItemRow(
                                     modifier = itemModifier,
                                     sublistContent = content,
                                     isSelected = content.item.id in uiState.selectedItemIds,
+                                    isHighlighted = isHighlighted,
                                     onClick = { viewModel.onItemClick(content) },
                                     onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                    endAction = dragHandle,
                                 )
                             }
-                            is ListItemContent.LinkItem -> {
-                                val isSelected = content.item.id in uiState.selectedItemIds
-                                SwipeableListItem(
-                                    modifier = itemModifier,
-                                    isDragging = isDragging,
-                                    isAnyItemDragging = reorderableLazyListState.isAnyItemDragging,
-                                    resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                    backgroundColor = Color.Transparent,
-                                    onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
-                                    onDelete = { viewModel.deleteItem(content) },
-                                    onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                                    onCreateInstanceRequest = { /* Not applicable for links */ },
-                                    onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                                    onCopyGoalRequest = { /* Not applicable for links */ },
-                                ) {
-                                    LinkItemRow(
-                                        link = content.link.linkData,
-                                        isSelected = isSelected,
-                                        isHighlighted = isHighlighted,
-                                        onClick = { viewModel.onItemClick(content) },
-                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                        dragHandleModifier = Modifier.longPressDraggableHandle(
-                                            onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                                        ),
-                                    )
-                                }
-                            }
+
+                            else -> {}
                         }
                     }
                 }
@@ -394,6 +404,7 @@ fun GoalDetailScreen(
         is GoalActionDialogState.Hidden -> {}
         is GoalActionDialogState.AwaitingActionChoice -> {
             GoalActionChoiceDialog(
+                itemContent = state.itemContent,
                 onDismiss = { viewModel.onDismissGoalActionDialogs() },
                 onActionSelected = { actionType ->
                     viewModel.onGoalActionSelected(actionType, state.itemContent)

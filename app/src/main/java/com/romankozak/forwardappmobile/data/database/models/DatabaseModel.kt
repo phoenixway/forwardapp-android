@@ -33,7 +33,7 @@ data class RelatedLink(
 
 enum class ScoringStatus {
     NOT_ASSESSED,
-    IMPOSSIBLE_TO_ASSESS, // <-- Виправлено на два 'S'
+    IMPOSSIBLE_TO_ASSESS,
     ASSESSED
 }
 
@@ -155,7 +155,10 @@ data class GoalList(
     @ColumnInfo(name = "is_expanded", defaultValue = "1")
     val isExpanded: Boolean = true,
     @ColumnInfo(name = "goal_order", defaultValue = "0")
-    val order: Long = 0
+    val order: Long = 0,
+    // MODIFIED: Added field to store the attachments section state, defaults to hidden
+    @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0")
+    val isAttachmentsExpanded: Boolean = false,
 )
 
 @Entity(tableName = "notes")
@@ -167,7 +170,8 @@ data class Note(
     val updatedAt: Long?
 )
 
-@Entity(tableName = "list_items",
+@Entity(
+    tableName = "list_items",
     foreignKeys = [
         ForeignKey(
             entity = GoalList::class,
@@ -202,23 +206,13 @@ data class GlobalSearchResult(
     val listName: String
 )
 
-// ADDED: Data class to hold link search results
 data class GlobalLinkSearchResult(
     @Embedded
     val link: LinkItemEntity,
     val listId: String,
     val listName: String,
-    val listItemId: String, // ADDED: The ID of the ListItem that holds the link
-
+    val listItemId: String,
 )
-
-sealed class GlobalSearchResultItem {
-    data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem()
-    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem()
-    data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem()
-}
-
-// Цей код має бути у файлі DatabaseModel.kt
 
 data class GlobalSublistSearchResult(
     @Embedded
@@ -226,3 +220,9 @@ data class GlobalSublistSearchResult(
     val parentListId: String,
     val parentListName: String,
 )
+
+sealed class GlobalSearchResultItem {
+    data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem()
+    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem()
+    data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem()
+}

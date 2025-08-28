@@ -120,8 +120,8 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
         """)
 
         val cursor = db.query("SELECT id, associatedListIds FROM goals WHERE associatedListIds IS NOT NULL")
-        val gson = com.google.gson.Gson()
-        val listStringType = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+        val gson = Gson()
+        val listStringType = object : TypeToken<List<String>>() {}.type
         val relatedLinkList = mutableListOf<Pair<String, String>>()
 
         if (cursor.moveToFirst()) {
@@ -132,7 +132,7 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
                 if (jsonOld != null) {
                     val oldListIds: List<String> = gson.fromJson(jsonOld, listStringType)
                     val newRelatedLinks = oldListIds.map { listId ->
-                        com.romankozak.forwardappmobile.data.database.models.RelatedLink(type = com.romankozak.forwardappmobile.data.database.models.LinkType.GOAL_LIST, target = listId)
+                        RelatedLink(type = LinkType.GOAL_LIST, target = listId)
                     }
                     val jsonNew = gson.toJson(newRelatedLinks)
                     relatedLinkList.add(goalId to jsonNew)
@@ -164,5 +164,14 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
                 PRIMARY KEY(`id`)
             )
         """)
+    }
+}
+
+// ПЕРЕВІРТЕ ЦЮ МІГРАЦІЮ
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // SQL-запит для додавання нової колонки.
+        // INTEGER NOT NULL DEFAULT 0 - це точна відповідність для поля Boolean = false в Kotlin
+        db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_attachments_expanded INTEGER NOT NULL DEFAULT 0")
     }
 }

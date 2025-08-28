@@ -1,10 +1,9 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/noteedit/NoteEditScreen.kt
 package com.romankozak.forwardappmobile.ui.screens.noteedit
 
+import android.view.ViewGroup
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -13,15 +12,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.ui.components.notesEditors.MarkdownEditorViewer
+import com.romankozak.forwardappmobile.ui.components.notesEditors.StyledTextFieldWrapper
+import com.romankozak.forwardappmobile.ui.components.notesEditors.WebViewMarkdownViewer
+import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,167 +34,151 @@ fun NoteEditScreen(
     viewModel: NoteEditViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     var isEditMode by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is NoteEditEvent.NavigateBack -> {
-                    event.message?.let {
-                        scope.launch { snackbarHostState.showSnackbar(it) }
+    // ПОВЕРНУЛИ: Необхідні елементи для обробки подій (Snackbar та CoroutineScope)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // ПОВЕРНУЛИ: Надійний обробник подій, який ми втратили
+    val navGraphEntry = remember(navController.currentBackStackEntry) {
+        navController.getBackStackEntry("app_graph")
+    }
+    val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.events.collect { event ->
+                when (event) {
+                    is NoteEditEvent.NavigateBack -> {
+                        event.message?.let {
+                            scope.launch { snackbarHostState.showSnackbar(it) }
+                        }
+                        // Сигнал для оновлення батьківського екрана
+                        resultViewModel.setResult("refresh_needed", true)
+                        navController.popBackStack()
                     }
-                    navController.popBackStack()
                 }
             }
         }
     }
 
     Scaffold(
+        // ПОВЕРНУЛИ: Підключення SnackbarHost до Scaffold
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        modifier = Modifier
-            .fillMaxSize()
-            .navigationBarsPadding(),
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = if (uiState.isNewNote) "Нова нотатка" else "Редагувати",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                },
+            TopAppBar(
+                title = { Text(if (uiState.isNewNote) "Нова нотатка" else "Редагувати") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 },
                 actions = {
                     IconButton(onClick = { isEditMode = !isEditMode }) {
                         Icon(
                             imageVector = if (isEditMode) Icons.Default.Visibility else Icons.Default.Edit,
-                            contentDescription = stringResource(
-                                if (isEditMode) R.string.toggle_to_preview_mode else R.string.toggle_to_edit_mode,
-                            ),
+                            contentDescription = if (isEditMode) "Режим перегляду" else "Режим редагування"
                         )
                     }
-
-                    AnimatedContent(
-                        targetState = uiState.isSaveButtonEnabled,
-                        label = "save_button_animation",
-                        modifier = Modifier.padding(end = 8.dp),
-                    ) { isEnabled ->
-                        if (isEnabled) {
-                            Button(
-                                onClick = { viewModel.onSave() },
-                                shape = RoundedCornerShape(50),
-                            ) {
-                                Text("Зберегти", style = MaterialTheme.typography.labelMedium)
-                            }
-                        } else {
-                            Text(
-                                text = "Збережено",
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            )
+                    if (uiState.isSaveButtonEnabled) {
+                        Button(onClick = viewModel::onSave) {
+                            Text("Зберегти")
                         }
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                }
             )
-        },
+        }
     ) { paddingValues ->
-        if (!uiState.isReady) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.primary,
+        // Цей Column керує загальною розміткою і відступом від клавіатури.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .imePadding()
+        ) {
+            if (!uiState.isReady) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                // Поле для заголовка
+                OutlinedTextField(
+                    value = uiState.title,
+                    onValueChange = viewModel::onTitleChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Заголовок") },
+                    singleLine = true
+                )
+
+                // Повноцінний редактор, який займає весь залишок місця
+                FinalMarkdownEditor(
+                    value = uiState.content,
+                    onValueChange = viewModel::onContentChange,
+                    isEditMode = isEditMode,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+
+                // Лічильник символів
+                Text(
+                    text = "${uiState.content.text.length}/5000",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
-        } else {
-            NoteEditor(
-                title = uiState.title,
-                onTitleChange = viewModel::onTitleChange,
-                content = uiState.content,
-                onContentChange = viewModel::onContentChange,
-                isEditMode = isEditMode,
-                modifier = Modifier.padding(paddingValues),
-            )
         }
     }
 }
 
+/**
+ * Фінальна версія редактора, яка поєднує надійний StyledTextFieldWrapper
+ * для редагування та WebView для перегляду.
+ */
 @Composable
-fun NoteEditor(
-    title: TextFieldValue,
-    onTitleChange: (TextFieldValue) -> Unit,
-    content: TextFieldValue,
-    onContentChange: (TextFieldValue) -> Unit,
+fun FinalMarkdownEditor(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     isEditMode: Boolean,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
-    Column(
+    AnimatedContent(
+        targetState = isEditMode,
+        label = "FinalEditor",
         modifier = modifier
-            .fillMaxSize()
-            .padding(top = 8.dp),
-    ) {
-        // 🔹 спільний горизонтальний відступ для обох полів
-        val horizontalPadding = 16.dp
-
-        OutlinedTextField(
-            value = title,
-            onValueChange = onTitleChange,
-            placeholder = { Text("Заголовок (необов'язково)") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = horizontalPadding, end = horizontalPadding, bottom = 8.dp),
-            textStyle = MaterialTheme.typography.titleMedium,
-            maxLines = 3,
-            singleLine = false,
-            shape = MaterialTheme.shapes.medium,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-            ),
-        )
-
-        MarkdownEditorViewer(
-            value = content,
-            onValueChange = onContentChange,
-            isEditMode = isEditMode,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(start = horizontalPadding, end = horizontalPadding)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-                    shape = MaterialTheme.shapes.medium
-                )
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, end = 20.dp), // трохи відступ праворуч
-            horizontalArrangement = Arrangement.End,
-        ) {
-            Text(
-                text = "${content.text.length}/5000",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+    ) { isEditing ->
+        if (isEditing) {
+            StyledTextFieldWrapper(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             )
+        } else {
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                AndroidView(
+                    factory = { ctx ->
+                        WebViewMarkdownViewer(ctx).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                        }
+                    },
+                    update = { viewer ->
+                        viewer.renderMarkdown(value.text)
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
     }
 }

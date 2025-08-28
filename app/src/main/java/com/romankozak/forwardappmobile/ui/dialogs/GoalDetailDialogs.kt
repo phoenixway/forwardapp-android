@@ -31,11 +31,11 @@ fun GoalActionChoiceDialog(onDismiss: () -> Unit, onActionSelected: (GoalActionT
                     .fillMaxWidth()
                     .clickable { onActionSelected(GoalActionType.CopyGoal) }
                     .padding(16.dp))
-                HorizontalDivider()
+/*                HorizontalDivider()
                 Text("Перемістити на вершину списку", modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onActionSelected(GoalActionType.MoveToTop) }
-                    .padding(16.dp))
+                    .padding(16.dp))*/
             }
         }
     }

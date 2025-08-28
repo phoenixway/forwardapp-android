@@ -8,18 +8,16 @@ import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDao
 import com.romankozak.forwardappmobile.data.dao.RecentListDao
-import com.romankozak.forwardappmobile.data.database.models.GlobalLinkSearchResult
-import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.data.database.models.Note
 import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -256,7 +254,6 @@ class GoalRepository @Inject constructor(
         val linkResults = linkItemDao.searchLinksGlobal(query).map {
             GlobalSearchResultItem.LinkItem(it)
         }
-        // ADDED: Search for sublists by their name.
         val sublistResults = goalListDao.searchSublistsGlobal(query).map {
             GlobalSearchResultItem.SublistItem(it)
         }
@@ -312,15 +309,14 @@ class GoalRepository @Inject constructor(
     suspend fun addNoteToList(content: String, listId: String): String {
         val currentTime = System.currentTimeMillis()
 
-        // --- ЗМІНЕНО: Логіка для визначення заголовка та вмісту ---
         val title: String?
         val noteContent: String
         if (content.length <= 60 && !content.contains('\n')) {
             title = content
-            noteContent = "" // Якщо коротко, вміст стає заголовком
+            noteContent = ""
         } else {
             title = "Нотатка"
-            noteContent = content // Якщо довго, створюється заголовок за замовчуванням
+            noteContent = content
         }
 
         val newNote = Note(
@@ -373,7 +369,4 @@ class GoalRepository @Inject constructor(
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
     suspend fun getAllNotes(): List<Note> = noteDao.getAll()
     suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
-
-
-
 }
