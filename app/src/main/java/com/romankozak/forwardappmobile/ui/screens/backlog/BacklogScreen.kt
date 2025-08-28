@@ -73,7 +73,7 @@ fun GoalDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
-    // ОНОВЛЕНО: Отримуємо готові, відфільтровані списки з ViewModel
+    // Отримуємо готові, відфільтровані списки з ViewModel
     val draggableItems by viewModel.draggableItems.collectAsStateWithLifecycle()
     val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
 
@@ -96,6 +96,16 @@ fun GoalDetailScreen(
         navController.getBackStackEntry("app_graph")
     }
     val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
+
+    // Пам'ятаємо попередню довжину списку для правильного DnD
+    val previousDraggableItemsCount = remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(draggableItems.size) {
+        // Оновлюємо лише якщо список дійсно змінився
+        if (draggableItems.size != previousDraggableItemsCount.intValue) {
+            previousDraggableItemsCount.intValue = draggableItems.size
+        }
+    }
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -151,16 +161,35 @@ fun GoalDetailScreen(
     LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, draggableItems, attachmentItems) {
         val goalId = uiState.goalToHighlight
         val itemId = uiState.itemToHighlight
-        val fullList = attachmentItems + draggableItems // Відтворюємо повний список для пошуку індекса
-        if ((goalId == null && itemId == null) || fullList.isEmpty()) {
+
+        if ((goalId == null && itemId == null) ||
+            (draggableItems.isEmpty() && attachmentItems.isEmpty())) {
             return@LaunchedEffect
         }
+
+        val attachmentsCount = if (list?.isAttachmentsExpanded == true) attachmentItems.size else 0
+        val offsetIndex = 1 + attachmentsCount // 1 для AttachmentsSection
+
         val index = when {
-            goalId != null -> fullList.indexOfFirst { (it is ListItemContent.GoalItem) && it.goal.id == goalId }
-            itemId != null -> fullList.indexOfFirst { it.item.id == itemId }
+            goalId != null -> {
+                val draggableIndex = draggableItems.indexOfFirst {
+                    (it is ListItemContent.GoalItem) && it.goal.id == goalId
+                }
+                if (draggableIndex >= 0) offsetIndex + draggableIndex else -1
+            }
+            itemId != null -> {
+                val attachmentIndex = attachmentItems.indexOfFirst { it.item.id == itemId }
+                if (attachmentIndex >= 0 && list?.isAttachmentsExpanded == true) {
+                    1 + attachmentIndex // 1 для AttachmentsSection header
+                } else {
+                    val draggableIndex = draggableItems.indexOfFirst { it.item.id == itemId }
+                    if (draggableIndex >= 0) offsetIndex + draggableIndex else -1
+                }
+            }
             else -> -1
         }
-        if (index != -1) {
+
+        if (index >= 0) {
             listState.animateScrollToItem(index)
             delay(2500L)
         } else {
@@ -169,11 +198,23 @@ fun GoalDetailScreen(
         viewModel.onHighlightShown()
     }
 
-    LaunchedEffect(draggableItems, attachmentItems) {
+    LaunchedEffect(draggableItems, attachmentItems, list?.isAttachmentsExpanded) {
         val newItemId = uiState.newlyAddedItemId
-        val fullList = attachmentItems + draggableItems // Відтворюємо повний список
-        if ((newItemId != null) && (fullList.firstOrNull()?.item?.id == newItemId)) {
-            coroutineScope.launch { listState.animateScrollToItem(0) }
+        if (newItemId != null) {
+            // Перевіряємо чи новий елемент в attachments
+            val attachmentIndex = attachmentItems.indexOfFirst { it.item.id == newItemId }
+            if (attachmentIndex == 0 && list?.isAttachmentsExpanded == true) {
+                // Новий attachment на першому місці
+                coroutineScope.launch { listState.animateScrollToItem(1) } // 1 для header
+            } else {
+                // Перевіряємо чи новий елемент в draggableItems
+                val draggableIndex = draggableItems.indexOfFirst { it.item.id == newItemId }
+                if (draggableIndex == 0) {
+                    val attachmentsOffset = if (list?.isAttachmentsExpanded == true)
+                        1 + attachmentItems.size else 1
+                    coroutineScope.launch { listState.animateScrollToItem(attachmentsOffset) }
+                }
+            }
             viewModel.onScrolledToNewItem()
         }
     }
@@ -182,16 +223,27 @@ fun GoalDetailScreen(
         viewModel.clearSelection()
     }
 
+    // Створюємо reorderable state з додатковими перевірками
     val reorderableLazyListState = rememberReorderableLazyListState(
         lazyListState = listState,
         scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
     ) { from, to ->
         try {
-            // Now indices correspond directly to draggableItems
-            viewModel.moveItem(from.index, to.index)
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            // Перевіряємо валідність індексів
+            val fromIndex = from.index
+            val toIndex = to.index
+
+            Log.d("DragAndDrop", "Moving from $fromIndex to $toIndex, draggableItems.size: ${draggableItems.size}")
+
+            if (fromIndex >= 0 && toIndex >= 0 &&
+                fromIndex < draggableItems.size && toIndex < draggableItems.size) {
+                viewModel.moveItem(fromIndex, toIndex)
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            } else {
+                Log.w("DragAndDrop", "Invalid indices: from=$fromIndex, to=$toIndex, size=${draggableItems.size}")
+            }
         } catch (e: Exception) {
-            Log.e("DragAndDrop", "Error during drag operation", e)
+            Log.e("DragAndDrop", "Error during drag operation: ${e.message}", e)
         }
     }
 
@@ -271,8 +323,8 @@ fun GoalDetailScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
             ) {
-                // Attachments section (non-draggable)
-                item {
+                // Attachments section (non-draggable) - завжди фіксована секція
+                item(key = "attachments_section") {
                     list?.let {
                         AttachmentsSection(
                             attachments = attachmentItems,
@@ -291,14 +343,30 @@ fun GoalDetailScreen(
                     }
                 }
 
-                // Draggable items only
+                // Draggable items only - стабільні ключі та індекси
                 itemsIndexed(
                     items = draggableItems,
-                    key = { _, item -> item.item.id }
+                    key = { _, item -> "draggable_${item.item.id}" }
                 ) { index, content ->
-                    ReorderableItem(reorderableLazyListState, key = content.item.id) { isDragging ->
-                        val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
-                        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+                    // Додаємо додаткову перевірку для запобігання помилок
+                    if (index >= draggableItems.size) {
+                        Log.w("DragAndDrop", "Index $index out of bounds for draggableItems.size=${draggableItems.size}")
+                        return@itemsIndexed
+                    }
+
+                    ReorderableItem(
+                        reorderableLazyListState,
+                        key = "draggable_${content.item.id}"
+                    ) { isDragging ->
+                        val scale by animateFloatAsState(
+                            targetValue = if (isDragging) 1.05f else 1f,
+                            label = "scale"
+                        )
+                        val elevation by animateDpAsState(
+                            targetValue = if (isDragging) 8.dp else 0.dp,
+                            label = "elevation"
+                        )
+
                         val itemModifier = Modifier
                             .graphicsLayer {
                                 scaleX = scale
@@ -331,11 +399,17 @@ fun GoalDetailScreen(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                             modifier = Modifier
                                                 .longPressDraggableHandle(
-                                                    onDragStarted = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
+                                                    onDragStarted = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    }
                                                 )
                                                 .size(24.dp)
                                                 .padding(4.dp)
-                                                .pointerInput(Unit) { detectTapGestures { } }
+                                                .pointerInput(Unit) {
+                                                    detectTapGestures {
+                                                        // Пустий обробник для запобігання конфліктів
+                                                    }
+                                                }
                                         )
                                     }
                                 }
@@ -385,7 +459,10 @@ fun GoalDetailScreen(
                                 )
                             }
 
-                            else -> {}
+                            else -> {
+                                // Для інших типів контенту
+                                Log.w("DragAndDrop", "Unsupported content type: ${content::class.simpleName}")
+                            }
                         }
                     }
                 }
