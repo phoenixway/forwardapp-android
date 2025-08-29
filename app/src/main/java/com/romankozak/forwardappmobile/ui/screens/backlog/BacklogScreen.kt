@@ -236,33 +236,50 @@ fun GoalDetailScreen(
         }
     }
 
+    val dragDropHandler = remember {
+        object : DragDropHandler<ListItemContent> {
+            override fun onDragStart(item: ListItemContent, index: Int) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+
+            override fun onDragEnd(fromIndex: Int, toIndex: Int): Boolean {
+                // Використовуйте вашу існуючу логіку з reorderableLazyListState
+                try {
+                    Log.d("DragAndDrop", "Moving from $fromIndex to $toIndex, draggableItems.size: ${draggableItems.size}")
+
+                    if (fromIndex >= 0 && toIndex >= 0 &&
+                        fromIndex < draggableItems.size && toIndex < draggableItems.size) {
+                        viewModel.moveItem(fromIndex, toIndex)
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        return true
+                    } else {
+                        Log.w("DragAndDrop", "Invalid indices: from=$fromIndex, to=$toIndex, size=${draggableItems.size}")
+                        return false
+                    }
+                } catch (e: Exception) {
+                    Log.e("DragAndDrop", "Error during drag operation: ${e.message}", e)
+                    return false
+                }
+            }
+
+            override fun onDragCancel() {
+                Log.d("DragAndDrop", "Drag cancelled")
+            }
+
+            override fun canDrag(item: ListItemContent, index: Int): Boolean {
+                // Додайте умови, якщо потрібно
+                return !isSelectionModeActive // Наприклад, не дозволяти DnD в режимі вибору
+            }
+        }
+    }
+
+    val dragDropState = rememberDragDropState(dragDropHandler)
+
+
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
     }
 
-    // Створюємо reorderable state з додатковими перевірками
-    val reorderableLazyListState = rememberReorderableLazyListState(
-        lazyListState = listState,
-        scrollThresholdPadding = WindowInsets.systemBars.asPaddingValues(),
-    ) { from, to ->
-        try {
-            // Перевіряємо валідність індексів
-            val fromIndex = from.index
-            val toIndex = to.index
-
-            Log.d("DragAndDrop", "Moving from $fromIndex to $toIndex, draggableItems.size: ${draggableItems.size}")
-
-            if (fromIndex >= 0 && toIndex >= 0 &&
-                fromIndex < draggableItems.size && toIndex < draggableItems.size) {
-                viewModel.moveItem(fromIndex, toIndex)
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            } else {
-                Log.w("DragAndDrop", "Invalid indices: from=$fromIndex, to=$toIndex, size=${draggableItems.size}")
-            }
-        } catch (e: Exception) {
-            Log.e("DragAndDrop", "Error during drag operation: ${e.message}", e)
-        }
-    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -338,7 +355,8 @@ fun GoalDetailScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(paddingValues)
+                    .autoScrollDragDrop(dragDropState, listState),
             ) {
                 // Attachments section (non-draggable) - завжди фіксована секція
                 item(key = "attachments_section") {
@@ -371,10 +389,17 @@ fun GoalDetailScreen(
                         return@itemsIndexed
                     }
 
-                    ReorderableItem(
-                        reorderableLazyListState,
-                        key = "draggable_${content.item.id}"
-                    ) { isDragging ->
+                    // Замість ReorderableItem використовуйте DraggableItemContainer
+                    DraggableItemContainer(
+                        state = dragDropState,
+                        item = content,
+                        index = index,
+                        modifier = Modifier
+                        // ваші інші modifier'и...
+                    ) { dragHandleModifier ->
+
+                        // Анімації для dragging стану
+                        val isDragging = dragDropState.isDragging && (dragDropState.draggedIndex == index)
                         val scale by animateFloatAsState(
                             targetValue = if (isDragging) 1.05f else 1f,
                             label = "scale"
@@ -394,6 +419,7 @@ fun GoalDetailScreen(
                         val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
                                 (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
+                        // Ваша кастомна ручка перетягування з dragHandleModifier
                         val dragHandle = @Composable {
                             Surface(
                                 modifier = Modifier
@@ -414,12 +440,7 @@ fun GoalDetailScreen(
                                             imageVector = Icons.Default.DragHandle,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                            modifier = Modifier
-                                                .longPressDraggableHandle(
-                                                    onDragStarted = {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    }
-                                                )
+                                            modifier = dragHandleModifier  // Використовуйте dragHandleModifier тут!
                                                 .size(24.dp)
                                                 .padding(4.dp)
                                                 .pointerInput(Unit) {
@@ -439,7 +460,7 @@ fun GoalDetailScreen(
                                 SwipeableListItem(
                                     modifier = itemModifier,
                                     isDragging = isDragging,
-                                    isAnyItemDragging = reorderableLazyListState.isAnyItemDragging,
+                                    isAnyItemDragging = dragDropState.isDragging, // Замінено
                                     resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
                                     backgroundColor = Color.Transparent,
                                     onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
@@ -484,10 +505,9 @@ fun GoalDetailScreen(
                     }
                 }
             }
-        }
-    }
+            }}
 
-    RecentListsSheet(
+        RecentListsSheet(
         showSheet = showRecentListsSheet,
         recentLists = recentLists,
         onDismiss = { viewModel.onDismissRecentLists() },
