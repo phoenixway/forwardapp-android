@@ -499,32 +499,47 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     // --- ОСНОВНА ФУНКЦІЯ ДЛЯ ДІАГНОСТИКИ ---
-    fun moveItem(from: ListItemContent, to: ListItemContent) {
+// ВИПРАВЛЕНИЙ ViewModel метод:
+    fun moveItem(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
             val currentList = _listContent.value.toMutableList()
-            val fromIndex = currentList.indexOfFirst { it.item.id == from.item.id }
-            val toIndex = currentList.indexOfFirst { it.item.id == to.item.id }
 
-            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                // Виконуємо переміщення тільки в UI
+            println("moveItem: from=$fromIndex, to=$toIndex, listSize=${currentList.size}")
+
+            if (fromIndex in currentList.indices &&
+                toIndex in 0..currentList.size &&  // Дозволяємо toIndex == currentList.size для додавання в кінець
+                fromIndex != toIndex) {
+
                 val itemToMove = currentList.removeAt(fromIndex)
-                currentList.add(toIndex, itemToMove)
 
-                _listContent.value = currentList.toList()
+                // СПРОЩЕНА логіка без коригування для кінця списку
+                val finalInsertIndex = when {
+                    toIndex == currentList.size + 1 -> currentList.size  // Якщо індекс більший за розмір після видалення
+                    toIndex > fromIndex -> toIndex - 1  // Стандартна корекція при русі вниз
+                    else -> toIndex  // Рух вгору або на ту саму позицію
+                }.coerceAtMost(currentList.size)  // Обмежуємо максимальним можливим індексом
+
+                println("Inserting at index: $finalInsertIndex (list size after removal: ${currentList.size})")
+
+                currentList.add(finalInsertIndex, itemToMove)
+
+                _listContent.value = currentList
                 _listVersion.value++
                 _uiState.update { it.copy(needsStateRefresh = true) }
 
-                // Додаємо операцію до батчу
-                batchedMoves.add(from to to)
+                // Batch operations
+                val targetItem = currentList.getOrNull(finalInsertIndex) ?: itemToMove
+                batchedMoves.add(itemToMove to targetItem)
 
-                // Скидаємо попередню заплановану операцію збереження
                 batchSaveJob?.cancel()
-
-                // Запланувати нову операцію збереження через затримку
                 batchSaveJob = launch {
                     delay(BATCH_DELAY_MS)
                     saveBatchedMoves()
                 }
+
+                println("✓ Move completed: item now at position $finalInsertIndex")
+            } else {
+                println("✗ Move rejected: conditions not met")
             }
         }
     }
