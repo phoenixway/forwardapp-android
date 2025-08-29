@@ -58,6 +58,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+
+
 @Composable
 fun GoalDetailScreen(
     navController: NavController,
@@ -203,6 +207,18 @@ fun GoalDetailScreen(
 
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
+    }
+
+    BackHandler(enabled = !isSelectionModeActive) {
+        viewModel.flushPendingMoves() // Зберігаємо перед виходом
+        navController.popBackStack()
+    }
+
+    // Також можете додати DisposableEffect для збереження при закритті екрану
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.flushPendingMoves()
+        }
     }
 
     //val listVersion by viewModel.listVersion.collectAsStateWithLifecycle()
@@ -412,6 +428,8 @@ fun GoalDetailScreen(
             )
         }
     }
+
+
 }
 
 private fun handleRelatedLinkClick(
@@ -533,22 +551,20 @@ class DragDropState(
     fun onDragEnd() {
         val fromIndex = initialIndexOfDraggedItem
         val toIndex = targetIndexOfDraggedItem
-        Log.d("DragDrop", "onDragEnd: from=$fromIndex, to=$toIndex")
 
         if (fromIndex != null && toIndex != null && fromIndex != toIndex) {
             val fromItem = itemsProvider().getOrNull(fromIndex)
             val toItem = itemsProvider().getOrNull(toIndex)
-            Log.d("DragDrop", "Moving: ${fromItem?.item?.id} -> ${toItem?.item?.id}")
-
             if (fromItem != null && toItem != null) {
                 onMove(fromItem, toItem)
-                // Не скидаємо стан тут одразу, чекаємо на команду від ViewModel
+                // Не скидаємо стан тут - чекаємо на команду від ViewModel
                 return
             }
         }
-        // Якщо переміщення не відбулося, скидаємо стан негайно
         resetState()
     }
+
+
 
     fun resetState() {
         draggedDistance = 0f

@@ -506,28 +506,24 @@ class GoalDetailViewModel @Inject constructor(
             val toIndex = currentList.indexOfFirst { it.item.id == to.item.id }
 
             if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                // Set optimistic update flag BEFORE making changes
-                optimisticUpdateInProgress = true
-
+                // Виконуємо переміщення тільки в UI
                 val itemToMove = currentList.removeAt(fromIndex)
                 currentList.add(toIndex, itemToMove)
 
                 _listContent.value = currentList.toList()
+                _listVersion.value++
                 _uiState.update { it.copy(needsStateRefresh = true) }
 
-                // Update database and reset flag
-                launch(Dispatchers.IO) {
-                    try {
-                        val updatedItems = currentList.mapIndexed { index, content ->
-                            content.item.copy(order = index.toLong())
-                        }
-                        goalRepository.updateListItemsOrder(updatedItems)
-                    } finally {
-                        // Reset flag after DB operation completes
-                        optimisticUpdateInProgress = false
-                        // Trigger refresh to sync with database
-                        _refreshTrigger.value++
-                    }
+                // Додаємо операцію до батчу
+                batchedMoves.add(from to to)
+
+                // Скидаємо попередню заплановану операцію збереження
+                batchSaveJob?.cancel()
+
+                // Запланувати нову операцію збереження через затримку
+                batchSaveJob = launch {
+                    delay(BATCH_DELAY_MS)
+                    saveBatchedMoves()
                 }
             }
         }
@@ -696,6 +692,54 @@ class GoalDetailViewModel @Inject constructor(
     fun onLinkItemClick(link: RelatedLink) {
         viewModelScope.launch {
             _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+        }
+    }
+
+    private suspend fun saveBatchedMoves() = withContext(Dispatchers.IO) {
+        if (batchedMoves.isEmpty()) return@withContext
+
+        try {
+            Log.d("DnD_Batch", "Saving ${batchedMoves.size} batched moves")
+
+            // Отримуємо актуальний стан списку
+            val currentList = _listContent.value
+
+            // Створюємо список оновлених елементів з новими порядками
+            val updatedItems = currentList.mapIndexed { index, content ->
+                content.item.copy(order = index.toLong())
+            }
+
+            // Зберігаємо всі зміни одним запитом
+            goalRepository.updateListItemsOrder(updatedItems)
+
+            Log.d("DnD_Batch", "Successfully saved batch of ${batchedMoves.size} moves")
+
+        } catch (e: Exception) {
+            Log.e("DnD_Batch", "Error saving batched moves", e)
+            // При помилці можна показати snackbar або відновити попередній стан
+        } finally {
+            // Очищаємо батч після збереження
+            batchedMoves.clear()
+        }
+    }
+
+    // Додайте функцію для негайного збереження (опціонально)
+    fun flushPendingMoves() {
+        viewModelScope.launch {
+            batchSaveJob?.cancel()
+            saveBatchedMoves()
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Негайно зберігаємо без асинхронності
+        batchSaveJob?.cancel()
+        if (batchedMoves.isNotEmpty()) {
+            // Використовуємо runBlocking тільки для критично важливого збереження
+            kotlinx.coroutines.runBlocking {
+                saveBatchedMoves()
+            }
         }
     }
 }
