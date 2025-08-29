@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -65,12 +66,17 @@ data class UiState(
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class GoalDetailViewModel @Inject constructor(
+
+
     private val goalRepository: GoalRepository,
     private val settingsRepository: SettingsRepository,
     private val ollamaService: OllamaService,
     private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    private var batchedMoves = mutableListOf<Pair<ListItemContent, ListItemContent>>()
+    private var batchSaveJob: Job? = null
+    private val BATCH_DELAY_MS = 500L // Затримка перед збереженням
 
     // Тег для фільтрації логів
     private val TAG = "DnD_Debug"
@@ -495,37 +501,36 @@ class GoalDetailViewModel @Inject constructor(
     // --- ОСНОВНА ФУНКЦІЯ ДЛЯ ДІАГНОСТИКИ ---
     fun moveItem(from: ListItemContent, to: ListItemContent) {
         viewModelScope.launch {
-            // Створюємо новий список
             val currentList = _listContent.value.toMutableList()
             val fromIndex = currentList.indexOfFirst { it.item.id == from.item.id }
             val toIndex = currentList.indexOfFirst { it.item.id == to.item.id }
 
             if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                // Виконуємо переміщення
+                // Set optimistic update flag BEFORE making changes
+                optimisticUpdateInProgress = true
+
                 val itemToMove = currentList.removeAt(fromIndex)
                 currentList.add(toIndex, itemToMove)
 
-                // Оновлюємо стан НОВИМ екземпляром списку
                 _listContent.value = currentList.toList()
-                _listVersion.value++
-
-                // Встановлюємо прапор, як ви і запропонували
                 _uiState.update { it.copy(needsStateRefresh = true) }
 
-
-                _uiState.update { it.copy(needsStateRefresh = true) }
-
-                // Асинхронно зберігаємо новий порядок в БД (без оновлення версії)
+                // Update database and reset flag
                 launch(Dispatchers.IO) {
-                    val updatedItems = currentList.mapIndexed { index, content ->
-                        content.item.copy(order = index.toLong())
+                    try {
+                        val updatedItems = currentList.mapIndexed { index, content ->
+                            content.item.copy(order = index.toLong())
+                        }
+                        goalRepository.updateListItemsOrder(updatedItems)
+                    } finally {
+                        // Reset flag after DB operation completes
+                        optimisticUpdateInProgress = false
+                        // Trigger refresh to sync with database
+                        _refreshTrigger.value++
                     }
-                    goalRepository.updateListItemsOrder(updatedItems)
                 }
             }
         }
-
-
     }
 
     fun onStateRefreshed() {

@@ -63,6 +63,7 @@ fun GoalDetailScreen(
     navController: NavController,
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
@@ -303,7 +304,7 @@ fun GoalDetailScreen(
             // 1. Переконайтеся, що тут саме `itemsIndexed`, а не `items`.
             itemsIndexed(
                 items = draggableItems,
-                key = { _, item -> item.item.id }
+                key = { index, item -> "${item.item.id}_$index" } // Include index in key
             ) { index, content -> // 2. Переконайтеся, що ви отримуєте `index` як перший параметр.
 
                 val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
@@ -532,9 +533,13 @@ class DragDropState(
     fun onDragEnd() {
         val fromIndex = initialIndexOfDraggedItem
         val toIndex = targetIndexOfDraggedItem
+        Log.d("DragDrop", "onDragEnd: from=$fromIndex, to=$toIndex")
+
         if (fromIndex != null && toIndex != null && fromIndex != toIndex) {
             val fromItem = itemsProvider().getOrNull(fromIndex)
             val toItem = itemsProvider().getOrNull(toIndex)
+            Log.d("DragDrop", "Moving: ${fromItem?.item?.id} -> ${toItem?.item?.id}")
+
             if (fromItem != null && toItem != null) {
                 onMove(fromItem, toItem)
                 // Не скидаємо стан тут одразу, чекаємо на команду від ViewModel
