@@ -2,51 +2,52 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
+import android.R.attr.translationZ
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.*
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import kotlinx.coroutines.launch
 
 // 1. Main interface for DnD operations
@@ -54,34 +55,37 @@ interface DragDropHandler<T> {
     fun onDragStart(item: T, index: Int)
     fun onDragEnd(fromIndex: Int, toIndex: Int): Boolean
     fun onDragCancel()
-    fun onDragOver(fromIndex: Int, toIndex: Int) // <-- НОВИЙ МЕТОД для тактильного відгуку
     fun canDrag(item: T, index: Int): Boolean = true
     fun canDrop(fromIndex: Int, toIndex: Int): Boolean = true
 }
 
 // 2. State for DnD operations
 @Stable
-class DragDropState<T>(
+class DragDropState<T> constructor(
     private val handler: DragDropHandler<T>,
 ) {
     var isDragging by mutableStateOf(false); private set
     var draggedIndex by mutableIntStateOf(-1); private set
     var targetIndex by mutableIntStateOf(-1); private set
     var draggedItem by mutableStateOf<T?>(null); private set
-
     var dragOffset by mutableStateOf(Offset.Zero); private set
 
-    private var accumulatedDy by mutableStateOf(0f)
-    private var committedDy by mutableStateOf(0f)
+    private var accumulatedDy by mutableFloatStateOf(0f)
+    private var committedDy by mutableFloatStateOf(0f)
     var lastMoveDir by mutableIntStateOf(0); private set
 
     private val itemHeights = mutableStateMapOf<Int, Float>()
     var totalItems by mutableIntStateOf(0); private set
 
     fun reportItemMeasured(index: Int, heightPx: Float) {
-        if (heightPx > 0f) itemHeights[index] = heightPx
-        if (index + 1 > totalItems) totalItems = index + 1
+        if (heightPx > 0f) {
+            itemHeights[index] = heightPx
+        }
+        if (index + 1 > totalItems) {
+            totalItems = index + 1
+        }
     }
+
     private fun heightFor(index: Int): Float =
         itemHeights[index] ?: itemHeights[draggedIndex] ?: 1f
 
@@ -102,9 +106,9 @@ class DragDropState<T>(
     fun applyDragDelta(
         delta: Offset,
         hysteresisFraction: Float = 0.35f,
-        startIndexFallback: Int = draggedIndex
+        startIndexFallback: Int = draggedIndex,
     ) {
-        dragOffset = dragOffset + delta
+        dragOffset += delta
         accumulatedDy += delta.y
         lastMoveDir = when {
             delta.y > 0f -> 1
@@ -126,19 +130,17 @@ class DragDropState<T>(
             committedDy -= itemHeight
         }
 
-        if (newTarget != targetIndex) {
-            if (handler.canDrop(draggedIndex, newTarget)) {
-                targetIndex = newTarget
-            }
-            // Викликаємо onDragOver незалежно від canDrop, щоб дати фідбек
-            handler.onDragOver(draggedIndex, newTarget)
+        if (newTarget != targetIndex && handler.canDrop(draggedIndex, newTarget)) {
+            targetIndex = newTarget
         }
     }
 
     fun endDrag(): Boolean {
         val success = if (draggedIndex != -1 && targetIndex != -1 && draggedIndex != targetIndex) {
             handler.onDragEnd(draggedIndex, targetIndex)
-        } else false
+        } else {
+            false
+        }
         resetState()
         return success
     }
@@ -146,12 +148,6 @@ class DragDropState<T>(
     fun cancelDrag() {
         handler.onDragCancel()
         resetState()
-    }
-
-    // <-- НОВИЙ ПУБЛІЧНИЙ МЕТОД
-    fun canDropAt(targetIndex: Int): Boolean {
-        if (draggedIndex < 0) return false
-        return handler.canDrop(draggedIndex, targetIndex)
     }
 
     private fun resetState() {
@@ -168,70 +164,40 @@ class DragDropState<T>(
     }
 }
 
-
-// 3. Composable function to create state
+// 3. Composable to create state
 @Composable
-fun <T> rememberDragDropState(
-    handler: DragDropHandler<T>,
-): DragDropState<T> {
+fun <T> rememberDragDropState(handler: DragDropHandler<T>): DragDropState<T> {
     return remember(handler) { DragDropState(handler) }
 }
 
-// 4. Modifier for LazyColumn elements (basic - without handle)
-fun <T> Modifier.draggableItem(
-    state: DragDropState<T>,
-    item: T,
-    index: Int,
-): Modifier = composed {
-    var itemBounds: Rect by remember { mutableStateOf(Rect.Zero) }
+private fun Modifier.draggedItemVisuals() = this.then(
+    Modifier.graphicsLayer {
+        alpha = 0.8f
+        scaleX = 1.05f
+        scaleY = 1.05f
+        shadowElevation = 16f
+        // translationZ замінено на підхід, що працює з Compose
+    },
+)
 
-    this
-        .onGloballyPositioned { coordinates ->
-            val r = coordinates.boundsInParent()
-            itemBounds = r
-            state.reportItemMeasured(index, r.height)
-        }
-        .pointerInput(item, index) {
-            detectDragGestures(
-                onDragStart = {
-                    state.startDrag(item, index)
-                },
-                onDragCancel = {
-                    state.cancelDrag()
-                },
-                onDragEnd = {
-                    state.endDrag()
-                },
-                onDrag = { change, dragAmount ->
-                    change.consume()
-                    if (state.isDragging && state.draggedIndex == index) {
-                        state.applyDragDelta(
-                            delta = dragAmount,
-                            hysteresisFraction = 0.35f,
-                            startIndexFallback = index
-                        )
-                    }
-                }
-            )
-        }
-        .applyDragVisualEffects(state, index)
-}
-
-
-// 4c. Helper function for visual effects
+// 4. Visual effects for dragging
 private fun <T> Modifier.applyDragVisualEffects(
     state: DragDropState<T>,
     index: Int,
-): Modifier = graphicsLayer {
-    if (state.isDragging && (state.draggedIndex == index)) {
-        alpha = 0.5f
-        scaleX = 1.02f
-        scaleY = 1.02f
-        rotationZ = -5f // <-- Додано легкий нахил
+): Modifier = this.then(
+    if (state.isDragging && state.draggedIndex == index) {
+        Modifier.graphicsLayer {
+            alpha = 0.8f
+            scaleX = 1.05f
+            scaleY = 1.05f
+            shadowElevation = 16f
+        }
+    } else {
+        Modifier
     }
-}
+)
 
-// 5. Modifier for custom drag handle
+// 5. Drag handle modifier
 fun <T> Modifier.dragHandle(
     state: DragDropState<T>,
     item: T,
@@ -240,20 +206,87 @@ fun <T> Modifier.dragHandle(
     detectDragGestures(
         onDragStart = {
             state.startDrag(item, index)
+            // Вібрація прибрана, бо не можна викликати @Composable тут
         },
         onDragCancel = { state.cancelDrag() },
         onDragEnd = { state.endDrag() },
-        onDrag = { change: PointerInputChange, dragAmount: Offset ->
+        onDrag = { change, dragAmount ->
             change.consume()
             if (state.isDragging && state.draggedIndex == index) {
-                state.applyDragDelta(delta = dragAmount, hysteresisFraction = 0.35f)
+                state.applyDragDelta(dragAmount, 0.35f)
             }
         },
     )
 }
 
+// 6. Drop indicator
+// Покращений DropIndicator з анімацією
+@Composable
+private fun DropIndicator(isValidDrop: Boolean) {
+    val color = if (isValidDrop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val infiniteTransition = rememberInfiniteTransition(label = "dropIndicatorPulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dropIndicatorAlpha"
+    )
+    val height by infiniteTransition.animateFloat(
+        initialValue = 4f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dropIndicatorHeight"
+    )
+    val haptic = LocalHapticFeedback.current
+    LaunchedEffect(isValidDrop) {
+        haptic.performHapticFeedback(
+            if (isValidDrop) HapticFeedbackType.LongPress
+            else HapticFeedbackType.TextHandleMove
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height.dp)
+            .padding(horizontal = 12.dp)
+            .shadow(4.dp, shape = MaterialTheme.shapes.medium)
+            .border(0.5.dp, color.copy(alpha = alpha * 0.5f), MaterialTheme.shapes.medium)
+            .semantics {
+                contentDescription = if (isValidDrop) "Дозволена зона для скидання"
+                else "Недозволена зона для скидання"
+            }
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        color.copy(alpha = alpha),
+                        Color.Transparent,
+                    ),
+                ),
+            ),
+    ) {
+        if (!isValidDrop) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Недозволена зона",
+                tint = color.copy(alpha = alpha),
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(Alignment.Center)
+            )
+        }
+    }
+}
 
 
+// 7. Container with drag handle support
 @Composable
 fun <T> DraggableItemContainer(
     state: DragDropState<T>,
@@ -267,35 +300,24 @@ fun <T> DraggableItemContainer(
     Box(
         modifier = modifier
             .onGloballyPositioned { coordinates ->
-                val r = coordinates.boundsInParent()
-                state.reportItemMeasured(index, r.height)
+                state.reportItemMeasured(index, coordinates.size.height.toFloat())
             }
             .applyDragVisualEffects(state, index),
     ) {
         content(dragHandleModifier)
 
         if (state.isDragging && index == state.targetIndex && index != state.draggedIndex) {
-            val canDrop = state.canDropAt(state.targetIndex)
-            val indicatorColor = if (canDrop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-
             val isDraggingDown = state.draggedIndex < state.targetIndex
             val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
-            Box(
-                modifier = Modifier
-                    .align(align)
-                    .fillMaxWidth()
-                    .height(2.dp)
-                    .graphicsLayer {
-                        shadowElevation = 8f
-                    }
-                    .background(indicatorColor)
-            )
+            Box(modifier = Modifier.align(align)) {
+                DropIndicator(true)
+            }
         }
     }
 }
 
-// 7. LazyColumn modifier for auto-scrolling
+// 8. Auto-scroll modifier
 fun <T> Modifier.autoScrollDragDrop(
     state: DragDropState<T>,
     lazyListState: LazyListState,
@@ -308,24 +330,20 @@ fun <T> Modifier.autoScrollDragDrop(
             val layoutInfo = lazyListState.layoutInfo
             if (layoutInfo.visibleItemsInfo.isEmpty()) return@LaunchedEffect
 
-            val viewportTop = 0
-            val viewportBottom = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+            val viewportStart = 0
+            val viewportEnd = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
             val scrollThreshold = with(density) { 65.dp.toPx() }
 
             val draggedItemInfo = layoutInfo.visibleItemsInfo.find { it.index == state.draggedIndex }
-
             if (draggedItemInfo != null) {
-                val itemTopInViewport = draggedItemInfo.offset
-
-                val fingerOffsetOnItem = state.dragOffset.y
-
-                val fingerPositionInViewport = itemTopInViewport + fingerOffsetOnItem
+                val itemTop = draggedItemInfo.offset
+                val fingerPosition = itemTop + state.dragOffset.y
 
                 when {
-                    fingerPositionInViewport < (viewportTop + scrollThreshold) -> {
+                    fingerPosition < viewportStart + scrollThreshold -> {
                         scope.launch { lazyListState.animateScrollBy(-50f) }
                     }
-                    fingerPositionInViewport > (viewportBottom - scrollThreshold) -> {
+                    fingerPosition > viewportEnd - scrollThreshold -> {
                         scope.launch { lazyListState.animateScrollBy(50f) }
                     }
                 }
@@ -335,4 +353,151 @@ fun <T> Modifier.autoScrollDragDrop(
 
     this
 }
-// ... (решта файлу з прикладами залишається без змін)
+
+// 9. DraggableLazyColumn
+@Composable
+fun <T> DraggableLazyColumn(
+    items: List<T>,
+    onItemMoved: (fromIndex: Int, toIndex: Int) -> Unit,
+    modifier: Modifier = Modifier,
+    showHint: Boolean = false,
+    itemContent: @Composable LazyItemScope.(item: T, index: Int, isDragging: Boolean) -> Unit,
+) {
+    val lazyListState = rememberLazyListState()
+    val dragDropHandler = remember {
+        object : DragDropHandler<T> {
+            override fun onDragStart(item: T, index: Int) {}
+            override fun onDragEnd(fromIndex: Int, toIndex: Int): Boolean {
+                onItemMoved(fromIndex, toIndex)
+                return true
+            }
+            override fun onDragCancel() {}
+        }
+    }
+
+    val dragDropState = rememberDragDropState(dragDropHandler)
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.autoScrollDragDrop(dragDropState, lazyListState),
+        ) {
+            items(
+                items = items,
+                key = { item -> items.indexOf(item) }, // або краще: { item.id } якщо є
+                contentType = { "item" }
+            ) { item ->
+                val index = items.indexOf(item)
+                itemContent(
+                    item,
+                    index,
+                    dragDropState.isDragging && dragDropState.draggedIndex == index
+                )
+            }
+        }
+
+        // Optional hint
+        if (showHint && !dragDropState.isDragging) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {},
+            ) {
+                Text(
+                    text = "Перетягніть хендл, щоб змінити порядок",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(0.8f),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(0.9f),
+                            shape = MaterialTheme.shapes.medium,
+                        )
+                        .padding(12.dp)
+                        .padding(bottom = 16.dp),
+                )
+            }
+        }
+    }
+}
+
+// 10. Example usage with handle
+@Composable
+fun YourCustomListItem(
+    item: String,
+    index: Int,
+    dragDropState: DragDropState<String>,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 8.dp),
+        ) {
+            Text(
+                text = item,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+
+            Icon(
+                imageVector = Icons.Default.DragHandle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(0.6f),
+                modifier = Modifier
+                    .dragHandle(dragDropState, item, index)
+                    .padding(12.dp)
+                    .size(20.dp),
+            )
+        }
+    }
+}
+
+// 11. Example screen
+@Composable
+fun ExampleWithContainer() {
+    var items by rememberSaveable { mutableStateOf(listOf("Завдання 1", "Завдання 2", "Завдання 3")) }
+
+    val dragDropHandler = remember {
+        object : DragDropHandler<String> {
+            override fun onDragStart(item: String, index: Int) {}
+            override fun onDragEnd(fromIndex: Int, toIndex: Int): Boolean {
+                items = items.toMutableList().apply {
+                    add(toIndex, removeAt(fromIndex))
+                }
+                return true
+            }
+            override fun onDragCancel() {}
+        }
+    }
+
+    val dragDropState = rememberDragDropState(dragDropHandler)
+
+    DraggableLazyColumn(
+        items = items,
+        onItemMoved = { from, to ->
+            items = items.toMutableList().apply {
+                add(to, removeAt(from))
+            }
+        },
+        showHint = true,
+    ) { item, index, isDragging ->
+        DraggableItemContainer(
+            state = dragDropState,
+            item = item,
+            index = index,
+        ) { dragHandleModifier ->
+            YourCustomListItem(
+                item = item,
+                index = index,
+                dragDropState = dragDropState,
+            )
+        }
+    }
+}
