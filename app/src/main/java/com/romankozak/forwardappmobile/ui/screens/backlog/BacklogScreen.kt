@@ -2,9 +2,6 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
-//import androidx.compose.foundation.lazy.animateItemPlacement
-//import androidx.compose.animation.core.Spring
-
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -14,36 +11,25 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -82,20 +68,18 @@ fun GoalDetailScreen(
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val showRecentListsSheet by viewModel.showRecentListsSheet.collectAsStateWithLifecycle()
     val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
-    val haptic = LocalHapticFeedback.current
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val localContext = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
-
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
-
-    val listId = remember {
-        navController.currentBackStackEntry?.arguments?.getString("listId") ?: ""
+    val dragDropState = rememberDragDropState<ListItemContent>(listState) { from, to ->
+        viewModel.moveItem(from, to)
     }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val navGraphEntry = remember(currentBackStackEntry) {
@@ -103,26 +87,15 @@ fun GoalDetailScreen(
     }
     val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
 
-    val previousDraggableItemsCount = remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(draggableItems.size) {
-        if (draggableItems.size != previousDraggableItemsCount.intValue) {
-            previousDraggableItemsCount.intValue = draggableItems.size
-        }
-    }
-
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            val pickedGoalId = resultViewModel.consumeResult<String>("picked_goal_id")
-            if (pickedGoalId != null) {
-                viewModel.onExistingItemSelected(pickedGoalId)
+            resultViewModel.consumeResult<String>("picked_goal_id")?.let {
+                viewModel.onExistingItemSelected(it)
             }
-            val selectedListId = resultViewModel.consumeResult<String>("selectedListId")
-            if (selectedListId != null) {
-                viewModel.onListChooserResult(selectedListId)
+            resultViewModel.consumeResult<String>("selectedListId")?.let {
+                viewModel.onListChooserResult(it)
             }
-            val needsRefresh = resultViewModel.consumeResult<Boolean>("refresh_needed")
-            if (needsRefresh == true) {
+            if (resultViewModel.consumeResult<Boolean>("refresh_needed") == true) {
                 viewModel.forceRefresh()
             }
         }
@@ -144,9 +117,6 @@ fun GoalDetailScreen(
                         }
                     }
                 }
-                is UiEvent.ScrollTo -> {
-                    listState.animateScrollToItem(event.index)
-                }
                 is UiEvent.NavigateBackAndReveal -> {
                     navController.getBackStackEntry("goal_lists_screen")
                         .savedStateHandle["list_to_reveal"] = event.listId
@@ -155,97 +125,70 @@ fun GoalDetailScreen(
                 is UiEvent.HandleLinkClick -> {
                     handleRelatedLinkClick(event.link, obsidianVaultName, localContext, navController)
                 }
-                is UiEvent.ResetSwipeState -> {
-                    viewModel.onSwipeStateReset(event.itemId)
-                }
+                is UiEvent.ResetSwipeState -> viewModel.onSwipeStateReset(event.itemId)
+                is UiEvent.ScrollTo -> listState.animateScrollToItem(event.index)
             }
         }
     }
 
-    LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, draggableItems, attachmentItems) {
+    LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, draggableItems, attachmentItems, list?.isAttachmentsExpanded) {
         val goalId = uiState.goalToHighlight
         val itemId = uiState.itemToHighlight
 
-        if ((goalId == null && itemId == null) ||
-            (draggableItems.isEmpty() && attachmentItems.isEmpty())) {
+        if ((goalId == null && itemId == null) || (draggableItems.isEmpty() && attachmentItems.isEmpty())) {
             return@LaunchedEffect
         }
 
-        val attachmentsCount = if (list?.isAttachmentsExpanded == true) attachmentItems.size else 0
-        val offsetIndex = 1 + attachmentsCount
+        val headerItemsCount = 1
+        val expandedAttachmentsCount = if (list?.isAttachmentsExpanded == true) attachmentItems.size else 0
 
-        val index = when {
-            goalId != null -> {
-                val draggableIndex = draggableItems.indexOfFirst {
-                    (it is ListItemContent.GoalItem) && it.goal.id == goalId
-                }
-                if (draggableIndex >= 0) offsetIndex + draggableIndex else -1
-            }
+        val indexToScroll = when {
+            goalId != null -> draggableItems
+                .indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }
+                .takeIf { it != -1 }
+                ?.let { it + headerItemsCount + expandedAttachmentsCount }
+
             itemId != null -> {
                 val attachmentIndex = attachmentItems.indexOfFirst { it.item.id == itemId }
-                if (attachmentIndex >= 0 && list?.isAttachmentsExpanded == true) {
-                    1 + attachmentIndex
+                if (attachmentIndex != -1 && list?.isAttachmentsExpanded == true) {
+                    headerItemsCount + attachmentIndex
                 } else {
-                    val draggableIndex = draggableItems.indexOfFirst { it.item.id == itemId }
-                    if (draggableIndex >= 0) offsetIndex + draggableIndex else -1
+                    draggableItems
+                        .indexOfFirst { it.item.id == itemId }
+                        .takeIf { it != -1 }
+                        ?.let { it + headerItemsCount + expandedAttachmentsCount }
                 }
             }
-            else -> -1
+            else -> null
         }
 
-        if (index >= 0) {
-            listState.animateScrollToItem(index)
+        if (indexToScroll != null) {
+            listState.animateScrollToItem(indexToScroll)
             delay(2500L)
-        } else {
-            delay(500L)
         }
         viewModel.onHighlightShown()
     }
 
-    LaunchedEffect(draggableItems, attachmentItems, list?.isAttachmentsExpanded) {
+    LaunchedEffect(uiState.newlyAddedItemId, list?.isAttachmentsExpanded) {
         val newItemId = uiState.newlyAddedItemId
         if (newItemId != null) {
             val attachmentIndex = attachmentItems.indexOfFirst { it.item.id == newItemId }
-            if (attachmentIndex == 0 && list?.isAttachmentsExpanded == true) {
-                coroutineScope.launch { listState.animateScrollToItem(1) }
+            if (attachmentIndex != -1 && list?.isAttachmentsExpanded == true) {
+                listState.animateScrollToItem(1)
             } else {
                 val draggableIndex = draggableItems.indexOfFirst { it.item.id == newItemId }
-                if (draggableIndex == 0) {
-                    val attachmentsOffset = if (list?.isAttachmentsExpanded == true)
-                        1 + attachmentItems.size else 1
-                    coroutineScope.launch { listState.animateScrollToItem(attachmentsOffset) }
+                if (draggableIndex != -1) {
+                    val headerSize = 1 + if (list?.isAttachmentsExpanded == true) attachmentItems.size else 0
+                    listState.animateScrollToItem(headerSize + draggableIndex)
                 }
             }
             viewModel.onScrolledToNewItem()
         }
     }
 
-    val dragDropHandler = remember {
-        object : DragDropHandler<ListItemContent> {
-            override fun onDragStart(item: ListItemContent, index: Int) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.onSwipeStateReset(item.item.id)
-            }
-
-            override fun onDragEnd(fromIndex: Int, toIndex: Int): Boolean {
-                viewModel.moveItem(fromIndex, toIndex)
-                return true
-            }
-
-            override fun onDragCancel() {}
-
-            override fun canDrag(item: ListItemContent, index: Int): Boolean {
-                return !isSelectionModeActive && uiState.swipedItemId == null
-            }
-        }
-    }
-
-    val dragDropState = rememberDragDropState(dragDropHandler)
-
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
     }
-
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -278,7 +221,7 @@ fun GoalDetailScreen(
                                 )
                             }
                         }
-                        IconButton(onClick = { viewModel.onRevealInExplorer(listId) }) {
+                        IconButton(onClick = { viewModel.onRevealInExplorer(list?.id ?: "") }) {
                             Icon(
                                 imageVector = Icons.Default.LocationSearching,
                                 contentDescription = stringResource(R.string.reveal_in_backlogs),
@@ -290,188 +233,116 @@ fun GoalDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            Column(
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .imePadding()
+            AnimatedVisibility(
+                visible = !isSelectionModeActive,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
             ) {
-                AnimatedVisibility(
-                    visible = !isSelectionModeActive,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut(),
-                ) {
-                    GoalInputBar(
-                        inputValue = uiState.inputValue,
-                        inputMode = uiState.inputMode,
-                        onValueChange = { viewModel.onInputTextChanged(it) },
-                        onSubmit = { viewModel.submitInput() },
-                        onInputModeSelected = { viewModel.onInputModeSelected(it) },
-                        onRecentsClick = { viewModel.onShowRecentLists() },
-                        onAddListLinkClick = { viewModel.onAddListLinkRequest() },
-                        onShowAddWebLinkDialog = { viewModel.onShowAddWebLinkDialog() },
-                        onShowAddObsidianLinkDialog = { viewModel.onShowAddObsidianLinkDialog() },
-                        onAddListShortcutClick = { viewModel.onAddListShortcutRequest() },
-                    )
-                }
+                GoalInputBar(
+                    inputValue = uiState.inputValue,
+                    inputMode = uiState.inputMode,
+                    onValueChange = { viewModel.onInputTextChanged(it) },
+                    onSubmit = { viewModel.submitInput() },
+                    onInputModeSelected = { viewModel.onInputModeSelected(it) },
+                    onRecentsClick = { viewModel.onShowRecentLists() },
+                    onAddListLinkClick = { viewModel.onAddListLinkRequest() },
+                    onShowAddWebLinkDialog = { viewModel.onShowAddWebLinkDialog() },
+                    onShowAddObsidianLinkDialog = { viewModel.onShowAddObsidianLinkDialog() },
+                    onAddListShortcutClick = { viewModel.onAddListShortcutRequest() },
+                    modifier = Modifier.navigationBarsPadding().imePadding()
+                )
             }
         },
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .autoScrollDragDrop(dragDropState, listState),
-            ) {
-                item(key = "attachments_section") {
-                    list?.let {
-                        AttachmentsSection(
-                            attachments = attachmentItems,
-                            isExpanded = it.isAttachmentsExpanded,
-                            onAddAttachment = { type ->
-                                when (type) {
-                                    AttachmentType.NOTE -> viewModel.onAddNewNoteRequested()
-                                    AttachmentType.WEB_LINK -> viewModel.onShowAddWebLinkDialog()
-                                    AttachmentType.OBSIDIAN_LINK -> viewModel.onShowAddObsidianLinkDialog()
-                                    AttachmentType.LIST_LINK -> viewModel.onAddListLinkRequest()
-                                }
-                            },
-                            onDeleteItem = { item -> viewModel.deleteItem(item) },
-                            onItemClick = { item -> viewModel.onItemClick(item) }
-                        )
-                    }
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .autoScroll(dragDropState)
+        ) {
+            item(key = "attachments_section") {
+                list?.let {
+                    AttachmentsSection(
+                        attachments = attachmentItems,
+                        isExpanded = it.isAttachmentsExpanded,
+                        onAddAttachment = { type ->
+                            when (type) {
+                                AttachmentType.NOTE -> viewModel.onAddNewNoteRequested()
+                                AttachmentType.WEB_LINK -> viewModel.onShowAddWebLinkDialog()
+                                AttachmentType.OBSIDIAN_LINK -> viewModel.onShowAddObsidianLinkDialog()
+                                AttachmentType.LIST_LINK -> viewModel.onAddListLinkRequest()
+                            }
+                        },
+                        onDeleteItem = { item -> viewModel.deleteItem(item) },
+                        onItemClick = { item -> viewModel.onItemClick(item) }
+                    )
                 }
+            }
 
-                itemsIndexed(
-                    items = draggableItems,
-                    key = { _, item -> "draggable_${item.item.id}" }
-                ) { index, content ->
-                    if (index >= draggableItems.size) {
-                        Log.w("DragAndDrop", "Index $index out of bounds for draggableItems.size=${draggableItems.size}")
-                        return@itemsIndexed
-                    }
+            items(
+                items = draggableItems,
+                key = { item -> item.item.id }
+            ) { content ->
+                val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
+                        (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                    val isDragging = dragDropState.isDragging && (dragDropState.draggedIndex == index)
-                    val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
-                            (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
+                val backgroundColor by animateColorAsState(
+                    targetValue = when {
+                        isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                        content.item.id in uiState.selectedItemIds -> MaterialTheme.colorScheme.primaryContainer
+                        (content as? ListItemContent.GoalItem)?.goal?.completed == true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                        else -> MaterialTheme.colorScheme.surface
+                    },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                    label = "bgAnim"
+                )
 
+                // ВИКОРИСТАННЯ НОВОГО ОБ'ЄДНАНОГО КОМПОНЕНТА
+                InteractiveListItem(
+                    item = content,
+                    dragDropState = dragDropState,
+                    isAnyItemDragging = dragDropState.isDragging,
+                    swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
+                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
+                    resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
+                    backgroundColor = backgroundColor, // ПРАВИЛЬНО
+                    onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
+                    onDelete = { viewModel.deleteItem(content) },
+                    onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
+                    onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
+                    onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
+                    onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
+                    modifier = Modifier.animateItem(),
+                    recompositionTrigger = dragDropState.pointerPosition.y,
+
+                    ) {
+                    // Контент, який буде відображено всередині
                     when (content) {
                         is ListItemContent.GoalItem -> {
-                            val isSelected = content.item.id in uiState.selectedItemIds
-
-                            val targetColor = when {
-                                isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-                                isSelected -> MaterialTheme.colorScheme.primaryContainer
-                                content.goal.completed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                                else -> MaterialTheme.colorScheme.surface
-                            }
-
-                            val background by animateColorAsState(
-                                targetValue = targetColor,
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                                label = "bgAnim"
+                            GoalItem(
+                                goal = content.goal,
+                                obsidianVaultName = obsidianVaultName,
+                                onToggle = { isChecked -> viewModel.toggleGoalCompletedWithState(content.goal, isChecked) },
+                                onItemClick = { viewModel.onItemClick(content) },
+                                onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                onTagClick = { tag -> viewModel.onTagClicked(tag) },
+                                onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
+                                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                emojiToHide = currentListContextEmojiToHide
                             )
-
-                            val animatedBorderColor by animateColorAsState(
-                                targetValue = when {
-                                    isHighlighted -> MaterialTheme.colorScheme.tertiary
-                                    isSelected && !content.goal.completed -> MaterialTheme.colorScheme.primary
-                                    else -> Color.Transparent
-                                },
-                                animationSpec = tween(300),
-                                label = "border_color_anim"
-                            )
-
-                            val elevation by animateDpAsState(
-                                targetValue = if (isDragging) 4.dp else 1.dp,
-                                label = "elevation_anim"
-                            )
-
-                            DraggableItemContainer(
-                                state = dragDropState,
-                                item = content,
-                                index = index,
-                                modifier = Modifier.animateItem(),
-
-                            ) { dragHandleModifier ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = CardDefaults.cardColors(containerColor = background),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-                                    border = if (content.goal.completed && !isHighlighted) null else BorderStroke(2.dp, animatedBorderColor)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(modifier = Modifier.weight(1f)) {
-                                            SwipeableListItem(
-                                                swipeEnabled = !dragDropState.isDragging,
-                                                isDragging = isDragging,
-                                                isAnyItemDragging = dragDropState.isDragging,
-                                                resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                                backgroundColor = Color.Transparent,
-                                                onSwipeStart = { if (!dragDropState.isDragging) viewModel.onSwipeStart(content.item.id) },
-                                                isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
-                                                onDelete = { viewModel.deleteItem(content) },
-                                                onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                                                onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
-                                                onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                                                onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
-                                                content = {
-                                                    GoalItem(
-                                                        goal = content.goal,
-                                                        obsidianVaultName = obsidianVaultName,
-                                                        onToggle = { isChecked -> viewModel.toggleGoalCompletedWithState(content.goal, isChecked) },
-                                                        onItemClick = { viewModel.onItemClick(content) },
-                                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                                        onTagClick = { tag -> viewModel.onTagClicked(tag) },
-                                                        onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
-                                                        contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                                                        emojiToHide = currentListContextEmojiToHide,
-                                                    )
-                                                }
-                                            )
-                                        }
-                                        DragHandleIcon(modifier = dragHandleModifier)
-                                    }
-                                }
-                            }
                         }
-
                         is ListItemContent.SublistItem -> {
-                            // <-- ПОЧАТОК ВИПРАВЛЕННЯ -->
-                            DraggableItemContainer(
-                                state = dragDropState,
-                                item = content,
-                                index = index,
-                                modifier = Modifier.animateItem(),
-                            ) { dragHandleModifier ->
-                                // Прибираємо Card і повертаємо Box, щоб не було зайвої тіні
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    SublistItemRow(
-                                        sublistContent = content,
-                                        isSelected = content.item.id in uiState.selectedItemIds,
-                                        isHighlighted = isHighlighted,
-                                        onClick = { viewModel.onItemClick(content) },
-                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                        endAction = { DragHandleIcon(dragHandleModifier) },
-                                    )
-                                }
-                            }
-                            // <-- КІНЕЦЬ ВИПРАВЛЕННЯ -->
+                            SublistItemRow(
+                                sublistContent = content,
+                                isSelected = content.item.id in uiState.selectedItemIds,
+                                isHighlighted = isHighlighted,
+                                onClick = { viewModel.onItemClick(content) },
+                                onLongClick = { viewModel.onItemLongClick(content.item.id) }
+                            )
                         }
-
                         else -> {
-                            Log.w("DragAndDrop", "Unsupported content type: ${content::class.simpleName}")
+                            Log.w("BacklogScreen", "Unsupported draggable content type: ${content::class.simpleName}")
                         }
                     }
                 }
@@ -537,11 +408,7 @@ private fun handleRelatedLinkClick(
                 context.startActivity(intent)
             }
             LinkType.GOAL_LIST -> {
-                navController.navigate("goal_detail_screen/${link.target}") {
-                    popUpTo(navController.currentDestination!!.id) {
-                        inclusive = true
-                    }
-                }
+                navController.navigate("goal_detail_screen/${link.target}")
             }
             LinkType.OBSIDIAN -> {
                 if (obsidianVaultName.isNotBlank()) {
@@ -558,35 +425,5 @@ private fun handleRelatedLinkClick(
         }
     } catch (e: Exception) {
         Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
-    }
-}
-
-@Composable
-private fun DragHandleIcon(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = Modifier
-            .fillMaxHeight()
-            .padding(end = 4.dp),
-        color = Color.Transparent
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(vertical = 4.dp)
-        ) {
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                modifier = Modifier.semantics { contentDescription = "Перетягнути" }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DragHandle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = modifier
-                        .size(24.dp)
-                        .padding(4.dp)
-                )
-            }
-        }
     }
 }
