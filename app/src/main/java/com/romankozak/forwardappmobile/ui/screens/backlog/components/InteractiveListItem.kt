@@ -133,7 +133,7 @@ fun InteractiveListItem(
             val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
             Box(modifier = Modifier.align(align)) {
-                DropIndicator(isValidDrop = true)
+                //DropIndicator(isValidDrop = true)
             }
         }
     }

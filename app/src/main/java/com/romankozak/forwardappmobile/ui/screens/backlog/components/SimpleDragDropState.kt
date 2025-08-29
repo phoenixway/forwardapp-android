@@ -25,6 +25,8 @@ private fun shouldShowDropIndicator(
     draggedIndex: Int,
     targetIndex: Int
 ): DropIndicatorState {
+
+
     if (draggedIndex == -1 || targetIndex == -1) {
         return DropIndicatorState(show = false)
     }
@@ -52,15 +54,12 @@ private fun shouldShowDropIndicator(
         else -> DropIndicatorState(show = false)
     }
 }
-
 class SimpleDragDropState(
     private val state: LazyListState,
     private val scope: CoroutineScope,
     private val onMove: (Int, Int) -> Unit
 ) {
-    companion object {
-        private const val TAG = "SimpleDragDropState"
-    }
+    companion object { private const val TAG = "SimpleDragDropState" }
 
     lateinit var itemsProvider: () -> List<ListItemContent>
 
@@ -96,9 +95,9 @@ class SimpleDragDropState(
         targetIndexOfDraggedItem = itemIndex
         draggedDistance = 0f
 
-        // Знаходимо layout info для поточного елемента
+        // Доступ до LazyListItemInfo (з урахуванням header => +1)
         draggedItemLayoutInfo = state.layoutInfo.visibleItemsInfo.firstOrNull {
-            it.index == itemIndex + 1 // +1 бо є header
+            it.index == itemIndex + 1
         }
 
         Log.d(TAG, "DragStart: itemIndex=$itemIndex, layoutInfo=${draggedItemLayoutInfo != null}")
@@ -111,7 +110,6 @@ class SimpleDragDropState(
         val draggedIndex = draggedItemIndex
         val layoutInfo = draggedItemLayoutInfo ?: return
 
-        // Оновлюємо позицію перетягуваного елемента відносно viewport
         val currentItemOffset = layoutInfo.offset + draggedDistance
         val itemSize = layoutInfo.size
         val itemCenter = currentItemOffset + itemSize / 2f
@@ -121,24 +119,20 @@ class SimpleDragDropState(
 
         var newDropIndex = draggedIndex
 
-        // Покращена логіка визначення позиції вставки
-        val visibleItems = state.layoutInfo.visibleItemsInfo.filter {
-            it.index > 0 // Виключаємо header
-        }
+        val visibleItems = state.layoutInfo.visibleItemsInfo.filter { it.index > 0 } // виключаємо header
 
         when {
-            // Перетягування до початку списку
+            // до початку
             itemCenter < 50 && state.firstVisibleItemIndex > 1 -> {
                 newDropIndex = 0
             }
 
-            // Перетягування до кінця списку
+            // до кінця — даємо значення items.size (вставити в кінець)
             itemCenter > viewportHeight - 50 -> {
-                newDropIndex = items.size - 1
+                newDropIndex = items.size
             }
 
             else -> {
-                // Знаходимо найкращу позицію для вставки
                 newDropIndex = findBestDropIndex(
                     draggedIndex = draggedIndex,
                     itemCenter = itemCenter,
@@ -149,8 +143,8 @@ class SimpleDragDropState(
             }
         }
 
-        // Обмежуємо індекс
-        newDropIndex = newDropIndex.coerceIn(0, items.size - 1)
+        // Тепер дозволяємо значення в діапазоні 0..items.size (items.size = "в кінець")
+        newDropIndex = newDropIndex.coerceIn(0, items.size)
 
         if (newDropIndex != currentDropIndex) {
             currentDropIndex = newDropIndex
@@ -173,84 +167,64 @@ class SimpleDragDropState(
         var bestDropIndex = draggedIndex
         var lastCheckedIndex = -1
 
-        // Проходимо по всім видимим елементам в порядку їх розташування
         for (visibleItem in visibleItems.sortedBy { it.offset }) {
-            val itemIndex = visibleItem.index - 1 // -1 for header
+            val itemIndex = visibleItem.index - 1 // перетворюємо LazyList-індекс → індекс у списку
             if (itemIndex !in 0 until totalItems || itemIndex == draggedIndex) continue
 
-            val visibleItemTop = visibleItem.offset.toFloat()
-            val visibleItemBottom = (visibleItem.offset + visibleItem.size).toFloat()
-            val visibleItemCenter = (visibleItemTop + visibleItemBottom) / 2f
-
-            Log.v(TAG, "Checking item $itemIndex: top=$visibleItemTop, center=$visibleItemCenter, bottom=$visibleItemBottom")
+            val visibleTop = visibleItem.offset.toFloat()
+            val visibleBottom = (visibleItem.offset + visibleItem.size).toFloat()
+            val visibleCenter = (visibleTop + visibleBottom) / 2f
 
             lastCheckedIndex = itemIndex
 
-            // Якщо центр перетягуваного елемента знаходиться вище поточного елемента
-            if (itemCenter < visibleItemTop) {
-                bestDropIndex = itemIndex
-                Log.d(TAG, "Item center above item $itemIndex -> insert at $itemIndex")
-                break
-            }
-            // Якщо центр перетягуваного елемента знаходиться у верхній половині поточного елемента
-            else if (itemCenter >= visibleItemTop && itemCenter < visibleItemCenter) {
-                bestDropIndex = itemIndex
-                Log.d(TAG, "Item center in upper half of item $itemIndex -> insert at $itemIndex")
-                break
-            }
-            // Якщо центр перетягуваного елемента знаходиться у нижній половині поточного елемента
-            else if (itemCenter >= visibleItemCenter && itemCenter <= visibleItemBottom) {
-                bestDropIndex = itemIndex + 1
-                Log.d(TAG, "Item center in lower half of item $itemIndex -> insert at ${itemIndex + 1}")
-                // Не виходимо з циклу, можливо є ще елементи нижче
-            }
-            // Якщо центр перетягуваного елемента нижче поточного елемента
-            else if (itemCenter > visibleItemBottom) {
-                bestDropIndex = itemIndex + 1
-                Log.d(TAG, "Item center below item $itemIndex -> tentatively insert at ${itemIndex + 1}")
-                // Продовжуємо перевіряти наступні елементи
+            when {
+                itemCenter < visibleTop -> {
+                    bestDropIndex = itemIndex
+                    break
+                }
+                itemCenter >= visibleTop && itemCenter < visibleCenter -> {
+                    bestDropIndex = itemIndex
+                    break
+                }
+                itemCenter >= visibleCenter && itemCenter <= visibleBottom -> {
+                    bestDropIndex = itemIndex + 1
+                }
+                itemCenter > visibleBottom -> {
+                    bestDropIndex = itemIndex + 1
+                }
             }
         }
 
-        // Якщо перетягуємо за межі видимих елементів вниз
-        if (lastCheckedIndex != -1 && bestDropIndex > lastCheckedIndex && bestDropIndex <= totalItems) {
-            Log.d(TAG, "Dragging beyond visible items, final position: $bestDropIndex")
-        }
-
-        // Обмежуємо результат
+        // Якщо перетягуємо нижче останнього видимого — можемо повернути totalItems (вставка в кінець)
         bestDropIndex = bestDropIndex.coerceIn(0, totalItems)
-
         Log.d(TAG, "Final bestDropIndex: $bestDropIndex for draggedIndex: $draggedIndex")
         return bestDropIndex
     }
 
     fun onDragEnd() {
         val fromIndex = draggedItemIndex
-        val toIndex = currentDropIndex
+        val rawToIndex = currentDropIndex
         val items = itemsProvider()
 
-        Log.d(TAG, "DragEnd: fromIndex=$fromIndex, toIndex=$toIndex, totalItems=${items.size}")
+        Log.d(TAG, "DragEnd: fromIndex=$fromIndex, toIndex=$rawToIndex, totalItems=${items.size}")
 
-        if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-            // toIndex означає позицію ПЕРЕД якою треба вставити елемент
-            // Конвертуємо це в індекс для функції onMove
-            val actualToIndex = when {
-                // Якщо переміщуємо вниз і toIndex > кількості елементів, вставляємо в кінець
-                toIndex >= items.size -> items.size - 1
-                // Якщо переміщуємо вниз, зменшуємо на 1 (бо елемент видаляється зі старої позиції)
-                fromIndex < toIndex -> (toIndex - 1).coerceAtLeast(0)
-                // Якщо переміщуємо вгору, індекс залишається той самий
-                else -> toIndex
+        if (fromIndex != -1 && rawToIndex != -1 && fromIndex != rawToIndex) {
+            // Не обмежуємо зверху – дозволяємо toIndex == items.size (вставка в кінець)
+            val safeToIndex = rawToIndex.coerceIn(0, items.size)
+
+            if (fromIndex != safeToIndex) {
+                onMove(fromIndex, safeToIndex)
+                Log.d(TAG, "DragEnd: moving from $fromIndex to $safeToIndex (raw toIndex=$rawToIndex)")
+            } else {
+                Log.d(TAG, "DragEnd: fromIndex == toIndex → нічого не робимо")
             }
-
-            Log.d(TAG, "DragEnd: moving from $fromIndex to $actualToIndex")
-            onMove(fromIndex, actualToIndex)
         } else {
-            Log.d(TAG, "DragEnd: no move needed. fromIndex=$fromIndex, toIndex=$toIndex")
+            Log.d(TAG, "DragEnd: no move needed. fromIndex=$fromIndex, toIndex=$rawToIndex")
         }
 
         reset()
     }
+
 
     fun reset() {
         draggedItemIndex = -1
@@ -272,7 +246,6 @@ class SimpleDragDropState(
                 val itemTop = layoutInfo.offset + draggedDistance
                 val itemBottom = itemTop + layoutInfo.size
 
-                // Покращена логіка автопрокрутки
                 val scrollThreshold = 120f
                 val maxScrollSpeed = 20f
 
@@ -291,9 +264,8 @@ class SimpleDragDropState(
                 if (scrollSpeed != 0f) {
                     try {
                         state.scrollBy(scrollSpeed)
-                        delay(16) // 60fps
+                        delay(16)
 
-                        // Оновлюємо layout info після прокрутки
                         val items = itemsProvider()
                         val draggedIndex = draggedItemIndex
                         if (draggedIndex in 0 until items.size) {
@@ -319,21 +291,17 @@ class SimpleDragDropState(
         val draggedIndex = draggedItemIndex
         val dropIndex = currentDropIndex
 
+        val itemSizeF = (draggedItemLayoutInfo?.size ?: 0).toFloat()
+
         return when {
-            // Перетягуваний елемент
             itemIndex == draggedIndex -> draggedDistance
 
-            // Елементи, які потрібно зсунути при русі вниз
-            draggedIndex < dropIndex && itemIndex in (draggedIndex + 1)..dropIndex -> {
-                -(draggedItemLayoutInfo?.size?.toFloat() ?: 0f)
-            }
+            // рух вниз: зсуваємо елементи між draggedIndex+1 .. (dropIndex-1) вгору
+            draggedIndex < dropIndex && itemIndex in (draggedIndex + 1) until dropIndex -> -itemSizeF
 
-            // Елементи, які потрібно зсунути при русі вгору
-            draggedIndex > dropIndex && itemIndex in dropIndex until draggedIndex -> {
-                (draggedItemLayoutInfo?.size?.toFloat() ?: 0f)
-            }
+            // рух вгору: зсуваємо елементи між dropIndex .. draggedIndex-1 вниз
+            draggedIndex > dropIndex && itemIndex in dropIndex until draggedIndex -> itemSizeF
 
-            // Всі інші елементи залишаються на місці
             else -> 0f
         }
     }
