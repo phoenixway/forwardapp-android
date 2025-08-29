@@ -54,6 +54,8 @@ object SwipeConstants {
     val SHADOW_ELEVATION = 2.dp
 }
 
+// Виправлений SwipeableListItem.kt з підтримкою DnD
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SwipeableListItem(
@@ -69,7 +71,9 @@ fun SwipeableListItem(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
+    swipeEnabled: Boolean = true, // 🚀 параметр тепер використовується
+
 ) {
     key(resetTrigger) {
         val coroutineScope = rememberCoroutineScope()
@@ -100,7 +104,9 @@ fun SwipeableListItem(
                 snapAnimationSpec = tween(durationMillis = SwipeConstants.ANIMATION_DURATION, easing = FastOutSlowInEasing),
                 decayAnimationSpec = exponentialDecay(),
                 confirmValueChange = { newValue ->
-                    if (isDragging) return@AnchoredDraggableState false
+                    // КЛЮЧОВЕ ВИПРАВЛЕННЯ: Не дозволяємо swipe під час dragging або якщо він вимкнений
+                    if (!swipeEnabled || isDragging || isAnyItemDragging) return@AnchoredDraggableState false
+
                     when {
                         newValue == SwipeState.Normal -> {
                             swipeDirection = null
@@ -131,11 +137,12 @@ fun SwipeableListItem(
             )
         }
 
-/*        LaunchedEffect(isAnyItemDragging) {
+        // ВАЖЛИВО: Скидаємо swipe стан при початку dragging
+        LaunchedEffect(isAnyItemDragging) {
             if (isAnyItemDragging && !isDragging && swipeState.currentValue != SwipeState.Normal) {
                 coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) }
             }
-        }*/
+        }
 
         val resetSwipe = { coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) } }
 
@@ -172,7 +179,8 @@ fun SwipeableListItem(
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 2.dp)
         ) {
-            if (!isDragging && offset > 0) {
+            // Дії для swipe (показуємо тільки якщо не dragging і свайп увімкнено)
+            if (swipeEnabled && !isDragging && !isAnyItemDragging && offset > 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(start = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
@@ -185,7 +193,7 @@ fun SwipeableListItem(
                 }
             }
 
-            if (!isDragging && offset < 0) {
+            if (swipeEnabled && !isDragging && !isAnyItemDragging && offset < 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(end = 1.dp),
                     horizontalArrangement = Arrangement.spacedBy(1.dp, Alignment.End),
@@ -205,9 +213,8 @@ fun SwipeableListItem(
                     .anchoredDraggable(
                         state = swipeState,
                         orientation = Orientation.Horizontal,
-                        //enabled = !isAnyItemDragging,
-                        enabled = !isDragging
-
+                        // КЛЮЧОВЕ ВИПРАВЛЕННЯ: Вимикаємо swipe під час dragging або якщо він вимкнений
+                        enabled = swipeEnabled && !isDragging && !isAnyItemDragging
                     ),
                 color = backgroundColor,
                 shape = dynamicShape,

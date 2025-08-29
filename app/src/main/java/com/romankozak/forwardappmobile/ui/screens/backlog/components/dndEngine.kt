@@ -2,11 +2,14 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,12 +22,14 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,6 +46,7 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -58,47 +64,91 @@ interface DragDropHandler<T> {
 class DragDropState<T>(
     private val handler: DragDropHandler<T>,
 ) {
-    var isDragging by mutableStateOf(false)
-        private set
+    var isDragging by mutableStateOf(false); private set
+    var draggedIndex by mutableIntStateOf(-1); private set
+    var targetIndex by mutableIntStateOf(-1); private set
+    var draggedItem by mutableStateOf<T?>(null); private set
 
-    var draggedIndex by mutableIntStateOf(-1)
-        private set
+    // Акумульований офсет для плавного перетягу
+    var dragOffset by mutableStateOf(Offset.Zero); private set
 
-    var targetIndex by mutableIntStateOf(-1)
-        private set
+    // --------- Гістерезис/геометрія ----------
+    // Скільки всього проїхали по Y від старту жесту
+    private var accumulatedDy by mutableStateOf(0f)
+    // На якій «фіксованій» позначці по Y востаннє перейшли інший індекс
+    private var committedDy by mutableStateOf(0f)
+    // Куди рухаємося останнім часом: -1 вгору, +1 вниз, 0 стоїмо
+    var lastMoveDir by mutableIntStateOf(0); private set
+    // Для лінії вставки: true → зверху, false → знизу
+    var insertOnTop by mutableStateOf(true); private set
 
-    var draggedItem by mutableStateOf<T?>(null)
-        private set
+    // Пер-елементні висоти, щоб рахувати пороги
+    private val itemHeights = mutableStateMapOf<Int, Float>()
+    // Приблизна кількість елементів (оновлюємо під час вимірювання)
+    var totalItems by mutableIntStateOf(0); private set
 
-    var dragOffset by mutableStateOf(Offset.Zero)
-        private set
+    fun reportItemMeasured(index: Int, heightPx: Float) {
+        if (heightPx > 0f) itemHeights[index] = heightPx
+        if (index + 1 > totalItems) totalItems = index + 1
+    }
+    private fun heightFor(index: Int): Float =
+        itemHeights[index] ?: itemHeights[draggedIndex] ?: 1f
 
     fun startDrag(item: T, index: Int) {
         if (handler.canDrag(item, index)) {
             draggedItem = item
             draggedIndex = index
+            targetIndex = index
             isDragging = true
+            dragOffset = Offset.Zero
+            accumulatedDy = 0f
+            committedDy = 0f
+            lastMoveDir = 0
+            insertOnTop = true
             handler.onDragStart(item, index)
         }
     }
 
-    fun updateDragPosition(offset: Offset) {
-        dragOffset = offset
-    }
+    // Головне: додаємо дельту, і тільки при перетині порога рухаємо targetIndex
+    fun applyDragDelta(
+        delta: Offset,
+        hysteresisFraction: Float = 0.35f,
+        startIndexFallback: Int = draggedIndex
+    ) {
+        dragOffset = dragOffset + delta
+        accumulatedDy += delta.y
+        lastMoveDir = when {
+            delta.y > 0f -> 1
+            delta.y < 0f -> -1
+            else -> lastMoveDir
+        }
 
-    fun updateTargetIndex(index: Int) {
-        if ((draggedIndex != -1) && handler.canDrop(draggedIndex, index)) {
-            targetIndex = index
+        val itemHeight = heightFor(draggedIndex).coerceAtLeast(1f)
+        val threshold = itemHeight * hysteresisFraction
+
+        var newTarget = if (targetIndex >= 0) targetIndex else startIndexFallback
+
+        // Можемо «переступати» одразу кілька комірок, якщо тягнемо швидко
+        while ((accumulatedDy - committedDy) > threshold && newTarget < (totalItems - 1)) {
+            newTarget += 1
+            committedDy += itemHeight
+            insertOnTop = false // рух вниз → вставка під елементом
+        }
+        while ((committedDy - accumulatedDy) > threshold && newTarget > 0) {
+            newTarget -= 1
+            committedDy -= itemHeight
+            insertOnTop = true // рух вгору → вставка над елементом
+        }
+
+        if (newTarget != targetIndex && handler.canDrop(draggedIndex, newTarget)) {
+            targetIndex = newTarget
         }
     }
 
     fun endDrag(): Boolean {
-        val success = if ((draggedIndex != -1) && (targetIndex != -1) && (draggedIndex != targetIndex)) {
+        val success = if (draggedIndex != -1 && targetIndex != -1 && draggedIndex != targetIndex) {
             handler.onDragEnd(draggedIndex, targetIndex)
-        } else {
-            false
-        }
-
+        } else false
         resetState()
         return success
     }
@@ -114,8 +164,15 @@ class DragDropState<T>(
         targetIndex = -1
         draggedItem = null
         dragOffset = Offset.Zero
+        accumulatedDy = 0f
+        committedDy = 0f
+        lastMoveDir = 0
+        insertOnTop = true
+        itemHeights.clear()
+        totalItems = 0
     }
 }
+
 
 // 3. Composable function to create state
 @Composable
@@ -131,36 +188,42 @@ fun <T> Modifier.draggableItem(
     item: T,
     index: Int,
 ): Modifier = composed {
-    val density = LocalDensity.current
     var itemBounds: Rect by remember { mutableStateOf(Rect.Zero) }
 
     this
         .onGloballyPositioned { coordinates ->
-            itemBounds = coordinates.boundsInParent()
+            val r = coordinates.boundsInParent()
+            itemBounds = r
+            // повідомляємо про висоту
+            state.reportItemMeasured(index, r.height)
         }
         .pointerInput(item, index) {
             detectDragGestures(
-                onDragStart = { _ ->
+                onDragStart = {
                     state.startDrag(item, index)
+                },
+                onDragCancel = {
+                    state.cancelDrag()
                 },
                 onDragEnd = {
                     state.endDrag()
                 },
-                onDrag = { _, dragAmount ->
-                    if (state.isDragging && (state.draggedIndex == index)) {
-                        state.updateDragPosition(dragAmount)
-
-                        val itemHeight = with(density) { itemBounds.height.toDp() }
-                        val draggedDistance = dragAmount.y
-                        val estimatedTargetIndex = index + (draggedDistance / itemHeight.toPx()).roundToInt()
-
-                        state.updateTargetIndex(estimatedTargetIndex.coerceAtLeast(0))
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    if (state.isDragging && state.draggedIndex == index) {
+                        // тепер користуємось новим методом з гістерезисом
+                        state.applyDragDelta(
+                            delta = dragAmount,
+                            hysteresisFraction = 0.35f,
+                            startIndexFallback = index
+                        )
                     }
-                },
+                }
             )
         }
         .applyDragVisualEffects(state, index)
 }
+
 
 // 4c. Helper function for visual effects
 private fun <T> Modifier.applyDragVisualEffects(
@@ -183,24 +246,23 @@ fun <T> Modifier.dragHandle(
     index: Int,
 ): Modifier = this.pointerInput(item, index) {
     detectDragGestures(
-        onDragStart = { _ ->
+        onDragStart = {
             state.startDrag(item, index)
         },
-        onDragEnd = {
-            state.endDrag()
-        },
-        onDrag = { _, dragAmount ->
-            if (state.isDragging && (state.draggedIndex == index)) {
-                state.updateDragPosition(dragAmount)
-
-                // Additional logic for determining target index
-                // can be added here based on the entire list position
+        onDragCancel = { state.cancelDrag() },
+        onDragEnd = { state.endDrag() },
+        onDrag = { change: PointerInputChange, dragAmount: Offset ->
+            change.consume() // щоб нічого не з’їло жест
+            if (state.isDragging && state.draggedIndex == index) {
+                // Гістерезис всередині стану; фракцію можна підкрутити
+                state.applyDragDelta(delta = dragAmount, hysteresisFraction = 0.35f)
             }
         },
     )
 }
 
-// 5b. Composable wrapper for elements with drag handle
+
+
 @Composable
 fun <T> DraggableItemContainer(
     state: DragDropState<T>,
@@ -209,21 +271,48 @@ fun <T> DraggableItemContainer(
     modifier: Modifier = Modifier,
     content: @Composable (dragHandleModifier: Modifier) -> Unit,
 ) {
-    var itemBounds: Rect by remember { mutableStateOf(Rect.Zero) }
-
-    // Create modifier for drag handle
+    // handle створюємо як і раніше
     val dragHandleModifier = Modifier.dragHandle(state, item, index)
 
     Box(
         modifier = modifier
             .onGloballyPositioned { coordinates ->
-                itemBounds = coordinates.boundsInParent()
+                val r = coordinates.boundsInParent()
+                state.reportItemMeasured(index, r.height) // <- важливо!
             }
             .applyDragVisualEffects(state, index),
     ) {
+        // 1) контент завжди малюємо (щоб жест не «випилювався»)
         content(dragHandleModifier)
+
+        // 2) тонка риска-вставка поверх цілі, але НЕ на перетягуваному елементі
+        if (state.isDragging && index == state.targetIndex && index != state.draggedIndex) {
+            val align = if (state.insertOnTop) Alignment.TopCenter else Alignment.BottomCenter
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(align)
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .graphicsLayer {
+                            // невелика «тінь», щоб було видно на будь-якому фоні
+                            shadowElevation = 8f
+                        }
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+        }
     }
 }
+
+
+
+
+// 7. LazyColumn modifier for auto-scrolling
+// Виправлений autoScrollDragDrop модифікатор у dndEngine.kt
 
 // 7. LazyColumn modifier for auto-scrolling
 fun <T> Modifier.autoScrollDragDrop(
@@ -235,19 +324,32 @@ fun <T> Modifier.autoScrollDragDrop(
 
     LaunchedEffect(state.isDragging, state.dragOffset) {
         if (state.isDragging) {
-            // Auto-scroll logic
+            // Отримуємо інформацію про видимий контент
+            val layoutInfo = lazyListState.layoutInfo
+            val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
             val scrollThreshold = with(density) { 100.dp.toPx() }
-            // Note: size.height is not accessible here, you'll need to pass it as parameter
-            // or calculate it differently
-            when {
-                state.dragOffset.y < scrollThreshold -> {
-                    scope.launch {
-                        lazyListState.animateScrollBy(-50f)
+
+            // Перевіряємо положення перетягуваного елемента відносно viewport
+            val draggedItemInfo = layoutInfo.visibleItemsInfo.find {
+                it.key == "draggable_${state.draggedItem?.let { (it as? ListItemContent)?.item?.id }}"
+            }
+
+            draggedItemInfo?.let { itemInfo ->
+                val itemCenter = itemInfo.offset + itemInfo.size / 2
+                val draggedPosition = itemCenter + state.dragOffset.y
+
+                when {
+                    draggedPosition < scrollThreshold -> {
+                        // Прокручуємо вгору
+                        scope.launch {
+                            lazyListState.animateScrollBy(-100f)
+                        }
                     }
-                }
-                state.dragOffset.y > scrollThreshold -> { // Simplified condition
-                    scope.launch {
-                        lazyListState.animateScrollBy(50f)
+                    draggedPosition > (viewportHeight - scrollThreshold) -> {
+                        // Прокручуємо вниз
+                        scope.launch {
+                            lazyListState.animateScrollBy(100f)
+                        }
                     }
                 }
             }
