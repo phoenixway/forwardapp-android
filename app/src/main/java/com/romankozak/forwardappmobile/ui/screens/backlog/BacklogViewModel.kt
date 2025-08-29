@@ -35,6 +35,8 @@ sealed class UiEvent {
     data class HandleLinkClick(val link: RelatedLink) : UiEvent()
 
 
+
+
 }
 
 sealed class GoalActionDialogState {
@@ -56,6 +58,7 @@ data class UiState(
     val showAddWebLinkDialog: Boolean = false,
     val showAddObsidianLinkDialog: Boolean = false,
     val itemToHighlight: String? = null,
+    val needsStateRefresh: Boolean = false // <-- ДОДАЙТЕ ЦЕ ПОЛЕ
 )
 
 
@@ -178,6 +181,10 @@ class GoalDetailViewModel @Inject constructor(
     private var pendingAction: GoalActionType? = null
     private var pendingSourceItemIds: Set<String> = emptySet()
     private var pendingSourceGoalIds: Set<String> = emptySet()
+
+    private val _listVersion = MutableStateFlow(0)
+    val listVersion: StateFlow<Int> = _listVersion.asStateFlow()
+
 
     init {
         Log.d(TAG, "ViewModel INIT")
@@ -487,53 +494,42 @@ class GoalDetailViewModel @Inject constructor(
 
     // --- ОСНОВНА ФУНКЦІЯ ДЛЯ ДІАГНОСТИКИ ---
     fun moveItem(from: ListItemContent, to: ListItemContent) {
-        Log.d(TAG, "moveItem START. From ID: '${from.item.id.take(4)}', To ID: '${to.item.id.take(4)}'")
-        if (optimisticUpdateInProgress) {
-            Log.w(TAG, "moveItem IGNORED because another move is in progress.")
-            return
-        }
-
         viewModelScope.launch {
-            Log.d(TAG, "optimisticUpdateInProgress SET to TRUE")
-            optimisticUpdateInProgress = true
-
+            // Створюємо новий список
             val currentList = _listContent.value.toMutableList()
-            val fromIndex = currentList.indexOf(from)
-            val toIndex = currentList.indexOf(to)
-            Log.d(TAG, "Before move - From index: $fromIndex, To index: $toIndex. List size: ${currentList.size}")
+            val fromIndex = currentList.indexOfFirst { it.item.id == from.item.id }
+            val toIndex = currentList.indexOfFirst { it.item.id == to.item.id }
 
-            if (fromIndex == -1 || toIndex == -1) {
-                Log.e(TAG, "Cannot move item, not found in current list.")
-                optimisticUpdateInProgress = false
-                return@launch
-            }
-
-            try {
-                // 1. Оптимістичне оновлення
+            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
+                // Виконуємо переміщення
                 val itemToMove = currentList.removeAt(fromIndex)
                 currentList.add(toIndex, itemToMove)
-                Log.d(TAG, "After move (in memory) - List size: ${currentList.size}")
 
-                _listContent.value = currentList
-                Log.d(TAG, "-> Setting _listContent with optimistically updated list.")
+                // Оновлюємо стан НОВИМ екземпляром списку
+                _listContent.value = currentList.toList()
+                _listVersion.value++
 
-                // 2. Збереження в БД
-                withContext(Dispatchers.IO) {
-                    Log.d(TAG, "Saving to DB...")
+                // Встановлюємо прапор, як ви і запропонували
+                _uiState.update { it.copy(needsStateRefresh = true) }
+
+
+                _uiState.update { it.copy(needsStateRefresh = true) }
+
+                // Асинхронно зберігаємо новий порядок в БД (без оновлення версії)
+                launch(Dispatchers.IO) {
                     val updatedItems = currentList.mapIndexed { index, content ->
                         content.item.copy(order = index.toLong())
                     }
                     goalRepository.updateListItemsOrder(updatedItems)
-                    Log.d(TAG, "DB save SUCCEEDED.")
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "DB save FAILED.", e)
-                forceRefresh()
-            } finally {
-                Log.d(TAG, "finally block - optimisticUpdateInProgress SET to FALSE")
-                optimisticUpdateInProgress = false
             }
         }
+
+
+    }
+
+    fun onStateRefreshed() {
+        _uiState.update { it.copy(needsStateRefresh = false) }
     }
 
     fun deleteItem(item: ListItemContent) {

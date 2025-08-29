@@ -30,6 +30,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.SwipeableLi
 @Composable
 fun InteractiveListItem(
     item: ListItemContent,
+    index: Int, // Додано індекс
     dragDropState: DragDropState,
 
     // Параметри для SwipeableListItem
@@ -48,11 +49,8 @@ fun InteractiveListItem(
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit
 ) {
-    // Визначаємо, чи є цей елемент тим, який зараз перетягують
-    val isDragging = dragDropState.isDragging && dragDropState.draggedItem?.item?.id == item.item.id
-    val isAnythingDragging = dragDropState.isDragging
+    val isDragging = dragDropState.draggedItem?.item?.id == item.item.id
 
-    // Ефекти "підняття" та тіні, взяті з dndEngine.kt
     val elevation by animateFloatAsState(if (isDragging) 16f else 0f, label = "elevation")
     val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
     val alpha by animateFloatAsState(if (isDragging) 0.8f else 1f, label = "alpha")
@@ -61,9 +59,9 @@ fun InteractiveListItem(
         .pointerInput(dragDropState) {
             detectDragGesturesAfterLongPress(
                 onDragStart = {
-                    if (dragDropState.canDrag(item)) {
-                        dragDropState.onDragStart(item)
-                    }
+                    // УМОВУ БУЛО ВИДАЛЕНО.
+                    // Перевірка `if (isDragging)` тепер відбувається всередині onDragStart.
+                    dragDropState.onDragStart(item)
                 },
                 onDrag = { change, dragAmount ->
                     change.consume()
@@ -80,13 +78,10 @@ fun InteractiveListItem(
             this.alpha = alpha
             shadowElevation = elevation
         }
-
     Box(modifier = itemModifier) {
         SwipeableListItem(
-            // Важливо передавати isDragging та isAnyItemDragging у SwipeableListItem,
-            // щоб він коректно вимикав swipe під час перетягування.
             isDragging = isDragging,
-            isAnyItemDragging = isAnythingDragging,
+            isAnyItemDragging = dragDropState.isDragging,
             swipeEnabled = swipeEnabled,
             isAnotherItemSwiped = isAnotherItemSwiped,
             resetTrigger = resetTrigger,
@@ -105,17 +100,15 @@ fun InteractiveListItem(
                     Box(modifier = Modifier.weight(1f)) {
                         content(isDragging)
                     }
-                    DragHandleIcon() // Ручка тепер лише візуальний елемент
+                    DragHandleIcon()
                 }
             }
         )
 
-        // --- ЛОГІКА ПОКАЗУ ІНДИКАТОРА ВСТАВКИ (з dndEngine.kt) ---
-        // Індикатор показується на елементі, який зараз є "цільовим"
-        val isTarget = isAnythingDragging && dragDropState.currentIndexOfDraggedItem == dragDropState.getItemIndex(item) && !isDragging
+        // --- ВИПРАВЛЕНА ЛОГІКА ПОКАЗУ ІНДИКАТОРА ---
+        val isTarget = dragDropState.isDragging && dragDropState.targetIndexOfDraggedItem == index && dragDropState.initialIndexOfDraggedItem != index
         if (isTarget) {
-            // Визначаємо, зверху чи знизу малювати індикатор
-            val isDraggingDown = (dragDropState.initialDraggedItemIndex ?: -1) < (dragDropState.currentIndexOfDraggedItem ?: -1)
+            val isDraggingDown = (dragDropState.initialIndexOfDraggedItem ?: -1) < (dragDropState.targetIndexOfDraggedItem ?: -1)
             val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
             Box(modifier = Modifier.align(align)) {
@@ -125,7 +118,7 @@ fun InteractiveListItem(
     }
 }
 
-// --- ІНДИКАТОР ВСТАВКИ (повністю скопійовано з dndEngine.kt) ---
+// --- ІНДИКАТОР ВСТАВКИ (без змін) ---
 @Composable
 private fun DropIndicator(isValidDrop: Boolean) {
     val color = if (isValidDrop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
@@ -189,6 +182,7 @@ private fun DropIndicator(isValidDrop: Boolean) {
         }
     }
 }
+
 
 @Composable
 private fun DragHandleIcon(modifier: Modifier = Modifier) {
