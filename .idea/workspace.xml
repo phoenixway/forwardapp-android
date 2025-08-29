@@ -12,9 +12,6 @@
     <list default="true" id="09c4d5d7-eda6-4d44-a38e-92690dfcb42b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/GoalItem.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/GoalItem.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/SwipeableListItem.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/SwipeableListItem.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/dndEngine.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/dndEngine.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -70,37 +67,37 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;Android App.app.executor&quot;: &quot;Run&quot;,
-    &quot;PROJECT_TRUSTED_KEY&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;com.android.tools.idea.streaming.zoom.toolbar.visible&quot;: &quot;false&quot;,
-    &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/v5-polymorphic-lists&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/romankozak/Documents&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.17&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Android App.app.executor": "Run",
+    "PROJECT_TRUSTED_KEY": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "com.android.tools.idea.streaming.zoom.toolbar.visible": "false",
+    "com.google.services.firebase.aqiPopupShown": "true",
+    "git-widget-placeholder": "feature/v5-polymorphic-lists",
+    "last_opened_file_path": "/home/romankozak/Documents",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.17",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.android.tools.idea.sqlite.queryhistory&quot;: [
-      &quot;SELECT * \nFROM goal_lists\nWHERE id = '62267f50-8e99-4396-8643-de20c6c73e3f';&quot;,
-      &quot;SELECT * \nFROM goal_lists\nWHERE id = 't9N43rwhrXuXGauHM2Gyp';&quot;,
-      &quot;SELECT * \nFROM goal_lists\nWHERE id = '68cda1d7-9590-43df-bc38-ff76d373ff41';&quot;,
-      &quot;SELECT * \nFROM goal_lists\nWHERE id = 'd9d45d81-7bc0-4549-a3ba-9fb1e83bb3ae';&quot;,
-      &quot;SELECT * \nFROM goal_lists\nWHERE id = '3a3c94aa-bdf9-4612-95fc-888abd0015dd';&quot;
+  "keyToStringList": {
+    "com.android.tools.idea.sqlite.queryhistory": [
+      "SELECT * \nFROM goal_lists\nWHERE id = '62267f50-8e99-4396-8643-de20c6c73e3f';",
+      "SELECT * \nFROM goal_lists\nWHERE id = 't9N43rwhrXuXGauHM2Gyp';",
+      "SELECT * \nFROM goal_lists\nWHERE id = '68cda1d7-9590-43df-bc38-ff76d373ff41';",
+      "SELECT * \nFROM goal_lists\nWHERE id = 'd9d45d81-7bc0-4549-a3ba-9fb1e83bb3ae';",
+      "SELECT * \nFROM goal_lists\nWHERE id = '3a3c94aa-bdf9-4612-95fc-888abd0015dd';"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
       <recent name="com.romankozak.forwardappmobile.ui.screens.backlog.components" />
