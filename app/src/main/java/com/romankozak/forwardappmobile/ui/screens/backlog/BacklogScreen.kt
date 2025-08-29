@@ -86,14 +86,20 @@ fun GoalDetailScreen(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
-    val dragDropState = rememberDragDropState(
+    /*val dragDropState = rememberDragDropState(
         lazyListState = listState,
         onMove = { from, to -> viewModel.moveItem(from, to) }
+    )*/
+
+    val dragDropState = rememberSimpleDragDropState(
+        lazyListState = listState,
+        onMove = { fromIndex, toIndex -> viewModel.moveItem(fromIndex, toIndex) }
     )
+
 
     LaunchedEffect(uiState.needsStateRefresh) {
         if (uiState.needsStateRefresh) {
-            dragDropState.resetState()
+            dragDropState.reset()
             viewModel.onStateRefreshed()
         }
     }
@@ -464,157 +470,18 @@ private fun handleRelatedLinkClick(
         Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
     }
 }
-@Composable
-fun rememberDragDropState(
-    lazyListState: LazyListState,
-    onMove: (ListItemContent, ListItemContent) -> Unit
-): DragDropState {
-    val scope = rememberCoroutineScope()
-    // ЗМІНА: Ключ для remember тепер lazyListState, щоб уникнути зайвих рекомпозицій
-    return remember(lazyListState) { DragDropState(state = lazyListState, scope = scope, onMove = onMove) }
-}
+
 
 // ... (код екрану та функція rememberDragDropState залишаються без змін) ...
 
 // --- ЗАМІНІТЬ ПОВНІСТЮ ЦЕЙ КЛАС ---
-class DragDropState(
-    private val state: LazyListState,
-    private val scope: CoroutineScope,
-    private val onMove: (ListItemContent, ListItemContent) -> Unit
-) {
-    lateinit var itemsProvider: () -> List<ListItemContent>
-
-    private var draggedDistance by mutableStateOf(0f)
-    var draggedItem by mutableStateOf<ListItemContent?>(null)
-        private set
-    private var draggedItemInfo by mutableStateOf<LazyListItemInfo?>(null)
-
-    var initialIndexOfDraggedItem by mutableStateOf<Int?>(null)
-    var targetIndexOfDraggedItem by mutableStateOf<Int?>(null)
-        private set
-
-    private var overscrollJob by mutableStateOf<Job?>(null)
-
-    val isDragging: Boolean get() = draggedItem != null
-
-    fun onDragStart(item: ListItemContent) {
-        if (isDragging) return
-        val index = itemsProvider().indexOf(item)
-        if (index == -1) return
-
-        draggedItem = item
-        initialIndexOfDraggedItem = index
-        targetIndexOfDraggedItem = index
-        draggedItemInfo = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
-    }
-
-    fun onDrag(offset: Float) {
-        if (!isDragging) return
-        draggedDistance += offset
-
-        val initialInfo = draggedItemInfo ?: return
-        val initialIndex = initialIndexOfDraggedItem ?: return
-        val currentTargetIndex = targetIndexOfDraggedItem ?: return
-
-        val draggedItemTop = initialInfo.offset + draggedDistance
-        var newTargetIndex = currentTargetIndex
-
-        // Нова, більш надійна логіка визначення цілі
-        if (draggedDistance > 0) { // Рух вниз
-            state.layoutInfo.visibleItemsInfo
-                .firstOrNull {
-                    it.index > currentTargetIndex && draggedItemTop + initialInfo.size > it.offset + it.size / 2
-                }
-                ?.also { newTargetIndex = it.index }
-        } else if (draggedDistance < 0) { // Рух вгору
-            state.layoutInfo.visibleItemsInfo
-                .lastOrNull {
-                    it.index < currentTargetIndex && draggedItemTop < it.offset + it.size / 2
-                }
-                ?.also { newTargetIndex = it.index }
-        }
-
-        if (newTargetIndex != currentTargetIndex) {
-            val fromItem = itemsProvider().getOrNull(initialIndex)
-            val toItem = itemsProvider().getOrNull(newTargetIndex)
-            if (fromItem != null && toItem != null) {
-                onMove(fromItem, toItem)
-                targetIndexOfDraggedItem = newTargetIndex
-            }
-        }
-
-        if (overscrollJob?.isActive != true) {
-            checkForOverscroll()
-        }
-    }
-
-    fun onDragEnd() {
-        val fromIndex = initialIndexOfDraggedItem
-        val toIndex = targetIndexOfDraggedItem
-
-        if (fromIndex != null && toIndex != null && fromIndex != toIndex) {
-            val fromItem = itemsProvider().getOrNull(fromIndex)
-            val toItem = itemsProvider().getOrNull(toIndex)
-            if (fromItem != null && toItem != null) {
-                onMove(fromItem, toItem)
-                // Не скидаємо стан тут - чекаємо на команду від ViewModel
-                return
-            }
-        }
-        resetState()
-    }
-
-
-
-    fun resetState() {
-        draggedDistance = 0f
-        draggedItem = null
-        draggedItemInfo = null
-        initialIndexOfDraggedItem = null
-        targetIndexOfDraggedItem = null
-        overscrollJob?.cancel()
-    }
-    fun getOffset(item: ListItemContent): Float {
-        if (!isDragging) return 0f
-
-        val initialIndex = initialIndexOfDraggedItem ?: return 0f
-        val targetIndex = targetIndexOfDraggedItem ?: return 0f
-        val itemIndex = itemsProvider().indexOf(item)
-
-        val draggedItemSize = draggedItemInfo?.size?.toFloat() ?: 0f
-
-        return when {
-            itemIndex == initialIndex -> draggedDistance
-            itemIndex > initialIndex && itemIndex <= targetIndex -> -draggedItemSize
-            itemIndex < initialIndex && itemIndex >= targetIndex -> draggedItemSize
-            else -> 0f
-        }
-    }
-
-    fun canDrag(item: ListItemContent): Boolean {
-        return !isDragging
-    }
-
-    private fun checkForOverscroll() {
-        if (overscrollJob?.isActive == true) return
-        overscrollJob = scope.launch {
-            while (isDragging) {
-                val initialElement = draggedItemInfo ?: break
-                val viewportHeight = state.layoutInfo.viewportSize.height
-                val draggedItemTop = initialElement.offset + draggedDistance
-                val draggedItemBottom = draggedItemTop + initialElement.size
-
-                val scrollAmount = when {
-                    draggedItemBottom > viewportHeight - 200 -> 20f
-                    draggedItemTop < 200 -> -20f
-                    else -> 0f
-                }
-
-                if (scrollAmount != 0f) {
-                    state.scrollBy(scrollAmount)
-                }
-                delay(16)
-            }
-        }
+@Composable
+fun rememberSimpleDragDropState(
+    lazyListState: LazyListState,
+    onMove: (Int, Int) -> Unit
+): SimpleDragDropState {
+    val scope = rememberCoroutineScope()
+    return remember(lazyListState) {
+        SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
     }
 }
