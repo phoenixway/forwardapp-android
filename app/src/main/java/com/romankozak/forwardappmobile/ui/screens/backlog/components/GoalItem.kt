@@ -45,7 +45,7 @@ private data class ParsedGoalData(val icons: List<String>, val mainText: String)
 
 private fun parseTextAndExtractIcons(
     text: String,
-    contextMarkerToEmojiMap: Map<String, String>
+    contextMarkerToEmojiMap: Map<String, String>,
 ): ParsedGoalData {
     var currentText = text
     val foundIcons = mutableSetOf<String>()
@@ -60,7 +60,7 @@ private fun parseTextAndExtractIcons(
         "🎯" to listOf("+++ "),
         "🔭" to listOf("~ ", "~"),
         "✨" to listOf("@str"),
-        "🌫️" to listOf("@unclear")
+        "🌫️" to listOf("@unclear"),
     )
     hardcodedIconsData.forEach { (icon, markers) ->
         markers.forEach { marker ->
@@ -93,7 +93,7 @@ private fun parseTextAndExtractIcons(
 fun EnhancedCustomCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -101,21 +101,21 @@ fun EnhancedCustomCheckbox(
         targetValue = if (checked) MaterialTheme.colorScheme.primary else Color.Transparent,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            stiffness = Spring.StiffnessMedium,
         ),
-        label = "checkbox_color"
+        label = "checkbox_color",
     )
 
     val animatedBorderColor by animateColorAsState(
         targetValue = if (checked) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.outline,
-        label = "checkbox_border"
+        label = "checkbox_border",
     )
 
     val scale by animateFloatAsState(
         targetValue = if (checked) 1.1f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "checkbox_scale"
+        label = "checkbox_scale",
     )
 
     Box(
@@ -136,22 +136,22 @@ fun EnhancedCustomCheckbox(
                 role = Role.Checkbox
                 this.stateDescription = if (checked) "Виконано" else "Не виконано"
             },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         AnimatedVisibility(
             visible = checked,
             enter = scaleIn(
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
             ) + fadeIn(),
             exit = scaleOut(
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-            ) + fadeOut()
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            ) + fadeOut(),
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(10.dp)
+                modifier = Modifier.size(10.dp),
             )
         }
     }
@@ -169,10 +169,10 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                         goal.displayScore >= 40 -> Color(0xFFFFEB3B)
                         else -> Color(0xFFE91E63)
                     },
-                    label = "score_color"
+                    label = "score_color",
                 )
 
-                var isVisible by remember { mutableStateOf(false) }
+                var isVisible by remember { mutableStateOf(value = false) }
 
                 LaunchedEffect(Unit) {
                     isVisible = true
@@ -181,9 +181,9 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = slideInHorizontally(
-                        initialOffsetX = { -it },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                    ) + fadeIn()
+                        initialOffsetX = { fullWidth -> -fullWidth },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    ) + fadeIn(),
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
@@ -191,25 +191,25 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                         border = BorderStroke(0.6.dp, animatedColor.copy(alpha = 0.3f)),
                         modifier = Modifier.semantics {
                             contentDescription = "Оцінка: ${goal.displayScore} з 100"
-                        }
+                        },
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ElectricBolt,
                                 contentDescription = null,
                                 tint = animatedColor,
-                                modifier = Modifier.size(10.dp)
+                                modifier = Modifier.size(10.dp),
                             )
                             Text(
                                 text = "${goal.displayScore}/100",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.2.sp,
-                                    fontSize = 10.sp
+                                    fontSize = 10.sp,
                                 ),
                                 color = animatedColor,
                             )
@@ -225,7 +225,7 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                 modifier = Modifier
                     .semantics {
                         contentDescription = "Неможливо оцінити"
-                    }
+                    },
             ) {
                 Icon(
                     imageVector = Icons.Default.FlashOff,
@@ -233,7 +233,7 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(16.dp)
-                        .padding(3.dp)
+                        .padding(3.dp),
                 )
             }
         }
@@ -245,13 +245,13 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
 @Composable
 fun EnhancedRelatedLinkChip(
     link: RelatedLink,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
-    var isPressed by remember { mutableStateOf(false) }
+    var isPressed by remember { mutableStateOf(value = false) }
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "chip_scale"
+        label = "chip_scale",
     )
 
     val backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -264,7 +264,7 @@ fun EnhancedRelatedLinkChip(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
-                    onTap = { onClick() }
+                    onTap = { onClick() },
                 )
             }
             .semantics { contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"; role = Role.Button },
@@ -275,7 +275,7 @@ fun EnhancedRelatedLinkChip(
         Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
                 imageVector = when (link.type) {
@@ -286,18 +286,18 @@ fun EnhancedRelatedLinkChip(
                 },
                 contentDescription = null,
                 tint = contentColor,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(12.dp),
             )
             Text(
                 text = link.displayName ?: link.target,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.15.sp,
-                    fontSize = 10.sp
+                    fontSize = 10.sp,
                 ),
                 color = contentColor,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -306,9 +306,9 @@ fun EnhancedRelatedLinkChip(
 @Composable
 fun AnimatedContextEmoji(
     emoji: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    var isVisible by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(value = false) }
 
     LaunchedEffect(emoji) {
         delay(100)
@@ -320,21 +320,21 @@ fun AnimatedContextEmoji(
         enter = scaleIn(
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
+                stiffness = Spring.StiffnessLow,
+            ),
         ) + fadeIn(),
-        modifier = modifier
+        modifier = modifier,
     ) {
         Box(
             modifier = Modifier
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                    shape = CircleShape
+                    shape = CircleShape,
                 )
                 .padding(4.dp)
                 .semantics {
                     contentDescription = "Контекст: $emoji"
-                }
+                },
         ) {
             Text(
                 text = emoji,
@@ -351,23 +351,22 @@ private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
         modifier = modifier
             .background(
                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                shape = CircleShape
+                shape = CircleShape,
             )
             .padding(4.dp)
             .semantics {
                 contentDescription = "Містить нотатку"
-            }
+            },
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(18.dp),
         )
     }
 }
 
-// Функція тепер відповідає лише за вміст, без зовнішньої оболонки Card
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
@@ -381,38 +380,36 @@ fun GoalItem(
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
+    // endAction: @Composable () -> Unit = {},
 ) {
     val parsedData = remember(goal.text, contextMarkerToEmojiMap) {
         parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
     }
 
-    var isPressed by remember { mutableStateOf(false) }
-
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .pointerInput(onItemClick, onLongClick) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                    },
-                    onLongPress = { onLongClick() },
-                    onTap = { onItemClick() }
-                )
-            }
             .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         EnhancedCustomCheckbox(
             checked = goal.completed,
-            onCheckedChange = onToggle
+            onCheckedChange = onToggle,
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        // Коментар "ВИПРАВЛЕНО" є коректним українським словом, не друкарська помилка.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .pointerInput(onItemClick, onLongClick) {
+                    detectTapGestures(
+                        onLongPress = { onLongClick() },
+                        onTap = { onItemClick() },
+                    )
+                },
+        ) {
             MarkdownText(
                 text = parsedData.mainText,
                 isCompleted = goal.completed,
@@ -424,36 +421,36 @@ fun GoalItem(
                     lineHeight = 16.sp,
                     letterSpacing = 0.1.sp,
                     fontSize = 12.sp,
-                    fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium
-                )
+                    fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                ),
             )
 
-            val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
-                    parsedData.icons.isNotEmpty() ||
-                    !goal.description.isNullOrBlank() ||
-                    !goal.relatedLinks.isNullOrEmpty()
+            val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                    (parsedData.icons.isNotEmpty()) ||
+                    (!goal.description.isNullOrBlank()) ||
+                    (!goal.relatedLinks.isNullOrEmpty())
 
             AnimatedVisibility(
                 visible = hasStatusContent,
                 enter = slideInVertically(
-                    initialOffsetY = { -it },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                ) + fadeIn()
+                    initialOffsetY = { height -> -height },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                ) + fadeIn(),
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(6.dp))
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         EnhancedScoreStatusBadge(goal = goal)
 
                         parsedData.icons
-                            .filterNot { it == emojiToHide }
+                            .filterNot { icon -> icon == emojiToHide }
                             .forEachIndexed { index, icon ->
                                 key(icon) {
-                                    var delayedVisible by remember { mutableStateOf(false) }
+                                    var delayedVisible by remember { mutableStateOf(value = false) }
                                     LaunchedEffect(Unit) {
                                         delay(index * 50L)
                                         delayedVisible = true
@@ -461,12 +458,12 @@ fun GoalItem(
                                     AnimatedVisibility(
                                         visible = delayedVisible,
                                         enter = scaleIn(
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                                        ) + fadeIn()
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        ) + fadeIn(),
                                     ) {
                                         AnimatedContextEmoji(
                                             emoji = icon,
-                                            modifier = Modifier.align(Alignment.CenterVertically)
+                                            modifier = Modifier.align(Alignment.CenterVertically),
                                         )
                                     }
                                 }
@@ -478,7 +475,7 @@ fun GoalItem(
 
                         goal.relatedLinks?.forEachIndexed { index, link ->
                             key(link.target + link.type.name) {
-                                var delayedVisible by remember { mutableStateOf(false) }
+                                var delayedVisible by remember { mutableStateOf(value = false) }
                                 LaunchedEffect(Unit) {
                                     delay((parsedData.icons.size + index) * 50L)
                                     delayedVisible = true
@@ -486,13 +483,13 @@ fun GoalItem(
                                 AnimatedVisibility(
                                     visible = delayedVisible,
                                     enter = slideInHorizontally(
-                                        initialOffsetX = { it },
-                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                                    ) + fadeIn()
+                                        initialOffsetX = { fullWidth -> fullWidth },
+                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    ) + fadeIn(),
                                 ) {
                                     EnhancedRelatedLinkChip(
                                         link = link,
-                                        onClick = { onRelatedLinkClick(link) }
+                                        onClick = { onRelatedLinkClick(link) },
                                     )
                                 }
                             }
@@ -501,6 +498,7 @@ fun GoalItem(
                 }
             }
         }
+        // ВИДАЛЕНО: Виклик endAction(), оскільки відповідний параметр закоментовано.
     }
 }
 
@@ -515,7 +513,7 @@ fun GoalItem(
     isSelected: Boolean,
     isHighlighted: Boolean,
     modifier: Modifier = Modifier,
-    endAction: @Composable () -> Unit = {},
+    //endAction: @Composable () -> Unit = {},
 ) {
     val goal = goalContent.goal
 
@@ -530,13 +528,13 @@ fun GoalItem(
             goal.completed -> MaterialTheme.colorScheme.surfaceVariant
             else -> MaterialTheme.colorScheme.surface
         },
-        animationSpec = spring(), label = "goal_background_color"
+        animationSpec = spring(), label = "goal_background_color",
     )
 
-    var isPressed by remember { mutableStateOf(false) }
+    var isPressed by remember { mutableStateOf(value = false) }
     val elevation by animateDpAsState(
         targetValue = if (isPressed) 4.dp else 1.dp,
-        label = "elevation"
+        label = "elevation",
     )
 
     val animatedBorderColor by animateColorAsState(
@@ -545,7 +543,7 @@ fun GoalItem(
             isSelected -> MaterialTheme.colorScheme.primary
             else -> Color.Transparent
         },
-        animationSpec = tween(200), label = "border_color_anim"
+        animationSpec = spring(stiffness = Spring.StiffnessMedium), label = "border_color_anim",
     )
 
     val goalSemantics = stringResource(R.string.goal_item_semantics, parsedData.mainText)
@@ -558,24 +556,24 @@ fun GoalItem(
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = background),
         elevation = CardDefaults.elevatedCardElevation(elevation),
-        border = BorderStroke(2.dp, animatedBorderColor)
+        border = BorderStroke(2.dp, animatedBorderColor),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
                 checked = goal.completed,
                 onCheckedChange = onCheckedChange,
                 colors = CheckboxDefaults.colors(
                     checkedColor = MaterialTheme.colorScheme.primary,
-                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
                 modifier = Modifier
                     .size(48.dp)
-                    .padding(start = 12.dp, end = 4.dp)
+                    .padding(start = 12.dp, end = 4.dp),
             )
 
             Column(
@@ -585,10 +583,10 @@ fun GoalItem(
                         detectTapGestures(
                             onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
                             onLongPress = { onLongClick() },
-                            onTap = { onClick() }
+                            onTap = { onClick() },
                         )
                     }
-                    .padding(vertical = 6.dp)
+                    .padding(vertical = 6.dp),
             ) {
                 Text(
                     text = parsedData.mainText,
@@ -596,33 +594,33 @@ fun GoalItem(
                     textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
                     color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
 
-                val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
-                        parsedData.icons.isNotEmpty() ||
-                        !goal.description.isNullOrBlank() ||
-                        !goal.relatedLinks.isNullOrEmpty()
+                val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                        (parsedData.icons.isNotEmpty()) ||
+                        (!goal.description.isNullOrBlank()) ||
+                        (!goal.relatedLinks.isNullOrEmpty())
 
                 AnimatedVisibility(
                     visible = hasStatusContent,
                     enter = slideInVertically(
-                        initialOffsetY = { -it },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                    ) + fadeIn()
+                        initialOffsetY = { height -> -height },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    ) + fadeIn(),
                 ) {
                     Column {
                         Spacer(modifier = Modifier.height(4.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             EnhancedScoreStatusBadge(goal = goal)
 
                             parsedData.icons.forEachIndexed { index, icon ->
                                 key(icon) {
-                                    var delayedVisible by remember { mutableStateOf(false) }
+                                    var delayedVisible by remember { mutableStateOf(value = false) }
                                     LaunchedEffect(Unit) {
                                         delay(index * 50L)
                                         delayedVisible = true
@@ -630,12 +628,12 @@ fun GoalItem(
                                     AnimatedVisibility(
                                         visible = delayedVisible,
                                         enter = scaleIn(
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                                        ) + fadeIn()
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        ) + fadeIn(),
                                     ) {
                                         AnimatedContextEmoji(
                                             emoji = icon,
-                                            modifier = Modifier.align(Alignment.CenterVertically)
+                                            modifier = Modifier.align(Alignment.CenterVertically),
                                         )
                                     }
                                 }
@@ -647,7 +645,7 @@ fun GoalItem(
 
                             goal.relatedLinks?.forEachIndexed { index, link ->
                                 key(link.target + link.type.name) {
-                                    var delayedVisible by remember { mutableStateOf(false) }
+                                    var delayedVisible by remember { mutableStateOf(value = false) }
                                     LaunchedEffect(Unit) {
                                         delay((parsedData.icons.size + index) * 50L)
                                         delayedVisible = true
@@ -655,13 +653,13 @@ fun GoalItem(
                                     AnimatedVisibility(
                                         visible = delayedVisible,
                                         enter = slideInHorizontally(
-                                            initialOffsetX = { it },
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                                        ) + fadeIn()
+                                            initialOffsetX = { fullWidth -> fullWidth },
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        ) + fadeIn(),
                                     ) {
                                         EnhancedRelatedLinkChip(
                                             link = link,
-                                            onClick = { /* Handle click if needed */ }
+                                            onClick = { /* Handle click if needed */ },
                                         )
                                     }
                                 }
@@ -681,8 +679,7 @@ fun GoalItem(
                     )
                 }
             }
-
-            endAction()
+            // ВИДАЛЕНО: Виклик endAction(), оскільки відповідний параметр закоментовано.
         }
     }
 }

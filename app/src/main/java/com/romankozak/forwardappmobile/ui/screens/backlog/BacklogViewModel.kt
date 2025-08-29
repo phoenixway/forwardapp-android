@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
-import android.util.Log
+import android.util.Log // Переконайтесь, що цей імпорт додано
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -33,6 +33,8 @@ sealed class UiEvent {
     data class ScrollTo(val index: Int) : UiEvent()
     data class NavigateBackAndReveal(val listId: String) : UiEvent()
     data class HandleLinkClick(val link: RelatedLink) : UiEvent()
+
+
 }
 
 sealed class GoalActionDialogState {
@@ -67,6 +69,12 @@ class GoalDetailViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    // Тег для фільтрації логів
+    private val TAG = "DnD_Debug"
+
+    // Прапор для блокування оновлень під час перетягування
+    private var optimisticUpdateInProgress = false
+
     private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
 
     private val _uiState = MutableStateFlow(
@@ -81,10 +89,8 @@ class GoalDetailViewModel @Inject constructor(
     private val _uiEventFlow = Channel<UiEvent>()
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
-    // НОВИЙ ПІДХІД: `_listContent` є приватним станом для миттєвих оновлень UI
     private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
 
-    // Публічні потоки, які UI буде використовувати. Вони базуються на `_listContent`.
     val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
     val draggableItems: StateFlow<List<ListItemContent>> = _listContent.map { content ->
@@ -152,7 +158,6 @@ class GoalDetailViewModel @Inject constructor(
                 }
             }
 
-    // ... (other properties)
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedItemIds.isNotEmpty() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -175,14 +180,16 @@ class GoalDetailViewModel @Inject constructor(
     private var pendingSourceGoalIds: Set<String> = emptySet()
 
     init {
-        val goalId = savedStateHandle.get<String>("goalId")
-        val itemId = savedStateHandle.get<String>("itemIdToHighlight")
-        Log.d("HighlightDebug", "[2. VM_INIT] ViewModel created. Received goalId: '$goalId', itemIdToHighlight: '$itemId'")
-
-        // НОВИЙ ПІДХІД: Слухаємо зміни з бази даних і оновлюємо наш локальний стан `_listContent`
+        Log.d(TAG, "ViewModel INIT")
         viewModelScope.launch {
             databaseContentStream.collect { dbContent ->
-                _listContent.value = dbContent
+                Log.d(TAG, "DB collector received update. Flag is: $optimisticUpdateInProgress. List size: ${dbContent.size}")
+                if (optimisticUpdateInProgress) {
+                    Log.d(TAG, "-> SKIPPING DB update due to flag.")
+                } else {
+                    Log.d(TAG, "-> APPLYING DB update.")
+                    _listContent.value = dbContent
+                }
             }
         }
 
@@ -196,7 +203,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // ... (other functions from onHighlightShown to onDismissGoalActionDialogs are unchanged)
+    // ... (інші функції залишаються без змін) ...
     fun onHighlightShown() {
         _uiState.update { it.copy(goalToHighlight = null, itemToHighlight = null) }
     }
@@ -478,34 +485,53 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // ПОВНІСТЮ ПЕРЕПИСАНА ФУНКЦІЯ для оптимістичного оновлення
-    fun moveItem(fromIndex: Int, toIndex: Int) {
-        val currentDraggable = draggableItems.value.toMutableList()
-
-        if (fromIndex !in currentDraggable.indices || toIndex !in currentDraggable.indices) {
+    // --- ОСНОВНА ФУНКЦІЯ ДЛЯ ДІАГНОСТИКИ ---
+    fun moveItem(from: ListItemContent, to: ListItemContent) {
+        Log.d(TAG, "moveItem START. From ID: '${from.item.id.take(4)}', To ID: '${to.item.id.take(4)}'")
+        if (optimisticUpdateInProgress) {
+            Log.w(TAG, "moveItem IGNORED because another move is in progress.")
             return
         }
 
-        // 1. Виконуємо переміщення локально
-        val itemToMove = currentDraggable.removeAt(fromIndex)
-        currentDraggable.add(toIndex, itemToMove)
+        viewModelScope.launch {
+            Log.d(TAG, "optimisticUpdateInProgress SET to TRUE")
+            optimisticUpdateInProgress = true
 
-        val reorderedFullList = attachmentItems.value + currentDraggable
+            val currentList = _listContent.value.toMutableList()
+            val fromIndex = currentList.indexOf(from)
+            val toIndex = currentList.indexOf(to)
+            Log.d(TAG, "Before move - From index: $fromIndex, To index: $toIndex. List size: ${currentList.size}")
 
-        // 2. Миттєво оновлюємо стан UI (Оптимістичне оновлення)
-        _listContent.value = reorderedFullList
+            if (fromIndex == -1 || toIndex == -1) {
+                Log.e(TAG, "Cannot move item, not found in current list.")
+                optimisticUpdateInProgress = false
+                return@launch
+            }
 
-        // 3. У фоні зберігаємо зміни в базу даних
-        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val updatedItems = reorderedFullList.mapIndexed { index, content ->
-                    content.item.copy(order = index.toLong())
+                // 1. Оптимістичне оновлення
+                val itemToMove = currentList.removeAt(fromIndex)
+                currentList.add(toIndex, itemToMove)
+                Log.d(TAG, "After move (in memory) - List size: ${currentList.size}")
+
+                _listContent.value = currentList
+                Log.d(TAG, "-> Setting _listContent with optimistically updated list.")
+
+                // 2. Збереження в БД
+                withContext(Dispatchers.IO) {
+                    Log.d(TAG, "Saving to DB...")
+                    val updatedItems = currentList.mapIndexed { index, content ->
+                        content.item.copy(order = index.toLong())
+                    }
+                    goalRepository.updateListItemsOrder(updatedItems)
+                    Log.d(TAG, "DB save SUCCEEDED.")
                 }
-                goalRepository.updateListItemsOrder(updatedItems)
             } catch (e: Exception) {
-                Log.e("GoalDetailViewModel", "Error updating item order", e)
-                // Опціонально: якщо збереження не вдалося, можна повернути стан назад
-                // _listContent.value = originalList
+                Log.e(TAG, "DB save FAILED.", e)
+                forceRefresh()
+            } finally {
+                Log.d(TAG, "finally block - optimisticUpdateInProgress SET to FALSE")
+                optimisticUpdateInProgress = false
             }
         }
     }
@@ -553,7 +579,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // ... (rest of the file is unchanged)
     fun toggleCompletionForSelectedGoals() {
         viewModelScope.launch {
             val selectedIds = _uiState.value.selectedItemIds
@@ -631,7 +656,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-
     private fun onEditGoal(goal: Goal) {
         viewModelScope.launch {
             _uiEventFlow.send(UiEvent.Navigate("goal_edit_screen/${listIdFlow.value}?goalId=${goal.id}"))
@@ -653,21 +677,17 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onExistingItemSelected(goalId: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            // Re-use the existing repository function to create a link to the goal
             goalRepository.createGoalLinks(listOf(goalId), listIdFlow.value)
         }
     }
+
     fun onSwipeStateReset(itemId: String) {
         _uiState.update { currentState ->
             val newTriggers = currentState.resetTriggers.toMutableMap()
             newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
-
-            // Також скидаємо swipedItemId якщо це той же елемент
-            val newSwipedItemId = if (currentState.swipedItemId == itemId) null else currentState.swipedItemId
-
             currentState.copy(
                 resetTriggers = newTriggers,
-                swipedItemId = newSwipedItemId
+                swipedItemId = null
             )
         }
     }
@@ -677,6 +697,4 @@ class GoalDetailViewModel @Inject constructor(
             _uiEventFlow.send(UiEvent.HandleLinkClick(link))
         }
     }
-
-
 }
