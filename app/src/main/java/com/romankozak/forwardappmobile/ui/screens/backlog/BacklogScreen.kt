@@ -2,6 +2,9 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
+//import androidx.compose.foundation.lazy.animateItemPlacement
+//import androidx.compose.animation.core.Spring
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -34,10 +37,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -64,6 +65,7 @@ import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+
 
 @Composable
 fun GoalDetailScreen(
@@ -226,26 +228,14 @@ fun GoalDetailScreen(
             }
 
             override fun onDragEnd(fromIndex: Int, toIndex: Int): Boolean {
-                try {
-                    Log.d("DragAndDrop", "Moving from $fromIndex to $toIndex, draggableItems.size: ${draggableItems.size}")
-
-                    if (fromIndex >= 0 && toIndex >= 0 &&
-                        fromIndex < draggableItems.size && toIndex < draggableItems.size) {
-                        viewModel.moveItem(fromIndex, toIndex)
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        return true
-                    } else {
-                        Log.w("DragAndDrop", "Invalid indices: from=$fromIndex, to=$toIndex, size=${draggableItems.size}")
-                        return false
-                    }
-                } catch (e: Exception) {
-                    Log.e("DragAndDrop", "Error during drag operation: ${e.message}", e)
-                    return false
-                }
+                viewModel.moveItem(fromIndex, toIndex)
+                return true
             }
 
-            override fun onDragCancel() {
-                Log.d("DragAndDrop", "Drag cancelled")
+            override fun onDragCancel() {}
+
+            override fun onDragOver(fromIndex: Int, toIndex: Int) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
 
             override fun canDrag(item: ListItemContent, index: Int): Boolean {
@@ -259,6 +249,7 @@ fun GoalDetailScreen(
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
     }
+
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -386,11 +377,6 @@ fun GoalDetailScreen(
                                 label = "bgAnim"
                             )
 
-                            val elevation by animateDpAsState(
-                                targetValue = if (content.goal.completed) 0.dp else 1.dp,
-                                label = "elevation"
-                            )
-
                             val animatedBorderColor by animateColorAsState(
                                 targetValue = when {
                                     isHighlighted -> MaterialTheme.colorScheme.tertiary
@@ -401,11 +387,17 @@ fun GoalDetailScreen(
                                 label = "border_color_anim"
                             )
 
+                            val elevation by animateDpAsState(
+                                targetValue = if (isDragging) 4.dp else 1.dp,
+                                label = "elevation_anim"
+                            )
+
                             DraggableItemContainer(
                                 state = dragDropState,
                                 item = content,
                                 index = index,
-                                modifier = Modifier
+                                modifier = Modifier.animateItem(),
+
                             ) { dragHandleModifier ->
                                 Card(
                                     modifier = Modifier
@@ -413,7 +405,7 @@ fun GoalDetailScreen(
                                         .padding(horizontal = 4.dp, vertical = 2.dp),
                                     shape = RoundedCornerShape(8.dp),
                                     colors = CardDefaults.cardColors(containerColor = background),
-                                    elevation = CardDefaults.elevatedCardElevation(elevation),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = elevation),
                                     border = if (content.goal.completed && !isHighlighted) null else BorderStroke(2.dp, animatedBorderColor)
                                 ) {
                                     Row(
@@ -456,20 +448,34 @@ fun GoalDetailScreen(
                         }
 
                         is ListItemContent.SublistItem -> {
+                            val elevation by animateDpAsState(
+                                targetValue = if (isDragging) 4.dp else 1.dp,
+                                label = "sublist_elevation_anim"
+                            )
+
                             DraggableItemContainer(
                                 state = dragDropState,
                                 item = content,
                                 index = index,
-                                modifier = Modifier
-                            ) { dragHandleModifier ->
-                                SublistItemRow(
-                                    sublistContent = content,
-                                    isSelected = content.item.id in uiState.selectedItemIds,
-                                    isHighlighted = isHighlighted,
-                                    onClick = { viewModel.onItemClick(content) },
-                                    onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                    endAction = { DragHandleIcon(dragHandleModifier) },
-                                )
+                                modifier = Modifier.animateItem(),
+                            )
+
+                            { dragHandleModifier ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = elevation)
+                                ) {
+                                    SublistItemRow(
+                                        sublistContent = content,
+                                        isSelected = content.item.id in uiState.selectedItemIds,
+                                        isHighlighted = isHighlighted,
+                                        onClick = { viewModel.onItemClick(content) },
+                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                        endAction = { DragHandleIcon(dragHandleModifier) },
+                                    )
+                                }
                             }
                         }
 
