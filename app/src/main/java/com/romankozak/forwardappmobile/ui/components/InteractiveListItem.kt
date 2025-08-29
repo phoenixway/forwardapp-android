@@ -1,34 +1,38 @@
 package com.romankozak.forwardappmobile.ui.components
 
-import android.util.Log
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.ui.screens.backlog.DragDropState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.SwipeableListItem
 
 @Composable
 fun InteractiveListItem(
-    // Параметри для Drag-and-Drop
     item: ListItemContent,
-    dragDropState: DragDropState<ListItemContent>,
+    dragDropState: DragDropState,
 
-    // Параметри, які будуть прокинуті напряму у ваш SwipeableListItem
-    isAnyItemDragging: Boolean,
+    // Параметри для SwipeableListItem
     swipeEnabled: Boolean,
     isAnotherItemSwiped: Boolean,
     resetTrigger: Int,
@@ -39,57 +43,50 @@ fun InteractiveListItem(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
-    recompositionTrigger: Float,
 
-
-    // Контент (GoalItem, SublistItemRow)
+    // Контент
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit
 ) {
-    val isDragging = dragDropState.draggedItemKey == item.item.id
+    // Визначаємо, чи є цей елемент тим, який зараз перетягують
+    val isDragging = dragDropState.isDragging && dragDropState.draggedItem?.item?.id == item.item.id
+    val isAnythingDragging = dragDropState.isDragging
 
-    val elevation by animateFloatAsState(if (isDragging) 8f else 0f, label = "elevation")
+    // Ефекти "підняття" та тіні, взяті з dndEngine.kt
+    val elevation by animateFloatAsState(if (isDragging) 16f else 0f, label = "elevation")
+    val scale by animateFloatAsState(if (isDragging) 1.05f else 1f, label = "scale")
+    val alpha by animateFloatAsState(if (isDragging) 0.8f else 1f, label = "alpha")
 
-    Box(
-        modifier = modifier
-            // --- ОСНОВНЕ ВИПРАВЛЕННЯ ТУТ ---
-            // 1. Модифікатор жестів перенесено на весь Box
-            .pointerInput(dragDropState, item) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { dragDropState.onDragStart(item, item.item.id) },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragDropState.onDrag(dragAmount)
-                        // Тепер `change.position` буде в правильній системі координат
-                        dragDropState.onPointerMove(change.position)
-                    },
-                    onDragEnd = { dragDropState.onDragEnd() },
-                    onDragCancel = { dragDropState.onDragCanceled() },
-                )
-            }
-            .graphicsLayer { // Візуальні ефекти під час перетягування
-                translationY = if (isDragging) dragDropState.draggedItemOffset.y else 0f
-                scaleX = if (isDragging) 1.05f else 1f
-                scaleY = if (isDragging) 1.05f else 1f
-                alpha = if (isDragging) 0.9f else 1f
-                shadowElevation = elevation
-            }
-            // 2. Цей блок тепер буде працювати, оскільки координати збігаються
-            .onGloballyPositioned { layoutCoordinates ->
-                val currentBounds = layoutCoordinates.boundsInWindow()
-                val pointerPos = dragDropState.pointerPosition
-
-                if (item.item.id != dragDropState.draggedItemKey) {
-                    if (dragDropState.isDragging && currentBounds.contains(pointerPos)) {
-                        dragDropState.targetItem = item
+    val itemModifier = modifier
+        .pointerInput(dragDropState) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = {
+                    if (dragDropState.canDrag(item)) {
+                        dragDropState.onDragStart(item)
                     }
-                }
-            }
-    ) {
-        // Використовуємо ваш існуючий SwipeableListItem
+                },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    dragDropState.onDrag(dragAmount.y)
+                },
+                onDragEnd = { dragDropState.onDragEnd() },
+                onDragCancel = { dragDropState.onDragEnd() }
+            )
+        }
+        .graphicsLayer {
+            translationY = dragDropState.getOffset(item)
+            scaleX = scale
+            scaleY = scale
+            this.alpha = alpha
+            shadowElevation = elevation
+        }
+
+    Box(modifier = itemModifier) {
         SwipeableListItem(
+            // Важливо передавати isDragging та isAnyItemDragging у SwipeableListItem,
+            // щоб він коректно вимикав swipe під час перетягування.
             isDragging = isDragging,
-            isAnyItemDragging = isAnyItemDragging,
+            isAnyItemDragging = isAnythingDragging,
             swipeEnabled = swipeEnabled,
             isAnotherItemSwiped = isAnotherItemSwiped,
             resetTrigger = resetTrigger,
@@ -108,11 +105,88 @@ fun InteractiveListItem(
                     Box(modifier = Modifier.weight(1f)) {
                         content(isDragging)
                     }
-                    // 3. Іконка-ручка тепер лише візуальний елемент, без обробника жестів
-                    DragHandleIcon()
+                    DragHandleIcon() // Ручка тепер лише візуальний елемент
                 }
             }
         )
+
+        // --- ЛОГІКА ПОКАЗУ ІНДИКАТОРА ВСТАВКИ (з dndEngine.kt) ---
+        // Індикатор показується на елементі, який зараз є "цільовим"
+        val isTarget = isAnythingDragging && dragDropState.currentIndexOfDraggedItem == dragDropState.getItemIndex(item) && !isDragging
+        if (isTarget) {
+            // Визначаємо, зверху чи знизу малювати індикатор
+            val isDraggingDown = (dragDropState.initialDraggedItemIndex ?: -1) < (dragDropState.currentIndexOfDraggedItem ?: -1)
+            val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
+
+            Box(modifier = Modifier.align(align)) {
+                DropIndicator(isValidDrop = true)
+            }
+        }
+    }
+}
+
+// --- ІНДИКАТОР ВСТАВКИ (повністю скопійовано з dndEngine.kt) ---
+@Composable
+private fun DropIndicator(isValidDrop: Boolean) {
+    val color = if (isValidDrop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val infiniteTransition = rememberInfiniteTransition(label = "dropIndicatorPulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dropIndicatorAlpha"
+    )
+    val height by infiniteTransition.animateFloat(
+        initialValue = 4f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dropIndicatorHeight"
+    )
+    val haptic = LocalHapticFeedback.current
+    LaunchedEffect(isValidDrop) {
+        haptic.performHapticFeedback(
+            if (isValidDrop) HapticFeedbackType.LongPress
+            else HapticFeedbackType.TextHandleMove
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height.dp)
+            .padding(horizontal = 12.dp)
+            .shadow(4.dp, shape = MaterialTheme.shapes.medium)
+            .border(0.5.dp, color.copy(alpha = alpha * 0.5f), MaterialTheme.shapes.medium)
+            .semantics {
+                contentDescription = if (isValidDrop) "Дозволена зона для скидання"
+                else "Недозволена зона для скидання"
+            }
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        color.copy(alpha = alpha),
+                        Color.Transparent,
+                    ),
+                ),
+            ),
+    ) {
+        if (!isValidDrop) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Недозволена зона",
+                tint = color.copy(alpha = alpha),
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(Alignment.Center)
+            )
+        }
     }
 }
 

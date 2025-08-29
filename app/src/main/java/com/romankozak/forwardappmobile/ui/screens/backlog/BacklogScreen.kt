@@ -17,8 +17,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -48,10 +50,12 @@ import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddLinkDialog
 import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
-
+import androidx.compose.foundation.lazy.LazyListItemInfo
+import kotlinx.coroutines.Job
 
 @Composable
 fun GoalDetailScreen(
@@ -76,10 +80,11 @@ fun GoalDetailScreen(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
-    val dragDropState = rememberDragDropState<ListItemContent>(listState) { from, to ->
-        viewModel.moveItem(from, to)
-    }
-
+    val dragDropState = rememberDragDropState(
+        lazyListState = listState,
+        onMove = { from, to -> viewModel.moveItem(from, to) },
+        itemsProvider = { draggableItems } // Надаємо доступ до списку
+    )
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val navGraphEntry = remember(currentBackStackEntry) {
@@ -259,7 +264,8 @@ fun GoalDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .autoScroll(dragDropState)
+                .dragContainer(dragDropState),
+            // Додано пропущену кому
         ) {
             item(key = "attachments_section") {
                 list?.let {
@@ -275,48 +281,57 @@ fun GoalDetailScreen(
                             }
                         },
                         onDeleteItem = { item -> viewModel.deleteItem(item) },
-                        onItemClick = { item -> viewModel.onItemClick(item) }
+                        onItemClick = { item -> viewModel.onItemClick(item) },
+                        // Додано пропущену кому
                     )
                 }
             }
 
             items(
                 items = draggableItems,
-                key = { item -> item.item.id }
+                key = { item -> item.item.id },
+                // Додано пропущену кому
             ) { content ->
                 val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
                         (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
+                // Дужки для читабельності не обов’язкові, але логічно згруповано за змістом
 
                 val backgroundColor by animateColorAsState(
                     targetValue = when {
                         isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
                         content.item.id in uiState.selectedItemIds -> MaterialTheme.colorScheme.primaryContainer
-                        (content as? ListItemContent.GoalItem)?.goal?.completed == true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                        (content as? ListItemContent.GoalItem)?.goal?.completed == true ->
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                         else -> MaterialTheme.colorScheme.surface
                     },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "bgAnim"
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    label = "bgAnim",
+                    // Додано пропущену кому
                 )
 
-                // ВИКОРИСТАННЯ НОВОГО ОБ'ЄДНАНОГО КОМПОНЕНТА
+                // --- CORRECTED COMPONENT CALL ---
                 InteractiveListItem(
                     item = content,
+                    //isAnythingDragging = dragDropState.isDragging,
                     dragDropState = dragDropState,
-                    isAnyItemDragging = dragDropState.isDragging,
                     swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
                     isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
                     resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                    backgroundColor = backgroundColor, // ПРАВИЛЬНО
+                    backgroundColor = backgroundColor,
                     onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                     onDelete = { viewModel.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
                     onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
                     onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
                     onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
-                    modifier = Modifier.animateItem(),
-                    recompositionTrigger = dragDropState.pointerPosition.y,
-
-                    ) {
+                    modifier = Modifier,
+                    // Якщо animateItemPlacement() не вирішується — перевірте, чи підключено:
+                    // import androidx.compose.foundation.gestures.animateItemPlacement
+                    // Або, можливо, ви мали на увазі: Modifier.animateItemChange() або використовується бібліотека, наприклад, Accompanist?
+                ){
                     // Контент, який буде відображено всередині
                     when (content) {
                         is ListItemContent.GoalItem -> {
@@ -346,8 +361,7 @@ fun GoalDetailScreen(
                         }
                     }
                 }
-            }
-        }
+            }}
 
         RecentListsSheet(
             showSheet = showRecentListsSheet,
@@ -426,4 +440,158 @@ private fun handleRelatedLinkClick(
     } catch (e: Exception) {
         Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
     }
+}
+
+@Composable
+fun rememberDragDropState(
+    lazyListState: LazyListState,
+    onMove: (ListItemContent, ListItemContent) -> Unit,
+    itemsProvider: () -> List<ListItemContent>
+): DragDropState {
+    val scope = rememberCoroutineScope()
+    return remember(lazyListState) {
+        DragDropState(
+            state = lazyListState,
+            scope = scope,
+            onMove = onMove,
+            itemsProvider = itemsProvider
+        )
+    }
+}
+
+// Вставте цей код в кінець файлу BacklogScreen.kt, замінивши старий клас DragDropState
+
+class DragDropState(
+    private val state: LazyListState,
+    private val scope: CoroutineScope,
+    private val onMove: (ListItemContent, ListItemContent) -> Unit,
+    private val itemsProvider: () -> List<ListItemContent>
+) {
+    private var draggedDistance by mutableStateOf(0f)
+
+    // --- ЗМІНА 1: Зробіть ці поля публічними (приберіть 'private') ---
+    var initiallyDraggedElement by mutableStateOf<LazyListItemInfo?>(null)
+    var currentIndexOfDraggedItem by mutableStateOf<Int?>(null)
+
+    private var overscrollJob by mutableStateOf<Job?>(null)
+
+    val isDragging: Boolean get() = initiallyDraggedElement != null
+
+    // --- ЗМІНА 2: Додайте ці 3 нові властивості ---
+    val initialDraggedItemIndex: Int? get() = initiallyDraggedElement?.index
+    val draggedItem: ListItemContent? get() = currentIndexOfDraggedItem?.let { currentItems.getOrNull(it) }
+    fun getItemIndex(item: ListItemContent): Int = currentItems.indexOf(item)
+
+    private val currentItems: List<ListItemContent> get() = itemsProvider()
+    fun onDragStart(item: ListItemContent) {
+        val index = currentItems.indexOf(item)
+        if (index == -1) return
+
+        currentIndexOfDraggedItem = index
+        initiallyDraggedElement = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+    }
+
+    fun onDrag(offset: Float) {
+        if (!isDragging) return
+        draggedDistance += offset
+
+        val initialOffset = initiallyDraggedElement?.offset ?: return
+        val currentOffset = initialOffset + draggedDistance
+
+        val draggedItemIndex = currentIndexOfDraggedItem ?: return
+        val draggedItem = currentItems[draggedItemIndex]
+
+        val hoveredItem = state.layoutInfo.visibleItemsInfo
+            .filterNot { it.key == draggedItem.item.id }
+            .find {
+                val start = it.offset
+                val end = it.offset + it.size
+                val center = start + (end - start) / 2
+                // Перевіряємо, чи перетнув центр перетягуваного елемента центр цільового
+                if (draggedDistance > 0) { // Рух вниз
+                    currentOffset + (initiallyDraggedElement?.size ?: 0) / 2 > center
+                } else { // Рух вгору
+                    currentOffset + (initiallyDraggedElement?.size ?: 0) / 2 < center
+                }
+            }
+
+        if (hoveredItem != null) {
+            val fromIndex = currentIndexOfDraggedItem ?: return
+            val toIndex = hoveredItem.index
+
+            // Запобігаємо виклику, якщо індекси однакові
+            if (fromIndex != toIndex) {
+                val fromItem = currentItems.getOrNull(fromIndex)
+                val toItem = currentItems.getOrNull(toIndex)
+
+                if (fromItem != null && toItem != null && fromItem.item.id != toItem.item.id) {
+                    onMove(fromItem, toItem)
+                    // Оновлюємо стан ПІСЛЯ переміщення
+                    currentIndexOfDraggedItem = toIndex
+                    draggedDistance = 0f
+                    initiallyDraggedElement = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == toIndex }
+                }
+            }
+        }
+
+        if (overscrollJob?.isActive != true) {
+            checkForOverscroll()
+        }
+    }
+
+    fun onDragEnd() {
+        initiallyDraggedElement = null
+        draggedDistance = 0f
+        currentIndexOfDraggedItem = null
+
+        overscrollJob?.cancel()
+    }
+
+    fun getOffset(item: ListItemContent): Float {
+        if (!isDragging) return 0f
+        val draggedInitialIndex = initiallyDraggedElement?.index ?: return 0f
+        val currentDraggedIndex = currentIndexOfDraggedItem ?: return 0f
+        val currentItemIndex = currentItems.indexOf(item)
+
+        if (draggedInitialIndex == -1 || currentItemIndex == -1) return 0f
+
+        val draggedItemSize = (initiallyDraggedElement?.size?.toFloat() ?: 0f)
+
+        return when {
+            currentItemIndex == draggedInitialIndex -> draggedDistance
+            // Елемент був між старою і новою позицією, і ми його "проштовхнули"
+            (currentItemIndex > draggedInitialIndex && currentItemIndex <= currentDraggedIndex) -> -draggedItemSize
+            (currentItemIndex < draggedInitialIndex && currentItemIndex >= currentDraggedIndex) -> draggedItemSize
+            else -> 0f
+        }
+    }
+
+    fun canDrag(item: ListItemContent): Boolean {
+        return !isDragging
+    }
+
+    private fun checkForOverscroll() {
+        scope.launch {
+            while (isDragging) {
+                val draggedItemInfo = initiallyDraggedElement ?: break
+                val listVisibleHeight = state.layoutInfo.viewportSize.height
+                val draggedItemCenter = draggedItemInfo.offset + draggedDistance + draggedItemInfo.size / 2
+
+                val scrollAmount = when {
+                    draggedItemCenter > listVisibleHeight - 200 -> 20f
+                    draggedItemCenter < 200 -> -20f
+                    else -> 0f
+                }
+
+                if (scrollAmount != 0f) {
+                    state.scrollBy(scrollAmount)
+                }
+                delay(16)
+            }
+        }
+    }
+}
+
+fun Modifier.dragContainer(dragDropState: DragDropState): Modifier {
+    return this
 }
