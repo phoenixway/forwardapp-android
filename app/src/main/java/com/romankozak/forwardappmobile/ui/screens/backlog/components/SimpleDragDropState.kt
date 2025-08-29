@@ -27,7 +27,6 @@ class SimpleDragDropState(
     var draggedItemIndex by mutableIntStateOf(-1)
         private set
 
-    // Додаємо необхідні властивості для сумісності з InteractiveListItem
     var currentDropIndex by mutableIntStateOf(-1)
         private set
 
@@ -70,7 +69,11 @@ class SimpleDragDropState(
         val draggedIndex = draggedItemIndex
         val layoutInfo = draggedItemLayoutInfo ?: return
 
-        val draggedCenter = layoutInfo.offset + layoutInfo.size / 2 + draggedDistance
+        // Оновлюємо позицію перетягуваного елемента відносно viewport
+        val currentItemOffset = layoutInfo.offset + draggedDistance
+        val itemSize = layoutInfo.size
+        val itemCenter = currentItemOffset + itemSize / 2f
+
         val items = itemsProvider()
         val viewportHeight = state.layoutInfo.viewportSize.height
 
@@ -83,59 +86,77 @@ class SimpleDragDropState(
 
         when {
             // Перетягування до початку списку
-            draggedCenter < 50 && state.firstVisibleItemIndex > 1 -> {
+            itemCenter < 50 && state.firstVisibleItemIndex > 1 -> {
                 newDropIndex = 0
             }
 
             // Перетягування до кінця списку
-            draggedCenter > viewportHeight - 50 -> {
-                newDropIndex = items.size
+            itemCenter > viewportHeight - 50 -> {
+                newDropIndex = items.size - 1
             }
 
             else -> {
-                // Знаходимо найближчий елемент
-                var closestDistance = Float.MAX_VALUE
-                var closestIndex = draggedIndex
-
-                visibleItems.forEach { visibleItem ->
-                    val itemIndex = visibleItem.index - 1 // -1 для header
-                    if (itemIndex in 0 until items.size && itemIndex != draggedIndex) {
-                        val itemCenter = visibleItem.offset + visibleItem.size / 2f
-                        val distance = kotlin.math.abs(draggedCenter - itemCenter)
-
-                        if (distance < closestDistance) {
-                            closestDistance = distance
-                            closestIndex = itemIndex
-                        }
-                    }
-                }
-
-                // Визначаємо, куди вставляти відносно найближчого елемента
-                val closestItem = visibleItems.find { it.index - 1 == closestIndex }
-                if (closestItem != null) {
-                    val itemCenter = closestItem.offset + closestItem.size / 2f
-                    newDropIndex = if (draggedCenter > itemCenter) {
-                        // Вставляти після елемента
-                        kotlin.math.min(closestIndex + 1, items.size)
-                    } else {
-                        // Вставляти перед елементом
-                        kotlin.math.max(closestIndex, 0)
-                    }
-                }
+                // Знаходимо найкращу позицію для вставки
+                newDropIndex = findBestDropIndex(
+                    draggedIndex = draggedIndex,
+                    itemCenter = itemCenter,
+                    itemSize = itemSize,
+                    visibleItems = visibleItems,
+                    totalItems = items.size
+                )
             }
         }
 
         // Обмежуємо індекс
-        newDropIndex = newDropIndex.coerceIn(0, items.size)
+        newDropIndex = newDropIndex.coerceIn(0, items.size - 1)
 
         if (newDropIndex != currentDropIndex) {
             currentDropIndex = newDropIndex
             targetIndexOfDraggedItem = newDropIndex
-            println("Drag: draggedIndex=$draggedIndex, newDropIndex=$newDropIndex")
+            println("Drag: draggedIndex=$draggedIndex, newDropIndex=$newDropIndex, itemCenter=$itemCenter")
         }
 
         handleAutoScroll()
     }
+
+    private fun findBestDropIndex(
+        draggedIndex: Int,
+        itemCenter: Float,
+        itemSize: Int,
+        visibleItems: List<LazyListItemInfo>,
+        totalItems: Int, // Added missing comma here
+    ): Int {
+        var bestDropIndex = draggedIndex
+        for (visibleItem in visibleItems) {
+            val itemIndex = visibleItem.index - 1 // -1 for header
+            if (itemIndex !in 0 until totalItems || itemIndex == draggedIndex) continue
+
+            val visibleItemCenter = (visibleItem.offset + (visibleItem.size / 2f)) // Properly clarified
+            val visibleItemTop = visibleItem.offset.toFloat()
+            val visibleItemBottom = (visibleItem.offset + visibleItem.size).toFloat() // Ensure it's Float
+
+            // Improved logic for position determination
+            when {
+                // If the center of the dragged item is in the upper half of the visible item
+                itemCenter in visibleItemTop..(visibleItemCenter - (itemSize.toFloat() / 4f)) -> {
+                    bestDropIndex = itemIndex
+                    break
+                }
+                // If the center of the dragged item is in the lower half of the visible item
+                itemCenter in (visibleItemCenter + (itemSize.toFloat() / 4f))..visibleItemBottom -> {
+                    bestDropIndex = minOf(itemIndex + 1, totalItems - 1)
+                    break
+                }
+                // Special logic for dragging down
+                itemCenter > visibleItemBottom -> {
+                    bestDropIndex = minOf(itemIndex + 1, totalItems - 1)
+                }
+            }
+        }
+        return bestDropIndex
+    }
+
+
 
     fun onDragEnd() {
         val fromIndex = draggedItemIndex
@@ -169,9 +190,19 @@ class SimpleDragDropState(
                 val itemTop = layoutInfo.offset + draggedDistance
                 val itemBottom = itemTop + layoutInfo.size
 
+                // Покращена логіка автопрокрутки
+                val scrollThreshold = 120f
+                val maxScrollSpeed = 20f
+
                 val scrollSpeed = when {
-                    itemTop < 100 -> -15f
-                    itemBottom > viewportHeight - 100 -> 15f
+                    itemTop < scrollThreshold -> {
+                        val proximity = (scrollThreshold - itemTop) / scrollThreshold
+                        -maxScrollSpeed * proximity
+                    }
+                    itemBottom > viewportHeight - scrollThreshold -> {
+                        val proximity = (itemBottom - (viewportHeight - scrollThreshold)) / scrollThreshold
+                        maxScrollSpeed * proximity
+                    }
                     else -> 0f
                 }
 
@@ -179,6 +210,15 @@ class SimpleDragDropState(
                     try {
                         state.scrollBy(scrollSpeed)
                         delay(16) // 60fps
+
+                        // Оновлюємо layout info після прокрутки
+                        val items = itemsProvider()
+                        val draggedIndex = draggedItemIndex
+                        if (draggedIndex in 0 until items.size) {
+                            draggedItemLayoutInfo = state.layoutInfo.visibleItemsInfo.firstOrNull {
+                                it.index == draggedIndex + 1
+                            }
+                        }
                     } catch (e: Exception) {
                         break
                     }
@@ -202,12 +242,12 @@ class SimpleDragDropState(
             itemIndex == draggedIndex -> draggedDistance
 
             // Елементи, які потрібно зсунути при русі вниз
-            itemIndex > draggedIndex && itemIndex < dropIndex -> {
+            draggedIndex < dropIndex && itemIndex in (draggedIndex + 1)..dropIndex -> {
                 -(draggedItemLayoutInfo?.size?.toFloat() ?: 0f)
             }
 
             // Елементи, які потрібно зсунути при русі вгору
-            itemIndex < draggedIndex && itemIndex >= dropIndex -> {
+            draggedIndex > dropIndex && itemIndex in dropIndex until draggedIndex -> {
                 (draggedItemLayoutInfo?.size?.toFloat() ?: 0f)
             }
 
