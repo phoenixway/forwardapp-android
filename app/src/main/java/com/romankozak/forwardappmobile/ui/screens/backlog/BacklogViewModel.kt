@@ -506,43 +506,38 @@ class GoalDetailViewModel @Inject constructor(
 
             println("moveItem: from=$fromIndex, to=$toIndex, listSize=${currentList.size}")
 
-            if (fromIndex in currentList.indices &&
-                toIndex in 0..currentList.size &&  // Дозволяємо toIndex == currentList.size для додавання в кінець
-                fromIndex != toIndex) {
-
-                val itemToMove = currentList.removeAt(fromIndex)
-
-                // СПРОЩЕНА логіка без коригування для кінця списку
-                val finalInsertIndex = when {
-                    toIndex == currentList.size + 1 -> currentList.size  // Якщо індекс більший за розмір після видалення
-                    toIndex > fromIndex -> toIndex - 1  // Стандартна корекція при русі вниз
-                    else -> toIndex  // Рух вгору або на ту саму позицію
-                }.coerceAtMost(currentList.size)  // Обмежуємо максимальним можливим індексом
-
-                println("Inserting at index: $finalInsertIndex (list size after removal: ${currentList.size})")
-
-                currentList.add(finalInsertIndex, itemToMove)
-
-                _listContent.value = currentList
-                _listVersion.value++
-                _uiState.update { it.copy(needsStateRefresh = true) }
-
-                // Batch operations
-                val targetItem = currentList.getOrNull(finalInsertIndex) ?: itemToMove
-                batchedMoves.add(itemToMove to targetItem)
-
-                batchSaveJob?.cancel()
-                batchSaveJob = launch {
-                    delay(BATCH_DELAY_MS)
-                    saveBatchedMoves()
-                }
-
-                println("✓ Move completed: item now at position $finalInsertIndex")
-            } else {
+            if (fromIndex !in currentList.indices || fromIndex == toIndex) {
                 println("✗ Move rejected: conditions not met")
+                return@launch
             }
+
+            val itemToMove = currentList.removeAt(fromIndex)
+
+            // Вставка: рух вниз з корекцією + обмеження в діапазон [0..size]
+            val safeTargetIndex = (if (toIndex > fromIndex) toIndex - 1 else toIndex)
+                .coerceIn(0, currentList.size)
+
+            println("Inserting at index: $safeTargetIndex (list size after removal: ${currentList.size})")
+            currentList.add(safeTargetIndex, itemToMove)
+
+            _listContent.value = currentList
+            _listVersion.value++
+            _uiState.update { it.copy(needsStateRefresh = true) }
+
+            // Batch operations
+            val targetItem = currentList.getOrNull(safeTargetIndex) ?: itemToMove
+            batchedMoves.add(itemToMove to targetItem)
+
+            batchSaveJob?.cancel()
+            batchSaveJob = launch {
+                delay(BATCH_DELAY_MS)
+                saveBatchedMoves()
+            }
+
+            println("✓ Move completed: item now at position $safeTargetIndex")
         }
     }
+
 
     fun onStateRefreshed() {
         _uiState.update { it.copy(needsStateRefresh = false) }
