@@ -9,19 +9,19 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,16 +35,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -69,18 +63,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddLinkDialog
 import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.net.URLEncoder
-// Додайте ці імпорти у ваш BacklogScreen.kt
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.composed
-import androidx.compose.ui.platform.LocalDensity
-import kotlin.math.roundToInt
 
 @Composable
 fun GoalDetailScreen(
@@ -90,7 +73,6 @@ fun GoalDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
-    // Отримуємо готові, відфільтровані списки з ViewModel
     val draggableItems by viewModel.draggableItems.collectAsStateWithLifecycle()
     val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
 
@@ -104,6 +86,11 @@ fun GoalDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
+
+    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
+    val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
+
+
     val listId = remember {
         navController.currentBackStackEntry?.arguments?.getString("listId") ?: ""
     }
@@ -114,11 +101,9 @@ fun GoalDetailScreen(
     }
     val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
 
-    // Пам'ятаємо попередню довжину списку для правильного DnD
     val previousDraggableItemsCount = remember { mutableIntStateOf(0) }
 
     LaunchedEffect(draggableItems.size) {
-        // Оновлюємо лише якщо список дійсно змінився
         if (draggableItems.size != previousDraggableItemsCount.intValue) {
             previousDraggableItemsCount.intValue = draggableItems.size
         }
@@ -185,7 +170,7 @@ fun GoalDetailScreen(
         }
 
         val attachmentsCount = if (list?.isAttachmentsExpanded == true) attachmentItems.size else 0
-        val offsetIndex = 1 + attachmentsCount // 1 для AttachmentsSection
+        val offsetIndex = 1 + attachmentsCount
 
         val index = when {
             goalId != null -> {
@@ -197,7 +182,7 @@ fun GoalDetailScreen(
             itemId != null -> {
                 val attachmentIndex = attachmentItems.indexOfFirst { it.item.id == itemId }
                 if (attachmentIndex >= 0 && list?.isAttachmentsExpanded == true) {
-                    1 + attachmentIndex // 1 для AttachmentsSection header
+                    1 + attachmentIndex
                 } else {
                     val draggableIndex = draggableItems.indexOfFirst { it.item.id == itemId }
                     if (draggableIndex >= 0) offsetIndex + draggableIndex else -1
@@ -218,13 +203,10 @@ fun GoalDetailScreen(
     LaunchedEffect(draggableItems, attachmentItems, list?.isAttachmentsExpanded) {
         val newItemId = uiState.newlyAddedItemId
         if (newItemId != null) {
-            // Перевіряємо чи новий елемент в attachments
             val attachmentIndex = attachmentItems.indexOfFirst { it.item.id == newItemId }
             if (attachmentIndex == 0 && list?.isAttachmentsExpanded == true) {
-                // Новий attachment на першому місці
-                coroutineScope.launch { listState.animateScrollToItem(1) } // 1 для header
+                coroutineScope.launch { listState.animateScrollToItem(1) }
             } else {
-                // Перевіряємо чи новий елемент в draggableItems
                 val draggableIndex = draggableItems.indexOfFirst { it.item.id == newItemId }
                 if (draggableIndex == 0) {
                     val attachmentsOffset = if (list?.isAttachmentsExpanded == true)
@@ -240,10 +222,10 @@ fun GoalDetailScreen(
         object : DragDropHandler<ListItemContent> {
             override fun onDragStart(item: ListItemContent, index: Int) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                viewModel.onSwipeStateReset(item.item.id)
             }
 
             override fun onDragEnd(fromIndex: Int, toIndex: Int): Boolean {
-                // Використовуйте вашу існуючу логіку з reorderableLazyListState
                 try {
                     Log.d("DragAndDrop", "Moving from $fromIndex to $toIndex, draggableItems.size: ${draggableItems.size}")
 
@@ -267,19 +249,16 @@ fun GoalDetailScreen(
             }
 
             override fun canDrag(item: ListItemContent, index: Int): Boolean {
-                // Додайте умови, якщо потрібно
-                return !isSelectionModeActive // Наприклад, не дозволяти DnD в режимі вибору
+                return !isSelectionModeActive && uiState.swipedItemId == null
             }
         }
     }
 
     val dragDropState = rememberDragDropState(dragDropHandler)
 
-
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
     }
-
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -358,7 +337,6 @@ fun GoalDetailScreen(
                     .padding(paddingValues)
                     .autoScrollDragDrop(dragDropState, listState),
             ) {
-                // Attachments section (non-draggable) - завжди фіксована секція
                 item(key = "attachments_section") {
                     list?.let {
                         AttachmentsSection(
@@ -378,177 +356,174 @@ fun GoalDetailScreen(
                     }
                 }
 
-                // Draggable items only - стабільні ключі та індекси
                 itemsIndexed(
                     items = draggableItems,
                     key = { _, item -> "draggable_${item.item.id}" }
                 ) { index, content ->
-                    // Додаємо додаткову перевірку для запобігання помилок
                     if (index >= draggableItems.size) {
                         Log.w("DragAndDrop", "Index $index out of bounds for draggableItems.size=${draggableItems.size}")
                         return@itemsIndexed
                     }
 
-                    // Замість ReorderableItem використовуйте DraggableItemContainer
-                    DraggableItemContainer(
-                        state = dragDropState,
-                        item = content,
-                        index = index,
-                        modifier = Modifier
-                        // ваші інші modifier'и...
-                    ) { dragHandleModifier ->
+                    val isDragging = dragDropState.isDragging && (dragDropState.draggedIndex == index)
+                    val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
+                            (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                        // Анімації для dragging стану
-                        val isDragging = dragDropState.isDragging && (dragDropState.draggedIndex == index)
-                        val scale by animateFloatAsState(
-                            targetValue = if (isDragging) 1.05f else 1f,
-                            label = "scale"
-                        )
-                        val elevation by animateDpAsState(
-                            targetValue = if (isDragging) 8.dp else 0.dp,
-                            label = "elevation"
-                        )
+                    when (content) {
+                        is ListItemContent.GoalItem -> {
+                            val isSelected = content.item.id in uiState.selectedItemIds
 
-                        val itemModifier = Modifier
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
+                            val targetColor = when {
+                                isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                content.goal.completed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                else -> MaterialTheme.colorScheme.surface
                             }
-                            .shadow(elevation, RoundedCornerShape(12.dp))
 
-                        val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
-                                (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
+                            val background by animateColorAsState(
+                                targetValue = targetColor,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                label = "bgAnim"
+                            )
 
-                        // Ваша кастомна ручка перетягування з dragHandleModifier
-                        val dragHandle = @Composable {
-                            Surface(
+                            val elevation by animateDpAsState(
+                                targetValue = if (content.goal.completed) 0.dp else 1.dp,
+                                label = "elevation"
+                            )
+
+                            val animatedBorderColor by animateColorAsState(
+                                targetValue = when {
+                                    isHighlighted -> MaterialTheme.colorScheme.tertiary
+                                    isSelected && !content.goal.completed -> MaterialTheme.colorScheme.primary
+                                    else -> Color.Transparent
+                                },
+                                animationSpec = tween(300),
+                                label = "border_color_anim"
+                            )
+
+                            DraggableItemContainer(
+                                state = dragDropState,
+                                item = content,
+                                index = index,
                                 modifier = Modifier
-                                    .fillMaxHeight()
-                                    .padding(end = 4.dp),
-                                color = Color.Transparent
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(vertical = 4.dp)
+                            ) { dragHandleModifier ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = background),
+                                    elevation = CardDefaults.elevatedCardElevation(elevation),
+                                    border = if (content.goal.completed && !isHighlighted) null else BorderStroke(2.dp, animatedBorderColor)
                                 ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                        modifier = Modifier.semantics { contentDescription = "Перетягнути" }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DragHandle,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                            modifier = dragHandleModifier  // Використовуйте dragHandleModifier тут!
-                                                .size(24.dp)
-                                                .padding(4.dp)
-                                                .pointerInput(Unit) {
-                                                    detectTapGestures {
-                                                        // Пустий обробник для запобігання конфліктів
-                                                    }
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            SwipeableListItem(
+                                                swipeEnabled = !dragDropState.isDragging,
+                                                isDragging = isDragging,
+                                                isAnyItemDragging = dragDropState.isDragging,
+                                                resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
+                                                backgroundColor = Color.Transparent,
+                                                onSwipeStart = { if (!dragDropState.isDragging) viewModel.onSwipeStart(content.item.id) },
+                                                isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
+                                                onDelete = { viewModel.deleteItem(content) },
+                                                onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
+                                                onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
+                                                onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
+                                                onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
+                                                content = {
+                                                    GoalItem(
+                                                        goal = content.goal,
+                                                        obsidianVaultName = obsidianVaultName,
+                                                        onToggle = { isChecked -> viewModel.toggleGoalCompletedWithState(content.goal, isChecked) },
+                                                        onItemClick = { viewModel.onItemClick(content) },
+                                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                                        onTagClick = { tag -> viewModel.onTagClicked(tag) },
+                                                        onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
+                                                        contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                                        emojiToHide = currentListContextEmojiToHide,
+                                                    )
                                                 }
-                                        )
+                                            )
+                                        }
+                                        DragHandleIcon(modifier = dragHandleModifier)
                                     }
                                 }
                             }
                         }
 
-                        when (content) {
-                            is ListItemContent.GoalItem -> {
-                                val isSelected = content.item.id in uiState.selectedItemIds
-                                SwipeableListItem(
-                                    modifier = itemModifier,
-                                    isDragging = isDragging,
-                                    isAnyItemDragging = dragDropState.isDragging, // Замінено
-                                    resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                    backgroundColor = Color.Transparent,
-                                    onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
-                                    onDelete = { viewModel.deleteItem(content) },
-                                    onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                                    onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
-                                    onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                                    onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
-                                ) {
-                                    GoalItem(
-                                        goalContent = content,
-                                        onCheckedChange = { isChecked ->
-                                            viewModel.toggleGoalCompletedWithState(content.goal, isChecked)
-                                        },
-                                        onClick = { viewModel.onItemClick(content) },
-                                        onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                        isSelected = isSelected,
-                                        isHighlighted = isHighlighted,
-                                        endAction = dragHandle,
-                                    )
-                                }
-                            }
-
-                            is ListItemContent.SublistItem -> {
+                        is ListItemContent.SublistItem -> {
+                            DraggableItemContainer(
+                                state = dragDropState,
+                                item = content,
+                                index = index,
+                                modifier = Modifier
+                            ) { dragHandleModifier ->
                                 SublistItemRow(
-                                    modifier = itemModifier,
                                     sublistContent = content,
                                     isSelected = content.item.id in uiState.selectedItemIds,
                                     isHighlighted = isHighlighted,
                                     onClick = { viewModel.onItemClick(content) },
                                     onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                    endAction = dragHandle,
+                                    endAction = { DragHandleIcon(dragHandleModifier) },
                                 )
                             }
+                        }
 
-                            else -> {
-                                // Для інших типів контенту
-                                Log.w("DragAndDrop", "Unsupported content type: ${content::class.simpleName}")
-                            }
+                        else -> {
+                            Log.w("DragAndDrop", "Unsupported content type: ${content::class.simpleName}")
                         }
                     }
                 }
             }
-            }}
+        }
 
         RecentListsSheet(
-        showSheet = showRecentListsSheet,
-        recentLists = recentLists,
-        onDismiss = { viewModel.onDismissRecentLists() },
-        onListClick = { listId -> viewModel.onRecentListSelected(listId) },
-    )
+            showSheet = showRecentListsSheet,
+            recentLists = recentLists,
+            onDismiss = { viewModel.onDismissRecentLists() },
+            onListClick = { listId -> viewModel.onRecentListSelected(listId) },
+        )
 
-    when (val state = goalActionState) {
-        is GoalActionDialogState.Hidden -> {}
-        is GoalActionDialogState.AwaitingActionChoice -> {
-            GoalActionChoiceDialog(
-                itemContent = state.itemContent,
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onActionSelected = { actionType ->
-                    viewModel.onGoalActionSelected(actionType, state.itemContent)
+        when (val state = goalActionState) {
+            is GoalActionDialogState.Hidden -> {}
+            is GoalActionDialogState.AwaitingActionChoice -> {
+                GoalActionChoiceDialog(
+                    itemContent = state.itemContent,
+                    onDismiss = { viewModel.onDismissGoalActionDialogs() },
+                    onActionSelected = { actionType ->
+                        viewModel.onGoalActionSelected(actionType, state.itemContent)
+                    },
+                )
+            }
+        }
+
+        if (uiState.showAddWebLinkDialog) {
+            AddLinkDialog(
+                title = stringResource(R.string.add_link_dialog_title),
+                namePlaceholder = stringResource(R.string.dialog_placeholder_name_optional),
+                targetPlaceholder = stringResource(R.string.url_placeholder),
+                onDismiss = { viewModel.onDismissLinkDialogs() },
+                onConfirm = { name, url ->
+                    viewModel.onAddWebLinkConfirm(url, name.takeIf { it.isNotBlank() })
                 },
             )
         }
-    }
 
-    if (uiState.showAddWebLinkDialog) {
-        AddLinkDialog(
-            title = stringResource(R.string.add_link_dialog_title),
-            namePlaceholder = stringResource(R.string.dialog_placeholder_name_optional),
-            targetPlaceholder = stringResource(R.string.url_placeholder),
-            onDismiss = { viewModel.onDismissLinkDialogs() },
-            onConfirm = { name, url ->
-                viewModel.onAddWebLinkConfirm(url, name.takeIf { it.isNotBlank() })
-            },
-        )
-    }
-
-    if (uiState.showAddObsidianLinkDialog) {
-        AddLinkDialog(
-            title = stringResource(R.string.add_obsidian_link_dialog_title),
-            namePlaceholder = stringResource(R.string.dialog_placeholder_note_name),
-            isTargetVisible = false,
-            onDismiss = { viewModel.onDismissLinkDialogs() },
-            onConfirm = { name, _ ->
-                viewModel.onAddObsidianLinkConfirm(name)
-            },
-        )
+        if (uiState.showAddObsidianLinkDialog) {
+            AddLinkDialog(
+                title = stringResource(R.string.add_obsidian_link_dialog_title),
+                namePlaceholder = stringResource(R.string.dialog_placeholder_note_name),
+                isTargetVisible = false,
+                onDismiss = { viewModel.onDismissLinkDialogs() },
+                onConfirm = { name, _ ->
+                    viewModel.onAddObsidianLinkConfirm(name)
+                },
+            )
+        }
     }
 }
 
@@ -588,5 +563,33 @@ private fun handleRelatedLinkClick(
         Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
     }
 }
-////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////
+
+@Composable
+private fun DragHandleIcon(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(end = 4.dp),
+        color = Color.Transparent
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                modifier = Modifier.semantics { contentDescription = "Перетягнути" }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = modifier
+                        .size(24.dp)
+                        .padding(4.dp)
+                )
+            }
+        }
+    }
+}

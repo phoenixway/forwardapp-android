@@ -367,13 +367,11 @@ private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
     }
 }
 
-// Original full-featured function with all parameters
+// Функція тепер відповідає лише за вміст, без зовнішньої оболонки Card
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
     goal: Goal,
-    isSelected: Boolean,
-    isHighlighted: Boolean,
     obsidianVaultName: String,
     onToggle: (Boolean) -> Unit,
     onItemClick: () -> Unit,
@@ -381,7 +379,6 @@ fun GoalItem(
     onTagClick: (String) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
 ) {
@@ -389,203 +386,116 @@ fun GoalItem(
         parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
     }
 
-    val targetColor = when {
-        isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        goal.completed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        else -> MaterialTheme.colorScheme.surface
-    }
-
-    val background by animateColorAsState(
-        targetValue = targetColor,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "bgAnim"
-    )
-
     var isPressed by remember { mutableStateOf(false) }
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 4.dp else if (goal.completed) 0.dp else 1.dp,
-        label = "elevation"
-    )
 
-    val animatedBorderColor by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.tertiary
-            isSelected && !goal.completed -> MaterialTheme.colorScheme.primary
-            else -> Color.Transparent
-        },
-        animationSpec = tween(300),
-        label = "border_color_anim"
-    )
-
-    Card(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .semantics {
-                contentDescription = "Завдання: ${parsedData.mainText}"
-                if (goal.completed) {
-                    stateDescription = "Виконано"
-                }
-            },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(elevation),
-        border = if (goal.completed && !isHighlighted) null else BorderStroke(2.dp, animatedBorderColor)
+            .pointerInput(onItemClick, onLongClick) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onLongPress = { onLongClick() },
+                    onTap = { onItemClick() }
+                )
+            }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+        EnhancedCustomCheckbox(
+            checked = goal.completed,
+            onCheckedChange = onToggle
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            MarkdownText(
+                text = parsedData.mainText,
+                isCompleted = goal.completed,
+                obsidianVaultName = obsidianVaultName,
+                onTagClick = onTagClick,
+                onTextClick = onItemClick,
+                onLongClick = onLongClick,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    lineHeight = 16.sp,
+                    letterSpacing = 0.1.sp,
+                    fontSize = 12.sp,
+                    fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium
+                )
+            )
+
+            val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
+                    parsedData.icons.isNotEmpty() ||
+                    !goal.description.isNullOrBlank() ||
+                    !goal.relatedLinks.isNullOrEmpty()
+
+            AnimatedVisibility(
+                visible = hasStatusContent,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                ) + fadeIn()
             ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .pointerInput(onItemClick, onLongClick) {
-                            detectTapGestures(
-                                onPress = {
-                                    isPressed = true
-                                    tryAwaitRelease()
-                                    isPressed = false
-                                },
-                                onLongPress = { onLongClick() },
-                                onTap = { onItemClick() }
-                            )
-                        }
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    EnhancedCustomCheckbox(
-                        checked = goal.completed,
-                        onCheckedChange = onToggle
-                    )
+                Column {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        EnhancedScoreStatusBadge(goal = goal)
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        MarkdownText(
-                            text = parsedData.mainText,
-                            isCompleted = goal.completed,
-                            obsidianVaultName = obsidianVaultName,
-                            onTagClick = onTagClick,
-                            onTextClick = onItemClick,
-                            onLongClick = onLongClick,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                lineHeight = 16.sp,
-                                letterSpacing = 0.1.sp,
-                                fontSize = 12.sp,
-                                fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium
-                            )
-                        )
-
-                        val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
-                                parsedData.icons.isNotEmpty() ||
-                                !goal.description.isNullOrBlank() ||
-                                !goal.relatedLinks.isNullOrEmpty()
-
-                        AnimatedVisibility(
-                            visible = hasStatusContent,
-                            enter = slideInVertically(
-                                initialOffsetY = { -it },
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                            ) + fadeIn()
-                        ) {
-                            Column {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    EnhancedScoreStatusBadge(goal = goal)
-
-                                    parsedData.icons
-                                        .filterNot { it == emojiToHide }
-                                        .forEachIndexed { index, icon ->
-                                            key(icon) {
-                                                var delayedVisible by remember { mutableStateOf(false) }
-                                                LaunchedEffect(Unit) {
-                                                    delay(index * 50L)
-                                                    delayedVisible = true
-                                                }
-                                                AnimatedVisibility(
-                                                    visible = delayedVisible,
-                                                    enter = scaleIn(
-                                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                                                    ) + fadeIn()
-                                                ) {
-                                                    AnimatedContextEmoji(
-                                                        emoji = icon,
-                                                        modifier = Modifier.align(Alignment.CenterVertically)
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                    if (!goal.description.isNullOrBlank()) {
-                                        NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
+                        parsedData.icons
+                            .filterNot { it == emojiToHide }
+                            .forEachIndexed { index, icon ->
+                                key(icon) {
+                                    var delayedVisible by remember { mutableStateOf(false) }
+                                    LaunchedEffect(Unit) {
+                                        delay(index * 50L)
+                                        delayedVisible = true
                                     }
-
-                                    goal.relatedLinks?.forEachIndexed { index, link ->
-                                        key(link.target + link.type.name) {
-                                            var delayedVisible by remember { mutableStateOf(false) }
-                                            LaunchedEffect(Unit) {
-                                                delay((parsedData.icons.size + index) * 50L)
-                                                delayedVisible = true
-                                            }
-                                            AnimatedVisibility(
-                                                visible = delayedVisible,
-                                                enter = slideInHorizontally(
-                                                    initialOffsetX = { it },
-                                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                                                ) + fadeIn()
-                                            ) {
-                                                EnhancedRelatedLinkChip(
-                                                    link = link,
-                                                    onClick = { onRelatedLinkClick(link) }
-                                                )
-                                            }
-                                        }
+                                    AnimatedVisibility(
+                                        visible = delayedVisible,
+                                        enter = scaleIn(
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                                        ) + fadeIn()
+                                    ) {
+                                        AnimatedContextEmoji(
+                                            emoji = icon,
+                                            modifier = Modifier.align(Alignment.CenterVertically)
+                                        )
                                     }
                                 }
                             }
-                        }
-                    }
-                }
 
-                Surface(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(end = 4.dp),
-                    color = Color.Transparent
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier
-                                .semantics {
-                                    contentDescription = "Перетягнути для переупорядкування"
+                        if (!goal.description.isNullOrBlank()) {
+                            NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
+                        }
+
+                        goal.relatedLinks?.forEachIndexed { index, link ->
+                            key(link.target + link.type.name) {
+                                var delayedVisible by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    delay((parsedData.icons.size + index) * 50L)
+                                    delayedVisible = true
                                 }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DragHandle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                modifier = dragHandleModifier
-                                    .size(24.dp)
-                                    .padding(4.dp)
-                                    .pointerInput(Unit) { detectTapGestures { } }
-                            )
+                                AnimatedVisibility(
+                                    visible = delayedVisible,
+                                    enter = slideInHorizontally(
+                                        initialOffsetX = { it },
+                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                                    ) + fadeIn()
+                                ) {
+                                    EnhancedRelatedLinkChip(
+                                        link = link,
+                                        onClick = { onRelatedLinkClick(link) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -609,7 +519,6 @@ fun GoalItem(
 ) {
     val goal = goalContent.goal
 
-    // Parse text and extract icons using default empty map
     val parsedData = remember(goal.text) {
         parseTextAndExtractIcons(goal.text, emptyMap())
     }
@@ -690,7 +599,6 @@ fun GoalItem(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Show status indicators and icons
                 val hasStatusContent = goal.scoringStatus != ScoringStatus.NOT_ASSESSED ||
                         parsedData.icons.isNotEmpty() ||
                         !goal.description.isNullOrBlank() ||

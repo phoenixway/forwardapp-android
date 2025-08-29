@@ -223,14 +223,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun onSwipeStateReset(itemId: String) {
-        _uiState.update {
-            val newTriggers = it.resetTriggers.toMutableMap()
-            newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
-            it.copy(resetTriggers = newTriggers)
-        }
-    }
-
     fun onListChooserResult(targetListId: String) {
         val actionType = pendingAction ?: return
         val itemIds = pendingSourceItemIds.toList()
@@ -639,11 +631,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    private fun onLinkItemClick(link: RelatedLink) {
-        viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.HandleLinkClick(link))
-        }
-    }
 
     private fun onEditGoal(goal: Goal) {
         viewModelScope.launch {
@@ -670,4 +657,26 @@ class GoalDetailViewModel @Inject constructor(
             goalRepository.createGoalLinks(listOf(goalId), listIdFlow.value)
         }
     }
+    fun onSwipeStateReset(itemId: String) {
+        _uiState.update { currentState ->
+            val newTriggers = currentState.resetTriggers.toMutableMap()
+            newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
+
+            // Також скидаємо swipedItemId якщо це той же елемент
+            val newSwipedItemId = if (currentState.swipedItemId == itemId) null else currentState.swipedItemId
+
+            currentState.copy(
+                resetTriggers = newTriggers,
+                swipedItemId = newSwipedItemId
+            )
+        }
+    }
+
+    fun onLinkItemClick(link: RelatedLink) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+        }
+    }
+
+
 }
