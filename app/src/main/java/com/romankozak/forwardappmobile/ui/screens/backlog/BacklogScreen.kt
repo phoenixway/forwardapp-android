@@ -234,10 +234,6 @@ fun GoalDetailScreen(
 
             override fun onDragCancel() {}
 
-            override fun onDragOver(fromIndex: Int, toIndex: Int) {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            }
-
             override fun canDrag(item: ListItemContent, index: Int): Boolean {
                 return !isSelectionModeActive && uiState.swipedItemId == null
             }
