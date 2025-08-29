@@ -448,24 +448,18 @@ fun GoalDetailScreen(
                         }
 
                         is ListItemContent.SublistItem -> {
-                            val elevation by animateDpAsState(
-                                targetValue = if (isDragging) 4.dp else 1.dp,
-                                label = "sublist_elevation_anim"
-                            )
-
+                            // <-- ПОЧАТОК ВИПРАВЛЕННЯ -->
                             DraggableItemContainer(
                                 state = dragDropState,
                                 item = content,
                                 index = index,
                                 modifier = Modifier.animateItem(),
-                            )
-
-                            { dragHandleModifier ->
-                                Card(
+                            ) { dragHandleModifier ->
+                                // Прибираємо Card і повертаємо Box, щоб не було зайвої тіні
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = elevation)
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
                                 ) {
                                     SublistItemRow(
                                         sublistContent = content,
@@ -477,6 +471,7 @@ fun GoalDetailScreen(
                                     )
                                 }
                             }
+                            // <-- КІНЕЦЬ ВИПРАВЛЕННЯ -->
                         }
 
                         else -> {
