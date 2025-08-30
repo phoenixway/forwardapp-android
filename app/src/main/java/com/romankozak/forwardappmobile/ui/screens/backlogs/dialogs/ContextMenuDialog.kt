@@ -42,15 +42,13 @@ fun ContextMenuDialog(
                 DialogActionItem(
                     text = "Перемістити",
                     icon = Icons.Default.MoveUp,
-                    onClick = {
-                        onMoveRequest(list)
-                        onDismissRequest()
-                    },
+                    onClick = { onMoveRequest(list) },
                 )
                 HorizontalDivider()
                 DialogActionItem(
                     text = "Редагувати",
                     icon = Icons.Default.Edit,
+                    // ЗАЛИШАЄМО onDismissRequest() ТІЛЬКИ ТУТ
                     onClick = {
                         onEditRequest(list)
                         onDismissRequest()
@@ -60,20 +58,14 @@ fun ContextMenuDialog(
                 DialogActionItem(
                     text = "Додати підсписок",
                     icon = Icons.Default.Add,
-                    onClick = {
-                        onAddSublistRequest(list)
-                        onDismissRequest()
-                    },
+                    onClick = { onAddSublistRequest(list) },
                 )
                 HorizontalDivider()
                 DialogActionItem(
                     text = "Видалити",
                     icon = Icons.Default.Delete,
                     color = MaterialTheme.colorScheme.error,
-                    onClick = {
-                        onDeleteRequest(list)
-                        onDismissRequest()
-                    },
+                    onClick = { onDeleteRequest(list) },
                 )
             }
         }

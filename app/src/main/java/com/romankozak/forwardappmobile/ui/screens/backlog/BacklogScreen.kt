@@ -25,9 +25,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -85,8 +85,31 @@ fun GoalDetailScreen(
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // ФІНАЛЬНЕ РІШЕННЯ: Оновлення даних при кожному поверненні на екран (ON_RESUME).
-    // Цей метод на 100% надійний у вашому випадку.
+    // --- ПОЧАТОК ЗМІН: Код для отримання результату від екрана вибору списку ---
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            // Перевіряємо результат, коли екран повертається в активний стан
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (savedStateHandle?.contains("list_chooser_result") == true) {
+                    val result = savedStateHandle.get<String>("list_chooser_result")
+                    if (result != null) {
+                        Log.d("AddSublistDebug", "BacklogScreen: Received result from chooser: '$result'")
+                        viewModel.onListChooserResult(result)
+                    }
+                    // Важливо: видаляємо результат, щоб він не спрацював ще раз
+                    savedStateHandle.remove<String>("list_chooser_result")
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    // --- КІНЕЦЬ ЗМІН ---
+
+    // Цей блок відповідає за примусове оновлення при поверненні на екран (напр. після редагування)
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -106,7 +129,6 @@ fun GoalDetailScreen(
         }
     }
 
-    // Доданий блок для прокрутки догори при розгортанні додатків
     LaunchedEffect(list?.isAttachmentsExpanded) {
         if (list?.isAttachmentsExpanded == true) {
             listState.animateScrollToItem(0)
@@ -203,7 +225,7 @@ fun GoalDetailScreen(
     }
 
     BackHandler(enabled = !isSelectionModeActive) {
-        viewModel.flushPendingMoves() // Зберігаємо перед виходом
+        viewModel.flushPendingMoves()
         navController.popBackStack()
     }
 
@@ -367,12 +389,10 @@ fun GoalDetailScreen(
                     },
                     modifier = Modifier,
                     onGoalTransportRequest = {
-                        Log.d("swipeActions", "transport")
                         selectedGoalForTransport = content
                         showTransportMenu = true
                     },
                     onCopyContentRequest = {
-                        Log.d("swipeActions", "copy content")
                         viewModel.copyContentRequest(content)
                     }
                 ) {
