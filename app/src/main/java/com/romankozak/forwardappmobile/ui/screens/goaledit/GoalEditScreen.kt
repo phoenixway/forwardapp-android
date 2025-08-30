@@ -71,25 +71,20 @@ fun GoalEditScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // --- Налаштування для отримання результатів від інших екранів ---
-    val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val navGraphEntry = remember(currentBackStackEntry) {
-        navController.getBackStackEntry("app_graph")
-    }
-    val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
-
-
     // --- Обробка навігаційних подій від ViewModel ---
     LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
             when (event) {
-                // ЗМІНЕНО: Тепер перед поверненням назад ми встановлюємо результат
+                // ЗМІНЕНО: Поведінка NavigateBack трохи змінилася
                 is GoalEditEvent.NavigateBack -> {
                     event.message?.let {
                         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                     }
                     // Повідомляємо попередній екран, що потрібно оновити дані
-                    resultViewModel.setResult("refresh_needed", true)
+                    // через SavedStateHandle, це більш надійно
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("refresh_needed", true)
                     navController.popBackStack()
                 }
                 is GoalEditEvent.Navigate -> {
@@ -99,7 +94,26 @@ fun GoalEditScreen(
         }
     }
 
-    // --- Отримання результату від екрана вибору списку ---
+    // Отримання результату від екрана вибору списку (list_chooser_screen)
+    val navBackStackEntry = navController.currentBackStackEntry
+    LaunchedEffect(navBackStackEntry) {
+        // Ми використовуємо observeAsState, щоб реагувати на зміни
+        val resultFlow = navBackStackEntry?.savedStateHandle
+            ?.getLiveData<String>("list_chooser_result")
+
+        resultFlow?.observe(navBackStackEntry) { result ->
+            if (result != null) {
+                // Як тільки результат отримано, викликаємо ViewModel
+                viewModel.onListChooserResult(result)
+                // І одразу ж очищуємо його, щоб уникнути повторної обробки
+                // при зміні конфігурації (напр. поворот екрана)
+                navBackStackEntry.savedStateHandle.remove<String>("list_chooser_result")
+            }
+        }
+    }
+
+
+/*    // --- Отримання результату від екрана вибору списку ---
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             // Перевіряємо, чи повернувся ID обраного списку
@@ -108,7 +122,7 @@ fun GoalEditScreen(
                 viewModel.onListChooserResult(selectedListId)
             }
         }
-    }
+    }*/
 
 
     // --- Логіка для підказок контекстів (@...) ---
