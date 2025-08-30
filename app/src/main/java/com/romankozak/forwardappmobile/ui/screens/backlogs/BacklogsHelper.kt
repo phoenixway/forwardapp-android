@@ -2,15 +2,12 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlogs
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -18,7 +15,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
@@ -28,8 +24,7 @@ import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddListDialog
-import com.romankozak.forwardappmobile.ui.dialogs.ContextMenuDialog
-import com.romankozak.forwardappmobile.ui.dialogs.EditListDialog
+import com.romankozak.forwardappmobile.ui.screens.backlogs.dialogs.ContextMenuDialog
 import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
@@ -79,7 +74,6 @@ fun LazyListScope.renderGoalList(
                     )
 
                     Column(modifier = Modifier.matchParentSize()) {
-                        // --- ПОЧАТОК ЗМІНИ ---
                         val dropModifierBefore = Modifier
                             .fillMaxWidth()
                             .weight(1f)
@@ -96,7 +90,7 @@ fun LazyListScope.renderGoalList(
                                         )
                                     }
                                 } else {
-                                    Modifier // Повертаємо пустий модифікатор, якщо дроп заборонено
+                                    Modifier
                                 }
                             )
 
@@ -116,11 +110,9 @@ fun LazyListScope.renderGoalList(
                                         )
                                     }
                                 } else {
-                                    Modifier // Повертаємо пустий модифікатор, якщо дроп заборонено
+                                    Modifier
                                 }
                             )
-                        // --- КІНЕЦЬ ЗМІНИ ---
-
                         Box(modifier = dropModifierBefore)
                         Box(modifier = dropModifierAfter)
                     }
@@ -231,17 +223,8 @@ fun HandleDialogs(
             )
         }
         is DialogState.EditList -> {
-            EditListDialog(
-                list = state.list,
-                onDismiss = { viewModel.dismissDialog() },
-                onConfirm = { newName, newTags ->
-                    viewModel.onEditListConfirmed(
-                        state.list,
-                        newName,
-                        newTags,
-                    )
-                },
-            )
+            // ЦЕЙ ДІАЛОГ БІЛЬШЕ НЕ ВИКОРИСТОВУЄТЬСЯ
+            // onEditRequest -> GoalListViewModel -> NavigateToEditListScreen
         }
         is DialogState.AboutApp -> {
             AboutAppDialog(stats) { viewModel.dismissDialog() }

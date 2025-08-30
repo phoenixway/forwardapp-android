@@ -26,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.LocationSearching
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -79,6 +81,7 @@ fun GoalDetailScreen(
 
     var showTransportMenu by remember { mutableStateOf(false) }
     var selectedGoalForTransport by remember { mutableStateOf<ListItemContent?>(null) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
@@ -207,7 +210,6 @@ fun GoalDetailScreen(
         navController.popBackStack()
     }
 
-    // Також можете додати DisposableEffect для збереження при закритті екрану
     DisposableEffect(Unit) {
         onDispose {
             viewModel.flushPendingMoves()
@@ -249,6 +251,19 @@ fun GoalDetailScreen(
                             Icon(
                                 imageVector = Icons.Default.LocationSearching,
                                 contentDescription = stringResource(R.string.reveal_in_backlogs),
+                            )
+                        }
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Меню")
+                        }
+                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Властивості") },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Властивості") }, // <--- ДОДАНО ІКОНКУ
+                                onClick = {
+                                    menuExpanded = false
+                                    navController.navigate("edit_list_screen/${list?.id}")
+                                }
                             )
                         }
                     },
@@ -354,7 +369,6 @@ fun GoalDetailScreen(
                         )
                     },
                     modifier = Modifier,
-                    // ВИПРАВЛЕНІ ВИКЛИКИ ФУНКЦІЙ ПРИ СВАЙПІ:
                     onGoalTransportRequest = {
                         Log.d("swipeActions", "transport")
                         selectedGoalForTransport = content
@@ -409,7 +423,6 @@ fun GoalDetailScreen(
                 showTransportMenu = false
                 selectedGoalForTransport = null
             },
-            // ВИПРАВЛЕНІ ВИКЛИКИ ФУНКЦІЙ В МЕНЮ:
             onCreateInstanceRequest = {
                 selectedGoalForTransport?.let { content ->
                     viewModel.createInstanceRequest(content)
@@ -506,9 +519,6 @@ private fun handleRelatedLinkClick(
 }
 
 
-// ... (код екрану та функція rememberDragDropState залишаються без змін) ...
-
-// --- ЗАМІНІТЬ ПОВНІСТЮ ЦЕЙ КЛАС ---
 @Composable
 fun rememberSimpleDragDropState(
     lazyListState: LazyListState,

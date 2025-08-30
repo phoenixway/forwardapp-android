@@ -18,6 +18,7 @@ import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTracke
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalDetailScreen
 import com.romankozak.forwardappmobile.ui.screens.backlogs.GoalListScreen
 import com.romankozak.forwardappmobile.ui.screens.backlogs.GoalListViewModel
+import com.romankozak.forwardappmobile.ui.screens.editlist.EditListScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
@@ -150,7 +151,18 @@ fun AppNavigation(
             GoalDetailScreen(navController = navController)
         }
 
-
+        // ДОДАНО: новий маршрут для екрану редагування списку
+        composable(
+            route = "edit_list_screen/{listId}",
+            arguments = listOf(
+                navArgument("listId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            EditListScreen(
+                navController = navController,
+                listId = backStackEntry.arguments?.getString("listId") ?: ""
+            )
+        }
 
         composable(
             "global_search_screen/{query}",
