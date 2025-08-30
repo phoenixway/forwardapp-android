@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
+import com.romankozak.forwardappmobile.ui.components.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -837,6 +838,16 @@ class GoalDetailViewModel @Inject constructor(
             Log.d("AttachmentsSection", "[ViewModel] Стан isAttachmentsExpanded змінено на: $newState")
 
             goalRepository.updateGoalList(currentList.copy(isAttachmentsExpanded = newState))
+        }
+    }
+
+    fun onAddAttachment(type: AttachmentType) {
+        when (type) {
+            AttachmentType.NOTE -> onAddNewNoteRequested()
+            AttachmentType.WEB_LINK -> onShowAddWebLinkDialog()
+            AttachmentType.OBSIDIAN_LINK -> onShowAddObsidianLinkDialog()
+            AttachmentType.LIST_LINK -> onAddListLinkRequest()
+            AttachmentType.SHORTCUT -> onAddListShortcutRequest()
         }
     }
 
