@@ -42,6 +42,8 @@ fun InteractiveListItem(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
+    onGoalTransportRequest: () -> Unit,
+    onCopyContentRequest: () -> Unit,
 
     // Контент
     modifier: Modifier = Modifier,
@@ -97,6 +99,7 @@ fun InteractiveListItem(
         }
 
     Box(modifier = itemModifier) {
+
         SwipeableListItem(
             isDragging = isDragging,
             isAnyItemDragging = dragDropState.isDragging,
@@ -106,9 +109,10 @@ fun InteractiveListItem(
             onSwipeStart = onSwipeStart,
             onDelete = onDelete,
             onMoreActionsRequest = onMoreActionsRequest,
-            onCreateInstanceRequest = onCreateInstanceRequest,
-            onMoveInstanceRequest = onMoveInstanceRequest,
-            onCopyGoalRequest = onCopyGoalRequest,
+            // Якщо у вас є функція для меню транспорту цілі
+            onGoalTransportRequest = onGoalTransportRequest,
+            // Якщо у вас є функція для копіювання контенту
+            onCopyContentRequest = onCopyContentRequest,
             backgroundColor = backgroundColor,
             content = {
                 Row(
@@ -122,7 +126,6 @@ fun InteractiveListItem(
                 }
             },
         )
-
         // Виправлена логіка показу індикатора
         val isTarget = dragDropState.isDragging &&
                 dragDropState.targetIndexOfDraggedItem == index &&

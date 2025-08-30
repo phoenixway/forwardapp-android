@@ -17,12 +17,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -34,7 +31,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -52,14 +48,9 @@ import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddLinkDialog
 import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
-
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 
 
 @Composable
@@ -86,16 +77,13 @@ fun GoalDetailScreen(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
-    /*val dragDropState = rememberDragDropState(
-        lazyListState = listState,
-        onMove = { from, to -> viewModel.moveItem(from, to) }
-    )*/
+    var showTransportMenu by remember { mutableStateOf(false) }
+    var selectedGoalForTransport by remember { mutableStateOf<ListItemContent?>(null) }
 
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
         onMove = { fromIndex, toIndex -> viewModel.moveItem(fromIndex, toIndex) }
     )
-
 
     LaunchedEffect(uiState.needsStateRefresh) {
         if (uiState.needsStateRefresh) {
@@ -103,7 +91,6 @@ fun GoalDetailScreen(
             viewModel.onStateRefreshed()
         }
     }
-
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -227,9 +214,6 @@ fun GoalDetailScreen(
         }
     }
 
-    //val listVersion by viewModel.listVersion.collectAsStateWithLifecycle()
-
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -289,19 +273,19 @@ fun GoalDetailScreen(
                     onShowAddWebLinkDialog = { viewModel.onShowAddWebLinkDialog() },
                     onShowAddObsidianLinkDialog = { viewModel.onShowAddObsidianLinkDialog() },
                     onAddListShortcutClick = { viewModel.onAddListShortcutRequest() },
-                    modifier = Modifier.navigationBarsPadding().imePadding()
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .imePadding()
                 )
             }
         },
     ) { paddingValues ->
-        // У файлі BacklogScreen.kt
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-
-            ) {
+        ) {
             item(key = "attachments_section") {
                 list?.let {
                     AttachmentsSection(
@@ -321,13 +305,10 @@ fun GoalDetailScreen(
                 }
             }
 
-            // --- УВАГА: УСЯ МАГІЯ ВІДБУВАЄТЬСЯ ТУТ ---
-
-            // 1. Переконайтеся, що тут саме `itemsIndexed`, а не `items`.
             itemsIndexed(
                 items = draggableItems,
-                key = { index, item -> "${item.item.id}_$index" } // Include index in key
-            ) { index, content -> // 2. Переконайтеся, що ви отримуєте `index` як перший параметр.
+                key = { index, item -> "${item.item.id}_$index" }
+            ) { index, content ->
 
                 val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
                         (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
@@ -345,7 +326,7 @@ fun GoalDetailScreen(
 
                 InteractiveListItem(
                     item = content,
-                    index = index, // 3. Переконайтеся, що ви передаєте `index` сюди.
+                    index = index,
                     dragDropState = dragDropState.apply { this.itemsProvider = { draggableItems } },
                     swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
                     isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
@@ -354,10 +335,35 @@ fun GoalDetailScreen(
                     onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                     onDelete = { viewModel.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                    onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
-                    onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                    onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
-                    modifier = Modifier
+                    onCreateInstanceRequest = {
+                        viewModel.onGoalActionSelected(
+                            GoalActionType.CreateInstance,
+                            content
+                        )
+                    },
+                    onMoveInstanceRequest = {
+                        viewModel.onGoalActionSelected(
+                            GoalActionType.MoveInstance,
+                            content
+                        )
+                    },
+                    onCopyGoalRequest = {
+                        viewModel.onGoalActionSelected(
+                            GoalActionType.CopyGoal,
+                            content
+                        )
+                    },
+                    modifier = Modifier,
+                    // ВИПРАВЛЕНІ ВИКЛИКИ ФУНКЦІЙ ПРИ СВАЙПІ:
+                    onGoalTransportRequest = {
+                        Log.d("swipeActions", "transport")
+                        selectedGoalForTransport = content
+                        showTransportMenu = true
+                    },
+                    onCopyContentRequest = {
+                        Log.d("swipeActions", "copy content")
+                        viewModel.copyContentRequest(content) // Викликаємо функцію з параметром
+                    }
                 ) {
                     when (content) {
                         is ListItemContent.GoalItem -> {
@@ -397,6 +403,36 @@ fun GoalDetailScreen(
             onListClick = { listId -> viewModel.onRecentListSelected(listId) },
         )
 
+        GoalTransportMenu(
+            isVisible = showTransportMenu,
+            onDismiss = {
+                showTransportMenu = false
+                selectedGoalForTransport = null
+            },
+            // ВИПРАВЛЕНІ ВИКЛИКИ ФУНКЦІЙ В МЕНЮ:
+            onCreateInstanceRequest = {
+                selectedGoalForTransport?.let { content ->
+                    viewModel.createInstanceRequest(content)
+                }
+                showTransportMenu = false
+                selectedGoalForTransport = null
+            },
+            onMoveInstanceRequest = {
+                selectedGoalForTransport?.let { content ->
+                    viewModel.moveInstanceRequest(content)
+                }
+                showTransportMenu = false
+                selectedGoalForTransport = null
+            },
+            onCopyGoalRequest = {
+                selectedGoalForTransport?.let { content ->
+                    viewModel.copyGoalRequest(content)
+                }
+                showTransportMenu = false
+                selectedGoalForTransport = null
+            },
+        )
+
         when (val state = goalActionState) {
             is GoalActionDialogState.Hidden -> {}
             is GoalActionDialogState.AwaitingActionChoice -> {
@@ -434,8 +470,6 @@ fun GoalDetailScreen(
             )
         }
     }
-
-
 }
 
 private fun handleRelatedLinkClick(

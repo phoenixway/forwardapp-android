@@ -15,12 +15,15 @@ import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AddLink
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Moving
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material.icons.filled.Start
+import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -54,8 +57,6 @@ object SwipeConstants {
     val SHADOW_ELEVATION = 2.dp
 }
 
-// Виправлений SwipeableListItem.kt з підтримкою DnD
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SwipeableListItem(
@@ -68,12 +69,10 @@ fun SwipeableListItem(
     isAnotherItemSwiped: Boolean,
     onDelete: () -> Unit,
     onMoreActionsRequest: () -> Unit,
-    onCreateInstanceRequest: () -> Unit,
-    onMoveInstanceRequest: () -> Unit,
-    onCopyGoalRequest: () -> Unit,
+    onGoalTransportRequest: () -> Unit, // Нова функція для транспорту цілі
+    onCopyContentRequest: () -> Unit, // Нова функція для копіювання контенту
     content: @Composable () -> Unit,
-    swipeEnabled: Boolean = true, // 🚀 параметр тепер використовується
-
+    swipeEnabled: Boolean = true,
 ) {
     key(resetTrigger) {
         val coroutineScope = rememberCoroutineScope()
@@ -179,28 +178,66 @@ fun SwipeableListItem(
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 2.dp)
         ) {
-            // Дії для swipe (показуємо тільки якщо не dragging і свайп увімкнено)
+            // Дії для swipe вправо (оновлені дії)
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset > 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(start = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SwipeActionButton(icon = Icons.Default.MoreVert, contentDescription = "Більше дій", color = MaterialTheme.colorScheme.secondary, scale = leftActionsScale, onClick = { onMoreActionsRequest(); resetSwipe() })
-                    SwipeActionButton(icon = Icons.Default.AddLink, contentDescription = "Створити зв'язок", color = MaterialTheme.colorScheme.primary, scale = leftActionsScale, onClick = { onCreateInstanceRequest(); resetSwipe() })
-                    SwipeActionButton(icon = Icons.AutoMirrored.Filled.Send, contentDescription = "Перемістити", color = MaterialTheme.colorScheme.tertiary, scale = leftActionsScale, onClick = { onMoveInstanceRequest(); resetSwipe() })
-                    SwipeActionButton(icon = Icons.Default.ContentCopy, contentDescription = "Клонувати ціль", color = MaterialTheme.colorScheme.inversePrimary, scale = leftActionsScale, onClick = { onCopyGoalRequest(); resetSwipe() })
+                    SwipeActionButton(
+                        icon = Icons.Default.MoreVert,
+                        contentDescription = "Більше дій",
+                        color = MaterialTheme.colorScheme.secondary,
+                        scale = leftActionsScale,
+                        onClick = { onMoreActionsRequest(); resetSwipe() }
+                    )
+                    SwipeActionButton(
+                        icon = Icons.Default.Moving ,
+                        contentDescription = "Транспорт цілі",
+                        color = MaterialTheme.colorScheme.primary,
+                        scale = leftActionsScale,
+                        onClick = { onGoalTransportRequest(); resetSwipe() }
+                    )
+                    SwipeActionButton(
+                        icon = Icons.Default.ContentCopy,
+                        contentDescription = "Копіювати контент",
+                        color = MaterialTheme.colorScheme.tertiary,
+                        scale = leftActionsScale,
+                        onClick = { onCopyContentRequest(); resetSwipe() }
+                    )
+                    // Четверта дія залишається порожньою або можна додати ще одну
+                    SwipeActionButton(
+                        icon = Icons.Default.PlayArrow,
+                        contentDescription = "Резерв",
+                        color = MaterialTheme.colorScheme.inversePrimary,
+                        scale = leftActionsScale,
+                        onClick = { resetSwipe() }
+                    )
                 }
             }
 
+            // Дії для swipe вліво (залишаються без змін)
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset < 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(end = 1.dp),
                     horizontalArrangement = Arrangement.spacedBy(1.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SwipeActionButton(icon = Icons.Default.Delete, contentDescription = "Видалити", color = MaterialTheme.colorScheme.error, scale = rightActionsScale, onClick = { onDelete(); resetSwipe() })
-                    SwipeActionButton(icon = Icons.Default.DeleteForever, contentDescription = "Видалити назавжди", color = MaterialTheme.colorScheme.errorContainer, scale = rightActionsScale, onClick = { resetSwipe() })
+                    SwipeActionButton(
+                        icon = Icons.Default.Delete,
+                        contentDescription = "Видалити",
+                        color = MaterialTheme.colorScheme.error,
+                        scale = rightActionsScale,
+                        onClick = { onDelete(); resetSwipe() }
+                    )
+                    SwipeActionButton(
+                        icon = Icons.Default.DeleteForever,
+                        contentDescription = "Видалити назавжди",
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        scale = rightActionsScale,
+                        onClick = { resetSwipe() }
+                    )
                 }
             }
 
@@ -241,7 +278,12 @@ private fun SwipeActionButton(
         onClick = onClick
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(24.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
