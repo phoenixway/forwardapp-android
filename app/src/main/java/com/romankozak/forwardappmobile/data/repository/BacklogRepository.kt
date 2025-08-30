@@ -1,6 +1,6 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/repository/BacklogRepository.kt ---
 package com.romankozak.forwardappmobile.data.repository
 
+import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.GoalListDao
@@ -39,6 +39,7 @@ class GoalRepository @Inject constructor(
     private val contextHandlerProvider: Provider<ContextHandler>
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+    private val TAG = "AddSublistDebug" // Тег для логування
 
     // --- ОСНОВНІ МЕТОДИ ДЛЯ РОБОТИ З ВМІСТОМ СПИСКУ ---
 
@@ -90,7 +91,9 @@ class GoalRepository @Inject constructor(
     /**
      * Створює посилання на існуючий список і додає його як елемент у поточний список.
      */
+    @Transaction
     suspend fun addListLinkToList(targetListId: String, currentListId: String): String {
+        Log.d(TAG, "addListLinkToList: targetListId=$targetListId, currentListId=$currentListId")
         val newListItem = ListItem(
             id = UUID.randomUUID().toString(),
             listId = currentListId,
@@ -98,9 +101,18 @@ class GoalRepository @Inject constructor(
             entityId = targetListId,
             order = -System.currentTimeMillis()
         )
-        listItemDao.insertItem(newListItem)
+        Log.d(TAG, "Constructed ListItem to insert: $newListItem")
+        try {
+            Log.d(TAG, "Attempting to insert via listItemDao.insertItems...")
+            listItemDao.insertItems(listOf(newListItem))
+            Log.d(TAG, "Insertion successful for ListItem ID: ${newListItem.id}")
+        } catch (e: Exception) {
+            Log.e(TAG, "DATABASE INSERTION FAILED for ListItem: $newListItem", e)
+            throw e // Перекидаємо помилку, щоб її було видно вище
+        }
         return newListItem.id
     }
+
 
     /**
      * Створює посилання на існуючі цілі у вказаному списку.

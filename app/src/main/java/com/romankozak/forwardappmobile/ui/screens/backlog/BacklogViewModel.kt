@@ -71,7 +71,7 @@ class GoalDetailViewModel @Inject constructor(
     private var batchSaveJob: Job? = null
     private val BATCH_DELAY_MS = 500L
 
-    private val TAG = "DnD_Debug"
+    private val TAG = "AddSublistDebug" // Тег для логування
 
     private var optimisticUpdateInProgress = false
 
@@ -106,12 +106,10 @@ class GoalDetailViewModel @Inject constructor(
 
     val goalList: StateFlow<GoalList?> = combine(
         listIdFlow,
-        _refreshTrigger // <-- ДОДАЄМО ЗАЛЕЖНІСТЬ ВІД ТРИГЕРА
-    ) { id, _ -> id } // Ми ігноруємо значення тригера, нам важливий сам факт його зміни
+        _refreshTrigger
+    ) { id, _ -> id }
         .flatMapLatest { id ->
             if (id.isNotEmpty()) {
-                // Додамо логування, щоб бачити, що оновлення відбувається
-                Log.d("STATE_REFRESH", "Оновлюємо потік goalList для id: $id")
                 goalRepository.getGoalListByIdFlow(id)
             } else {
                 flowOf(null)
@@ -194,14 +192,9 @@ class GoalDetailViewModel @Inject constructor(
 
 
     init {
-        Log.d(TAG, "ViewModel INIT")
         viewModelScope.launch {
             databaseContentStream.collect { dbContent ->
-                Log.d(TAG, "DB collector received update. Flag is: $optimisticUpdateInProgress. List size: ${dbContent.size}")
-                if (optimisticUpdateInProgress) {
-                    Log.d(TAG, "-> SKIPPING DB update due to flag.")
-                } else {
-                    Log.d(TAG, "-> APPLYING DB update.")
+                if (!optimisticUpdateInProgress) {
                     _listContent.value = dbContent
                 }
             }
@@ -245,29 +238,53 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun onListChooserResult(targetListId: String) {
-        val actionType = pendingAction ?: return
+        Log.d(TAG, "onListChooserResult: Received targetListId: $targetListId")
+        val actionType = pendingAction
+        Log.d(TAG, "onListChooserResult: Current pendingAction is $actionType")
+
+        if (actionType == null) {
+            Log.w(TAG, "onListChooserResult: pendingAction is null, aborting.")
+            return
+        }
+
         val itemIds = pendingSourceItemIds.toList()
         val goalIds = pendingSourceGoalIds.toList()
 
         viewModelScope.launch(Dispatchers.IO) {
-            when (actionType) {
-                GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetListId)
-                GoalActionType.MoveInstance -> goalRepository.moveListItems(itemIds, targetListId)
-                GoalActionType.CopyGoal -> goalRepository.copyGoalsToList(goalIds, targetListId)
-                GoalActionType.AddLinkToList -> {
-                    val targetList = goalRepository.getGoalListById(targetListId)
-                    val link = RelatedLink(
-                        type = LinkType.GOAL_LIST,
-                        target = targetListId,
-                        displayName = targetList?.name ?: "Список без назви"
-                    )
-                    val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
-                    _uiState.update { it.copy(newlyAddedItemId = newItemId) }
+            try {
+                when (actionType) {
+                    GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetListId)
+                    GoalActionType.MoveInstance -> goalRepository.moveListItems(itemIds, targetListId)
+                    GoalActionType.CopyGoal -> goalRepository.copyGoalsToList(goalIds, targetListId)
+                    GoalActionType.AddLinkToList -> {
+                        Log.d(TAG, "Executing action: AddLinkToList")
+                        val targetList = goalRepository.getGoalListById(targetListId)
+                        val link = RelatedLink(
+                            type = LinkType.GOAL_LIST,
+                            target = targetListId,
+                            displayName = targetList?.name ?: "Список без назви"
+                        )
+                        val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
+                        withContext(Dispatchers.Main) {
+                            _uiState.update { it.copy(newlyAddedItemId = newItemId) }
+                        }
+                    }
+                    GoalActionType.ADD_LIST_SHORTCUT -> {
+                        Log.d(TAG, "Executing action: ADD_LIST_SHORTCUT. Current listId: ${listIdFlow.value}")
+                        val newItemId = goalRepository.addListLinkToList(targetListId, listIdFlow.value)
+                        Log.d(TAG, "Repository call successful. New ListItem ID: $newItemId")
+                        withContext(Dispatchers.Main) {
+                            _uiState.update { it.copy(newlyAddedItemId = newItemId) }
+                        }
+                    }
                 }
-                GoalActionType.ADD_LIST_SHORTCUT -> {
-                    val newItemId = goalRepository.addListLinkToList(targetListId, listIdFlow.value)
-                    _uiState.update { it.copy(newlyAddedItemId = newItemId) }
+
+                withContext(Dispatchers.Main) {
+                    Log.d(TAG, "Forcing UI refresh via _refreshTrigger.")
+                    _refreshTrigger.value++
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "An exception occurred in onListChooserResult's action block", e)
             }
         }
 
@@ -276,6 +293,7 @@ class GoalDetailViewModel @Inject constructor(
         pendingSourceGoalIds = emptySet()
         clearSelection()
     }
+
     private fun navigateToListChooser(title: String) {
         viewModelScope.launch {
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
@@ -344,6 +362,7 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun onAddListShortcutRequest() {
+        Log.d(TAG, "onAddListShortcutRequest: Initiated.")
         pendingAction = GoalActionType.ADD_LIST_SHORTCUT
         pendingSourceItemIds = emptySet()
         pendingSourceGoalIds = emptySet()
@@ -499,47 +518,25 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // ...
     fun moveItem(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
             val currentList = _listContent.value.toMutableList()
-            println("moveItem: from=$fromIndex, to=$toIndex, listSize=${currentList.size}")
 
-            if (fromIndex !in currentList.indices || fromIndex == toIndex) {
-                println("✗ Move rejected: conditions not met")
+            if (fromIndex !in currentList.indices || toIndex !in currentList.indices || fromIndex == toIndex) {
                 return@launch
             }
 
-            // Видаляємо елемент з початкової позиції
-            val itemToMove = currentList.removeAt(fromIndex)
-
-            // Обчислюємо правильний індекс для вставки
-            val insertIndex = when {
-                // Якщо toIndex == currentList.size (після видалення), вставляємо в кінець
-                toIndex >= currentList.size -> currentList.size
-                // Якщо рухаємося вниз, коректуємо індекс (бо елемент вже видалений)
-                toIndex > fromIndex -> toIndex - 1
-                // Якщо рухаємося вгору або залишається на місці, індекс не змінюється
-                else -> toIndex
-            }.coerceIn(0, currentList.size)
-
-            println("Inserting at index: $insertIndex (list size after removal: ${currentList.size})")
-
-            currentList.add(insertIndex, itemToMove)
-            _listContent.value = currentList
+            val item = currentList.removeAt(fromIndex)
+            currentList.add(toIndex, item)
+            _listContent.value = currentList.toList()
             _listVersion.value++
-            _uiState.update { it.copy(needsStateRefresh = true) }
 
-            // Batch operations
-            val targetItem = currentList.getOrNull(insertIndex) ?: itemToMove
-            batchedMoves.add(itemToMove to targetItem)
+            batchedMoves.add(currentList[toIndex] to currentList[toIndex])
             batchSaveJob?.cancel()
             batchSaveJob = launch {
                 delay(BATCH_DELAY_MS)
                 saveBatchedMoves()
             }
-
-            println("✓ Move completed: item now at position $insertIndex")
         }
     }
 
@@ -714,20 +711,13 @@ class GoalDetailViewModel @Inject constructor(
         if (batchedMoves.isEmpty()) return@withContext
 
         try {
-            Log.d("DnD_Batch", "Saving ${batchedMoves.size} batched moves")
-
             val currentList = _listContent.value
-
             val updatedItems = currentList.mapIndexed { index, content ->
                 content.item.copy(order = index.toLong())
             }
-
             goalRepository.updateListItemsOrder(updatedItems)
-
-            Log.d("DnD_Batch", "Successfully saved batch of ${batchedMoves.size} moves")
-
         } catch (e: Exception) {
-            Log.e("DnD_Batch", "Error saving batched moves", e)
+            //
         } finally {
             batchedMoves.clear()
         }
@@ -751,7 +741,6 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun copyContentRequest(content: ListItemContent) {
-        Log.d("swipeActions", "copy content")
         viewModelScope.launch {
             try {
                 when (content) {
@@ -780,7 +769,6 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun moveInstanceRequest(content: ListItemContent) {
-        Log.d("swipeActions", "move instance request")
         val itemIds = setOf(content.item.id)
         val goalIds = if (content is ListItemContent.GoalItem) setOf(content.goal.id) else emptySet()
 
@@ -792,8 +780,6 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun copyGoalRequest(content: ListItemContent) {
-        Log.d("swipeActions", "copy goal request")
-
         if (content !is ListItemContent.GoalItem) {
             viewModelScope.launch {
                 _uiEventFlow.send(UiEvent.ShowSnackbar("Копіювання доступне тільки для цілей"))
@@ -811,8 +797,6 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun createInstanceRequest(content: ListItemContent) {
-        Log.d("swipeActions", "create instance request")
-
         if (content !is ListItemContent.GoalItem) {
             viewModelScope.launch {
                 _uiEventFlow.send(UiEvent.ShowSnackbar("Створення посилання доступне тільки для цілей"))

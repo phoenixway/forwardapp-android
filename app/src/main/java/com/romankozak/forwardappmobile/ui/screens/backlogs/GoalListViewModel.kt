@@ -528,16 +528,45 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
+// У GoalListViewModel.kt
+
     fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
+        Log.d("ADD_LIST_DEBUG", "Початок addNewList для батька: $parentId, назва: '$name'")
         viewModelScope.launch {
+            // Крок 1: Створюємо новий список в базі даних
             goalRepository.createGoalListWithId(id, name, parentId)
+            Log.d("ADD_LIST_DEBUG", "Новий список створено в БД з id: $id")
+
             if (parentId != null) {
-                val allLists = _allListsFlat.first()
-                val listLookup = allLists.associateBy { it.id }
-                val ancestorIds = findAncestorIds(parentId, listLookup)
-                _listChooserUserExpandedIds.update { currentIds ->
-                    currentIds + ancestorIds + parentId
+                // Крок 2: Оновлюємо стан батьківського елемента в БД (для режиму за замовчуванням)
+                // Ми чекаємо, поки оновлення з БД надійде у наш локальний кеш
+                val parentList = _allListsFlat.first { lists -> lists.any { it.id == parentId } }
+                    .find { it.id == parentId }
+
+                if (parentList != null && !parentList.isExpanded) {
+                    Log.d("ADD_LIST_DEBUG", "Оновлюємо батьківський елемент (${parentList.name}) в БД, щоб він став розгорнутим.")
+                    goalRepository.updateGoalList(parentList.copy(isExpanded = true))
+                }
+
+                // Крок 3: Оновлюємо стан в пам'яті (для режимів фільтрації/планування)
+                val currentStateFlow = when {
+                    _isSearchActive.value -> _expandedInSearchMode
+                    _planningMode.value is PlanningMode.Daily -> _expandedInDailyMode
+                    _planningMode.value is PlanningMode.Medium -> _expandedInMediumMode
+                    _planningMode.value is PlanningMode.Long -> _expandedInLongMode
+                    else -> null
+                }
+
+                if (currentStateFlow != null) {
+                    val modeName = planningMode.value::class.simpleName
+                    Log.d("ADD_LIST_DEBUG", "Оновлюємо стан розгорнутих ID в пам'яті для режиму: $modeName")
+                    val currentIds = currentStateFlow.value ?: emptySet()
+                    val newIds = currentIds + parentId
+                    currentStateFlow.value = newIds
+                    Log.d("ADD_LIST_DEBUG", "Новий набір розгорнутих ID: $newIds")
+                } else {
+                    Log.d("ADD_LIST_DEBUG", "Режим фільтрації не активний. Оновлено тільки стан в БД.")
                 }
             }
         }
@@ -629,9 +658,17 @@ class GoalListViewModel @Inject constructor(
     }
 
     fun onAddNewListRequest() { _dialogState.value = DialogState.AddList(null) }
-    fun onAddSublistRequest(parentList: GoalList) { _dialogState.value = DialogState.AddList(parentList.id) }
+    fun onAddSublistRequest(parentList: GoalList) {
+        Log.d("DIALOG_FLOW_DEBUG", "Запит на додавання підсписку для батька: '${parentList.name}'")
+        _dialogState.value = DialogState.AddList(parentList.id)
+    }
+
     fun onMoveListRequest(list: GoalList) { _dialogState.value = DialogState.MoveList(list) }
-    fun onMenuRequested(list: GoalList) { _dialogState.value = DialogState.ContextMenu(list) }
+    fun onMenuRequested(list: GoalList) {
+        Log.d("DIALOG_FLOW_DEBUG", "Запит на контекстне меню для списку: '${list.name}'")
+        _dialogState.value = DialogState.ContextMenu(list)
+    }
+
     fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
     fun onEditRequest(list: GoalList) { // <--- ОНОВЛЕНО
         viewModelScope.launch {
@@ -789,6 +826,7 @@ class GoalListViewModel @Inject constructor(
         _listChooserUserExpandedIds.value = currentIds
     }
 
+    // У GoalListViewModel.kt
     fun onMoveListConfirmed(newParentId: String?) {
         val state = _dialogState.value
         if (state !is DialogState.MoveList) return
@@ -803,16 +841,38 @@ class GoalListViewModel @Inject constructor(
                 updatedAt = System.currentTimeMillis()
             )
             goalRepository.moveGoalList(updatedList, newParentId)
+
+            // --- ДОДАНО ВИПРАВЛЕННЯ ---
+            if (newParentId != null) {
+                // Частина 1: Оновлюємо стан у базі даних
+                val parentList = _allListsFlat.value.find { it.id == newParentId }
+                if (parentList != null && !parentList.isExpanded) {
+                    goalRepository.updateGoalList(parentList.copy(isExpanded = true))
+                }
+
+                // Частина 2: Оновлюємо тимчасовий стан
+                val currentStateFlow = when {
+                    _isSearchActive.value -> _expandedInSearchMode
+                    _planningMode.value is PlanningMode.Daily -> _expandedInDailyMode
+                    _planningMode.value is PlanningMode.Medium -> _expandedInMediumMode
+                    _planningMode.value is PlanningMode.Long -> _expandedInLongMode
+                    else -> null
+                }
+                currentStateFlow?.update { currentExpandedIds ->
+                    (currentExpandedIds ?: emptySet()) + newParentId
+                }
+            }
+            // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
         }
         dismissDialog()
     }
 
     fun dismissDialog() {
+        Log.d("DIALOG_FLOW_DEBUG", "Виклик dismissDialog. Поточний стан: ${_dialogState.value::class.simpleName}")
         _dialogState.value = DialogState.Hidden
         _listChooserFilterText.value = ""
         _listChooserUserExpandedIds.value = emptySet()
     }
-
 
     fun onListMovedToNewParentOrTop(listToMove: GoalList, newParentId: String) {
         if (listToMove.id == newParentId) return

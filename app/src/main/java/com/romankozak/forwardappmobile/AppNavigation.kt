@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,7 +25,6 @@ import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChoo
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
-import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 
@@ -35,13 +33,13 @@ fun AppNavigation(
     syncDataViewModel: SyncDataViewModel,
 ) {
     val navController = rememberNavController()
-    val navGraphRoute = "app_graph"
+    // val navGraphRoute = "app_graph" // Більше не потрібен для цього механізму
 
 
     NavHost(
         navController = navController,
         startDestination = "goal_lists_screen",
-        route = navGraphRoute
+        // route = navGraphRoute // Більше не потрібен для цього механізму
 
     ) {
         composable("goal_lists_screen") {
@@ -125,21 +123,16 @@ fun AppNavigation(
         }
 
         composable(
-            // МОДИФІКОВАНО: маршрут тепер включає обидва необов'язкові параметри
             route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}",
-
-            // МОДИФІКОВАНО: список аргументів оголошує всі три параметри
             arguments = listOf(
                 navArgument("listId") {
                     type = NavType.StringType
                 },
-                // Аргумент для підсвічування звичайної цілі
                 navArgument("goalId") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
                 },
-                // Аргумент для підсвічування будь-якого іншого елемента (напр. посилання)
                 navArgument("itemIdToHighlight") {
                     type = NavType.StringType
                     nullable = true
@@ -147,11 +140,9 @@ fun AppNavigation(
                 }
             )
         ) {
-            // Ваш виклик GoalDetailScreen залишається без змін
             GoalDetailScreen(navController = navController)
         }
 
-        // ДОДАНО: новий маршрут для екрану редагування списку
         composable(
             route = "edit_list_screen/{listId}",
             arguments = listOf(
@@ -201,14 +192,7 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val viewModel: FilterableListChooserViewModel = hiltViewModel()
-
-            val parentEntry = remember(backStackEntry) {
-                navController.getBackStackEntry(navGraphRoute)
-            }
-            val resultViewModel: NavigationResultViewModel = viewModel(parentEntry)
-
-
-            val TAG = "NavResultDebug"
+            val TAG = "AddSublistDebug"
 
             val title = backStackEntry.arguments?.getString("title")?.let {
                 URLDecoder.decode(it, "UTF-8")
@@ -220,8 +204,6 @@ fun AppNavigation(
             val expandedIds by viewModel.expandedIds.collectAsStateWithLifecycle()
             val showDescendants by viewModel.showDescendants.collectAsStateWithLifecycle()
 
-            val prevBse = navController.previousBackStackEntry
-            Log.d("NavInstanceDebug", "[ChooserScreen] Previous SavedStateHandle hashCode: ${prevBse?.savedStateHandle.hashCode()}")
 
             FilterableListChooserScreen(
                 title = title,
@@ -232,17 +214,17 @@ fun AppNavigation(
                 onToggleExpanded = viewModel::toggleExpanded,
                 onNavigateBack = { navController.popBackStack() },
                 onConfirm = { selectedId ->
+                    // --- ПОЧАТОК КЛЮЧОВИХ ЗМІН ---
                     Log.d(TAG, "[ChooserScreen] onConfirm: User selected ID: '$selectedId'")
-                    val previousBackStackEntry = navController.previousBackStackEntry
-                    if (previousBackStackEntry != null) {
-                        Log.d(TAG, "[ChooserScreen] Found previous screen: ${previousBackStackEntry.destination.route}")
-                        Log.d(TAG, "[ChooserScreen] Setting result ('$selectedId') with key 'selectedListId'...")
-                        resultViewModel.setResult("selectedListId", selectedId)
-                        navController.popBackStack()
-                        Log.d(TAG, "[ChooserScreen] Result set. Called popBackStack...")
-                    } else {
-                        Log.e(TAG, "[ChooserScreen] ERROR: Could not find previousBackStackEntry!")
-                    }
+                    // 1. Встановлюємо результат для попереднього екрана через SavedStateHandle
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("list_chooser_result", selectedId ?: "") // Передаємо ID або "" для root
+
+                    // 2. Повертаємось на попередній екран
+                    navController.popBackStack()
+                    Log.d(TAG, "[ChooserScreen] Result set and popped backstack.")
+                    // --- КІНЕЦЬ КЛЮЧОВИХ ЗМІН ---
                 },
                 currentParentId = null,
                 disabledIds = disabledIds,
