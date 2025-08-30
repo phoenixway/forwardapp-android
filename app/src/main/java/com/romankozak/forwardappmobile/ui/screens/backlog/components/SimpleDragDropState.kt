@@ -206,21 +206,29 @@ class SimpleDragDropState(
         val rawToIndex = currentDropIndex
         val items = itemsProvider()
 
-        Log.d(TAG, "DragEnd: fromIndex=$fromIndex, toIndex=$rawToIndex, totalItems=${items.size}")
+        Log.d(TAG, "=== DRAG END DEBUG ===")
+        Log.d(TAG, "fromIndex: $fromIndex")
+        Log.d(TAG, "rawToIndex (currentDropIndex): $rawToIndex")
+        Log.d(TAG, "initialIndexOfDraggedItem: $initialIndexOfDraggedItem")
+        Log.d(TAG, "targetIndexOfDraggedItem: $targetIndexOfDraggedItem")
+        Log.d(TAG, "totalItems: ${items.size}")
 
         if (fromIndex != -1 && rawToIndex != -1 && fromIndex != rawToIndex) {
-            // Не обмежуємо зверху – дозволяємо toIndex == items.size (вставка в кінець)
+            // Передаємо rawToIndex без додаткових обмежень - нехай moveItem сам розбирається
             val safeToIndex = rawToIndex.coerceIn(0, items.size)
 
+            Log.d(TAG, "safeToIndex after coerceIn: $safeToIndex")
+
             if (fromIndex != safeToIndex) {
+                Log.d(TAG, "Calling onMove($fromIndex, $safeToIndex)")
                 onMove(fromIndex, safeToIndex)
-                Log.d(TAG, "DragEnd: moving from $fromIndex to $safeToIndex (raw toIndex=$rawToIndex)")
             } else {
-                Log.d(TAG, "DragEnd: fromIndex == toIndex → нічого не робимо")
+                Log.d(TAG, "fromIndex == safeToIndex → no move needed")
             }
         } else {
-            Log.d(TAG, "DragEnd: no move needed. fromIndex=$fromIndex, toIndex=$rawToIndex")
+            Log.d(TAG, "Move conditions not met")
         }
+        Log.d(TAG, "=== DRAG END COMPLETE ===")
 
         reset()
     }

@@ -502,7 +502,6 @@ class GoalDetailViewModel @Inject constructor(
     fun moveItem(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
             val currentList = _listContent.value.toMutableList()
-
             println("moveItem: from=$fromIndex, to=$toIndex, listSize=${currentList.size}")
 
             if (fromIndex !in currentList.indices || fromIndex == toIndex) {
@@ -510,30 +509,36 @@ class GoalDetailViewModel @Inject constructor(
                 return@launch
             }
 
+            // Видаляємо елемент з початкової позиції
             val itemToMove = currentList.removeAt(fromIndex)
 
-            // Вставка: рух вниз з корекцією + обмеження в діапазон [0..size]
-            val safeTargetIndex = (if (toIndex > fromIndex) toIndex - 1 else toIndex)
-                .coerceIn(0, currentList.size)
+            // Обчислюємо правильний індекс для вставки
+            val insertIndex = when {
+                // Якщо toIndex == currentList.size (після видалення), вставляємо в кінець
+                toIndex >= currentList.size -> currentList.size
+                // Якщо рухаємося вниз, коректуємо індекс (бо елемент вже видалений)
+                toIndex > fromIndex -> toIndex - 1
+                // Якщо рухаємося вгору або залишається на місці, індекс не змінюється
+                else -> toIndex
+            }.coerceIn(0, currentList.size)
 
-            println("Inserting at index: $safeTargetIndex (list size after removal: ${currentList.size})")
-            currentList.add(safeTargetIndex, itemToMove)
+            println("Inserting at index: $insertIndex (list size after removal: ${currentList.size})")
 
+            currentList.add(insertIndex, itemToMove)
             _listContent.value = currentList
             _listVersion.value++
             _uiState.update { it.copy(needsStateRefresh = true) }
 
             // Batch operations
-            val targetItem = currentList.getOrNull(safeTargetIndex) ?: itemToMove
+            val targetItem = currentList.getOrNull(insertIndex) ?: itemToMove
             batchedMoves.add(itemToMove to targetItem)
-
             batchSaveJob?.cancel()
             batchSaveJob = launch {
                 delay(BATCH_DELAY_MS)
                 saveBatchedMoves()
             }
 
-            println("✓ Move completed: item now at position $safeTargetIndex")
+            println("✓ Move completed: item now at position $insertIndex")
         }
     }
 
