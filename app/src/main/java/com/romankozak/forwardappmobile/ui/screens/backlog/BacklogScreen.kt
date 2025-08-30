@@ -261,6 +261,14 @@ fun GoalDetailScreen(
             viewModel.flushPendingMoves()
         }
     }
+
+    val attachmentItems = remember(listContent) {
+        listContent.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+    }
+    val draggableItems = remember(listContent) {
+        listContent.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+    }
+
     Log.d("AttachmentsSection", "[UI] Поточний стан isAttachmentsExpanded: ${list?.isAttachmentsExpanded}")
 
 
@@ -268,7 +276,6 @@ fun GoalDetailScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (isSelectionModeActive) {
-                val draggableItems = displayList.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
                 MultiSelectTopAppBar(
                     selectedCount = uiState.selectedItemIds.size,
                     areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
@@ -344,65 +351,44 @@ fun GoalDetailScreen(
             }
         },
     ) { paddingValues ->
-        LazyColumn(
-            state = listState,
+        // Використовуємо Column як головний контейнер для екрану
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
         ) {
-            // Рендеримо єдиний список
-            itemsIndexed(
-                items = displayList,
-                key = { _, item -> item.item.id }
-            ) { index, content ->
-                val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
-                        (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
+            // 1. Секція додатків - окремий, незалежний компонент
+            AttachmentsSection(
+                attachments = attachmentItems,
+                isExpanded = list?.isAttachmentsExpanded == true,
+                onAddAttachment = { viewModel.onAddAttachment(it) },
+                onDeleteItem = { viewModel.deleteItem(it) },
+                onItemClick = { viewModel.onItemClick(it) },
+            )
 
-                val backgroundColor by animateColorAsState(
-                    targetValue = when {
-                        isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-                        content.item.id in uiState.selectedItemIds -> MaterialTheme.colorScheme.primaryContainer
-                        (content as? ListItemContent.GoalItem)?.goal?.completed == true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                        else -> MaterialTheme.colorScheme.surface
-                    },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "bgAnim"
-                )
+            // 2. LazyColumn для елементів, що прокручуються та перетягуються
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxWidth().weight(1f) // Займає весь доступний простір
+            ) {
+                itemsIndexed(
+                    items = draggableItems,
+                    key = { _, item -> item.item.id }
+                ) { index, content ->
+                    val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
+                            (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                // Визначаємо чи це attachments секція
-                val isAttachmentItem = content is ListItemContent.NoteItem || content is ListItemContent.LinkItem
+                    val backgroundColor by animateColorAsState(
+                        targetValue = when {
+                            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                            content.item.id in uiState.selectedItemIds -> MaterialTheme.colorScheme.primaryContainer
+                            (content as? ListItemContent.GoalItem)?.goal?.completed == true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                            else -> MaterialTheme.colorScheme.surface
+                        },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                        label = "bgAnim"
+                    )
 
-                if (isAttachmentItem) {
-                    // Рендеримо attachment елементи без drag-drop
-                    when (content) {
-                        is ListItemContent.NoteItem -> {
-                            NoteItemRow(
-                                noteContent = content,
-                                isSelected = content.item.id in uiState.selectedItemIds,
-                                isHighlighted = isHighlighted,
-                                onClick = { viewModel.onItemClick(content) },
-                                onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                onDelete = { viewModel.deleteItem(content) },
-                                backgroundColor = backgroundColor
-                            )
-                        }
-                        is ListItemContent.LinkItem -> {
-                            LinkItemRow(
-                                linkContent = content,
-                                isSelected = content.item.id in uiState.selectedItemIds,
-                                isHighlighted = isHighlighted,
-                                onClick = { viewModel.onItemClick(content) },
-                                onLongClick = { viewModel.onItemLongClick(content.item.id) },
-                                onDelete = { viewModel.deleteItem(content) },
-                                backgroundColor = backgroundColor
-                            )
-                        }
-
-                        is ListItemContent.GoalItem -> {TODO()}
-                        is ListItemContent.SublistItem -> {TODO()}
-                    }
-                } else {
-                    // Рендеримо draggable елементи з drag-drop
                     InteractiveListItem(
                         item = content,
                         index = index,
@@ -463,80 +449,6 @@ fun GoalDetailScreen(
                 }
             }
         }
-    }
-
-    // Решта діалогів та компонентів залишається без змін
-    RecentListsSheet(
-        showSheet = showRecentListsSheet,
-        recentLists = recentLists,
-        onDismiss = { viewModel.onDismissRecentLists() },
-        onListClick = { listId -> viewModel.onRecentListSelected(listId) },
-    )
-
-    GoalTransportMenu(
-        isVisible = showTransportMenu,
-        onDismiss = {
-            showTransportMenu = false
-            selectedGoalForTransport = null
-        },
-        onCreateInstanceRequest = {
-            selectedGoalForTransport?.let { content ->
-                viewModel.createInstanceRequest(content)
-            }
-            showTransportMenu = false
-            selectedGoalForTransport = null
-        },
-        onMoveInstanceRequest = {
-            selectedGoalForTransport?.let { content ->
-                viewModel.moveInstanceRequest(content)
-            }
-            showTransportMenu = false
-            selectedGoalForTransport = null
-        },
-        onCopyGoalRequest = {
-            selectedGoalForTransport?.let { content ->
-                viewModel.copyGoalRequest(content)
-            }
-            showTransportMenu = false
-            selectedGoalForTransport = null
-        },
-    )
-
-    when (val state = goalActionState) {
-        is GoalActionDialogState.Hidden -> {}
-        is GoalActionDialogState.AwaitingActionChoice -> {
-            GoalActionChoiceDialog(
-                itemContent = state.itemContent,
-                onDismiss = { viewModel.onDismissGoalActionDialogs() },
-                onActionSelected = { actionType ->
-                    viewModel.onGoalActionSelected(actionType, state.itemContent)
-                },
-            )
-        }
-    }
-
-    if (uiState.showAddWebLinkDialog) {
-        AddLinkDialog(
-            title = stringResource(R.string.add_link_dialog_title),
-            namePlaceholder = stringResource(R.string.dialog_placeholder_name_optional),
-            targetPlaceholder = stringResource(R.string.url_placeholder),
-            onDismiss = { viewModel.onDismissLinkDialogs() },
-            onConfirm = { name, url ->
-                viewModel.onAddWebLinkConfirm(url, name.takeIf { it.isNotBlank() })
-            },
-        )
-    }
-
-    if (uiState.showAddObsidianLinkDialog) {
-        AddLinkDialog(
-            title = stringResource(R.string.add_obsidian_link_dialog_title),
-            namePlaceholder = stringResource(R.string.dialog_placeholder_note_name),
-            isTargetVisible = false,
-            onDismiss = { viewModel.onDismissLinkDialogs() },
-            onConfirm = { name, _ ->
-                viewModel.onAddObsidianLinkConfirm(name)
-            },
-        )
     }
 }
 

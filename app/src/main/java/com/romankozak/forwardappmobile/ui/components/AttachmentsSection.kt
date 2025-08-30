@@ -30,7 +30,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.LinkItemRow
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.NoteItemRow
 
 enum class AttachmentType {
-    NOTE, WEB_LINK, OBSIDIAN_LINK, LIST_LINK
+    NOTE, WEB_LINK, OBSIDIAN_LINK, LIST_LINK, SHORTCUT
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

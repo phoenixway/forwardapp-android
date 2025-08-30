@@ -113,8 +113,8 @@
     <string name="note_content_description">Нотатки..</string>
     <string name="note_without_title">Note</string>
     <string name="link_content_description">Нотатки..</string>
-
-
+    <string name="empty_note_preview">пуста нотатка</string>
+    <string name="note_content_placeholder">тест</string>
 
 
 </resources>

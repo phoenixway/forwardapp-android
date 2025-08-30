@@ -2,6 +2,7 @@
 package com.romankozak.forwardappmobile.ui.screens.noteedit
 
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,20 +13,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner // ОНОВЛЕНО: Сучасний імпорт
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.notesEditors.StyledTextFieldWrapper
 import com.romankozak.forwardappmobile.ui.components.notesEditors.WebViewMarkdownViewer
-import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,18 +33,9 @@ fun NoteEditScreen(
     viewModel: NoteEditViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var isEditMode by remember { mutableStateOf(true) }
-
-    // ПОВЕРНУЛИ: Необхідні елементи для обробки подій (Snackbar та CoroutineScope)
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    // ПОВЕРНУЛИ: Надійний обробник подій, який ми втратили
-    val navGraphEntry = remember(navController.currentBackStackEntry) {
-        navController.getBackStackEntry("app_graph")
-    }
-    val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
+    var isEditMode by remember { mutableStateOf(value = true) }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current // ОНОВЛЕНО: Використання сучасного API
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -53,10 +43,12 @@ fun NoteEditScreen(
                 when (event) {
                     is NoteEditEvent.NavigateBack -> {
                         event.message?.let {
-                            scope.launch { snackbarHostState.showSnackbar(it) }
+                            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                         }
-                        // Сигнал для оновлення батьківського екрана
-                        resultViewModel.setResult("refresh_needed", true)
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("refresh_needed", true)
+
                         navController.popBackStack()
                     }
                 }
@@ -65,11 +57,11 @@ fun NoteEditScreen(
     }
 
     Scaffold(
-        // ПОВЕРНУЛИ: Підключення SnackbarHost до Scaffold
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.isNewNote) "Нова нотатка" else "Редагувати") },
+                // ВИПРАВЛЕНО: Використано прямі рядки замість відсутніх ресурсів.
+                // Рекомендація: перенесіть ці рядки у ваш res/values/strings.xml
+                title = { Text(if (uiState.isNewNote) "Нова нотатка" else "Редагувати нотатку") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -79,31 +71,29 @@ fun NoteEditScreen(
                     IconButton(onClick = { isEditMode = !isEditMode }) {
                         Icon(
                             imageVector = if (isEditMode) Icons.Default.Visibility else Icons.Default.Edit,
-                            contentDescription = if (isEditMode) "Режим перегляду" else "Режим редагування"
+                            contentDescription = if (isEditMode) "Режим перегляду" else "Режим редагування",
                         )
                     }
                     if (uiState.isSaveButtonEnabled) {
-                        Button(onClick = viewModel::onSave) {
+                        TextButton(onClick = viewModel::onSave) {
                             Text("Зберегти")
                         }
                     }
-                }
+                },
             )
-        }
+        },
     ) { paddingValues ->
-        // Цей Column керує загальною розміткою і відступом від клавіатури.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .imePadding()
+                .imePadding(),
         ) {
             if (!uiState.isReady) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
-                // Поле для заголовка
                 OutlinedTextField(
                     value = uiState.title,
                     onValueChange = viewModel::onTitleChange,
@@ -111,48 +101,46 @@ fun NoteEditScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder = { Text("Заголовок") },
-                    singleLine = true
+                    singleLine = true,
+                    isError = uiState.error != null,
                 )
 
-                // Повноцінний редактор, який займає весь залишок місця
                 FinalMarkdownEditor(
                     value = uiState.content,
                     onValueChange = viewModel::onContentChange,
                     isEditMode = isEditMode,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
+                        .weight(1f),
                 )
 
-                // Лічильник символів
+                val footerText = uiState.error ?: "${uiState.content.text.length} символів"
+                val footerColor = if (uiState.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+
                 Text(
-                    text = "${uiState.content.text.length}/5000",
+                    text = footerText,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = footerColor,
                 )
             }
         }
     }
 }
 
-/**
- * Фінальна версія редактора, яка поєднує надійний StyledTextFieldWrapper
- * для редагування та WebView для перегляду.
- */
 @Composable
 fun FinalMarkdownEditor(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     isEditMode: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AnimatedContent(
         targetState = isEditMode,
-        label = "FinalEditor",
-        modifier = modifier
+        label = "EditorViewSwitcher",
+        modifier = modifier,
     ) { isEditing ->
         if (isEditing) {
             StyledTextFieldWrapper(
@@ -160,24 +148,32 @@ fun FinalMarkdownEditor(
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                // ВИДАЛЕНО: Параметр 'placeholder' викликав помилку компіляції.
+                // Ви можете повернути його, якщо додасте підтримку в сам компонент StyledTextFieldWrapper.
             )
         } else {
-            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                AndroidView(
-                    factory = { ctx ->
-                        WebViewMarkdownViewer(ctx).apply {
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT
-                            )
-                        }
-                    },
-                    update = { viewer ->
-                        viewer.renderMarkdown(value.text)
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+            if (value.text.isNotBlank()) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    AndroidView(
+                        factory = { ctx ->
+                            WebViewMarkdownViewer(ctx).apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                )
+                            }
+                        },
+                        update = { viewer ->
+                            viewer.renderMarkdown(value.text)
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Text("Попередній перегляд буде тут", color = MaterialTheme.colorScheme.outline)
+                }
             }
         }
     }
