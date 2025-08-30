@@ -67,11 +67,13 @@ class GoalDetailViewModel @Inject constructor(
     private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    private var dbCollectionJob: Job? = null // <--- ДОДАЙТЕ ЦЮ ЗМІННУ
+
     private var batchedMoves = mutableListOf<Pair<ListItemContent, ListItemContent>>()
     private var batchSaveJob: Job? = null
     private val BATCH_DELAY_MS = 500L
 
-    private val TAG = "AddSublistDebug" // Тег для логування
+    private val TAG = "DND_DEBUG"
 
     private var optimisticUpdateInProgress = false
 
@@ -192,13 +194,7 @@ class GoalDetailViewModel @Inject constructor(
 
 
     init {
-        viewModelScope.launch {
-            databaseContentStream.collect { dbContent ->
-                if (!optimisticUpdateInProgress) {
-                    _listContent.value = dbContent
-                }
-            }
-        }
+        startCollectingDbStream() // <--- ЗАМІНІТЬ СТАРИЙ viewModelScope.launch на цей виклик
 
         viewModelScope.launch {
             listIdFlow.filter { it.isNotEmpty() }.collect { id ->
@@ -518,25 +514,94 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun moveItem(fromIndex: Int, toIndex: Int) {
+// BacklogViewModel.kt
+
+// BacklogViewModel.kt
+
+// BacklogViewModel.kt
+
+    fun moveItem(fromDraggableIndex: Int, toDraggableIndex: Int) {
+        Log.i(TAG, "[ViewModel_moveItem] Received DRAGGABLE indices: from=$fromDraggableIndex, to=$toDraggableIndex.")
+
+        // 1. Отримуємо поточний стан повного списку та його частин
+        val originalFullList = _listContent.value
+        val originalDraggables = originalFullList.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+        val attachments = originalFullList.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+
+        // 2. Перевірка індексів на коректність відносно списку, з якого вони прийшли
+        if (fromDraggableIndex !in originalDraggables.indices) {
+            Log.e(TAG, "ABORTED: fromDraggableIndex is out of bounds for draggableItems list.")
+            return
+        }
+
+        // 3. Виконуємо переміщення на копії списку draggableItems
+        val reorderedDraggables = originalDraggables.toMutableList()
+        val movedItem = reorderedDraggables.removeAt(fromDraggableIndex)
+        reorderedDraggables.add(toDraggableIndex.coerceIn(0, reorderedDraggables.size), movedItem)
+
+        // 4. Реконструюємо повний список, ставлячи вкладення на початок (як це робить UI)
+        val newList = attachments + reorderedDraggables
+
+        // 5. Оновлюємо стан UI та зберігаємо результат
+        _listContent.value = newList
+        _listVersion.value++
+
         viewModelScope.launch {
-            val currentList = _listContent.value.toMutableList()
+            Log.d(TAG, "Saving reordered list...")
+            saveListOrder(newList) // Використовуємо надійну функцію збереження, що приймає параметр
+        }
+    }
 
-            if (fromIndex !in currentList.indices || toIndex !in currentList.indices || fromIndex == toIndex) {
-                return@launch
+
+
+    private suspend fun saveListOrder(listToSave: List<ListItemContent>) = withContext(Dispatchers.IO) {
+        Log.i(TAG, "[saveListOrder] LIST STATE BEING SAVED:\n${listToSave.joinToString("\n") { " - ${it.item.id}" }}")
+        val updatedItems = listToSave.mapIndexed { index, content ->
+            content.item.copy(order = index.toLong())
+        }
+        goalRepository.updateListItemsOrder(updatedItems)
+    }
+
+
+// BacklogViewModel.иkt
+
+    private suspend fun saveBatchedMoves() = withContext(Dispatchers.IO) {
+        Log.d(TAG, "[saveBatchedMoves] Starting DB update for current list order.")
+        if (batchedMoves.isNotEmpty()) {
+            Log.d(TAG, "[saveBatchedMoves] Clearing old batchedMoves queue. Size: ${batchedMoves.size}.")
+            batchedMoves.clear()
+        }
+
+        try {
+            val currentList = _listContent.value // Зчитуємо стан
+            if (currentList.isEmpty()) {
+                Log.w(TAG, "[saveBatchedMoves] List is empty, nothing to save.")
+                return@withContext
             }
 
-            val item = currentList.removeAt(fromIndex)
-            currentList.add(toIndex, item)
-            _listContent.value = currentList.toList()
-            _listVersion.value++
-
-            batchedMoves.add(currentList[toIndex] to currentList[toIndex])
-            batchSaveJob?.cancel()
-            batchSaveJob = launch {
-                delay(BATCH_DELAY_MS)
-                saveBatchedMoves()
+            // <<< --- ПОЧАТОК НОВОГО КРИТИЧНО ВАЖЛИВОГО ЛОГУ --- >>>
+            val orderToSave = currentList.joinToString(separator = "\n") { content ->
+                // Формуємо рядок для кожного елемента, щоб бачити його текст і ID
+                val text = when (content) {
+                    is ListItemContent.GoalItem -> content.goal.text.take(30)
+                    is ListItemContent.SublistItem -> content.sublist.name.take(30)
+                    is ListItemContent.NoteItem -> content.note.title?.take(30) ?: ""
+                    is ListItemContent.LinkItem -> content.link.linkData.displayName?.take(30) ?: ""
+                    else -> "Unknown Type"
+                }
+                "  - id=${content.item.id}, text='${text}...'"
             }
+            Log.i(TAG, "[saveBatchedMoves] LIST STATE BEFORE SAVING:\n$orderToSave")
+            // <<< --- КІНЕЦЬ НОВОГО ЛОГУ --- >>>
+
+            val updatedItems = currentList.mapIndexed { index, content ->
+                content.item.copy(order = index.toLong())
+            }
+            Log.i(TAG, "[saveBatchedMoves] Sending ${updatedItems.size} items to repository to update order.")
+            goalRepository.updateListItemsOrder(updatedItems)
+            Log.d(TAG, "[saveBatchedMoves] Repository update successful.")
+        } catch (e: Exception) {
+            Log.e(TAG, "[saveBatchedMoves] FAILED to update item order in DB.", e)
         }
     }
 
@@ -707,22 +772,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun saveBatchedMoves() = withContext(Dispatchers.IO) {
-        if (batchedMoves.isEmpty()) return@withContext
-
-        try {
-            val currentList = _listContent.value
-            val updatedItems = currentList.mapIndexed { index, content ->
-                content.item.copy(order = index.toLong())
-            }
-            goalRepository.updateListItemsOrder(updatedItems)
-        } catch (e: Exception) {
-            //
-        } finally {
-            batchedMoves.clear()
-        }
-    }
-
     fun flushPendingMoves() {
         viewModelScope.launch {
             batchSaveJob?.cancel()
@@ -811,5 +860,19 @@ class GoalDetailViewModel @Inject constructor(
         pendingSourceGoalIds = goalIds
 
         navigateToListChooser("Створити посилання у...")
+    }
+
+    private fun startCollectingDbStream() {
+        dbCollectionJob?.cancel() // Скасовуємо попередню підписку, якщо вона була
+        dbCollectionJob = viewModelScope.launch {
+            databaseContentStream.collect { dbContent ->
+                // Тепер тут не потрібна перевірка if (!optimisticUpdateInProgress)
+                _listContent.value = dbContent
+            }
+        }
+    }
+
+    private fun stopCollectingDbStream() {
+        dbCollectionJob?.cancel()
     }
 }

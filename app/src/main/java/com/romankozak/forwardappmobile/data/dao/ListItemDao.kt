@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ListItemDao {
-    @Query("SELECT * FROM list_items WHERE listId = :listId ORDER BY item_order ASC")
+// ListItemDao.kt
+
+    @Query("SELECT * FROM list_items WHERE listId = :listId ORDER BY item_order ASC, id ASC")
     fun getItemsForListStream(listId: String): Flow<List<ListItem>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -45,4 +47,8 @@ interface ListItemDao {
 
     @Query("UPDATE list_items SET listId = :targetListId WHERE id IN (:itemIds)")
     suspend fun updateListItemListIds(itemIds: List<String>, targetListId: String)
+
+    @Query("SELECT * FROM list_items WHERE listId = :listId ORDER BY item_order ASC, id ASC")
+    suspend fun getItemsForListSyncForDebug(listId: String): List<ListItem>
+
 }

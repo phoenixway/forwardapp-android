@@ -51,6 +51,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 
+private const val TAG = "DND_DEBUG"
+
+
 @Composable
 fun GoalDetailScreen(
     navController: NavController,
@@ -58,11 +61,16 @@ fun GoalDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val listContent by viewModel.listContent.collectAsStateWithLifecycle() // ВИКОРИСТОВУЄМО ПОВНИЙ СПИСОК
 
-    val draggableItems by viewModel.draggableItems.collectAsStateWithLifecycle()
-    val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
+    val draggableItems by viewModel.draggableItems.collectAsStateWithLifecycle() // Цей список нам знову потрібен
+
 
     val list by viewModel.goalList.collectAsStateWithLifecycle()
+
+    val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
+
+
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val showRecentListsSheet by viewModel.showRecentListsSheet.collectAsStateWithLifecycle()
     val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
@@ -80,9 +88,11 @@ fun GoalDetailScreen(
 
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
-        onMove = { fromIndex, toIndex -> viewModel.moveItem(fromIndex, toIndex) }
+        onMove = { fromIndex, toIndex ->
+            // Важливо: ці індекси тепер відносяться до списку draggableItems
+            viewModel.moveItem(fromIndex, toIndex)
+        }
     )
-
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // --- ПОЧАТОК ЗМІН: Код для отримання результату від екрана вибору списку ---
@@ -320,6 +330,7 @@ fun GoalDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
+            // Елемент для секції з вкладеннями
             item(key = "attachments_section") {
                 list?.let {
                     AttachmentsSection(
@@ -339,11 +350,13 @@ fun GoalDetailScreen(
                 }
             }
 
+            // Основний список елементів
             itemsIndexed(
-                items = draggableItems,
-                key = { index, item -> "${item.item.id}_$index" }
+                items = draggableItems, // ПОВЕРТАЄМОСЯ ДО ВІДФІЛЬТРОВАНОГО СПИСКУ
+                key = { _, item -> item.item.id }
             ) { index, content ->
 
+                // Логіка для підсвічування елемента (залишається без змін)
                 val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
                         (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
@@ -360,8 +373,8 @@ fun GoalDetailScreen(
 
                 InteractiveListItem(
                     item = content,
-                    index = index,
-                    dragDropState = dragDropState.apply { this.itemsProvider = { draggableItems } },
+                    index = index, // ВАЖЛИВО: Передаємо індекс з повного списку
+                    dragDropState = dragDropState.apply { this.itemsProvider = { listContent } }, // ВАЖЛИВО: Передаємо повний список
                     swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
                     isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
                     resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
@@ -370,22 +383,13 @@ fun GoalDetailScreen(
                     onDelete = { viewModel.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
                     onCreateInstanceRequest = {
-                        viewModel.onGoalActionSelected(
-                            GoalActionType.CreateInstance,
-                            content
-                        )
+                        viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content)
                     },
                     onMoveInstanceRequest = {
-                        viewModel.onGoalActionSelected(
-                            GoalActionType.MoveInstance,
-                            content
-                        )
+                        viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content)
                     },
                     onCopyGoalRequest = {
-                        viewModel.onGoalActionSelected(
-                            GoalActionType.CopyGoal,
-                            content
-                        )
+                        viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content)
                     },
                     modifier = Modifier,
                     onGoalTransportRequest = {
@@ -395,7 +399,8 @@ fun GoalDetailScreen(
                     onCopyContentRequest = {
                         viewModel.copyContentRequest(content)
                     }
-                ) {
+                ) { isDragging ->
+                    // Тепер `when` має обробляти всі можливі типи з `listContent`
                     when (content) {
                         is ListItemContent.GoalItem -> {
                             GoalItem(
@@ -420,12 +425,13 @@ fun GoalDetailScreen(
                             )
                         }
                         else -> {
-                            Log.w("BacklogScreen", "Unsupported draggable content type: ${content::class.simpleName}")
+                            Log.w("BacklogScreen", "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}")
                         }
                     }
                 }
             }
         }
+    }
 
         RecentListsSheet(
             showSheet = showRecentListsSheet,
@@ -500,7 +506,7 @@ fun GoalDetailScreen(
             )
         }
     }
-}
+
 
 private fun handleRelatedLinkClick(
     link: RelatedLink,
