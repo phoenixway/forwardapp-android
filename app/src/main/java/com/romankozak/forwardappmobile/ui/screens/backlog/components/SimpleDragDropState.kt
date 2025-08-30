@@ -200,41 +200,42 @@ class SimpleDragDropState(
         }
     }
 
-    // --- Покращена логіка зміщення (перенесено зі старого файлу) ---
+    // --- Покращена логіка зміщення ---
     fun getItemOffset(item: ListItemContent): Float {
         if (!isDragging) return 0f
 
         val itemInfo = state.layoutInfo.visibleItemsInfo.find { it.key == item.item.id }
         val itemIndex = itemInfo?.index ?: return 0f
 
-        val draggedIndex = draggedItemIndex
-        val toIndexRaw = targetIndexOfDraggedItem
+        // Використовуємо initialIndexOfDraggedItem для стабільного "початкового" індексу.
+        val draggedIndex = initialIndexOfDraggedItem
+        val targetIndex = targetIndexOfDraggedItem
 
-        // Якщо індекси невалідні, нічого не робимо
-        if (draggedIndex == -1 || toIndexRaw == -1) return 0f
+        if (draggedIndex == -1 || targetIndex == -1) return 0f
 
-        // Корекція цільового індексу для правильної анімації зсуву
-        // Коли ми тягнемо вниз, цільовий індекс буде на 1 більшим, ніж індекс елемента,
-        // на місце якого ми станемо після зсуву.
-        val dropIndex = if (toIndexRaw > draggedIndex) toIndexRaw - 1 else toIndexRaw
-
-        val itemSizeF = (draggedItemLayoutInfo?.size ?: 0).toFloat()
+        // Розмір елемента, що перетягується.
+        val draggedItemSize = (draggedItemLayoutInfo?.size ?: 0).toFloat()
 
         val offset = when {
-            // Сам елемент, що перетягується
+            // Елемент, що перетягується, слідує за пальцем.
             itemIndex == draggedIndex -> draggedDistance
 
-            // Елемент рухається вниз: елементи між старою та новою позицією зсуваються ВГОРУ
-            draggedIndex < dropIndex && itemIndex in (draggedIndex + 1)..dropIndex -> -itemSizeF
+            // --- Перетягування ВНИЗ ---
+            // Елементи між початковою та новою позиціями повинні зсунутися ВГОРУ.
+            // Ми включаємо `targetIndex` в діапазон, щоб елемент, над яким ми знаходимось,
+            // також зсунувся, звільняючи місце.
+            draggedIndex < targetIndex && itemIndex in (draggedIndex + 1)..targetIndex -> -draggedItemSize
 
-            // Елемент рухається вгору: елементи між новою та старою позицією зсуваються ВНИЗ
-            draggedIndex > dropIndex && itemIndex in dropIndex until draggedIndex -> itemSizeF
+            // --- Перетягування ВГОРУ ---
+            // Елементи між новою та початковою позиціями повинні зсунутися ВНИЗ.
+            draggedIndex > targetIndex && itemIndex in targetIndex until draggedIndex -> draggedItemSize
 
+            // Інші елементи не зсуваються.
             else -> 0f
         }
 
         if (offset != 0f) {
-            Log.v(TAG, "  [getItemOffset] ItemIndex: $itemIndex, DraggedIndex: $draggedIndex, DropIndex: $dropIndex -> Applying offset: $offset")
+            Log.v(TAG, "  [getItemOffset] ItemIndex: $itemIndex, DraggedIndex: $draggedIndex, TargetIndex: $targetIndex -> Applying offset: $offset")
         }
 
         return offset
