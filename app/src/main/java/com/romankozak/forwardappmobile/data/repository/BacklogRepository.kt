@@ -381,4 +381,13 @@ class GoalRepository @Inject constructor(
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
     suspend fun getAllNotes(): List<Note> = noteDao.getAll()
     suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
+
+    suspend fun logCurrentDbOrderForDebug(listId: String) {
+        val itemsFromDb = listItemDao.getItemsForListSyncForDebug(listId)
+        val orderLog = itemsFromDb.joinToString(separator = "\n") {
+            "  - DB_ORDER=${it.order}, id=${it.id}"
+        }
+        Log.d("DND_DEBUG", "[DEBUG_QUERY] СИРИЙ ПОРЯДОК З БАЗИ ДАНИХ:\n$orderLog")
+    }
+
 }

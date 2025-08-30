@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
+import android.util.Log
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,11 +26,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
+private const val TAG = "DND_DEBUG"
+
 @Composable
 fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
-    dragDropState: SimpleDragDropState, // Змінено тип
+    dragDropState: SimpleDragDropState,
 
     // Параметри для SwipeableListItem
     swipeEnabled: Boolean,
@@ -51,7 +54,6 @@ fun InteractiveListItem(
 ) {
     val isDragging = dragDropState.draggedItemIndex == index
 
-    // Використовуємо більш м'які анімації
     val elevation by animateFloatAsState(
         targetValue = if (isDragging) 16f else 0f,
         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
@@ -68,24 +70,25 @@ fun InteractiveListItem(
         label = "alpha",
     )
 
+
+
+    val isDraggable = item is ListItemContent.GoalItem || item is ListItemContent.SublistItem
+
     val itemModifier = modifier
-        .pointerInput(dragDropState, item.item.id) {
-            detectDragGesturesAfterLongPress(
-                onDragStart = {
-                    dragDropState.onDragStart(item)
-                },
-                onDrag = { change, dragAmount ->
-                    change.consume()
-                    dragDropState.onDrag(dragAmount.y)
-                },
-                onDragEnd = {
-                    dragDropState.onDragEnd()
-                },
-                onDragCancel = {
-                    dragDropState.onDragEnd()
-                },
-            )
+        .pointerInput(dragDropState, item.item.id, isDraggable) {
+            if (isDraggable) { // <--- Дозволяємо перетягування тільки для потрібних типів
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { dragDropState.onDragStart(item) },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        dragDropState.onDrag(dragAmount.y)
+                    },
+                    onDragEnd = { dragDropState.onDragEnd() },
+                    onDragCancel = { dragDropState.onDragEnd() },
+                )
+            }
         }
+
         .graphicsLayer {
             val offset = dragDropState.getItemOffset(item)
             translationY = offset
@@ -93,10 +96,12 @@ fun InteractiveListItem(
             scaleY = scale
             this.alpha = alpha
             shadowElevation = elevation
-
-            // Додаткова стабілізація для великих зміщень
             clip = false
         }
+
+
+
+
 
     Box(modifier = itemModifier) {
 
@@ -109,9 +114,7 @@ fun InteractiveListItem(
             onSwipeStart = onSwipeStart,
             onDelete = onDelete,
             onMoreActionsRequest = onMoreActionsRequest,
-            // Якщо у вас є функція для меню транспорту цілі
             onGoalTransportRequest = onGoalTransportRequest,
-            // Якщо у вас є функція для копіювання контенту
             onCopyContentRequest = onCopyContentRequest,
             backgroundColor = backgroundColor,
             content = {
@@ -126,7 +129,6 @@ fun InteractiveListItem(
                 }
             },
         )
-        // Виправлена логіка показу індикатора
         val isTarget = dragDropState.isDragging &&
                 dragDropState.targetIndexOfDraggedItem == index &&
                 dragDropState.initialIndexOfDraggedItem != index
@@ -142,6 +144,7 @@ fun InteractiveListItem(
     }
 }
 
+// ... (решта файлу без змін) ...
 @Composable
 private fun DropIndicator(isValidDrop: Boolean) {
     val color = if (isValidDrop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
