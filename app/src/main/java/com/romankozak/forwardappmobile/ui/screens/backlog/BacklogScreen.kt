@@ -53,7 +53,8 @@ import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
-
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun GoalDetailScreen(
@@ -95,45 +96,41 @@ fun GoalDetailScreen(
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val currentBackStackEntry by navController.currentBackStackEntryAsState()
-
-    val navGraphEntry = remember(currentBackStackEntry) {
-        navController.getBackStackEntry("app_graph")
-    }
-    val resultViewModel: NavigationResultViewModel = viewModel(navGraphEntry)
-
-    LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            resultViewModel.consumeResult<String>("picked_goal_id")?.let {
-                viewModel.onExistingItemSelected(it)
-            }
-            resultViewModel.consumeResult<String>("selectedListId")?.let {
-                viewModel.onListChooserResult(it)
-            }
-            if (resultViewModel.consumeResult<Boolean>("refresh_needed") == true) {
+    // ----------------- ПОЧАТОК ДІАГНОСТИЧНОГО БЛОКУ -----------------
+    // Цей код буде примусово оновлювати дані щоразу,
+    // коли користувач повертається на цей екран.
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                Log.d("STATE_REFRESH", "LIFECYCLE: ON_RESUME. Викликаю forceRefresh().")
                 viewModel.forceRefresh()
             }
         }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
+    // ------------------ КІНЕЦЬ ДІАГНОСТИЧНОГО БЛОКУ ------------------
 
 
-
-    // Використання SavedStateHandle для оновлення після повернення з екрану редагування
+    // !!!!! ЗАКОМЕНТУЙТЕ АБО ВИДАЛІТЬ ЦЕЙ БЛОК НА ЧАС ТЕСТУВАННЯ !!!!!
+    /*
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    // 1. Отримуємо LiveData з SavedStateHandle і перетворюємо її на State<Boolean>
     val needsRefresh by savedStateHandle
         ?.getLiveData<Boolean>("needs_refresh", false)
         ?.observeAsState(false) ?: remember { mutableStateOf(false) }
 
-    // 2. LaunchedEffect тепер реагує на зміну стану `needsRefresh`
     LaunchedEffect(needsRefresh) {
         if (needsRefresh) {
             Log.d("STATE_REFRESH", "Отримано сигнал needs_refresh. Викликаю forceRefresh().")
             viewModel.forceRefresh()
-            // 3. Скидаємо прапорець, щоб уникнути повторних оновлень
             savedStateHandle?.set("needs_refresh", false)
         }
     }
+    */
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
