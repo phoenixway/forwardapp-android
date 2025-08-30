@@ -60,7 +60,6 @@ fun GoalDetailScreen(
     navController: NavController,
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
@@ -97,6 +96,7 @@ fun GoalDetailScreen(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
+
     val navGraphEntry = remember(currentBackStackEntry) {
         navController.getBackStackEntry("app_graph")
     }
@@ -113,6 +113,25 @@ fun GoalDetailScreen(
             if (resultViewModel.consumeResult<Boolean>("refresh_needed") == true) {
                 viewModel.forceRefresh()
             }
+        }
+    }
+
+
+
+    // Використання SavedStateHandle для оновлення після повернення з екрану редагування
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    // 1. Отримуємо LiveData з SavedStateHandle і перетворюємо її на State<Boolean>
+    val needsRefresh by savedStateHandle
+        ?.getLiveData<Boolean>("needs_refresh", false)
+        ?.observeAsState(false) ?: remember { mutableStateOf(false) }
+
+    // 2. LaunchedEffect тепер реагує на зміну стану `needsRefresh`
+    LaunchedEffect(needsRefresh) {
+        if (needsRefresh) {
+            Log.d("STATE_REFRESH", "Отримано сигнал needs_refresh. Викликаю forceRefresh().")
+            viewModel.forceRefresh()
+            // 3. Скидаємо прапорець, щоб уникнути повторних оновлень
+            savedStateHandle?.set("needs_refresh", false)
         }
     }
 
@@ -259,7 +278,7 @@ fun GoalDetailScreen(
                         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                             DropdownMenuItem(
                                 text = { Text("Властивості") },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Властивості") }, // <--- ДОДАНО ІКОНКУ
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Властивості") },
                                 onClick = {
                                     menuExpanded = false
                                     navController.navigate("edit_list_screen/${list?.id}")
@@ -376,7 +395,7 @@ fun GoalDetailScreen(
                     },
                     onCopyContentRequest = {
                         Log.d("swipeActions", "copy content")
-                        viewModel.copyContentRequest(content) // Викликаємо функцію з параметром
+                        viewModel.copyContentRequest(content)
                     }
                 ) {
                     when (content) {
