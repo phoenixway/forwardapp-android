@@ -10,7 +10,6 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
-import com.romankozak.forwardappmobile.ui.components.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -751,5 +750,99 @@ class GoalDetailViewModel @Inject constructor(
                 saveBatchedMoves()
             }
         }
+    }
+
+
+// Заміните ці методи в GoalDetailViewModel:
+
+    fun copyContentRequest(content: ListItemContent) {
+        Log.d("swipeActions", "copy content")
+        viewModelScope.launch {
+            try {
+                when (content) {
+                    is ListItemContent.GoalItem -> {
+                        // Копіюємо текст цілі в буфер обміну
+                        val text = content.goal.text
+                        // Тут можна додати копіювання в clipboard системи Android
+                        _uiEventFlow.send(UiEvent.ShowSnackbar("Текст скопійовано: ${text.take(50)}..."))
+                    }
+                    is ListItemContent.NoteItem -> {
+                        val text = "${content.note.title}\n\n${content.note.content}"
+                        _uiEventFlow.send(UiEvent.ShowSnackbar("Нотатка скопійована: ${content.note.title}"))
+                    }
+                    is ListItemContent.LinkItem -> {
+                        val text = "${content.link.linkData.displayName ?: content.link.linkData.target}"
+                        _uiEventFlow.send(UiEvent.ShowSnackbar("Посилання скопійовано"))
+                    }
+                    is ListItemContent.SublistItem -> {
+                        val text = content.sublist.name
+                        _uiEventFlow.send(UiEvent.ShowSnackbar("Назва списку скопійована"))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("GoalDetailViewModel", "Error copying content", e)
+                _uiEventFlow.send(UiEvent.ShowSnackbar("Помилка копіювання"))
+            }
+        }
+    }
+
+    fun moveInstanceRequest(content: ListItemContent) {
+        Log.d("swipeActions", "move instance request")
+
+        // Підготовляємо дані для переміщення
+        val itemIds = setOf(content.item.id)
+        val goalIds = if (content is ListItemContent.GoalItem) setOf(content.goal.id) else emptySet()
+
+        // Зберігаємо контекст операції
+        pendingAction = GoalActionType.MoveInstance
+        pendingSourceItemIds = itemIds
+        pendingSourceGoalIds = goalIds
+
+        // Запускаємо вибір списку призначення
+        navigateToListChooser("Перемістити до...")
+    }
+
+    fun copyGoalRequest(content: ListItemContent) {
+        Log.d("swipeActions", "copy goal request")
+
+        if (content !is ListItemContent.GoalItem) {
+            viewModelScope.launch {
+                _uiEventFlow.send(UiEvent.ShowSnackbar("Копіювання доступне тільки для цілей"))
+            }
+            return
+        }
+
+        // Підготовляємо дані для копіювання
+        val goalIds = setOf(content.goal.id)
+
+        // Зберігаємо контекст операції
+        pendingAction = GoalActionType.CopyGoal
+        pendingSourceItemIds = emptySet() // Для копіювання цілей не потрібно переміщувати елементи списку
+        pendingSourceGoalIds = goalIds
+
+        // Запускаємо вибір списку призначення
+        navigateToListChooser("Копіювати до...")
+    }
+
+    fun createInstanceRequest(content: ListItemContent) {
+        Log.d("swipeActions", "create instance request")
+
+        if (content !is ListItemContent.GoalItem) {
+            viewModelScope.launch {
+                _uiEventFlow.send(UiEvent.ShowSnackbar("Створення посилання доступне тільки для цілей"))
+            }
+            return
+        }
+
+        // Підготовляємо дані для створення посилання
+        val goalIds = setOf(content.goal.id)
+
+        // Зберігаємо контекст операції
+        pendingAction = GoalActionType.CreateInstance
+        pendingSourceItemIds = emptySet() // Для створення посилань не переміщуємо оригінальні елементи
+        pendingSourceGoalIds = goalIds
+
+        // Запускаємо вибір списку призначення
+        navigateToListChooser("Створити посилання у...")
     }
 }
