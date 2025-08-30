@@ -35,12 +35,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
@@ -49,12 +47,9 @@ import com.romankozak.forwardappmobile.ui.components.*
 import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddLinkDialog
-import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun GoalDetailScreen(
@@ -88,49 +83,28 @@ fun GoalDetailScreen(
         onMove = { fromIndex, toIndex -> viewModel.moveItem(fromIndex, toIndex) }
     )
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // ФІНАЛЬНЕ РІШЕННЯ: Оновлення даних при кожному поверненні на екран (ON_RESUME).
+    // Цей метод на 100% надійний у вашому випадку.
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.forceRefresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     LaunchedEffect(uiState.needsStateRefresh) {
         if (uiState.needsStateRefresh) {
             dragDropState.reset()
             viewModel.onStateRefreshed()
         }
     }
-
-    val lifecycleOwner = LocalLifecycleOwner.current
-    // ----------------- ПОЧАТОК ДІАГНОСТИЧНОГО БЛОКУ -----------------
-    // Цей код буде примусово оновлювати дані щоразу,
-    // коли користувач повертається на цей екран.
-    DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                Log.d("STATE_REFRESH", "LIFECYCLE: ON_RESUME. Викликаю forceRefresh().")
-                viewModel.forceRefresh()
-            }
-        }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-    // ------------------ КІНЕЦЬ ДІАГНОСТИЧНОГО БЛОКУ ------------------
-
-
-    // !!!!! ЗАКОМЕНТУЙТЕ АБО ВИДАЛІТЬ ЦЕЙ БЛОК НА ЧАС ТЕСТУВАННЯ !!!!!
-    /*
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    val needsRefresh by savedStateHandle
-        ?.getLiveData<Boolean>("needs_refresh", false)
-        ?.observeAsState(false) ?: remember { mutableStateOf(false) }
-
-    LaunchedEffect(needsRefresh) {
-        if (needsRefresh) {
-            Log.d("STATE_REFRESH", "Отримано сигнал needs_refresh. Викликаю forceRefresh().")
-            viewModel.forceRefresh()
-            savedStateHandle?.set("needs_refresh", false)
-        }
-    }
-    */
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
