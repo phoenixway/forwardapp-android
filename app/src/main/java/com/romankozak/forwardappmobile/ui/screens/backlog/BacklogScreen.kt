@@ -261,6 +261,8 @@ fun GoalDetailScreen(
             viewModel.flushPendingMoves()
         }
     }
+    Log.d("AttachmentsSection", "[UI] Поточний стан isAttachmentsExpanded: ${list?.isAttachmentsExpanded}")
+
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
