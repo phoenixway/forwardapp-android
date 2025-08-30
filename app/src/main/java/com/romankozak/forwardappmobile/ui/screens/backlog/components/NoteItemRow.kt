@@ -25,18 +25,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
+/**
+ * A unified, reusable Composable for displaying a note item.
+ * It combines detailed UI animations with a flexible API.
+ */
 @Composable
 fun NoteItemRow(
     noteContent: ListItemContent.NoteItem,
     isSelected: Boolean,
-    isHighlighted: Boolean, // ADDED: For consistency with other items
+    isHighlighted: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
-    endAction: @Composable () -> Unit = {}, // MODIFIED: Replaced dragHandleModifier
+    // The flexible endAction slot, as defined in the BacklogScreen structure,
+    // allows injecting any action (e.g., a drag handle) from the parent.
+    endAction: @Composable () -> Unit = {},
     maxLines: Int = 3,
 ) {
-    // MODIFIED: Background color now supports highlighting
+    // Background color animation supports selection and highlighting states.
     val background by animateColorAsState(
         targetValue = when {
             isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
@@ -47,12 +53,15 @@ fun NoteItemRow(
         label = "note_background_color"
     )
 
+    // Elevation animation on press for better user feedback.
     var isPressed by remember { mutableStateOf(false) }
     val elevation by animateDpAsState(
         targetValue = if (isPressed) 4.dp else 1.dp,
+        animationSpec = spring(stiffness = 400f),
         label = "elevation"
     )
 
+    // Border color animation provides a clear selection indicator.
     val animatedBorderColor by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
         animationSpec = tween(200),
@@ -70,7 +79,7 @@ fun NoteItemRow(
             },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(elevation),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation),
         border = BorderStroke(2.dp, animatedBorderColor)
     ) {
         Row(
@@ -80,6 +89,7 @@ fun NoteItemRow(
             Row(
                 modifier = Modifier
                     .weight(1f)
+                    // Robust gesture detection for tap, long press, and press state.
                     .pointerInput(onClick, onLongClick) {
                         detectTapGestures(
                             onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
@@ -87,18 +97,20 @@ fun NoteItemRow(
                             onTap = { onClick() }
                         )
                     }
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Icon provides clear visual identification for the item type.
                 Icon(
                     imageVector = Icons.Outlined.StickyNote2,
                     contentDescription = "Нотатка",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
+                // The main content area for the note's title and text.
                 Column(modifier = Modifier.weight(1f)) {
                     val note = noteContent.note
                     val hasTitle = !note.title.isNullOrBlank()
@@ -107,10 +119,8 @@ fun NoteItemRow(
                     if (hasTitle) {
                         Text(
                             text = note.title!!,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp
-                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -125,7 +135,8 @@ fun NoteItemRow(
                         Text(
                             text = note.content.trim(),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            // Expands to show full content when selected.
                             maxLines = if (isSelected) Int.MAX_VALUE else maxLines,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -133,7 +144,7 @@ fun NoteItemRow(
                 }
             }
 
-            // MODIFIED: Replaced the hardcoded drag handle with the flexible endAction slot
+            // The endAction composable is placed here.
             endAction()
         }
     }
