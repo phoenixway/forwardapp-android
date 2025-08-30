@@ -104,9 +104,19 @@ class GoalDetailViewModel @Inject constructor(
 
     val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
-    val goalList: StateFlow<GoalList?> = listIdFlow.flatMapLatest { id ->
-        if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val goalList: StateFlow<GoalList?> = combine(
+        listIdFlow,
+        _refreshTrigger // <-- ДОДАЄМО ЗАЛЕЖНІСТЬ ВІД ТРИГЕРА
+    ) { id, _ -> id } // Ми ігноруємо значення тригера, нам важливий сам факт його зміни
+        .flatMapLatest { id ->
+            if (id.isNotEmpty()) {
+                // Додамо логування, щоб бачити, що оновлення відбувається
+                Log.d("STATE_REFRESH", "Оновлюємо потік goalList для id: $id")
+                goalRepository.getGoalListByIdFlow(id)
+            } else {
+                flowOf(null)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val tagToContextNameMap: StateFlow<Map<String, String>> = contextHandler.tagToContextNameMap
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
