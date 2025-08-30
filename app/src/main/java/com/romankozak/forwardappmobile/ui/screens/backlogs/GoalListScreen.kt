@@ -129,6 +129,9 @@ fun GoalListScreen(
                 GoalListUiEvent.NavigateToSettings -> {
                     navController.navigate("settings_screen")
                 }
+                is GoalListUiEvent.NavigateToEditListScreen -> {
+                    navController.navigate("edit_list_screen/${event.listId}")
+                }
             }
         }
     }
@@ -403,6 +406,3 @@ private fun GoalListTopAppBar(
         },
     )
 }
-
-
-
