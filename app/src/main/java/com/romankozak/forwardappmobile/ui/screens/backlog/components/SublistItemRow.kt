@@ -1,4 +1,4 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/SublistItemRow.kt ---
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/SublistItemRow.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -28,13 +28,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.google.accompanist.flowlayout.FlowRow // ADDED
-import androidx.compose.foundation.ExperimentalFoundationApi // ADDED
-import androidx.compose.foundation.layout.ExperimentalLayoutApi // ADDED
-import androidx.compose.foundation.layout.FlowRow // ADDED
 import com.romankozak.forwardappmobile.ui.screens.editlist.TagChip
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+/**
+ * A unified, reusable Composable for displaying a sublist item.
+ * It combines advanced layout features like FlowRow with a flexible API.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SublistItemRow(
     sublistContent: ListItemContent.SublistItem,
@@ -43,6 +43,7 @@ fun SublistItemRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    // Flexible endAction slot allows injecting a drag handle or other controls.
     endAction: @Composable () -> Unit = {},
 ) {
     val sublist = sublistContent.sublist
@@ -59,6 +60,7 @@ fun SublistItemRow(
     var isPressed by remember { mutableStateOf(false) }
     val elevation by animateDpAsState(
         targetValue = if (isPressed) 4.dp else 1.dp,
+        animationSpec = spring(stiffness = 400f),
         label = "elevation"
     )
 
@@ -79,12 +81,10 @@ fun SublistItemRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 2.dp)
-            .semantics {
-                contentDescription = sublistSemantics
-            },
+            .semantics { contentDescription = sublistSemantics },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(elevation),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation),
         border = BorderStroke(2.dp, animatedBorderColor)
     ) {
         Row(
@@ -93,21 +93,8 @@ fun SublistItemRow(
                 .heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(start = 14.dp, end = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.List,
-                    contentDescription = iconContentDescription,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Column(
+            // Clickable content area is separated from the endAction area.
+            Row(
                 modifier = Modifier
                     .weight(1f)
                     .pointerInput(onClick, onLongClick) {
@@ -116,58 +103,74 @@ fun SublistItemRow(
                             onLongPress = { onLongClick() },
                             onTap = { onClick() }
                         )
-                    }
-                    .padding(start = 2.dp, top = 6.dp, bottom = 6.dp)
+                    },
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = sublist.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                val hasStatusContent = !sublist.tags.isNullOrEmpty() || !sublist.description.isNullOrBlank()
-
-                AnimatedVisibility(
-                    visible = hasStatusContent,
-                    enter = slideInVertically(
-                        initialOffsetY = { height -> -height },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
+                // Leading icon for visual identification.
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(start = 12.dp, end = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        if (!sublist.tags.isNullOrEmpty()) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                sublist.tags.forEach { tag ->
-                                    TagChip(
-                                        text = "#$tag",
-                                        onDismiss = {},
-                                        isDismissible = false,
-                                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        contentDescription = iconContentDescription,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                // Column for title and expandable details.
+                Column(
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
+                ) {
+                    Text(
+                        text = sublist.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    val hasExtraContent = !sublist.tags.isNullOrEmpty() || !sublist.description.isNullOrBlank()
+
+                    // Details (tags, description) are shown with a gentle animation.
+                    AnimatedVisibility(
+                        visible = hasExtraContent,
+                        enter = slideInVertically(
+                            initialOffsetY = { -it / 2 },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                        ) + fadeIn(),
+                    ) {
+                        Column(modifier = Modifier.padding(top = 6.dp)) {
+                            if (!sublist.tags.isNullOrEmpty()) {
+                                // FlowRow efficiently displays tags, wrapping to new lines as needed.
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    sublist.tags.forEach { tag ->
+                                        TagChip(text = "#$tag", onDismiss = {}, isDismissible = false)
+                                    }
                                 }
                             }
-                        }
-                        if (!sublist.description.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = sublist.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                maxLines = if (isSelected) Int.MAX_VALUE else 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            if (!sublist.description.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(if (sublist.tags.isNullOrEmpty()) 0.dp else 4.dp))
+                                Text(
+                                    text = sublist.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = if (isSelected) Int.MAX_VALUE else 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 }
             }
-            Box(
-                modifier = Modifier.padding(end = 4.dp)
-            ) {
+            // The endAction slot is placed outside the clickable area for clarity.
+            Box(modifier = Modifier.align(Alignment.CenterVertically).padding(end = 4.dp)) {
                 endAction()
             }
         }
