@@ -179,6 +179,6 @@ dependencies {
 
     // Jetpack DataStore (якщо ще не додано, для збереження налаштувань)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
 
 }

@@ -1,5 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/editlist/EditListViewModel.kt
-
+// File: EditListViewModel.kt
 package com.romankozak.forwardappmobile.ui.screens.editlist
 
 import androidx.lifecycle.SavedStateHandle
@@ -30,16 +29,15 @@ class EditListViewModel @Inject constructor(
             initialValue = null,
         )
 
-    fun onSave(newName: String, newTags: List<String>) {
+    // ЗМІНА 1: Робимо функцію suspend і прибираємо viewModelScope.launch
+    suspend fun onSave(newName: String, newTags: List<String>) {
         if (newName.isBlank()) return
-        viewModelScope.launch {
-            val currentList = list.first() ?: return@launch
-            val updatedList = currentList.copy(
-                name = newName,
-                tags = newTags.filter { it.isNotBlank() }.map { it.trim() },
-                updatedAt = System.currentTimeMillis(),
-            )
-            goalRepository.updateGoalList(updatedList)
-        }
+        val currentList = list.first() ?: return
+        val updatedList = currentList.copy(
+            name = newName,
+            tags = newTags.filter { it.isNotBlank() }.map { it.trim() },
+            updatedAt = System.currentTimeMillis(),
+        )
+        goalRepository.updateGoalList(updatedList)
     }
 }

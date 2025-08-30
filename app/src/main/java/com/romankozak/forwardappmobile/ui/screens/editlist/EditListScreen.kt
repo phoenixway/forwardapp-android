@@ -22,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.GoalList
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +35,9 @@ fun EditListScreen(
     var name by remember { mutableStateOf("") }
     var tags by remember { mutableStateOf(emptyList<String>()) }
     var currentTagInput by remember { mutableStateOf("") }
+
+    // ЗМІНА 2: Отримуємо coroutine scope
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(list) {
         list?.let {
@@ -54,8 +58,17 @@ fun EditListScreen(
                 actions = {
                     Button(
                         onClick = {
-                            viewModel.onSave(name, tags)
-                            navController.popBackStack()
+                            // ЗМІНА 3: Запускаємо корутину
+                            scope.launch {
+                                // Спочатку чекаємо завершення збереження
+                                viewModel.onSave(name, tags)
+
+                                // Потім виконуємо навігацію
+                                navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set("needs_refresh", true)
+                                navController.popBackStack()
+                            }
                         },
                         enabled = list != null
                     ) {

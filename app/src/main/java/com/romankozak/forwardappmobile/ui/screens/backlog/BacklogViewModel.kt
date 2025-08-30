@@ -33,10 +33,6 @@ sealed class UiEvent {
     data class ScrollTo(val index: Int) : UiEvent()
     data class NavigateBackAndReveal(val listId: String) : UiEvent()
     data class HandleLinkClick(val link: RelatedLink) : UiEvent()
-
-
-
-
 }
 
 sealed class GoalActionDialogState {
@@ -58,15 +54,13 @@ data class UiState(
     val showAddWebLinkDialog: Boolean = false,
     val showAddObsidianLinkDialog: Boolean = false,
     val itemToHighlight: String? = null,
-    val needsStateRefresh: Boolean = false // <-- ДОДАЙТЕ ЦЕ ПОЛЕ
+    val needsStateRefresh: Boolean = false
 )
 
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class GoalDetailViewModel @Inject constructor(
-
-
     private val goalRepository: GoalRepository,
     private val settingsRepository: SettingsRepository,
     private val ollamaService: OllamaService,
@@ -75,12 +69,10 @@ class GoalDetailViewModel @Inject constructor(
 ) : ViewModel() {
     private var batchedMoves = mutableListOf<Pair<ListItemContent, ListItemContent>>()
     private var batchSaveJob: Job? = null
-    private val BATCH_DELAY_MS = 500L // Затримка перед збереженням
+    private val BATCH_DELAY_MS = 500L
 
-    // Тег для фільтрації логів
     private val TAG = "DnD_Debug"
 
-    // Прапор для блокування оновлень під час перетягування
     private var optimisticUpdateInProgress = false
 
     private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
@@ -497,8 +489,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- ОСНОВНА ФУНКЦІЯ ДЛЯ ДІАГНОСТИКИ ---
-// ВИПРАВЛЕНИЙ ViewModel метод:
+    // ...
     fun moveItem(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
             val currentList = _listContent.value.toMutableList()
@@ -715,29 +706,23 @@ class GoalDetailViewModel @Inject constructor(
         try {
             Log.d("DnD_Batch", "Saving ${batchedMoves.size} batched moves")
 
-            // Отримуємо актуальний стан списку
             val currentList = _listContent.value
 
-            // Створюємо список оновлених елементів з новими порядками
             val updatedItems = currentList.mapIndexed { index, content ->
                 content.item.copy(order = index.toLong())
             }
 
-            // Зберігаємо всі зміни одним запитом
             goalRepository.updateListItemsOrder(updatedItems)
 
             Log.d("DnD_Batch", "Successfully saved batch of ${batchedMoves.size} moves")
 
         } catch (e: Exception) {
             Log.e("DnD_Batch", "Error saving batched moves", e)
-            // При помилці можна показати snackbar або відновити попередній стан
         } finally {
-            // Очищаємо батч після збереження
             batchedMoves.clear()
         }
     }
 
-    // Додайте функцію для негайного збереження (опціонально)
     fun flushPendingMoves() {
         viewModelScope.launch {
             batchSaveJob?.cancel()
@@ -747,18 +732,13 @@ class GoalDetailViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        // Негайно зберігаємо без асинхронності
         batchSaveJob?.cancel()
         if (batchedMoves.isNotEmpty()) {
-            // Використовуємо runBlocking тільки для критично важливого збереження
             kotlinx.coroutines.runBlocking {
                 saveBatchedMoves()
             }
         }
     }
-
-
-// Заміните ці методи в GoalDetailViewModel:
 
     fun copyContentRequest(content: ListItemContent) {
         Log.d("swipeActions", "copy content")
@@ -766,9 +746,7 @@ class GoalDetailViewModel @Inject constructor(
             try {
                 when (content) {
                     is ListItemContent.GoalItem -> {
-                        // Копіюємо текст цілі в буфер обміну
                         val text = content.goal.text
-                        // Тут можна додати копіювання в clipboard системи Android
                         _uiEventFlow.send(UiEvent.ShowSnackbar("Текст скопійовано: ${text.take(50)}..."))
                     }
                     is ListItemContent.NoteItem -> {
@@ -793,17 +771,13 @@ class GoalDetailViewModel @Inject constructor(
 
     fun moveInstanceRequest(content: ListItemContent) {
         Log.d("swipeActions", "move instance request")
-
-        // Підготовляємо дані для переміщення
         val itemIds = setOf(content.item.id)
         val goalIds = if (content is ListItemContent.GoalItem) setOf(content.goal.id) else emptySet()
 
-        // Зберігаємо контекст операції
         pendingAction = GoalActionType.MoveInstance
         pendingSourceItemIds = itemIds
         pendingSourceGoalIds = goalIds
 
-        // Запускаємо вибір списку призначення
         navigateToListChooser("Перемістити до...")
     }
 
@@ -817,15 +791,12 @@ class GoalDetailViewModel @Inject constructor(
             return
         }
 
-        // Підготовляємо дані для копіювання
         val goalIds = setOf(content.goal.id)
 
-        // Зберігаємо контекст операції
         pendingAction = GoalActionType.CopyGoal
-        pendingSourceItemIds = emptySet() // Для копіювання цілей не потрібно переміщувати елементи списку
+        pendingSourceItemIds = emptySet()
         pendingSourceGoalIds = goalIds
 
-        // Запускаємо вибір списку призначення
         navigateToListChooser("Копіювати до...")
     }
 
@@ -839,15 +810,12 @@ class GoalDetailViewModel @Inject constructor(
             return
         }
 
-        // Підготовляємо дані для створення посилання
         val goalIds = setOf(content.goal.id)
 
-        // Зберігаємо контекст операції
         pendingAction = GoalActionType.CreateInstance
-        pendingSourceItemIds = emptySet() // Для створення посилань не переміщуємо оригінальні елементи
+        pendingSourceItemIds = emptySet()
         pendingSourceGoalIds = goalIds
 
-        // Запускаємо вибір списку призначення
         navigateToListChooser("Створити посилання у...")
     }
 }
