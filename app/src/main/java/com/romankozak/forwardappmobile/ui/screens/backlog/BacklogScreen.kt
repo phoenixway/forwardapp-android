@@ -106,6 +106,13 @@ fun GoalDetailScreen(
         }
     }
 
+    // Доданий блок для прокрутки догори при розгортанні додатків
+    LaunchedEffect(list?.isAttachmentsExpanded) {
+        if (list?.isAttachmentsExpanded == true) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
