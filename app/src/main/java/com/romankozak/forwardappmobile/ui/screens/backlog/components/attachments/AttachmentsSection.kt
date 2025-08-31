@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/AttachmentsSection.kt
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/attachments/AttachmentsSection.kt
 
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments
 
@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+
+
 
 enum class AttachmentType {
     NOTE, WEB_LINK, OBSIDIAN_LINK, LIST_LINK, SHORTCUT
@@ -169,7 +171,6 @@ private fun AttachmentItemCard(
                     onClick = { onItemClick(item) },
                     onLongClick = { },
                     endAction = endAction,
-                    // ВИПРАВЛЕНО: Додано відсутній параметр onDelete
                     onDelete = { onDeleteItem(item) },
                 )
             }
@@ -181,7 +182,6 @@ private fun AttachmentItemCard(
                     onClick = { onItemClick(item) },
                     onLongClick = { },
                     endAction = endAction,
-                    // ВИПРАВЛЕНО: Додано відсутній параметр onDelete
                     onDelete = { onDeleteItem(item) },
                 )
             }
@@ -236,6 +236,12 @@ private fun AddAttachmentButton(
             AttachmentTypeMenuItem(R.string.attachment_type_list_link, AttachmentType.LIST_LINK) { type ->
                 onAddAttachment(type); showAddMenu = false
             }
+            // --- ПОЧАТОК ЗМІН ---
+            Divider()
+            AttachmentTypeMenuItem(R.string.menu_add_list_shortcut, AttachmentType.SHORTCUT) { type ->
+                onAddAttachment(type); showAddMenu = false
+            }
+            // --- КІНЕЦЬ ЗМІН ---
         }
     }
 }
