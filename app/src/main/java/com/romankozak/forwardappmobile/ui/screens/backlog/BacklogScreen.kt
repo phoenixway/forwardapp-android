@@ -58,7 +58,6 @@ import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
-
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -86,10 +85,7 @@ fun GoalDetailScreen(
     val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
-
-    // --- ПОЧАТОК ЗМІН ---
     val showGoalTransportMenu by viewModel.showGoalTransportMenu.collectAsStateWithLifecycle()
-    // --- КІНЕЦЬ ЗМІН ---
 
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -220,12 +216,23 @@ fun GoalDetailScreen(
         viewModel.onHighlightShown()
     }
 
-    LaunchedEffect(uiState.newlyAddedItemId) {
-        if (uiState.newlyAddedItemId != null) {
+    // --- ПОЧАТОК ЗМІН ---
+    // КЛЮЧОВЕ ВИПРАВЛЕННЯ:
+    // Цей ефект тепер спрацьовує, коли оновлюється сам `displayList`.
+    // Це гарантує, що на момент перевірки новий елемент вже є у списку.
+    LaunchedEffect(displayList) {
+        // Ми беремо актуальне значення `newlyAddedItemId` прямо з `uiState`.
+        val newItemId = uiState.newlyAddedItemId
+
+        // Перевіряємо, чи є ID для прокрутки, і чи дійсно елемент з таким ID
+        // вже присутній у поточній версії списку.
+        if (newItemId != null && displayList.any { it.item.id == newItemId }) {
+            // Якщо так - прокручуємо наверх і скидаємо ID, щоб не робити це знову.
             listState.animateScrollToItem(0)
             viewModel.onScrolledToNewItem()
         }
     }
+    // --- КІНЕЦЬ ЗМІН ---
 
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
@@ -249,8 +256,6 @@ fun GoalDetailScreen(
         listContent.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
     }
 
-    Log.d("AttachmentsSection", "[UI] Поточний стан isAttachmentsExpanded: ${list?.isAttachmentsExpanded}")
-
     if (goalActionState is GoalActionDialogState.AwaitingActionChoice) {
         val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent
         GoalActionChoiceDialog(
@@ -262,7 +267,6 @@ fun GoalDetailScreen(
         )
     }
 
-    // --- ПОЧАТОК ЗМІН ---
     GoalTransportMenu(
         isVisible = showGoalTransportMenu,
         onDismiss = { viewModel.onDismissGoalTransportMenu() },
@@ -270,7 +274,6 @@ fun GoalDetailScreen(
         onMoveInstanceRequest = { viewModel.onTransportActionSelected(GoalActionType.MoveInstance) },
         onCopyGoalRequest = { viewModel.onTransportActionSelected(GoalActionType.CopyGoal) }
     )
-    // --- КІНЕЦЬ ЗМІН ---
 
     if (showRecentListsSheet) {
         ModalBottomSheet(onDismissRequest = { viewModel.onDismissRecentLists() }) {
@@ -427,9 +430,7 @@ fun GoalDetailScreen(
                         onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
                         onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
                         modifier = Modifier,
-                        // --- ПОЧАТОК ЗМІН ---
                         onGoalTransportRequest = { viewModel.onGoalTransportInitiated(content) },
-                        // --- КІНЕЦЬ ЗМІН ---
                         onCopyContentRequest = {
                             viewModel.copyContentRequest(content)
                         }
@@ -468,6 +469,7 @@ fun GoalDetailScreen(
     }
 }
 
+// ... (решта коду без змін)
 private fun handleRelatedLinkClick(
     link: RelatedLink,
     obsidianVaultName: String,
