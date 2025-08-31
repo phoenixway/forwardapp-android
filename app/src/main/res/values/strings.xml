@@ -122,6 +122,7 @@
     <string name="go_to_home_list">go_to_home_list</string>
     <string name="delete_list">deletelist</string>
     <string name="share_list">share_list</string>
+    <string name="selected">selected</string>
 
 
 </resources>
