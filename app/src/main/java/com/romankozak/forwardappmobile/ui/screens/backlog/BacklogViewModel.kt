@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
-import com.romankozak.forwardappmobile.ui.components.AttachmentType
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers

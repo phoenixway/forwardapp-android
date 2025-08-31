@@ -1,6 +1,6 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/AttachmentsSection.kt
 
-package com.romankozak.forwardappmobile.ui.components
+package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -26,8 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.LinkItemRow
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.NoteItemRow
 
 enum class AttachmentType {
     NOTE, WEB_LINK, OBSIDIAN_LINK, LIST_LINK, SHORTCUT
