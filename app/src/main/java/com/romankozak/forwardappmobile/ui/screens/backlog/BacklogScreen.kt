@@ -57,6 +57,8 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -85,9 +87,12 @@ fun GoalDetailScreen(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
+    // --- ПОЧАТОК ЗМІН ---
+    val showGoalTransportMenu by viewModel.showGoalTransportMenu.collectAsStateWithLifecycle()
+    // --- КІНЕЦЬ ЗМІН ---
+
     var menuExpanded by remember { mutableStateOf(false) }
 
-    // Створюємо єдиний список для рендерингу з правильними індексами
     val displayList = remember(listContent, list?.isAttachmentsExpanded) {
         val attachmentItems = listContent.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
         val draggableItems = listContent.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
@@ -102,20 +107,13 @@ fun GoalDetailScreen(
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
         onMove = { fromIndex, toIndex ->
-            // Конвертуємо індекси відносно displayList до індексів draggableItems
             val attachmentCount = if (list?.isAttachmentsExpanded == true) {
                 listContent.count { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
             } else 0
 
-            val adjustedFromIndex = if (list?.isAttachmentsExpanded == true) {
-                fromIndex - attachmentCount
-            } else fromIndex
+            val adjustedFromIndex = if (list?.isAttachmentsExpanded == true) fromIndex - attachmentCount else fromIndex
+            val adjustedToIndex = if (list?.isAttachmentsExpanded == true) toIndex - attachmentCount else toIndex
 
-            val adjustedToIndex = if (list?.isAttachmentsExpanded == true) {
-                toIndex - attachmentCount
-            } else toIndex
-
-            // Перевіряємо, що індекси в межах draggableItems
             val draggableCount = listContent.count { it !is ListItemContent.NoteItem && it !is ListItemContent.LinkItem }
             if (adjustedFromIndex >= 0 && adjustedFromIndex < draggableCount &&
                 adjustedToIndex >= 0 && adjustedToIndex < draggableCount) {
@@ -126,7 +124,6 @@ fun GoalDetailScreen(
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Результат від екрану вибору списку
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -147,7 +144,6 @@ fun GoalDetailScreen(
         }
     }
 
-    // Примусове оновлення при поверненні на екран
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -203,7 +199,6 @@ fun GoalDetailScreen(
         }
     }
 
-    // Логіка підсвічування елементів
     LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, displayList, list?.isAttachmentsExpanded) {
         val goalId = uiState.goalToHighlight
         val itemId = uiState.itemToHighlight
@@ -213,14 +208,8 @@ fun GoalDetailScreen(
         }
 
         val indexToScroll = when {
-            goalId != null -> displayList.indexOfFirst {
-                it is ListItemContent.GoalItem && it.goal.id == goalId
-            }.takeIf { it != -1 }
-
-            itemId != null -> displayList.indexOfFirst {
-                it.item.id == itemId
-            }.takeIf { it != -1 }
-
+            goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
+            itemId != null -> displayList.indexOfFirst { it.item.id == itemId }.takeIf { it != -1 }
             else -> null
         }
 
@@ -231,14 +220,9 @@ fun GoalDetailScreen(
         viewModel.onHighlightShown()
     }
 
-    // Скрол до нового елемента
-    LaunchedEffect(uiState.newlyAddedItemId, displayList) {
-        val newItemId = uiState.newlyAddedItemId
-        if (newItemId != null) {
-            val index = displayList.indexOfFirst { it.item.id == newItemId }
-            if (index != -1) {
-                listState.animateScrollToItem(index)
-            }
+    LaunchedEffect(uiState.newlyAddedItemId) {
+        if (uiState.newlyAddedItemId != null) {
+            listState.animateScrollToItem(0)
             viewModel.onScrolledToNewItem()
         }
     }
@@ -279,11 +263,17 @@ fun GoalDetailScreen(
     }
 
     // --- ПОЧАТОК ЗМІН ---
-    // Додано ModalBottomSheet для відображення недавніх списків
+    GoalTransportMenu(
+        isVisible = showGoalTransportMenu,
+        onDismiss = { viewModel.onDismissGoalTransportMenu() },
+        onCreateInstanceRequest = { viewModel.onTransportActionSelected(GoalActionType.CreateInstance) },
+        onMoveInstanceRequest = { viewModel.onTransportActionSelected(GoalActionType.MoveInstance) },
+        onCopyGoalRequest = { viewModel.onTransportActionSelected(GoalActionType.CopyGoal) }
+    )
+    // --- КІНЕЦЬ ЗМІН ---
+
     if (showRecentListsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.onDismissRecentLists() }
-        ) {
+        ModalBottomSheet(onDismissRequest = { viewModel.onDismissRecentLists() }) {
             Column(
                 modifier = Modifier
                     .navigationBarsPadding()
@@ -305,7 +295,6 @@ fun GoalDetailScreen(
             }
         }
     }
-    // --- КІНЕЦЬ ЗМІН ---
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -386,13 +375,11 @@ fun GoalDetailScreen(
             }
         },
     ) { paddingValues ->
-        // Використовуємо Column як головний контейнер для екрану
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // 1. Секція додатків - окремий, незалежний компонент
             AttachmentsSection(
                 attachments = attachmentItems,
                 isExpanded = list?.isAttachmentsExpanded == true,
@@ -401,10 +388,11 @@ fun GoalDetailScreen(
                 onItemClick = { viewModel.onItemClick(it) },
             )
 
-            // 2. LazyColumn для елементів, що прокручуються та перетягуються
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxWidth().weight(1f) // Займає весь доступний простір
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
                 itemsIndexed(
                     items = draggableItems,
@@ -435,17 +423,13 @@ fun GoalDetailScreen(
                         onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                         onDelete = { viewModel.deleteItem(content) },
                         onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                        onCreateInstanceRequest = {
-                            viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content)
-                        },
-                        onMoveInstanceRequest = {
-                            viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content)
-                        },
-                        onCopyGoalRequest = {
-                            viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content)
-                        },
+                        onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
+                        onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
+                        onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
                         modifier = Modifier,
-                        onGoalTransportRequest = { viewModel.onGoalActionInitiated(content) },
+                        // --- ПОЧАТОК ЗМІН ---
+                        onGoalTransportRequest = { viewModel.onGoalTransportInitiated(content) },
+                        // --- КІНЕЦЬ ЗМІН ---
                         onCopyContentRequest = {
                             viewModel.copyContentRequest(content)
                         }
@@ -528,7 +512,6 @@ fun rememberSimpleDragDropState(
     }
 }
 
-
 @Composable
 fun NoteItemRow(
     noteContent: ListItemContent.NoteItem,
@@ -585,7 +568,6 @@ fun NoteItemRow(
     )
 }
 
-// LinkItemRow.kt
 @Composable
 fun LinkItemRow(
     linkContent: ListItemContent.LinkItem,
