@@ -26,8 +26,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
@@ -56,10 +54,8 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.ui.components.*
-import com.romankozak.forwardappmobile.ui.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
-import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddLinkDialog
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -83,12 +79,10 @@ fun GoalDetailScreen(
     val localContext = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
+    val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle() //
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
-    var showTransportMenu by remember { mutableStateOf(false) }
-    var selectedGoalForTransport by remember { mutableStateOf<ListItemContent?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
 
     // Створюємо єдиний список для рендерингу з правильними індексами
@@ -271,6 +265,19 @@ fun GoalDetailScreen(
 
     Log.d("AttachmentsSection", "[UI] Поточний стан isAttachmentsExpanded: ${list?.isAttachmentsExpanded}")
 
+    // --- ПОЧАТОК ЗМІН ---
+    // 1. Умовне відображення діалогу на основі стану з ViewModel
+    if (goalActionState is GoalActionDialogState.AwaitingActionChoice) { //
+        val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent //
+        GoalActionChoiceDialog(
+            itemContent = itemContent,
+            onDismiss = { viewModel.onDismissGoalActionDialogs() }, //
+            onActionSelected = { actionType ->
+                viewModel.onGoalActionSelected(actionType, itemContent) //
+            }
+        )
+    }
+    // --- КІНЕЦЬ ЗМІН ---
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -399,7 +406,7 @@ fun GoalDetailScreen(
                         backgroundColor = backgroundColor,
                         onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                         onDelete = { viewModel.deleteItem(content) },
-                        onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
+                        onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) }, //
                         onCreateInstanceRequest = {
                             viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content)
                         },
@@ -410,10 +417,10 @@ fun GoalDetailScreen(
                             viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content)
                         },
                         modifier = Modifier,
-                        onGoalTransportRequest = {
-                            selectedGoalForTransport = content
-                            showTransportMenu = true
-                        },
+                        // --- ПОЧАТОК ЗМІН ---
+                        // 2. Уніфікація обробників: обидві дії тепер викликають той самий метод ViewModel
+                        onGoalTransportRequest = { viewModel.onGoalActionInitiated(content) }, //
+                        // --- КІНЕЦЬ ЗМІН ---
                         onCopyContentRequest = {
                             viewModel.copyContentRequest(content)
                         }

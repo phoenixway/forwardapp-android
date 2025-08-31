@@ -1,5 +1,5 @@
 // --- File: com/romankozak/forwardappmobile/ui/components/SwipeConfiguration.kt ---
-package com.romankozak.forwardappmobile.ui.components
+package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
