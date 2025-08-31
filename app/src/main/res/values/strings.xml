@@ -123,6 +123,9 @@
     <string name="delete_list">deletelist</string>
     <string name="share_list">share_list</string>
     <string name="selected">selected</string>
+    <string name="display_name_optional">Назва (необов\'язково)</string>
+    <string name="add">Додати</string>
+    <string name="note_name">Назва нотатки</string>
 
 
 </resources>

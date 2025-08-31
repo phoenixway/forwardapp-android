@@ -13,7 +13,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,11 +20,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,11 +35,15 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.SublistItemRow
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.AdaptiveTopBar
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.ListTitleBar
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddObsidianLinkDialog
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddWebLinkDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
 import kotlinx.coroutines.delay
@@ -74,6 +75,25 @@ fun GoalDetailScreen(
     val showGoalTransportMenu by viewModel.showGoalTransportMenu.collectAsStateWithLifecycle()
 
     var menuExpanded by remember { mutableStateOf(false) }
+
+    if (uiState.showAddWebLinkDialog) {
+        AddWebLinkDialog(
+            onDismiss = { viewModel.onDismissLinkDialogs() },
+            onConfirm = { url, name ->
+                viewModel.onAddWebLinkConfirm(url, name)
+            }
+        )
+    }
+
+    if (uiState.showAddObsidianLinkDialog) {
+        AddObsidianLinkDialog(
+            onDismiss = { viewModel.onDismissLinkDialogs() },
+            onConfirm = { noteName ->
+                viewModel.onAddObsidianLinkConfirm(noteName)
+            }
+        )
+    }
+
 
     val displayList = remember(listContent, list?.isAttachmentsExpanded) {
         val attachmentItems = listContent.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
