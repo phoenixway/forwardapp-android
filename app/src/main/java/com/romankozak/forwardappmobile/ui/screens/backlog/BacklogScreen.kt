@@ -22,6 +22,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -62,6 +63,7 @@ import java.net.URLEncoder
 
 private const val TAG = "DND_DEBUG"
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalDetailScreen(
     navController: NavController,
@@ -79,7 +81,7 @@ fun GoalDetailScreen(
     val localContext = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle() //
+    val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
@@ -265,17 +267,43 @@ fun GoalDetailScreen(
 
     Log.d("AttachmentsSection", "[UI] Поточний стан isAttachmentsExpanded: ${list?.isAttachmentsExpanded}")
 
-    // --- ПОЧАТОК ЗМІН ---
-    // 1. Умовне відображення діалогу на основі стану з ViewModel
-    if (goalActionState is GoalActionDialogState.AwaitingActionChoice) { //
-        val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent //
+    if (goalActionState is GoalActionDialogState.AwaitingActionChoice) {
+        val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent
         GoalActionChoiceDialog(
             itemContent = itemContent,
-            onDismiss = { viewModel.onDismissGoalActionDialogs() }, //
+            onDismiss = { viewModel.onDismissGoalActionDialogs() },
             onActionSelected = { actionType ->
-                viewModel.onGoalActionSelected(actionType, itemContent) //
+                viewModel.onGoalActionSelected(actionType, itemContent)
             }
         )
+    }
+
+    // --- ПОЧАТОК ЗМІН ---
+    // Додано ModalBottomSheet для відображення недавніх списків
+    if (showRecentListsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.onDismissRecentLists() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.recent_lists),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                LazyColumn {
+                    items(recentLists, key = { it.id }) { list ->
+                        ListItem(
+                            headlineContent = { Text(list.name) },
+                            modifier = Modifier.clickable { viewModel.onRecentListSelected(list.id) }
+                        )
+                    }
+                }
+            }
+        }
     }
     // --- КІНЕЦЬ ЗМІН ---
 
@@ -406,7 +434,7 @@ fun GoalDetailScreen(
                         backgroundColor = backgroundColor,
                         onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                         onDelete = { viewModel.deleteItem(content) },
-                        onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) }, //
+                        onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
                         onCreateInstanceRequest = {
                             viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content)
                         },
@@ -417,10 +445,7 @@ fun GoalDetailScreen(
                             viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content)
                         },
                         modifier = Modifier,
-                        // --- ПОЧАТОК ЗМІН ---
-                        // 2. Уніфікація обробників: обидві дії тепер викликають той самий метод ViewModel
-                        onGoalTransportRequest = { viewModel.onGoalActionInitiated(content) }, //
-                        // --- КІНЕЦЬ ЗМІН ---
+                        onGoalTransportRequest = { viewModel.onGoalActionInitiated(content) },
                         onCopyContentRequest = {
                             viewModel.copyContentRequest(content)
                         }
