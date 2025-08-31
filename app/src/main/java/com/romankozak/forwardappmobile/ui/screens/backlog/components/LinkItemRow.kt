@@ -1,3 +1,4 @@
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/LinkItemRow.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.animation.animateColorAsState
@@ -31,9 +32,11 @@ fun LinkItemRow(
     isHighlighted: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onDelete: () -> Unit, // API для видалення
     modifier: Modifier = Modifier,
-    endAction: @Composable () -> Unit = {}, // MODIFIED: Replaced dragHandleModifier
+    endAction: @Composable () -> Unit = {},
 ) {
+    // Анімації взяті з вашої детальної версії
     val backgroundColor by animateColorAsState(
         targetValue = when {
             isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
@@ -56,72 +59,82 @@ fun LinkItemRow(
         label = "border_color_anim"
     )
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.elevatedCardElevation(elevation),
-        border = BorderStroke(2.dp, animatedBorderColor)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(onClick, onLongClick) {
-                        detectTapGestures(
-                            onPress = {
-                                isPressed = true
-                                tryAwaitRelease()
-                                isPressed = false
-                            },
-                            onLongPress = { onLongClick() },
-                            onTap = { onClick() }
-                        )
-                    }
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+    // Обгортка в SwipeableListItem для підтримки свайпу
+    SwipeableListItem(
+        isDragging = false,
+        isAnyItemDragging = false,
+        swipeEnabled = true,
+        isAnotherItemSwiped = false,
+        resetTrigger = 0,
+        onSwipeStart = { },
+        onDelete = onDelete,
+        onMoreActionsRequest = { },
+        onGoalTransportRequest = { },
+        onCopyContentRequest = { },
+        backgroundColor = backgroundColor,
+        content = {
+            // Вся візуальна частина (Card) вкладена сюди
+            Card(
+                modifier = modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = backgroundColor),
+                elevation = CardDefaults.elevatedCardElevation(elevation),
+                border = BorderStroke(2.dp, animatedBorderColor)
             ) {
-                Icon(
-                    imageVector = when (link.type) {
-                        LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
-                        LinkType.URL -> Icons.Default.Language
-                        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
-                        else -> Icons.Default.Link
-                    },
-                    contentDescription = "Link",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = link.displayName ?: link.target,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = when (link.type) {
-                            LinkType.GOAL_LIST -> "Посилання на список"
-                            LinkType.URL -> link.target
-                            LinkType.OBSIDIAN -> "Нотатка Obsidian"
-                            else -> "Посилання"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .pointerInput(onClick, onLongClick) {
+                                detectTapGestures(
+                                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
+                                    onLongPress = { onLongClick() },
+                                    onTap = { onClick() }
+                                )
+                            }
+                            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = when (link.type) {
+                                LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
+                                LinkType.URL -> Icons.Default.Language
+                                LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                                else -> Icons.Default.Link
+                            },
+                            contentDescription = "Link",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = link.displayName ?: link.target,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = when (link.type) {
+                                    LinkType.GOAL_LIST -> "Посилання на список"
+                                    LinkType.URL -> link.target
+                                    LinkType.OBSIDIAN -> "Нотатка Obsidian"
+                                    else -> "Посилання"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    endAction()
                 }
             }
-
-            // MODIFIED: Replaced the hardcoded drag handle with the flexible endAction slot
-            endAction()
         }
-    }
+    )
 }

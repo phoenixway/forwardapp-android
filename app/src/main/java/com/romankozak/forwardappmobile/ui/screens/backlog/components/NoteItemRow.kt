@@ -22,12 +22,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 /**
- * A unified, reusable Composable for displaying a note item.
- * It combines detailed UI animations with a flexible API.
+ * Об'єднаний компонент для відображення нотатки,
+ * що поєднує деталізований UI, анімації та свайп для видалення.
  */
 @Composable
 fun NoteItemRow(
@@ -36,13 +35,12 @@ fun NoteItemRow(
     isHighlighted: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onDelete: () -> Unit, // API для видалення
     modifier: Modifier = Modifier,
-    // The flexible endAction slot, as defined in the BacklogScreen structure,
-    // allows injecting any action (e.g., a drag handle) from the parent.
     endAction: @Composable () -> Unit = {},
     maxLines: Int = 3,
 ) {
-    // Background color animation supports selection and highlighting states.
+    // Анімації фону, рамки та тіні взяті з вашої детальної версії
     val background by animateColorAsState(
         targetValue = when {
             isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
@@ -53,7 +51,6 @@ fun NoteItemRow(
         label = "note_background_color"
     )
 
-    // Elevation animation on press for better user feedback.
     var isPressed by remember { mutableStateOf(false) }
     val elevation by animateDpAsState(
         targetValue = if (isPressed) 4.dp else 1.dp,
@@ -61,91 +58,100 @@ fun NoteItemRow(
         label = "elevation"
     )
 
-    // Border color animation provides a clear selection indicator.
     val animatedBorderColor by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
         animationSpec = tween(200),
         label = "border_color_anim"
     )
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .semantics {
-                val title = noteContent.note.title
-                val content = noteContent.note.content
-                contentDescription = if (!title.isNullOrBlank()) "Нотатка: $title" else "Нотатка: $content"
-            },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation),
-        border = BorderStroke(2.dp, animatedBorderColor)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    // Robust gesture detection for tap, long press, and press state.
-                    .pointerInput(onClick, onLongClick) {
-                        detectTapGestures(
-                            onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
-                            onLongPress = { onLongClick() },
-                            onTap = { onClick() }
-                        )
-                    }
-                    .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+    // Компонент обгорнутий в SwipeableListItem для підтримки свайпу
+    SwipeableListItem(
+        isDragging = false,
+        isAnyItemDragging = false,
+        swipeEnabled = true, // Свайп увімкнено
+        isAnotherItemSwiped = false,
+        resetTrigger = 0,
+        onSwipeStart = { },
+        onDelete = onDelete, // Передаємо дію видалення
+        onMoreActionsRequest = { },
+        onGoalTransportRequest = { },
+        onCopyContentRequest = { },
+        backgroundColor = background, // Використовуємо анімований фон
+        content = {
+            // Вся візуальна частина (Card) вкладена сюди
+            Card(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        val title = noteContent.note.title
+                        val content = noteContent.note.content
+                        contentDescription = if (!title.isNullOrBlank()) "Нотатка: $title" else "Нотатка: $content"
+                    },
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = background),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation),
+                border = BorderStroke(2.dp, animatedBorderColor)
             ) {
-                // Icon provides clear visual identification for the item type.
-                Icon(
-                    imageVector = Icons.Outlined.StickyNote2,
-                    contentDescription = "Нотатка",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // The main content area for the note's title and text.
-                Column(modifier = Modifier.weight(1f)) {
-                    val note = noteContent.note
-                    val hasTitle = !note.title.isNullOrBlank()
-                    val hasContent = note.content.isNotBlank()
-
-                    if (hasTitle) {
-                        Text(
-                            text = note.title!!,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .pointerInput(onClick, onLongClick) {
+                                detectTapGestures(
+                                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
+                                    onLongPress = { onLongClick() },
+                                    onTap = { onClick() }
+                                )
+                            }
+                            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.StickyNote2,
+                            contentDescription = "Нотатка",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
-                    }
 
-                    if (hasTitle && hasContent) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                    }
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                    if (hasContent) {
-                        Text(
-                            text = note.content.trim(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            // Expands to show full content when selected.
-                            maxLines = if (isSelected) Int.MAX_VALUE else maxLines,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            val note = noteContent.note
+                            val hasTitle = !note.title.isNullOrBlank()
+                            val hasContent = note.content.isNotBlank()
+
+                            if (hasTitle) {
+                                Text(
+                                    text = note.title!!,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            if (hasTitle && hasContent) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                            }
+
+                            if (hasContent) {
+                                Text(
+                                    text = note.content.trim(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = if (isSelected) Int.MAX_VALUE else maxLines,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
                     }
+                    endAction()
                 }
             }
-
-            // The endAction composable is placed here.
-            endAction()
         }
-    }
+    )
 }
