@@ -1,3 +1,4 @@
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt ---
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goaledit
@@ -9,39 +10,54 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.components.MarkdownText
-import com.romankozak.forwardappmobile.ui.components.formatDate
-import com.romankozak.forwardappmobile.ui.screens.goaldetail.ListChooserDialog
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
+import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
+import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
+import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
+import com.romankozak.forwardappmobile.ui.utils.formatDate
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-// --- Визначення шкал для UI ---
+
 private object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
     val importance = (1..12).map { it.toFloat() }
     val impact = listOf(1f, 2f, 3f, 5f, 8f, 13f)
     val cost = (0..5).map { it.toFloat() }
     val risk = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
-    val weights = (0..20).map { it * 0.1f } // Лінійна 0.0 -> 2.0 з кроком 0.1
-
-    // --- ДОДАНО: Текстові мітки для шкали вартості ---
+    val weights = (0..20).map { it * 0.1f }
     val costLabels = listOf("немає", "дуже низькі", "низькі", "середні", "високі", "дуже високі")
 }
 
@@ -50,24 +66,95 @@ fun GoalEditScreen(
     navController: NavController,
     viewModel: GoalEditViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val listHierarchy by viewModel.listHierarchy.collectAsState()
+    // --- Основні стани та контекст ---
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) {
+    // --- Обробка навігаційних подій від ViewModel ---
+    LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
             when (event) {
+                // ЗМІНЕНО: Поведінка NavigateBack трохи змінилася
                 is GoalEditEvent.NavigateBack -> {
                     event.message?.let {
                         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                     }
+                    // Повідомляємо попередній екран, що потрібно оновити дані
+                    // через SavedStateHandle, це більш надійно
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("refresh_needed", true)
                     navController.popBackStack()
+                }
+                is GoalEditEvent.Navigate -> {
+                    navController.navigate(event.route)
                 }
             }
         }
     }
 
+    // Отримання результату від екрана вибору списку (list_chooser_screen)
+    val navBackStackEntry = navController.currentBackStackEntry
+    LaunchedEffect(navBackStackEntry) {
+        // Ми використовуємо observeAsState, щоб реагувати на зміни
+        val resultFlow = navBackStackEntry?.savedStateHandle
+            ?.getLiveData<String>("list_chooser_result")
+
+        resultFlow?.observe(navBackStackEntry) { result ->
+            if (result != null) {
+                // Як тільки результат отримано, викликаємо ViewModel
+                viewModel.onListChooserResult(result)
+                // І одразу ж очищуємо його, щоб уникнути повторної обробки
+                // при зміні конфігурації (напр. поворот екрана)
+                navBackStackEntry.savedStateHandle.remove<String>("list_chooser_result")
+            }
+        }
+    }
+
+
+/*    // --- Отримання результату від екрана вибору списку ---
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            // Перевіряємо, чи повернувся ID обраного списку
+            val selectedListId = resultViewModel.consumeResult<String>("selectedListId")
+            if (selectedListId != null) {
+                viewModel.onListChooserResult(selectedListId)
+            }
+        }
+    }*/
+
+
+    // --- Логіка для підказок контекстів (@...) ---
+    val allContexts by viewModel.allContextNames.collectAsStateWithLifecycle()
+    var showSuggestions by remember { mutableStateOf(false) }
+    var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    fun getCurrentWord(textValue: TextFieldValue): String? {
+        val cursorPosition = textValue.selection.start
+        if (cursorPosition == 0) return null
+        val textUpToCursor = textValue.text.substring(0, cursorPosition)
+        val lastSpaceIndex = textUpToCursor.lastIndexOf(' ')
+        val startIndex = if (lastSpaceIndex == -1) 0 else lastSpaceIndex + 1
+        val currentWord = textUpToCursor.substring(startIndex)
+        return currentWord.takeIf { it.startsWith("@") }
+    }
+
+    LaunchedEffect(uiState.goalText) {
+        val currentWord = getCurrentWord(uiState.goalText)
+        if (currentWord != null && currentWord.length > 1) {
+            val query = currentWord.substring(1)
+            filteredContexts = allContexts.filter { it.startsWith(query, ignoreCase = true) }
+            showSuggestions = filteredContexts.isNotEmpty()
+        } else {
+            showSuggestions = false
+        }
+    }
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .navigationBarsPadding()
+            .imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text(if (uiState.isNewGoal) "Нова ціль" else "Редагувати ціль") },
@@ -79,7 +166,7 @@ fun GoalEditScreen(
                 actions = {
                     Button(
                         onClick = { viewModel.onSave() },
-                        enabled = uiState.isReady && uiState.goalText.isNotBlank(),
+                        enabled = uiState.isReady && uiState.goalText.text.isNotBlank(),
                     ) {
                         Text("Зберегти")
                     }
@@ -98,95 +185,73 @@ fun GoalEditScreen(
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                item { Spacer(Modifier.height(8.dp)) }
+                item { Spacer(Modifier.height(4.dp)) }
 
                 item {
-                    OutlinedTextField(
-                        value = uiState.goalText,
-                        onValueChange = viewModel::onTextChange,
-                        label = { Text("Назва цілі") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    Column {
+                        OutlinedTextField(
+                            value = uiState.goalText,
+                            onValueChange = viewModel::onTextChange,
+                            label = { Text("Назва цілі") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        SuggestionChipsRow(
+                            visible = showSuggestions,
+                            contexts = filteredContexts,
+                            onContextClick = { context ->
+                                val currentText = uiState.goalText.text
+                                val cursorPosition = uiState.goalText.selection.start
+
+                                val wordStart = currentText.substring(0, cursorPosition)
+                                    .lastIndexOf(' ')
+                                    .let { if (it == -1) 0 else it + 1 }
+                                    .takeIf { currentText.substring(it, cursorPosition).startsWith("@") }
+                                    ?: -1
+
+                                if (wordStart != -1) {
+                                    val textBefore = currentText.substring(0, wordStart)
+                                    val textAfter = currentText.substring(cursorPosition)
+                                    val newText = "$textBefore@$context $textAfter"
+                                    val newCursorPosition = textBefore.length + 1 + context.length + 1
+
+                                    viewModel.onTextChange(
+                                        TextFieldValue(
+                                            text = newText,
+                                            selection = TextRange(newCursorPosition),
+                                        ),
+                                    )
+                                }
+                                showSuggestions = false
+                            },
+                        )
+                    }
                 }
 
                 item {
-                    OutlinedTextField(
+                    LimitedMarkdownEditor(
                         value = uiState.goalDescription,
                         onValueChange = viewModel::onDescriptionChange,
-                        label = { Text("Опис (підтримує Markdown)") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp),
+                        maxHeight = 150.dp,
+                        onExpandClick = { viewModel.openDescriptionEditor() },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
-                if (uiState.goalDescription.isNotBlank()) {
-                    item {
-                        Column {
-                            Text(
-                                "Попередній перегляд опису:",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                            ) {
-                                MarkdownText(
-                                    text = uiState.goalDescription,
-                                    modifier = Modifier.padding(16.dp),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                            }
-                        }
-                    }
+                item {
+                    RelatedLinksSection(
+                        relatedLinks = uiState.relatedLinks,
+                        onRemoveLink = viewModel::onRemoveLinkAssociation,
+                        onAddLink = viewModel::onAddLinkRequest,
+                        onAddWebLink = viewModel::onAddWebLinkRequest,
+                        onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+                    )
                 }
 
                 item {
-                    Text("Пов'язані списки:", style = MaterialTheme.typography.titleMedium)
-                }
-
-                item {
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        uiState.associatedLists.forEach { list ->
-                            InputChip(
-                                selected = false,
-                                onClick = { /* Do nothing */ },
-                                label = { Text(list.name) },
-                                trailingIcon = {
-                                    if (uiState.associatedLists.size > 1) {
-                                        Icon(
-                                            Icons.Default.Cancel,
-                                            contentDescription = "Видалити зі списку",
-                                            modifier = Modifier
-                                                .size(InputChipDefaults.IconSize)
-                                                .clickable { viewModel.onRemoveListAssociation(list.id) },
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    OutlinedButton(
-                        onClick = { viewModel.onShowListChooser() },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Додати пов'язаний список")
-                    }
-                }
-
-                item {
-                    EvaluationSection(uiState = uiState, viewModel = viewModel)
+                    EvaluationSection(uiState = uiState, onViewModelAction = viewModel)
                 }
 
                 item {
@@ -195,7 +260,7 @@ fun GoalEditScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 16.dp, bottom = 8.dp),
+                                .padding(top = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
@@ -204,7 +269,7 @@ fun GoalEditScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             val updatedAt = uiState.updatedAt
-                            if (updatedAt != null && updatedAt > createdAt + 1000) {
+                            if (updatedAt != null && (updatedAt > createdAt + 1000)) {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = "Оновлено: ${formatDate(updatedAt)}",
@@ -219,18 +284,278 @@ fun GoalEditScreen(
         }
     }
 
-    if (uiState.showListChooser) {
-        ListChooserDialog(
-            topLevelLists = listHierarchy.topLevelLists,
-            childMap = listHierarchy.childMap,
-            onDismiss = { viewModel.onDismissListChooser() },
-            onConfirm = { listId -> viewModel.onAddListAssociation(listId) },
+    if (uiState.isDescriptionEditorOpen) {
+        FullScreenMarkdownEditor(
+            initialValue = uiState.goalDescription,
+            onDismiss = { viewModel.closeDescriptionEditor() },
+            onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) },
         )
     }
 }
 
 @Composable
-private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewModel) {
+private fun RelatedLinksSection(
+    relatedLinks: List<RelatedLink>,
+    onRemoveLink: (String) -> Unit,
+    onAddLink: () -> Unit,
+    onAddWebLink: () -> Unit,
+    onAddObsidianLink: () -> Unit,
+) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Пов'язані посилання", style = MaterialTheme.typography.titleMedium)
+
+                if (relatedLinks.isNotEmpty()) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    ) {
+                        Text(
+                            text = relatedLinks.size.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            if (relatedLinks.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(relatedLinks) { link ->
+                        LinkItem(
+                            link = link,
+                            onRemove = { onRemoveLink(link.target) },
+                            onClick = { /* TODO: Navigate based on link type */ }
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Ціль ще не має пов'язаних посилань",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            AddLinksButtons(
+                onAddListLink = onAddLink,
+                onAddWebLink = onAddWebLink,
+                onAddObsidianLink = onAddObsidianLink
+            )
+        }
+    }
+}
+
+@Composable
+private fun LinkItem(
+    link: RelatedLink,
+    onRemove: () -> Unit,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = when (link.type) {
+            LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+            LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        },
+        border = BorderStroke(
+            1.dp,
+            when (link.type) {
+                LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                else -> MaterialTheme.colorScheme.outline
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = when (link.type) {
+                        LinkType.GOAL_LIST -> Icons.Default.List
+                        LinkType.URL -> Icons.Default.Language
+                        LinkType.OBSIDIAN -> Icons.Default.Note
+                        else -> Icons.Default.Link
+                    },
+                    contentDescription = null,
+                    tint = when (link.type) {
+                        LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
+                        LinkType.URL -> MaterialTheme.colorScheme.secondary
+                        LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = link.displayName ?: link.target,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Text(
+                        text = when (link.type) {
+                            LinkType.GOAL_LIST -> "Список цілей"
+                            LinkType.URL -> "Веб-посилання"
+                            LinkType.OBSIDIAN -> "Obsidian нотатка"
+                            else -> "Посилання"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Видалити посилання",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddLinksButtons(
+    onAddListLink: () -> Unit,
+    onAddWebLink: () -> Unit,
+    onAddObsidianLink: () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (isExpanded) {
+            OutlinedButton(
+                onClick = onAddListLink,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.List,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати список цілей")
+            }
+
+            OutlinedButton(
+                onClick = onAddWebLink,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Language,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати веб-посилання")
+            }
+
+            OutlinedButton(
+                onClick = onAddObsidianLink,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Note,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати Obsidian нотатку")
+            }
+
+            TextButton(
+                onClick = { isExpanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.ExpandLess, contentDescription = null)
+                Spacer(Modifier.width(4.dp))
+                Text("Згорнути")
+            }
+        } else {
+            OutlinedButton(
+                onClick = { isExpanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text("Додати посилання")
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun EvaluationSection(uiState: GoalEditUiState, onViewModelAction: GoalEditViewModel) {
     var isExpanded by remember { mutableStateOf(false) }
 
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
@@ -243,10 +568,7 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(
-                    "Оцінка цілі",
-                    style = MaterialTheme.typography.titleLarge,
-                )
+                Text("Оцінка", style = MaterialTheme.typography.titleLarge)
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
@@ -254,41 +576,87 @@ private fun EvaluationSection(uiState: GoalEditUiState, viewModel: GoalEditViewM
             }
 
             AnimatedVisibility(visible = isExpanded) {
-                Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                    val rawScore = uiState.rawScore
-                    val balanceText = "Баланс: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
-                    val balanceColor = when {
-                        rawScore > 0.2 -> Color(0xFF2E7D32) // Strong Green
-                        rawScore > -0.2 -> LocalContentColor.current
-                        else -> Color(0xFFC62828) // Strong Red
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    Column(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        ScoringStatusSelector(
+                            selectedStatus = uiState.scoringStatus,
+                            onStatusSelected = onViewModelAction::onScoringStatusChange,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+
+                        if (uiState.scoringStatus == ScoringStatus.ASSESSED) {
+                            val rawScore = uiState.rawScore
+                            val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
+                            val balanceColor = when {
+                                rawScore > 0.2 -> Color(0xFF2E7D32) // Strong Green
+                                rawScore > -0.2 -> LocalContentColor.current
+                                else -> Color(0xFFC62828) // Strong Red
+                            }
+                            Text(
+                                text = balanceText,
+                                color = balanceColor,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
+
+                        EvaluationTabs(
+                            uiState = uiState,
+                            onViewModelAction = onViewModelAction,
+                            isEnabled = uiState.isScoringEnabled,
+                        )
                     }
-                    Text(
-                        text = balanceText,
-                        color = balanceColor,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    )
-                    EvaluationTabs(uiState, viewModel)
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewModel) {
-    val tabTitles = listOf("Користь", "Витрати", "Ваги")
+private fun ScoringStatusSelector(
+    selectedStatus: ScoringStatus,
+    onStatusSelected: (ScoringStatus) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val statuses = ScoringStatus.entries.toTypedArray()
+    val labels = mapOf(
+        ScoringStatus.NOT_ASSESSED to "Unset",
+        ScoringStatus.ASSESSED to "Set",
+        ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible",
+    )
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+        statuses.forEachIndexed { index, status ->
+            SegmentedButton(
+                selected = selectedStatus == status,
+                onClick = { onStatusSelected(status) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = statuses.size),
+            ) {
+                Text(labels[status] ?: "")
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvaluationTabs(
+    uiState: GoalEditUiState,
+    onViewModelAction: GoalEditViewModel,
+    isEnabled: Boolean,
+) {
+    val tabTitles = listOf("Gain", "Loss", "Weights")
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
-    Column {
-        TabRow(
-            selectedTabIndex = pagerState.currentPage,
-        ) {
+    Column(modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f)) {
+        TabRow(selectedTabIndex = pagerState.currentPage) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
+                    enabled = isEnabled,
                     selected = pagerState.currentPage == index,
                     onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                     text = { Text(title) },
@@ -298,68 +666,75 @@ private fun EvaluationTabs(uiState: GoalEditUiState, viewModel: GoalEditViewMode
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            userScrollEnabled = isEnabled,
         ) { page ->
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (page) {
-                    0 -> { // Користь
+                    0 -> { // Gain
                         ParameterSlider(
-                            label = "Важливість цінності",
+                            label = "Value importance",
                             value = uiState.valueImportance,
-                            onValueChange = viewModel::onValueImportanceChange,
-                            scale = Scales.importance
+                            onValueChange = onViewModelAction::onValueImportanceChange,
+                            scale = Scales.importance,
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
-                            label = "Вплив на цінність",
+                            label = "Value gain impact",
                             value = uiState.valueImpact,
-                            onValueChange = viewModel::onValueImpactChange,
-                            scale = Scales.impact
+                            onValueChange = onViewModelAction::onValueImpactChange,
+                            scale = Scales.impact,
+                            enabled = isEnabled,
                         )
                     }
-                    1 -> { // Витрати
+                    1 -> { // Loss
                         ParameterSlider(
-                            label = "Зусилля",
+                            label = "Efforts",
                             value = uiState.effort,
-                            onValueChange = viewModel::onEffortChange,
-                            scale = Scales.effort
+                            onValueChange = onViewModelAction::onEffortChange,
+                            scale = Scales.effort,
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
-                            label = "Вартість",
+                            label = "Costs",
                             value = uiState.cost,
-                            onValueChange = viewModel::onCostChange,
+                            onValueChange = onViewModelAction::onCostChange,
                             scale = Scales.cost,
-                            valueLabels = Scales.costLabels // Передаємо текстові мітки
+                            valueLabels = Scales.costLabels,
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
-                            label = "Ризик",
+                            label = "Risk",
                             value = uiState.risk,
-                            onValueChange = viewModel::onRiskChange,
-                            scale = Scales.risk
+                            onValueChange = onViewModelAction::onRiskChange,
+                            scale = Scales.risk,
+                            enabled = isEnabled,
                         )
                     }
-                    2 -> { // Ваги
+                    2 -> { // Weights
                         ParameterSlider(
-                            label = "Вага зусиль",
+                            label = "Efforts weight",
                             value = uiState.weightEffort,
-                            onValueChange = viewModel::onWeightEffortChange,
-                            scale = Scales.weights
+                            onValueChange = onViewModelAction::onWeightEffortChange,
+                            scale = Scales.weights,
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
-                            label = "Вага вартості",
+                            label = "Costs weight",
                             value = uiState.weightCost,
-                            onValueChange = viewModel::onWeightCostChange,
-                            scale = Scales.weights
+                            onValueChange = onViewModelAction::onWeightCostChange,
+                            scale = Scales.weights,
+                            enabled = isEnabled,
                         )
                         ParameterSlider(
-                            label = "Вага ризику",
+                            label = "Risk weight",
                             value = uiState.weightRisk,
-                            onValueChange = viewModel::onWeightRiskChange,
-                            scale = Scales.weights
+                            onValueChange = onViewModelAction::onWeightRiskChange,
+                            scale = Scales.weights,
+                            enabled = isEnabled,
                         )
                     }
                 }
@@ -374,10 +749,10 @@ private fun ParameterSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     scale: List<Float>,
-    valueLabels: List<String>? = null // Новий необов'язковий параметр
+    enabled: Boolean,
+    valueLabels: List<String>? = null,
 ) {
     val currentIndex = scale.indexOf(value).coerceAtLeast(0)
-
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -385,14 +760,11 @@ private fun ParameterSlider(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
-
-            // --- ОНОВЛЕНО: Логіка відображення тексту ---
             val displayText = when {
                 valueLabels != null -> valueLabels.getOrElse(currentIndex) { value.toString() }
                 scale == Scales.weights -> "x${"%.1f".format(value)}"
                 else -> value.toInt().toString()
             }
-
             Text(
                 text = displayText,
                 style = MaterialTheme.typography.bodyLarge,
@@ -401,13 +773,14 @@ private fun ParameterSlider(
             )
         }
         Slider(
+            enabled = enabled,
             value = currentIndex.toFloat(),
             onValueChange = { newIndex ->
                 val roundedIndex = newIndex.roundToInt().coerceIn(0, scale.lastIndex)
                 onValueChange(scale[roundedIndex])
             },
             valueRange = 0f..scale.lastIndex.toFloat(),
-            steps = (scale.size - 2).coerceAtLeast(0)
+            steps = (scale.size - 2).coerceAtLeast(0),
         )
     }
 }
