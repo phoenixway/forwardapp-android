@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -25,24 +26,28 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Note
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -105,21 +110,6 @@ fun GoalDetailScreen(
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
         onMove = { fromIndex, toIndex ->
-/*            val attachmentCount = if (list?.isAttachmentsExpanded == true) {
-                listContent.count { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
-            } else 0
-
-            val adjustedFromIndex = if (list?.isAttachmentsExpanded == true) fromIndex - attachmentCount else fromIndex
-            val adjustedToIndex = if (list?.isAttachmentsExpanded == true) toIndex - attachmentCount else toIndex
-
-            val draggableCount = listContent.count { it !is ListItemContent.NoteItem && it !is ListItemContent.LinkItem }
-            if (adjustedFromIndex >= 0 && adjustedFromIndex < draggableCount &&
-                adjustedToIndex >= 0 && adjustedToIndex < draggableCount) {
-                viewModel.moveItem(adjustedFromIndex, adjustedToIndex)
-            }*/
-            // Індекси, що надходять від dragDropState, вже є правильними,
-            // оскільки LazyColumn працює лише зі списком draggableItems.
-            // Жодних додаткових коригувань не потрібно.
             viewModel.moveItem(fromIndex, toIndex)
         }
     )
@@ -128,12 +118,7 @@ fun GoalDetailScreen(
         displayList.find { it.item.id == id }
     }
 
-    // ВИДАЛІТЬ ПОПЕРЕДНІЙ LaunchedEffect(Unit) зі snapshotFlow
-
-    // ДОДАЙТЕ НОВИЙ LaunchedEffect, ЯКИЙ ВИКОРИСТОВУЄ ЦЮ ЗМІННУ ЯК КЛЮЧ
     LaunchedEffect(newItemInList) {
-        // Цей код виконається, коли `newItemInList` зміниться з null на об'єкт.
-        // Це і є той самий момент, коли UI оновився і готовий до прокрутки.
         if (newItemInList != null) {
             listState.animateScrollToItem(0)
             viewModel.onScrolledToNewItem()
@@ -238,24 +223,6 @@ fun GoalDetailScreen(
         viewModel.onHighlightShown()
     }
 
-/*    // --- ПОЧАТОК ЗМІН ---
-    // КЛЮЧОВЕ ВИПРАВЛЕННЯ:
-    // Цей ефект тепер спрацьовує, коли оновлюється сам `displayList`.
-    // Це гарантує, що на момент перевірки новий елемент вже є у списку.
-    LaunchedEffect(displayList) {
-        // Ми беремо актуальне значення `newlyAddedItemId` прямо з `uiState`.
-        val newItemId = uiState.newlyAddedItemId
-
-        // Перевіряємо, чи є ID для прокрутки, і чи дійсно елемент з таким ID
-        // вже присутній у поточній версії списку.
-        if (newItemId != null && displayList.any { it.item.id == newItemId }) {
-            // Якщо так - прокручуємо наверх і скидаємо ID, щоб не робити це знову.
-            listState.animateScrollToItem(0)
-            viewModel.onScrolledToNewItem()
-        }
-    }
-    // --- КІНЕЦЬ ЗМІН ---*/
-
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
     }
@@ -322,58 +289,64 @@ fun GoalDetailScreen(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding(),
         topBar = {
-            if (isSelectionModeActive) {
-                MultiSelectTopAppBar(
-                    selectedCount = uiState.selectedItemIds.size,
-                    areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                    onClearSelection = { viewModel.clearSelection() },
-                    onSelectAll = { viewModel.selectAllItems() },
-                    onDelete = { viewModel.deleteSelectedItems() },
-                    onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
-                    onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 3.dp,
+                shadowElevation = 4.dp, // додає глибину
+                shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+
+            ) {
+            Column(
+                modifier = Modifier.background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
+                            MaterialTheme.colorScheme.background
+                        ),
+                        startY = 0f,
+                        endY = 300f
+                    )
+                ),
+                //verticalArrangement = Arrangement.spacedBy(8.dp) // відстань між панелями
+
+            )  {
+                // Окрема панель для назви списку - тепер зверху
+                ListTitleBar(
+                    title = list?.name ?: stringResource(R.string.loading)
                 )
-            } else {
-                TopAppBar(
-                    title = { Text(list?.name ?: stringResource(R.string.loading)) },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back_button_description))
-                        }
+
+                BrowserNavigationBar(
+                    canGoBack = navController.previousBackStackEntry != null,
+                    onBackClick = { navController.popBackStack() },
+                    onForwardClick = { /* TODO: implement forward navigation */ },
+                    onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                    isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
+                    onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                    onEditList = {
+                        menuExpanded = false
+                        navController.navigate("edit_list_screen/${list?.id}")
                     },
-                    actions = {
-                        list?.let {
-                            IconButton(onClick = { viewModel.toggleAttachmentsVisibility() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Attachment,
-                                    contentDescription = "Додатки",
-                                    tint = if (it.isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        IconButton(onClick = { viewModel.onRevealInExplorer(list?.id ?: "") }) {
-                            Icon(
-                                imageVector = Icons.Default.LocationSearching,
-                                contentDescription = stringResource(R.string.reveal_in_backlogs),
-                            )
-                        }
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Меню")
-                        }
-                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Властивості") },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Властивості") },
-                                onClick = {
-                                    menuExpanded = false
-                                    navController.navigate("edit_list_screen/${list?.id}")
-                                }
-                            )
-                        }
-                    },
+                    menuExpanded = menuExpanded,
+                    onMenuExpandedChange = { menuExpanded = it },
                 )
-            }
+
+                // Панель для режиму вибору
+                if (isSelectionModeActive) {
+                    MultiSelectTopAppBar(
+                        selectedCount = uiState.selectedItemIds.size,
+                        areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                        onClearSelection = { viewModel.clearSelection() },
+                        onSelectAll = { viewModel.selectAllItems() },
+                        onDelete = { viewModel.deleteSelectedItems() },
+                        onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
+                        onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
+                    )
+                }
+            }}
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -515,6 +488,122 @@ fun GoalDetailScreen(
         }
     }
 }
+
+/**
+ * Окрема, тонка панель для відображення назви списку.
+ */
+@Composable
+private fun ListTitleBar(
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.Transparent // 👈 ЗМІНА ТУТ
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+
+@Composable
+private fun BrowserNavigationBar(
+    canGoBack: Boolean,
+    onBackClick: () -> Unit,
+    onForwardClick: () -> Unit,
+    onHomeClick: () -> Unit,
+    isAttachmentsExpanded: Boolean,
+    onToggleAttachments: () -> Unit,
+    onEditList: () -> Unit,
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.Transparent, // 👈 ЗМІНА ТУТ
+        tonalElevation = 0.dp // 👈 ЗМІНА ТУТ
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Back button
+            IconButton(onClick = onBackClick, enabled = canGoBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back)
+                )
+            }
+            // Forward button (placeholder)
+            IconButton(onClick = onForwardClick, enabled = false) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = stringResource(R.string.forward)
+                )
+            }
+            // Home button (Reveal in explorer)
+            IconButton(onClick = onHomeClick) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = stringResource(R.string.go_to_home_list)
+                )
+            }
+
+            // Spacer to push items to the right
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Attachments toggle
+            val attachmentIconColor by animateColorAsState(
+                targetValue = if (isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                label = "attachmentIconColor"
+            )
+            IconButton(onClick = onToggleAttachments) {
+                Icon(
+                    imageVector = Icons.Default.Attachment,
+                    contentDescription = stringResource(R.string.toggle_attachments),
+                    tint = attachmentIconColor
+                )
+            }
+
+            // More options menu
+            Box {
+                IconButton(onClick = { onMenuExpandedChange(true) }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.more_options)
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { onMenuExpandedChange(false) }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.edit_list)) },
+                        onClick = {
+                            onEditList()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 // ... (решта коду без змін)
 private fun handleRelatedLinkClick(

@@ -115,6 +115,11 @@
     <string name="link_content_description">Нотатки..</string>
     <string name="empty_note_preview">пуста нотатка</string>
     <string name="note_content_placeholder">тест</string>
+    <string name="forward">Forward</string>
+    <string name="toggle_attachments">toggle_attachments</string>
+    <string name="more_options">more_options</string>
+    <string name="edit_list">Properties</string>
+    <string name="go_to_home_list">go_to_home_list</string>
 
 
 </resources>
