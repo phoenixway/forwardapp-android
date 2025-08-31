@@ -1,23 +1,26 @@
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/database/AppDatabase.kt ---
 package com.romankozak.forwardappmobile.data.database
 
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
-import androidx.room.RenameColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import androidx.room.migration.AutoMigrationSpec
-import com.romankozak.forwardappmobile.data.database.models.Converters
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.GoalInstance
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.GoalListDao
+import com.romankozak.forwardappmobile.data.dao.* // Імпортуємо всі DAO
+import com.romankozak.forwardappmobile.data.database.models.* // Імпортуємо всі моделі
 
 @Database(
-    entities = [Goal::class, GoalList::class, GoalInstance::class],
-    version = 10,
+    entities = [
+        Goal::class,
+        GoalList::class,
+        Note::class,
+        ListItem::class,
+        ActivityRecord::class,
+        RecentListEntry::class,
+        LinkItemEntity::class
+    ],
+    version = 17, // MODIFIED: Version incremented to 17
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -29,6 +32,12 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao
+    abstract fun noteDao(): NoteDao
+    abstract fun listItemDao(): ListItemDao
+    abstract fun activityRecordDao(): ActivityRecordDao
+    abstract fun recentListDao(): RecentListDao
+    abstract fun linkItemDao(): LinkItemDao
+
 
     companion object {
         @Volatile
@@ -41,8 +50,16 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "forward_app_database"
                 )
-                    // ДОДАНО: Підключаємо нашу ручну міграцію
-                    .addMigrations(MIGRATION_8_9)
+                    .addMigrations(
+                        MIGRATION_8_9,
+                        MIGRATION_10_11,
+                        MIGRATION_11_12,
+                        MIGRATION_12_13,
+                        MIGRATION_13_14,
+                        MIGRATION_14_15,
+                        MIGRATION_15_16,
+                        MIGRATION_16_17, // MODIFIED: Added the new migration
+                    )
                     .build()
                 INSTANCE = instance
                 instance

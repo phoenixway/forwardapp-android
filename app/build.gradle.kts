@@ -1,22 +1,20 @@
+import org.gradle.kotlin.dsl.implementation
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 // Файл: /app/build.gradle.kts
-
-val majorVersion = 2
-val minorVersion = 5
-val patchVersion = 0
-val buildNumber = 30
-
-fun calculateVersionCode(): Int {
-    return majorVersion * 1_000_000 + minorVersion * 1_000 + patchVersion
-}
-
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    // --- ДОДАНО: Плагіни для Hilt та Room ---
     alias(libs.plugins.ksp)
-    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt.android)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // Додайте цей рядок
 
+    //id("com.google.dagger.hilt.android")
+    //id("com.google.devtools.ksp")
+    kotlin("kapt")
 }
 
 android {
@@ -25,110 +23,162 @@ android {
 
     defaultConfig {
         applicationId = "com.romankozak.forwardappmobile"
-        minSdk = 28
+        minSdk = 29
         targetSdk = 36
-        versionCode = calculateVersionCode()
-        versionName = "$majorVersion.$minorVersion.$patchVersion"
+        versionCode = 12
+        versionName = "4.0-beta3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
+    /*    buildTypes {
+            release {
+                isMinifyEnabled = false
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+                )
+            }
+        }*/
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
-
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
-
     buildFeatures {
         compose = true
+    }
+    // --- ДОДАНО: Налаштування для KSP (потрібно для Room) ---
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
     }
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "META-INF/DEPENDENCIES"
-            excludes += "META-INF/LICENSE.txt"
-            excludes += "META-INF/NOTICE.txt"
-            excludes += "META-INF/NOTICE"
-            excludes += "META-INF/LICENSE"
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
         }
     }
-}
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore.jks")          // <- через =
+            storePassword = "defpass1"
+            keyAlias = "romanKeyAlias"
+            keyPassword = "defpass1"
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            // для дебажної версії змінюємо applicationId
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    splits {
+        abi {
+            isEnable = false // один APK для всіх архітектур
+        }
+    }
 }
 
 dependencies {
+    // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore.preferences)
+    //implementation(libs.androidx.foundation.desktop)
 
+    // Compose BOM - це має бути першим
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.material3)
+    // Основні Compose бібліотеки
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    // Compose Foundation та Animation
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.foundation.layout)
+    implementation(libs.compose.animation.core)
+    implementation(libs.compose.animation)
+
+    // Lifecycle для Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
+    // Navigation
     implementation(libs.androidx.navigation.compose)
 
+    // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // Hilt
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.navigation.compose)
+    kapt(libs.hilt.compiler)
+
+    // Ktor (Server & Client)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
+    // --- ВИПРАВЛЕНО: Додано Ktor CIO Server Engine, необхідний для WifiSyncServer.kt ---
+    implementation("io.ktor:ktor-server-cio-jvm:2.3.12")
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.gson)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
 
+    // Logging
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.slf4j.android)
+
+    // Other Libraries
     implementation(libs.google.gson)
+    implementation(libs.compose.dnd)
 
-    implementation("io.ktor:ktor-server-cio-jvm:2.3.11")
-    implementation("io.ktor:ktor-server-content-negotiation-jvm:2.3.11")
-
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
+    // Additional libraries
+    implementation(libs.accompanist.flowlayout)
+    implementation(libs.reorderable)
+    implementation("androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
 
-    // --- ВИПРАВЛЕНО: Правильне підключення бібліотеки ---
-    implementation(libs.compose.dnd)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    //implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+
+
+    // OkHttp (для налаштування тайм-аутів, опціонально, але рекомендовано)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Jetpack DataStore (якщо ще не додано, для збереження налаштувань)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
+
 }
-

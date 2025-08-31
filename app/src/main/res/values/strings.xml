@@ -1,3 +1,120 @@
 <resources>
-    <string name="app_name">ForwardApp Mobile</string>
+    <string name="app_name">ForwardApp</string>
+    <string name="recent_lists">Show recent lists</string>
+    <string name="swipe_to_change_mode">Swipe to change mode</string>
+    <string name="send">Send</string>
+
+    <string name="mode_add_goal">Add goal</string>
+    <string name="mode_add_note">Add note</string>
+
+    <string name="mode_search_in_list">Search in list</string>
+    <string name="mode_search_global">Global search</string>
+
+    <string name="hint_add_goal">Add your goal..</string>
+    <string name="hint_search_in_list">Find in this list…</string>
+    <string name="hint_search_global">Search through all goals…</string>
+    <string name="hint_add_note">Create note</string>
+    <string name="no_lists_created">Немає жодного списку. Створіть перший!</string>
+    <string name="new_top_level_list">Новий список верхнього рівня</string>
+    <string name="root_list_label">Корінь (верхній рівень)</string>
+    <string name="back">Назад</string>
+    <string name="create_new_sublist_title">Новий підсписок: \'%1$s\'</string>
+    <string name="create_new_list_title">Новий список</string>
+    <string name="search_lists">Пошук списків</string>
+    <string name="search_placeholder">Введіть назву списку…</string>
+    <string name="clear_search">Очистити</string>
+    <string name="show_nested_lists">Показувати вкладені списки</string>
+    <string name="enabled">Увімкнено</string>
+    <string name="disabled">Вимкнено</string>
+    <string name="found_lists">Знайдено: %1$d %2$s</string>
+    <string name="list_singular">список</string>
+    <string name="lists_plural">списків</string>
+    <string name="root_level">🏠 Корінь (верхній рівень)</string>
+    <string name="create_button">Створити</string>
+    <string name="expand">Розгорнути</string>
+    <string name="collapse">Згорнути</string>
+    <string name="add_sublist">Додати підсписок</string>
+
+    <!-- CreateListForm -->
+    <string name="creating_new_list">Створення нового списку</string>
+    <string name="new_list_name_label">Назва нового списку</string>
+    <string name="new_list_name_placeholder">Наприклад: Робочі завдання</string>
+    <string name="minimum_3_characters">Мінімум 3 символи</string>
+    <string name="character_counter">%1$d/50 символів</string>
+    <string name="cancel">Скасувати</string>
+    <string name="create">Створити</string>
+
+    <!-- Empty States -->
+    <string name="lists_not_found">Списки не знайдено</string>
+    <string name="no_lists">Немає списків</string>
+    <string name="try_change_search_criteria">Спробуйте змінити критерії пошуку</string>
+    <string name="create_first_list_hint">Створіть свій перший список натиснувши кнопку \'+\'</string>
+
+   <!-- Рядки для Markdown редактора -->
+    <string name="edit_description">Редагувати опис</string>
+    <string name="editor">Редактор</string>
+    <string name="preview">Перегляд</string>
+    <string name="toggle_to_preview_mode">Перейти в режим перегляду</string>
+    <string name="toggle_to_edit_mode">Перейти в режим редагування</string>
+    <string name="description_placeholder_with_markdown_hint">Введіть опис...\n\n**жирний**, *курсив*, - список, # заголовок</string>
+
+    <string name="more_actions_content_description">Більше дій</string>
+    <string name="add_link_to_list">+ посилання на список</string>
+    <string name="add_web_link">+ веб-посилання</string>
+    <string name="add_obsidian_link">+ посилання на Obsidian</string>
+
+    <string name="add_link_dialog_title">Додати веб-посилання</string>
+    <string name="add_obsidian_link_dialog_title">Додати посилання на нотатку</string>
+    <string name="url_placeholder">https://example.com</string>
+    <string name="obsidian_placeholder">Назва нотатки</string>
+    <string name="add_button">Додати</string>
+    <string name="loading">Завантаження...</string>
+    <string name="back_button_description">Назад</string>
+    <string name="reveal_in_backlogs">Показати у списках</string>
+    <string name="error_could_not_open_link">Не вдалося відкрити посилання</string>
+    <string name="error_obsidian_vault_not_set">Назва Obsidian Vault не вказана в налаштуваннях</string>
+    <string name="error_link_open_failed">Не вдалося відкрити посилання. Можливо, програма не встановлена.</string>
+    <string name="link_icon_description">Іконка посилання</string>
+    <string name="drag_handle_description">Перетягнути</string>
+    <string name="link_type_goal_list">Посилання на список</string>
+    <string name="link_type_obsidian_note">Нотатка Obsidian</string>
+    <string name="link_type_generic">Посилання</string>
+    <string name="dialog_placeholder_name_optional">Назва (необов\'язково)</string>
+    <string name="dialog_placeholder_note_name">Назва нотатки</string>
+    <string name="dialog_placeholder_name">Назва</string>
+    <string name="dialog_placeholder_address">Адреса</string>
+
+    <string name="attachments_header">Додатки</string>
+    <string name="delete_attachment_description">Видалити додаток</string>
+    <string name="add_attachment_description">Додати новий додаток</string>
+    <string name="add_attachment_button">Додати додаток</string>
+    <string name="attachment_type_note">Нотатку</string>
+    <string name="attachment_type_web_link">Веб-посилання</string>
+    <string name="attachment_type_obsidian">Посилання Obsidian</string>
+    <string name="attachment_type_list_link">Посилання на список</string>
+
+    <string name="no_attachments_message">Додатки відсутні.\nНатисніть +, щоб додати перший.</string>
+
+    <string name="goal_item_semantics">Goal: %1$s</string>
+    <string name="sublist_item_semantics">Another backlog as backlog item: %1$s</string>
+    <string name="sublist_item_icon_description">Іконка під-списку</string>
+
+
+    <string name="menu_search_in_list">Пошук в списку</string>
+    <string name="menu_search_everywhere">Шукати всюди</string>
+    <string name="menu_add_list_link">Attach link to backlog</string>
+    <string name="menu_add_web_link">Add web link</string>
+    <string name="menu_add_obsidian_link">Add Obsidian link</string>
+    <string name="menu_add_note">Add note</string>
+    <string name="menu_add_list_shortcut">Add link to another backlog</string>
+    <string name="menu_add_goal_component">Додати ціль</string>
+
+
+    <string name="note_content_description">Нотатки..</string>
+    <string name="note_without_title">Note</string>
+    <string name="link_content_description">Нотатки..</string>
+    <string name="empty_note_preview">пуста нотатка</string>
+    <string name="note_content_placeholder">тест</string>
+
+
 </resources>

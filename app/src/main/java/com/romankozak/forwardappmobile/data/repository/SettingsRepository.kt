@@ -1,10 +1,14 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/data/repository/SettingsRepository.kt
+
 package com.romankozak.forwardappmobile.data.repository
 
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -15,43 +19,180 @@ import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-// Кажемо Hilt, що цей клас має бути єдиним на весь додаток (Singleton)
 @Singleton
-// Кажемо Hilt, як створювати цей клас (за допомогою ін'єкції в конструктор)
 class SettingsRepository @Inject constructor(
-    // Кажемо Hilt, що сюди треба "вставити" контекст рівня додатку
     @ApplicationContext private val context: Context
 ) {
 
+    // --- Існуючі ключі ---
     private val desktopAddressKey = stringPreferencesKey("desktop_address")
     private val obsidianVaultNameKey = stringPreferencesKey("obsidian_vault_name")
+    private val showPlanningModesKey = booleanPreferencesKey("show_planning_modes")
+    private val dailyTagKey = stringPreferencesKey("daily_planning_tag")
+    private val mediumTagKey = stringPreferencesKey("medium_planning_tag")
+    private val longTagKey = stringPreferencesKey("long_planning_tag")
+
+    // --- Ключі для Ollama (ДОДАНО) ---
+    companion object {
+        val OLLAMA_URL_KEY = stringPreferencesKey("ollama_url")
+        val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
+        val OLLAMA_SMART_MODEL_KEY = stringPreferencesKey("ollama_smart_model")
+    }
+
+
+    object ContextKeys {
+        val BUY = stringPreferencesKey("context_tag_buy")
+        val PM = stringPreferencesKey("context_tag_pm")
+        val PAPER = stringPreferencesKey("context_tag_paper")
+        val MENTAL = stringPreferencesKey("context_tag_mental")
+        val PROVIDENCE = stringPreferencesKey("context_tag_providence")
+        val MANUAL = stringPreferencesKey("context_tag_manual")
+        val RESEARCH = stringPreferencesKey("context_tag_research")
+        val DEVICE = stringPreferencesKey("context_tag_device")
+        val MIDDLE = stringPreferencesKey("context_tag_middle")
+        val LONG = stringPreferencesKey("context_tag_long")
+
+        val EMOJI_BUY = stringPreferencesKey("context_emoji_buy")
+        val EMOJI_PM = stringPreferencesKey("context_emoji_pm")
+        val EMOJI_PAPER = stringPreferencesKey("context_emoji_paper")
+        val EMOJI_MENTAL = stringPreferencesKey("context_emoji_mental")
+        val EMOJI_PROVIDENCE = stringPreferencesKey("context_emoji_providence")
+        val EMOJI_MANUAL = stringPreferencesKey("context_emoji_manual")
+        val EMOJI_RESEARCH = stringPreferencesKey("context_emoji_research")
+        val EMOJI_DEVICE = stringPreferencesKey("context_emoji_device")
+        val EMOJI_MIDDLE = stringPreferencesKey("context_emoji_middle")
+        val EMOJI_LONG = stringPreferencesKey("context_emoji_long")
+
+        val CUSTOM_CONTEXT_NAMES = stringSetPreferencesKey("custom_context_names")
+    }
 
     val desktopAddressFlow: Flow<String> = context.dataStore.data
-        .map { preferences ->
-            preferences[desktopAddressKey] ?: ""
-        }
+        .map { preferences -> preferences[desktopAddressKey] ?: "" }
 
     suspend fun saveDesktopAddress(address: String) {
-        context.dataStore.edit { settings ->
-            settings[desktopAddressKey] = address
-        }
+        context.dataStore.edit { settings -> settings[desktopAddressKey] = address }
     }
 
     val obsidianVaultNameFlow: Flow<String> = context.dataStore.data
-        .map { preferences ->
-            preferences[obsidianVaultNameKey] ?: ""
-        }
+        .map { preferences -> preferences[obsidianVaultNameKey] ?: "" }
 
     suspend fun saveObsidianVaultName(name: String) {
+        context.dataStore.edit { settings -> settings[obsidianVaultNameKey] = name }
+    }
+
+    val showPlanningModesFlow: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[showPlanningModesKey] ?: false }
+
+    suspend fun saveShowPlanningModes(show: Boolean) {
+        context.dataStore.edit { settings -> settings[showPlanningModesKey] = show }
+    }
+
+    val dailyTagFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[dailyTagKey] ?: "daily" }
+
+    suspend fun saveDailyTag(tag: String) {
+        context.dataStore.edit { settings -> settings[dailyTagKey] = tag }
+    }
+
+    val mediumTagFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[mediumTagKey] ?: "medium" }
+
+    suspend fun saveMediumTag(tag: String) {
+        context.dataStore.edit { settings -> settings[mediumTagKey] = tag }
+    }
+
+    val longTagFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[longTagKey] ?: "long" }
+
+    suspend fun saveLongTag(tag: String) {
+        context.dataStore.edit { settings -> settings[longTagKey] = tag }
+    }
+
+    // --- Ollama Settings (ДОДАНО) ---
+
+    val ollamaUrlFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[OLLAMA_URL_KEY] ?: "http://10.0.2.2:11434" }
+
+    val ollamaFastModelFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[OLLAMA_FAST_MODEL_KEY] ?: "" }
+
+    val ollamaSmartModelFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[OLLAMA_SMART_MODEL_KEY] ?: "" }
+
+    suspend fun saveOllamaUrl(url: String) {
+        context.dataStore.edit { settings -> settings[OLLAMA_URL_KEY] = url }
+    }
+
+    suspend fun saveOllamaModels(fastModel: String, smartModel: String) {
         context.dataStore.edit { settings ->
-            settings[obsidianVaultNameKey] = name
+            settings[OLLAMA_FAST_MODEL_KEY] = fastModel
+            settings[OLLAMA_SMART_MODEL_KEY] = smartModel
         }
     }
 
-    // --- ДОДАНО SUSPEND-ФУНКЦІЮ ДЛЯ VIEWMODEL ---
-    // Ця функція одноразово отримує значення з Flow.
-    // Вона потрібна для ініціалізації у ViewModel.
-    suspend fun getObsidianVaultName(): String {
-        return obsidianVaultNameFlow.first()
+    // --- Reserved Contexts ---
+
+    fun getContextTagFlow(contextKey: Preferences.Key<String>): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            val contextName = contextKey.name.removePrefix("context_tag_")
+            val savedTag = preferences[contextKey]
+            if (savedTag.isNullOrBlank()) {
+                "${contextName}_context_tag"
+            } else {
+                savedTag
+            }
+        }
+    }
+
+    suspend fun saveContextTag(contextKey: Preferences.Key<String>, tag: String) {
+        context.dataStore.edit { settings -> settings[contextKey] = tag }
+    }
+
+    fun getContextEmojiFlow(emojiKey: Preferences.Key<String>): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[emojiKey] ?: ""
+        }
+    }
+
+    suspend fun saveContextEmoji(emojiKey: Preferences.Key<String>, emoji: String) {
+        context.dataStore.edit { settings -> settings[emojiKey] = emoji }
+    }
+
+    // --- Custom Contexts ---
+
+    val customContextNamesFlow: Flow<Set<String>> = context.dataStore.data
+        .map { preferences -> preferences[ContextKeys.CUSTOM_CONTEXT_NAMES] ?: emptySet() }
+
+    // ✨ ВИПРАВЛЕНО: Змінено 'private' на 'public' (за замовчуванням)
+    suspend fun saveCustomContextNames(names: Set<String>) {
+        context.dataStore.edit { settings -> settings[ContextKeys.CUSTOM_CONTEXT_NAMES] = names }
+    }
+
+    private fun customContextTagKey(name: String) = stringPreferencesKey("custom_context_tag_${name.lowercase()}")
+    private fun customContextEmojiKey(name: String) = stringPreferencesKey("custom_context_emoji_${name.lowercase()}")
+
+    fun getCustomContextTagFlow(name: String): Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[customContextTagKey(name)] ?: "" }
+
+    suspend fun saveCustomContextTag(name: String, tag: String) {
+        context.dataStore.edit { settings -> settings[customContextTagKey(name)] = tag }
+    }
+
+    fun getCustomContextEmojiFlow(name: String): Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[customContextEmojiKey(name)] ?: "" }
+
+    suspend fun saveCustomContextEmoji(name: String, emoji: String) {
+        context.dataStore.edit { settings -> settings[customContextEmojiKey(name)] = emoji }
+    }
+
+    suspend fun deleteCustomContext(name: String) {
+        val currentNames = customContextNamesFlow.first().toMutableSet()
+        if (currentNames.remove(name)) {
+            saveCustomContextNames(currentNames)
+        }
+        context.dataStore.edit { settings ->
+            settings.remove(customContextTagKey(name))
+            settings.remove(customContextEmojiKey(name))
+        }
     }
 }

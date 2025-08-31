@@ -1,0 +1,25 @@
+// File: app/src/main/java/com/romankozak/forwardappmobile/data/dao/RecentListDao.kt
+package com.romankozak.forwardappmobile.data.dao
+
+import androidx.room.Dao
+import androidx.room.Query
+import androidx.room.Upsert
+import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface RecentListDao {
+
+    @Upsert // Вставляє або оновлює, якщо запис вже існує.
+    suspend fun logAccess(entry: RecentListEntry)
+
+    // Отримуємо списки, об'єднуючи таблиці та сортуючи за часом доступу.
+    @Query("""
+        SELECT gl.* FROM goal_lists AS gl
+        INNER JOIN recent_list_entries AS rle ON gl.id = rle.list_id
+        ORDER BY rle.last_accessed DESC
+        LIMIT :limit
+    """)
+    fun getRecentLists(limit: Int): Flow<List<GoalList>>
+}

@@ -1,41 +1,37 @@
+// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditViewModel.kt ---
 package com.romankozak.forwardappmobile.ui.screens.goaledit
 
+import android.util.Log
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.GoalInstance
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 
 sealed class GoalEditEvent {
     data class NavigateBack(val message: String? = null) : GoalEditEvent()
+    data class Navigate(val route: String) : GoalEditEvent()
 }
 
 data class GoalEditUiState(
-    // Основні дані
-    val goalText: String = "",
-    val goalDescription: String = "",
-    val associatedLists: List<GoalList> = emptyList(),
-
-    // Стан UI
+    val goalText: TextFieldValue = TextFieldValue(""),
+    val goalDescription: TextFieldValue = TextFieldValue(""),
+    val relatedLinks: List<RelatedLink> = emptyList(),
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
-    val showListChooser: Boolean = false,
-
-    // Метадані
+    val isScoringEnabled: Boolean = true,
     val createdAt: Long? = null,
     val updatedAt: Long? = null,
-
-    // --- Поля для нової Системи Б ---
     val valueImportance: Float = 0f,
     val valueImpact: Float = 0f,
     val effort: Float = 0f,
@@ -44,15 +40,16 @@ data class GoalEditUiState(
     val weightEffort: Float = 1f,
     val weightCost: Float = 1f,
     val weightRisk: Float = 1f,
-
-    // --- Розраховані значення для UI ---
+    val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
+    val isDescriptionEditorOpen: Boolean = false
 )
 
 @HiltViewModel
 class GoalEditViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
+    private val contextHandler: ContextHandler,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -67,15 +64,17 @@ class GoalEditViewModel @Inject constructor(
 
     private var currentGoal: Goal? = null
 
-    val listHierarchy: StateFlow<ListHierarchyData> = goalRepository.getAllGoalListsFlow()
-        .map { allLists ->
-            val topLevel = allLists.filter { it.parentId == null }
-            val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            ListHierarchyData(allLists, topLevel, childMap)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+    val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
 
     init {
+        // --- ЗМІНА 1: Прибираємо прослуховування результату звідси ---
+        // viewModelScope.launch {
+        //     savedStateHandle.getStateFlow<String?>("selectedListId", null).collect { ... }
+        // }
+        // --- КІНЕЦЬ ЗМІНИ 1 ---
+
         viewModelScope.launch {
+            contextHandler.initialize()
             if (goalId != null) {
                 loadExistingGoal(goalId)
             } else {
@@ -84,18 +83,26 @@ class GoalEditViewModel @Inject constructor(
         }
     }
 
+    // --- ЗМІНА 2: Створюємо нову публічну функцію для обробки результату ---
+    fun onListChooserResult(listId: String) {
+        val TAG = "NavResultDebug"
+        Log.d(TAG, "[GoalEditViewModel] onListChooserResult: Екран повідомив про результат '$listId'")
+        Log.d(TAG, "[GoalEditViewModel] Current relatedLinks count: ${_uiState.value.relatedLinks.size}")
+        onAddListAssociation(listId)
+        Log.d(TAG, "[GoalEditViewModel] After processing - relatedLinks count: ${_uiState.value.relatedLinks.size}")
+
+    }
+    // --- КІНЕЦЬ ЗМІНИ 2 ---
+
     private suspend fun loadExistingGoal(goalId: String) {
         val goal = goalRepository.getGoalById(goalId)
         if (goal != null) {
             currentGoal = goal
-            val associatedIds = goal.associatedListIds ?: emptyList()
-            val lists = if (associatedIds.isNotEmpty()) goalRepository.getListsByIds(associatedIds) else emptyList()
-
             _uiState.update {
                 it.copy(
-                    goalText = goal.text,
-                    goalDescription = goal.description ?: "",
-                    associatedLists = lists,
+                    goalText = TextFieldValue(goal.text),
+                    goalDescription = TextFieldValue(goal.description ?: ""),
+                    relatedLinks = goal.relatedLinks ?: emptyList(),
                     isReady = true,
                     isNewGoal = false,
                     createdAt = goal.createdAt,
@@ -109,7 +116,9 @@ class GoalEditViewModel @Inject constructor(
                     weightCost = goal.weightCost,
                     weightRisk = goal.weightRisk,
                     rawScore = goal.rawScore,
-                    displayScore = goal.displayScore
+                    displayScore = goal.displayScore,
+                    scoringStatus = goal.scoringStatus,
+                    isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
                 )
             }
         } else {
@@ -119,131 +128,150 @@ class GoalEditViewModel @Inject constructor(
 
     private fun createNewGoal() {
         _uiState.update {
-            it.copy(isReady = true, isNewGoal = true)
+            it.copy(
+                isReady = true,
+                isNewGoal = true,
+                scoringStatus = ScoringStatus.NOT_ASSESSED,
+                isScoringEnabled = true
+            )
         }
         updateScores()
     }
 
-    // --- Функції для оновлення параметрів ---
-    fun onTextChange(newText: String) = _uiState.update { it.copy(goalText = newText) }
-    fun onDescriptionChange(newDescription: String) = _uiState.update { it.copy(goalDescription = newDescription) }
-    fun onValueImportanceChange(value: Float) = updateState { it.copy(valueImportance = value) }
-    fun onValueImpactChange(value: Float) = updateState { it.copy(valueImpact = value) }
-    fun onEffortChange(value: Float) = updateState { it.copy(effort = value) }
-    fun onCostChange(value: Float) = updateState { it.copy(cost = value) }
-    fun onRiskChange(value: Float) = updateState { it.copy(risk = value) }
-    fun onWeightEffortChange(value: Float) = updateState { it.copy(weightEffort = value) }
-    fun onWeightCostChange(value: Float) = updateState { it.copy(weightCost = value) }
-    fun onWeightRiskChange(value: Float) = updateState { it.copy(weightRisk = value) }
+    fun onSave() {
+        viewModelScope.launch {
+            if (_uiState.value.goalText.text.isBlank()) {
+                _events.send(GoalEditEvent.NavigateBack("Назва цілі не може бути пустою"))
+                return@launch
+            }
 
-    private fun updateState(update: (GoalEditUiState) -> GoalEditUiState) {
+            val goalFromState = buildGoalFromState(_uiState.value)
+            val goalToSave = GoalScoringManager.calculateScores(goalFromState)
+
+            if (currentGoal != null) {
+                goalRepository.updateGoal(goalToSave)
+                contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
+            } else {
+                initialListId ?: return@launch
+                goalRepository.addGoalToList(goalToSave.text, initialListId)
+            }
+
+            _events.send(GoalEditEvent.NavigateBack("Збережено"))
+        }
+    }
+
+    private fun buildGoalFromState(state: GoalEditUiState): Goal {
+        val currentTime = System.currentTimeMillis()
+        val descriptionToSave = state.goalDescription.text.ifEmpty { null }
+
+        val baseGoal = currentGoal ?: Goal(
+            id = UUID.randomUUID().toString(),
+            text = "",
+            completed = false,
+            createdAt = currentTime,
+            updatedAt = currentTime
+        )
+
+        return baseGoal.copy(
+            text = state.goalText.text,
+            description = descriptionToSave,
+            updatedAt = currentTime,
+            relatedLinks = state.relatedLinks,
+            valueImportance = state.valueImportance,
+            valueImpact = state.valueImpact,
+            effort = state.effort,
+            cost = state.cost,
+            risk = state.risk,
+            weightEffort = state.weightEffort,
+            weightCost = state.weightCost,
+            weightRisk = state.weightRisk,
+            scoringStatus = state.scoringStatus
+        )
+    }
+
+    fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(goalText = newValue) }
+    fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(goalDescription = newValue) }
+    fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
+    fun onValueImpactChange(value: Float) = onScoringParameterChange { it.copy(valueImpact = value) }
+    fun onEffortChange(value: Float) = onScoringParameterChange { it.copy(effort = value) }
+    fun onCostChange(value: Float) = onScoringParameterChange { it.copy(cost = value) }
+    fun onRiskChange(value: Float) = onScoringParameterChange { it.copy(risk = value) }
+    fun onWeightEffortChange(value: Float) = onScoringParameterChange { it.copy(weightEffort = value) }
+    fun onWeightCostChange(value: Float) = onScoringParameterChange { it.copy(weightCost = value) }
+    fun onWeightRiskChange(value: Float) = onScoringParameterChange { it.copy(weightRisk = value) }
+    fun onScoringStatusChange(newStatus: ScoringStatus) {
+        _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS) }
+        updateScores()
+    }
+
+    private fun onScoringParameterChange(update: (GoalEditUiState) -> GoalEditUiState) {
         _uiState.update(update)
-        updateScores() // Перерахунок при кожній зміні
+        if (_uiState.value.scoringStatus == ScoringStatus.NOT_ASSESSED) {
+            _uiState.update { it.copy(scoringStatus = ScoringStatus.ASSESSED) }
+        }
+        updateScores()
     }
 
     private fun updateScores() {
         val tempGoal = buildGoalFromState(_uiState.value)
         val updatedGoal = GoalScoringManager.calculateScores(tempGoal)
-        _uiState.update {
-            it.copy(
-                rawScore = updatedGoal.rawScore,
-                displayScore = updatedGoal.displayScore
+        _uiState.update { it.copy(rawScore = updatedGoal.rawScore, displayScore = updatedGoal.displayScore) }
+    }
+
+    fun onAddLinkRequest() {
+        viewModelScope.launch {
+            val disabledIds = _uiState.value.relatedLinks
+                .filter { it.type == LinkType.GOAL_LIST }
+                .joinToString(",") { it.target }
+            val title = URLEncoder.encode("Додати посилання на список", "UTF-8")
+            _events.send(GoalEditEvent.Navigate("list_chooser_screen/$title?disabledIds=$disabledIds"))
+        }
+    }
+
+    private fun onAddListAssociation(listId: String) {
+        viewModelScope.launch {
+            val listName = goalRepository.getGoalListById(listId)?.name
+            val newLink = RelatedLink(
+                type = LinkType.GOAL_LIST,
+                target = listId,
+                displayName = listName
             )
-        }
-    }
+            val TAG = "NavResultDebug"
+            Log.d(TAG, "[GoalEditViewModel] Before update - relatedLinks count: ${_uiState.value.relatedLinks.size}")
 
-    fun onAddListAssociation(listId: String) {
-        viewModelScope.launch {
-            if (_uiState.value.associatedLists.any { it.id == listId }) return@launch
-            val listToAdd = listHierarchy.value.allLists.find { it.id == listId }
-            if (listToAdd != null) {
-                _uiState.update {
-                    it.copy(associatedLists = it.associatedLists + listToAdd)
-                }
+            _uiState.update {
+                if (it.relatedLinks.any { link -> link.target == listId && link.type == LinkType.GOAL_LIST }) it
+                else it.copy(relatedLinks = it.relatedLinks + newLink)
             }
+
+            Log.d(TAG, "[GoalEditViewModel] After update - relatedLinks count: ${_uiState.value.relatedLinks.size}")
         }
-        onDismissListChooser()
     }
 
-    fun onRemoveListAssociation(listId: String) {
+    fun onRemoveLinkAssociation(targetToRemove: String) {
         _uiState.update {
-            it.copy(associatedLists = it.associatedLists.filterNot { list -> list.id == listId })
+            it.copy(relatedLinks = it.relatedLinks.filterNot { link -> link.target == targetToRemove })
         }
     }
 
-    fun onShowListChooser() = _uiState.update { it.copy(showListChooser = true) }
-    fun onDismissListChooser() = _uiState.update { it.copy(showListChooser = false) }
-
-    private fun buildGoalFromState(state: GoalEditUiState): Goal {
-        val currentTime = System.currentTimeMillis()
-        return currentGoal?.copy(
-            text = state.goalText,
-            description = state.goalDescription.ifBlank { null },
-            updatedAt = currentTime,
-            associatedListIds = state.associatedLists.map { it.id },
-            valueImportance = state.valueImportance,
-            valueImpact = state.valueImpact,
-            effort = state.effort,
-            cost = state.cost,
-            risk = state.risk,
-            weightEffort = state.weightEffort,
-            weightCost = state.weightCost,
-            weightRisk = state.weightRisk
-        ) ?: Goal(
-            id = UUID.randomUUID().toString(),
-            text = state.goalText,
-            description = state.goalDescription.ifBlank { null },
-            completed = false,
-            createdAt = currentTime,
-            updatedAt = currentTime,
-            tags = null,
-            associatedListIds = state.associatedLists.map { it.id },
-            valueImportance = state.valueImportance,
-            valueImpact = state.valueImpact,
-            effort = state.effort,
-            cost = state.cost,
-            risk = state.risk,
-            weightEffort = state.weightEffort,
-            weightCost = state.weightCost,
-            weightRisk = state.weightRisk
-        )
+    fun openDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = true) }
+    fun closeDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = false) }
+    fun onDescriptionChangeAndCloseEditor(newDescription: String) {
+        _uiState.update { it.copy(
+            goalDescription = it.goalDescription.copy(text = newDescription),
+            isDescriptionEditorOpen = false
+        )}
     }
 
-    fun onSave() {
+    fun onAddWebLinkRequest() {
         viewModelScope.launch {
-            if (_uiState.value.goalText.isBlank()) {
-                _events.send(GoalEditEvent.NavigateBack("Назва цілі не може бути пустою"))
-                return@launch
-            }
+            _events.send(GoalEditEvent.NavigateBack("Додавання веб-посилань буде реалізовано пізніше"))
+        }
+    }
 
-            // Завжди перераховуємо перед збереженням
-            val goalToSave = GoalScoringManager.calculateScores(buildGoalFromState(_uiState.value))
-
-            if (currentGoal != null) {
-                goalRepository.updateGoal(goalToSave)
-            } else {
-                val listIdForNewGoal = initialListId
-                if (listIdForNewGoal == null) {
-                    _events.send(GoalEditEvent.NavigateBack("Не вдалося створити ціль: невідомий список."))
-                    return@launch
-                }
-
-                val finalGoal = if (goalToSave.associatedListIds.isNullOrEmpty()){
-                    goalToSave.copy(associatedListIds = listOf(listIdForNewGoal))
-                } else goalToSave
-
-                goalRepository.insertGoal(finalGoal)
-
-                val order = goalRepository.getGoalCountInList(listIdForNewGoal).toLong()
-                val newInstance = GoalInstance(
-                    instanceId = UUID.randomUUID().toString(),
-                    goalId = finalGoal.id,
-                    listId = listIdForNewGoal,
-                    order = order
-                )
-                goalRepository.insertInstance(newInstance)
-            }
-            _events.send(GoalEditEvent.NavigateBack("Збережено"))
+    fun onAddObsidianLinkRequest() {
+        viewModelScope.launch {
+            _events.send(GoalEditEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
         }
     }
 }
