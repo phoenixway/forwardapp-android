@@ -124,6 +124,22 @@ fun GoalDetailScreen(
         }
     )
 
+    val newItemInList = uiState.newlyAddedItemId?.let { id ->
+        displayList.find { it.item.id == id }
+    }
+
+    // ВИДАЛІТЬ ПОПЕРЕДНІЙ LaunchedEffect(Unit) зі snapshotFlow
+
+    // ДОДАЙТЕ НОВИЙ LaunchedEffect, ЯКИЙ ВИКОРИСТОВУЄ ЦЮ ЗМІННУ ЯК КЛЮЧ
+    LaunchedEffect(newItemInList) {
+        // Цей код виконається, коли `newItemInList` зміниться з null на об'єкт.
+        // Це і є той самий момент, коли UI оновився і готовий до прокрутки.
+        if (newItemInList != null) {
+            listState.animateScrollToItem(0)
+            viewModel.onScrolledToNewItem()
+        }
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
@@ -222,7 +238,7 @@ fun GoalDetailScreen(
         viewModel.onHighlightShown()
     }
 
-    // --- ПОЧАТОК ЗМІН ---
+/*    // --- ПОЧАТОК ЗМІН ---
     // КЛЮЧОВЕ ВИПРАВЛЕННЯ:
     // Цей ефект тепер спрацьовує, коли оновлюється сам `displayList`.
     // Це гарантує, що на момент перевірки новий елемент вже є у списку.
@@ -238,7 +254,7 @@ fun GoalDetailScreen(
             viewModel.onScrolledToNewItem()
         }
     }
-    // --- КІНЕЦЬ ЗМІН ---
+    // --- КІНЕЦЬ ЗМІН ---*/
 
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.clearSelection()
