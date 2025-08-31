@@ -56,6 +56,8 @@ import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
 import kotlinx.coroutines.delay
@@ -426,9 +428,24 @@ fun GoalDetailScreen(
                         onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                         onDelete = { viewModel.deleteItem(content) },
                         onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                        onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
-                        onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                        onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
+                        onCreateInstanceRequest = {
+                            viewModel.onGoalActionSelected(
+                                GoalActionType.CreateInstance,
+                                content
+                            )
+                        },
+                        onMoveInstanceRequest = {
+                            viewModel.onGoalActionSelected(
+                                GoalActionType.MoveInstance,
+                                content
+                            )
+                        },
+                        onCopyGoalRequest = {
+                            viewModel.onGoalActionSelected(
+                                GoalActionType.CopyGoal,
+                                content
+                            )
+                        },
                         modifier = Modifier,
                         onGoalTransportRequest = { viewModel.onGoalTransportInitiated(content) },
                         onCopyContentRequest = {
@@ -440,7 +457,12 @@ fun GoalDetailScreen(
                                 GoalItem(
                                     goal = content.goal,
                                     obsidianVaultName = obsidianVaultName,
-                                    onToggle = { isChecked -> viewModel.toggleGoalCompletedWithState(content.goal, isChecked) },
+                                    onToggle = { isChecked ->
+                                        viewModel.toggleGoalCompletedWithState(
+                                            content.goal,
+                                            isChecked
+                                        )
+                                    },
                                     onItemClick = { viewModel.onItemClick(content) },
                                     onLongClick = { viewModel.onItemLongClick(content.item.id) },
                                     onTagClick = { tag -> viewModel.onTagClicked(tag) },
@@ -449,6 +471,7 @@ fun GoalDetailScreen(
                                     emojiToHide = currentListContextEmojiToHide
                                 )
                             }
+
                             is ListItemContent.SublistItem -> {
                                 SublistItemRow(
                                     sublistContent = content,
@@ -458,8 +481,12 @@ fun GoalDetailScreen(
                                     onLongClick = { viewModel.onItemLongClick(content.item.id) }
                                 )
                             }
+
                             else -> {
-                                Log.w("BacklogScreen", "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}")
+                                Log.w(
+                                    "BacklogScreen",
+                                    "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}"
+                                )
                             }
                         }
                     }
