@@ -105,7 +105,7 @@ fun GoalDetailScreen(
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
         onMove = { fromIndex, toIndex ->
-            val attachmentCount = if (list?.isAttachmentsExpanded == true) {
+/*            val attachmentCount = if (list?.isAttachmentsExpanded == true) {
                 listContent.count { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
             } else 0
 
@@ -116,7 +116,11 @@ fun GoalDetailScreen(
             if (adjustedFromIndex >= 0 && adjustedFromIndex < draggableCount &&
                 adjustedToIndex >= 0 && adjustedToIndex < draggableCount) {
                 viewModel.moveItem(adjustedFromIndex, adjustedToIndex)
-            }
+            }*/
+            // Індекси, що надходять від dragDropState, вже є правильними,
+            // оскільки LazyColumn працює лише зі списком draggableItems.
+            // Жодних додаткових коригувань не потрібно.
+            viewModel.moveItem(fromIndex, toIndex)
         }
     )
 
