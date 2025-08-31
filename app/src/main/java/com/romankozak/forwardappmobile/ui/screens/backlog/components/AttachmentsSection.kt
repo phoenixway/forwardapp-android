@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/AttachmentsSection.kt
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/AttachmentsSection.kt
 
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
@@ -44,36 +44,36 @@ fun AttachmentsSection(
     AnimatedVisibility(
         visible = isExpanded,
         enter = expandVertically(animationSpec = tween(300)) + fadeIn(tween(300)),
-        exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(tween(300))
+        exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(tween(300)),
     ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
 
                 // Заголовок з кількістю
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.AttachFile,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.attachments_header) +
                                 if (attachments.isNotEmpty()) " (${attachments.size})" else "",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
@@ -85,20 +85,20 @@ fun AttachmentsSection(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AttachFile,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(48.dp),
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.no_attachments_message),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         AddAttachmentButton(onAddAttachment)
@@ -106,22 +106,21 @@ fun AttachmentsSection(
                 } else {
                     LazyColumn(
                         modifier = Modifier.heightIn(max = 300.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(attachments, key = { it.hashCode() }) { item ->
                             AnimatedVisibility(
-                                visible = true,
+                                visible = true, // Цей параметр можна залишити, якщо у вас є логіка для видалення елементів
                                 enter = expandVertically() + fadeIn(),
-                                exit = shrinkVertically() + fadeOut()
+                                exit = shrinkVertically() + fadeOut(),
                             ) {
                                 AttachmentItemCard(
                                     item = item,
                                     onItemClick = onItemClick,
-                                    onDeleteItem = {
+                                    onDeleteItem = { content ->
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        // MODIFIED: Видалено виклик локального Snackbar, передача дії батькові
-                                        onDeleteItem(item)
-                                    }
+                                        onDeleteItem(content)
+                                    },
                                 )
                             }
                         }
@@ -139,14 +138,14 @@ fun AttachmentsSection(
 private fun AttachmentItemCard(
     item: ListItemContent,
     onItemClick: (ListItemContent) -> Unit,
-    onDeleteItem: (ListItemContent) -> Unit
+    onDeleteItem: (ListItemContent) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         val endAction = @Composable {
             IconButton(
@@ -156,7 +155,7 @@ private fun AttachmentItemCard(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.delete_attachment_description),
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
@@ -170,6 +169,8 @@ private fun AttachmentItemCard(
                     onClick = { onItemClick(item) },
                     onLongClick = { },
                     endAction = endAction,
+                    // ВИПРАВЛЕНО: Додано відсутній параметр onDelete
+                    onDelete = { onDeleteItem(item) },
                 )
             }
             is ListItemContent.LinkItem -> {
@@ -180,6 +181,8 @@ private fun AttachmentItemCard(
                     onClick = { onItemClick(item) },
                     onLongClick = { },
                     endAction = endAction,
+                    // ВИПРАВЛЕНО: Додано відсутній параметр onDelete
+                    onDelete = { onDeleteItem(item) },
                 )
             }
             else -> {}
@@ -189,7 +192,7 @@ private fun AttachmentItemCard(
 
 @Composable
 private fun AddAttachmentButton(
-    onAddAttachment: (AttachmentType) -> Unit
+    onAddAttachment: (AttachmentType) -> Unit,
 ) {
     var showAddMenu by remember { mutableStateOf(false) }
 
@@ -199,18 +202,18 @@ private fun AddAttachmentButton(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.filledTonalButtonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ),
         ) {
             Icon(
                 Icons.Default.Add,
                 contentDescription = stringResource(R.string.add_attachment_description),
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.add_attachment_button),
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
             )
         }
 
@@ -219,19 +222,19 @@ private fun AddAttachmentButton(
             onDismissRequest = { showAddMenu = false },
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surface)
+                .background(MaterialTheme.colorScheme.surface),
         ) {
-            AttachmentTypeMenuItem(R.string.attachment_type_note, AttachmentType.NOTE) {
-                onAddAttachment(it); showAddMenu = false
+            AttachmentTypeMenuItem(R.string.attachment_type_note, AttachmentType.NOTE) { type ->
+                onAddAttachment(type); showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_web_link, AttachmentType.WEB_LINK) {
-                onAddAttachment(it); showAddMenu = false
+            AttachmentTypeMenuItem(R.string.attachment_type_web_link, AttachmentType.WEB_LINK) { type ->
+                onAddAttachment(type); showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_obsidian, AttachmentType.OBSIDIAN_LINK) {
-                onAddAttachment(it); showAddMenu = false
+            AttachmentTypeMenuItem(R.string.attachment_type_obsidian, AttachmentType.OBSIDIAN_LINK) { type ->
+                onAddAttachment(type); showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_list_link, AttachmentType.LIST_LINK) {
-                onAddAttachment(it); showAddMenu = false
+            AttachmentTypeMenuItem(R.string.attachment_type_list_link, AttachmentType.LIST_LINK) { type ->
+                onAddAttachment(type); showAddMenu = false
             }
         }
     }
@@ -241,19 +244,16 @@ private fun AddAttachmentButton(
 private fun AttachmentTypeMenuItem(
     textRes: Int,
     type: AttachmentType,
-    onSelect: (AttachmentType) -> Unit
+    onSelect: (AttachmentType) -> Unit,
 ) {
     DropdownMenuItem(
         text = {
             Text(
                 text = stringResource(textRes),
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
             )
         },
         onClick = { onSelect(type) },
-        modifier = Modifier.padding(horizontal = 4.dp)
+        modifier = Modifier.padding(horizontal = 4.dp),
     )
 }
-
-
-

@@ -120,6 +120,8 @@
     <string name="more_options">more_options</string>
     <string name="edit_list">Properties</string>
     <string name="go_to_home_list">go_to_home_list</string>
+    <string name="delete_list">deletelist</string>
+    <string name="share_list">share_list</string>
 
 
 </resources>

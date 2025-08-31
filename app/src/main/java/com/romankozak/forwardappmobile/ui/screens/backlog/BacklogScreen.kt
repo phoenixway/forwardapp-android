@@ -2,11 +2,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -19,7 +15,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -27,28 +22,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Note
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -57,17 +36,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.AdaptiveTopBar
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.ListTitleBar
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
 
 private const val TAG = "DND_DEBUG"
 
@@ -293,61 +272,42 @@ fun GoalDetailScreen(
             .fillMaxSize()
             .systemBarsPadding(),
         topBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 3.dp,
-                shadowElevation = 4.dp, // додає глибину
-                shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+            AdaptiveTopBar(
+                // Передаємо всі необхідні параметри
+                isSelectionModeActive = isSelectionModeActive,
+                title = list?.name ?: stringResource(R.string.loading),
 
-            ) {
-            Column(
-                modifier = Modifier.background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
-                            MaterialTheme.colorScheme.background
-                        ),
-                        startY = 0f,
-                        endY = 300f
-                    )
-                ),
-                //verticalArrangement = Arrangement.spacedBy(8.dp) // відстань між панелями
+                // Параметри для навігації
+                canGoBack = navController.previousBackStackEntry != null,
+                onBackClick = { navController.popBackStack() },
+                onForwardClick = { /* ... */ },
+                onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
+                onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                onEditList = {
+                    menuExpanded = false
+                    navController.navigate("edit_list_screen/${list?.id}")
+                },
+                menuExpanded = menuExpanded,
+                onMenuExpandedChange = { menuExpanded = it },
 
-            )  {
-                // Окрема панель для назви списку - тепер зверху
-                ListTitleBar(
-                    title = list?.name ?: stringResource(R.string.loading)
-                )
+                // Параметри для режиму вибору
+                selectedCount = uiState.selectedItemIds.size,
+                areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                onClearSelection = { viewModel.clearSelection() },
+                onSelectAll = { viewModel.selectAllItems() },
+                onDelete = { viewModel.deleteSelectedItems() },
+                onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
+                onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
+                onShareList = {  },
+                onDeleteList = { viewModel.deleteSelectedItems() },
+                modifier = Modifier
+            )
 
-                BrowserNavigationBar(
-                    canGoBack = navController.previousBackStackEntry != null,
-                    onBackClick = { navController.popBackStack() },
-                    onForwardClick = { /* TODO: implement forward navigation */ },
-                    onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
-                    isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
-                    onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
-                    onEditList = {
-                        menuExpanded = false
-                        navController.navigate("edit_list_screen/${list?.id}")
-                    },
-                    menuExpanded = menuExpanded,
-                    onMenuExpandedChange = { menuExpanded = it },
-                )
 
-                // Панель для режиму вибору
-                if (isSelectionModeActive) {
-                    MultiSelectTopAppBar(
-                        selectedCount = uiState.selectedItemIds.size,
-                        areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                        onClearSelection = { viewModel.clearSelection() },
-                        onSelectAll = { viewModel.selectAllItems() },
-                        onDelete = { viewModel.deleteSelectedItems() },
-                        onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
-                        onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
-                    )
-                }
-            }}
         },
+
+
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             AnimatedVisibility(
@@ -489,156 +449,6 @@ fun GoalDetailScreen(
     }
 }
 
-/**
- * Окрема, тонка панель для відображення назви списку.
- */
-@Composable
-private fun ListTitleBar(
-    title: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = Color.Transparent // 👈 ЗМІНА ТУТ
-    ) {
-        Text(
-            text = title,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-
-@Composable
-private fun BrowserNavigationBar(
-    canGoBack: Boolean,
-    onBackClick: () -> Unit,
-    onForwardClick: () -> Unit,
-    onHomeClick: () -> Unit,
-    isAttachmentsExpanded: Boolean,
-    onToggleAttachments: () -> Unit,
-    onEditList: () -> Unit,
-    menuExpanded: Boolean,
-    onMenuExpandedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = Color.Transparent, // 👈 ЗМІНА ТУТ
-        tonalElevation = 0.dp // 👈 ЗМІНА ТУТ
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Back button
-            IconButton(onClick = onBackClick, enabled = canGoBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back)
-                )
-            }
-            // Forward button (placeholder)
-            IconButton(onClick = onForwardClick, enabled = false) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = stringResource(R.string.forward)
-                )
-            }
-            // Home button (Reveal in explorer)
-            IconButton(onClick = onHomeClick) {
-                Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = stringResource(R.string.go_to_home_list)
-                )
-            }
-
-            // Spacer to push items to the right
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Attachments toggle
-            val attachmentIconColor by animateColorAsState(
-                targetValue = if (isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                label = "attachmentIconColor"
-            )
-            IconButton(onClick = onToggleAttachments) {
-                Icon(
-                    imageVector = Icons.Default.Attachment,
-                    contentDescription = stringResource(R.string.toggle_attachments),
-                    tint = attachmentIconColor
-                )
-            }
-
-            // More options menu
-            Box {
-                IconButton(onClick = { onMenuExpandedChange(true) }) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.more_options)
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { onMenuExpandedChange(false) }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.edit_list)) },
-                        onClick = {
-                            onEditList()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-// ... (решта коду без змін)
-private fun handleRelatedLinkClick(
-    link: RelatedLink,
-    obsidianVaultName: String,
-    context: Context,
-    navController: NavController,
-) {
-    try {
-        when (link.type) {
-            LinkType.URL -> {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link.target))
-                context.startActivity(intent)
-            }
-            LinkType.GOAL_LIST -> {
-                navController.navigate("goal_detail_screen/${link.target}")
-            }
-            LinkType.OBSIDIAN -> {
-                if (obsidianVaultName.isNotBlank()) {
-                    val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
-                    val encodedFile = URLEncoder.encode(link.target, "UTF-8")
-                    val obsidianUri = "obsidian://open?vault=$encodedVault&file=$encodedFile"
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(obsidianUri))
-                    context.startActivity(intent)
-                } else {
-                    Toast.makeText(context, context.getString(R.string.error_obsidian_vault_not_set), Toast.LENGTH_LONG).show()
-                }
-            }
-            LinkType.NOTE -> { /* TODO */ }
-        }
-    } catch (e: Exception) {
-        Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
-    }
-}
-
 @Composable
 fun rememberSimpleDragDropState(
     lazyListState: LazyListState,
@@ -648,134 +458,4 @@ fun rememberSimpleDragDropState(
     return remember(lazyListState) {
         SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
     }
-}
-
-@Composable
-fun NoteItemRow(
-    noteContent: ListItemContent.NoteItem,
-    isSelected: Boolean,
-    isHighlighted: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onDelete: () -> Unit,
-    backgroundColor: Color,
-    modifier: Modifier = Modifier
-) {
-    SwipeableListItem(
-        isDragging = false,
-        isAnyItemDragging = false,
-        swipeEnabled = true,
-        isAnotherItemSwiped = false,
-        resetTrigger = 0,
-        onSwipeStart = { },
-        onDelete = onDelete,
-        onMoreActionsRequest = { },
-        onGoalTransportRequest = { },
-        onCopyContentRequest = { },
-        backgroundColor = backgroundColor,
-        content = {
-            Card(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .clickable { onClick() }
-                    .combinedClickable(
-                        onClick = onClick,
-                        onLongClick = onLongClick
-                    ),
-                colors = CardDefaults.cardColors(containerColor = backgroundColor)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = noteContent.note.title?.takeIf { it.isNotBlank() } ?: "Без назви",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (noteContent.note.content.isNotBlank()) {
-                        Text(
-                            text = noteContent.note.content.take(100) + if (noteContent.note.content.length > 100) "..." else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
-    )
-}
-
-@Composable
-fun LinkItemRow(
-    linkContent: ListItemContent.LinkItem,
-    isSelected: Boolean,
-    isHighlighted: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onDelete: () -> Unit,
-    backgroundColor: Color,
-    modifier: Modifier = Modifier
-) {
-    SwipeableListItem(
-        isDragging = false,
-        isAnyItemDragging = false,
-        swipeEnabled = true,
-        isAnotherItemSwiped = false,
-        resetTrigger = 0,
-        onSwipeStart = { },
-        onDelete = onDelete,
-        onMoreActionsRequest = { },
-        onGoalTransportRequest = { },
-        onCopyContentRequest = { },
-        backgroundColor = backgroundColor,
-        content = {
-            Card(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .clickable { onClick() }
-                    .combinedClickable(
-                        onClick = onClick,
-                        onLongClick = onLongClick
-                    ),
-                colors = CardDefaults.cardColors(containerColor = backgroundColor)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = when (linkContent.link.linkData.type) {
-                            LinkType.URL -> Icons.Default.Link
-                            LinkType.OBSIDIAN -> Icons.Default.Description
-                            LinkType.GOAL_LIST -> Icons.Default.List
-                            LinkType.NOTE -> Icons.Default.Note
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = linkContent.link.linkData.displayName ?: linkContent.link.linkData.target,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        if (linkContent.link.linkData.displayName != null) {
-                            Text(
-                                text = linkContent.link.linkData.target,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    )
 }
