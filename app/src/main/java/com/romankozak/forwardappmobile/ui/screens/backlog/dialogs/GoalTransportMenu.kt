@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.backlog.components
+package com.romankozak.forwardappmobile.ui.screens.backlog.dialogs
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState

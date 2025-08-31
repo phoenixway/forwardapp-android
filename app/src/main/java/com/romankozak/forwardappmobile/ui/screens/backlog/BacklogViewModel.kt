@@ -169,6 +169,13 @@ class GoalDetailViewModel @Inject constructor(
     val recentLists: StateFlow<List<GoalList>> = goalRepository.getRecentLists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // --- ПОЧАТОК ЗМІН ---
+    private val _showGoalTransportMenu = MutableStateFlow(false)
+    val showGoalTransportMenu: StateFlow<Boolean> = _showGoalTransportMenu.asStateFlow()
+
+    private val _itemForTransportMenu = MutableStateFlow<ListItemContent?>(null)
+    // --- КІНЕЦЬ ЗМІН ---
+
     private var recentlyDeletedItems: List<ListItemContent>? = null
     private var pendingAction: GoalActionType? = null
     private var pendingSourceItemIds: Set<String> = emptySet()
@@ -195,14 +202,6 @@ class GoalDetailViewModel @Inject constructor(
     fun onHighlightShown() {
         _uiState.update { it.copy(goalToHighlight = null, itemToHighlight = null) }
     }
-
-/*    fun toggleAttachmentsVisibility() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val currentList = goalList.value ?: return@launch
-            val newState = !currentList.isAttachmentsExpanded
-            goalRepository.updateGoalList(currentList.copy(isAttachmentsExpanded = newState))
-        }
-    }*/
 
     fun onAddNewNoteRequested() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -509,7 +508,6 @@ class GoalDetailViewModel @Inject constructor(
             it is ListItemContent.NoteItem || it is ListItemContent.LinkItem
         }.toMutableList()
 
-        // Перевірка валідності індексів
         if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) {
             Log.e(TAG, "[moveItem] Invalid indices: from=$fromIndex, to=$toIndex, size=${draggableItems.size}")
             return
@@ -520,33 +518,23 @@ class GoalDetailViewModel @Inject constructor(
             return
         }
 
-        // Виконуємо переміщення у списку елементів, що можна перетягувати
         val movedItem = draggableItems.removeAt(fromIndex)
         draggableItems.add(toIndex, movedItem)
 
-        // *** FIX START ***
-        // Коректно відновлюємо повний список, зберігаючи позиції вкладень.
-        // Ми проходимо по оригінальному списку і замінюємо елементи, що перетягуються,
-        // на елементи з нового, відсортованого списку.
         val newFullList = mutableListOf<ListItemContent>()
         val reorderedDraggablesIterator = draggableItems.iterator()
         currentContent.forEach { originalItem ->
             if (originalItem is ListItemContent.NoteItem || originalItem is ListItemContent.LinkItem) {
-                // Зберігаємо вкладення на його початковій позиції
                 newFullList.add(originalItem)
             } else {
-                // Вставляємо наступний відсортований елемент
                 if (reorderedDraggablesIterator.hasNext()) {
                     newFullList.add(reorderedDraggablesIterator.next())
                 }
             }
         }
-        // *** FIX END ***
 
-        // Оновлюємо стан
         _listContent.value = newFullList
 
-        // Зберігаємо в базу даних
         viewModelScope.launch {
             saveListOrder(newFullList)
         }
@@ -747,7 +735,6 @@ class GoalDetailViewModel @Inject constructor(
     fun flushPendingMoves() {
         viewModelScope.launch {
             batchSaveJob?.cancel()
-            // Поки що нічого не робимо, оскільки moveItem тепер зберігає відразу
         }
     }
 
@@ -833,10 +820,7 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val currentList = goalList.value ?: return@launch
             val newState = !currentList.isAttachmentsExpanded
-
-            // --- ДОДАЙТЕ ЦЕЙ РЯДОК ---
             Log.d("AttachmentsSection", "[ViewModel] Стан isAttachmentsExpanded змінено на: $newState")
-
             goalRepository.updateGoalList(currentList.copy(isAttachmentsExpanded = newState))
         }
     }
@@ -851,4 +835,33 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    // --- ПОЧАТОК ЗМІН ---
+    fun onGoalTransportInitiated(item: ListItemContent) {
+        if (item is ListItemContent.GoalItem) {
+            _itemForTransportMenu.value = item
+            _showGoalTransportMenu.value = true
+        } else {
+            viewModelScope.launch {
+                _uiEventFlow.send(UiEvent.ShowSnackbar("Транспорт доступний тільки для цілей"))
+            }
+        }
+    }
+
+    fun onDismissGoalTransportMenu() {
+        _showGoalTransportMenu.value = false
+        _itemForTransportMenu.value = null
+    }
+
+    fun onTransportActionSelected(actionType: GoalActionType) {
+        val item = _itemForTransportMenu.value ?: return
+
+        when (actionType) {
+            GoalActionType.CreateInstance -> createInstanceRequest(item)
+            GoalActionType.MoveInstance -> moveInstanceRequest(item)
+            GoalActionType.CopyGoal -> copyGoalRequest(item)
+            else -> Unit
+        }
+        onDismissGoalTransportMenu()
+    }
+    // --- КІНЕЦЬ ЗМІН ---
 }
