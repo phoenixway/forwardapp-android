@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd
 
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListItemInfo
@@ -17,6 +18,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 const val TAG = "DND_DEBUG"
+private const val ENABLE_AUTOSCROLL_LOGS = true
+private const val TAG_AUTOSCROLL = "DragAutoScroll"
 
 // --- Утиліти для індикатора скидання (перенесено зі старого файлу) ---
 
@@ -163,40 +166,195 @@ class SimpleDragDropState(
     }
 
     // --- Логіка автопрокрутки (перенесено зі старого файлу) ---
+
     private fun handleAutoScroll() {
-        if (autoScrollJob?.isActive == true) return
+        if (autoScrollJob?.isActive == true) {
+            if (ENABLE_AUTOSCROLL_LOGS) {
+                Log.d(TAG_AUTOSCROLL, "handleAutoScroll(): already running -> return")
+            }
+            return
+        }
 
         autoScrollJob = scope.launch {
-            while (isDragging) {
-                val layoutInfo = draggedItemLayoutInfo ?: break
-                val viewportHeight = state.layoutInfo.viewportSize.height
-                val itemTop = layoutInfo.offset + draggedDistance
-                val itemBottom = itemTop + layoutInfo.size
+            if (ENABLE_AUTOSCROLL_LOGS) {
+                Log.d(TAG_AUTOSCROLL, "autoScrollJob START: isDragging=$isDragging")
+            }
 
-                val scrollThreshold = 120f
-                val maxScrollSpeed = 20f
+            var iteration = 0
 
-                val scrollSpeed = when {
-                    itemTop < scrollThreshold -> {
-                        val proximity = (scrollThreshold - itemTop) / scrollThreshold
-                        -maxScrollSpeed * proximity
+            try {
+                while (isDragging) {
+                    iteration++
+
+                    val dragged = draggedItemLayoutInfo
+                    if (dragged == null) {
+                        if (ENABLE_AUTOSCROLL_LOGS) {
+                            Log.d(TAG_AUTOSCROLL, "[$iteration] draggedItemLayoutInfo == null -> break")
+                        }
+                        break
                     }
-                    itemBottom > viewportHeight - scrollThreshold -> {
-                        val proximity = (itemBottom - (viewportHeight - scrollThreshold)) / scrollThreshold
-                        maxScrollSpeed * proximity
+
+                    val layoutInfo = state.layoutInfo
+                    val viewportHeight = layoutInfo.viewportSize.height.toFloat()
+                    val scrollThreshold = 120f
+                    val itemCenter = dragged.offset + draggedDistance + (dragged.size / 2f)
+
+                    val firstIdx = state.firstVisibleItemIndex
+                    val firstOffset = state.firstVisibleItemScrollOffset
+                    val firstVisibleIdx = layoutInfo.visibleItemsInfo.firstOrNull()?.index
+                    val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()
+                    val lastIdx = lastVisible?.index
+                    val total = layoutInfo.totalItemsCount
+                    val canBack = state.canScrollBackward
+                    val canFwd = state.canScrollForward
+
+                    if (ENABLE_AUTOSCROLL_LOGS) {
+                        Log.d(
+                            TAG_AUTOSCROLL,
+                            "[$iteration] snapshot: " +
+                                    "center=$itemCenter, thr=$scrollThreshold, viewportH=$viewportHeight, draggedDist=$draggedDistance | " +
+                                    "firstIdx=$firstIdx off=$firstOffset vis=[$firstVisibleIdx..$lastIdx] total=$total | " +
+                                    "canBack=$canBack canFwd=$canFwd"
+                        )
                     }
-                    else -> 0f
+
+                    var needsToScroll = false
+                    var decision = "NONE"
+
+                    // --- ВГОРУ ---
+                    if (itemCenter < scrollThreshold) {
+                        if (firstIdx > 0) {
+                            needsToScroll = true
+                            decision = "UP"
+                            val target = firstIdx - 1
+                            if (ENABLE_AUTOSCROLL_LOGS) {
+                                Log.d(TAG_AUTOSCROLL, "[$iteration] ↑ request animateScrollToItem($target) from firstIdx=$firstIdx")
+                            }
+                            // Виконуємо без додаткового launch, щоб можна було заміряти час тут же
+                            val t0 = SystemClock.uptimeMillis()
+                            runCatching { state.animateScrollToItem(target) }
+                                .onSuccess {
+                                    if (ENABLE_AUTOSCROLL_LOGS) {
+                                        Log.d(TAG_AUTOSCROLL, "[$iteration] ↑ animateScrollToItem($target) OK in ${SystemClock.uptimeMillis() - t0} ms")
+                                    }
+                                }
+                                .onFailure { e ->
+                                    Log.e(TAG_AUTOSCROLL, "[$iteration] ↑ animateScrollToItem($target) FAILED", e)
+                                }
+                        } else {
+                            if (ENABLE_AUTOSCROLL_LOGS) {
+                                Log.d(TAG_AUTOSCROLL, "[$iteration] ↑ blocked: firstIdx=$firstIdx (top as per state)")
+                            }
+                        }
+                    }
+                    // --- ВНИЗ ---
+                    else if (itemCenter > viewportHeight - scrollThreshold) {
+                        if (lastIdx != null && lastIdx < total - 1) {
+                            needsToScroll = true
+                            decision = "DOWN"
+                            val target = lastIdx + 1
+                            if (ENABLE_AUTOSCROLL_LOGS) {
+                                Log.d(TAG_AUTOSCROLL, "[$iteration] ↓ request animateScrollToItem($target) from lastIdx=$lastIdx")
+                            }
+                            val t0 = SystemClock.uptimeMillis()
+                            runCatching { state.animateScrollToItem(target) }
+                                .onSuccess {
+                                    if (ENABLE_AUTOSCROLL_LOGS) {
+                                        Log.d(TAG_AUTOSCROLL, "[$iteration] ↓ animateScrollToItem($target) OK in ${SystemClock.uptimeMillis() - t0} ms")
+                                    }
+                                }
+                                .onFailure { e ->
+                                    Log.e(TAG_AUTOSCROLL, "[$iteration] ↓ animateScrollToItem($target) FAILED", e)
+                                }
+                        } else {
+                            if (ENABLE_AUTOSCROLL_LOGS) {
+                                Log.d(TAG_AUTOSCROLL, "[$iteration] ↓ blocked: lastIdx=$lastIdx total=$total")
+                            }
+                        }
+                    } else {
+                        if (ENABLE_AUTOSCROLL_LOGS) {
+                            Log.d(TAG_AUTOSCROLL, "[$iteration] no-scroll: center within safe zone")
+                        }
+                    }
+
+                    // Контроль швидкості автоскролу
+                    if (needsToScroll) {
+                        if (ENABLE_AUTOSCROLL_LOGS) {
+                            Log.d(TAG_AUTOSCROLL, "[$iteration] decision=$decision -> delay(400)")
+                        }
+                        delay(400)
+                    } else {
+                        delay(50)
+                    }
                 }
-
-                if (scrollSpeed != 0f) {
-                    Log.d(TAG, "  [AutoScroll] Scrolling by ${"%.2f".format(scrollSpeed)}")
-                    state.scrollBy(scrollSpeed)
-                    delay(16) // ~60fps
-                } else {
-                    // Якщо не скролимо, можна збільшити затримку
-                    delay(50)
+            } finally {
+                if (ENABLE_AUTOSCROLL_LOGS) {
+                    Log.d(TAG_AUTOSCROLL, "autoScrollJob END: isDragging=$isDragging")
                 }
             }
+        }.also { job ->
+            if (ENABLE_AUTOSCROLL_LOGS) {
+                job.invokeOnCompletion { e ->
+                    if (e == null) {
+                        Log.d(TAG_AUTOSCROLL, "autoScrollJob completed normally")
+                    } else {
+                        Log.e(TAG_AUTOSCROLL, "autoScrollJob completed with error", e)
+                    }
+                }
+            }
+        }
+    }
+
+
+    // Допоміжні функції для надійної перевірки можливості скролу
+    private fun canScrollUpward(): Boolean {
+        return state.firstVisibleItemIndex > 0 ||
+                state.firstVisibleItemScrollOffset > 0
+    }
+
+    private fun canScrollDownward(): Boolean {
+        val layoutInfo = state.layoutInfo
+        val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+        return lastVisibleItem != null &&
+                lastVisibleItem.index < layoutInfo.totalItemsCount - 1
+    }
+
+    private suspend fun performUpwardScroll() {
+        try {
+            // Спочатку пробуємо точний скрол
+            val currentOffset = state.firstVisibleItemScrollOffset
+            if (currentOffset > 0) {
+                // Якщо є offset, скролимо в межах поточного елемента
+                val newOffset = maxOf(0, currentOffset - 50)
+                state.scrollToItem(state.firstVisibleItemIndex, newOffset)
+            } else {
+                // Інакше переходимо до попереднього елемента
+                val newIndex = maxOf(0, state.firstVisibleItemIndex - 1)
+                state.animateScrollToItem(newIndex)
+            }
+        } catch (e: Exception) {
+            // Fallback на випадок помилки
+            val newIndex = maxOf(0, state.firstVisibleItemIndex - 1)
+            state.scrollToItem(newIndex)
+        }
+    }
+
+    private suspend fun performDownwardScroll() {
+        try {
+            val layoutInfo = state.layoutInfo
+            val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+
+            if (lastVisibleItem != null) {
+                val newIndex = minOf(
+                    layoutInfo.totalItemsCount - 1,
+                    lastVisibleItem.index + 1
+                )
+                state.animateScrollToItem(newIndex)
+            }
+        } catch (e: Exception) {
+            // Fallback
+            val currentIndex = state.firstVisibleItemIndex
+            state.scrollToItem(currentIndex + 1)
         }
     }
 
