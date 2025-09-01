@@ -169,12 +169,10 @@ class GoalDetailViewModel @Inject constructor(
     val recentLists: StateFlow<List<GoalList>> = goalRepository.getRecentLists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // --- ПОЧАТОК ЗМІН ---
     private val _showGoalTransportMenu = MutableStateFlow(false)
     val showGoalTransportMenu: StateFlow<Boolean> = _showGoalTransportMenu.asStateFlow()
 
     private val _itemForTransportMenu = MutableStateFlow<ListItemContent?>(null)
-    // --- КІНЕЦЬ ЗМІН ---
 
     private var recentlyDeletedItems: List<ListItemContent>? = null
     private var pendingAction: GoalActionType? = null
@@ -614,10 +612,13 @@ class GoalDetailViewModel @Inject constructor(
                 .distinctBy { it.id }
 
             if (goalsToUpdate.isNotEmpty()) {
-                val updatedGoals = goalsToUpdate.map { it.copy(completed = !it.completed) }
+                val areAllCompleted = goalsToUpdate.all { it.completed }
+                val targetState = !areAllCompleted
+                val updatedGoals = goalsToUpdate.map { it.copy(completed = targetState, updatedAt = System.currentTimeMillis()) }
                 goalRepository.updateGoals(updatedGoals)
             }
             clearSelection()
+            _refreshTrigger.value++ // --- ДОДАНО ---
         }
     }
 
@@ -835,7 +836,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- ПОЧАТОК ЗМІН ---
     fun onGoalTransportInitiated(item: ListItemContent) {
         if (item is ListItemContent.GoalItem) {
             _itemForTransportMenu.value = item
@@ -863,5 +863,4 @@ class GoalDetailViewModel @Inject constructor(
         }
         onDismissGoalTransportMenu()
     }
-    // --- КІНЕЦЬ ЗМІН ---
 }

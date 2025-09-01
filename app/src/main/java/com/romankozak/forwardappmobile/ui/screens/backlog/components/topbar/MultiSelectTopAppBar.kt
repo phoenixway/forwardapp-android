@@ -50,7 +50,7 @@ fun MultiSelectTopAppBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Закрити режим виділення",
+                    contentDescription = stringResource(R.string.close_selection_mode),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -79,7 +79,7 @@ fun MultiSelectTopAppBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.SelectAll,
-                    contentDescription = "Вибрати все",
+                    contentDescription = stringResource(R.string.select_all),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -90,7 +90,7 @@ fun MultiSelectTopAppBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.DoneAll,
-                    contentDescription = "Відмітити виконаними/невиконаними",
+                    contentDescription = stringResource(R.string.toggle_completed_status),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -101,7 +101,7 @@ fun MultiSelectTopAppBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Видалити виділені",
+                    contentDescription = stringResource(R.string.delete_selected),
                     tint = MaterialTheme.colorScheme.error
                 )
             }
@@ -113,7 +113,7 @@ fun MultiSelectTopAppBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Додаткові дії",
+                        contentDescription = stringResource(R.string.more_actions),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -122,7 +122,30 @@ fun MultiSelectTopAppBar(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
-                    // Меню залишається незмінним
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.create_link)) },
+                        onClick = {
+                            onMoreActions(GoalActionType.CreateInstance)
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.Default.AddLink, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.move)) },
+                        onClick = {
+                            onMoreActions(GoalActionType.MoveInstance)
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.copy)) },
+                        onClick = {
+                            onMoreActions(GoalActionType.CopyGoal)
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
+                    )
                 }
             }
         }

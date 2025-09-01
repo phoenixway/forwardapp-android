@@ -128,4 +128,15 @@
     <string name="note_name">Назва нотатки</string>
 
 
+    <string name="close_selection_mode">Закрити режим виділення</string>
+    <string name="select_all">Вибрати все</string>
+    <string name="toggle_completed_status">Відмітити виконаними/невиконаними</string>
+    <string name="delete_selected">Видалити виділені</string>
+    <string name="more_actions">Додаткові дії</string>
+
+    <string name="create_link">Створити посилання</string>
+    <string name="move">Перемістити</string>
+    <string name="copy">Копіювати</string>
+
+
 </resources>
