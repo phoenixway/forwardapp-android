@@ -75,7 +75,6 @@ data class DesktopBackupFile(
 data class BackupData(
     val goalLists: List<GoalList>,
     val goals: List<Goal>,
-    val notes: List<Note>,
     val listItems: List<ListItem>
 )
 

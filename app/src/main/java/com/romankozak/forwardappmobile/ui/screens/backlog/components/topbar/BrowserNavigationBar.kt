@@ -125,8 +125,6 @@ private fun RightButtons(
     currentView: ProjectViewMode,
     onViewChange: (ProjectViewMode) -> Unit
 ) {
-    // --- ПОЧАТОК ВИПРАВЛЕННЯ ---
-    // Всі елементи тепер всередині одного Row
     Row(verticalAlignment = Alignment.CenterVertically) {
         SingleChoiceSegmentedButtonRow(
             modifier = Modifier
@@ -137,6 +135,9 @@ private fun RightButtons(
                 selected = currentView == ProjectViewMode.BACKLOG,
                 onClick = { onViewChange(ProjectViewMode.BACKLOG) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                // --- ПОЧАТОК ЗМІН ---
+                icon = { }, // Прибираємо стандартну іконку-галочку
+                // --- КІНЕЦЬ ЗМІН ---
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -156,6 +157,9 @@ private fun RightButtons(
                 selected = currentView == ProjectViewMode.INBOX,
                 onClick = { onViewChange(ProjectViewMode.INBOX) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                // --- ПОЧАТОК ЗМІН ---
+                icon = { }, // Прибираємо стандартну іконку-галочку
+                // --- КІНЕЦЬ ЗМІН ---
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -283,5 +287,4 @@ private fun RightButtons(
             }
         }
     }
-    // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
 }

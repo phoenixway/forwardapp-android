@@ -13,14 +13,14 @@ import com.google.gson.reflect.TypeToken
 
 enum class ListItemType {
     GOAL,
-    NOTE,
+    // NOTE, // Видалено
     SUBLIST,
     LINK_ITEM
 }
 
 enum class LinkType {
     GOAL_LIST,
-    NOTE,
+    // NOTE, // Видалено
     URL,
     OBSIDIAN
 }
@@ -161,14 +161,7 @@ data class GoalList(
     val isAttachmentsExpanded: Boolean = false,
 )
 
-@Entity(tableName = "notes")
-data class Note(
-    @PrimaryKey val id: String,
-    val title: String?,
-    val content: String,
-    val createdAt: Long,
-    val updatedAt: Long?
-)
+// Сутність Note видалено
 
 @Entity(
     tableName = "inbox_records",
@@ -215,7 +208,7 @@ data class ListItem(
 sealed class ListItemContent {
     abstract val item: ListItem
     data class GoalItem(val goal: Goal, override val item: ListItem) : ListItemContent()
-    data class NoteItem(val note: Note, override val item: ListItem) : ListItemContent()
+    // NoteItem видалено
     data class SublistItem(val sublist: GoalList, override val item: ListItem) : ListItemContent()
     data class LinkItem(val link: LinkItemEntity, override val item: ListItem) : ListItemContent()
 }

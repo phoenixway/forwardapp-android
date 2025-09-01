@@ -112,8 +112,8 @@ fun GoalDetailScreen(
 
 
     val displayList = remember(listContent, list?.isAttachmentsExpanded) {
-        val attachmentItems = listContent.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
-        val draggableItems = listContent.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+        val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
+        val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem }
 
         if (list?.isAttachmentsExpanded == true) {
             attachmentItems + draggableItems
@@ -254,10 +254,10 @@ fun GoalDetailScreen(
     }
 
     val attachmentItems = remember(listContent) {
-        listContent.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+        listContent.filterIsInstance<ListItemContent.LinkItem>()
     }
     val draggableItems = remember(listContent) {
-        listContent.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+        listContent.filterNot { it is ListItemContent.LinkItem }
     }
 
     if (goalActionState is GoalActionDialogState.AwaitingActionChoice) {
@@ -306,8 +306,8 @@ fun GoalDetailScreen(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding(),
-        topBar = {
+            //.systemBarsPadding(),
+        ,topBar = {
             AdaptiveTopBar(
                 // Передаємо всі необхідні параметри
                 isSelectionModeActive = isSelectionModeActive,

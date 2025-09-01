@@ -14,12 +14,12 @@ import com.romankozak.forwardappmobile.data.database.models.* // Імпорту�
     entities = [
         Goal::class,
         GoalList::class,
-        Note::class,
+        // Note::class, // Видалено
         ListItem::class,
         ActivityRecord::class,
         RecentListEntry::class,
         LinkItemEntity::class,
-        InboxRecord::class // <-- ДОДАНО
+        InboxRecord::class
 
     ],
     version = 18, // MODIFIED: Version incremented to 17
@@ -34,12 +34,12 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao
-    abstract fun noteDao(): NoteDao
+    // abstract fun noteDao(): NoteDao // Видалено
     abstract fun listItemDao(): ListItemDao
     abstract fun activityRecordDao(): ActivityRecordDao
     abstract fun recentListDao(): RecentListDao
     abstract fun linkItemDao(): LinkItemDao
-    abstract fun inboxRecordDao(): InboxRecordDao // <-- ДОДАНО
+    abstract fun inboxRecordDao(): InboxRecordDao
 
 
     companion object {
@@ -62,9 +62,9 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_14_15,
                         MIGRATION_15_16,
                         MIGRATION_16_17, // MODIFIED: Added the new migration
-                        MIGRATION_17_18, // <-- ДОДАНО
+                        MIGRATION_17_18,
 
-                    )
+                        )
                     .build()
                 INSTANCE = instance
                 instance

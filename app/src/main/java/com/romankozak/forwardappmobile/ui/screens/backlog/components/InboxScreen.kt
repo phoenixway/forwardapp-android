@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoveUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,7 +28,7 @@ fun InboxScreen(
     records: List<InboxRecord>,
     onDelete: (String) -> Unit,
     onPromoteToGoal: (InboxRecord) -> Unit,
-    onRecordClick: (InboxRecord) -> Unit,
+    onRecordClick: (InboxRecord) -> Unit, // Ця функція тепер викликатиметься для редагування
     onCopy: (String) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -72,7 +73,7 @@ fun InboxScreen(
                                 snackbarHostState.showSnackbar("Переміщено до цілей")
                             }
                         },
-                        onClick = { onRecordClick(record) },
+                        onEdit = { onRecordClick(record) }, // --- ЗМІНЕНО: Передаємо функцію редагування
                         onCopy = {
                             onCopy(record.text)
                             scope.launch {
@@ -94,7 +95,7 @@ fun InboxScreen(
 @Composable
 fun InboxItemRow(
     record: InboxRecord,
-    onClick: () -> Unit,
+    onEdit: () -> Unit, // --- ЗМІНЕНО: Параметр для редагування
     onDelete: () -> Unit,
     onPromoteToGoal: () -> Unit,
     onCopy: () -> Unit
@@ -155,6 +156,19 @@ fun InboxItemRow(
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
+                            // --- ПОЧАТОК ЗМІН ---
+                            IconButton(
+                                onClick = onEdit,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Edit,
+                                    contentDescription = "Редагувати запис",
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            // --- КІНЕЦЬ ЗМІН ---
                             IconButton(
                                 onClick = onPromoteToGoal,
                                 modifier = Modifier.size(36.dp)
