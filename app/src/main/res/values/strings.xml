@@ -115,6 +115,28 @@
     <string name="link_content_description">Нотатки..</string>
     <string name="empty_note_preview">пуста нотатка</string>
     <string name="note_content_placeholder">тест</string>
+    <string name="forward">Forward</string>
+    <string name="toggle_attachments">toggle_attachments</string>
+    <string name="more_options">more_options</string>
+    <string name="edit_list">Properties</string>
+    <string name="go_to_home_list">go_to_home_list</string>
+    <string name="delete_list">deletelist</string>
+    <string name="share_list">share_list</string>
+    <string name="selected">selected</string>
+    <string name="display_name_optional">Назва (необов\'язково)</string>
+    <string name="add">Додати</string>
+    <string name="note_name">Назва нотатки</string>
+
+
+    <string name="close_selection_mode">Закрити режим виділення</string>
+    <string name="select_all">Вибрати все</string>
+    <string name="toggle_completed_status">Відмітити виконаними/невиконаними</string>
+    <string name="delete_selected">Видалити виділені</string>
+    <string name="more_actions">Додаткові дії</string>
+
+    <string name="create_link">Створити посилання</string>
+    <string name="move">Перемістити</string>
+    <string name="copy">Копіювати</string>
 
 
 </resources>
