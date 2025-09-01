@@ -96,8 +96,8 @@ class GoalDetailViewModel @Inject constructor(
     private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle,
 
-) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener, SelectionHandler.ResultListener, InboxHandler.ResultListener
-    {
+    ) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener, SelectionHandler.ResultListener, InboxHandler.ResultListener
+{
 
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
@@ -113,15 +113,15 @@ class GoalDetailViewModel @Inject constructor(
 
     // --- Handlers ---
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
-        val inputHandler = InputHandler(
-            goalRepository,
-            // settingsRepository, // <-- ВИДАЛІТЬ
-            // ollamaService,      // <-- ВИДАЛІТЬ
-            viewModelScope,
-            listIdFlow,
-            this
-        )
-        val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
+    val inputHandler = InputHandler(
+        goalRepository,
+        // settingsRepository, // <-- ВИДАЛІТЬ
+        // ollamaService,      // <-- ВИДАЛІТЬ
+        viewModelScope,
+        listIdFlow,
+        this
+    )
+    val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
     val inboxHandler =
         InboxHandler(goalRepository, viewModelScope, listIdFlow, this) // <-- СТВОРЮЄМО ЕКЗЕМПЛЯР
 
@@ -177,7 +177,6 @@ class GoalDetailViewModel @Inject constructor(
                         content.filter { itemContent ->
                             val textToSearch = when (itemContent) {
                                 is ListItemContent.GoalItem -> itemContent.goal.text
-                                is ListItemContent.NoteItem -> itemContent.note.content
                                 is ListItemContent.SublistItem -> itemContent.sublist.name
                                 is ListItemContent.LinkItem -> itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
                             }
@@ -359,7 +358,7 @@ class GoalDetailViewModel @Inject constructor(
     }
     fun moveItem(fromIndex: Int, toIndex: Int) {
         val currentContent = _listContent.value
-        val draggableItems = currentContent.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }.toMutableList()
+        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
         if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) return
         if (fromIndex == toIndex) return
         val movedItem = draggableItems.removeAt(fromIndex)
@@ -367,7 +366,7 @@ class GoalDetailViewModel @Inject constructor(
         val newFullList = mutableListOf<ListItemContent>()
         val reorderedDraggablesIterator = draggableItems.iterator()
         currentContent.forEach { originalItem ->
-            if (originalItem is ListItemContent.NoteItem || originalItem is ListItemContent.LinkItem) newFullList.add(originalItem)
+            if (originalItem is ListItemContent.LinkItem) newFullList.add(originalItem)
             else if (reorderedDraggablesIterator.hasNext()) newFullList.add(reorderedDraggablesIterator.next())
         }
         _listContent.value = newFullList
@@ -444,7 +443,7 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onAddAttachment(type: AttachmentType) {
         when (type) {
-            AttachmentType.NOTE -> itemActionHandler.scope.launch { /* Handled by InputHandler now */ } // Consider removing or refactoring
+            // Створення нотаток видалено
             AttachmentType.WEB_LINK -> inputHandler.onShowAddWebLinkDialog()
             AttachmentType.OBSIDIAN_LINK -> inputHandler.onShowAddObsidianLinkDialog()
             AttachmentType.LIST_LINK -> inputHandler.onAddListLinkRequest()
@@ -512,17 +511,17 @@ class GoalDetailViewModel @Inject constructor(
         _recordToEdit.value = null
     }
 
-        override fun addQuickRecord(text: String) {
-            // Делегуємо виклик до нашого нового InboxHandler
-            inboxHandler.addQuickRecord(text)
-            // Також очищуємо поле вводу
-            updateInputState(inputValue = TextFieldValue(""))
-        }
+    override fun addQuickRecord(text: String) {
+        // Делегуємо виклик до нашого нового InboxHandler
+        inboxHandler.addQuickRecord(text)
+        // Також очищуємо поле вводу
+        updateInputState(inputValue = TextFieldValue(""))
+    }
 
-        fun copyInboxRecordText(text: String) {
-            // Використовуємо існуючий метод, який реалізує інтерфейс
-            copyToClipboard(text, "Inbox Record")
-        }
+    fun copyInboxRecordText(text: String) {
+        // Використовуємо існуючий метод, який реалізує інтерфейс
+        copyToClipboard(text, "Inbox Record")
+    }
 
 
 }

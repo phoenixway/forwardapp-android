@@ -46,7 +46,6 @@ class ItemActionHandler @Inject constructor(
             val currentListId = listIdFlow.value
             when (item) {
                 is ListItemContent.GoalItem -> resultListener.requestNavigation("goal_edit_screen/$currentListId?goalId=${item.goal.id}")
-                is ListItemContent.NoteItem -> resultListener.requestNavigation("note_edit_screen/$currentListId/${item.note.id}")
                 is ListItemContent.SublistItem -> resultListener.requestNavigation("goal_detail_screen/${item.sublist.id}")
                 is ListItemContent.LinkItem -> resultListener.requestNavigation(GoalDetailViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
             }
@@ -101,16 +100,10 @@ class ItemActionHandler @Inject constructor(
         scope.launch {
             val (message, text) = when (content) {
                 is ListItemContent.GoalItem -> Pair("Текст скопійовано", content.goal.text)
-
-                // --- ЗМІНЕНО: Додано перевірку на null для заголовка нотатки ---
-                is ListItemContent.NoteItem -> Pair("Нотатка скопійована", content.note.title ?: "")
-
-                // --- ЗМІНЕНО: Спрощено вираз, видалено зайву перевірку ---
                 is ListItemContent.LinkItem -> {
                     val linkText = content.link.linkData.displayName ?: content.link.linkData.target
                     Pair("Посилання скопійовано", linkText)
                 }
-
                 is ListItemContent.SublistItem -> Pair("Назва списку скопійована", content.sublist.name)
             }
 

@@ -29,7 +29,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 
 enum class AttachmentType {
-    NOTE, WEB_LINK, OBSIDIAN_LINK, LIST_LINK, SHORTCUT
+    WEB_LINK, OBSIDIAN_LINK, LIST_LINK, SHORTCUT
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,17 +163,6 @@ private fun AttachmentItemCard(
         }
 
         when (item) {
-            is ListItemContent.NoteItem -> {
-                NoteItemRow(
-                    noteContent = item,
-                    isSelected = false,
-                    isHighlighted = false,
-                    onClick = { onItemClick(item) },
-                    onLongClick = { },
-                    endAction = endAction,
-                    onDelete = { onDeleteItem(item) },
-                )
-            }
             is ListItemContent.LinkItem -> {
                 LinkItemRow(
                     link = item.link.linkData,
@@ -224,9 +213,6 @@ private fun AddAttachmentButton(
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            AttachmentTypeMenuItem(R.string.attachment_type_note, AttachmentType.NOTE) { type ->
-                onAddAttachment(type); showAddMenu = false
-            }
             AttachmentTypeMenuItem(R.string.attachment_type_web_link, AttachmentType.WEB_LINK) { type ->
                 onAddAttachment(type); showAddMenu = false
             }

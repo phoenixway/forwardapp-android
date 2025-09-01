@@ -280,7 +280,6 @@ fun EnhancedRelatedLinkChip(
             Icon(
                 imageVector = when (link.type) {
                     LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
-                    LinkType.NOTE -> Icons.AutoMirrored.Filled.Notes
                     LinkType.URL -> Icons.Default.Link
                     LinkType.OBSIDIAN -> Icons.Default.Book
                 },

@@ -1,22 +1,23 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/noteedit/NoteEditViewModel.kt
 package com.romankozak.forwardappmobile.ui.screens.noteedit
 
-import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.Note
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
+
+/**
+ * Цей клас є заглушкою. Функціонал нотаток було видалено з проєкту.
+ * Цей файл слід видалити разом з відповідним UI-екраном.
+ */
 
 // Події, які ViewModel може надсилати до UI
 sealed class NoteEditEvent {
@@ -29,8 +30,8 @@ data class NoteEditUiState(
     val content: TextFieldValue = TextFieldValue(""),
     val isReady: Boolean = false,
     val isNewNote: Boolean = true,
-    val error: String? = null, // Інтегровано з v1
-    val isSaveButtonEnabled: Boolean = false // Інтегровано з v1
+    val error: String? = null,
+    val isSaveButtonEnabled: Boolean = false
 )
 
 @HiltViewModel
@@ -39,121 +40,34 @@ class NoteEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val noteId: String? = savedStateHandle["noteId"]
-    private val initialListId: String? = savedStateHandle["listId"]
-
     private val _uiState = MutableStateFlow(NoteEditUiState())
     val uiState = _uiState.asStateFlow()
 
     private val _events = Channel<NoteEditEvent>()
     val events = _events.receiveAsFlow()
 
-    private var currentNote: Note? = null
-
     init {
+        // Оскільки нотаток більше немає, просто повідомляємо, що екран готовий.
         viewModelScope.launch {
-            if (noteId != null) {
-                loadExistingNote(noteId)
-            } else {
-                _uiState.update { it.copy(isReady = true, isNewNote = true) }
-                updateSaveButtonState() // Інтегровано з v1
-            }
-        }
-    }
-
-    private suspend fun loadExistingNote(id: String) {
-        val note = goalRepository.getNoteById(id)
-        if (note != null) {
-            currentNote = note
-            _uiState.update {
-                it.copy(
-                    title = TextFieldValue(note.title ?: ""),
-                    content = TextFieldValue(note.content),
-                    isReady = true,
-                    isNewNote = false
-                )
-            }
-            updateSaveButtonState() // Інтегровано з v1
-        } else {
-            _events.send(NoteEditEvent.NavigateBack("Нотатку не знайдено"))
+            _uiState.value = NoteEditUiState(
+                isReady = true,
+                error = "Функціонал нотаток видалено."
+            )
         }
     }
 
     fun onTitleChange(newValue: TextFieldValue) {
-        _uiState.update { it.copy(title = newValue) }
-        updateSaveButtonState() // Інтегровано з v1
+        // Дії не потрібні
     }
 
     fun onContentChange(newValue: TextFieldValue) {
-        _uiState.update { it.copy(content = newValue) }
-        updateSaveButtonState() // Інтегровано з v1
+        // Дії не потрібні
     }
-
-    private fun updateSaveButtonState() {
-        val state = _uiState.value
-        val hasChanges = currentNote?.let {
-            it.title.orEmpty() != state.title.text ||
-                    it.content != state.content.text
-        } ?: true // Для нової нотатки зміни є завжди
-
-        // Перевіряємо, чи є валідним або заголовок, або вміст
-        val isNoteValid = state.title.text.isNotBlank() || state.content.text.isNotBlank()
-
-        _uiState.update {
-            it.copy(
-                isSaveButtonEnabled = hasChanges && isNoteValid,
-                // Оновлюємо повідомлення про помилку, якщо обидва поля порожні
-                error = if (isNoteValid) null else "Заголовок або вміст мають бути заповнені"
-            )
-        }
-    }
-
 
     fun onSave() {
-        val state = _uiState.value
-        val TAG = "SaveDebug" // Створимо тег для логів
-
-        Log.d(TAG, "onSave() called.")
-        Log.d(TAG, "Is button enabled in state? ${state.isSaveButtonEnabled}")
-
-        if (!state.isSaveButtonEnabled) {
-            Log.d(TAG, "Save aborted: Button is not enabled.")
-            return
-        }
-
+        // Дії не потрібні
         viewModelScope.launch {
-            Log.d(TAG, "Coroutine launched.")
-            Log.d(TAG, "Is new note? ${state.isNewNote}")
-            Log.d(TAG, "Initial ListId: $initialListId")
-
-            val noteToSave = currentNote?.copy(
-                title = state.title.text.ifBlank { null },
-                content = state.content.text,
-                updatedAt = System.currentTimeMillis()
-            ) ?: Note(
-                id = UUID.randomUUID().toString(),
-                title = state.title.text.ifBlank { null },
-                content = state.content.text,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-
-            if (state.isNewNote) {
-                if (initialListId == null) {
-                    // ЦЕ НАЙБІЛЬШ ІМОВІРНА ПРИЧИНА ДЛЯ НОВИХ НОТАТОК
-                    Log.e(TAG, "Save aborted for new note: initialListId is NULL!")
-                    return@launch
-                }
-                Log.d(TAG, "Saving new note to list $initialListId...")
-                goalRepository.addNoteToList(noteToSave, initialListId)
-            } else {
-                Log.d(TAG, "Updating existing note...")
-                goalRepository.updateNote(noteToSave)
-            }
-
-            Log.d(TAG, "Sending NavigateBack event...")
-            _events.send(NoteEditEvent.NavigateBack("Збережено"))
+            _events.send(NoteEditEvent.NavigateBack())
         }
     }
-
 }

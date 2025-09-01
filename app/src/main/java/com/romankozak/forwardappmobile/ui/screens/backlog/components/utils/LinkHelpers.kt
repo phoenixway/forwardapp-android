@@ -36,7 +36,6 @@ fun handleRelatedLinkClick(
                     Toast.makeText(context, context.getString(R.string.error_obsidian_vault_not_set), Toast.LENGTH_LONG).show()
                 }
             }
-            LinkType.NOTE -> { /* TODO */ }
         }
     } catch (e: Exception) {
         Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
