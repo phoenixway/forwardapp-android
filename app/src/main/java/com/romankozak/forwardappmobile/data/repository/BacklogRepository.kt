@@ -390,4 +390,9 @@ class GoalRepository @Inject constructor(
         Log.d("DND_DEBUG", "[DEBUG_QUERY] СИРИЙ ПОРЯДОК З БАЗИ ДАНИХ:\n$orderLog")
     }
 
+    suspend fun deleteGoalList(listId: String) {
+        goalDao.deleteGoalListById(listId)
+    }
+
+
 }

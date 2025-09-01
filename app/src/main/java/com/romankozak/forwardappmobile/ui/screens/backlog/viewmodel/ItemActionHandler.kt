@@ -23,13 +23,9 @@ class ItemActionHandler @Inject constructor(
     private val listIdFlow: StateFlow<String>,
     private val resultListener: ResultListener
 ) {
-    interface ResultListener {
-        fun requestNavigation(route: String)
-        fun showSnackbar(message: String, action: String? = null)
-        fun forceRefresh()
+    interface ResultListener : BaseHandlerResultListener {
         fun isSelectionModeActive(): Boolean
         fun toggleSelection(itemId: String)
-        fun setPendingAction(actionType: GoalActionType, itemIds: Set<String>, goalIds: Set<String>)
     }
 
     private var recentlyDeletedItems: List<ListItemContent>? = null
@@ -105,12 +101,21 @@ class ItemActionHandler @Inject constructor(
         scope.launch {
             val (message, text) = when (content) {
                 is ListItemContent.GoalItem -> Pair("Текст скопійовано", content.goal.text)
-                is ListItemContent.NoteItem -> Pair("Нотатка скопійоана", content.note.title)
-                is ListItemContent.LinkItem -> Pair("Посилання скопійовано", content.link.linkData.displayName ?: content.link.linkData.target)
+
+                // --- ЗМІНЕНО: Додано перевірку на null для заголовка нотатки ---
+                is ListItemContent.NoteItem -> Pair("Нотатка скопійована", content.note.title ?: "")
+
+                // --- ЗМІНЕНО: Спрощено вираз, видалено зайву перевірку ---
+                is ListItemContent.LinkItem -> {
+                    val linkText = content.link.linkData.displayName ?: content.link.linkData.target
+                    Pair("Посилання скопійовано", linkText)
+                }
+
                 is ListItemContent.SublistItem -> Pair("Назва списку скопійована", content.sublist.name)
             }
-            // Logic to copy text to clipboard would go here
-            resultListener.showSnackbar(message)
+
+            resultListener.copyToClipboard(text)
+            resultListener.showSnackbar(message, null)
         }
     }
 
@@ -119,7 +124,8 @@ class ItemActionHandler @Inject constructor(
             _itemForTransportMenu.value = item
             _showGoalTransportMenu.value = true
         } else {
-            resultListener.showSnackbar("Транспорт доступний тільки для цілей")
+            // --- ЗМІНЕНО: Явно передаємо null ---
+            resultListener.showSnackbar("Транспорт доступний тільки для цілей", null)
         }
     }
 
@@ -141,7 +147,9 @@ class ItemActionHandler @Inject constructor(
 
     fun undoDelete() {
         scope.launch {
-            resultListener.showSnackbar("Undo not implemented yet.")
+            // --- ЗМІНЕНО: Явно передаємо null ---
+            resultListener.showSnackbar("Undo not implemented yet.", null)
         }
     }
+
 }
