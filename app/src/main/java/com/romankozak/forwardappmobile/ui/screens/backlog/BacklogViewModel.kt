@@ -10,6 +10,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
@@ -19,6 +20,7 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
+import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.SelectionHandler
@@ -62,6 +64,10 @@ sealed class GoalActionDialogState {
 
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
 
+enum class ProjectViewMode {
+    BACKLOG, INBOX, ADDONS
+}
+
 data class UiState(
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
@@ -75,6 +81,7 @@ data class UiState(
     val showAddObsidianLinkDialog: Boolean = false,
     val itemToHighlight: String? = null,
     val needsStateRefresh: Boolean = false,
+    val currentView: ProjectViewMode = ProjectViewMode.BACKLOG, // <-- ДОДАНО
     val showRecentListsSheet: Boolean = false
 )
 
@@ -87,8 +94,10 @@ class GoalDetailViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val ollamaService: OllamaService,
     private val contextHandler: ContextHandler,
-    private val savedStateHandle: SavedStateHandle
-) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener, SelectionHandler.ResultListener {
+    private val savedStateHandle: SavedStateHandle,
+
+) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener, SelectionHandler.ResultListener, InboxHandler.ResultListener
+    {
 
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
@@ -104,8 +113,17 @@ class GoalDetailViewModel @Inject constructor(
 
     // --- Handlers ---
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
-    val inputHandler = InputHandler(goalRepository, settingsRepository, ollamaService, viewModelScope, listIdFlow, this)
-    val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
+        val inputHandler = InputHandler(
+            goalRepository,
+            // settingsRepository, // <-- ВИДАЛІТЬ
+            // ollamaService,      // <-- ВИДАЛІТЬ
+            viewModelScope,
+            listIdFlow,
+            this
+        )
+        val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
+    val inboxHandler =
+        InboxHandler(goalRepository, viewModelScope, listIdFlow, this) // <-- СТВОРЮЄМО ЕКЗЕМПЛЯР
 
 
     // --- State Flows ---
@@ -180,11 +198,25 @@ class GoalDetailViewModel @Inject constructor(
     private var pendingAction: GoalActionType? = null
     private var pendingSourceItemIds: Set<String> = emptySet()
     private var pendingSourceGoalIds: Set<String> = emptySet()
+    private val _inboxRecords = MutableStateFlow<List<InboxRecord>>(emptyList())
+    val inboxRecords: StateFlow<List<InboxRecord>> = _inboxRecords.asStateFlow()
+    private val _recordToEdit = MutableStateFlow<InboxRecord?>(null)
+    val recordToEdit: StateFlow<InboxRecord?> = _recordToEdit.asStateFlow()
+
 
     init {
         viewModelScope.launch { databaseContentStream.collect { dbContent -> _listContent.value = dbContent } }
         viewModelScope.launch { listIdFlow.filter { it.isNotEmpty() }.collect { id -> goalRepository.logListAccess(id) } }
         viewModelScope.launch { contextHandler.initialize() }
+        viewModelScope.launch {
+            listIdFlow.filter { it.isNotEmpty() }.flatMapLatest { id ->
+                goalRepository.getInboxRecordsStream(id)
+            }.collect { records ->
+                _inboxRecords.value = records
+            }
+        }
+
+
     }
 
     // --- ItemActionHandler.ResultListener Implementation ---
@@ -439,6 +471,58 @@ class GoalDetailViewModel @Inject constructor(
             }
         }
     }
+
+    // --- InboxHandler.ResultListener Implementation ---
+    override fun updateCurrentView(view: ProjectViewMode) {
+        _uiState.update { it.copy(currentView = view) }
+    }
+
+    override fun showEditInboxRecordDialog(record: InboxRecord) {
+        _recordToEdit.value = record
+    }
+
+    // --- Публічні методи, які буде викликати UI ---
+    // Тепер вони просто передають виклики до inboxHandler
+
+    fun onProjectViewChange(newView: ProjectViewMode) {
+        inboxHandler.onProjectViewChange(newView)
+    }
+
+    fun deleteInboxRecord(recordId: String) {
+        inboxHandler.deleteInboxRecord(recordId)
+    }
+
+    fun promoteInboxRecordToGoal(record: InboxRecord) {
+        inboxHandler.promoteInboxRecordToGoal(record)
+    }
+
+    // Функції для діалогу редагування
+    fun onInboxRecordEditRequest(record: InboxRecord) {
+        inboxHandler.onInboxRecordEditRequest(record)
+    }
+
+    fun onInboxRecordEditDismiss() {
+        _recordToEdit.value = null
+    }
+
+    fun onInboxRecordEditConfirm(newText: String) {
+        recordToEdit.value?.let { record ->
+            inboxHandler.updateInboxRecordText(record, newText)
+        }
+        _recordToEdit.value = null
+    }
+
+        override fun addQuickRecord(text: String) {
+            // Делегуємо виклик до нашого нового InboxHandler
+            inboxHandler.addQuickRecord(text)
+            // Також очищуємо поле вводу
+            updateInputState(inputValue = TextFieldValue(""))
+        }
+
+        fun copyInboxRecordText(text: String) {
+            // Використовуємо існуючий метод, який реалізує інтерфейс
+            copyToClipboard(text, "Inbox Record")
+        }
 
 
 }

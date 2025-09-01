@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -44,6 +45,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.Adap
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddWebLinkDialog
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.EditInboxRecordDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
 import kotlinx.coroutines.delay
@@ -96,6 +98,17 @@ fun GoalDetailScreen(
             }
         )
     }
+
+    // --- ОСЬ ЦЕЙ БЛОК БУЛО ДОДАНО ---
+    val recordToEdit by viewModel.recordToEdit.collectAsStateWithLifecycle()
+    recordToEdit?.let { record ->
+        EditInboxRecordDialog(
+            record = record,
+            onDismiss = { viewModel.onInboxRecordEditDismiss() },
+            onConfirm = { newText -> viewModel.onInboxRecordEditConfirm(newText) }
+        )
+    }
+    // --- КІНЕЦЬ НОВОГО БЛОКУ ---
 
 
     val displayList = remember(listContent, list?.isAttachmentsExpanded) {
@@ -302,8 +315,11 @@ fun GoalDetailScreen(
 
                 // Параметри для навігації
                 canGoBack = navController.previousBackStackEntry != null,
-                onBackClick = { navController.popBackStack() },
-                onForwardClick = { /* ... */ },
+                onBackClick = {
+                    viewModel.flushPendingMoves() // Додаємо очищення, як у BackHandler
+                    navController.popBackStack()
+                },
+                onForwardClick = { /* Цей функціонал не реалізовано */ },
                 onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
                 isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
                 onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
@@ -314,6 +330,11 @@ fun GoalDetailScreen(
                 menuExpanded = menuExpanded,
                 onMenuExpandedChange = { menuExpanded = it },
 
+                // --- ДОДАНО НОВІ ПАРАМЕТРИ ДЛЯ ПЕРЕМИКАЧА ---
+                currentView = uiState.currentView,
+                onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
+                // --- КІНЕЦЬ НОВИХ ПАРАМЕТРІВ ---
+
                 // Параметри для режиму вибору
                 selectedCount = uiState.selectedItemIds.size,
                 areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
@@ -322,7 +343,7 @@ fun GoalDetailScreen(
                 onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
                 onToggleComplete = { viewModel.selectionHandler.toggleCompletionForSelectedGoals(uiState.selectedItemIds) },
                 onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
-                onShareList = {  },
+                onShareList = { /* Цей функціонал не реалізовано */ },
                 onDeleteList = { viewModel.deleteCurrentList() },
                 modifier = Modifier
             )
@@ -356,125 +377,153 @@ fun GoalDetailScreen(
             }
         },
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            AttachmentsSection(
-                attachments = attachmentItems,
-                isExpanded = list?.isAttachmentsExpanded == true,
-                onAddAttachment = { viewModel.onAddAttachment(it) },
-                onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
-                // --- ЗМІНЕНО: Викликаємо onItemClick з itemActionHandler ---
-                onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
-            )
+        // Головний контейнер, який буде змінювати свій вміст
+        // в залежності від обраного режиму перегляду (uiState.currentView)
+        when (uiState.currentView) {
 
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                itemsIndexed(
-                    items = draggableItems,
-                    key = { _, item -> item.item.id }
-                ) { index, content ->
-                    val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
-                            (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
-
-                    val backgroundColor by animateColorAsState(
-                        targetValue = when {
-                            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-                            content.item.id in uiState.selectedItemIds -> MaterialTheme.colorScheme.primaryContainer
-                            (content as? ListItemContent.GoalItem)?.goal?.completed == true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                            else -> MaterialTheme.colorScheme.surface
-                        },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                        label = "bgAnim"
+            // --- РЕЖИМ 1: ВІДОБРАЖЕННЯ ОСНОВНОГО СПИСКУ (БЕКЛОГУ) ---
+            ProjectViewMode.BACKLOG -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    AttachmentsSection(
+                        attachments = attachmentItems,
+                        isExpanded = list?.isAttachmentsExpanded == true,
+                        onAddAttachment = { viewModel.onAddAttachment(it) },
+                        onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
+                        onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
                     )
 
-                    InteractiveListItem(
-                        item = content,
-                        index = index,
-                        dragDropState = dragDropState,
-                        swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
-                        isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
-                        resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                        backgroundColor = backgroundColor,
-                        onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                        onDelete = { viewModel.itemActionHandler.deleteItem(content) },
-                        onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
-                        onCreateInstanceRequest = {
-                            viewModel.itemActionHandler.onGoalActionSelected(
-                                GoalActionType.CreateInstance,
-                                content
-                            )
-                        },
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        itemsIndexed(
+                            items = draggableItems,
+                            key = { _, item -> item.item.id }
+                        ) { index, content ->
+                            val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
+                                    (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                        onMoveInstanceRequest = {
-                            viewModel.itemActionHandler.onGoalActionSelected(
-                                GoalActionType.MoveInstance,
-                                content
+                            val backgroundColor by animateColorAsState(
+                                targetValue = when {
+                                    isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                                    content.item.id in uiState.selectedItemIds -> MaterialTheme.colorScheme.primaryContainer
+                                    (content as? ListItemContent.GoalItem)?.goal?.completed == true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                    else -> MaterialTheme.colorScheme.surface
+                                },
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                label = "bgAnim"
                             )
-                        },
-                        onCopyGoalRequest = {
-                            viewModel.itemActionHandler.onGoalActionSelected(
-                                GoalActionType.CopyGoal,
-                                content
-                            )
-                        },
-                        modifier = Modifier,
-                        onGoalTransportRequest = { viewModel.itemActionHandler.onGoalTransportInitiated(content) },
-                        onCopyContentRequest = {
-                            viewModel.itemActionHandler.copyContentRequest(content)
-                        }
 
-                    ) { isDragging ->
-                        when (content) {
-                            is ListItemContent.GoalItem -> {
-                                GoalItem(
-                                    goal = content.goal,
-                                    obsidianVaultName = obsidianVaultName,
-                                    onToggle = { isChecked ->
-                                        viewModel.itemActionHandler.toggleGoalCompletedWithState(
-                                            content.goal,
-                                            isChecked
+                            InteractiveListItem(
+                                item = content,
+                                index = index,
+                                dragDropState = dragDropState,
+                                swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
+                                isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
+                                resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
+                                backgroundColor = backgroundColor,
+                                onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
+                                onDelete = { viewModel.itemActionHandler.deleteItem(content) },
+                                onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                onCreateInstanceRequest = {
+                                    viewModel.itemActionHandler.onGoalActionSelected(
+                                        GoalActionType.CreateInstance,
+                                        content
+                                    )
+                                },
+                                onMoveInstanceRequest = {
+                                    viewModel.itemActionHandler.onGoalActionSelected(
+                                        GoalActionType.MoveInstance,
+                                        content
+                                    )
+                                },
+                                onCopyGoalRequest = {
+                                    viewModel.itemActionHandler.onGoalActionSelected(
+                                        GoalActionType.CopyGoal,
+                                        content
+                                    )
+                                },
+                                modifier = Modifier,
+                                onGoalTransportRequest = { viewModel.itemActionHandler.onGoalTransportInitiated(content) },
+                                onCopyContentRequest = {
+                                    viewModel.itemActionHandler.copyContentRequest(content)
+                                }
+                            ) { isDragging ->
+                                when (content) {
+                                    is ListItemContent.GoalItem -> {
+                                        GoalItem(
+                                            goal = content.goal,
+                                            obsidianVaultName = obsidianVaultName,
+                                            onToggle = { isChecked ->
+                                                viewModel.itemActionHandler.toggleGoalCompletedWithState(
+                                                    content.goal,
+                                                    isChecked
+                                                )
+                                            },
+                                            onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                            onLongClick = { viewModel.selectionHandler.toggleSelection(content.item.id, uiState.selectedItemIds) },
+                                            onTagClick = { tag -> viewModel.onTagClicked(tag) },
+                                            onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
+                                            contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                            emojiToHide = currentListContextEmojiToHide
                                         )
-                                    },
-                                    onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                    onLongClick = { viewModel.selectionHandler.toggleSelection(content.item.id, uiState.selectedItemIds) },
-                                    onTagClick = { tag -> viewModel.onTagClicked(tag) },
-                                    onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
-                                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                                    emojiToHide = currentListContextEmojiToHide
-                                )
-                            }
-
-                            is ListItemContent.SublistItem -> {
-                                SublistItemRow(
-                                    sublistContent = content,
-                                    isSelected = content.item.id in uiState.selectedItemIds,
-                                    isHighlighted = isHighlighted,
-                                    onClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                    onLongClick = { viewModel.toggleSelection(content.item.id) }
-                                )
-                            }
-
-                            else -> {
-                                Log.w(
-                                    "BacklogScreen",
-                                    "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}"
-                                )
+                                    }
+                                    is ListItemContent.SublistItem -> {
+                                        SublistItemRow(
+                                            sublistContent = content,
+                                            isSelected = content.item.id in uiState.selectedItemIds,
+                                            isHighlighted = isHighlighted,
+                                            onClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                            onLongClick = { viewModel.toggleSelection(content.item.id) }
+                                        )
+                                    }
+                                    else -> {
+                                        Log.w(
+                                            "BacklogScreen",
+                                            "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}"
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-    }
-}
 
+            // --- РЕЖИМ 2: ВІДОБРАЖЕННЯ ІНБОКСУ ---
+            ProjectViewMode.INBOX -> {
+                val inboxRecords by viewModel.inboxRecords.collectAsStateWithLifecycle()
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    InboxScreen(
+                        records = inboxRecords,
+                        onDelete = viewModel::deleteInboxRecord,
+                        onPromoteToGoal = viewModel::promoteInboxRecordToGoal,
+                        onRecordClick = viewModel::onInboxRecordEditRequest,
+                        onCopy = { text -> viewModel.copyInboxRecordText(text) } // <-- ДОДАНО
+
+                    )
+                }
+            }
+
+            // --- РЕЖИМ 3: ЗАГЛУШКА ДЛЯ МАЙБУТНІХ ДОДАТКІВ ---
+            ProjectViewMode.ADDONS -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Додатки (в розробці)")
+                }
+            }
+        }
+    }}
 @Composable
 fun rememberSimpleDragDropState(
     lazyListState: LazyListState,

@@ -18,9 +18,11 @@ import com.romankozak.forwardappmobile.data.database.models.* // Імпорту�
         ListItem::class,
         ActivityRecord::class,
         RecentListEntry::class,
-        LinkItemEntity::class
+        LinkItemEntity::class,
+        InboxRecord::class // <-- ДОДАНО
+
     ],
-    version = 17, // MODIFIED: Version incremented to 17
+    version = 18, // MODIFIED: Version incremented to 17
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -37,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun activityRecordDao(): ActivityRecordDao
     abstract fun recentListDao(): RecentListDao
     abstract fun linkItemDao(): LinkItemDao
+    abstract fun inboxRecordDao(): InboxRecordDao // <-- ДОДАНО
 
 
     companion object {
@@ -59,6 +62,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_14_15,
                         MIGRATION_15_16,
                         MIGRATION_16_17, // MODIFIED: Added the new migration
+                        MIGRATION_17_18, // <-- ДОДАНО
+
                     )
                     .build()
                 INSTANCE = instance

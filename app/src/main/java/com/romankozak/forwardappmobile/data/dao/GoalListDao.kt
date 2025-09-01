@@ -72,4 +72,8 @@ interface GoalListDao {
     WHERE li.itemType = 'SUBLIST' AND sublist.name LIKE :query
 """)
     suspend fun searchSublistsGlobal(query: String): List<GlobalSublistSearchResult>
+
+    @Query("DELETE FROM goal_lists")
+    suspend fun deleteAll()
+
 }
