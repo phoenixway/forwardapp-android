@@ -78,4 +78,10 @@ object AppModule {
     fun provideLinkItemDao(database: AppDatabase): LinkItemDao {
         return database.linkItemDao()
     }
+
+    @Provides
+    fun provideInboxRecordDao(appDatabase: AppDatabase): InboxRecordDao {
+        return appDatabase.inboxRecordDao()
+    }
+
 }

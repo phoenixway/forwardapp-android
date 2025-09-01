@@ -171,6 +171,27 @@ data class Note(
 )
 
 @Entity(
+    tableName = "inbox_records",
+    foreignKeys = [
+        ForeignKey(
+            entity = GoalList::class,
+            parentColumns = ["id"],
+            childColumns = ["projectId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class InboxRecord(
+    @PrimaryKey val id: String,
+    @ColumnInfo(index = true)
+    val projectId: String, // Зв'язок з GoalList (проєктом)
+    val text: String,
+    val createdAt: Long,
+    @ColumnInfo(name = "item_order")
+    val order: Long
+)
+
+@Entity(
     tableName = "list_items",
     foreignKeys = [
         ForeignKey(

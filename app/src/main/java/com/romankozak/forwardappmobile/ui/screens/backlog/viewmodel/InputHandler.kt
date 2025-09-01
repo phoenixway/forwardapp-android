@@ -2,28 +2,23 @@ package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.Note
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.domain.OllamaService
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URL
-import java.util.UUID
 import javax.inject.Inject
 
 class InputHandler @Inject constructor(
     private val goalRepository: GoalRepository,
-    private val settingsRepository: SettingsRepository,
-    private val ollamaService: OllamaService,
+    // Ми більше не використовуємо SettingsRepository та OllamaService тут
+    // private val settingsRepository: SettingsRepository,
+    // private val ollamaService: OllamaService,
     private val scope: CoroutineScope,
     private val listIdFlow: StateFlow<String>,
     private val resultListener: ResultListener
@@ -45,6 +40,8 @@ class InputHandler @Inject constructor(
         fun setPendingAction(actionType: GoalActionType, itemIds: Set<String> = emptySet(), goalIds: Set<String> = emptySet())
         fun requestNavigation(route: String)
         fun forceRefresh()
+        // Ця нова функція буде викликатись для додавання запису в інбокс
+        fun addQuickRecord(text: String)
     }
 
     fun onInputTextChanged(newValue: TextFieldValue, currentInputMode: InputMode) {
@@ -63,70 +60,41 @@ class InputHandler @Inject constructor(
         val textToSubmit = inputValue.text.trim()
         if (textToSubmit.isBlank()) return
 
-        val currentListId = listIdFlow.value
-        if (currentListId.isBlank()) return
+        // Використовуємо один when для обробки всіх можливих режимів
+        when (inputMode) {
+            InputMode.AddGoal -> {
+                val currentListId = listIdFlow.value
+                if (currentListId.isBlank()) return
 
-        scope.launch(Dispatchers.IO) {
-            val newItemId: String? = when (inputMode) {
-                InputMode.AddGoal -> goalRepository.addGoalToList(textToSubmit, currentListId)
-                InputMode.AddNote -> handleNoteSubmission(textToSubmit, currentListId)
-                InputMode.SearchInList -> null
-                InputMode.SearchGlobal -> {
-                    resultListener.requestNavigation("global_search_screen/$textToSubmit")
-                    null
+                scope.launch(Dispatchers.IO) {
+                    val newItemId = goalRepository.addGoalToList(textToSubmit, currentListId)
+                    // Оновлюємо UI на головному потоці
+                    withContext(Dispatchers.Main) {
+                        resultListener.updateInputState(
+                            inputValue = TextFieldValue(""),
+                            newlyAddedItemId = newItemId
+                        )
+                        resultListener.forceRefresh()
+                    }
                 }
             }
 
-            withContext(Dispatchers.Main) {
-                resultListener.updateInputState(
-                    inputValue = TextFieldValue(""),
-                    newlyAddedItemId = newItemId
-                )
-                if (inputMode == InputMode.AddGoal || (inputMode == InputMode.AddNote && textToSubmit.length <= 60)) {
-                    resultListener.forceRefresh()
-                }
+            InputMode.AddQuickRecord -> {
+                // Просто викликаємо метод слухача.
+                // ViewModel сама подбає про запуск coroutine та очищення поля вводу.
+                resultListener.addQuickRecord(textToSubmit)
             }
-        }
-    }
 
-    private suspend fun handleNoteSubmission(text: String, listId: String): String {
-        val words = text.split(Regex("\\s+"))
-        val isTooLongForTitle = text.length > 60 || words.size > 5
-
-        return if (isTooLongForTitle) {
-            val initialNote = Note(
-                id = UUID.randomUUID().toString(),
-                title = "Генерація заголовку...",
-                content = text,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-            val generatedItemId = goalRepository.addNoteToList(initialNote, listId)
-
-            withContext(Dispatchers.Main) { resultListener.forceRefresh() }
-
-            scope.launch { // Launch a concurrent job for title generation
-                val baseUrl = settingsRepository.ollamaUrlFlow.first()
-                val fastModel = settingsRepository.ollamaFastModelFlow.first()
-                val finalTitle = if (baseUrl.isNotBlank() && fastModel.isNotBlank()) {
-                    ollamaService.generateTitle(baseUrl, fastModel, text)
-                        .getOrElse { text.split(Regex("\\s+")).take(5).joinToString(" ") + "..." }
-                } else {
-                    text.split(Regex("\\s+")).take(5).joinToString(" ") + "..."
-                }
-                val updatedNote = initialNote.copy(title = finalTitle, updatedAt = System.currentTimeMillis())
-                goalRepository.updateNote(updatedNote)
+            InputMode.SearchGlobal -> {
+                resultListener.requestNavigation("global_search_screen/$textToSubmit")
+                // Очищуємо поле вводу після пошуку для кращого UX
+                resultListener.updateInputState(inputValue = TextFieldValue(""))
             }
-            generatedItemId
-        } else {
-            val newNote = Note(
-                id = UUID.randomUUID().toString(),
-                title = text,
-                content = "",
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-            goalRepository.addNoteToList(newNote, listId)
+
+            InputMode.SearchInList -> {
+                // Для локального пошуку кнопка "Надіслати" неактивна,
+                // але цей випадок робить 'when' вичерпним. Дій не потрібно.
+            }
         }
     }
 
