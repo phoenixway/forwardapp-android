@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -229,8 +231,27 @@ fun HandleDialogs(
         is DialogState.AboutApp -> {
             AboutAppDialog(stats) { viewModel.dismissDialog() }
         }
-    }
 
+    is DialogState.ConfirmFullImport -> {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDialog() },
+            title = { Text("Restore from backup?") },
+            text = { Text("WARNING: All current data in the application will be deleted and replaced with data from the backup file. This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onFullImportConfirmed(state.uri) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete and Restore")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissDialog() }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }}
     if (showWifiServerDialog) {
         WifiServerDialog(wifiServerAddress) { viewModel.onDismissWifiServerDialog() }
     }

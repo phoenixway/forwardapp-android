@@ -2,6 +2,8 @@
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import com.romankozak.forwardappmobile.data.database.models.GoalList
@@ -22,4 +24,14 @@ interface RecentListDao {
         LIMIT :limit
     """)
     fun getRecentLists(limit: Int): Flow<List<GoalList>>
+
+    @Query("SELECT * FROM recent_list_entries")
+    suspend fun getAllEntries(): List<RecentListEntry>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entries: List<RecentListEntry>)
+
+    @Query("DELETE FROM recent_list_entries")
+    suspend fun deleteAll()
+
 }

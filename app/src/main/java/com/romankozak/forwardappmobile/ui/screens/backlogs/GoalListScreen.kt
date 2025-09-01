@@ -224,7 +224,8 @@ fun GoalListScreen(
 
     BackHandler(enabled = isSearchActive) { viewModel.onToggleSearch(isActive = false) }
     val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.importFromFile(it) }
+        // Викликаємо новий метод, який показує діалог, а не імпортує напряму
+        uri?.let { viewModel.onImportFromFileRequested(it) }
     }
 
 

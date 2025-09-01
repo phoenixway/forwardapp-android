@@ -29,6 +29,13 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.romankozak.forwardappmobile.data.dao.* // Імпортуємо всі DAO
+import com.romankozak.forwardappmobile.data.sync.DatabaseContent
+import com.romankozak.forwardappmobile.data.sync.FullAppBackup
+import com.romankozak.forwardappmobile.data.sync.SettingsContent
+import androidx.datastore.preferences.core.Preferences
+import kotlinx.coroutines.flow.first
+import androidx.room.withTransaction // Додайте цей імпорт
 
 enum class ChangeType {
     Add, Update, Delete, Move
@@ -56,9 +63,19 @@ private data class LocalSyncState(
 
 @Singleton
 class SyncRepository @Inject constructor(
-    private val goalRepository: GoalRepository,
+    private val goalRepository: GoalRepository, // Можна залишити, якщо зручно
     private val appDatabase: AppDatabase,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    // ✨ ДОДАНО: Прямі залежності для повноти
+    private val goalDao: GoalDao,
+    private val goalListDao: GoalListDao,
+    private val noteDao: NoteDao,
+    private val listItemDao: ListItemDao,
+    private val linkItemDao: LinkItemDao,
+    private val activityRecordDao: ActivityRecordDao,
+    private val recentListDao: RecentListDao,
+    private val settingsRepository: SettingsRepository
+
 ) {
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) { gson() }
@@ -374,4 +391,121 @@ class SyncRepository @Inject constructor(
 
         return Gson().toJson(desktopBackupFile)
     }
+
+    // ... всередині класу SyncRepository
+
+    /**
+     * Створює JSON-рядок, що містить повну резервну копію всіх даних додатку.
+     */
+    suspend fun createFullBackupJsonString(): String {
+        // 1. Отримуємо всі дані з бази даних
+        val databaseContent = DatabaseContent(
+            goals = goalDao.getAll(),
+            goalLists = goalListDao.getAll(),
+            notes = noteDao.getAll(),
+            listItems = listItemDao.getAll(),
+            activityRecords = activityRecordDao.getAllRecordsStream().first(), // Отримуємо поточний список
+            recentListEntries = recentListDao.getAllEntries(), // Потрібно додати цей метод в DAO
+            linkItemEntities = linkItemDao.getAllEntities(), // Потрібно додати цей метод в DAO
+        )
+
+        // 2. Отримуємо всі налаштування з DataStore
+        val settingsSnapshot: Preferences = settingsRepository.getPreferencesSnapshot() // Потрібно додати цей метод
+        val settingsMap = settingsSnapshot.asMap().mapKeys { entry ->
+            entry.key.name
+        }.mapValues { entry ->
+            entry.value.toString()
+        }
+        val settingsContent = SettingsContent(settings = settingsMap)
+
+        // 3. Компонуємо все в один об'єкт
+        val fullBackup = FullAppBackup(
+            database = databaseContent,
+            settings = settingsContent
+        )
+
+        // 4. Серіалізуємо в JSON
+        return Gson().toJson(fullBackup)
+    }
+    // ... всередині класу SyncRepository
+
+    /**
+     * Виконує повний експорт даних додатку у файл JSON, обраний користувачем.
+     */
+    suspend fun exportFullBackupToFile(): Result<String> {
+        return try {
+            val backupJson = createFullBackupJsonString()
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "forward_app_full_backup_$timestamp.json"
+
+            val contentResolver = context.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
+                }
+            }
+
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                contentResolver.openOutputStream(uri)?.use { it.write(backupJson.toByteArray()) }
+                Result.success("Повний бекап успішно збережено до Downloads/ForwardApp.")
+            } else {
+                Result.failure(Exception("Не вдалося створити файл для бекапу."))
+            }
+        } catch (e: Exception) {
+            Log.e("SyncRepository", "Помилка повного експорту", e)
+            Result.failure(e)
+        }
+    }
+    suspend fun importFullBackupFromFile(uri: Uri): Result<String> {
+        return try {
+            // 1. Читаємо та десеріалізуємо JSON
+            val jsonString = context.contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
+            if (jsonString.isNullOrBlank()) {
+                return Result.failure(Exception("Файл бекапу порожній або пошкоджений."))
+            }
+            val backupData = Gson().fromJson(jsonString, FullAppBackup::class.java)
+
+            // Перевірка версії, якщо потрібно
+            if (backupData.backupSchemaVersion != 1) {
+                return Result.failure(Exception("Несумісна версія файлу бекапу."))
+            }
+
+            // 2. Відновлюємо базу даних в одній транзакції
+            appDatabase.withTransaction {
+                // КРОК 2.1: ВИДАЛЯЄМО ВСІ СТАРІ ДАНІ
+                // Порядок важливий через зовнішні ключі! Спочатку залежні таблиці.
+                listItemDao.deleteAll() // Потрібно додати метод в DAO
+                recentListDao.deleteAll() // Потрібно додати метод в DAO
+                activityRecordDao.clearAll() // Існуючий метод
+                goalDao.deleteAll() // Потрібно додати метод в DAO
+                goalListDao.deleteAll() // Потрібно додати метод в DAO
+                noteDao.deleteAll() // Потрібно додати метод в DAO
+                linkItemDao.deleteAll() // Потрібно додати метод в DAO
+
+                // КРОК 2.2: ВСТАВЛЯЄМО НОВІ ДАНІ
+                // Порядок важливий! Спочатку незалежні таблиці.
+                val dbContent = backupData.database
+                goalListDao.insertLists(dbContent.goalLists)
+                goalDao.insertGoals(dbContent.goals)
+                noteDao.insertNotes(dbContent.notes)
+                linkItemDao.insertAll(dbContent.linkItemEntities) // Потрібно додати метод в DAO
+                activityRecordDao.insertAll(dbContent.activityRecords) // Потрібно додати метод в DAO
+                recentListDao.insertAll(dbContent.recentListEntries) // Потрібно додати метод в DAO
+                listItemDao.insertItems(dbContent.listItems)
+            }
+
+            // 3. Відновлюємо налаштування
+            settingsRepository.restoreFromMap(backupData.settings.settings)
+
+            Result.success("Дані успішно відновлено з резервної копії!")
+        } catch (e: Exception) {
+            Log.e("SyncRepository", "Помилка повного імпорту", e)
+            Result.failure(e)
+        }
+    }
+
+
 }
