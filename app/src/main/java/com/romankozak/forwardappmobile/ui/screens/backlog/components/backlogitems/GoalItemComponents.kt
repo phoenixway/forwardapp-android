@@ -36,7 +36,6 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 fun RelatedLinkChip(link: RelatedLink, onClick: () -> Unit) {
     val icon = when (link.type) {
         LinkType.GOAL_LIST -> Icons.Default.ListAlt
-        LinkType.NOTE -> Icons.Default.Notes
         LinkType.URL -> Icons.Default.Link
         LinkType.OBSIDIAN -> Icons.Default.Book
     }

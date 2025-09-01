@@ -52,7 +52,6 @@ fun BrowserNavigationBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ліва група кнопок з покращеними стилями
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val backButtonAlpha by animateFloatAsState(
                     targetValue = if (canGoBack) 1f else 0.6f,
@@ -98,7 +97,6 @@ fun BrowserNavigationBar(
                 }
             }
 
-            // Права група кнопок з покращеними стилями
             RightButtons(
                 isAttachmentsExpanded = isAttachmentsExpanded,
                 onToggleAttachments = onToggleAttachments,
@@ -128,7 +126,6 @@ private fun RightButtons(
     onViewChange: (ProjectViewMode) -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Компактні сегментовані кнопки
         SingleChoiceSegmentedButtonRow(
             modifier = Modifier
                 .height(36.dp)
@@ -138,6 +135,9 @@ private fun RightButtons(
                 selected = currentView == ProjectViewMode.BACKLOG,
                 onClick = { onViewChange(ProjectViewMode.BACKLOG) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                // --- ПОЧАТОК ЗМІН ---
+                icon = { }, // Прибираємо стандартну іконку-галочку
+                // --- КІНЕЦЬ ЗМІН ---
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -157,6 +157,9 @@ private fun RightButtons(
                 selected = currentView == ProjectViewMode.INBOX,
                 onClick = { onViewChange(ProjectViewMode.INBOX) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                // --- ПОЧАТОК ЗМІН ---
+                icon = { }, // Прибираємо стандартну іконку-галочку
+                // --- КІНЕЦЬ ЗМІН ---
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -172,118 +175,116 @@ private fun RightButtons(
                 )
             }
         }
-    }
 
-    // Покращена кнопка вкладень з анімацією
-    val attachmentIconColor by animateColorAsState(
-        targetValue = if (isAttachmentsExpanded)
-            MaterialTheme.colorScheme.primary
-        else
-            MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "attachmentIconColor"
-    )
-
-    val attachmentScale by animateFloatAsState(
-        targetValue = if (isAttachmentsExpanded) 1.2f else 1f,
-        label = "attachmentScale"
-    )
-
-    IconButton(
-        onClick = onToggleAttachments,
-        modifier = Modifier
-            .size(40.dp)
-            .graphicsLayer {
-                scaleX = attachmentScale
-                scaleY = attachmentScale
-            }
-    ) {
-        Icon(
-            imageVector = Icons.Default.Attachment,
-            contentDescription = stringResource(R.string.toggle_attachments),
-            tint = attachmentIconColor
+        val attachmentIconColor by animateColorAsState(
+            targetValue = if (isAttachmentsExpanded)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.onSurfaceVariant,
+            label = "attachmentIconColor"
         )
-    }
 
-    // Покращене dropdown меню
-    Box {
-        IconButton(onClick = { onMenuExpandedChange(true) }) {
+        val attachmentScale by animateFloatAsState(
+            targetValue = if (isAttachmentsExpanded) 1.2f else 1f,
+            label = "attachmentScale"
+        )
+
+        IconButton(
+            onClick = onToggleAttachments,
+            modifier = Modifier
+                .size(40.dp)
+                .graphicsLayer {
+                    scaleX = attachmentScale
+                    scaleY = attachmentScale
+                }
+        ) {
             Icon(
-                Icons.Default.MoreVert,
-                contentDescription = stringResource(R.string.more_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                imageVector = Icons.Default.Attachment,
+                contentDescription = stringResource(R.string.toggle_attachments),
+                tint = attachmentIconColor
             )
         }
 
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { onMenuExpandedChange(false) },
-            modifier = Modifier.width(180.dp)
-        ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.edit_list),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                onClick = {
-                    onEditList()
-                    onMenuExpandedChange(false)
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            )
+        Box {
+            IconButton(onClick = { onMenuExpandedChange(true) }) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.more_options),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.share_list),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                onClick = {
-                    onShareList()
-                    onMenuExpandedChange(false)
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Share,
-                        contentDescription = "Поділитися списком",
-                        tint = MaterialTheme.colorScheme.tertiary
-                    )
-                }
-            )
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { onMenuExpandedChange(false) },
+                modifier = Modifier.width(180.dp)
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.edit_list),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    onClick = {
+                        onEditList()
+                        onMenuExpandedChange(false)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                )
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.share_list),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    onClick = {
+                        onShareList()
+                        onMenuExpandedChange(false)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Поділитися списком",
+                            tint = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                )
 
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = stringResource(R.string.delete_list),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                onClick = {
-                    onDeleteList()
-                    onMenuExpandedChange(false)
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Outlined.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            )
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.delete_list),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    onClick = {
+                        onDeleteList()
+                        onMenuExpandedChange(false)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                )
+            }
         }
     }
 }
