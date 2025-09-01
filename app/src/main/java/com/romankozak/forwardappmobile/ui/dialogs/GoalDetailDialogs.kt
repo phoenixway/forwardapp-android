@@ -89,17 +89,7 @@ fun InputModeDialog(onDismiss: () -> Unit, onSelect: (InputMode) -> Unit) {
                 )
                 HorizontalDivider()
 
-                // ✨ ADDED: Option to Add Note, reflecting the new InputMode enum
-                Text(
-                    text = "Add Note",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelect(InputMode.AddNote) }
-                        .padding(16.dp)
-                )
-                HorizontalDivider()
-
-                // Option to Search in the current list
+                 // Option to Search in the current list
                 Text(
                     text = "Search in List",
                     modifier = Modifier

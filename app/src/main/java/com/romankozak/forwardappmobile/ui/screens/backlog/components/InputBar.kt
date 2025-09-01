@@ -36,8 +36,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 
-private val modes = listOf(InputMode.SearchInList, InputMode.SearchGlobal, InputMode.AddGoal, InputMode.AddNote)
-
+private val modes = listOf(InputMode.SearchInList, InputMode.SearchGlobal, InputMode.AddGoal, InputMode.AddQuickRecord)
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GoalInputBar(
@@ -67,7 +66,7 @@ fun GoalInputBar(
 
     val (containerColor, contentColor, accentColor) = when (inputMode) {
         InputMode.AddGoal -> Triple(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary)
-        InputMode.AddNote -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, MaterialTheme.colorScheme.primary)
+        InputMode.AddQuickRecord -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, MaterialTheme.colorScheme.primary)
         InputMode.SearchInList -> Triple(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, MaterialTheme.colorScheme.secondary)
         InputMode.SearchGlobal -> Triple(MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer, MaterialTheme.colorScheme.tertiary)
     }
@@ -190,7 +189,7 @@ fun GoalInputBar(
                             ) { mode ->
                                 val icon = when (mode) {
                                     InputMode.AddGoal -> Icons.Outlined.Add
-                                    InputMode.AddNote -> Icons.AutoMirrored.Outlined.Notes
+                                    InputMode.AddQuickRecord -> Icons.Outlined.Inbox // Or any other icon you prefer for the inbox
                                     InputMode.SearchInList -> Icons.Outlined.Search
                                     InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
                                 }
@@ -257,10 +256,10 @@ fun GoalInputBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.menu_add_note)) },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Notes, null, modifier = Modifier.size(18.dp)) },
+                        text = { Text(stringResource(R.string.menu_add_quick_record)) }, // Create this string resource
+                        leadingIcon = { Icon(Icons.Outlined.Inbox, null, modifier = Modifier.size(18.dp)) },
                         onClick = {
-                            onInputModeSelected(InputMode.AddNote)
+                            onInputModeSelected(InputMode.AddQuickRecord)
                             showModeMenu = false
                         }
                     )
@@ -300,7 +299,7 @@ fun GoalInputBar(
                     Text(
                         text = when (inputMode) {
                             InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
-                            InputMode.AddNote -> stringResource(R.string.hint_add_note)
+                            InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record) // Create this string resource
                             InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
                             InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
                         },
@@ -323,7 +322,7 @@ fun GoalInputBar(
                 )
             }
             AnimatedVisibility(
-                visible = inputValue.text.isNotBlank() && (inputMode == InputMode.AddGoal || inputMode == InputMode.AddNote),
+                visible = inputValue.text.isNotBlank() && (inputMode == InputMode.AddGoal || inputMode == InputMode.AddQuickRecord),
                 enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
                 exit = fadeOut() + scaleOut(targetScale = 0.8f)
             ) {

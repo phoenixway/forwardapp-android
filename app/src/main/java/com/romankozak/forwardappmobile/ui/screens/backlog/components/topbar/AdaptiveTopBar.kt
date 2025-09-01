@@ -1,48 +1,42 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
+import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectViewMode
 
-private enum class AdaptiveTopBarSlot {
-    LEFT_BUTTONS,
-    RIGHT_BUTTONS,
-    TITLE_TEXT,
-    TITLE_BAR,
-    FULL_NAV_BAR
-}
-
-// --- ПОЧАТОК ЗМІН ---
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdaptiveTopBar(
-    // Параметри для всіх станів
     isSelectionModeActive: Boolean,
     title: String,
-    // Параметри для BrowserNavigationBar
     canGoBack: Boolean,
     onBackClick: () -> Unit,
     onForwardClick: () -> Unit,
@@ -54,7 +48,6 @@ fun AdaptiveTopBar(
     onDeleteList: () -> Unit,
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
-    // Параметри для MultiSelectTopAppBar
     selectedCount: Int,
     areAllSelected: Boolean,
     onClearSelection: () -> Unit,
@@ -62,11 +55,14 @@ fun AdaptiveTopBar(
     onDelete: () -> Unit,
     onToggleComplete: () -> Unit,
     onMoreActions: (GoalActionType) -> Unit,
+    currentView: ProjectViewMode,
+    onViewChange: (ProjectViewMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 3.dp,
+        tonalElevation = 2.dp,
+        shadowElevation = if (isSelectionModeActive) 4.dp else 1.dp,
         modifier = modifier
     ) {
         if (isSelectionModeActive) {
@@ -95,13 +91,19 @@ fun AdaptiveTopBar(
                         menuExpanded = menuExpanded,
                         onMenuExpandedChange = onMenuExpandedChange,
                         onEditList = onEditList,
-                        onShareList = {},
-                        onDeleteList = {}
+                        onShareList = onShareList,
+                        onDeleteList = onDeleteList,
+                        currentView = currentView,
+                        onViewChange = onViewChange
                     )
                 }.first().measure(constraints)
 
                 val titleTextPlaceable = subcompose(AdaptiveTopBarSlot.TITLE_TEXT) {
-                    Text(text = title, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }.first().measure(constraints)
 
                 val availableSpace = constraints.maxWidth - leftButtonsPlaceable.width - rightButtonsPlaceable.width
@@ -109,7 +111,7 @@ fun AdaptiveTopBar(
                 val showInlineTitle = titleTextPlaceable.width < availableSpace - horizontalPadding
 
                 if (showInlineTitle) {
-                    val navBarHeight = maxOf(leftButtonsPlaceable.height, rightButtonsPlaceable.height)
+                    val navBarHeight = maxOf(leftButtonsPlaceable.height, rightButtonsPlaceable.height, 48.dp.toPx().toInt())
                     layout(constraints.maxWidth, navBarHeight) {
                         leftButtonsPlaceable.placeRelative(0, (navBarHeight - leftButtonsPlaceable.height) / 2)
 
@@ -124,7 +126,6 @@ fun AdaptiveTopBar(
                         )
                     }
                 } else {
-                    // ВАРІАНТ B: ДВА РЯДКИ
                     val titleBarPlaceable = subcompose(AdaptiveTopBarSlot.TITLE_BAR) {
                         ListTitleBar(title = title)
                     }.first().measure(constraints)
@@ -141,7 +142,9 @@ fun AdaptiveTopBar(
                             onShareList = onShareList,
                             onDeleteList = onDeleteList,
                             menuExpanded = menuExpanded,
-                            onMenuExpandedChange = onMenuExpandedChange
+                            onMenuExpandedChange = onMenuExpandedChange,
+                            currentView = currentView,
+                            onViewChange = onViewChange
                         )
                     }.first().measure(constraints)
 
@@ -163,19 +166,56 @@ private fun LeftButtons(
     onForwardClick: () -> Unit,
     onHomeClick: () -> Unit
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBackClick, enabled = canGoBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = 2.dp)
+    ) {
+        val backButtonAlpha by animateFloatAsState(
+            targetValue = if (canGoBack) 1f else 0.6f,
+            label = "backButtonAlpha"
+        )
+
+        IconButton(
+            onClick = onBackClick,
+            enabled = canGoBack,
+            modifier = Modifier.alpha(backButtonAlpha)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.back),
+                tint = if (canGoBack) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
         }
-        IconButton(onClick = onForwardClick, enabled = false) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.forward))
+
+        IconButton(
+            onClick = onForwardClick,
+            enabled = false,
+            modifier = Modifier.alpha(0.38f)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = stringResource(R.string.forward),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
         }
-        IconButton(onClick = onHomeClick) {
-            Icon(imageVector = Icons.Default.Home, contentDescription = stringResource(R.string.go_to_home_list))
+
+        Spacer(modifier = Modifier.width(2.dp))
+
+        IconButton(
+            onClick = onHomeClick,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Home,
+                contentDescription = stringResource(R.string.go_to_home_list),
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RightButtons(
     isAttachmentsExpanded: Boolean,
@@ -184,66 +224,179 @@ private fun RightButtons(
     onMenuExpandedChange: (Boolean) -> Unit,
     onEditList: () -> Unit,
     onShareList: () -> Unit,
-    onDeleteList: () -> Unit
+    onDeleteList: () -> Unit,
+    currentView: ProjectViewMode,
+    onViewChange: (ProjectViewMode) -> Unit
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        val attachmentIconColor by animateColorAsState(
-            targetValue = if (isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            label = "attachmentIconColor"
-        )
-        IconButton(onClick = onToggleAttachments) {
-            Icon(
-                imageVector = Icons.Default.Attachment,
-                contentDescription = stringResource(R.string.toggle_attachments),
-                tint = attachmentIconColor
-            )
-        }
-
-        Box {
-            IconButton(onClick = { onMenuExpandedChange(true) }) {
-                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { onMenuExpandedChange(false) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(end = 2.dp)
+    ) {
+        // Компактні сегментовані кнопки
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.height(36.dp)
+        ) {
+            SegmentedButton(
+                selected = currentView == ProjectViewMode.BACKLOG,
+                onClick = { onViewChange(ProjectViewMode.BACKLOG) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.size(36.dp)
             ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.edit_list)) },
-                    onClick = {
-                        onEditList()
-                        onMenuExpandedChange(false)
-                    },
-                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.List,
+                    contentDescription = "Backlog",
+                    modifier = Modifier.size(18.dp)
                 )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.share_list)) },
-                    onClick = {
-                        onShareList()
-                        onMenuExpandedChange(false)
-                    },
-                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = "Поділитися списком") }
-                )
-                Divider(modifier = Modifier.padding(vertical = 4.dp))
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(R.string.delete_list),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    },
-                    onClick = {
-                        onDeleteList()
-                        onMenuExpandedChange(false)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Delete,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
+            }
+
+            SegmentedButton(
+                selected = currentView == ProjectViewMode.INBOX,
+                onClick = { onViewChange(ProjectViewMode.INBOX) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Inbox,
+                    contentDescription = "Inbox",
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
     }
+
+    Spacer(modifier = Modifier.width(4.dp))
+
+    // Покращена кнопка вкладень з анімацією
+    val attachmentIconColor by animateColorAsState(
+        targetValue = if (isAttachmentsExpanded)
+            MaterialTheme.colorScheme.primary
+        else
+            MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "attachmentIconColor"
+    )
+
+    val attachmentScale by animateFloatAsState(
+        targetValue = if (isAttachmentsExpanded) 1.2f else 1f,
+        label = "attachmentScale"
+    )
+
+    IconButton(
+        onClick = onToggleAttachments,
+        modifier = Modifier
+            .size(40.dp)
+            .graphicsLayer {
+                scaleX = attachmentScale
+                scaleY = attachmentScale
+            }
+    ) {
+        Icon(
+            imageVector = Icons.Default.Attachment,
+            contentDescription = stringResource(R.string.toggle_attachments),
+            tint = attachmentIconColor
+        )
+    }
+
+    // Покращене меню з кращими кольорами
+    Box {
+        IconButton(onClick = { onMenuExpandedChange(true) }) {
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = stringResource(R.string.more_options),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { onMenuExpandedChange(false) },
+            modifier = Modifier.width(180.dp)
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.edit_list),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                onClick = {
+                    onEditList()
+                    onMenuExpandedChange(false)
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            )
+
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.share_list),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                onClick = {
+                    onShareList()
+                    onMenuExpandedChange(false)
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = "Поділитися списком",
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.delete_list),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                onClick = {
+                    onDeleteList()
+                    onMenuExpandedChange(false)
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            )
+        }
+    }
+}
+
+
+private enum class AdaptiveTopBarSlot {
+    LEFT_BUTTONS,
+    RIGHT_BUTTONS,
+    TITLE_TEXT,
+    TITLE_BAR,
+    FULL_NAV_BAR
 }
