@@ -58,6 +58,7 @@ sealed class DialogState {
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class EditList(val list: GoalList) : DialogState()
     object AboutApp : DialogState()
+    data class ConfirmFullImport(val uri: Uri) : DialogState()
 }
 
 data class PlanningSettingsState(
@@ -769,7 +770,8 @@ class GoalListViewModel @Inject constructor(
 
     fun exportToFile() {
         viewModelScope.launch(Dispatchers.IO) {
-            val result = syncRepo.exportDatabaseToFile()
+            // Викликаємо НОВИЙ метод для повного бекапу
+            val result = syncRepo.exportFullBackupToFile()
             result.onSuccess { message ->
                 _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
             }.onFailure { error ->
@@ -778,15 +780,8 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    fun importFromFile(uri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val result = syncRepo.importDatabaseFromFile(uri)
-            result.onSuccess { message ->
-                _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
-            }.onFailure { error ->
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
-            }
-        }
+    fun onImportFromFileRequested(uri: Uri) {
+        _dialogState.value = DialogState.ConfirmFullImport(uri)
     }
     fun saveSettings(
         show: Boolean, daily: String, medium: String, long: String, vaultName: String
@@ -951,5 +946,16 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-
+    fun onFullImportConfirmed(uri: Uri) {
+        dismissDialog() // Ховаємо діалог одразу
+        viewModelScope.launch(Dispatchers.IO) {
+            // Викликаємо НОВИЙ метод для повного відновлення
+            val result = syncRepo.importFullBackupFromFile(uri)
+            result.onSuccess { message ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
+            }.onFailure { error ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
+            }
+        }
+    }
 }

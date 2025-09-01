@@ -30,6 +30,13 @@ interface LinkItemDao {
     WHERE l.itemType = 'LINK_ITEM' AND li.link_data LIKE :query
 """)
     suspend fun searchLinksGlobal(query: String): List<GlobalLinkSearchResult>
+    @Query("SELECT * FROM link_items")
+    suspend fun getAllEntities(): List<LinkItemEntity>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(linkItems: List<LinkItemEntity>)
+
+    @Query("DELETE FROM link_items")
+    suspend fun deleteAll()
 
 }

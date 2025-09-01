@@ -63,5 +63,6 @@ interface GoalDao {
     @Query("DELETE FROM goal_lists WHERE id = :listId")
     suspend fun deleteGoalListById(listId: String)
 
-
+    @Query("DELETE FROM goals")
+    suspend fun deleteAll()
 }

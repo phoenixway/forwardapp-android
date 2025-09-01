@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.GoalListDao
+import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.NoteDao
@@ -11,6 +12,7 @@ import com.romankozak.forwardappmobile.data.dao.RecentListDao
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
@@ -36,7 +38,9 @@ class GoalRepository @Inject constructor(
     private val noteDao: NoteDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
-    private val contextHandlerProvider: Provider<ContextHandler>
+    private val contextHandlerProvider: Provider<ContextHandler>,
+    private val inboxRecordDao: InboxRecordDao, // <-- ДОДАНО
+
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "AddSublistDebug" // Тег для логування
@@ -392,6 +396,38 @@ class GoalRepository @Inject constructor(
 
     suspend fun deleteGoalList(listId: String) {
         goalDao.deleteGoalListById(listId)
+    }
+    fun getInboxRecordsStream(projectId: String): Flow<List<InboxRecord>> {
+        return inboxRecordDao.getRecordsForProjectStream(projectId)
+    }
+
+    suspend fun addInboxRecord(text: String, projectId: String) {
+        val currentTime = System.currentTimeMillis()
+        val newRecord = InboxRecord(
+            id = UUID.randomUUID().toString(),
+            projectId = projectId,
+            text = text,
+            createdAt = currentTime,
+            order = -currentTime // Сортування за часом додавання
+        )
+        inboxRecordDao.insert(newRecord)
+    }
+
+    suspend fun updateInboxRecord(record: InboxRecord) {
+        inboxRecordDao.update(record)
+    }
+
+    suspend fun deleteInboxRecordById(recordId: String) {
+        inboxRecordDao.deleteById(recordId)
+    }
+
+    /**
+     * Перетворює запис інбоксу на ціль у тому ж проєкті і видаляє запис.
+     */
+    @Transaction
+    suspend fun promoteInboxRecordToGoal(record: InboxRecord) {
+        addGoalToList(record.text, record.projectId)
+        inboxRecordDao.delete(record)
     }
 
 

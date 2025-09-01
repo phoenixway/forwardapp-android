@@ -161,7 +161,25 @@ class SettingsRepository @Inject constructor(
     // --- Custom Contexts ---
 
     val customContextNamesFlow: Flow<Set<String>> = context.dataStore.data
-        .map { preferences -> preferences[ContextKeys.CUSTOM_CONTEXT_NAMES] ?: emptySet() }
+        .map { preferences ->
+            try {
+                // Звичайний, правильний шлях читання
+                preferences[ContextKeys.CUSTOM_CONTEXT_NAMES] ?: emptySet()
+            } catch (e: ClassCastException) {
+                // АВАРІЙНИЙ БЛОК: Спрацює, якщо дані пошкоджено (збережено String замість Set)
+                // Ми намагаємось прочитати це значення як рядок і вручну його розпарсити.
+                // Це дозволить додатку не впасти.
+                val corruptedValue = preferences[stringPreferencesKey(ContextKeys.CUSTOM_CONTEXT_NAMES.name)]
+                if (corruptedValue.isNullOrBlank() || corruptedValue == "[]" || !corruptedValue.startsWith("[")) {
+                    emptySet()
+                } else {
+                    corruptedValue.substring(1, corruptedValue.length - 1)
+                        .split(", ")
+                        .filter { it.isNotBlank() }
+                        .toSet()
+                }
+            }
+        }
 
     // ✨ ВИПРАВЛЕНО: Змінено 'private' на 'public' (за замовчуванням)
     suspend fun saveCustomContextNames(names: Set<String>) {
@@ -195,4 +213,47 @@ class SettingsRepository @Inject constructor(
             settings.remove(customContextEmojiKey(name))
         }
     }
+    // ... всередині класу SettingsRepository
+
+    suspend fun getPreferencesSnapshot(): Preferences {
+        return context.dataStore.data.first()
+    }
+
+// У файлі SettingsRepository.kt
+
+    suspend fun restoreFromMap(settingsMap: Map<String, String>) {
+        context.dataStore.edit { preferences ->
+            preferences.clear()
+            for ((key, value) in settingsMap) {
+                when (key) {
+                    // --- Обробка типу Boolean ---
+                    showPlanningModesKey.name -> {
+                        preferences[booleanPreferencesKey(key)] = value.toBoolean()
+                    }
+
+                    // --- Обробка типу Set<String> ---
+                    ContextKeys.CUSTOM_CONTEXT_NAMES.name -> {
+                        val restoredSet: Set<String>
+                        // Надійна перевірка на порожній або некоректний рядок
+                        if (value == "[]" || !value.startsWith("[") || !value.endsWith("]")) {
+                            restoredSet = emptySet()
+                        } else {
+                            // Видаляємо дужки [ ] і розділяємо елементи
+                            restoredSet = value.substring(1, value.length - 1)
+                                .split(", ")
+                                .filter { it.isNotBlank() } // Дуже важливо: ігноруємо порожні елементи
+                                .toSet()
+                        }
+                        preferences[stringSetPreferencesKey(key)] = restoredSet
+                    }
+
+                    // --- Обробка всіх інших як String (за замовчуванням) ---
+                    else -> {
+                        preferences[stringPreferencesKey(key)] = value
+                    }
+                }
+            }
+        }
+    }
+
 }

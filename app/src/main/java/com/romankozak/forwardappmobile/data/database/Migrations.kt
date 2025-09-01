@@ -175,3 +175,20 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
         db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_attachments_expanded INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `inbox_records` (
+                `id` TEXT NOT NULL, 
+                `projectId` TEXT NOT NULL, 
+                `text` TEXT NOT NULL, 
+                `createdAt` INTEGER NOT NULL, 
+                `item_order` INTEGER NOT NULL, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`projectId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_inbox_records_projectId` ON `inbox_records` (`projectId`)")
+    }
+}
