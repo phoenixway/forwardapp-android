@@ -18,7 +18,7 @@ import javax.inject.Inject
 
 class ItemActionHandler @Inject constructor(
     private val goalRepository: GoalRepository,
-    private val scope: CoroutineScope,
+    val scope: CoroutineScope,
     // --- ЗМІНЕНО: Додано listIdFlow для доступу до ID поточного списку ---
     private val listIdFlow: StateFlow<String>,
     private val resultListener: ResultListener
