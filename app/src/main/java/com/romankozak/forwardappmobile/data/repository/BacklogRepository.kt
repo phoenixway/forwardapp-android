@@ -33,7 +33,6 @@ class GoalRepository @Inject constructor(
     private val goalDao: GoalDao,
     private val goalListDao: GoalListDao,
     private val recentListDao: RecentListDao,
-    // private val noteDao: NoteDao, // Видалено
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val contextHandlerProvider: Provider<ContextHandler>,
@@ -41,13 +40,8 @@ class GoalRepository @Inject constructor(
 
     ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
-    private val TAG = "AddSublistDebug" // Тег для логування
+    private val TAG = "AddSublistDebug"
 
-    // --- ОСНОВНІ МЕТОДИ ДЛЯ РОБОТИ З ВМІСТОМ СПИСКУ ---
-
-    /**
-     * Отримує потік з повним, типізованим вмістом списку (цілі, посилання).
-     */
     fun getListContentStream(listId: String): Flow<List<ListItemContent>> {
         return listItemDao.getItemsForListStream(listId).map { items ->
             items.mapNotNull { item ->
@@ -55,15 +49,12 @@ class GoalRepository @Inject constructor(
                     ListItemType.GOAL -> goalDao.getGoalById(item.entityId)?.let { ListItemContent.GoalItem(it, item) }
                     ListItemType.SUBLIST -> goalListDao.getGoalListById(item.entityId)?.let { ListItemContent.SublistItem(it, item) }
                     ListItemType.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId)?.let { ListItemContent.LinkItem(it, item) }
-                    else -> null // Ігноруємо нотатки та будь-які інші невідомі типи
+                    else -> null
                 }
             }
         }
     }
 
-    /**
-     * Створює нову ціль і додає посилання на неї у вказаний список.
-     */
     suspend fun addGoalToList(title: String, listId: String): String {
         val currentTime = System.currentTimeMillis()
         val newGoal = Goal(
@@ -90,9 +81,6 @@ class GoalRepository @Inject constructor(
         return newListItem.id
     }
 
-    /**
-     * Створює посилання на існуючий список і додає його як елемент у поточний список.
-     */
     @Transaction
     suspend fun addListLinkToList(targetListId: String, currentListId: String): String {
         Log.d(TAG, "addListLinkToList: targetListId=$targetListId, currentListId=$currentListId")
@@ -110,15 +98,11 @@ class GoalRepository @Inject constructor(
             Log.d(TAG, "Insertion successful for ListItem ID: ${newListItem.id}")
         } catch (e: Exception) {
             Log.e(TAG, "DATABASE INSERTION FAILED for ListItem: $newListItem", e)
-            throw e // Перекидаємо помилку, щоб її було видно вище
+            throw e
         }
         return newListItem.id
     }
 
-
-    /**
-     * Створює посилання на існуючі цілі у вказаному списку.
-     */
     suspend fun createGoalLinks(goalIds: List<String>, targetListId: String) {
         if (goalIds.isNotEmpty()) {
             val newItems = goalIds.map { goalId ->
@@ -134,9 +118,6 @@ class GoalRepository @Inject constructor(
         }
     }
 
-    /**
-     * Копіює цілі (створює нові екземпляри) і додає їх у вказаний список.
-     */
     suspend fun copyGoalsToList(goalIds: List<String>, targetListId: String) {
         if (goalIds.isNotEmpty()) {
             val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
@@ -161,34 +142,23 @@ class GoalRepository @Inject constructor(
         }
     }
 
-    /**
-     * Переміщує елементи (посилання) до іншого списку.
-     */
     suspend fun moveListItems(itemIds: List<String>, targetListId: String) {
         if (itemIds.isNotEmpty()) {
             listItemDao.updateListItemListIds(itemIds, targetListId)
         }
     }
 
-    /**
-     * Видаляє елементи (посилання) зі списків. Не видаляє самі сутності (цілі).
-     */
     suspend fun deleteListItems(itemIds: List<String>) {
         if (itemIds.isNotEmpty()) {
             listItemDao.deleteItemsByIds(itemIds)
         }
     }
 
-    /**
-     * Оновлює порядок елементів у списку.
-     */
     suspend fun updateListItemsOrder(items: List<ListItem>) {
         if (items.isNotEmpty()) {
             listItemDao.updateItems(items)
         }
     }
-
-    // --- ДОПОМІЖНІ МЕТОДИ ---
 
     private suspend fun syncContextMarker(goalId: String, listId: String, action: ContextTextAction) {
         val list = goalListDao.getGoalListById(listId) ?: return
@@ -217,8 +187,6 @@ class GoalRepository @Inject constructor(
     suspend fun doesLinkExist(entityId: String, listId: String): Boolean = listItemDao.getLinkCount(entityId, listId) > 0
 
     suspend fun deleteLinkByEntityIdAndListId(entityId: String, listId: String) = listItemDao.deleteLinkByEntityAndList(entityId, listId)
-
-    // --- МЕТОДИ ДЛЯ РОБОТИ З GOALLIST ---
 
     fun getAllGoalListsFlow(): Flow<List<GoalList>> = goalListDao.getAllLists()
 
@@ -249,8 +217,6 @@ class GoalRepository @Inject constructor(
         )
         goalListDao.insert(newList)
     }
-
-    // --- МЕТОДИ ДЛЯ РОБОТИ З GOAL ---
 
     suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
 
@@ -332,6 +298,7 @@ class GoalRepository @Inject constructor(
     suspend fun findListIdsByTag(tag: String): List<String> {
         return goalListDao.getListIdsByTag(tag)
     }
+
     suspend fun getAllGoalLists(): List<GoalList> = goalListDao.getAll()
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
     suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
@@ -347,6 +314,7 @@ class GoalRepository @Inject constructor(
     suspend fun deleteGoalList(listId: String) {
         goalDao.deleteGoalListById(listId)
     }
+
     fun getInboxRecordsStream(projectId: String): Flow<List<InboxRecord>> {
         return inboxRecordDao.getRecordsForProjectStream(projectId)
     }
@@ -358,7 +326,7 @@ class GoalRepository @Inject constructor(
             projectId = projectId,
             text = text,
             createdAt = currentTime,
-            order = -currentTime // Сортування за часом додавання
+            order = -currentTime
         )
         inboxRecordDao.insert(newRecord)
     }
@@ -371,12 +339,11 @@ class GoalRepository @Inject constructor(
         inboxRecordDao.deleteById(recordId)
     }
 
-    /**
-     * Перетворює запис інбоксу на ціль у тому ж проєкті і видаляє запис.
-     */
     @Transaction
     suspend fun promoteInboxRecordToGoal(record: InboxRecord) {
         addGoalToList(record.text, record.projectId)
-        inboxRecordDao.delete(record)
+        // --- ПОЧАТОК ЗМІН ---
+        inboxRecordDao.deleteById(record.id) // Виправлено з .delete(record)
+        // --- КІНЕЦЬ ЗМІН ---
     }
 }

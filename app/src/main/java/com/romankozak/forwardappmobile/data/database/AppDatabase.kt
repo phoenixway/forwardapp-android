@@ -7,22 +7,21 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.romankozak.forwardappmobile.data.dao.* // Імпортуємо всі DAO
-import com.romankozak.forwardappmobile.data.database.models.* // Імпортуємо всі моделі
+import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.models.*
 
 @Database(
     entities = [
         Goal::class,
         GoalList::class,
-        // Note::class, // Видалено
+        // Note::class, // <-- ВИДАЛЕНО
         ListItem::class,
         ActivityRecord::class,
         RecentListEntry::class,
         LinkItemEntity::class,
         InboxRecord::class
-
     ],
-    version = 18, // MODIFIED: Version incremented to 17
+    version = 18,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -34,7 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao
-    // abstract fun noteDao(): NoteDao // Видалено
+    // abstract fun noteDao(): NoteDao // <-- ВИДАЛЕНО
     abstract fun listItemDao(): ListItemDao
     abstract fun activityRecordDao(): ActivityRecordDao
     abstract fun recentListDao(): RecentListDao
@@ -61,10 +60,9 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_13_14,
                         MIGRATION_14_15,
                         MIGRATION_15_16,
-                        MIGRATION_16_17, // MODIFIED: Added the new migration
+                        MIGRATION_16_17,
                         MIGRATION_17_18,
-
-                        )
+                    )
                     .build()
                 INSTANCE = instance
                 instance
