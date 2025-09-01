@@ -226,7 +226,7 @@ fun GoalDetailScreen(
     }
 
     BackHandler(enabled = isSelectionModeActive) {
-        viewModel.clearSelection()
+        viewModel.selectionHandler.clearSelection()
     }
 
     BackHandler(enabled = !isSelectionModeActive) {
@@ -317,13 +317,13 @@ fun GoalDetailScreen(
                 // Параметри для режиму вибору
                 selectedCount = uiState.selectedItemIds.size,
                 areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                onClearSelection = { viewModel.clearSelection() },
-                onSelectAll = { viewModel.selectAllItems() },
-                onDelete = { viewModel.deleteSelectedItems() },
-                onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
-                onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
+                onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                onToggleComplete = { viewModel.selectionHandler.toggleCompletionForSelectedGoals(uiState.selectedItemIds) },
+                onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
                 onShareList = {  },
-                onDeleteList = { viewModel.deleteSelectedItems() },
+                onDeleteList = { viewModel.deleteCurrentList() },
                 modifier = Modifier
             )
 
@@ -443,7 +443,7 @@ fun GoalDetailScreen(
                                         )
                                     },
                                     onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                    onLongClick = { viewModel.toggleSelection(content.item.id) }, // Note: toggleSelection remains in VM
+                                    onLongClick = { viewModel.selectionHandler.toggleSelection(content.item.id, uiState.selectedItemIds) },
                                     onTagClick = { tag -> viewModel.onTagClicked(tag) },
                                     onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                     contextMarkerToEmojiMap = contextMarkerToEmojiMap,

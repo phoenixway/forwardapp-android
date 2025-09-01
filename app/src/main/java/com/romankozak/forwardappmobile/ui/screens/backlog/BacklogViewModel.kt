@@ -1,11 +1,18 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
+import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -14,12 +21,26 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ItemActionHandler
+import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.SelectionHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
@@ -60,12 +81,14 @@ data class UiState(
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class GoalDetailViewModel @Inject constructor(
+    private val application: Application,
+
     private val goalRepository: GoalRepository,
     private val settingsRepository: SettingsRepository,
     private val ollamaService: OllamaService,
     private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle
-) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener {
+) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener, SelectionHandler.ResultListener {
 
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
@@ -76,10 +99,14 @@ class GoalDetailViewModel @Inject constructor(
     private val BATCH_DELAY_MS = 500L
 
     private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+    private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
+    val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
     // --- Handlers ---
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
     val inputHandler = InputHandler(goalRepository, settingsRepository, ollamaService, viewModelScope, listIdFlow, this)
+    val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
+
 
     // --- State Flows ---
     private val _uiState = MutableStateFlow(
@@ -93,9 +120,6 @@ class GoalDetailViewModel @Inject constructor(
 
     private val _uiEventFlow = Channel<UiEvent>()
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
-
-    private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
-    val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
     val recentLists: StateFlow<List<GoalList>> = goalRepository.getRecentLists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -182,10 +206,11 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+
+
     override fun showSnackbar(message: String, action: String?) {
         viewModelScope.launch { _uiEventFlow.send(UiEvent.ShowSnackbar(message, action)) }
     }
-
     override fun forceRefresh() {
         viewModelScope.launch { _refreshTrigger.value++ }
     }
@@ -245,6 +270,10 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(showRecentListsSheet = show) }
     }
 
+    // --- SelectionHandler.ResultListener Implementation ---
+    override fun updateSelectionState(selectedIds: Set<String>) {
+        _uiState.update { it.copy(selectedItemIds = selectedIds) }
+    }
     // --- Logic Remaining in ViewModel ---
 
     fun onListChooserResult(targetListId: String) {
@@ -280,7 +309,7 @@ class GoalDetailViewModel @Inject constructor(
         pendingAction = null
         pendingSourceItemIds = emptySet()
         pendingSourceGoalIds = emptySet()
-        clearSelection()
+        selectionHandler.clearSelection() // Очищуємо вибір після виконання дії
     }
 
     private fun navigateToListChooser(title: String) {
@@ -290,26 +319,12 @@ class GoalDetailViewModel @Inject constructor(
             _uiEventFlow.send(UiEvent.Navigate("list_chooser_screen/$encodedTitle?disabledIds=$disabledIds"))
         }
     }
-
-    fun onBulkActionRequest(actionType: GoalActionType) {
-        val selectedIds = _uiState.value.selectedItemIds
-        if (selectedIds.isNotEmpty()) {
-            val sourceGoalIds = _listContent.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { it.item.entityId }
-                .toSet()
-            setPendingAction(actionType, selectedIds, sourceGoalIds)
-        }
-    }
-
     fun onHighlightShown() {
         _uiState.update { it.copy(goalToHighlight = null, itemToHighlight = null) }
     }
-
     fun onScrolledToNewItem() {
         _uiState.update { it.copy(newlyAddedItemId = null) }
     }
-
     fun moveItem(fromIndex: Int, toIndex: Int) {
         val currentContent = _listContent.value
         val draggableItems = currentContent.filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }.toMutableList()
@@ -340,48 +355,6 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(needsStateRefresh = false) }
     }
 
-    fun selectAllItems() {
-        _uiState.update {
-            val itemsToSelect = _listContent.value
-                .filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
-                .map { it.item.id }
-                .toSet()
-            it.copy(selectedItemIds = itemsToSelect)
-        }
-    }
-
-    fun clearSelection() {
-        _uiState.update { it.copy(selectedItemIds = emptySet()) }
-    }
-
-    fun deleteSelectedItems() {
-        viewModelScope.launch {
-            val idsToDelete = _uiState.value.selectedItemIds
-            if (idsToDelete.isEmpty()) return@launch
-            goalRepository.deleteListItems(idsToDelete.toList())
-            clearSelection()
-            showSnackbar("Видалено елементів: ${idsToDelete.size}", "Скасувати")
-        }
-    }
-
-    fun toggleCompletionForSelectedGoals() {
-        viewModelScope.launch {
-            val selectedIds = _uiState.value.selectedItemIds
-            if (selectedIds.isEmpty()) return@launch
-            val goalsToUpdate = _listContent.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { (it as ListItemContent.GoalItem).goal }
-                .distinctBy { it.id }
-            if (goalsToUpdate.isNotEmpty()) {
-                val areAllCompleted = goalsToUpdate.all { it.completed }
-                val targetState = !areAllCompleted
-                val updatedGoals = goalsToUpdate.map { it.copy(completed = targetState, updatedAt = System.currentTimeMillis()) }
-                goalRepository.updateGoals(updatedGoals)
-            }
-            clearSelection()
-            forceRefresh()
-        }
-    }
 
     fun onTagClicked(tag: String) {
         viewModelScope.launch {
@@ -446,4 +419,26 @@ class GoalDetailViewModel @Inject constructor(
             AttachmentType.SHORTCUT -> inputHandler.onAddListShortcutRequest()
         }
     }
+
+    override fun copyToClipboard(text: String, label: String) {
+        val clipboard = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+    }
+
+    fun deleteCurrentList() {
+        // --- ЗМІНЕНО: Використовуємо viewModelScope ---
+        viewModelScope.launch(Dispatchers.IO) {
+            val listId = listIdFlow.value
+            if (listId.isNotEmpty()) {
+                goalRepository.deleteGoalList(listId)
+                withContext(Dispatchers.Main) {
+                    // Команда для навігації назад, оскільки список видалено
+                    requestNavigation("back")
+                }
+            }
+        }
+    }
+
+
 }
