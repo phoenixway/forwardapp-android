@@ -26,4 +26,8 @@ interface ActivityRecordDao {
 
     @Delete
     suspend fun delete(record: ActivityRecord)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(records: List<ActivityRecord>)
+
 }
