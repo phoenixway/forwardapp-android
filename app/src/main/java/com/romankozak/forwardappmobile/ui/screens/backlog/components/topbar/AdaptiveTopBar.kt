@@ -4,7 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
@@ -33,6 +34,8 @@ private enum class AdaptiveTopBarSlot {
     TITLE_BAR,
     FULL_NAV_BAR
 }
+
+// --- ПОЧАТОК ЗМІН ---
 
 @Composable
 fun AdaptiveTopBar(
@@ -85,20 +88,17 @@ fun AdaptiveTopBar(
                     LeftButtons(canGoBack, onBackClick, onForwardClick, onHomeClick)
                 }.first().measure(constraints)
 
-                // --- ПОЧАТОК ВИПРАВЛЕННЯ ---
                 val rightButtonsPlaceable = subcompose(AdaptiveTopBarSlot.RIGHT_BUTTONS) {
-                    // Аргументи тепер у правильному порядку
                     RightButtons(
                         isAttachmentsExpanded = isAttachmentsExpanded,
                         onToggleAttachments = onToggleAttachments,
                         menuExpanded = menuExpanded,
                         onMenuExpandedChange = onMenuExpandedChange,
                         onEditList = onEditList,
-                        onShareList = {}, // Порожні лямбди для вимірювання - це нормально
+                        onShareList = {},
                         onDeleteList = {}
                     )
                 }.first().measure(constraints)
-                // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
 
                 val titleTextPlaceable = subcompose(AdaptiveTopBarSlot.TITLE_TEXT) {
                     Text(text = title, style = MaterialTheme.typography.titleMedium)
@@ -129,10 +129,8 @@ fun AdaptiveTopBar(
                         ListTitleBar(title = title)
                     }.first().measure(constraints)
 
-                    // --- ПОЧАТОК ВИПРАВЛЕННЯ ---
                     val navBarPlaceable = subcompose(AdaptiveTopBarSlot.FULL_NAV_BAR) {
                         BrowserNavigationBar(
-                            // Аргументи тепер в правильному порядку і з правильними типами
                             canGoBack = canGoBack,
                             onBackClick = onBackClick,
                             onForwardClick = onForwardClick,
@@ -146,7 +144,6 @@ fun AdaptiveTopBar(
                             onMenuExpandedChange = onMenuExpandedChange
                         )
                     }.first().measure(constraints)
-                    // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
 
                     val totalHeight = titleBarPlaceable.height + navBarPlaceable.height
                     layout(constraints.maxWidth, totalHeight) {
@@ -183,14 +180,13 @@ private fun LeftButtons(
 private fun RightButtons(
     isAttachmentsExpanded: Boolean,
     onToggleAttachments: () -> Unit,
-    menuExpanded: Boolean,                 // 3-й параметр: Boolean
-    onMenuExpandedChange: (Boolean) -> Unit, // 4-й параметр: (Boolean) -> Unit
-    onEditList: () -> Unit,                  // 5-й параметр: () -> Unit
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    onEditList: () -> Unit,
     onShareList: () -> Unit,
     onDeleteList: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Кнопка вкладень (без змін)
         val attachmentIconColor by animateColorAsState(
             targetValue = if (isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             label = "attachmentIconColor"
@@ -203,7 +199,6 @@ private fun RightButtons(
             )
         }
 
-        // Меню "Більше опцій" (оновлено)
         Box {
             IconButton(onClick = { onMenuExpandedChange(true) }) {
                 Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
@@ -212,7 +207,6 @@ private fun RightButtons(
                 expanded = menuExpanded,
                 onDismissRequest = { onMenuExpandedChange(false) }
             ) {
-                // Пункт "Редагувати"
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.edit_list)) },
                     onClick = {
@@ -221,8 +215,6 @@ private fun RightButtons(
                     },
                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
                 )
-
-                // Пункт "Поділитися"
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.share_list)) },
                     onClick = {
@@ -231,11 +223,7 @@ private fun RightButtons(
                     },
                     leadingIcon = { Icon(Icons.Default.Share, contentDescription = "Поділитися списком") }
                 )
-
-                // Розділювач перед небезпечною дією
                 Divider(modifier = Modifier.padding(vertical = 4.dp))
-
-                // Пункт "Видалити"
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -244,7 +232,6 @@ private fun RightButtons(
                         )
                     },
                     onClick = {
-                        // Тут варто додати діалог підтвердження перед викликом onDeleteList()
                         onDeleteList()
                         onMenuExpandedChange(false)
                     },

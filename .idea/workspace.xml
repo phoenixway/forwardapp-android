@@ -10,7 +10,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="09c4d5d7-eda6-4d44-a38e-92690dfcb42b" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/attachments/AttachmentsSection.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/attachments/AttachmentsSection.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/topbar/AdaptiveTopBar.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/topbar/AdaptiveTopBar.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/topbar/MultiSelectTopAppBar.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/topbar/MultiSelectTopAppBar.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -199,17 +203,17 @@
       <map>
         <entry key="com.romankozak.forwardappmobile">
           <value>
-            <CheckInfo lastCheckTimestamp="1756590229467" />
+            <CheckInfo lastCheckTimestamp="1756710923467" />
           </value>
         </entry>
         <entry key="com.romankozak.forwardappmobile.debug">
           <value>
-            <CheckInfo lastCheckTimestamp="1756590229465" />
+            <CheckInfo lastCheckTimestamp="1756710923468" />
           </value>
         </entry>
         <entry key="com.romankozak.forwardappmobile.debug.test">
           <value>
-            <CheckInfo lastCheckTimestamp="1756590229466" />
+            <CheckInfo lastCheckTimestamp="1756710923468" />
           </value>
         </entry>
       </map>
