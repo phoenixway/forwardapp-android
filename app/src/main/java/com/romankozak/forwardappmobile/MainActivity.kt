@@ -16,9 +16,15 @@ class MainActivity : ComponentActivity() {
     private val syncDataViewModel: SyncDataViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        //enableEdgeToEdge()
+        // --- ПОЧАТОК ЗМІН ---
+        // Вмикаємо режим "edge-to-edge", щоб UI малювався під системними панелями
+        enableEdgeToEdge()
+        // --- КІНЕЦЬ ЗМІН ---
+
         super.onCreate(savedInstanceState)
-        //WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Цей рядок більше не потрібен, оскільки enableEdgeToEdge() робить те саме
+        // WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             ForwardAppMobileTheme {

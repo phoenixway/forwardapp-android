@@ -43,7 +43,7 @@ enum class ChangeType {
 
 data class SyncChange(
     val type: ChangeType,
-    val entityType: String, // "Список", "Ціль", "Нотатка", "Привʼязка"
+    val entityType: String, // "Список", "Ціль", "Привʼязка"
     val id: String,
     val description: String,
     val longDescription: String? = null,
@@ -57,19 +57,17 @@ data class SyncReport(
 private data class LocalSyncState(
     val goals: Map<String, Goal>,
     val goalLists: Map<String, GoalList>,
-    val notes: Map<String, Note>,
     val listItems: Map<String, ListItem>
 )
 
 @Singleton
 class SyncRepository @Inject constructor(
-    private val goalRepository: GoalRepository, // Можна залишити, якщо зручно
+    private val goalRepository: GoalRepository,
     private val appDatabase: AppDatabase,
     @ApplicationContext private val context: Context,
     // ✨ ДОДАНО: Прямі залежності для повноти
     private val goalDao: GoalDao,
     private val goalListDao: GoalListDao,
-    private val noteDao: NoteDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val activityRecordDao: ActivityRecordDao,
@@ -77,6 +75,8 @@ class SyncRepository @Inject constructor(
     private val settingsRepository: SettingsRepository
 
 ) {
+    private val TAG = "SyncRepository" // Тег для логування
+
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) { gson() }
     }
@@ -90,11 +90,11 @@ class SyncRepository @Inject constructor(
             val uri = Uri.parse(cleanAddress)
             val hostAndPort = "${uri.host}:${if (uri.port != -1) uri.port else 8080}"
             val fullUrl = "http://$hostAndPort/export"
-            Log.d("SyncRepository", "Fetching from: $fullUrl")
+            Log.d(TAG, "Fetching from: $fullUrl")
             val response: String = client.get(fullUrl).body()
             Result.success(response)
         } catch (e: Exception) {
-            Log.e("SyncRepository", "Error fetching from WiFi", e)
+            Log.e(TAG, "Error fetching from WiFi", e)
             Result.failure(e)
         }
     }
@@ -144,14 +144,6 @@ class SyncRepository @Inject constructor(
             )
         }
 
-        val newNotes = (data.notes ?: emptyMap()).mapValues { (_, note) ->
-            Note(
-                id = note.id, title = note.title, content = note.content,
-                createdAt = dateStringToLong(note.createdAt) ?: 0L,
-                updatedAt = dateStringToLong(note.updatedAt)
-            )
-        }
-
         val newListItems = mutableMapOf<String, ListItem>()
         (data.goalLists ?: emptyMap()).values.forEach { list ->
             list.itemInstanceIds.forEachIndexed { index, instanceId ->
@@ -167,7 +159,7 @@ class SyncRepository @Inject constructor(
             }
         }
 
-        return LocalSyncState(goals = newGoals, goalLists = newGoalLists, notes = newNotes, listItems = newListItems)
+        return LocalSyncState(goals = newGoals, goalLists = newGoalLists, listItems = newListItems)
     }
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
@@ -178,7 +170,6 @@ class SyncRepository @Inject constructor(
             val remoteState = transformImportedData(remoteData)
             val localLists = goalRepository.getAllGoalLists().associateBy { it.id }
             val localGoals = goalRepository.getAllGoals().associateBy { it.id }
-            val localNotes = goalRepository.getAllNotes().associateBy { it.id }
             val localItems = goalRepository.getAllListItems().associateBy { it.id }
 
             val changes = mutableListOf<SyncChange>()
@@ -202,17 +193,6 @@ class SyncRepository @Inject constructor(
                     remote != null && local == null -> changes.add(SyncChange(ChangeType.Add, "Ціль", id, remote.text, entity = remote))
                     remote == null && local != null -> changes.add(SyncChange(ChangeType.Delete, "Ціль", id, local.text, entity = local))
                     remote != null && local != null && (remote.updatedAt ?: 0) > (local.updatedAt ?: 0) -> changes.add(SyncChange(ChangeType.Update, "Ціль", id, remote.text, entity = remote))
-                }
-            }
-
-            // Порівняння нотаток
-            (localNotes.keys + remoteState.notes.keys).distinct().forEach { id ->
-                val local = localNotes[id]
-                val remote = remoteState.notes[id]
-                when {
-                    remote != null && local == null -> changes.add(SyncChange(ChangeType.Add, "Нотатка", id, remote.content.take(50), entity = remote))
-                    remote == null && local != null -> changes.add(SyncChange(ChangeType.Delete, "Нотатка", id, local.content.take(50), entity = local))
-                    remote != null && local != null && (remote.updatedAt ?: 0) > (local.updatedAt ?: 0) -> changes.add(SyncChange(ChangeType.Update, "Нотатка", id, remote.content.take(50), entity = remote))
                 }
             }
 
@@ -242,7 +222,7 @@ class SyncRepository @Inject constructor(
 
             return SyncReport(changes)
         } catch (e: Exception) {
-            Log.e("SyncRepository", "Error creating sync report", e)
+            Log.e(TAG, "Error creating sync report", e)
             throw IllegalStateException("Error parsing data: ${e.message}", e)
         }
     }
@@ -252,14 +232,12 @@ class SyncRepository @Inject constructor(
 
         val goalDao = appDatabase.goalDao()
         val goalListDao = appDatabase.goalListDao()
-        val noteDao = appDatabase.noteDao()
         val listItemDao = appDatabase.listItemDao()
 
         // 1. Видалення
         changesByType[ChangeType.Delete]?.forEach { change ->
             when (change.entityType) {
                 "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
-                "Нотатка" -> noteDao.deleteNoteById(change.id)
                 "Список" -> goalListDao.deleteListById(change.id)
                 "Ціль" -> goalDao.deleteGoalById(change.id)
             }
@@ -270,7 +248,6 @@ class SyncRepository @Inject constructor(
             when (change.entityType) {
                 "Список" -> goalListDao.update(change.entity as GoalList)
                 "Ціль" -> goalDao.updateGoal(change.entity as Goal)
-                "Нотатка" -> noteDao.updateNote(change.entity as Note)
             }
         }
 
@@ -280,7 +257,6 @@ class SyncRepository @Inject constructor(
             when (change.entityType) {
                 "Список" -> goalListDao.insert(change.entity as GoalList)
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
-                "Нотатка" -> noteDao.insertNote(change.entity as Note)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }
         }
@@ -309,7 +285,7 @@ class SyncRepository @Inject constructor(
                 Result.failure(Exception("Не вдалося створити файл."))
             }
         } catch (e: Exception) {
-            Log.e("SyncRepository", "Помилка експорту", e)
+            Log.e(TAG, "Помилка експорту", e)
             Result.failure(e)
         }
     }
@@ -324,7 +300,7 @@ class SyncRepository @Inject constructor(
             applyChanges(report.changes)
             Result.success("Імпорт та синхронізацію завершено!")
         } catch (e: Exception) {
-            Log.e("SyncRepository", "Помилка імпорту", e)
+            Log.e(TAG, "Помилка імпорту", e)
             Result.failure(e)
         }
     }
@@ -332,7 +308,6 @@ class SyncRepository @Inject constructor(
     suspend fun createBackupJsonString(): String {
         val lists = goalRepository.getAllGoalLists()
         val goals = goalRepository.getAllGoals()
-        val notes = goalRepository.getAllNotes()
         val listItems = goalRepository.getAllListItems()
 
         val desktopGoals = goals.associate {
@@ -356,14 +331,6 @@ class SyncRepository @Inject constructor(
             it.id to DesktopGoalInstance(id = it.id, goalId = it.entityId)
         }
 
-        val desktopNotes = notes.associate {
-            it.id to DesktopNote(
-                id = it.id, title = it.title, content = it.content,
-                createdAt = longToDateString(it.createdAt)!!,
-                updatedAt = longToDateString(it.updatedAt)
-            )
-        }
-
         val desktopLists = lists.associate { list ->
             val listInstances = goalListItems.filter { it.listId == list.id }.sortedBy { it.order }
             list.id to DesktopGoalList(
@@ -380,7 +347,7 @@ class SyncRepository @Inject constructor(
             goals = desktopGoals,
             goalLists = desktopLists,
             goalInstances = desktopInstances,
-            notes = desktopNotes
+            notes = emptyMap() // Нотатки більше не експортуються
         )
 
         val desktopBackupFile = DesktopBackupFile(
@@ -392,25 +359,20 @@ class SyncRepository @Inject constructor(
         return Gson().toJson(desktopBackupFile)
     }
 
-    // ... всередині класу SyncRepository
-
-    /**
-     * Створює JSON-рядок, що містить повну резервну копію всіх даних додатку.
-     */
     suspend fun createFullBackupJsonString(): String {
         // 1. Отримуємо всі дані з бази даних
         val databaseContent = DatabaseContent(
             goals = goalDao.getAll(),
             goalLists = goalListDao.getAll(),
-            notes = noteDao.getAll(),
+            // notes = noteDao.getAll(), // Нотатки більше не експортуються
             listItems = listItemDao.getAll(),
-            activityRecords = activityRecordDao.getAllRecordsStream().first(), // Отримуємо поточний список
-            recentListEntries = recentListDao.getAllEntries(), // Потрібно додати цей метод в DAO
-            linkItemEntities = linkItemDao.getAllEntities(), // Потрібно додати цей метод в DAO
+            activityRecords = activityRecordDao.getAllRecordsStream().first(),
+            recentListEntries = recentListDao.getAllEntries(),
+            linkItemEntities = linkItemDao.getAllEntities(),
         )
 
         // 2. Отримуємо всі налаштування з DataStore
-        val settingsSnapshot: Preferences = settingsRepository.getPreferencesSnapshot() // Потрібно додати цей метод
+        val settingsSnapshot: Preferences = settingsRepository.getPreferencesSnapshot()
         val settingsMap = settingsSnapshot.asMap().mapKeys { entry ->
             entry.key.name
         }.mapValues { entry ->
@@ -427,11 +389,7 @@ class SyncRepository @Inject constructor(
         // 4. Серіалізуємо в JSON
         return Gson().toJson(fullBackup)
     }
-    // ... всередині класу SyncRepository
 
-    /**
-     * Виконує повний експорт даних додатку у файл JSON, обраний користувачем.
-     */
     suspend fun exportFullBackupToFile(): Result<String> {
         return try {
             val backupJson = createFullBackupJsonString()
@@ -455,57 +413,83 @@ class SyncRepository @Inject constructor(
                 Result.failure(Exception("Не вдалося створити файл для бекапу."))
             }
         } catch (e: Exception) {
-            Log.e("SyncRepository", "Помилка повного експорту", e)
+            Log.e(TAG, "Помилка повного експорту", e)
             Result.failure(e)
         }
     }
+
     suspend fun importFullBackupFromFile(uri: Uri): Result<String> {
+        Log.d(TAG, "Запуск повного імпорту з файлу: $uri")
         return try {
             // 1. Читаємо та десеріалізуємо JSON
+            Log.d(TAG, "Крок 1/4: Читання файлу...")
             val jsonString = context.contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
             if (jsonString.isNullOrBlank()) {
+                Log.e(TAG, "Помилка: Файл порожній або не вдалося прочитати.")
                 return Result.failure(Exception("Файл бекапу порожній або пошкоджений."))
             }
+            Log.d(TAG, "Файл успішно прочитано. Розмір: ${jsonString.length} символів.")
+
+            Log.d(TAG, "Крок 2/4: Десеріалізація JSON...")
             val backupData = Gson().fromJson(jsonString, FullAppBackup::class.java)
+            Log.d(TAG, "JSON успішно десеріалізовано. Версія бекапу: ${backupData.backupSchemaVersion}. " +
+                    "Кількість списків: ${backupData.database.goalLists.size}, " +
+                    "Кількість цілей: ${backupData.database.goals.size}.")
 
             // Перевірка версії, якщо потрібно
             if (backupData.backupSchemaVersion != 1) {
+                Log.e(TAG, "Помилка: Несумісна версія файлу бекапу. Очікується v1, отримано v${backupData.backupSchemaVersion}")
                 return Result.failure(Exception("Несумісна версія файлу бекапу."))
             }
 
-            // 2. Відновлюємо базу даних в одній транзакції
-            appDatabase.withTransaction {
-                // КРОК 2.1: ВИДАЛЯЄМО ВСІ СТАРІ ДАНІ
-                // Порядок важливий через зовнішні ключі! Спочатку залежні таблиці.
-                listItemDao.deleteAll() // Потрібно додати метод в DAO
-                recentListDao.deleteAll() // Потрібно додати метод в DAO
-                activityRecordDao.clearAll() // Існуючий метод
-                goalDao.deleteAll() // Потрібно додати метод в DAO
-                goalListDao.deleteAll() // Потрібно додати метод в DAO
-                noteDao.deleteAll() // Потрібно додати метод в DAO
-                linkItemDao.deleteAll() // Потрібно додати метод в DAO
+            // --- ПОЧАТОК ЗМІН ---
+            // Фільтруємо ListItem, щоб видалити елементи з невідомим типом (наприклад, старі "NOTE")
+            val originalDbContent = backupData.database
+            Log.d(TAG, "Фільтрація елементів списку для сумісності...")
+            val filteredListItems = originalDbContent.listItems.filter { it.itemType != null }
+            if (originalDbContent.listItems.size != filteredListItems.size) {
+                val removedCount = originalDbContent.listItems.size - filteredListItems.size
+                Log.d(TAG, "Відфільтровано та видалено $removedCount елементів (ймовірно, старих нотаток).")
+            }
+            val dbContent = originalDbContent.copy(listItems = filteredListItems)
+            // --- КІНЕЦЬ ЗМІН ---
 
-                // КРОК 2.2: ВСТАВЛЯЄМО НОВІ ДАНІ
-                // Порядок важливий! Спочатку незалежні таблиці.
-                val dbContent = backupData.database
+            // 2. Відновлюємо базу даних в одній транзакції
+            Log.d(TAG, "Крок 3/4: Запуск транзакції для відновлення бази даних...")
+            appDatabase.withTransaction {
+                // КРОК 3.1: ВИДАЛЯЄМО ВСІ СТАРІ ДАНІ
+                Log.d(TAG, "Очищення старих даних...")
+                listItemDao.deleteAll()
+                recentListDao.deleteAll()
+                activityRecordDao.clearAll()
+                goalDao.deleteAll()
+                goalListDao.deleteAll()
+                linkItemDao.deleteAll()
+                Log.d(TAG, "Старі дані успішно видалено.")
+
+                // КРОК 3.2: ВСТАВЛЯЄМО НОВІ ДАНІ
+                Log.d(TAG, "Вставка нових даних з бекапу...")
+                // val dbContent = backupData.database // Використовуємо відфільтровану версію
                 goalListDao.insertLists(dbContent.goalLists)
                 goalDao.insertGoals(dbContent.goals)
-                noteDao.insertNotes(dbContent.notes)
-                linkItemDao.insertAll(dbContent.linkItemEntities) // Потрібно додати метод в DAO
-                activityRecordDao.insertAll(dbContent.activityRecords) // Потрібно додати метод в DAO
-                recentListDao.insertAll(dbContent.recentListEntries) // Потрібно додати метод в DAO
-                listItemDao.insertItems(dbContent.listItems)
+                linkItemDao.insertAll(dbContent.linkItemEntities)
+                activityRecordDao.insertAll(dbContent.activityRecords)
+                recentListDao.insertAll(dbContent.recentListEntries)
+                listItemDao.insertItems(dbContent.listItems) // Вставляємо вже відфільтрований список
+                Log.d(TAG, "Нові дані успішно вставлено.")
             }
+            Log.d(TAG, "Транзакція бази даних успішно завершена.")
 
             // 3. Відновлюємо налаштування
+            Log.d(TAG, "Крок 4/4: Відновлення налаштувань...")
             settingsRepository.restoreFromMap(backupData.settings.settings)
+            Log.d(TAG, "Налаштування успішно відновлено.")
 
+            Log.d(TAG, "Процес імпорту успішно завершено.")
             Result.success("Дані успішно відновлено з резервної копії!")
         } catch (e: Exception) {
-            Log.e("SyncRepository", "Помилка повного імпорту", e)
+            Log.e(TAG, "Критична помилка під час повного імпорту", e)
             Result.failure(e)
         }
     }
-
-
 }

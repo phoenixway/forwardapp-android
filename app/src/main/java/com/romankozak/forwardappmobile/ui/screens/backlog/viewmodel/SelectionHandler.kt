@@ -27,7 +27,7 @@ class SelectionHandler(
 
     fun selectAllItems() {
         val itemsToSelect = listContentFlow.value
-            .filterNot { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
+            .filterNot { it is ListItemContent.LinkItem }
             .map { it.item.id }
             .toSet()
         resultListener.updateSelectionState(itemsToSelect)

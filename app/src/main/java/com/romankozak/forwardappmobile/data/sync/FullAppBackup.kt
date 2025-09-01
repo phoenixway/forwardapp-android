@@ -22,7 +22,8 @@ data class FullAppBackup(
 data class DatabaseContent(
     val goals: List<Goal>,
     val goalLists: List<GoalList>,
-    val notes: List<Note>,
+    // ЗМІНЕНО: Дозволяє ігнорувати нотатки зі старих бекапів під час імпорту
+    val notes: List<Any>? = null,
     val listItems: List<ListItem>,
     val activityRecords: List<ActivityRecord>,
     val recentListEntries: List<RecentListEntry>,

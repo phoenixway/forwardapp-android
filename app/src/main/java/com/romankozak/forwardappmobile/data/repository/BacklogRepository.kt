@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.data.dao.GoalListDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.NoteDao
 import com.romankozak.forwardappmobile.data.dao.RecentListDao
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -17,7 +16,6 @@ import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
-import com.romankozak.forwardappmobile.data.database.models.Note
 import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -35,29 +33,29 @@ class GoalRepository @Inject constructor(
     private val goalDao: GoalDao,
     private val goalListDao: GoalListDao,
     private val recentListDao: RecentListDao,
-    private val noteDao: NoteDao,
+    // private val noteDao: NoteDao, // Видалено
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val contextHandlerProvider: Provider<ContextHandler>,
-    private val inboxRecordDao: InboxRecordDao, // <-- ДОДАНО
+    private val inboxRecordDao: InboxRecordDao,
 
-) {
+    ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "AddSublistDebug" // Тег для логування
 
     // --- ОСНОВНІ МЕТОДИ ДЛЯ РОБОТИ З ВМІСТОМ СПИСКУ ---
 
     /**
-     * Отримує потік з повним, типізованим вмістом списку (цілі, нотатки, посилання).
+     * Отримує потік з повним, типізованим вмістом списку (цілі, посилання).
      */
     fun getListContentStream(listId: String): Flow<List<ListItemContent>> {
         return listItemDao.getItemsForListStream(listId).map { items ->
             items.mapNotNull { item ->
                 when (item.itemType) {
                     ListItemType.GOAL -> goalDao.getGoalById(item.entityId)?.let { ListItemContent.GoalItem(it, item) }
-                    ListItemType.NOTE -> noteDao.getNoteById(item.entityId)?.let { ListItemContent.NoteItem(it, item) }
                     ListItemType.SUBLIST -> goalListDao.getGoalListById(item.entityId)?.let { ListItemContent.SublistItem(it, item) }
                     ListItemType.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId)?.let { ListItemContent.LinkItem(it, item) }
+                    else -> null // Ігноруємо нотатки та будь-які інші невідомі типи
                 }
             }
         }
@@ -173,7 +171,7 @@ class GoalRepository @Inject constructor(
     }
 
     /**
-     * Видаляє елементи (посилання) зі списків. Не видаляє самі сутності (цілі, нотатки).
+     * Видаляє елементи (посилання) зі списків. Не видаляє самі сутності (цілі).
      */
     suspend fun deleteListItems(itemIds: List<String>) {
         if (itemIds.isNotEmpty()) {
@@ -312,53 +310,6 @@ class GoalRepository @Inject constructor(
         goalListDao.update(finalListToMove)
     }
 
-    /**
-     * Отримує одну нотатку за її ID.
-     */
-    suspend fun getNoteById(id: String): Note? = noteDao.getNoteById(id)
-
-    /**
-     * Оновлює існуючу нотатку в базі даних.
-     */
-    suspend fun updateNote(note: Note) = noteDao.updateNote(note)
-
-    suspend fun addNoteToList(content: String, listId: String): String {
-        val currentTime = System.currentTimeMillis()
-
-        val title: String?
-        val noteContent: String
-        if (content.length <= 60 && !content.contains('\n')) {
-            title = content
-            noteContent = ""
-        } else {
-            title = "Нотатка"
-            noteContent = content
-        }
-
-        val newNote = Note(
-            id = UUID.randomUUID().toString(),
-            title = title,
-            content = noteContent,
-            createdAt = currentTime,
-            updatedAt = currentTime
-        )
-        return addNoteToList(newNote, listId)
-    }
-
-    @Transaction
-    suspend fun addNoteToList(note: Note, listId: String): String {
-        noteDao.insertNote(note)
-        val newListItem = ListItem(
-            id = UUID.randomUUID().toString(),
-            listId = listId,
-            itemType = ListItemType.NOTE,
-            entityId = note.id,
-            order = -System.currentTimeMillis()
-        )
-        listItemDao.insertItem(newListItem)
-        return newListItem.id
-    }
-
     @Transaction
     suspend fun addLinkItemToList(listId: String, link: RelatedLink): String {
         val newLinkEntity = LinkItemEntity(
@@ -383,7 +334,6 @@ class GoalRepository @Inject constructor(
     }
     suspend fun getAllGoalLists(): List<GoalList> = goalListDao.getAll()
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
-    suspend fun getAllNotes(): List<Note> = noteDao.getAll()
     suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
 
     suspend fun logCurrentDbOrderForDebug(listId: String) {
@@ -429,6 +379,4 @@ class GoalRepository @Inject constructor(
         addGoalToList(record.text, record.projectId)
         inboxRecordDao.delete(record)
     }
-
-
 }

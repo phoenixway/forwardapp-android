@@ -50,12 +50,6 @@ object AppModule {
 
     @Provides
     @Singleton // ✨ ДОДАНО
-    fun provideNoteDao(database: AppDatabase): NoteDao {
-        return database.noteDao()
-    }
-
-    @Provides
-    @Singleton // ✨ ДОДАНО
     fun provideListItemDao(database: AppDatabase): ListItemDao {
         return database.listItemDao()
     }
