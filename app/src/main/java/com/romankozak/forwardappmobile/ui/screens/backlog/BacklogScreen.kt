@@ -63,7 +63,7 @@ fun GoalDetailScreen(
 
     val list by viewModel.goalList.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
-    val showRecentListsSheet by viewModel.showRecentListsSheet.collectAsStateWithLifecycle()
+    val showRecentListsSheet = uiState.showRecentListsSheet
     val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val localContext = LocalContext.current
@@ -71,25 +71,28 @@ fun GoalDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
+
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
+
 
     var menuExpanded by remember { mutableStateOf(false) }
 
     if (uiState.showAddWebLinkDialog) {
         AddWebLinkDialog(
-            onDismiss = { viewModel.onDismissLinkDialogs() },
+            onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
             onConfirm = { url, name ->
-                viewModel.onAddWebLinkConfirm(url, name)
+                viewModel.inputHandler.onAddWebLinkConfirm(url, name)
             }
+
         )
     }
 
     if (uiState.showAddObsidianLinkDialog) {
         AddObsidianLinkDialog(
-            onDismiss = { viewModel.onDismissLinkDialogs() },
+            onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
             onConfirm = { noteName ->
-                viewModel.onAddObsidianLinkConfirm(noteName)
+                viewModel.inputHandler.onAddObsidianLinkConfirm(noteName)
             }
         )
     }
@@ -264,7 +267,7 @@ fun GoalDetailScreen(
     )
 
     if (showRecentListsSheet) {
-        ModalBottomSheet(onDismissRequest = { viewModel.onDismissRecentLists() }) {
+        ModalBottomSheet(onDismissRequest = { viewModel.inputHandler.onDismissRecentLists() }) {
             Column(
                 modifier = Modifier
                     .navigationBarsPadding()
@@ -279,7 +282,7 @@ fun GoalDetailScreen(
                     items(recentLists, key = { it.id }) { list ->
                         ListItem(
                             headlineContent = { Text(list.name) },
-                            modifier = Modifier.clickable { viewModel.onRecentListSelected(list.id) }
+                            modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(list.id) }
                         )
                     }
                 }
@@ -338,14 +341,14 @@ fun GoalDetailScreen(
                 GoalInputBar(
                     inputValue = uiState.inputValue,
                     inputMode = uiState.inputMode,
-                    onValueChange = { viewModel.onInputTextChanged(it) },
-                    onSubmit = { viewModel.submitInput() },
-                    onInputModeSelected = { viewModel.onInputModeSelected(it) },
-                    onRecentsClick = { viewModel.onShowRecentLists() },
-                    onAddListLinkClick = { viewModel.onAddListLinkRequest() },
-                    onShowAddWebLinkDialog = { viewModel.onShowAddWebLinkDialog() },
-                    onShowAddObsidianLinkDialog = { viewModel.onShowAddObsidianLinkDialog() },
-                    onAddListShortcutClick = { viewModel.onAddListShortcutRequest() },
+                    onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
+                    onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
+                    onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
+                    onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
+                    onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
+                    onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
+                    onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
+                    onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding()
