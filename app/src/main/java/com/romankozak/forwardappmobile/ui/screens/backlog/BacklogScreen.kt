@@ -69,10 +69,10 @@ fun GoalDetailScreen(
     val localContext = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
+    val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
+    val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
-    val showGoalTransportMenu by viewModel.showGoalTransportMenu.collectAsStateWithLifecycle()
 
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -183,7 +183,7 @@ fun GoalDetailScreen(
                             duration = SnackbarDuration.Short,
                         )
                         if (result == SnackbarResult.ActionPerformed) {
-                            viewModel.undoDelete()
+                            viewModel.itemActionHandler.undoDelete()
                         }
                     }
                 }
@@ -248,19 +248,19 @@ fun GoalDetailScreen(
         val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent
         GoalActionChoiceDialog(
             itemContent = itemContent,
-            onDismiss = { viewModel.onDismissGoalActionDialogs() },
+            onDismiss = { viewModel.itemActionHandler.onDismissGoalActionDialogs() },
             onActionSelected = { actionType ->
-                viewModel.onGoalActionSelected(actionType, itemContent)
+                viewModel.itemActionHandler.onGoalActionSelected(actionType, itemContent)
             }
         )
     }
 
     GoalTransportMenu(
         isVisible = showGoalTransportMenu,
-        onDismiss = { viewModel.onDismissGoalTransportMenu() },
-        onCreateInstanceRequest = { viewModel.onTransportActionSelected(GoalActionType.CreateInstance) },
-        onMoveInstanceRequest = { viewModel.onTransportActionSelected(GoalActionType.MoveInstance) },
-        onCopyGoalRequest = { viewModel.onTransportActionSelected(GoalActionType.CopyGoal) }
+        onDismiss = { viewModel.itemActionHandler.onDismissGoalTransportMenu() },
+        onCreateInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CreateInstance) },
+        onMoveInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.MoveInstance) },
+        onCopyGoalRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CopyGoal) }
     )
 
     if (showRecentListsSheet) {
@@ -362,8 +362,9 @@ fun GoalDetailScreen(
                 attachments = attachmentItems,
                 isExpanded = list?.isAttachmentsExpanded == true,
                 onAddAttachment = { viewModel.onAddAttachment(it) },
-                onDeleteItem = { viewModel.deleteItem(it) },
-                onItemClick = { viewModel.onItemClick(it) },
+                onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
+                // --- ЗМІНЕНО: Викликаємо onItemClick з itemActionHandler ---
+                onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
             )
 
             LazyColumn(
@@ -399,31 +400,33 @@ fun GoalDetailScreen(
                         resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
                         backgroundColor = backgroundColor,
                         onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                        onDelete = { viewModel.deleteItem(content) },
-                        onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
+                        onDelete = { viewModel.itemActionHandler.deleteItem(content) },
+                        onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                         onCreateInstanceRequest = {
-                            viewModel.onGoalActionSelected(
+                            viewModel.itemActionHandler.onGoalActionSelected(
                                 GoalActionType.CreateInstance,
                                 content
                             )
                         },
+
                         onMoveInstanceRequest = {
-                            viewModel.onGoalActionSelected(
+                            viewModel.itemActionHandler.onGoalActionSelected(
                                 GoalActionType.MoveInstance,
                                 content
                             )
                         },
                         onCopyGoalRequest = {
-                            viewModel.onGoalActionSelected(
+                            viewModel.itemActionHandler.onGoalActionSelected(
                                 GoalActionType.CopyGoal,
                                 content
                             )
                         },
                         modifier = Modifier,
-                        onGoalTransportRequest = { viewModel.onGoalTransportInitiated(content) },
+                        onGoalTransportRequest = { viewModel.itemActionHandler.onGoalTransportInitiated(content) },
                         onCopyContentRequest = {
-                            viewModel.copyContentRequest(content)
+                            viewModel.itemActionHandler.copyContentRequest(content)
                         }
+
                     ) { isDragging ->
                         when (content) {
                             is ListItemContent.GoalItem -> {
@@ -431,13 +434,13 @@ fun GoalDetailScreen(
                                     goal = content.goal,
                                     obsidianVaultName = obsidianVaultName,
                                     onToggle = { isChecked ->
-                                        viewModel.toggleGoalCompletedWithState(
+                                        viewModel.itemActionHandler.toggleGoalCompletedWithState(
                                             content.goal,
                                             isChecked
                                         )
                                     },
-                                    onItemClick = { viewModel.onItemClick(content) },
-                                    onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                    onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                    onLongClick = { viewModel.toggleSelection(content.item.id) }, // Note: toggleSelection remains in VM
                                     onTagClick = { tag -> viewModel.onTagClicked(tag) },
                                     onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                     contextMarkerToEmojiMap = contextMarkerToEmojiMap,
@@ -450,8 +453,8 @@ fun GoalDetailScreen(
                                     sublistContent = content,
                                     isSelected = content.item.id in uiState.selectedItemIds,
                                     isHighlighted = isHighlighted,
-                                    onClick = { viewModel.onItemClick(content) },
-                                    onLongClick = { viewModel.onItemLongClick(content.item.id) }
+                                    onClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                    onLongClick = { viewModel.toggleSelection(content.item.id) }
                                 )
                             }
 
