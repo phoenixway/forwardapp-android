@@ -22,6 +22,9 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Moving
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayCircleOutline
+// --- ПОЧАТОК ЗМІН ---
+import androidx.compose.material.icons.filled.Share // Додано новий імпорт
+// --- КІНЕЦЬ ЗМІН ---
 import androidx.compose.material.icons.filled.Start
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Icon
@@ -193,7 +196,9 @@ fun SwipeableListItem(
                         onClick = { onMoreActionsRequest(); resetSwipe() }
                     )
                     SwipeActionButton(
-                        icon = Icons.Default.Moving ,
+                        // --- ПОЧАТОК ЗМІН ---
+                        icon = Icons.Default.Share, // Замінено іконку
+                        // --- КІНЕЦЬ ЗМІН ---
                         contentDescription = "Транспорт цілі",
                         color = MaterialTheme.colorScheme.primary,
                         scale = leftActionsScale,

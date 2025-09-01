@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/InputBar.kt ---
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.animation.*
@@ -52,9 +51,9 @@ fun GoalInputBar(
     onAddListLinkClick: () -> Unit,
     onShowAddWebLinkDialog: () -> Unit,
     onShowAddObsidianLinkDialog: () -> Unit,
-    onAddListShortcutClick: () -> Unit, // ADDED
+    onAddListShortcutClick: () -> Unit,
 
-) {
+    ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
 
@@ -141,6 +140,7 @@ fun GoalInputBar(
                             .scale(buttonScale)
                             .size(48.dp)
                             .pointerInput(inputMode) {
+                                // --- ЗМІНЕНО: Оновлено структуру виклику ---
                                 detectHorizontalDragGestures(
                                     onDragStart = {
                                         isPressed = true
@@ -152,7 +152,8 @@ fun GoalInputBar(
                                         when {
                                             dragOffset > threshold -> {
                                                 animationDirection = -1
-                                                val prevIndex = (currentModeIndex - 1 + modes.size) % modes.size
+                                                // --- ЗМІНЕНО: Додано дужки для ясності ---
+                                                val prevIndex = ((currentModeIndex - 1) + modes.size) % modes.size
                                                 onInputModeSelected(modes[prevIndex])
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             }
@@ -165,7 +166,10 @@ fun GoalInputBar(
                                         }
                                         dragOffset = 0f
                                     }
-                                ) { _, dragAmount -> dragAmount }
+                                ) { _, dragAmount ->
+                                    // Ця лямбда тепер є останнім аргументом, а не іменованим 'onDrag'
+                                    dragOffset += dragAmount
+                                }
                             }
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {

@@ -2,11 +2,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -18,32 +14,17 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.LocationSearching
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Note
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -52,15 +33,21 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.SublistItemRow
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.AdaptiveTopBar
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddObsidianLinkDialog
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddWebLinkDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
 
 private const val TAG = "DND_DEBUG"
 
@@ -76,18 +63,40 @@ fun GoalDetailScreen(
 
     val list by viewModel.goalList.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
-    val showRecentListsSheet by viewModel.showRecentListsSheet.collectAsStateWithLifecycle()
+    val showRecentListsSheet = uiState.showRecentListsSheet
     val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val localContext = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val goalActionState by viewModel.goalActionDialogState.collectAsStateWithLifecycle()
+    val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
+    val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
+
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
-    val showGoalTransportMenu by viewModel.showGoalTransportMenu.collectAsStateWithLifecycle()
+
 
     var menuExpanded by remember { mutableStateOf(false) }
+
+    if (uiState.showAddWebLinkDialog) {
+        AddWebLinkDialog(
+            onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
+            onConfirm = { url, name ->
+                viewModel.inputHandler.onAddWebLinkConfirm(url, name)
+            }
+
+        )
+    }
+
+    if (uiState.showAddObsidianLinkDialog) {
+        AddObsidianLinkDialog(
+            onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
+            onConfirm = { noteName ->
+                viewModel.inputHandler.onAddObsidianLinkConfirm(noteName)
+            }
+        )
+    }
+
 
     val displayList = remember(listContent, list?.isAttachmentsExpanded) {
         val attachmentItems = listContent.filter { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
@@ -103,20 +112,20 @@ fun GoalDetailScreen(
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
         onMove = { fromIndex, toIndex ->
-            val attachmentCount = if (list?.isAttachmentsExpanded == true) {
-                listContent.count { it is ListItemContent.NoteItem || it is ListItemContent.LinkItem }
-            } else 0
-
-            val adjustedFromIndex = if (list?.isAttachmentsExpanded == true) fromIndex - attachmentCount else fromIndex
-            val adjustedToIndex = if (list?.isAttachmentsExpanded == true) toIndex - attachmentCount else toIndex
-
-            val draggableCount = listContent.count { it !is ListItemContent.NoteItem && it !is ListItemContent.LinkItem }
-            if (adjustedFromIndex >= 0 && adjustedFromIndex < draggableCount &&
-                adjustedToIndex >= 0 && adjustedToIndex < draggableCount) {
-                viewModel.moveItem(adjustedFromIndex, adjustedToIndex)
-            }
+            viewModel.moveItem(fromIndex, toIndex)
         }
     )
+
+    val newItemInList = uiState.newlyAddedItemId?.let { id ->
+        displayList.find { it.item.id == id }
+    }
+
+    LaunchedEffect(newItemInList) {
+        if (newItemInList != null) {
+            listState.animateScrollToItem(0)
+            viewModel.onScrolledToNewItem()
+        }
+    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -177,7 +186,7 @@ fun GoalDetailScreen(
                             duration = SnackbarDuration.Short,
                         )
                         if (result == SnackbarResult.ActionPerformed) {
-                            viewModel.undoDelete()
+                            viewModel.itemActionHandler.undoDelete()
                         }
                     }
                 }
@@ -216,26 +225,8 @@ fun GoalDetailScreen(
         viewModel.onHighlightShown()
     }
 
-    // --- ПОЧАТОК ЗМІН ---
-    // КЛЮЧОВЕ ВИПРАВЛЕННЯ:
-    // Цей ефект тепер спрацьовує, коли оновлюється сам `displayList`.
-    // Це гарантує, що на момент перевірки новий елемент вже є у списку.
-    LaunchedEffect(displayList) {
-        // Ми беремо актуальне значення `newlyAddedItemId` прямо з `uiState`.
-        val newItemId = uiState.newlyAddedItemId
-
-        // Перевіряємо, чи є ID для прокрутки, і чи дійсно елемент з таким ID
-        // вже присутній у поточній версії списку.
-        if (newItemId != null && displayList.any { it.item.id == newItemId }) {
-            // Якщо так - прокручуємо наверх і скидаємо ID, щоб не робити це знову.
-            listState.animateScrollToItem(0)
-            viewModel.onScrolledToNewItem()
-        }
-    }
-    // --- КІНЕЦЬ ЗМІН ---
-
     BackHandler(enabled = isSelectionModeActive) {
-        viewModel.clearSelection()
+        viewModel.selectionHandler.clearSelection()
     }
 
     BackHandler(enabled = !isSelectionModeActive) {
@@ -260,23 +251,23 @@ fun GoalDetailScreen(
         val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent
         GoalActionChoiceDialog(
             itemContent = itemContent,
-            onDismiss = { viewModel.onDismissGoalActionDialogs() },
+            onDismiss = { viewModel.itemActionHandler.onDismissGoalActionDialogs() },
             onActionSelected = { actionType ->
-                viewModel.onGoalActionSelected(actionType, itemContent)
+                viewModel.itemActionHandler.onGoalActionSelected(actionType, itemContent)
             }
         )
     }
 
     GoalTransportMenu(
         isVisible = showGoalTransportMenu,
-        onDismiss = { viewModel.onDismissGoalTransportMenu() },
-        onCreateInstanceRequest = { viewModel.onTransportActionSelected(GoalActionType.CreateInstance) },
-        onMoveInstanceRequest = { viewModel.onTransportActionSelected(GoalActionType.MoveInstance) },
-        onCopyGoalRequest = { viewModel.onTransportActionSelected(GoalActionType.CopyGoal) }
+        onDismiss = { viewModel.itemActionHandler.onDismissGoalTransportMenu() },
+        onCreateInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CreateInstance) },
+        onMoveInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.MoveInstance) },
+        onCopyGoalRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CopyGoal) }
     )
 
     if (showRecentListsSheet) {
-        ModalBottomSheet(onDismissRequest = { viewModel.onDismissRecentLists() }) {
+        ModalBottomSheet(onDismissRequest = { viewModel.inputHandler.onDismissRecentLists() }) {
             Column(
                 modifier = Modifier
                     .navigationBarsPadding()
@@ -291,7 +282,7 @@ fun GoalDetailScreen(
                     items(recentLists, key = { it.id }) { list ->
                         ListItem(
                             headlineContent = { Text(list.name) },
-                            modifier = Modifier.clickable { viewModel.onRecentListSelected(list.id) }
+                            modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(list.id) }
                         )
                     }
                 }
@@ -300,59 +291,46 @@ fun GoalDetailScreen(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding(),
         topBar = {
-            if (isSelectionModeActive) {
-                MultiSelectTopAppBar(
-                    selectedCount = uiState.selectedItemIds.size,
-                    areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                    onClearSelection = { viewModel.clearSelection() },
-                    onSelectAll = { viewModel.selectAllItems() },
-                    onDelete = { viewModel.deleteSelectedItems() },
-                    onToggleComplete = { viewModel.toggleCompletionForSelectedGoals() },
-                    onMoreActions = { actionType -> viewModel.onBulkActionRequest(actionType) },
-                )
-            } else {
-                TopAppBar(
-                    title = { Text(list?.name ?: stringResource(R.string.loading)) },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back_button_description))
-                        }
-                    },
-                    actions = {
-                        list?.let {
-                            IconButton(onClick = { viewModel.toggleAttachmentsVisibility() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Attachment,
-                                    contentDescription = "Додатки",
-                                    tint = if (it.isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        IconButton(onClick = { viewModel.onRevealInExplorer(list?.id ?: "") }) {
-                            Icon(
-                                imageVector = Icons.Default.LocationSearching,
-                                contentDescription = stringResource(R.string.reveal_in_backlogs),
-                            )
-                        }
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Меню")
-                        }
-                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Властивості") },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Властивості") },
-                                onClick = {
-                                    menuExpanded = false
-                                    navController.navigate("edit_list_screen/${list?.id}")
-                                }
-                            )
-                        }
-                    },
-                )
-            }
+            AdaptiveTopBar(
+                // Передаємо всі необхідні параметри
+                isSelectionModeActive = isSelectionModeActive,
+                title = list?.name ?: stringResource(R.string.loading),
+
+                // Параметри для навігації
+                canGoBack = navController.previousBackStackEntry != null,
+                onBackClick = { navController.popBackStack() },
+                onForwardClick = { /* ... */ },
+                onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
+                onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                onEditList = {
+                    menuExpanded = false
+                    navController.navigate("edit_list_screen/${list?.id}")
+                },
+                menuExpanded = menuExpanded,
+                onMenuExpandedChange = { menuExpanded = it },
+
+                // Параметри для режиму вибору
+                selectedCount = uiState.selectedItemIds.size,
+                areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                onToggleComplete = { viewModel.selectionHandler.toggleCompletionForSelectedGoals(uiState.selectedItemIds) },
+                onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
+                onShareList = {  },
+                onDeleteList = { viewModel.deleteCurrentList() },
+                modifier = Modifier
+            )
+
+
         },
+
+
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             AnimatedVisibility(
@@ -363,14 +341,14 @@ fun GoalDetailScreen(
                 GoalInputBar(
                     inputValue = uiState.inputValue,
                     inputMode = uiState.inputMode,
-                    onValueChange = { viewModel.onInputTextChanged(it) },
-                    onSubmit = { viewModel.submitInput() },
-                    onInputModeSelected = { viewModel.onInputModeSelected(it) },
-                    onRecentsClick = { viewModel.onShowRecentLists() },
-                    onAddListLinkClick = { viewModel.onAddListLinkRequest() },
-                    onShowAddWebLinkDialog = { viewModel.onShowAddWebLinkDialog() },
-                    onShowAddObsidianLinkDialog = { viewModel.onShowAddObsidianLinkDialog() },
-                    onAddListShortcutClick = { viewModel.onAddListShortcutRequest() },
+                    onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
+                    onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
+                    onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
+                    onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
+                    onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
+                    onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
+                    onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
+                    onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding()
@@ -387,8 +365,9 @@ fun GoalDetailScreen(
                 attachments = attachmentItems,
                 isExpanded = list?.isAttachmentsExpanded == true,
                 onAddAttachment = { viewModel.onAddAttachment(it) },
-                onDeleteItem = { viewModel.deleteItem(it) },
-                onItemClick = { viewModel.onItemClick(it) },
+                onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
+                // --- ЗМІНЕНО: Викликаємо onItemClick з itemActionHandler ---
+                onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
             )
 
             LazyColumn(
@@ -424,82 +403,75 @@ fun GoalDetailScreen(
                         resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
                         backgroundColor = backgroundColor,
                         onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
-                        onDelete = { viewModel.deleteItem(content) },
-                        onMoreActionsRequest = { viewModel.onGoalActionInitiated(content) },
-                        onCreateInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.CreateInstance, content) },
-                        onMoveInstanceRequest = { viewModel.onGoalActionSelected(GoalActionType.MoveInstance, content) },
-                        onCopyGoalRequest = { viewModel.onGoalActionSelected(GoalActionType.CopyGoal, content) },
+                        onDelete = { viewModel.itemActionHandler.deleteItem(content) },
+                        onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                        onCreateInstanceRequest = {
+                            viewModel.itemActionHandler.onGoalActionSelected(
+                                GoalActionType.CreateInstance,
+                                content
+                            )
+                        },
+
+                        onMoveInstanceRequest = {
+                            viewModel.itemActionHandler.onGoalActionSelected(
+                                GoalActionType.MoveInstance,
+                                content
+                            )
+                        },
+                        onCopyGoalRequest = {
+                            viewModel.itemActionHandler.onGoalActionSelected(
+                                GoalActionType.CopyGoal,
+                                content
+                            )
+                        },
                         modifier = Modifier,
-                        onGoalTransportRequest = { viewModel.onGoalTransportInitiated(content) },
+                        onGoalTransportRequest = { viewModel.itemActionHandler.onGoalTransportInitiated(content) },
                         onCopyContentRequest = {
-                            viewModel.copyContentRequest(content)
+                            viewModel.itemActionHandler.copyContentRequest(content)
                         }
+
                     ) { isDragging ->
                         when (content) {
                             is ListItemContent.GoalItem -> {
                                 GoalItem(
                                     goal = content.goal,
                                     obsidianVaultName = obsidianVaultName,
-                                    onToggle = { isChecked -> viewModel.toggleGoalCompletedWithState(content.goal, isChecked) },
-                                    onItemClick = { viewModel.onItemClick(content) },
-                                    onLongClick = { viewModel.onItemLongClick(content.item.id) },
+                                    onToggle = { isChecked ->
+                                        viewModel.itemActionHandler.toggleGoalCompletedWithState(
+                                            content.goal,
+                                            isChecked
+                                        )
+                                    },
+                                    onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                    onLongClick = { viewModel.selectionHandler.toggleSelection(content.item.id, uiState.selectedItemIds) },
                                     onTagClick = { tag -> viewModel.onTagClicked(tag) },
                                     onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                     contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                     emojiToHide = currentListContextEmojiToHide
                                 )
                             }
+
                             is ListItemContent.SublistItem -> {
                                 SublistItemRow(
                                     sublistContent = content,
                                     isSelected = content.item.id in uiState.selectedItemIds,
                                     isHighlighted = isHighlighted,
-                                    onClick = { viewModel.onItemClick(content) },
-                                    onLongClick = { viewModel.onItemLongClick(content.item.id) }
+                                    onClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                    onLongClick = { viewModel.toggleSelection(content.item.id) }
                                 )
                             }
+
                             else -> {
-                                Log.w("BacklogScreen", "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}")
+                                Log.w(
+                                    "BacklogScreen",
+                                    "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}"
+                                )
                             }
                         }
                     }
                 }
             }
         }
-    }
-}
-
-// ... (решта коду без змін)
-private fun handleRelatedLinkClick(
-    link: RelatedLink,
-    obsidianVaultName: String,
-    context: Context,
-    navController: NavController,
-) {
-    try {
-        when (link.type) {
-            LinkType.URL -> {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link.target))
-                context.startActivity(intent)
-            }
-            LinkType.GOAL_LIST -> {
-                navController.navigate("goal_detail_screen/${link.target}")
-            }
-            LinkType.OBSIDIAN -> {
-                if (obsidianVaultName.isNotBlank()) {
-                    val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
-                    val encodedFile = URLEncoder.encode(link.target, "UTF-8")
-                    val obsidianUri = "obsidian://open?vault=$encodedVault&file=$encodedFile"
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(obsidianUri))
-                    context.startActivity(intent)
-                } else {
-                    Toast.makeText(context, context.getString(R.string.error_obsidian_vault_not_set), Toast.LENGTH_LONG).show()
-                }
-            }
-            LinkType.NOTE -> { /* TODO */ }
-        }
-    } catch (e: Exception) {
-        Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
     }
 }
 
@@ -512,134 +484,4 @@ fun rememberSimpleDragDropState(
     return remember(lazyListState) {
         SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
     }
-}
-
-@Composable
-fun NoteItemRow(
-    noteContent: ListItemContent.NoteItem,
-    isSelected: Boolean,
-    isHighlighted: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onDelete: () -> Unit,
-    backgroundColor: Color,
-    modifier: Modifier = Modifier
-) {
-    SwipeableListItem(
-        isDragging = false,
-        isAnyItemDragging = false,
-        swipeEnabled = true,
-        isAnotherItemSwiped = false,
-        resetTrigger = 0,
-        onSwipeStart = { },
-        onDelete = onDelete,
-        onMoreActionsRequest = { },
-        onGoalTransportRequest = { },
-        onCopyContentRequest = { },
-        backgroundColor = backgroundColor,
-        content = {
-            Card(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .clickable { onClick() }
-                    .combinedClickable(
-                        onClick = onClick,
-                        onLongClick = onLongClick
-                    ),
-                colors = CardDefaults.cardColors(containerColor = backgroundColor)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = noteContent.note.title?.takeIf { it.isNotBlank() } ?: "Без назви",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (noteContent.note.content.isNotBlank()) {
-                        Text(
-                            text = noteContent.note.content.take(100) + if (noteContent.note.content.length > 100) "..." else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
-    )
-}
-
-@Composable
-fun LinkItemRow(
-    linkContent: ListItemContent.LinkItem,
-    isSelected: Boolean,
-    isHighlighted: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onDelete: () -> Unit,
-    backgroundColor: Color,
-    modifier: Modifier = Modifier
-) {
-    SwipeableListItem(
-        isDragging = false,
-        isAnyItemDragging = false,
-        swipeEnabled = true,
-        isAnotherItemSwiped = false,
-        resetTrigger = 0,
-        onSwipeStart = { },
-        onDelete = onDelete,
-        onMoreActionsRequest = { },
-        onGoalTransportRequest = { },
-        onCopyContentRequest = { },
-        backgroundColor = backgroundColor,
-        content = {
-            Card(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .clickable { onClick() }
-                    .combinedClickable(
-                        onClick = onClick,
-                        onLongClick = onLongClick
-                    ),
-                colors = CardDefaults.cardColors(containerColor = backgroundColor)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = when (linkContent.link.linkData.type) {
-                            LinkType.URL -> Icons.Default.Link
-                            LinkType.OBSIDIAN -> Icons.Default.Description
-                            LinkType.GOAL_LIST -> Icons.Default.List
-                            LinkType.NOTE -> Icons.Default.Note
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = linkContent.link.linkData.displayName ?: linkContent.link.linkData.target,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        if (linkContent.link.linkData.displayName != null) {
-                            Text(
-                                text = linkContent.link.linkData.target,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    )
 }
