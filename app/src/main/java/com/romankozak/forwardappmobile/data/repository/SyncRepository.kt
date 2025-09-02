@@ -7,14 +7,26 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.datastore.preferences.core.Preferences
+import androidx.room.withTransaction
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.dao.GoalListDao
+import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.RecentListDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.sync.DatabaseContent
 import com.romankozak.forwardappmobile.data.sync.DesktopBackupData
 import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
 import com.romankozak.forwardappmobile.data.sync.DesktopGoal
 import com.romankozak.forwardappmobile.data.sync.DesktopGoalInstance
 import com.romankozak.forwardappmobile.data.sync.DesktopGoalList
+import com.romankozak.forwardappmobile.data.sync.FullAppBackup
+import com.romankozak.forwardappmobile.data.sync.SettingsContent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -22,19 +34,13 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.serialization.gson.gson
+import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
-import com.romankozak.forwardappmobile.data.dao.*
-import com.romankozak.forwardappmobile.data.sync.DatabaseContent
-import com.romankozak.forwardappmobile.data.sync.FullAppBackup
-import com.romankozak.forwardappmobile.data.sync.SettingsContent
-import androidx.datastore.preferences.core.Preferences
-import kotlinx.coroutines.flow.first
-import androidx.room.withTransaction
 
 enum class ChangeType {
     Add, Update, Delete, Move
@@ -61,7 +67,6 @@ private data class LocalSyncState(
 
 @Singleton
 class SyncRepository @Inject constructor(
-    private val goalRepository: GoalRepository,
     private val appDatabase: AppDatabase,
     @ApplicationContext private val context: Context,
     private val goalDao: GoalDao,
@@ -74,6 +79,7 @@ class SyncRepository @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) {
     private val TAG = "SyncRepository"
+    private val gson = Gson()
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) { gson() }
     }
@@ -93,6 +99,173 @@ class SyncRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching from WiFi", e)
             Result.failure(e)
+        }
+    }
+
+    // --- ПОЧАТОК ЗМІНИ: Відновлено метод createBackupJsonString ---
+    suspend fun createBackupJsonString(): String {
+        val lists = goalListDao.getAll()
+        val goals = goalDao.getAll()
+        val listItems = listItemDao.getAll()
+
+        val desktopGoals = goals.associate {
+            it.id to DesktopGoal(
+                id = it.id, text = it.text, completed = it.completed,
+                createdAt = longToDateString(it.createdAt)!!,
+                updatedAt = longToDateString(it.updatedAt),
+                associatedListIds = it.relatedLinks?.filter { l -> l.type == LinkType.GOAL_LIST }
+                    ?.map { l -> l.target },
+                description = it.description, tags = it.tags,
+                valueImportance = it.valueImportance, valueImpact = it.valueImpact,
+                effort = it.effort, cost = it.cost, risk = it.risk,
+                weightEffort = it.weightEffort, weightCost = it.weightCost,
+                weightRisk = it.weightRisk, rawScore = it.rawScore,
+                displayScore = it.displayScore, scoringStatus = it.scoringStatus
+            )
+        }
+
+        val goalListItems = listItems.filter { it.itemType == ListItemType.GOAL }
+        val desktopInstances = goalListItems.associate {
+            it.id to DesktopGoalInstance(id = it.id, goalId = it.entityId)
+        }
+
+        val desktopLists = lists.associate { list ->
+            val listInstances = goalListItems.filter { it.listId == list.id }.sortedBy { it.order }
+            list.id to DesktopGoalList(
+                id = list.id, name = list.name, parentId = list.parentId,
+                description = list.description,
+                createdAt = longToDateString(list.createdAt)!!,
+                updatedAt = longToDateString(list.updatedAt),
+                itemInstanceIds = listInstances.map { it.id },
+                isExpanded = list.isExpanded, order = list.order, tags = list.tags
+            )
+        }
+
+        val desktopBackupData = DesktopBackupData(
+            goals = desktopGoals,
+            goalLists = desktopLists,
+            goalInstances = desktopInstances,
+            notes = emptyMap() // Нотатки більше не використовуються, передаємо порожню мапу
+        )
+
+        val desktopBackupFile = DesktopBackupFile(
+            version = 4, // Версія для сумісності з десктопом
+            exportedAt = longToDateString(System.currentTimeMillis())!!,
+            data = desktopBackupData
+        )
+
+        return gson.toJson(desktopBackupFile)
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
+
+    suspend fun exportFullBackupToFile(): Result<String> {
+        return try {
+            val backupJson = createFullBackupJsonString()
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "forward_app_full_backup_$timestamp.json"
+
+            val contentResolver = context.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
+                }
+            }
+
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                contentResolver.openOutputStream(uri)?.use { it.write(backupJson.toByteArray()) }
+                Result.success("Повний бекап успішно збережено до Downloads/ForwardApp.")
+            } else {
+                Result.failure(Exception("Не вдалося створити файл для бекапу."))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Помилка повного експорту", e)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun createFullBackupJsonString(): String {
+        val databaseContent = DatabaseContent(
+            goals = goalDao.getAll(),
+            goalLists = goalListDao.getAll(),
+            listItems = listItemDao.getAll(),
+            activityRecords = activityRecordDao.getAllRecordsStream().first(),
+            recentListEntries = recentListDao.getAllEntries(),
+            linkItemEntities = linkItemDao.getAllEntities(),
+            inboxRecords = inboxRecordDao.getAll()
+        )
+
+        val settingsSnapshot: Preferences = settingsRepository.getPreferencesSnapshot()
+        val settingsMap = settingsSnapshot.asMap().mapKeys { it.key.name }.mapValues { it.value.toString() }
+        val settingsContent = SettingsContent(settings = settingsMap)
+
+        val fullBackup = FullAppBackup(
+            database = databaseContent,
+            settings = settingsContent
+        )
+        return gson.toJson(fullBackup)
+    }
+
+    suspend fun importFullBackupFromFile(uri: Uri): Result<String> {
+        val IMPORT_TAG = "SyncRepository_IMPORT"
+        try {
+            Log.d(IMPORT_TAG, "Починаємо імпорт з URI: $uri")
+            val jsonString = context.contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
+
+            if (jsonString.isNullOrBlank()) {
+                Log.e(IMPORT_TAG, "Помилка: файл бекапу порожній або не вдалося прочитати.")
+                return Result.failure(Exception("Backup file is empty or could not be read."))
+            }
+            Log.d(IMPORT_TAG, "Файл успішно прочитано.")
+
+            Log.d(IMPORT_TAG, "Починаємо розбір JSON в об'єкт FullAppBackup...")
+            val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
+            Log.d(IMPORT_TAG, "JSON успішно розібрано.")
+
+            Log.d(IMPORT_TAG, "Починаємо очищення даних для сумісності...")
+            val cleanedGoalLists = backup.database.goalLists.map { listFromBackup ->
+                listFromBackup.copy(
+                    defaultViewModeName = listFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name
+                )
+            }
+            Log.d(IMPORT_TAG, "Очищення даних завершено.")
+
+            appDatabase.withTransaction {
+                Log.d(IMPORT_TAG, "Початок транзакції в БД. Очищення старих даних...")
+                inboxRecordDao.deleteAll()
+                linkItemDao.deleteAll()
+                recentListDao.deleteAll()
+                activityRecordDao.clearAll()
+                listItemDao.deleteAll()
+                goalListDao.deleteAll()
+                goalDao.deleteAll()
+                Log.d(IMPORT_TAG, "Всі таблиці очищено.")
+
+                Log.d(IMPORT_TAG, "Вставка нових даних...")
+                goalDao.insertGoals(backup.database.goals)
+                goalListDao.insertLists(cleanedGoalLists)
+                listItemDao.insertItems(backup.database.listItems)
+
+                backup.database.activityRecords?.let { activityRecordDao.insertAll(it) }
+                backup.database.recentListEntries?.let { recentListDao.insertAll(it) }
+                backup.database.linkItemEntities?.let { linkItemDao.insertAll(it) }
+                backup.database.inboxRecords?.let { inboxRecordDao.insertAll(it) }
+
+                Log.d(IMPORT_TAG, "Вставка даних завершена.")
+            }
+
+            Log.d(IMPORT_TAG, "Відновлення налаштувань...")
+            settingsRepository.restoreFromMap(backup.settings.settings)
+            Log.d(IMPORT_TAG, "Налаштування відновлено.")
+
+            Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
+            return Result.success("Backup imported successfully!")
+
+        } catch (e: Exception) {
+            Log.e(IMPORT_TAG, "Під час імпорту сталася критична помилка.", e)
+            return Result.failure(e)
         }
     }
 
@@ -161,13 +334,13 @@ class SyncRepository @Inject constructor(
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
         try {
-            val backupFile = Gson().fromJson(jsonString, DesktopBackupFile::class.java)
+            val backupFile = gson.fromJson(jsonString, DesktopBackupFile::class.java)
             val remoteData = backupFile.data ?: throw IllegalArgumentException("Backup data is missing.")
 
             val remoteState = transformImportedData(remoteData)
-            val localLists = goalRepository.getAllGoalLists().associateBy { it.id }
-            val localGoals = goalRepository.getAllGoals().associateBy { it.id }
-            val localItems = goalRepository.getAllListItems().associateBy { it.id }
+            val localLists = goalListDao.getAll().associateBy { it.id }
+            val localGoals = goalDao.getAll().associateBy { it.id }
+            val localItems = listItemDao.getAll().associateBy { it.id }
 
             val changes = mutableListOf<SyncChange>()
 
@@ -224,10 +397,6 @@ class SyncRepository @Inject constructor(
     suspend fun applyChanges(approvedChanges: List<SyncChange>) {
         val changesByType = approvedChanges.groupBy { it.type }
 
-        val goalDao = appDatabase.goalDao()
-        val goalListDao = appDatabase.goalListDao()
-        val listItemDao = appDatabase.listItemDao()
-
         changesByType[ChangeType.Delete]?.forEach { change ->
             when (change.entityType) {
                 "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
@@ -250,228 +419,6 @@ class SyncRepository @Inject constructor(
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }
-        }
-    }
-
-    suspend fun exportDatabaseToFile(): Result<String> {
-        return try {
-            val backupJson = createBackupJsonString()
-            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "forward_app_backup_$timestamp.json"
-
-            val contentResolver = context.contentResolver
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
-                }
-            }
-
-            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-            if (uri != null) {
-                contentResolver.openOutputStream(uri)?.use { it.write(backupJson.toByteArray()) }
-                Result.success("Експорт успішно завершено до Downloads/ForwardApp.")
-            } else {
-                Result.failure(Exception("Не вдалося створити файл."))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Помилка експорту", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun importDatabaseFromFile(uri: Uri): Result<String> {
-        return try {
-            val jsonString = context.contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
-            if (jsonString.isNullOrBlank()) {
-                return Result.failure(Exception("Файл порожній або пошкоджений."))
-            }
-            val report = createSyncReport(jsonString)
-            applyChanges(report.changes)
-            Result.success("Імпорт та синхронізацію завершено!")
-        } catch (e: Exception) {
-            Log.e(TAG, "Помилка імпорту", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun createBackupJsonString(): String {
-        val lists = goalRepository.getAllGoalLists()
-        val goals = goalRepository.getAllGoals()
-        val listItems = goalRepository.getAllListItems()
-
-        val desktopGoals = goals.associate {
-            it.id to DesktopGoal(
-                id = it.id, text = it.text, completed = it.completed,
-                createdAt = longToDateString(it.createdAt)!!,
-                updatedAt = longToDateString(it.updatedAt),
-                associatedListIds = it.relatedLinks?.filter { l -> l.type == LinkType.GOAL_LIST }
-                    ?.map { l -> l.target },
-                description = it.description, tags = it.tags,
-                valueImportance = it.valueImportance, valueImpact = it.valueImpact,
-                effort = it.effort, cost = it.cost, risk = it.risk,
-                weightEffort = it.weightEffort, weightCost = it.weightCost,
-                weightRisk = it.weightRisk, rawScore = it.rawScore,
-                displayScore = it.displayScore, scoringStatus = it.scoringStatus
-            )
-        }
-
-        val goalListItems = listItems.filter { it.itemType == ListItemType.GOAL }
-        val desktopInstances = goalListItems.associate {
-            it.id to DesktopGoalInstance(id = it.id, goalId = it.entityId)
-        }
-
-        val desktopLists = lists.associate { list ->
-            val listInstances = goalListItems.filter { it.listId == list.id }.sortedBy { it.order }
-            list.id to DesktopGoalList(
-                id = list.id, name = list.name, parentId = list.parentId,
-                description = list.description,
-                createdAt = longToDateString(list.createdAt)!!,
-                updatedAt = longToDateString(list.updatedAt),
-                itemInstanceIds = listInstances.map { it.id },
-                isExpanded = list.isExpanded, order = list.order, tags = list.tags
-            )
-        }
-
-        val desktopBackupData = DesktopBackupData(
-            goals = desktopGoals,
-            goalLists = desktopLists,
-            goalInstances = desktopInstances,
-            notes = emptyMap()
-        )
-
-        val desktopBackupFile = DesktopBackupFile(
-            version = 4,
-            exportedAt = longToDateString(System.currentTimeMillis())!!,
-            data = desktopBackupData
-        )
-
-        return Gson().toJson(desktopBackupFile)
-    }
-
-    suspend fun createFullBackupJsonString(): String {
-        val databaseContent = DatabaseContent(
-            goals = goalDao.getAll(),
-            goalLists = goalListDao.getAll(),
-            listItems = listItemDao.getAll(),
-            activityRecords = activityRecordDao.getAllRecordsStream().first(),
-            recentListEntries = recentListDao.getAllEntries(),
-            linkItemEntities = linkItemDao.getAllEntities(),
-            inboxRecords = inboxRecordDao.getAll()
-        )
-
-        val settingsSnapshot: Preferences = settingsRepository.getPreferencesSnapshot()
-        val settingsMap = settingsSnapshot.asMap().mapKeys { entry ->
-            entry.key.name
-        }.mapValues { entry ->
-            entry.value.toString()
-        }
-        val settingsContent = SettingsContent(settings = settingsMap)
-
-        val fullBackup = FullAppBackup(
-            database = databaseContent,
-            settings = settingsContent
-        )
-
-        return Gson().toJson(fullBackup)
-    }
-
-    suspend fun exportFullBackupToFile(): Result<String> {
-        return try {
-            val backupJson = createFullBackupJsonString()
-            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "forward_app_full_backup_$timestamp.json"
-
-            val contentResolver = context.contentResolver
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ForwardApp")
-                }
-            }
-
-            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-            if (uri != null) {
-                contentResolver.openOutputStream(uri)?.use { it.write(backupJson.toByteArray()) }
-                Result.success("Повний бекап успішно збережено до Downloads/ForwardApp.")
-            } else {
-                Result.failure(Exception("Не вдалося створити файл для бекапу."))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Помилка повного експорту", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun importFullBackupFromFile(uri: Uri): Result<String> {
-        Log.d(TAG, "Запуск повного імпорту з файлу: $uri")
-        return try {
-            Log.d(TAG, "Крок 1/4: Читання файлу...")
-            val jsonString = context.contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
-            if (jsonString.isNullOrBlank()) {
-                Log.e(TAG, "Помилка: Файл порожній або не вдалося прочитати.")
-                return Result.failure(Exception("Файл бекапу порожній або пошкоджений."))
-            }
-            Log.d(TAG, "Файл успішно прочитано. Розмір: ${jsonString.length} символів.")
-
-            Log.d(TAG, "Крок 2/4: Десеріалізація JSON...")
-            val backupData = Gson().fromJson(jsonString, FullAppBackup::class.java)
-            Log.d(TAG, "JSON успішно десеріалізовано. Версія бекапу: ${backupData.backupSchemaVersion}. " +
-                    "Кількість списків: ${backupData.database.goalLists.size}, " +
-                    "Кількість цілей: ${backupData.database.goals.size}, " +
-                    "Кількість записів інбоксу: ${backupData.database.inboxRecords?.size ?: 0}.")
-
-            if (backupData.backupSchemaVersion != 1) {
-                Log.e(TAG, "Помилка: Несумісна версія файлу бекапу. Очікується v1, отримано v${backupData.backupSchemaVersion}")
-                return Result.failure(Exception("Несумісна версія файлу бекапу."))
-            }
-
-            val originalDbContent = backupData.database
-            Log.d(TAG, "Фільтрація елементів списку для сумісності...")
-            val filteredListItems = originalDbContent.listItems.filter { it.itemType != null }
-            if (originalDbContent.listItems.size != filteredListItems.size) {
-                val removedCount = originalDbContent.listItems.size - filteredListItems.size
-                Log.d(TAG, "Відфільтровано та видалено $removedCount елементів (ймовірно, старих нотаток).")
-            }
-            val dbContent = originalDbContent.copy(listItems = filteredListItems)
-
-            Log.d(TAG, "Крок 3/4: Запуск транзакції для відновлення бази даних...")
-            appDatabase.withTransaction {
-                Log.d(TAG, "Очищення старих даних...")
-                listItemDao.deleteAll()
-                recentListDao.deleteAll()
-                activityRecordDao.clearAll()
-                goalDao.deleteAll()
-                goalListDao.deleteAll()
-                linkItemDao.deleteAll()
-                inboxRecordDao.deleteAll()
-
-                Log.d(TAG, "Вставка нових даних з бекапу...")
-                goalListDao.insertLists(dbContent.goalLists)
-                goalDao.insertGoals(dbContent.goals)
-                linkItemDao.insertAll(dbContent.linkItemEntities)
-                activityRecordDao.insertAll(dbContent.activityRecords)
-                recentListDao.insertAll(dbContent.recentListEntries)
-                listItemDao.insertItems(dbContent.listItems)
-                dbContent.inboxRecords?.let {
-                    if (it.isNotEmpty()) {
-                        inboxRecordDao.insertAll(it)
-                    }
-                }
-            }
-            Log.d(TAG, "Транзакція бази даних успішно завершена.")
-
-            Log.d(TAG, "Крок 4/4: Відновлення налаштувань...")
-            settingsRepository.restoreFromMap(backupData.settings.settings)
-            Log.d(TAG, "Налаштування успішно відновлено.")
-
-            Log.d(TAG, "Процес імпорту успішно завершено.")
-            Result.success("Дані успішно відновлено з резервної копії!")
-        } catch (e: Exception) {
-            Log.e(TAG, "Критична помилка під час повного імпорту", e)
-            Result.failure(e)
         }
     }
 }

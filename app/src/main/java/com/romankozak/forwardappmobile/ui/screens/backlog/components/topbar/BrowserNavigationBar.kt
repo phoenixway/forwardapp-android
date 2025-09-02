@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

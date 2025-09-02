@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -41,6 +42,15 @@ class GoalRepository @Inject constructor(
     ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "AddSublistDebug"
+
+    // --- ПОЧАТОК ЗМІНИ: Новий метод для оновлення режиму перегляду списку ---
+    suspend fun updateGoalListViewMode(listId: String, viewMode: ProjectViewMode) {
+        val list = getGoalListById(listId)
+        if (list != null) {
+            updateGoalList(list.copy(defaultViewModeName = viewMode.name))
+        }
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     fun getListContentStream(listId: String): Flow<List<ListItemContent>> {
         return listItemDao.getItemsForListStream(listId).map { items ->
@@ -342,8 +352,6 @@ class GoalRepository @Inject constructor(
     @Transaction
     suspend fun promoteInboxRecordToGoal(record: InboxRecord) {
         addGoalToList(record.text, record.projectId)
-        // --- ПОЧАТОК ЗМІН ---
-        inboxRecordDao.deleteById(record.id) // Виправлено з .delete(record)
-        // --- КІНЕЦЬ ЗМІН ---
+        inboxRecordDao.deleteById(record.id)
     }
 }
