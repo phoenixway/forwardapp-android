@@ -22,7 +22,8 @@ data class DatabaseContent(
     val activityRecords: List<ActivityRecord>,
     val recentListEntries: List<RecentListEntry>,
     val linkItemEntities: List<LinkItemEntity>,
-    val inboxRecords: List<InboxRecord> // <-- ДОДАНО
+    val inboxRecords: List<InboxRecord>? = null
+
 )
 
 /**
