@@ -143,6 +143,8 @@
     <string name="import_markdown_description">Paste markdown list</string>
     <string name="markdown_text_label">Your text..</string>
     <string name="import_action">Start</string>
+    <string name="collapse_panel">collapse_panel</string>
+    <string name="expand_panel">expand_panel</string>
 
 
 </resources>

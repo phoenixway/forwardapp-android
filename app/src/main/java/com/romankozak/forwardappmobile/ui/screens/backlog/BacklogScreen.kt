@@ -1,3 +1,5 @@
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogScreen.kt
+
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
@@ -52,8 +54,6 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.ImportMarkdown
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val TAG = "DND_DEBUG"
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalDetailScreen(
@@ -78,7 +78,6 @@ fun GoalDetailScreen(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
 
-
     var menuExpanded by remember { mutableStateOf(false) }
 
     if (uiState.showAddWebLinkDialog) {
@@ -87,7 +86,6 @@ fun GoalDetailScreen(
             onConfirm = { url, name ->
                 viewModel.inputHandler.onAddWebLinkConfirm(url, name)
             }
-
         )
     }
 
@@ -100,7 +98,6 @@ fun GoalDetailScreen(
         )
     }
 
-    // --- ОСЬ ЦЕЙ БЛОК БУЛО ДОДАНО ---
     val recordToEdit by viewModel.recordToEdit.collectAsStateWithLifecycle()
     recordToEdit?.let { record ->
         EditInboxRecordDialog(
@@ -109,8 +106,6 @@ fun GoalDetailScreen(
             onConfirm = { newText -> viewModel.onInboxRecordEditConfirm(newText) }
         )
     }
-    // --- КІНЕЦЬ НОВОГО БЛОКУ ---
-
 
     val displayList = remember(listContent, list?.isAttachmentsExpanded) {
         val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
@@ -142,8 +137,8 @@ fun GoalDetailScreen(
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -310,38 +305,11 @@ fun GoalDetailScreen(
         )
     }
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            //.systemBarsPadding(),
-        ,topBar = {
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
             AdaptiveTopBar(
-                // Передаємо всі необхідні параметри
                 isSelectionModeActive = isSelectionModeActive,
                 title = list?.name ?: stringResource(R.string.loading),
-
-                // Параметри для навігації
-                canGoBack = navController.previousBackStackEntry != null,
-                onBackClick = {
-                    viewModel.flushPendingMoves() // Додаємо очищення, як у BackHandler
-                    navController.popBackStack()
-                },
-                onForwardClick = { /* Цей функціонал не реалізовано */ },
-                onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
-                isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
-                onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
-                onEditList = {
-                    menuExpanded = false
-                    navController.navigate("edit_list_screen/${list?.id}")
-                },
-                menuExpanded = menuExpanded,
-                onMenuExpandedChange = { menuExpanded = it },
-
-                // --- ДОДАНО НОВІ ПАРАМЕТРИ ДЛЯ ПЕРЕМИКАЧА ---
-                currentView = uiState.currentView,
-                onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
-                // --- КІНЕЦЬ НОВИХ ПАРАМЕТРІВ ---
-
-                // Параметри для режиму вибору
                 selectedCount = uiState.selectedItemIds.size,
                 areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
                 onClearSelection = { viewModel.selectionHandler.clearSelection() },
@@ -349,18 +317,8 @@ fun GoalDetailScreen(
                 onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
                 onToggleComplete = { viewModel.selectionHandler.toggleCompletionForSelectedGoals(uiState.selectedItemIds) },
                 onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
-                onShareList = { /* Цей функціонал не реалізовано */ },
-                onDeleteList = { viewModel.deleteCurrentList() },
-                modifier = Modifier,
-                onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
-                onExportToMarkdown = viewModel::onExportToMarkdownRequest,
-
-                )
-
-
+            )
         },
-
-
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             AnimatedVisibility(
@@ -368,7 +326,7 @@ fun GoalDetailScreen(
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
             ) {
-                GoalInputBar(
+                ModernInputPanel(
                     inputValue = uiState.inputValue,
                     inputMode = uiState.inputMode,
                     onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
@@ -379,6 +337,28 @@ fun GoalDetailScreen(
                     onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
                     onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
                     onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
+                    // Navigation props
+                    canGoBack = navController.previousBackStackEntry != null,
+                    onBackClick = {
+                        viewModel.flushPendingMoves()
+                        navController.popBackStack()
+                    },
+                    onForwardClick = { /* Not implemented */ },
+                    onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                    isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
+                    onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                    onEditList = {
+                        menuExpanded = false
+                        navController.navigate("edit_list_screen/${list?.id}")
+                    },
+                    onShareList = { /* Not implemented */ },
+                    onDeleteList = { viewModel.deleteCurrentList() },
+                    menuExpanded = menuExpanded,
+                    onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
+                    currentView = uiState.currentView,
+                    onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
+                    onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
+                    onExportToMarkdown = viewModel::onExportToMarkdownRequest,
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding()
@@ -386,11 +366,8 @@ fun GoalDetailScreen(
             }
         },
     ) { paddingValues ->
-        // Головний контейнер, який буде змінювати свій вміст
-        // в залежності від обраного режиму перегляду (uiState.currentView)
+        // Main container that changes content based on the selected view mode
         when (uiState.currentView) {
-
-            // --- РЕЖИМ 1: ВІДОБРАЖЕННЯ ОСНОВНОГО СПИСКУ (БЕКЛОГУ) ---
             ProjectViewMode.BACKLOG -> {
                 Column(
                     modifier = Modifier
@@ -476,7 +453,7 @@ fun GoalDetailScreen(
                                                 )
                                             },
                                             onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                            onLongClick = { viewModel.selectionHandler.toggleSelection(content.item.id, uiState.selectedItemIds) },
+                                            onLongClick = { viewModel.toggleSelection(content.item.id) },
                                             onTagClick = { tag -> viewModel.onTagClicked(tag) },
                                             onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
@@ -495,7 +472,7 @@ fun GoalDetailScreen(
                                     else -> {
                                         Log.w(
                                             "BacklogScreen",
-                                            "Непідтримуваний тип у списку draggableItems: ${content::class.simpleName}"
+                                            "Unsupported type in draggableItems list: ${content::class.simpleName}"
                                         )
                                     }
                                 }
@@ -505,7 +482,6 @@ fun GoalDetailScreen(
                 }
             }
 
-            // --- РЕЖИМ 2: ВІДОБРАЖЕННЯ ІНБОКСУ ---
             ProjectViewMode.INBOX -> {
                 val inboxRecords by viewModel.inboxRecords.collectAsStateWithLifecycle()
                 Box(modifier = Modifier.padding(paddingValues)) {
@@ -514,13 +490,11 @@ fun GoalDetailScreen(
                         onDelete = viewModel::deleteInboxRecord,
                         onPromoteToGoal = viewModel::promoteInboxRecordToGoal,
                         onRecordClick = viewModel::onInboxRecordEditRequest,
-                        onCopy = { text -> viewModel.copyInboxRecordText(text) } // <-- ДОДАНО
-
+                        onCopy = { text -> viewModel.copyInboxRecordText(text) }
                     )
                 }
             }
 
-            // --- РЕЖИМ 3: ЗАГЛУШКА ДЛЯ МАЙБУТНІХ ДОДАТКІВ ---
             ProjectViewMode.ADDONS -> {
                 Box(
                     modifier = Modifier
@@ -528,11 +502,13 @@ fun GoalDetailScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Додатки (в розробці)")
+                    Text("Add-ons (in development)")
                 }
             }
         }
-    }}
+    }
+}
+
 @Composable
 fun rememberSimpleDragDropState(
     lazyListState: LazyListState,
