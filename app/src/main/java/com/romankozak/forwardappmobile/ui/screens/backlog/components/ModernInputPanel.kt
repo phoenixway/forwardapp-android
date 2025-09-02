@@ -109,7 +109,6 @@ fun ModernInputPanel(
             accentColor = MaterialTheme.colorScheme.secondary,
             inputFieldColor = MaterialTheme.colorScheme.surface
         )
-
         InputMode.SearchInList -> PanelColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -257,7 +256,7 @@ fun ModernInputPanel(
                         .weight(1f)
                         .height(44.dp),
                     shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                    color = panelColors.inputFieldColor, // <--- ВИПРАВЛЕНО
                     border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
                     shadowElevation = 1.dp
                 ) {
@@ -385,7 +384,7 @@ fun ModernInputPanel(
             // --- Група "Посилання та Ярлики" ---
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             Text(
-                text = "ПОСИЛАННЯ ТА ЯРЛИКИ",
+                text = "ДОДАВАННЯ ПОСИЛАНЬ",
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -424,7 +423,6 @@ fun ModernInputPanel(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_add_list_shortcut), style = MaterialTheme.typography.bodyMedium) },
                 leadingIcon = { Icon(Icons.Outlined.PlaylistAdd, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
@@ -433,7 +431,6 @@ fun ModernInputPanel(
                     showModeMenu = false
                 }
             )
-
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_add_goal_component), style = MaterialTheme.typography.bodyMedium) },
                 leadingIcon = { Icon(Icons.Outlined.Add, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddGoal) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
