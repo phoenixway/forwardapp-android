@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.DpOffset // <-- НЕ ЗАБУДЬТЕ ІМПОРТУВАТИ
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
@@ -256,7 +257,7 @@ fun ModernInputPanel(
                         .weight(1f)
                         .height(44.dp),
                     shape = RoundedCornerShape(20.dp),
-                    color = panelColors.inputFieldColor, // <--- ВИПРАВЛЕНО
+                    color = panelColors.inputFieldColor,
                     border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
                     shadowElevation = 1.dp
                 ) {
@@ -327,128 +328,141 @@ fun ModernInputPanel(
         }
     }
 
+    // --- ПОЧАТОК ЗМІН ---
     if (showModeMenu) {
-        DropdownMenu(
-            expanded = showModeMenu,
-            onDismissRequest = { showModeMenu = false },
+        val menuWidth = 280.dp // Виносимо ширину в змінну для перевикористання
+
+        // Цей Box створює "якір" для меню рівно по центру екрана по горизонталі.
+        Box(
             modifier = Modifier
-                .width(280.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = RoundedCornerShape(16.dp)
-                )
+                .fillMaxWidth()
+                .wrapContentSize(Alignment.Center)
         ) {
-            // Загальний заголовок з поточним режимом
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = when (inputMode) {
-                            InputMode.AddGoal -> stringResource(R.string.menu_add_goal_component)
-                            InputMode.AddQuickRecord -> stringResource(R.string.menu_add_quick_record)
-                            InputMode.SearchInList -> stringResource(R.string.menu_search_in_list)
-                            InputMode.SearchGlobal -> stringResource(R.string.menu_search_everywhere)
-                        },
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = panelColors.accentColor
+            DropdownMenu(
+                expanded = showModeMenu,
+                onDismissRequest = { showModeMenu = false },
+                // Зміщуємо меню вліво на половину його ширини, щоб відцентрувати його.
+                offset = DpOffset(x = -menuWidth / 2, y = 0.dp),
+                modifier = Modifier
+                    .width(menuWidth) // Використовуємо змінну
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(16.dp)
                     )
-                },
-                onClick = { /* Do nothing */ },
-                modifier = Modifier.background(panelColors.contentColor.copy(alpha = 0.08f))
-            )
+            ) {
+                // Загальний заголовок з поточним режимом
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = when (inputMode) {
+                                InputMode.AddGoal -> stringResource(R.string.menu_add_goal_component)
+                                InputMode.AddQuickRecord -> stringResource(R.string.menu_add_quick_record)
+                                InputMode.SearchInList -> stringResource(R.string.menu_search_in_list)
+                                InputMode.SearchGlobal -> stringResource(R.string.menu_search_everywhere)
+                            },
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = panelColors.accentColor
+                        )
+                    },
+                    onClick = { /* Do nothing */ },
+                    modifier = Modifier.background(panelColors.contentColor.copy(alpha = 0.08f))
+                )
 
-            // --- Група "Пошук" ---
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text(
-                text = "ПОШУК",
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_search_in_list), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchInList) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    onInputModeSelected(InputMode.SearchInList)
-                    showModeMenu = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_search_everywhere), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.TravelExplore, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchGlobal) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    onInputModeSelected(InputMode.SearchGlobal)
-                    showModeMenu = false
-                }
-            )
+                // --- Група "Пошук" ---
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text(
+                    text = "ПОШУК",
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_search_in_list), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchInList) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        onInputModeSelected(InputMode.SearchInList)
+                        showModeMenu = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_search_everywhere), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.TravelExplore, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchGlobal) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        onInputModeSelected(InputMode.SearchGlobal)
+                        showModeMenu = false
+                    }
+                )
 
-            // --- Група "Посилання та Ярлики" ---
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text(
-                text = "ДОДАВАННЯ ПОСИЛАНЬ",
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_list_link), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.Link, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    showModeMenu = false
-                    onAddListLinkClick()
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_web_link), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.Public, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    showModeMenu = false
-                    onShowAddWebLinkDialog()
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_obsidian_link), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.DataObject, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    showModeMenu = false
-                    onShowAddObsidianLinkDialog()
-                }
-            )
+                // --- Група "Посилання та Ярлики" ---
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text(
+                    text = "ДОДАВАННЯ ПОСИЛАНЬ",
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_add_list_link), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.Link, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        showModeMenu = false
+                        onAddListLinkClick()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_add_web_link), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.Public, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        showModeMenu = false
+                        onShowAddWebLinkDialog()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_add_obsidian_link), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.DataObject, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        showModeMenu = false
+                        onShowAddObsidianLinkDialog()
+                    }
+                )
 
 
-            // --- Група "Додавання в Беклог" ---
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text(
-                text = "ДОДАВАННЯ В БЕКЛОГ",
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_list_shortcut), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.PlaylistAdd, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    onAddListShortcutClick()
-                    showModeMenu = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_goal_component), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.Add, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddGoal) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    onInputModeSelected(InputMode.AddGoal)
-                    showModeMenu = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_quick_record), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.Inbox, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddQuickRecord) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
-                onClick = {
-                    onInputModeSelected(InputMode.AddQuickRecord)
-                    showModeMenu = false
-                }
-            )
+                // --- Група "Додавання в Беклог" ---
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text(
+                    text = "ДОДАВАННЯ В БЕКЛОГ",
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_add_list_shortcut), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.PlaylistAdd, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        onAddListShortcutClick()
+                        showModeMenu = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_add_goal_component), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.Add, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddGoal) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        onInputModeSelected(InputMode.AddGoal)
+                        showModeMenu = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_add_quick_record), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Outlined.Inbox, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddQuickRecord) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = {
+                        onInputModeSelected(InputMode.AddQuickRecord)
+                        showModeMenu = false
+                    }
+                )
+            }
         }
     }
+    // --- КІНЕЦЬ ЗМІН ---
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
