@@ -52,7 +52,6 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import javax.inject.Inject
 
-// ... (sealed class, enum, data class залишаються без змін, оскільки ми перенесли ProjectViewMode в DatabaseModel.kt) ...
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
@@ -60,6 +59,7 @@ sealed class UiEvent {
     data class ScrollTo(val index: Int) : UiEvent()
     data class NavigateBackAndReveal(val listId: String) : UiEvent()
     data class HandleLinkClick(val link: RelatedLink) : UiEvent()
+    data object ScrollToLatestInboxRecord : UiEvent()
 }
 
 sealed class GoalActionDialogState {
@@ -310,7 +310,13 @@ class GoalDetailViewModel @Inject constructor(
                         ProjectViewMode.BACKLOG
                     }
                     Log.d(TAG, "Init: Loaded view mode for list ${listIdFlow.value}: ${viewMode.name}")
-                    _uiState.update { it.copy(currentView = viewMode) }
+                    // --- ЗМІНЕНО: Встановлюємо і viewMode, і inputMode при початковому завантаженні ---
+                    _uiState.update {
+                        it.copy(
+                            currentView = viewMode,
+                            inputMode = getInputModeForView(viewMode)
+                        )
+                    }
                 }
         }
 
@@ -327,12 +333,19 @@ class GoalDetailViewModel @Inject constructor(
             listIdFlow.filter { it.isNotEmpty() }.flatMapLatest { id ->
                 goalRepository.getInboxRecordsStream(id)
             }.collect { records ->
-                _inboxRecords.value = records
+                _inboxRecords.value = records.sortedBy { it.createdAt ?: 0L }
             }
         }
     }
 
-    // ... (решта методів ViewModel) ...
+    // --- ЗМІНЕНО: Створено приватну функцію для уникнення дублювання коду ---
+    private fun getInputModeForView(viewMode: ProjectViewMode): InputMode {
+        return if (viewMode == ProjectViewMode.INBOX) {
+            InputMode.AddQuickRecord
+        } else {
+            InputMode.AddGoal
+        }
+    }
 
     override fun requestNavigation(route: String) {
         viewModelScope.launch {
@@ -602,7 +615,6 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     override fun updateCurrentView(view: ProjectViewMode) {
-        Log.d(TAG, "updateCurrentView: Updating _uiState with new view: ${view.name}")
         _uiState.update { it.copy(currentView = view) }
     }
 
@@ -611,7 +623,13 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun onProjectViewChange(newView: ProjectViewMode) {
-        inboxHandler.onProjectViewChange(newView)
+        _uiState.update {
+            it.copy(
+                currentView = newView,
+                inputMode = getInputModeForView(newView) // --- ЗМІНЕНО: Використовуємо рефакторинг
+            )
+        }
+
         viewModelScope.launch {
             Log.d(TAG, "onProjectViewChange: Persisting view mode '${newView.name}' for list ${listIdFlow.value}")
             goalRepository.updateGoalListViewMode(listIdFlow.value, newView)
@@ -644,6 +662,9 @@ class GoalDetailViewModel @Inject constructor(
     override fun addQuickRecord(text: String) {
         inboxHandler.addQuickRecord(text)
         updateInputState(inputValue = TextFieldValue(""))
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.ScrollToLatestInboxRecord)
+        }
     }
 
     fun copyInboxRecordText(text: String) {

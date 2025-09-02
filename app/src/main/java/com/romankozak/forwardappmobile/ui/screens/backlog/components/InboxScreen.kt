@@ -4,6 +4,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -29,7 +30,8 @@ fun InboxScreen(
     onDelete: (String) -> Unit,
     onPromoteToGoal: (InboxRecord) -> Unit,
     onRecordClick: (InboxRecord) -> Unit, // Ця функція тепер викликатиметься для редагування
-    onCopy: (String) -> Unit
+    onCopy: (String) -> Unit,
+    listState: LazyListState // --- ЗМІНЕНО: Видалено значення за замовчуванням
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -53,6 +55,7 @@ fun InboxScreen(
             }
         } else {
             LazyColumn(
+                state = listState, // --- ЗМІНЕНО: Використовується переданий стан
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
@@ -73,7 +76,7 @@ fun InboxScreen(
                                 snackbarHostState.showSnackbar("Переміщено до цілей")
                             }
                         },
-                        onEdit = { onRecordClick(record) }, // --- ЗМІНЕНО: Передаємо функцію редагування
+                        onEdit = { onRecordClick(record) },
                         onCopy = {
                             onCopy(record.text)
                             scope.launch {
@@ -95,7 +98,7 @@ fun InboxScreen(
 @Composable
 fun InboxItemRow(
     record: InboxRecord,
-    onEdit: () -> Unit, // --- ЗМІНЕНО: Параметр для редагування
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onPromoteToGoal: () -> Unit,
     onCopy: () -> Unit
@@ -156,7 +159,6 @@ fun InboxItemRow(
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            // --- ПОЧАТОК ЗМІН ---
                             IconButton(
                                 onClick = onEdit,
                                 modifier = Modifier.size(36.dp)
@@ -168,7 +170,6 @@ fun InboxItemRow(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
-                            // --- КІНЕЦЬ ЗМІН ---
                             IconButton(
                                 onClick = onPromoteToGoal,
                                 modifier = Modifier.size(36.dp)
