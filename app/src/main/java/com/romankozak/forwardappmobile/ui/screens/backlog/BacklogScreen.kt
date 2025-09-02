@@ -81,6 +81,9 @@ fun GoalDetailScreen(
 
     var menuExpanded by remember { mutableStateOf(false) }
 
+    val inboxRecords by viewModel.inboxRecords.collectAsStateWithLifecycle()
+    val inboxListState = rememberLazyListState()
+
     if (uiState.showAddWebLinkDialog) {
         AddWebLinkDialog(
             onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
@@ -210,6 +213,14 @@ fun GoalDetailScreen(
                 }
                 is UiEvent.ResetSwipeState -> viewModel.onSwipeStateReset(event.itemId)
                 is UiEvent.ScrollTo -> listState.animateScrollToItem(event.index)
+                is UiEvent.ScrollToLatestInboxRecord -> { // --- ЗМІНЕНО: Обробка перейменованої події
+                    coroutineScope.launch {
+                        // --- ЗМІНЕНО: Прокручування до останнього елемента ---
+                        if (inboxRecords.isNotEmpty()) {
+                            inboxListState.animateScrollToItem(inboxRecords.lastIndex)
+                        }
+                    }
+                }
             }
         }
     }
@@ -493,14 +504,14 @@ fun GoalDetailScreen(
             }
 
             ProjectViewMode.INBOX -> {
-                val inboxRecords by viewModel.inboxRecords.collectAsStateWithLifecycle()
                 Box(modifier = Modifier.padding(paddingValues)) {
                     InboxScreen(
                         records = inboxRecords,
                         onDelete = viewModel::deleteInboxRecord,
                         onPromoteToGoal = viewModel::promoteInboxRecordToGoal,
                         onRecordClick = viewModel::onInboxRecordEditRequest,
-                        onCopy = { text -> viewModel.copyInboxRecordText(text) }
+                        onCopy = { text -> viewModel.copyInboxRecordText(text) },
+                        listState = inboxListState
                     )
                 }
             }
