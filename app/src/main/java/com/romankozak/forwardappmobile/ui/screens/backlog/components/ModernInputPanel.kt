@@ -39,7 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.DpOffset // <-- НЕ ЗАБУДЬТЕ ІМПОРТУВАТИ
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
@@ -328,11 +328,10 @@ fun ModernInputPanel(
         }
     }
 
-    // --- ПОЧАТОК ЗМІН ---
     if (showModeMenu) {
-        val menuWidth = 280.dp // Виносимо ширину в змінну для перевикористання
+        val menuWidth = 280.dp
 
-        // Цей Box створює "якір" для меню рівно по центру екрана по горизонталі.
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -341,16 +340,16 @@ fun ModernInputPanel(
             DropdownMenu(
                 expanded = showModeMenu,
                 onDismissRequest = { showModeMenu = false },
-                // Зміщуємо меню вліво на половину його ширини, щоб відцентрувати його.
+
                 offset = DpOffset(x = -menuWidth / 2, y = 0.dp),
                 modifier = Modifier
-                    .width(menuWidth) // Використовуємо змінну
+                    .width(menuWidth)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         shape = RoundedCornerShape(16.dp)
                     )
             ) {
-                // Загальний заголовок з поточним режимом
+
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -368,7 +367,7 @@ fun ModernInputPanel(
                     modifier = Modifier.background(panelColors.contentColor.copy(alpha = 0.08f))
                 )
 
-                // --- Група "Пошук" ---
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text(
                     text = "ПОШУК",
@@ -393,7 +392,7 @@ fun ModernInputPanel(
                     }
                 )
 
-                // --- Група "Посилання та Ярлики" ---
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text(
                     text = "ДОДАВАННЯ ПОСИЛАНЬ",
@@ -427,7 +426,7 @@ fun ModernInputPanel(
                 )
 
 
-                // --- Група "Додавання в Беклог" ---
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text(
                     text = "ДОДАВАННЯ В БЕКЛОГ",
@@ -462,7 +461,6 @@ fun ModernInputPanel(
             }
         }
     }
-    // --- КІНЕЦЬ ЗМІН ---
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -490,8 +488,6 @@ private fun NavigationBar(
 ) {
     val haptic = LocalHapticFeedback.current
 
-    // --- ПОЧАТОК ЗМІН 1 ---
-    // Анімація для масштабування іконки додатків
     val attachmentIconScale by animateFloatAsState(
         targetValue = if (isAttachmentsExpanded) 1.2f else 1.0f,
         label = "attachmentIconScale",
@@ -500,7 +496,6 @@ private fun NavigationBar(
             stiffness = Spring.StiffnessMedium
         )
     )
-    // --- КІНЕЦЬ ЗМІН 1 ---
 
     Row(
         modifier = modifier
@@ -563,6 +558,19 @@ private fun NavigationBar(
                     modifier = Modifier.size(20.dp)
                 )
             }
+            // --- ПОЧАТОК ЗМІНИ ---
+            IconButton(
+                onClick = onRecentsClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Останні", // Recent
+                    tint = contentColor.copy(alpha = 0.8f), // "Ненав'язливий" вигляд
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            // --- КІНЕЦЬ ЗМІНИ ---
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
@@ -633,11 +641,9 @@ private fun NavigationBar(
                     imageVector = Icons.Default.Attachment,
                     contentDescription = stringResource(R.string.toggle_attachments),
                     tint = attachmentIconColor,
-                    // --- ПОЧАТОК ЗМІН 2 ---
                     modifier = Modifier
                         .size(20.dp)
                         .scale(attachmentIconScale)
-                    // --- КІНЕЦЬ ЗМІН 2 ---
                 )
             }
             Box {
