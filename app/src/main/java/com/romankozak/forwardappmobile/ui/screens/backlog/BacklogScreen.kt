@@ -48,6 +48,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddWebLinkDial
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.EditInboxRecordDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.ImportMarkdownDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -302,7 +303,12 @@ fun GoalDetailScreen(
             }
         }
     }
-
+    if (uiState.showImportFromMarkdownDialog) {
+        ImportMarkdownDialog(
+            onDismiss = viewModel::onImportFromMarkdownDismiss,
+            onConfirm = viewModel::onImportFromMarkdownConfirm
+        )
+    }
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -345,8 +351,11 @@ fun GoalDetailScreen(
                 onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
                 onShareList = { /* Цей функціонал не реалізовано */ },
                 onDeleteList = { viewModel.deleteCurrentList() },
-                modifier = Modifier
-            )
+                modifier = Modifier,
+                onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
+                onExportToMarkdown = viewModel::onExportToMarkdownRequest,
+
+                )
 
 
         },

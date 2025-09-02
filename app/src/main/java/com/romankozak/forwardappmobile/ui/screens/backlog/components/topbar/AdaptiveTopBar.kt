@@ -2,15 +2,40 @@ package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,13 +74,15 @@ fun AdaptiveTopBar(
     onMoreActions: (GoalActionType) -> Unit,
     currentView: ProjectViewMode,
     onViewChange: (ProjectViewMode) -> Unit,
-    modifier: Modifier = Modifier
+    onImportFromMarkdown: () -> Unit,
+    onExportToMarkdown: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 2.dp,
         shadowElevation = if (isSelectionModeActive) 4.dp else 1.dp,
-        modifier = modifier.statusBarsPadding()
+        modifier = modifier.statusBarsPadding(),
     ) {
         if (isSelectionModeActive) {
             Column(modifier = Modifier.statusBarsPadding()) {
@@ -67,7 +94,7 @@ fun AdaptiveTopBar(
                     onSelectAll = onSelectAll,
                     onDelete = onDelete,
                     onToggleComplete = onToggleComplete,
-                    onMoreActions = onMoreActions
+                    onMoreActions = onMoreActions,
                 )
             }
         } else {
@@ -86,7 +113,9 @@ fun AdaptiveTopBar(
                         onShareList = onShareList,
                         onDeleteList = onDeleteList,
                         currentView = currentView,
-                        onViewChange = onViewChange
+                        onViewChange = onViewChange,
+                        onImportFromMarkdown = onImportFromMarkdown,
+                        onExportToMarkdown = onExportToMarkdown,
                     )
                 }.first().measure(constraints)
 
@@ -94,27 +123,36 @@ fun AdaptiveTopBar(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }.first().measure(constraints)
 
-                val availableSpace = constraints.maxWidth - leftButtonsPlaceable.width - rightButtonsPlaceable.width
+                val availableSpace =
+                    constraints.maxWidth - leftButtonsPlaceable.width - rightButtonsPlaceable.width
                 val horizontalPadding = 32.dp.toPx()
-                val showInlineTitle = titleTextPlaceable.width < availableSpace - horizontalPadding
+                val showInlineTitle =
+                    titleTextPlaceable.width < (availableSpace - horizontalPadding)
 
                 if (showInlineTitle) {
-                    val navBarHeight = maxOf(leftButtonsPlaceable.height, rightButtonsPlaceable.height, 48.dp.toPx().toInt())
+                    val navBarHeight = maxOf(
+                        leftButtonsPlaceable.height,
+                        rightButtonsPlaceable.height,
+                        48.dp.toPx().toInt()
+                    )
                     layout(constraints.maxWidth, navBarHeight) {
-                        leftButtonsPlaceable.placeRelative(0, (navBarHeight - leftButtonsPlaceable.height) / 2)
+                        leftButtonsPlaceable.placeRelative(
+                            0,
+                            (navBarHeight - leftButtonsPlaceable.height) / 2
+                        )
 
                         rightButtonsPlaceable.placeRelative(
                             x = constraints.maxWidth - rightButtonsPlaceable.width,
-                            y = (navBarHeight - rightButtonsPlaceable.height) / 2
+                            y = (navBarHeight - rightButtonsPlaceable.height) / 2,
                         )
 
                         titleTextPlaceable.placeRelative(
-                            x = leftButtonsPlaceable.width + (availableSpace - titleTextPlaceable.width) / 2,
-                            y = (navBarHeight - titleTextPlaceable.height) / 2
+                            x = leftButtonsPlaceable.width + ((availableSpace - titleTextPlaceable.width) / 2),
+                            y = (navBarHeight - titleTextPlaceable.height) / 2,
                         )
                     }
                 } else {
@@ -136,7 +174,10 @@ fun AdaptiveTopBar(
                             menuExpanded = menuExpanded,
                             onMenuExpandedChange = onMenuExpandedChange,
                             currentView = currentView,
-                            onViewChange = onViewChange
+                            onViewChange = onViewChange,
+                            // --- ВИПРАВЛЕНО ТУТ ---
+                            onImportFromMarkdown = onImportFromMarkdown,
+                            onExportToMarkdown = onExportToMarkdown,
                         )
                     }.first().measure(constraints)
 
@@ -156,39 +197,39 @@ private fun LeftButtons(
     canGoBack: Boolean,
     onBackClick: () -> Unit,
     onForwardClick: () -> Unit,
-    onHomeClick: () -> Unit
+    onHomeClick: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(start = 2.dp)
+        modifier = Modifier.padding(start = 2.dp),
     ) {
         val backButtonAlpha by animateFloatAsState(
             targetValue = if (canGoBack) 1f else 0.6f,
-            label = "backButtonAlpha"
+            label = "backButtonAlpha",
         )
 
         IconButton(
             onClick = onBackClick,
             enabled = canGoBack,
-            modifier = Modifier.alpha(backButtonAlpha)
+            modifier = Modifier.alpha(backButtonAlpha),
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.back),
                 tint = if (canGoBack) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
             )
         }
 
         IconButton(
             onClick = onForwardClick,
             enabled = false,
-            modifier = Modifier.alpha(0.38f)
+            modifier = Modifier.alpha(0.38f),
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = stringResource(R.string.forward),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
             )
         }
 
@@ -196,12 +237,12 @@ private fun LeftButtons(
 
         IconButton(
             onClick = onHomeClick,
-            modifier = Modifier.size(40.dp)
+            modifier = Modifier.size(40.dp),
         ) {
             Icon(
                 imageVector = Icons.Default.Home,
                 contentDescription = stringResource(R.string.go_to_home_list),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -218,34 +259,34 @@ private fun RightButtons(
     onShareList: () -> Unit,
     onDeleteList: () -> Unit,
     currentView: ProjectViewMode,
-    onViewChange: (ProjectViewMode) -> Unit
+    onViewChange: (ProjectViewMode) -> Unit,
+    onImportFromMarkdown: () -> Unit,
+    onExportToMarkdown: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(end = 2.dp)
+        modifier = Modifier.padding(end = 2.dp),
     ) {
         SingleChoiceSegmentedButtonRow(
-            modifier = Modifier.height(36.dp)
+            modifier = Modifier.height(36.dp),
         ) {
             SegmentedButton(
                 selected = currentView == ProjectViewMode.BACKLOG,
                 onClick = { onViewChange(ProjectViewMode.BACKLOG) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                // --- ПОЧАТОК ЗМІН ---
-                icon = { }, // Прибираємо стандартну іконку-галочку
-                // --- КІНЕЦЬ ЗМІН ---
+                icon = { },
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
                     inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.List,
                     contentDescription = "Backlog",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
             }
 
@@ -253,21 +294,19 @@ private fun RightButtons(
                 selected = currentView == ProjectViewMode.INBOX,
                 onClick = { onViewChange(ProjectViewMode.INBOX) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                // --- ПОЧАТОК ЗМІН ---
-                icon = { }, // Прибираємо стандартну іконку-галочку
-                // --- КІНЕЦЬ ЗМІН ---
+                icon = { },
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
                     inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Inbox,
                     contentDescription = "Inbox",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
@@ -279,12 +318,12 @@ private fun RightButtons(
                 MaterialTheme.colorScheme.primary
             else
                 MaterialTheme.colorScheme.onSurfaceVariant,
-            label = "attachmentIconColor"
+            label = "attachmentIconColor",
         )
 
         val attachmentScale by animateFloatAsState(
             targetValue = if (isAttachmentsExpanded) 1.2f else 1f,
-            label = "attachmentScale"
+            label = "attachmentScale",
         )
 
         IconButton(
@@ -294,12 +333,12 @@ private fun RightButtons(
                 .graphicsLayer {
                     scaleX = attachmentScale
                     scaleY = attachmentScale
-                }
+                },
         ) {
             Icon(
                 imageVector = Icons.Default.Attachment,
                 contentDescription = stringResource(R.string.toggle_attachments),
-                tint = attachmentIconColor
+                tint = attachmentIconColor,
             )
         }
 
@@ -308,20 +347,20 @@ private fun RightButtons(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = stringResource(R.string.more_options),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { onMenuExpandedChange(false) },
-                modifier = Modifier.width(180.dp)
+                modifier = Modifier.width(220.dp),
             ) {
                 DropdownMenuItem(
                     text = {
                         Text(
                             stringResource(R.string.edit_list),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     },
                     onClick = {
@@ -332,16 +371,16 @@ private fun RightButtons(
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
-                    }
+                    },
                 )
 
                 DropdownMenuItem(
                     text = {
                         Text(
                             stringResource(R.string.share_list),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     },
                     onClick = {
@@ -352,14 +391,59 @@ private fun RightButtons(
                         Icon(
                             Icons.Default.Share,
                             contentDescription = "Поділитися списком",
-                            tint = MaterialTheme.colorScheme.tertiary
+                            tint = MaterialTheme.colorScheme.tertiary,
                         )
-                    }
+                    },
                 )
+
+                if (currentView == ProjectViewMode.INBOX) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Імпортувати з Markdown",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            onImportFromMarkdown()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Upload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Експортувати в Markdown",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            onExportToMarkdown()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Download,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        },
+                    )
+                }
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
+                    color = MaterialTheme.colorScheme.outlineVariant,
                 )
 
                 DropdownMenuItem(
@@ -367,7 +451,7 @@ private fun RightButtons(
                         Text(
                             text = stringResource(R.string.delete_list),
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     },
                     onClick = {
@@ -378,15 +462,14 @@ private fun RightButtons(
                         Icon(
                             Icons.Outlined.Delete,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
                         )
-                    }
+                    },
                 )
             }
         }
     }
 }
-
 
 private enum class AdaptiveTopBarSlot {
     LEFT_BUTTONS,
