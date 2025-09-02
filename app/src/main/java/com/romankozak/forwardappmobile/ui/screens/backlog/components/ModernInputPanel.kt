@@ -99,25 +99,25 @@ fun ModernInputPanel(
     val panelColors = when (inputMode) {
         InputMode.AddGoal -> PanelColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            contentColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             accentColor = MaterialTheme.colorScheme.primary,
             inputFieldColor = MaterialTheme.colorScheme.surfaceVariant
         )
         InputMode.AddQuickRecord -> PanelColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            accentColor = MaterialTheme.colorScheme.error,
-            inputFieldColor = MaterialTheme.colorScheme.surface
-        )
-
-        InputMode.SearchInList -> PanelColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f),
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             accentColor = MaterialTheme.colorScheme.secondary,
             inputFieldColor = MaterialTheme.colorScheme.surface
         )
+
+        InputMode.SearchInList -> PanelColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            accentColor = MaterialTheme.colorScheme.primary,
+            inputFieldColor = MaterialTheme.colorScheme.surface
+        )
         InputMode.SearchGlobal -> PanelColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.9f),
             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
             accentColor = MaterialTheme.colorScheme.tertiary,
             inputFieldColor = MaterialTheme.colorScheme.surface
@@ -148,8 +148,8 @@ fun ModernInputPanel(
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        shadowElevation = 0.dp, // <--- ЗМІНЕНО НА 0.dp
-        tonalElevation = 0.dp,   // <--- ЗМІНЕНО НА 0.dp
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
         color = animatedContainerColor,
         border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f))
     ) {
@@ -171,7 +171,8 @@ fun ModernInputPanel(
                 onImportFromMarkdown = onImportFromMarkdown,
                 onExportToMarkdown = onExportToMarkdown,
                 contentColor = panelColors.contentColor,
-                onRecentsClick = onRecentsClick
+                onRecentsClick = onRecentsClick,
+                onInputModeSelected = onInputModeSelected
             )
 
             Row(
@@ -222,8 +223,14 @@ fun ModernInputPanel(
                                 },
                                 label = "mode_icon_animation"
                             ) { mode ->
+                                val icon = when (mode) {
+                                    InputMode.AddGoal -> Icons.Outlined.Add
+                                    InputMode.AddQuickRecord -> Icons.Outlined.Inbox
+                                    InputMode.SearchInList -> Icons.Outlined.Search
+                                    InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+                                }
                                 Icon(
-                                    imageVector = InputModeUtils.getModeIcon(mode),
+                                    imageVector = icon,
                                     contentDescription = null,
                                     modifier = Modifier
                                         .size(22.dp)
@@ -250,9 +257,9 @@ fun ModernInputPanel(
                         .weight(1f)
                         .height(44.dp),
                     shape = RoundedCornerShape(20.dp),
-                    color = panelColors.inputFieldColor,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
                     border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
-                    shadowElevation = 2.dp
+                    shadowElevation = 1.dp
                 ) {
                     BasicTextField(
                         value = inputValue,
@@ -332,8 +339,7 @@ fun ModernInputPanel(
                     shape = RoundedCornerShape(16.dp)
                 )
         ) {
-            // ==================== ВІДНОВЛЕНИЙ БЛОК МЕНЮ ====================
-            // Header with current mode
+            // Загальний заголовок з поточним режимом
             DropdownMenuItem(
                 text = {
                     Text(
@@ -343,20 +349,25 @@ fun ModernInputPanel(
                             InputMode.SearchInList -> stringResource(R.string.menu_search_in_list)
                             InputMode.SearchGlobal -> stringResource(R.string.menu_search_everywhere)
                         },
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = panelColors.accentColor
                     )
                 },
-                onClick = { showModeMenu = false },
-                modifier = Modifier.background(panelColors.contentColor.copy(alpha = 0.05f))
+                onClick = { /* Do nothing */ },
+                modifier = Modifier.background(panelColors.contentColor.copy(alpha = 0.08f))
             )
 
-            HorizontalDivider()
-
-            // Search Group
+            // --- Група "Пошук" ---
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                text = "ПОШУК",
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_search_in_list), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchInList) panelColors.accentColor else panelColors.contentColor) },
+                leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchInList) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
                 onClick = {
                     onInputModeSelected(InputMode.SearchInList)
                     showModeMenu = false
@@ -364,69 +375,81 @@ fun ModernInputPanel(
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_search_everywhere), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.TravelExplore, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchGlobal) panelColors.accentColor else panelColors.contentColor) },
+                leadingIcon = { Icon(Icons.Outlined.TravelExplore, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.SearchGlobal) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
                 onClick = {
                     onInputModeSelected(InputMode.SearchGlobal)
                     showModeMenu = false
                 }
             )
 
-            HorizontalDivider()
-
-            // Attachments Group
+            // --- Група "Посилання та Ярлики" ---
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                text = "ПОСИЛАННЯ ТА ЯРЛИКИ",
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_list_link)) },
-                leadingIcon = { Icon(Icons.Outlined.Link, null, modifier = Modifier.size(20.dp)) },
+                text = { Text(stringResource(R.string.menu_add_list_link), style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Icons.Outlined.Link, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 onClick = {
                     showModeMenu = false
                     onAddListLinkClick()
                 }
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_web_link)) },
-                leadingIcon = { Icon(Icons.Outlined.Public, null, modifier = Modifier.size(20.dp)) },
+                text = { Text(stringResource(R.string.menu_add_web_link), style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Icons.Outlined.Public, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 onClick = {
                     showModeMenu = false
                     onShowAddWebLinkDialog()
                 }
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_obsidian_link)) },
-                leadingIcon = { Icon(Icons.Outlined.DataObject, null, modifier = Modifier.size(20.dp)) },
+                text = { Text(stringResource(R.string.menu_add_obsidian_link), style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Icons.Outlined.DataObject, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 onClick = {
                     showModeMenu = false
                     onShowAddObsidianLinkDialog()
                 }
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_quick_record)) },
-                leadingIcon = { Icon(Icons.Outlined.Inbox, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddQuickRecord) panelColors.accentColor else panelColors.contentColor) },
-                onClick = {
-                    onInputModeSelected(InputMode.AddQuickRecord)
-                    showModeMenu = false
-                }
+
+
+            // --- Група "Додавання в Беклог" ---
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                text = "ДОДАВАННЯ В БЕКЛОГ",
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            HorizontalDivider()
-
-            // Actions Group
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_add_list_shortcut)) },
-                leadingIcon = { Icon(Icons.Outlined.PlaylistAdd, null, modifier = Modifier.size(20.dp)) },
+                text = { Text(stringResource(R.string.menu_add_list_shortcut), style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Icons.Outlined.PlaylistAdd, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 onClick = {
                     onAddListShortcutClick()
                     showModeMenu = false
                 }
             )
+
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_add_goal_component), style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Outlined.Add, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddGoal) panelColors.accentColor else panelColors.contentColor) },
+                leadingIcon = { Icon(Icons.Outlined.Add, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddGoal) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
                 onClick = {
                     onInputModeSelected(InputMode.AddGoal)
                     showModeMenu = false
                 }
             )
-            // =============================================================
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.menu_add_quick_record), style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Icons.Outlined.Inbox, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddQuickRecord) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
+                onClick = {
+                    onInputModeSelected(InputMode.AddQuickRecord)
+                    showModeMenu = false
+                }
+            )
         }
     }
 }
@@ -451,6 +474,7 @@ private fun NavigationBar(
     onExportToMarkdown: () -> Unit,
     contentColor: Color,
     onRecentsClick: () -> Unit,
+    onInputModeSelected: (InputMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
@@ -469,13 +493,12 @@ private fun NavigationBar(
                 label = "backButtonAlpha"
             )
 
-// Нова, надійна версія з Box
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(40.dp)
                     .alpha(backButtonAlpha)
-                    .clip(CircleShape) // Додаємо форму для красивого ефекту ripple
+                    .clip(CircleShape)
                     .combinedClickable(
                         enabled = canGoBack,
                         onClick = onBackClick,
@@ -529,7 +552,10 @@ private fun NavigationBar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { onViewChange(ProjectViewMode.BACKLOG) },
+                        onClick = {
+                            onViewChange(ProjectViewMode.BACKLOG)
+                            onInputModeSelected(InputMode.AddGoal)
+                        },
                         modifier = Modifier
                             .size(36.dp)
                             .background(
@@ -545,7 +571,10 @@ private fun NavigationBar(
                         )
                     }
                     IconButton(
-                        onClick = { onViewChange(ProjectViewMode.INBOX) },
+                        onClick = {
+                            onViewChange(ProjectViewMode.INBOX)
+                            onInputModeSelected(InputMode.AddQuickRecord)
+                        },
                         modifier = Modifier
                             .size(36.dp)
                             .background(
@@ -568,7 +597,13 @@ private fun NavigationBar(
                 label = "attachmentIconColor"
             )
             IconButton(
-                onClick = onToggleAttachments,
+                onClick = {
+                    if (currentView == ProjectViewMode.INBOX) {
+                        onViewChange(ProjectViewMode.BACKLOG)
+                        onInputModeSelected(InputMode.AddGoal)
+                    }
+                    onToggleAttachments()
+                },
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
@@ -600,10 +635,123 @@ private fun NavigationBar(
                             shape = RoundedCornerShape(16.dp)
                         )
                 ) {
-                    // Dropdown menu items...
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.edit_list),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            onEditList()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.share_list),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            onShareList()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    )
+
+                    if (currentView == ProjectViewMode.INBOX) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Імпортувати з Markdown",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = {
+                                onImportFromMarkdown()
+                                onMenuExpandedChange(false)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Upload,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Експортувати в Markdown",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = {
+                                onExportToMarkdown()
+                                onMenuExpandedChange(false)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Download,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.delete_list),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            onDeleteList()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    )
                 }
             }
         }
     }
 }
-

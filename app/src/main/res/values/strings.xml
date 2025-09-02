@@ -100,14 +100,14 @@
     <string name="sublist_item_icon_description">Іконка під-списку</string>
 
 
-    <string name="menu_search_in_list">Пошук в списку</string>
-    <string name="menu_search_everywhere">Шукати всюди</string>
-    <string name="menu_add_list_link">Attach link to backlog</string>
-    <string name="menu_add_web_link">Add web link</string>
-    <string name="menu_add_obsidian_link">Add Obsidian link</string>
+    <string name="menu_search_in_list">Search in backlog</string>
+    <string name="menu_search_everywhere">Search everywhere</string>
+    <string name="menu_add_list_link">Link to backlog</string>
+    <string name="menu_add_web_link">Web url</string>
+    <string name="menu_add_obsidian_link">Obsidian note</string>
     <string name="menu_add_note">Add note</string>
-    <string name="menu_add_list_shortcut">Add link to another backlog</string>
-    <string name="menu_add_goal_component">Додати ціль</string>
+    <string name="menu_add_list_shortcut">Link to another project</string>
+    <string name="menu_add_goal_component">Goal</string>
 
 
     <string name="note_content_description">Нотатки..</string>
@@ -138,7 +138,7 @@
     <string name="move">Перемістити</string>
     <string name="copy">Копіювати</string>
     <string name="hint_add_quick_record">Add quick record</string>
-    <string name="menu_add_quick_record">Add quick record</string>
+    <string name="menu_add_quick_record">Quick record</string>
     <string name="import_from_markdown">Import from markdown</string>
     <string name="import_markdown_description">Paste markdown list</string>
     <string name="markdown_text_label">Your text..</string>
