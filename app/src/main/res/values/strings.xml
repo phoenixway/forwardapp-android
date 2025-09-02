@@ -41,7 +41,7 @@
     <string name="new_list_name_placeholder">Наприклад: Робочі завдання</string>
     <string name="minimum_3_characters">Мінімум 3 символи</string>
     <string name="character_counter">%1$d/50 символів</string>
-    <string name="cancel">Скасувати</string>
+    <string name="cancel">Cancel</string>
     <string name="create">Створити</string>
 
     <!-- Empty States -->
@@ -139,6 +139,10 @@
     <string name="copy">Копіювати</string>
     <string name="hint_add_quick_record">Add quick record</string>
     <string name="menu_add_quick_record">Add quick record</string>
+    <string name="import_from_markdown">Import from markdown</string>
+    <string name="import_markdown_description">Paste markdown list</string>
+    <string name="markdown_text_label">Your text..</string>
+    <string name="import_action">Start</string>
 
 
 </resources>

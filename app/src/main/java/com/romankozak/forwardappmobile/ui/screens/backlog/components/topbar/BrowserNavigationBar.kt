@@ -38,6 +38,8 @@ fun BrowserNavigationBar(
     onMenuExpandedChange: (Boolean) -> Unit,
     currentView: ProjectViewMode,
     onViewChange: (ProjectViewMode) -> Unit,
+    onImportFromMarkdown: () -> Unit,
+    onExportToMarkdown: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -106,7 +108,9 @@ fun BrowserNavigationBar(
                 onShareList = onShareList,
                 onDeleteList = onDeleteList,
                 currentView = currentView,
-                onViewChange = onViewChange
+                onViewChange = onViewChange,
+                onImportFromMarkdown = onImportFromMarkdown,
+                onExportToMarkdown = onExportToMarkdown
             )
         }
     }
@@ -123,7 +127,9 @@ private fun RightButtons(
     onShareList: () -> Unit,
     onDeleteList: () -> Unit,
     currentView: ProjectViewMode,
-    onViewChange: (ProjectViewMode) -> Unit
+    onViewChange: (ProjectViewMode) -> Unit,
+    onImportFromMarkdown: () -> Unit,
+    onExportToMarkdown: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         SingleChoiceSegmentedButtonRow(
@@ -135,9 +141,7 @@ private fun RightButtons(
                 selected = currentView == ProjectViewMode.BACKLOG,
                 onClick = { onViewChange(ProjectViewMode.BACKLOG) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                // --- ПОЧАТОК ЗМІН ---
-                icon = { }, // Прибираємо стандартну іконку-галочку
-                // --- КІНЕЦЬ ЗМІН ---
+                icon = { },
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -157,9 +161,7 @@ private fun RightButtons(
                 selected = currentView == ProjectViewMode.INBOX,
                 onClick = { onViewChange(ProjectViewMode.INBOX) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                // --- ПОЧАТОК ЗМІН ---
-                icon = { }, // Прибираємо стандартну іконку-галочку
-                // --- КІНЕЦЬ ЗМІН ---
+                icon = { },
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -217,7 +219,7 @@ private fun RightButtons(
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { onMenuExpandedChange(false) },
-                modifier = Modifier.width(180.dp)
+                modifier = Modifier.width(220.dp)
             ) {
                 DropdownMenuItem(
                     text = {
@@ -258,6 +260,33 @@ private fun RightButtons(
                         )
                     }
                 )
+
+                if (currentView == ProjectViewMode.INBOX) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Імпортувати з Markdown", style = MaterialTheme.typography.bodyMedium) },
+                        onClick = {
+                            onImportFromMarkdown()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Upload, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Експортувати в Markdown", style = MaterialTheme.typography.bodyMedium) },
+                        onClick = {
+                            onExportToMarkdown()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Download, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                        }
+                    )
+                }
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),
