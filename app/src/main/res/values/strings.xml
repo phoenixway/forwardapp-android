@@ -145,6 +145,15 @@
     <string name="import_action">Start</string>
     <string name="collapse_panel">collapse_panel</string>
     <string name="expand_panel">expand_panel</string>
+    <string name="mode_icon_description">Mode: %s</string>
+    <string name="search_group">Search</string>
+    <string name="attachments_group">Attachments</string>
+    <string name="clear_input">Clear input</string>
+
+
+
+    <string name="item_added">Item added</string>
+    <string name="undo">Undo</string>
 
 
 </resources>
