@@ -86,6 +86,8 @@ fun ModernInputPanel(
     onViewChange: (ProjectViewMode) -> Unit,
     onImportFromMarkdown: () -> Unit,
     onExportToMarkdown: () -> Unit,
+    onImportBacklogFromMarkdown: () -> Unit,
+    onExportBacklogToMarkdown: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
@@ -172,7 +174,9 @@ fun ModernInputPanel(
                 onExportToMarkdown = onExportToMarkdown,
                 contentColor = panelColors.contentColor,
                 onRecentsClick = onRecentsClick,
-                onInputModeSelected = onInputModeSelected
+                onInputModeSelected = onInputModeSelected,
+                onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+                onExportBacklogToMarkdown = onExportBacklogToMarkdown
             )
 
             Row(
@@ -484,7 +488,9 @@ private fun NavigationBar(
     contentColor: Color,
     onRecentsClick: () -> Unit,
     onInputModeSelected: (InputMode) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onImportBacklogFromMarkdown: () -> Unit,
+    onExportBacklogToMarkdown: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -744,6 +750,53 @@ private fun NavigationBar(
                             },
                             onClick = {
                                 onExportToMarkdown()
+                                onMenuExpandedChange(false)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Download,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                    }
+
+                    if (currentView == ProjectViewMode.BACKLOG) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Імпортувати беклог з Markdown",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = {
+                                onImportBacklogFromMarkdown()
+                                onMenuExpandedChange(false)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Upload,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Експортувати беклог в Markdown",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = {
+                                onExportBacklogToMarkdown()
                                 onMenuExpandedChange(false)
                             },
                             leadingIcon = {

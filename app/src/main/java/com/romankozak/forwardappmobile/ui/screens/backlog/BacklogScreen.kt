@@ -304,6 +304,13 @@ fun GoalDetailScreen(
             onConfirm = viewModel::onImportFromMarkdownConfirm
         )
     }
+
+    if (uiState.showImportBacklogFromMarkdownDialog) {
+        ImportMarkdownDialog(
+            onDismiss = viewModel::onImportBacklogFromMarkdownDismiss,
+            onConfirm = viewModel::onImportBacklogFromMarkdownConfirm
+        )
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -359,6 +366,8 @@ fun GoalDetailScreen(
                     onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
                     onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
                     onExportToMarkdown = viewModel::onExportToMarkdownRequest,
+                    onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
+                    onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding()

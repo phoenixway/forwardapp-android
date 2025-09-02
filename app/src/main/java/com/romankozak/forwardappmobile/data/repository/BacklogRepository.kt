@@ -55,12 +55,12 @@ class GoalRepository @Inject constructor(
         }
     }
 
-    suspend fun addGoalToList(title: String, listId: String): String {
+    suspend fun addGoalToList(title: String, listId: String, completed: Boolean = false): String {
         val currentTime = System.currentTimeMillis()
         val newGoal = Goal(
             id = UUID.randomUUID().toString(),
             text = title,
-            completed = false,
+            completed = completed,
             createdAt = currentTime,
             updatedAt = currentTime
         )
