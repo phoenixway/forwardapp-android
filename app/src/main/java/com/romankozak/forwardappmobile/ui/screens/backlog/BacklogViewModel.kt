@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.SelectionHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -84,8 +85,89 @@ data class UiState(
     val needsStateRefresh: Boolean = false,
     val currentView: ProjectViewMode = ProjectViewMode.BACKLOG, // <-- ДОДАНО
     val showRecentListsSheet: Boolean = false,
-    val showImportFromMarkdownDialog: Boolean = false
+    val showImportFromMarkdownDialog: Boolean = false,
+    val showImportBacklogFromMarkdownDialog: Boolean = false
 )
+
+interface BacklogMarkdownHandlerResultListener {
+    fun copyToClipboard(text: String, label: String)
+    fun showSnackbar(message: String, action: String?)
+    fun forceRefresh()
+}
+
+class BacklogMarkdownHandler @Inject constructor(
+    private val goalRepository: GoalRepository,
+    private val scope: CoroutineScope,
+    private val listener: BacklogMarkdownHandlerResultListener
+) {
+    fun exportToMarkdown(content: List<ListItemContent>) {
+        if (content.isEmpty()) {
+            listener.showSnackbar("Беклог порожній. Нічого експортувати.", null)
+            return
+        }
+
+        val markdownBuilder = StringBuilder()
+        content.forEach { item ->
+            val line = when (item) {
+                is ListItemContent.GoalItem -> {
+                    val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
+                    "$checkbox ${item.goal.text}"
+                }
+                is ListItemContent.SublistItem -> {
+                    "- [С] ${item.sublist.name}"
+                }
+                is ListItemContent.LinkItem -> {
+                    val displayName = item.link.linkData.displayName ?: item.link.linkData.target
+                    "- [Л] [$displayName](${item.link.linkData.target})"
+                }
+            }
+            markdownBuilder.appendLine(line)
+        }
+        val markdownText = markdownBuilder.toString()
+        listener.copyToClipboard(markdownText, "Backlog Export")
+        listener.showSnackbar("Беклог скопійовано у буфер обміну.", null)
+    }
+
+    fun importFromMarkdown(markdownText: String, listId: String) {
+        if (markdownText.isBlank()) {
+            listener.showSnackbar("Нічого імпортувати.", null)
+            return
+        }
+
+        scope.launch(Dispatchers.IO) {
+            val lines = markdownText.lines().filter { it.isNotBlank() }
+            var importedCount = 0
+            for (line in lines) {
+                try {
+                    val trimmedLine = line.trim()
+                    when {
+                        trimmedLine.startsWith("- [ ]") -> {
+                            val goalText = trimmedLine.removePrefix("- [ ]").trim()
+                            if (goalText.isNotEmpty()) {
+                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                importedCount++
+                            }
+                        }
+                        trimmedLine.startsWith("- [x]") -> {
+                            val goalText = trimmedLine.removePrefix("- [x]").trim()
+                            if (goalText.isNotEmpty()) {
+                                goalRepository.addGoalToList(goalText, listId, completed = true)
+                                importedCount++
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("BacklogMarkdownHandler", "Failed to import line: $line", e)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                listener.showSnackbar("Імпортовано $importedCount елементів.", null)
+                listener.forceRefresh()
+            }
+        }
+    }
+}
+
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -99,10 +181,13 @@ class GoalDetailViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
 
     ) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener,
-    SelectionHandler.ResultListener, InboxHandler.ResultListener, InboxMarkdownHandler.ResultListener {
+    SelectionHandler.ResultListener, InboxHandler.ResultListener, InboxMarkdownHandler.ResultListener, BacklogMarkdownHandlerResultListener {
 
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
+        // --- ПОЧАТОК ЗМІНИ: Ключ для збереження стану ---
+        private const val VIEW_MODE_KEY = "projectViewMode"
+        // --- КІНЕЦЬ ЗМІНИ ---
     }
 
     private val TAG = "DND_DEBUG"
@@ -127,6 +212,7 @@ class GoalDetailViewModel @Inject constructor(
     val inboxHandler =
         InboxHandler(goalRepository, viewModelScope, listIdFlow, this) // <-- СТВОРЮЄМО ЕКЗЕМПЛЯР
     val inboxMarkdownHandler = InboxMarkdownHandler(goalRepository, viewModelScope, this)
+    val backlogMarkdownHandler = BacklogMarkdownHandler(goalRepository, viewModelScope, this)
 
 
     // --- State Flows ---
@@ -134,6 +220,9 @@ class GoalDetailViewModel @Inject constructor(
         UiState(
             goalToHighlight = savedStateHandle.get<String>("goalId"),
             itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"),
+            // --- ПОЧАТОК ЗМІНИ: Ініціалізація стану з SavedStateHandle ---
+            currentView = savedStateHandle.get<ProjectViewMode>(VIEW_MODE_KEY) ?: ProjectViewMode.BACKLOG
+            // --- КІНЕЦЬ ЗМІНИ ---
         )
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -524,6 +613,9 @@ class GoalDetailViewModel @Inject constructor(
     // Тепер вони просто передають виклики до inboxHandler
 
     fun onProjectViewChange(newView: ProjectViewMode) {
+        // --- ПОЧАТОК ЗМІНИ: Збереження стану ---
+        savedStateHandle[VIEW_MODE_KEY] = newView
+        // --- КІНЕЦЬ ЗМІНИ ---
         inboxHandler.onProjectViewChange(newView)
     }
 
@@ -577,6 +669,23 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onExportToMarkdownRequest() {
         inboxMarkdownHandler.exportToMarkdown(inboxRecords.value)
+    }
+
+    fun onImportBacklogFromMarkdownRequest() {
+        _uiState.update { it.copy(showImportBacklogFromMarkdownDialog = true) }
+    }
+
+    fun onImportBacklogFromMarkdownDismiss() {
+        _uiState.update { it.copy(showImportBacklogFromMarkdownDialog = false) }
+    }
+
+    fun onImportBacklogFromMarkdownConfirm(markdownText: String) {
+        backlogMarkdownHandler.importFromMarkdown(markdownText, listIdFlow.value)
+        onImportBacklogFromMarkdownDismiss()
+    }
+
+    fun onExportBacklogToMarkdownRequest() {
+        backlogMarkdownHandler.exportToMarkdown(listContent.value)
     }
 
 
