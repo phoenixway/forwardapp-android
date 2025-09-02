@@ -490,6 +490,18 @@ private fun NavigationBar(
 ) {
     val haptic = LocalHapticFeedback.current
 
+    // --- ПОЧАТОК ЗМІН 1 ---
+    // Анімація для масштабування іконки додатків
+    val attachmentIconScale by animateFloatAsState(
+        targetValue = if (isAttachmentsExpanded) 1.2f else 1.0f,
+        label = "attachmentIconScale",
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    )
+    // --- КІНЕЦЬ ЗМІН 1 ---
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -621,7 +633,11 @@ private fun NavigationBar(
                     imageVector = Icons.Default.Attachment,
                     contentDescription = stringResource(R.string.toggle_attachments),
                     tint = attachmentIconColor,
-                    modifier = Modifier.size(20.dp)
+                    // --- ПОЧАТОК ЗМІН 2 ---
+                    modifier = Modifier
+                        .size(20.dp)
+                        .scale(attachmentIconScale)
+                    // --- КІНЕЦЬ ЗМІН 2 ---
                 )
             }
             Box {
