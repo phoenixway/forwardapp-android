@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
@@ -126,7 +127,10 @@ class InputHandler @Inject constructor(
     fun onAddListLinkRequest() = resultListener.setPendingAction(GoalActionType.AddLinkToList)
     fun onAddListShortcutRequest() = resultListener.setPendingAction(GoalActionType.ADD_LIST_SHORTCUT)
 
-    fun onShowRecentLists() = resultListener.showRecentListsSheet(true)
+    fun onShowRecentLists() {
+        Log.d("RECENT_DEBUG", "onShowRecentLists activated")
+        resultListener.showRecentListsSheet(true)
+    }
     fun onDismissRecentLists() = resultListener.showRecentListsSheet(false)
     fun onRecentListSelected(listId: String) {
         resultListener.requestNavigation("goal_detail_screen/$listId")
