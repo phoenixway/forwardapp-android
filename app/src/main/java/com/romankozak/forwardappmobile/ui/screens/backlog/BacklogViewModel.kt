@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -50,6 +52,7 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import javax.inject.Inject
 
+// ... (sealed class, enum, data class залишаються без змін, оскільки ми перенесли ProjectViewMode в DatabaseModel.kt) ...
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
@@ -66,10 +69,6 @@ sealed class GoalActionDialogState {
 
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
 
-enum class ProjectViewMode {
-    BACKLOG, INBOX, ADDONS
-}
-
 data class UiState(
     val localSearchQuery: String = "",
     val goalToHighlight: String? = null,
@@ -83,7 +82,7 @@ data class UiState(
     val showAddObsidianLinkDialog: Boolean = false,
     val itemToHighlight: String? = null,
     val needsStateRefresh: Boolean = false,
-    val currentView: ProjectViewMode = ProjectViewMode.BACKLOG, // <-- ДОДАНО
+    val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
     val showRecentListsSheet: Boolean = false,
     val showImportFromMarkdownDialog: Boolean = false,
     val showImportBacklogFromMarkdownDialog: Boolean = false
@@ -185,9 +184,6 @@ class GoalDetailViewModel @Inject constructor(
 
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
-        // --- ПОЧАТОК ЗМІНИ: Ключ для збереження стану ---
-        private const val VIEW_MODE_KEY = "projectViewMode"
-        // --- КІНЕЦЬ ЗМІНИ ---
     }
 
     private val TAG = "DND_DEBUG"
@@ -202,15 +198,13 @@ class GoalDetailViewModel @Inject constructor(
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
     val inputHandler = InputHandler(
         goalRepository,
-        // settingsRepository, // <-- ВИДАЛІТЬ
-        // ollamaService,      // <-- ВИДАЛІТЬ
         viewModelScope,
         listIdFlow,
         this
     )
     val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
     val inboxHandler =
-        InboxHandler(goalRepository, viewModelScope, listIdFlow, this) // <-- СТВОРЮЄМО ЕКЗЕМПЛЯР
+        InboxHandler(goalRepository, viewModelScope, listIdFlow, this)
     val inboxMarkdownHandler = InboxMarkdownHandler(goalRepository, viewModelScope, this)
     val backlogMarkdownHandler = BacklogMarkdownHandler(goalRepository, viewModelScope, this)
 
@@ -220,9 +214,6 @@ class GoalDetailViewModel @Inject constructor(
         UiState(
             goalToHighlight = savedStateHandle.get<String>("goalId"),
             itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"),
-            // --- ПОЧАТОК ЗМІНИ: Ініціалізація стану з SavedStateHandle ---
-            currentView = savedStateHandle.get<ProjectViewMode>(VIEW_MODE_KEY) ?: ProjectViewMode.BACKLOG
-            // --- КІНЕЦЬ ЗМІНИ ---
         )
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -306,6 +297,23 @@ class GoalDetailViewModel @Inject constructor(
 
 
     init {
+        Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
+
+        viewModelScope.launch {
+            goalList.filterNotNull()
+                .map { it.defaultViewModeName }
+                .distinctUntilChanged()
+                .collect { savedModeName ->
+                    val viewMode = try {
+                        ProjectViewMode.valueOf(savedModeName)
+                    } catch (e: Exception) {
+                        ProjectViewMode.BACKLOG
+                    }
+                    Log.d(TAG, "Init: Loaded view mode for list ${listIdFlow.value}: ${viewMode.name}")
+                    _uiState.update { it.copy(currentView = viewMode) }
+                }
+        }
+
         viewModelScope.launch {
             databaseContentStream.collect { dbContent ->
                 _listContent.value = dbContent
@@ -322,11 +330,10 @@ class GoalDetailViewModel @Inject constructor(
                 _inboxRecords.value = records
             }
         }
-
-
     }
 
-    // --- ItemActionHandler.ResultListener Implementation ---
+    // ... (решта методів ViewModel) ...
+
     override fun requestNavigation(route: String) {
         viewModelScope.launch {
             if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
@@ -383,7 +390,6 @@ class GoalDetailViewModel @Inject constructor(
         navigateToListChooser(title)
     }
 
-    // --- InputHandler.ResultListener Implementation ---
     override fun updateInputState(
         inputValue: TextFieldValue?,
         inputMode: InputMode?,
@@ -417,11 +423,9 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(showRecentListsSheet = show) }
     }
 
-    // --- SelectionHandler.ResultListener Implementation ---
     override fun updateSelectionState(selectedIds: Set<String>) {
         _uiState.update { it.copy(selectedItemIds = selectedIds) }
     }
-    // --- Logic Remaining in ViewModel ---
 
     fun onListChooserResult(targetListId: String) {
         val actionType = pendingAction ?: return
@@ -461,7 +465,7 @@ class GoalDetailViewModel @Inject constructor(
         pendingAction = null
         pendingSourceItemIds = emptySet()
         pendingSourceGoalIds = emptySet()
-        selectionHandler.clearSelection() // Очищуємо вибір після виконання дії
+        selectionHandler.clearSelection()
     }
 
     private fun navigateToListChooser(title: String) {
@@ -572,7 +576,6 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onAddAttachment(type: AttachmentType) {
         when (type) {
-            // Створення нотаток видалено
             AttachmentType.WEB_LINK -> inputHandler.onShowAddWebLinkDialog()
             AttachmentType.OBSIDIAN_LINK -> inputHandler.onShowAddObsidianLinkDialog()
             AttachmentType.LIST_LINK -> inputHandler.onAddListLinkRequest()
@@ -587,21 +590,19 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     fun deleteCurrentList() {
-        // --- ЗМІНЕНО: Використовуємо viewModelScope ---
         viewModelScope.launch(Dispatchers.IO) {
             val listId = listIdFlow.value
             if (listId.isNotEmpty()) {
                 goalRepository.deleteGoalList(listId)
                 withContext(Dispatchers.Main) {
-                    // Команда для навігації назад, оскільки список видалено
                     requestNavigation("back")
                 }
             }
         }
     }
 
-    // --- InboxHandler.ResultListener Implementation ---
     override fun updateCurrentView(view: ProjectViewMode) {
+        Log.d(TAG, "updateCurrentView: Updating _uiState with new view: ${view.name}")
         _uiState.update { it.copy(currentView = view) }
     }
 
@@ -609,14 +610,12 @@ class GoalDetailViewModel @Inject constructor(
         _recordToEdit.value = record
     }
 
-    // --- Публічні методи, які буде викликати UI ---
-    // Тепер вони просто передають виклики до inboxHandler
-
     fun onProjectViewChange(newView: ProjectViewMode) {
-        // --- ПОЧАТОК ЗМІНИ: Збереження стану ---
-        savedStateHandle[VIEW_MODE_KEY] = newView
-        // --- КІНЕЦЬ ЗМІНИ ---
         inboxHandler.onProjectViewChange(newView)
+        viewModelScope.launch {
+            Log.d(TAG, "onProjectViewChange: Persisting view mode '${newView.name}' for list ${listIdFlow.value}")
+            goalRepository.updateGoalListViewMode(listIdFlow.value, newView)
+        }
     }
 
     fun deleteInboxRecord(recordId: String) {
@@ -627,7 +626,6 @@ class GoalDetailViewModel @Inject constructor(
         inboxHandler.promoteInboxRecordToGoal(record)
     }
 
-    // Функції для діалогу редагування
     fun onInboxRecordEditRequest(record: InboxRecord) {
         inboxHandler.onInboxRecordEditRequest(record)
     }
@@ -644,14 +642,11 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     override fun addQuickRecord(text: String) {
-        // Делегуємо виклик до нашого нового InboxHandler
         inboxHandler.addQuickRecord(text)
-        // Також очищуємо поле вводу
         updateInputState(inputValue = TextFieldValue(""))
     }
 
     fun copyInboxRecordText(text: String) {
-        // Використовуємо існуючий метод, який реалізує інтерфейс
         copyToClipboard(text, "Inbox Record")
     }
     fun onImportFromMarkdownRequest() {
@@ -687,6 +682,4 @@ class GoalDetailViewModel @Inject constructor(
     fun onExportBacklogToMarkdownRequest() {
         backlogMarkdownHandler.exportToMarkdown(listContent.value)
     }
-
-
 }

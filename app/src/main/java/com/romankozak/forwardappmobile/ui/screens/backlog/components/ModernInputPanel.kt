@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.delay
 import kotlin.math.abs

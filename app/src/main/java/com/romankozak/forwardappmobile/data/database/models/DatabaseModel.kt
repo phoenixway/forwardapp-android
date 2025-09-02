@@ -11,6 +11,12 @@ import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+// --- ПОЧАТОК ЗМІНИ: Додано enum для режиму перегляду ---
+enum class ProjectViewMode {
+    BACKLOG, INBOX, ADDONS
+}
+// --- КІНЕЦЬ ЗМІНИ ---
+
 enum class ListItemType {
     GOAL,
     // NOTE, // Видалено
@@ -159,6 +165,10 @@ data class GoalList(
     // MODIFIED: Added field to store the attachments section state, defaults to hidden
     @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0")
     val isAttachmentsExpanded: Boolean = false,
+    // --- ПОЧАТОК ЗМІНИ: Поле для збереження режиму перегляду для цього списку ---
+    @ColumnInfo(name = "default_view_mode", defaultValue = "'BACKLOG'")
+    val defaultViewModeName: String = ProjectViewMode.BACKLOG.name
+    // --- КІНЕЦЬ ЗМІНИ ---
 )
 
 // Сутність Note видалено

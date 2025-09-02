@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 18,
-    "identityHash": "30c5774d5f52513e542febe1133a6576",
+    "identityHash": "a6a9cca9911c81586b22945cff01967f",
     "entities": [
       {
         "tableName": "goals",
@@ -173,7 +173,7 @@
       },
       {
         "tableName": "goal_lists",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT NOT NULL DEFAULT 'BACKLOG', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -237,6 +237,13 @@
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
+          },
+          {
+            "fieldPath": "defaultViewModeName",
+            "columnName": "default_view_mode",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'BACKLOG'"
           }
         ],
         "primaryKey": {
@@ -492,7 +499,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '30c5774d5f52513e542febe1133a6576')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a6a9cca9911c81586b22945cff01967f')"
     ]
   }
 }

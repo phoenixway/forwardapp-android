@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.backlogs
 
 import android.app.Application
 import android.net.Uri
-import android.util.Log // <--- ДОДАНО ІМПОРТ
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-// ... (sealed класи та data класи залишаються без змін)
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
     data class NavigateToDetails(val listId: String) : GoalListUiEvent()
@@ -35,7 +34,7 @@ sealed class GoalListUiEvent {
     data class ShowToast(val message: String) : GoalListUiEvent()
     data class ScrollToIndex(val index: Int) : GoalListUiEvent()
     object FocusSearchField : GoalListUiEvent()
-    data class NavigateToEditListScreen(val listId: String) : GoalListUiEvent() // <--- ДОДАНО
+    data class NavigateToEditListScreen(val listId: String) : GoalListUiEvent()
 }
 
 sealed class PlanningMode {
@@ -90,7 +89,10 @@ class GoalListViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    // ... (решта полів ViewModel без змін)
+    companion object {
+        private const val TAG = "GoalListViewModel_DEBUG"
+    }
+
     private val _highlightedListId = MutableStateFlow<String?>(null)
     val highlightedListId: StateFlow<String?> = _highlightedListId.asStateFlow()
     private val _searchQuery = MutableStateFlow("")
@@ -142,7 +144,6 @@ class GoalListViewModel @Inject constructor(
         FilterState(flatList, query, searchActive, mode, settings)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FilterState(emptyList(), "", false, PlanningMode.All, PlanningSettingsState()))
 
-    // ================== ОСНОВНИЙ БЛОК З ЛОГАМИ ==================
     val listHierarchy: StateFlow<ListHierarchyData> =
         combine(
             filterStateFlow,
@@ -245,8 +246,6 @@ class GoalListViewModel @Inject constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-    // ================== КІНЕЦЬ БЛОКУ З ЛОГАМИ ==================
-
     private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
     val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
     private val _listChooserFilterText = MutableStateFlow("")
@@ -280,7 +279,6 @@ class GoalListViewModel @Inject constructor(
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    // ... (решта файлу ViewModel без змін)
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
     private val _showWifiServerDialog = MutableStateFlow(false)
@@ -529,45 +527,18 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-// У GoalListViewModel.kt
-
     fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
-        Log.d("ADD_LIST_DEBUG", "Початок addNewList для батька: $parentId, назва: '$name'")
+        Log.d(TAG, "addNewList for parent: $parentId, name: '$name'")
         viewModelScope.launch {
-            // Крок 1: Створюємо новий список в базі даних
             goalRepository.createGoalListWithId(id, name, parentId)
-            Log.d("ADD_LIST_DEBUG", "Новий список створено в БД з id: $id")
+            Log.d(TAG, "New list created in DB with id: $id")
 
             if (parentId != null) {
-                // Крок 2: Оновлюємо стан батьківського елемента в БД (для режиму за замовчуванням)
-                // Ми чекаємо, поки оновлення з БД надійде у наш локальний кеш
-                val parentList = _allListsFlat.first { lists -> lists.any { it.id == parentId } }
-                    .find { it.id == parentId }
-
+                val parentList = _allListsFlat.value.find { it.id == parentId }
                 if (parentList != null && !parentList.isExpanded) {
-                    Log.d("ADD_LIST_DEBUG", "Оновлюємо батьківський елемент (${parentList.name}) в БД, щоб він став розгорнутим.")
+                    Log.d(TAG, "Updating parent (${parentList.name}) in DB to be expanded.")
                     goalRepository.updateGoalList(parentList.copy(isExpanded = true))
-                }
-
-                // Крок 3: Оновлюємо стан в пам'яті (для режимів фільтрації/планування)
-                val currentStateFlow = when {
-                    _isSearchActive.value -> _expandedInSearchMode
-                    _planningMode.value is PlanningMode.Daily -> _expandedInDailyMode
-                    _planningMode.value is PlanningMode.Medium -> _expandedInMediumMode
-                    _planningMode.value is PlanningMode.Long -> _expandedInLongMode
-                    else -> null
-                }
-
-                if (currentStateFlow != null) {
-                    val modeName = planningMode.value::class.simpleName
-                    Log.d("ADD_LIST_DEBUG", "Оновлюємо стан розгорнутих ID в пам'яті для режиму: $modeName")
-                    val currentIds = currentStateFlow.value ?: emptySet()
-                    val newIds = currentIds + parentId
-                    currentStateFlow.value = newIds
-                    Log.d("ADD_LIST_DEBUG", "Новий набір розгорнутих ID: $newIds")
-                } else {
-                    Log.d("ADD_LIST_DEBUG", "Режим фільтрації не активний. Оновлено тільки стан в БД.")
                 }
             }
         }
@@ -595,11 +566,9 @@ class GoalListViewModel @Inject constructor(
         listId: String?,
         listLookup: Map<String, GoalList>,
         ids: MutableSet<String>,
-        visited: MutableSet<String> // Тепер цей параметр буде використовуватися
+        visited: MutableSet<String>
     ) {
         var currentId = listId
-        // Цикл зупиниться, якщо ми дійдемо до кореня (null)
-        // або якщо ми вдруге натрапимо на той самий ID (цикл)
         while (currentId != null && visited.add(currentId)) {
             ids.add(currentId)
             currentId = listLookup[currentId]?.parentId
@@ -660,18 +629,16 @@ class GoalListViewModel @Inject constructor(
 
     fun onAddNewListRequest() { _dialogState.value = DialogState.AddList(null) }
     fun onAddSublistRequest(parentList: GoalList) {
-        Log.d("DIALOG_FLOW_DEBUG", "Запит на додавання підсписку для батька: '${parentList.name}'")
         _dialogState.value = DialogState.AddList(parentList.id)
     }
 
     fun onMoveListRequest(list: GoalList) { _dialogState.value = DialogState.MoveList(list) }
     fun onMenuRequested(list: GoalList) {
-        Log.d("DIALOG_FLOW_DEBUG", "Запит на контекстне меню для списку: '${list.name}'")
         _dialogState.value = DialogState.ContextMenu(list)
     }
 
     fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
-    fun onEditRequest(list: GoalList) { // <--- ОНОВЛЕНО
+    fun onEditRequest(list: GoalList) {
         viewModelScope.launch {
             _uiEventChannel.send(GoalListUiEvent.NavigateToEditListScreen(list.id))
         }
@@ -722,7 +689,6 @@ class GoalListViewModel @Inject constructor(
 
         val listsToUpdate: List<GoalList>
 
-        // Сценарій 1: Елементи є сиблінгами (стандартне сортування)
         if (fromList.parentId == toList.parentId) {
             val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
             val mutableSiblings = siblings.toMutableList()
@@ -736,10 +702,9 @@ class GoalListViewModel @Inject constructor(
                     list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
                 }
             } else {
-                return // Не вдалося знайти індекси, виходимо
+                return
             }
         }
-        // Сценарій 2: Елемент кинули на його прямого батька (робимо його першим сиблінгом)
         else if (fromList.parentId == toList.id) {
             val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
             val mutableSiblings = siblings.toMutableList()
@@ -747,15 +712,14 @@ class GoalListViewModel @Inject constructor(
 
             if (fromIndex != -1) {
                 val movedItem = mutableSiblings.removeAt(fromIndex)
-                mutableSiblings.add(0, movedItem) // Вставляємо на першу позицію
+                mutableSiblings.add(0, movedItem)
                 listsToUpdate = mutableSiblings.mapIndexed { index, list ->
                     list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
                 }
             } else {
-                return // Не вдалося знайти індекс, виходимо
+                return
             }
         }
-        // Сценарій 3: Інші невалідні переміщення
         else {
             viewModelScope.launch {
                 _uiEventChannel.send(GoalListUiEvent.ShowToast("Moving is only possible on the same level."))
@@ -770,7 +734,6 @@ class GoalListViewModel @Inject constructor(
 
     fun exportToFile() {
         viewModelScope.launch(Dispatchers.IO) {
-            // Викликаємо НОВИЙ метод для повного бекапу
             val result = syncRepo.exportFullBackupToFile()
             result.onSuccess { message ->
                 _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
@@ -781,8 +744,10 @@ class GoalListViewModel @Inject constructor(
     }
 
     fun onImportFromFileRequested(uri: Uri) {
+        Log.d(TAG, "IMPORT_DEBUG: Запит на імпорт для URI: $uri")
         _dialogState.value = DialogState.ConfirmFullImport(uri)
     }
+
     fun saveSettings(
         show: Boolean, daily: String, medium: String, long: String, vaultName: String
     ) {
@@ -821,7 +786,6 @@ class GoalListViewModel @Inject constructor(
         _listChooserUserExpandedIds.value = currentIds
     }
 
-    // У GoalListViewModel.kt
     fun onMoveListConfirmed(newParentId: String?) {
         val state = _dialogState.value
         if (state !is DialogState.MoveList) return
@@ -831,39 +795,19 @@ class GoalListViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            val updatedList = listToMove.copy(
-                parentId = newParentId,
-                updatedAt = System.currentTimeMillis()
-            )
-            goalRepository.moveGoalList(updatedList, newParentId)
+            goalRepository.moveGoalList(listToMove, newParentId)
 
-            // --- ДОДАНО ВИПРАВЛЕННЯ ---
             if (newParentId != null) {
-                // Частина 1: Оновлюємо стан у базі даних
                 val parentList = _allListsFlat.value.find { it.id == newParentId }
                 if (parentList != null && !parentList.isExpanded) {
                     goalRepository.updateGoalList(parentList.copy(isExpanded = true))
                 }
-
-                // Частина 2: Оновлюємо тимчасовий стан
-                val currentStateFlow = when {
-                    _isSearchActive.value -> _expandedInSearchMode
-                    _planningMode.value is PlanningMode.Daily -> _expandedInDailyMode
-                    _planningMode.value is PlanningMode.Medium -> _expandedInMediumMode
-                    _planningMode.value is PlanningMode.Long -> _expandedInLongMode
-                    else -> null
-                }
-                currentStateFlow?.update { currentExpandedIds ->
-                    (currentExpandedIds ?: emptySet()) + newParentId
-                }
             }
-            // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
         }
         dismissDialog()
     }
 
     fun dismissDialog() {
-        Log.d("DIALOG_FLOW_DEBUG", "Виклик dismissDialog. Поточний стан: ${_dialogState.value::class.simpleName}")
         _dialogState.value = DialogState.Hidden
         _listChooserFilterText.value = ""
         _listChooserUserExpandedIds.value = emptySet()
@@ -947,14 +891,19 @@ class GoalListViewModel @Inject constructor(
     }
 
     fun onFullImportConfirmed(uri: Uri) {
-        dismissDialog() // Ховаємо діалог одразу
+        dismissDialog()
+        Log.d(TAG, "IMPORT_DEBUG: Імпорт підтверджено для URI: $uri. Починаємо процес.")
         viewModelScope.launch(Dispatchers.IO) {
-            // Викликаємо НОВИЙ метод для повного відновлення
+            Log.d(TAG, "IMPORT_DEBUG: Виклик syncRepo.importFullBackupFromFile...")
             val result = syncRepo.importFullBackupFromFile(uri)
-            result.onSuccess { message ->
-                _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
-            }.onFailure { error ->
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
+            withContext(Dispatchers.Main) {
+                result.onSuccess { message ->
+                    Log.i(TAG, "IMPORT_DEBUG: Імпорт успішний. Повідомлення: $message")
+                    _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
+                }.onFailure { error ->
+                    Log.e(TAG, "IMPORT_DEBUG: Помилка імпорту.", error)
+                    _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
+                }
             }
         }
     }

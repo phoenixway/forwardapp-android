@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem

@@ -16,13 +16,19 @@ data class FullAppBackup(
  * Контейнер для всіх таблиць з бази даних Room.
  */
 data class DatabaseContent(
+    // Основні таблиці, які були з самого початку
     val goals: List<Goal>,
     val goalLists: List<GoalList>,
     val listItems: List<ListItem>,
-    val activityRecords: List<ActivityRecord>,
-    val recentListEntries: List<RecentListEntry>,
-    val linkItemEntities: List<LinkItemEntity>,
+
+
+    // --- ПОЧАТОК ЗМІНИ: Робимо нові таблиці необов'язковими ---
+    // Це забезпечить сумісність зі старими бекапами, де цих таблиць не було.
+    val activityRecords: List<ActivityRecord>? = null,
+    val recentListEntries: List<RecentListEntry>? = null,
+    val linkItemEntities: List<LinkItemEntity>? = null,
     val inboxRecords: List<InboxRecord>? = null
+    // --- КІНЕЦЬ ЗМІНИ ---
 
 )
 
