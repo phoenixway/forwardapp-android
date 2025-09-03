@@ -510,9 +510,8 @@ fun GoalItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     isSelected: Boolean,
-    isHighlighted: Boolean,
     modifier: Modifier = Modifier,
-    //endAction: @Composable () -> Unit = {},
+    // isHighlighted та endAction більше не потрібні
 ) {
     val goal = goalContent.goal
 
@@ -520,165 +519,126 @@ fun GoalItem(
         parseTextAndExtractIcons(goal.text, emptyMap())
     }
 
-    val background by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-            isSelected -> MaterialTheme.colorScheme.primaryContainer
-            goal.completed -> MaterialTheme.colorScheme.surfaceVariant
-            else -> MaterialTheme.colorScheme.surface
-        },
-        animationSpec = spring(), label = "goal_background_color",
-    )
+    // ВИДАЛЕНО: Card та вся логіка для background, elevation, border.
 
-    var isPressed by remember { mutableStateOf(value = false) }
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 4.dp else 1.dp,
-        label = "elevation",
-    )
-
-    val animatedBorderColor by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.tertiary
-            isSelected -> MaterialTheme.colorScheme.primary
-            else -> Color.Transparent
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessMedium), label = "border_color_anim",
-    )
-
-    val goalSemantics = stringResource(R.string.goal_item_semantics, parsedData.mainText)
-
-    Card(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .semantics { contentDescription = goalSemantics },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.elevatedCardElevation(elevation),
-        border = BorderStroke(2.dp, animatedBorderColor),
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 4.dp, vertical = 2.dp), // Зберігаємо зовнішні відступи
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        // ВИКОРИСТОВУЄМО ENHANCED CHECKBOX ДЛЯ КОНСИСТЕНТНОСТІ
+        EnhancedCustomCheckbox(
+            checked = goal.completed,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.padding(start = 8.dp) // Відступ як у старому Checkbox
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .weight(1f)
+                .pointerInput(onClick, onLongClick) {
+                    detectTapGestures(
+                        onLongPress = { onLongClick() },
+                        onTap = { onClick() },
+                    )
+                }
+                .padding(vertical = 6.dp),
         ) {
-            Checkbox(
-                checked = goal.completed,
-                onCheckedChange = onCheckedChange,
-                colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colorScheme.primary,
-                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(start = 12.dp, end = 4.dp),
+            Text(
+                text = parsedData.mainText,
+                style = MaterialTheme.typography.bodyLarge,
+                textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
+                color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(onClick, onLongClick) {
-                        detectTapGestures(
-                            onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
-                            onLongPress = { onLongClick() },
-                            onTap = { onClick() },
-                        )
-                    }
-                    .padding(vertical = 6.dp),
+            val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                    (parsedData.icons.isNotEmpty()) ||
+                    (!goal.description.isNullOrBlank()) ||
+                    (!goal.relatedLinks.isNullOrEmpty())
+
+            AnimatedVisibility(
+                visible = hasStatusContent,
+                enter = slideInVertically(
+                    initialOffsetY = { height -> -height },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                ) + fadeIn(),
             ) {
-                Text(
-                    text = parsedData.mainText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
-                    color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Column {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        EnhancedScoreStatusBadge(goal = goal)
 
-                val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                        (parsedData.icons.isNotEmpty()) ||
-                        (!goal.description.isNullOrBlank()) ||
-                        (!goal.relatedLinks.isNullOrEmpty())
-
-                AnimatedVisibility(
-                    visible = hasStatusContent,
-                    enter = slideInVertically(
-                        initialOffsetY = { height -> -height },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            EnhancedScoreStatusBadge(goal = goal)
-
-                            parsedData.icons.forEachIndexed { index, icon ->
-                                key(icon) {
-                                    var delayedVisible by remember { mutableStateOf(value = false) }
-                                    LaunchedEffect(Unit) {
-                                        delay(index * 50L)
-                                        delayedVisible = true
-                                    }
-                                    AnimatedVisibility(
-                                        visible = delayedVisible,
-                                        enter = scaleIn(
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        ) + fadeIn(),
-                                    ) {
-                                        AnimatedContextEmoji(
-                                            emoji = icon,
-                                            modifier = Modifier.align(Alignment.CenterVertically),
-                                        )
-                                    }
+                        parsedData.icons.forEachIndexed { index, icon ->
+                            key(icon) {
+                                var delayedVisible by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    delay(index * 50L)
+                                    delayedVisible = true
+                                }
+                                AnimatedVisibility(
+                                    visible = delayedVisible,
+                                    enter = scaleIn(
+                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    ) + fadeIn(),
+                                ) {
+                                    AnimatedContextEmoji(
+                                        emoji = icon,
+                                        modifier = Modifier.align(Alignment.CenterVertically),
+                                    )
                                 }
                             }
+                        }
 
-                            if (!goal.description.isNullOrBlank()) {
-                                NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                            }
+                        if (!goal.description.isNullOrBlank()) {
+                            NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
+                        }
 
-                            goal.relatedLinks?.forEachIndexed { index, link ->
-                                key(link.target + link.type.name) {
-                                    var delayedVisible by remember { mutableStateOf(value = false) }
-                                    LaunchedEffect(Unit) {
-                                        delay((parsedData.icons.size + index) * 50L)
-                                        delayedVisible = true
-                                    }
-                                    AnimatedVisibility(
-                                        visible = delayedVisible,
-                                        enter = slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> fullWidth },
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        ) + fadeIn(),
-                                    ) {
-                                        EnhancedRelatedLinkChip(
-                                            link = link,
-                                            onClick = { /* Handle click if needed */ },
-                                        )
-                                    }
+                        goal.relatedLinks?.forEachIndexed { index, link ->
+                            key(link.target + link.type.name) {
+                                var delayedVisible by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    delay((parsedData.icons.size + index) * 50L)
+                                    delayedVisible = true
+                                }
+                                AnimatedVisibility(
+                                    visible = delayedVisible,
+                                    enter = slideInHorizontally(
+                                        initialOffsetX = { fullWidth -> fullWidth },
+                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    ) + fadeIn(),
+                                ) {
+                                    EnhancedRelatedLinkChip(
+                                        link = link,
+                                        onClick = { /* Handle click if needed */ },
+                                    )
                                 }
                             }
                         }
                     }
                 }
-
-                if (!goal.description.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = goal.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        maxLines = if (isSelected) Int.MAX_VALUE else 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
-            // ВИДАЛЕНО: Виклик endAction(), оскільки відповідний параметр закоментовано.
+
+            if (!goal.description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = goal.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    maxLines = if (isSelected) Int.MAX_VALUE else 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
+        // ВИДАЛЕНО: Виклик endAction()
     }
 }

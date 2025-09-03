@@ -162,16 +162,13 @@ data class GoalList(
     val isExpanded: Boolean = true,
     @ColumnInfo(name = "goal_order", defaultValue = "0")
     val order: Long = 0,
-    // MODIFIED: Added field to store the attachments section state, defaults to hidden
     @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0")
     val isAttachmentsExpanded: Boolean = false,
-    // --- ПОЧАТОК ЗМІНИ: Поле для збереження режиму перегляду для цього списку ---
     @ColumnInfo(name = "default_view_mode", defaultValue = "'BACKLOG'")
-    val defaultViewModeName: String = ProjectViewMode.BACKLOG.name
-    // --- КІНЕЦЬ ЗМІНИ ---
+    val defaultViewModeName: String = ProjectViewMode.BACKLOG.name,
+    @ColumnInfo(name = "is_completed", defaultValue = "0")
+    val isCompleted: Boolean = false
 )
-
-// Сутність Note видалено
 
 @Entity(
     tableName = "inbox_records",

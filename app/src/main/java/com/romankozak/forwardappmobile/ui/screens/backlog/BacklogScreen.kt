@@ -413,28 +413,27 @@ fun GoalDetailScreen(
                             items = draggableItems,
                             key = { _, item -> item.item.id }
                         ) { index, content ->
+                            // 1. Визначаємо стани isSelected та isHighlighted
+                            val isSelected = content.item.id in uiState.selectedItemIds
                             val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
                                     (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                            val backgroundColor by animateColorAsState(
-                                targetValue = when {
-                                    isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-                                    content.item.id in uiState.selectedItemIds -> MaterialTheme.colorScheme.primaryContainer
-                                    (content as? ListItemContent.GoalItem)?.goal?.completed == true -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                                    else -> MaterialTheme.colorScheme.surface
-                                },
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                                label = "bgAnim"
-                            )
+                            // 2. ВИДАЛЕНО: Розрахунок backgroundColor. Ця логіка тепер всередині InteractiveListItem.
+                            /*
+                            val backgroundColor by animateColorAsState(...)
+                            */
 
+                            // 3. Викликаємо оновлений InteractiveListItem
                             InteractiveListItem(
                                 item = content,
                                 index = index,
                                 dragDropState = dragDropState,
+                                isSelected = isSelected,      // ДОДАНО
+                                isHighlighted = isHighlighted, // ДОДАНО
                                 swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
                                 isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
                                 resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                backgroundColor = backgroundColor,
+                                // backgroundColor = backgroundColor, // ВИДАЛЕНО
                                 onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                                 onDelete = { viewModel.itemActionHandler.deleteItem(content) },
                                 onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
@@ -464,6 +463,7 @@ fun GoalDetailScreen(
                             ) { isDragging ->
                                 when (content) {
                                     is ListItemContent.GoalItem -> {
+                                        // Цей виклик залишається без змін, оскільки GoalItem не мав логіки фону
                                         GoalItem(
                                             goal = content.goal,
                                             obsidianVaultName = obsidianVaultName,
@@ -484,10 +484,13 @@ fun GoalDetailScreen(
                                     is ListItemContent.SublistItem -> {
                                         SublistItemRow(
                                             sublistContent = content,
-                                            isSelected = content.item.id in uiState.selectedItemIds,
-                                            isHighlighted = isHighlighted,
+                                            isSelected = isSelected, // Залишаємо, бо впливає на кількість рядків тексту
+                                            // isHighlighted = isHighlighted, // ВИДАЛЕНО: цим тепер керує батько
                                             onClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                            onLongClick = { viewModel.toggleSelection(content.item.id) }
+                                            onLongClick = { viewModel.toggleSelection(content.item.id) },
+                                            onCheckedChange = { isCompleted ->
+                                                viewModel.onSublistCompletedChanged(content.sublist, isCompleted)
+                                            }
                                         )
                                     }
                                     else -> {
@@ -499,6 +502,7 @@ fun GoalDetailScreen(
                                 }
                             }
                         }
+
                     }
                 }
             }
