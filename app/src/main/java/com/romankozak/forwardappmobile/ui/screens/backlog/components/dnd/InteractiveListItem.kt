@@ -1,12 +1,10 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -14,18 +12,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
-
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.SwipeableListItem
 
 
 @Composable
@@ -33,12 +25,14 @@ fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
     dragDropState: SimpleDragDropState,
+    isSelected: Boolean, // Додано для визначення фону
+    isHighlighted: Boolean, // Додано для визначення фону
 
     // Параметри для SwipeableListItem
     swipeEnabled: Boolean,
     isAnotherItemSwiped: Boolean,
     resetTrigger: Int,
-    backgroundColor: Color,
+    // backgroundColor: Color, // <-- ВИДАЛЕНО, будемо розраховувати тут
     onSwipeStart: () -> Unit,
     onDelete: () -> Unit,
     onMoreActionsRequest: () -> Unit,
@@ -70,13 +64,32 @@ fun InteractiveListItem(
         label = "alpha",
     )
 
+    // --- ПОЧАТОК КЛЮЧОВИХ ЗМІН ---
+    // 1. Визначаємо, чи елемент завершено
+    val isCompleted = when (item) {
+        is ListItemContent.GoalItem -> item.goal.completed
+        is ListItemContent.SublistItem -> item.sublist.isCompleted
+        else -> false
+    }
+
+    // 2. Розраховуємо колір фону тут, на основі всіх станів
+    val backgroundColor by animateColorAsState(
+        targetValue = when {
+            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+            isSelected -> MaterialTheme.colorScheme.primaryContainer
+            isCompleted -> MaterialTheme.colorScheme.surfaceVariant
+            else -> MaterialTheme.colorScheme.surface
+        },
+        animationSpec = spring(), label = "interactive_item_background"
+    )
+    // --- КІНЕЦЬ КЛЮЧОВИХ ЗМІН ---
 
 
     val isDraggable = item is ListItemContent.GoalItem || item is ListItemContent.SublistItem
 
     val itemModifier = modifier
         .pointerInput(dragDropState, item.item.id, isDraggable) {
-            if (isDraggable) { // <--- Дозволяємо перетягування тільки для потрібних типів
+            if (isDraggable) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { dragDropState.onDragStart(item) },
                     onDrag = { change, dragAmount ->
@@ -88,7 +101,6 @@ fun InteractiveListItem(
                 )
             }
         }
-
         .graphicsLayer {
             val offset = dragDropState.getItemOffset(item)
             translationY = offset
@@ -99,13 +111,8 @@ fun InteractiveListItem(
             clip = false
         }
 
-
-
-
-
     Box(modifier = itemModifier) {
-
-        _root_ide_package_.com.romankozak.forwardappmobile.ui.screens.backlog.components.SwipeableListItem(
+        SwipeableListItem(
             isDragging = isDragging,
             isAnyItemDragging = dragDropState.isDragging,
             swipeEnabled = swipeEnabled,
@@ -116,7 +123,7 @@ fun InteractiveListItem(
             onMoreActionsRequest = onMoreActionsRequest,
             onGoalTransportRequest = onGoalTransportRequest,
             onCopyContentRequest = onCopyContentRequest,
-            backgroundColor = backgroundColor,
+            backgroundColor = backgroundColor, // <-- Передаємо наш розрахований колір
             content = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -125,7 +132,10 @@ fun InteractiveListItem(
                     Box(modifier = Modifier.weight(1f)) {
                         content(isDragging)
                     }
-                    DragHandleIcon()
+                    // Ручка тепер завжди тут, і фон під нею буде правильним
+                    if (isDraggable) {
+                        DragHandleIcon()
+                    }
                 }
             },
         )
@@ -145,71 +155,6 @@ fun InteractiveListItem(
 }
 
 // ... (решта файлу без змін) ...
-@Composable
-private fun DropIndicator(isValidDrop: Boolean) {
-    val color = if (isValidDrop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-    val infiniteTransition = rememberInfiniteTransition(label = "dropIndicatorPulse")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "dropIndicatorAlpha",
-    )
-    val height by infiniteTransition.animateFloat(
-        initialValue = 4f,
-        targetValue = 6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "dropIndicatorHeight",
-    )
-    val haptic = LocalHapticFeedback.current
-
-    LaunchedEffect(isValidDrop) {
-        haptic.performHapticFeedback(
-            if (isValidDrop) HapticFeedbackType.LongPress
-            else HapticFeedbackType.TextHandleMove,
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height.dp)
-            .padding(horizontal = 12.dp)
-            .shadow(4.dp, shape = MaterialTheme.shapes.medium)
-            .border(0.5.dp, color.copy(alpha = alpha * 0.5f), MaterialTheme.shapes.medium)
-            .semantics {
-                contentDescription = if (isValidDrop) "Дозволена зона для скидання"
-                else "Недозволена зона для скидання"
-            }
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        color.copy(alpha = alpha),
-                        Color.Transparent,
-                    ),
-                ),
-            ),
-    ) {
-        if (!isValidDrop) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Недозволена зона",
-                tint = color.copy(alpha = alpha),
-                modifier = Modifier
-                    .size(16.dp)
-                    .align(Alignment.Center),
-            )
-        }
-    }
-}
-
 @Composable
 private fun DragHandleIcon(modifier: Modifier = Modifier) {
     Box(

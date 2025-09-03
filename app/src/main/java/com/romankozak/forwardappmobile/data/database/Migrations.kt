@@ -191,4 +191,11 @@ val MIGRATION_17_18 = object : Migration(17, 18) {
         """)
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_inbox_records_projectId` ON `inbox_records` (`projectId`)")
     }
+
+}
+
+val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_completed INTEGER NOT NULL DEFAULT 0")
+    }
 }

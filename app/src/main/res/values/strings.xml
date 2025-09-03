@@ -106,7 +106,7 @@
     <string name="menu_add_web_link">Web url</string>
     <string name="menu_add_obsidian_link">Obsidian note</string>
     <string name="menu_add_note">Add note</string>
-    <string name="menu_add_list_shortcut">Link to another project</string>
+    <string name="menu_add_list_shortcut">Link to nested project</string>
     <string name="menu_add_goal_component">Goal</string>
 
 

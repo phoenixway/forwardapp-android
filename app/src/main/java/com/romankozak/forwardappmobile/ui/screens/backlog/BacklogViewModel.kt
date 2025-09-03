@@ -85,7 +85,9 @@ data class UiState(
     val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
     val showRecentListsSheet: Boolean = false,
     val showImportFromMarkdownDialog: Boolean = false,
-    val showImportBacklogFromMarkdownDialog: Boolean = false
+    val showImportBacklogFromMarkdownDialog: Boolean = false,
+    val refreshTrigger: Int = 0
+
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -310,7 +312,6 @@ class GoalDetailViewModel @Inject constructor(
                         ProjectViewMode.BACKLOG
                     }
                     Log.d(TAG, "Init: Loaded view mode for list ${listIdFlow.value}: ${viewMode.name}")
-                    // --- ЗМІНЕНО: Встановлюємо і viewMode, і inputMode при початковому завантаженні ---
                     _uiState.update {
                         it.copy(
                             currentView = viewMode,
@@ -338,7 +339,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- ЗМІНЕНО: Створено приватну функцію для уникнення дублювання коду ---
     private fun getInputModeForView(viewMode: ProjectViewMode): InputMode {
         return if (viewMode == ProjectViewMode.INBOX) {
             InputMode.AddQuickRecord
@@ -626,7 +626,7 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 currentView = newView,
-                inputMode = getInputModeForView(newView) // --- ЗМІНЕНО: Використовуємо рефакторинг
+                inputMode = getInputModeForView(newView)
             )
         }
 
@@ -702,5 +702,14 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onExportBacklogToMarkdownRequest() {
         backlogMarkdownHandler.exportToMarkdown(listContent.value)
+    }
+
+    fun onSublistCompletedChanged(sublist: GoalList, isCompleted: Boolean) {
+        viewModelScope.launch {
+            val updatedSublist = sublist.copy(isCompleted = isCompleted)
+            goalRepository.updateGoalList(updatedSublist)
+            // --- ОНОВЛЕНО: Викликаємо forceRefresh для оновлення UI ---
+            forceRefresh()
+        }
     }
 }
