@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems
 
+import android.text.format.DateUtils
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -13,7 +14,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
-import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -26,20 +26,133 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+
+// --- НОВИЙ ОБ'ЄКТ-УТИЛІТА ДЛЯ РОБОТИ З ЧАСОМ ---
+private object ReminderTextUtil {
+
+    private const val ONE_MINUTE_MILLIS = 60 * 1000L
+    private const val ONE_HOUR_MILLIS = 60 * ONE_MINUTE_MILLIS
+
+    fun formatReminderTime(reminderTime: Long): String {
+        val now = System.currentTimeMillis()
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = reminderTime
+
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val formattedTime = timeFormat.format(calendar.time)
+
+        if (reminderTime < now) {
+            val relativeTime = DateUtils.getRelativeTimeSpanString(
+                reminderTime,
+                now,
+                DateUtils.MINUTE_IN_MILLIS
+            ).toString()
+            return "Пропущено ($relativeTime)"
+        }
+
+        val diff = reminderTime - now
+        if (diff < ONE_MINUTE_MILLIS) {
+            return "Через хвилину"
+        }
+        if (diff < ONE_HOUR_MILLIS) {
+            val minutes = (diff / ONE_MINUTE_MILLIS).toInt()
+            return "Через $minutes хв"
+        }
+
+        if (DateUtils.isToday(reminderTime)) {
+            return "Сьогодні о $formattedTime"
+        }
+
+        if (isTomorrow(reminderTime)) {
+            return "Завтра о $formattedTime"
+        }
+
+        val dateFormat = SimpleDateFormat("d MMM о HH:mm", Locale("uk", "UA"))
+        return dateFormat.format(calendar.time)
+    }
+
+    private fun isTomorrow(time: Long): Boolean {
+        val tomorrow = Calendar.getInstance()
+        tomorrow.add(Calendar.DAY_OF_YEAR, 1)
+
+        val target = Calendar.getInstance()
+        target.timeInMillis = time
+
+        return tomorrow.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
+                tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
+    }
+}
+
+// --- НОВИЙ КОМПОНЕНТ ДЛЯ ВІДОБРАЖЕННЯ НАГАДУВАННЯ ---
+@Composable
+private fun EnhancedReminderBadge(reminderTime: Long) {
+    val reminderText = remember(reminderTime) {
+        ReminderTextUtil.formatReminderTime(reminderTime)
+    }
+    val isPastDue = reminderTime < System.currentTimeMillis()
+
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isPastDue) {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+        } else {
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+        },
+        label = "reminder_badge_bg"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isPastDue) {
+            MaterialTheme.colorScheme.onErrorContainer
+        } else {
+            MaterialTheme.colorScheme.onTertiaryContainer
+        },
+        label = "reminder_badge_content"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        border = BorderStroke(0.7.dp, contentColor.copy(alpha = 0.3f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = if (isPastDue) Icons.Default.AlarmOff else Icons.Default.AlarmOn,
+                contentDescription = "Нагадування",
+                tint = contentColor,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = reminderText,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                ),
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
 
 private data class ParsedGoalData(val icons: List<String>, val mainText: String)
 
@@ -379,7 +492,6 @@ fun GoalItem(
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
-    // endAction: @Composable () -> Unit = {},
 ) {
     val parsedData = remember(goal.text, contextMarkerToEmojiMap) {
         parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
@@ -398,7 +510,6 @@ fun GoalItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Коментар "ВИПРАВЛЕНО" є коректним українським словом, не друкарська помилка.
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -424,7 +535,9 @@ fun GoalItem(
                 ),
             )
 
+            // --- ЗМІНЕНО: Додано перевірку на goal.reminderTime ---
             val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                    (goal.reminderTime != null) ||
                     (parsedData.icons.isNotEmpty()) ||
                     (!goal.description.isNullOrBlank()) ||
                     (!goal.relatedLinks.isNullOrEmpty())
@@ -443,6 +556,11 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        // --- ДОДАНО: Відображення чіпа нагадування ---
+                        goal.reminderTime?.let { time ->
+                            EnhancedReminderBadge(reminderTime = time)
+                        }
+
                         EnhancedScoreStatusBadge(goal = goal)
 
                         parsedData.icons
@@ -497,11 +615,9 @@ fun GoalItem(
                 }
             }
         }
-        // ВИДАЛЕНО: Виклик endAction(), оскільки відповідний параметр закоментовано.
     }
 }
 
-// Simplified overload function for backward compatibility
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun GoalItem(
@@ -511,7 +627,6 @@ fun GoalItem(
     onLongClick: () -> Unit,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
-    // isHighlighted та endAction більше не потрібні
 ) {
     val goal = goalContent.goal
 
@@ -519,20 +634,17 @@ fun GoalItem(
         parseTextAndExtractIcons(goal.text, emptyMap())
     }
 
-    // ВИДАЛЕНО: Card та вся логіка для background, elevation, border.
-
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .padding(horizontal = 4.dp, vertical = 2.dp), // Зберігаємо зовнішні відступи
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // ВИКОРИСТОВУЄМО ENHANCED CHECKBOX ДЛЯ КОНСИСТЕНТНОСТІ
         EnhancedCustomCheckbox(
             checked = goal.completed,
             onCheckedChange = onCheckedChange,
-            modifier = Modifier.padding(start = 8.dp) // Відступ як у старому Checkbox
+            modifier = Modifier.padding(start = 8.dp)
         )
 
         Spacer(modifier = Modifier.width(8.dp))
@@ -557,7 +669,9 @@ fun GoalItem(
                 overflow = TextOverflow.Ellipsis,
             )
 
+            // --- ЗМІНЕНО: Додано перевірку на goal.reminderTime ---
             val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                    (goal.reminderTime != null) ||
                     (parsedData.icons.isNotEmpty()) ||
                     (!goal.description.isNullOrBlank()) ||
                     (!goal.relatedLinks.isNullOrEmpty())
@@ -576,6 +690,11 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        // --- ДОДАНО: Відображення чіпа нагадування ---
+                        goal.reminderTime?.let { time ->
+                            EnhancedReminderBadge(reminderTime = time)
+                        }
+
                         EnhancedScoreStatusBadge(goal = goal)
 
                         parsedData.icons.forEachIndexed { index, icon ->
@@ -639,6 +758,5 @@ fun GoalItem(
                 )
             }
         }
-        // ВИДАЛЕНО: Виклик endAction()
     }
 }

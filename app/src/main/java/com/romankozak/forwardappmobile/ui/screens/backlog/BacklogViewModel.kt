@@ -9,16 +9,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.InboxRecord
-import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.domain.OllamaService
+import com.romankozak.forwardappmobile.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxHandler
@@ -32,24 +27,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
+import java.util.Calendar
 import javax.inject.Inject
 
 sealed class UiEvent {
@@ -86,8 +68,11 @@ data class UiState(
     val showRecentListsSheet: Boolean = false,
     val showImportFromMarkdownDialog: Boolean = false,
     val showImportBacklogFromMarkdownDialog: Boolean = false,
-    val refreshTrigger: Int = 0
-
+    val refreshTrigger: Int = 0,
+    // --- ПОЧАТОК ЗМІНИ ---
+    val detectedReminderSuggestion: String? = null,
+    val detectedReminderCalendar: Calendar? = null
+    // --- КІНЕЦЬ ЗМІНИ ---
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -106,7 +91,6 @@ class BacklogMarkdownHandler @Inject constructor(
             listener.showSnackbar("Беклог порожній. Нічого експортувати.", null)
             return
         }
-
         val markdownBuilder = StringBuilder()
         content.forEach { item ->
             val line = when (item) {
@@ -114,9 +98,7 @@ class BacklogMarkdownHandler @Inject constructor(
                     val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
                     "$checkbox ${item.goal.text}"
                 }
-                is ListItemContent.SublistItem -> {
-                    "- [С] ${item.sublist.name}"
-                }
+                is ListItemContent.SublistItem -> "- [С] ${item.sublist.name}"
                 is ListItemContent.LinkItem -> {
                     val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                     "- [Л] [$displayName](${item.link.linkData.target})"
@@ -134,7 +116,6 @@ class BacklogMarkdownHandler @Inject constructor(
             listener.showSnackbar("Нічого імпортувати.", null)
             return
         }
-
         scope.launch(Dispatchers.IO) {
             val lines = markdownText.lines().filter { it.isNotBlank() }
             var importedCount = 0
@@ -169,28 +150,24 @@ class BacklogMarkdownHandler @Inject constructor(
     }
 }
 
-
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class GoalDetailViewModel @Inject constructor(
     private val application: Application,
-
     private val goalRepository: GoalRepository,
     private val settingsRepository: SettingsRepository,
-    private val ollamaService: OllamaService,
     private val contextHandler: ContextHandler,
+    private val alarmScheduler: AlarmScheduler,
     private val savedStateHandle: SavedStateHandle,
-
-    ) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener,
+) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener,
     SelectionHandler.ResultListener, InboxHandler.ResultListener, InboxMarkdownHandler.ResultListener, BacklogMarkdownHandlerResultListener {
 
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
     }
 
-    private val TAG = "DND_DEBUG"
+    private val TAG = "GoalDetailViewModel"
     private var batchSaveJob: Job? = null
-    private val BATCH_DELAY_MS = 500L
 
     private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
     private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
@@ -198,15 +175,9 @@ class GoalDetailViewModel @Inject constructor(
 
     // --- Handlers ---
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
-    val inputHandler = InputHandler(
-        goalRepository,
-        viewModelScope,
-        listIdFlow,
-        this
-    )
+    val inputHandler = InputHandler(goalRepository, viewModelScope, listIdFlow, this)
     val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
-    val inboxHandler =
-        InboxHandler(goalRepository, viewModelScope, listIdFlow, this)
+    val inboxHandler = InboxHandler(goalRepository, viewModelScope, listIdFlow, this)
     val inboxMarkdownHandler = InboxMarkdownHandler(goalRepository, viewModelScope, this)
     val backlogMarkdownHandler = BacklogMarkdownHandler(goalRepository, viewModelScope, this)
 
@@ -227,43 +198,30 @@ class GoalDetailViewModel @Inject constructor(
     val recentLists: StateFlow<List<GoalList>> = goalRepository.getRecentLists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val contextMarkerToEmojiMap: StateFlow<Map<String, String>> =
-        contextHandler.contextMarkerToEmojiMap
+    val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
     val goalList: StateFlow<GoalList?> = combine(listIdFlow, _refreshTrigger) { id, _ -> id }
         .flatMapLatest { id ->
-            if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(
-                null
-            )
+            if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val tagToContextNameMap: StateFlow<Map<String, String>> = contextHandler.tagToContextNameMap
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    val currentListContextMarker: StateFlow<String?> = combine(
-        goalList,
-        tagToContextNameMap
-    ) { list, tagMap ->
+    val currentListContextMarker: StateFlow<String?> = combine(goalList, tagToContextNameMap) { list, tagMap ->
         val listTags = list?.tags ?: emptyList()
         if (listTags.isEmpty() || tagMap.isEmpty()) return@combine null
         val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in listTags }?.value
         contextName?.let { contextHandler.getContextMarker(it) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val currentListContextEmojiToHide: StateFlow<String?> = combine(
-        currentListContextMarker,
-        contextMarkerToEmojiMap
-    ) { marker, emojiMap ->
+    val currentListContextEmojiToHide: StateFlow<String?> = combine(currentListContextMarker, contextMarkerToEmojiMap) { marker, emojiMap ->
         marker?.let { emojiMap[it] }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val databaseContentStream: Flow<List<ListItemContent>> =
-        combine(
-            listIdFlow,
-            _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
-            _refreshTrigger
-        ) { id, query, _ -> Pair(id, query) }
+        combine(listIdFlow, _uiState.map { it.localSearchQuery }.distinctUntilChanged(), _refreshTrigger) { id, query, _ -> Pair(id, query) }
             .flatMapLatest { (id, query) ->
                 if (id.isEmpty()) flowOf(emptyList())
                 else goalRepository.getListContentStream(id).map { content ->
@@ -272,8 +230,7 @@ class GoalDetailViewModel @Inject constructor(
                             val textToSearch = when (itemContent) {
                                 is ListItemContent.GoalItem -> itemContent.goal.text
                                 is ListItemContent.SublistItem -> itemContent.sublist.name
-                                is ListItemContent.LinkItem -> itemContent.link.linkData.displayName
-                                    ?: itemContent.link.linkData.target
+                                is ListItemContent.LinkItem -> itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
                             }
                             textToSearch.contains(query, ignoreCase = true)
                         }
@@ -288,7 +245,6 @@ class GoalDetailViewModel @Inject constructor(
     val obsidianVaultName: StateFlow<String> = settingsRepository.obsidianVaultNameFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    // --- Pending Action State ---
     private var pendingAction: GoalActionType? = null
     private var pendingSourceItemIds: Set<String> = emptySet()
     private var pendingSourceGoalIds: Set<String> = emptySet()
@@ -297,10 +253,8 @@ class GoalDetailViewModel @Inject constructor(
     private val _recordToEdit = MutableStateFlow<InboxRecord?>(null)
     val recordToEdit: StateFlow<InboxRecord?> = _recordToEdit.asStateFlow()
 
-
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
-
         viewModelScope.launch {
             goalList.filterNotNull()
                 .map { it.defaultViewModeName }
@@ -308,23 +262,14 @@ class GoalDetailViewModel @Inject constructor(
                 .collect { savedModeName ->
                     val viewMode = try {
                         ProjectViewMode.valueOf(savedModeName)
-                    } catch (e: Exception) {
-                        ProjectViewMode.BACKLOG
-                    }
-                    Log.d(TAG, "Init: Loaded view mode for list ${listIdFlow.value}: ${viewMode.name}")
+                    } catch (e: Exception) { ProjectViewMode.BACKLOG }
                     _uiState.update {
-                        it.copy(
-                            currentView = viewMode,
-                            inputMode = getInputModeForView(viewMode)
-                        )
+                        it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
                     }
                 }
         }
-
         viewModelScope.launch {
-            databaseContentStream.collect { dbContent ->
-                _listContent.value = dbContent
-            }
+            databaseContentStream.collect { dbContent -> _listContent.value = dbContent }
         }
         viewModelScope.launch {
             listIdFlow.filter { it.isNotEmpty() }.collect { id -> goalRepository.logListAccess(id) }
@@ -334,37 +279,24 @@ class GoalDetailViewModel @Inject constructor(
             listIdFlow.filter { it.isNotEmpty() }.flatMapLatest { id ->
                 goalRepository.getInboxRecordsStream(id)
             }.collect { records ->
-                _inboxRecords.value = records.sortedBy { it.createdAt ?: 0L }
+                _inboxRecords.value = records.sortedBy { it.createdAt }
             }
         }
     }
 
     private fun getInputModeForView(viewMode: ProjectViewMode): InputMode {
-        return if (viewMode == ProjectViewMode.INBOX) {
-            InputMode.AddQuickRecord
-        } else {
-            InputMode.AddGoal
-        }
+        return if (viewMode == ProjectViewMode.INBOX) InputMode.AddQuickRecord else InputMode.AddGoal
     }
 
     override fun requestNavigation(route: String) {
         viewModelScope.launch {
             if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
                 val target = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
-                val link = listContent.value
-                    .filterIsInstance<ListItemContent.LinkItem>()
-                    .map { it.link.linkData }
-                    .find { it.target == target }
-
-                if (link != null) {
-                    _uiEventFlow.send(UiEvent.HandleLinkClick(link))
-                }
-            } else {
-                _uiEventFlow.send(UiEvent.Navigate(route))
-            }
+                val link = listContent.value.filterIsInstance<ListItemContent.LinkItem>().map { it.link.linkData }.find { it.target == target }
+                if (link != null) { _uiEventFlow.send(UiEvent.HandleLinkClick(link)) }
+            } else { _uiEventFlow.send(UiEvent.Navigate(route)) }
         }
     }
-
 
     override fun showSnackbar(message: String, action: String?) {
         viewModelScope.launch { _uiEventFlow.send(UiEvent.ShowSnackbar(message, action)) }
@@ -385,11 +317,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    override fun setPendingAction(
-        actionType: GoalActionType,
-        itemIds: Set<String>,
-        goalIds: Set<String>
-    ) {
+    override fun setPendingAction(actionType: GoalActionType, itemIds: Set<String>, goalIds: Set<String>) {
         pendingAction = actionType
         pendingSourceItemIds = itemIds
         pendingSourceGoalIds = goalIds
@@ -404,30 +332,26 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     override fun updateInputState(
-        inputValue: TextFieldValue?,
-        inputMode: InputMode?,
-        localSearchQuery: String?,
-        newlyAddedItemId: String?
+        inputValue: TextFieldValue?, inputMode: InputMode?, localSearchQuery: String?, newlyAddedItemId: String?,
+        detectedReminderSuggestion: String?, detectedReminderCalendar: Calendar?, clearDetectedReminder: Boolean
     ) {
         _uiState.update {
             it.copy(
                 inputValue = inputValue ?: it.inputValue,
                 inputMode = inputMode ?: it.inputMode,
                 localSearchQuery = localSearchQuery ?: it.localSearchQuery,
-                newlyAddedItemId = newlyAddedItemId
+                newlyAddedItemId = newlyAddedItemId,
+                detectedReminderSuggestion = if (clearDetectedReminder) null else detectedReminderSuggestion ?: it.detectedReminderSuggestion,
+                detectedReminderCalendar = if (clearDetectedReminder) null else detectedReminderCalendar ?: it.detectedReminderCalendar
             )
         }
     }
 
-    override fun updateDialogState(
-        showAddWebLinkDialog: Boolean?,
-        showAddObsidianLinkDialog: Boolean?
-    ) {
+    override fun updateDialogState(showAddWebLinkDialog: Boolean?, showAddObsidianLinkDialog: Boolean?) {
         _uiState.update {
             it.copy(
                 showAddWebLinkDialog = showAddWebLinkDialog ?: it.showAddWebLinkDialog,
-                showAddObsidianLinkDialog = showAddObsidianLinkDialog
-                    ?: it.showAddObsidianLinkDialog
+                showAddObsidianLinkDialog = showAddObsidianLinkDialog ?: it.showAddObsidianLinkDialog
             )
         }
     }
@@ -440,24 +364,28 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(selectedItemIds = selectedIds) }
     }
 
+    override fun onGoalCreatedWithReminder(goalId: String) {
+        viewModelScope.launch {
+            goalRepository.getGoalById(goalId)?.let { newGoal ->
+                alarmScheduler.schedule(newGoal)
+                showSnackbar("Ціль створено з нагадуванням", null)
+            }
+        }
+    }
+
     fun onListChooserResult(targetListId: String) {
         val actionType = pendingAction ?: return
         val itemIds = pendingSourceItemIds.toList()
         val goalIds = pendingSourceGoalIds.toList()
         viewModelScope.launch(Dispatchers.IO) {
             when (actionType) {
-                GoalActionType.CreateInstance -> goalRepository.createGoalLinks(
-                    goalIds,
-                    targetListId
-                )
-
+                GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetListId)
                 GoalActionType.MoveInstance -> goalRepository.moveListItems(itemIds, targetListId)
                 GoalActionType.CopyGoal -> goalRepository.copyGoalsToList(goalIds, targetListId)
                 GoalActionType.AddLinkToList -> {
                     val targetList = goalRepository.getGoalListById(targetListId)
                     val link = RelatedLink(
-                        type = LinkType.GOAL_LIST,
-                        target = targetListId,
+                        type = LinkType.GOAL_LIST, target = targetListId,
                         displayName = targetList?.name ?: "Список без назви"
                     )
                     val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
@@ -465,7 +393,6 @@ class GoalDetailViewModel @Inject constructor(
                         _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                     }
                 }
-
                 GoalActionType.ADD_LIST_SHORTCUT -> {
                     val newItemId = goalRepository.addListLinkToList(targetListId, listIdFlow.value)
                     withContext(Dispatchers.Main) {
@@ -499,8 +426,7 @@ class GoalDetailViewModel @Inject constructor(
 
     fun moveItem(fromIndex: Int, toIndex: Int) {
         val currentContent = _listContent.value
-        val draggableItems =
-            currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
+        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
         if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) return
         if (fromIndex == toIndex) return
         val movedItem = draggableItems.removeAt(fromIndex)
@@ -509,29 +435,24 @@ class GoalDetailViewModel @Inject constructor(
         val reorderedDraggablesIterator = draggableItems.iterator()
         currentContent.forEach { originalItem ->
             if (originalItem is ListItemContent.LinkItem) newFullList.add(originalItem)
-            else if (reorderedDraggablesIterator.hasNext()) newFullList.add(
-                reorderedDraggablesIterator.next()
-            )
+            else if (reorderedDraggablesIterator.hasNext()) newFullList.add(reorderedDraggablesIterator.next())
         }
         _listContent.value = newFullList
         viewModelScope.launch { saveListOrder(newFullList) }
     }
 
-    private suspend fun saveListOrder(listToSave: List<ListItemContent>) =
-        withContext(Dispatchers.IO) {
-            try {
-                val updatedItems =
-                    listToSave.mapIndexed { index, content -> content.item.copy(order = index.toLong()) }
-                goalRepository.updateListItemsOrder(updatedItems)
-            } catch (e: Exception) {
-                Log.e(TAG, "[saveListOrder] Failed to save list order", e)
-            }
+    private suspend fun saveListOrder(listToSave: List<ListItemContent>) = withContext(Dispatchers.IO) {
+        try {
+            val updatedItems = listToSave.mapIndexed { index, content -> content.item.copy(order = index.toLong()) }
+            goalRepository.updateListItemsOrder(updatedItems)
+        } catch (e: Exception) {
+            Log.e(TAG, "[saveListOrder] Failed to save list order", e)
         }
+    }
 
     fun onStateRefreshed() {
         _uiState.update { it.copy(needsStateRefresh = false) }
     }
-
 
     fun onTagClicked(tag: String) {
         viewModelScope.launch {
@@ -557,10 +478,7 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { currentState ->
             val newTriggers = currentState.resetTriggers.toMutableMap()
             newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
-            currentState.copy(
-                resetTriggers = newTriggers,
-                swipedItemId = null
-            )
+            currentState.copy(resetTriggers = newTriggers, swipedItemId = null)
         }
     }
 
@@ -614,6 +532,7 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
+    // Ці методи є частиною одного з інтерфейсів ResultListener
     override fun updateCurrentView(view: ProjectViewMode) {
         _uiState.update { it.copy(currentView = view) }
     }
@@ -624,14 +543,9 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onProjectViewChange(newView: ProjectViewMode) {
         _uiState.update {
-            it.copy(
-                currentView = newView,
-                inputMode = getInputModeForView(newView)
-            )
+            it.copy(currentView = newView, inputMode = getInputModeForView(newView))
         }
-
         viewModelScope.launch {
-            Log.d(TAG, "onProjectViewChange: Persisting view mode '${newView.name}' for list ${listIdFlow.value}")
             goalRepository.updateGoalListViewMode(listIdFlow.value, newView)
         }
     }
@@ -670,6 +584,7 @@ class GoalDetailViewModel @Inject constructor(
     fun copyInboxRecordText(text: String) {
         copyToClipboard(text, "Inbox Record")
     }
+
     fun onImportFromMarkdownRequest() {
         _uiState.update { it.copy(showImportFromMarkdownDialog = true) }
     }
@@ -708,8 +623,12 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val updatedSublist = sublist.copy(isCompleted = isCompleted)
             goalRepository.updateGoalList(updatedSublist)
-            // --- ОНОВЛЕНО: Викликаємо forceRefresh для оновлення UI ---
             forceRefresh()
         }
+    }
+
+    // --- НОВА ФУНКЦІЯ ---
+    fun onClearReminder() {
+        updateInputState(clearDetectedReminder = true)
     }
 }

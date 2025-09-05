@@ -199,3 +199,9 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
         db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_completed INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE goals ADD COLUMN reminder_time INTEGER")
+    }
+}

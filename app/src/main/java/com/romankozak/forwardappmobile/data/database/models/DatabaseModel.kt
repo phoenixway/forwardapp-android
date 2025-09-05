@@ -146,7 +146,10 @@ data class Goal(
     @ColumnInfo(defaultValue = "0.0")
     val timeCost: Float? = null,
     @ColumnInfo(defaultValue = "0.0")
-    val financialCost: Float? = null
+    val financialCost: Float? = null,
+    @ColumnInfo(name = "reminder_time")
+    val reminderTime: Long? = null,
+
 )
 
 @Entity(tableName = "goal_lists")

@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.domain.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
@@ -213,9 +214,8 @@ fun GoalDetailScreen(
                 }
                 is UiEvent.ResetSwipeState -> viewModel.onSwipeStateReset(event.itemId)
                 is UiEvent.ScrollTo -> listState.animateScrollToItem(event.index)
-                is UiEvent.ScrollToLatestInboxRecord -> { // --- ЗМІНЕНО: Обробка перейменованої події
+                is UiEvent.ScrollToLatestInboxRecord -> {
                     coroutineScope.launch {
-                        // --- ЗМІНЕНО: Прокручування до останнього елемента ---
                         if (inboxRecords.isNotEmpty()) {
                             inboxListState.animateScrollToItem(inboxRecords.lastIndex)
                         }
@@ -323,6 +323,19 @@ fun GoalDetailScreen(
             onConfirm = viewModel::onImportBacklogFromMarkdownConfirm
         )
     }
+
+    // --- ПОЧАТОК ЗМІНИ: Створюємо об'єкт ReminderParseResult ---
+    val reminderParseResult = if (uiState.detectedReminderCalendar != null) {
+        ReminderParseResult(
+            originalText = uiState.inputValue.text,
+            calendar = uiState.detectedReminderCalendar,
+            suggestionText = uiState.detectedReminderSuggestion
+        )
+    } else {
+        null
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -348,9 +361,25 @@ fun GoalDetailScreen(
                 ModernInputPanel(
                     inputValue = uiState.inputValue,
                     inputMode = uiState.inputMode,
-                    onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
-                    onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
-                    onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
+                    onValueChange = {
+                        viewModel.inputHandler.onInputTextChanged(
+                            it,
+                            uiState.inputMode
+                        )
+                    },
+                    onSubmit = {
+                        viewModel.inputHandler.submitInput(
+                            uiState.inputValue,
+                            uiState.inputMode,
+                            uiState.detectedReminderCalendar
+                        )
+                    },
+                    onInputModeSelected = {
+                        viewModel.inputHandler.onInputModeSelected(
+                            it,
+                            uiState.inputValue
+                        )
+                    },
                     onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
                     onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
                     onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
@@ -380,9 +409,13 @@ fun GoalDetailScreen(
                     onExportToMarkdown = viewModel::onExportToMarkdownRequest,
                     onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
                     onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
+                    // --- ПОЧАТОК ЗМІНИ: Передаємо дані для чіпа ---
+                    reminderParseResult = reminderParseResult,
+                    onClearReminder = viewModel::onClearReminder,
+                    // --- КІНЕЦЬ ЗМІНИ ---
                     modifier = Modifier
                         .navigationBarsPadding()
-                        .imePadding()
+                        .imePadding(),
                 )
             }
         },
@@ -413,27 +446,19 @@ fun GoalDetailScreen(
                             items = draggableItems,
                             key = { _, item -> item.item.id }
                         ) { index, content ->
-                            // 1. Визначаємо стани isSelected та isHighlighted
                             val isSelected = content.item.id in uiState.selectedItemIds
                             val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
                                     (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                            // 2. ВИДАЛЕНО: Розрахунок backgroundColor. Ця логіка тепер всередині InteractiveListItem.
-                            /*
-                            val backgroundColor by animateColorAsState(...)
-                            */
-
-                            // 3. Викликаємо оновлений InteractiveListItem
                             InteractiveListItem(
                                 item = content,
                                 index = index,
                                 dragDropState = dragDropState,
-                                isSelected = isSelected,      // ДОДАНО
-                                isHighlighted = isHighlighted, // ДОДАНО
+                                isSelected = isSelected,
+                                isHighlighted = isHighlighted,
                                 swipeEnabled = !isSelectionModeActive && !dragDropState.isDragging,
                                 isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
                                 resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                                // backgroundColor = backgroundColor, // ВИДАЛЕНО
                                 onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                                 onDelete = { viewModel.itemActionHandler.deleteItem(content) },
                                 onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
@@ -463,7 +488,6 @@ fun GoalDetailScreen(
                             ) { isDragging ->
                                 when (content) {
                                     is ListItemContent.GoalItem -> {
-                                        // Цей виклик залишається без змін, оскільки GoalItem не мав логіки фону
                                         GoalItem(
                                             goal = content.goal,
                                             obsidianVaultName = obsidianVaultName,
@@ -484,8 +508,7 @@ fun GoalDetailScreen(
                                     is ListItemContent.SublistItem -> {
                                         SublistItemRow(
                                             sublistContent = content,
-                                            isSelected = isSelected, // Залишаємо, бо впливає на кількість рядків тексту
-                                            // isHighlighted = isHighlighted, // ВИДАЛЕНО: цим тепер керує батько
+                                            isSelected = isSelected,
                                             onClick = { viewModel.itemActionHandler.onItemClick(content) },
                                             onLongClick = { viewModel.toggleSelection(content.item.id) },
                                             onCheckedChange = { isCompleted ->
