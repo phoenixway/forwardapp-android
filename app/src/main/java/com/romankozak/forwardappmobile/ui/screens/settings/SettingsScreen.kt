@@ -1,23 +1,79 @@
 package com.romankozak.forwardappmobile.ui.screens.settings
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.ui.ModelsState
 import com.romankozak.forwardappmobile.ui.screens.backlogs.PlanningSettingsState
+
+fun getFileName(uri: Uri, context: Context): String {
+    var fileName: String? = null
+    try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1) {
+                    fileName = cursor.getString(nameIndex)
+                }
+            }
+        }
+    } catch (e: Exception) {
+        // Fallback in case of error
+        fileName = uri.lastPathSegment
+    }
+    return fileName ?: "Unknown file"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,13 +87,10 @@ fun SettingsScreen(
         showModes: Boolean, dailyTag: String, mediumTag: String, longTag: String,
         vaultName: String
     ) -> Unit,
-    // --- ДОДАНО: ViewModel для налаштувань Ollama ---
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    // --- Стан для Ollama збирається з ViewModel ---
-    val ollamaState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // --- Існуючий локальний стан для старих налаштувань ---
     var tempShowModes by remember(planningSettings.showModes) { mutableStateOf(planningSettings.showModes) }
     var tempDailyTag by remember(planningSettings.dailyTag) { mutableStateOf(planningSettings.dailyTag) }
     var tempMediumTag by remember(planningSettings.mediumTag) { mutableStateOf(planningSettings.mediumTag) }
@@ -75,7 +128,6 @@ fun SettingsScreen(
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = {
-                        // Зберігаємо старі налаштування
                         onSave(
                             tempShowModes,
                             tempDailyTag,
@@ -83,7 +135,6 @@ fun SettingsScreen(
                             tempLongTag,
                             tempVaultName
                         )
-                        // --- ДОДАНО: Зберігаємо налаштування Ollama ---
                         viewModel.saveSettings()
                         onBack()
                     },
@@ -101,18 +152,22 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
 
-            // --- ДОДАНО: Картка налаштувань Ollama ---
             OllamaSettingsCard(
-                state = ollamaState,
+                state = uiState,
                 onUrlChange = viewModel::onUrlChanged,
                 onFetchClick = viewModel::fetchAvailableModels,
                 onFastModelSelect = viewModel::onFastModelSelected,
                 onSmartModelSelect = viewModel::onSmartModelSelected
             )
 
-            // --- Існуюча картка Planning Modes ---
+            NerSettingsCard(
+                state = uiState,
+                onModelFileSelected = { uri -> viewModel.onNerModelFileSelected(uri) },
+                onTokenizerFileSelected = { uri -> viewModel.onNerTokenizerFileSelected(uri) },
+                onLabelsFileSelected = { uri -> viewModel.onNerLabelsFileSelected(uri) }
+            )
+
             SettingsCard(title = "Planning Modes") {
-                // ... (без змін)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text("Show planning scale modes", modifier = Modifier.weight(1f))
                     Switch(checked = tempShowModes, onCheckedChange = { tempShowModes = it })
@@ -137,9 +192,7 @@ fun SettingsScreen(
                 )
             }
 
-            // --- Існуюча картка Integrations ---
             SettingsCard(title = "Integrations") {
-                // ... (без змін)
                 Text("Specify the exact name of your Obsidian Vault for link integration.")
                 AnimatedTextField(
                     value = tempVaultName,
@@ -150,9 +203,7 @@ fun SettingsScreen(
                 )
             }
 
-            // --- Існуюча картка Contexts ---
             SettingsCard(title = "Contexts") {
-                // ... (без змін)
                 OutlinedButton(
                     onClick = onManageContextsClick,
                     modifier = Modifier.fillMaxWidth(),
@@ -165,7 +216,6 @@ fun SettingsScreen(
 }
 
 
-// --- ДОДАНО: Новий Composable для картки налаштувань Ollama ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OllamaSettingsCard(
@@ -218,7 +268,81 @@ private fun OllamaSettingsCard(
     }
 }
 
-// --- ДОДАНО: Допоміжний Composable для випадаючого списку моделей ---
+@Composable
+private fun NerSettingsCard(
+    state: SettingsUiState,
+    onModelFileSelected: (String) -> Unit,
+    onTokenizerFileSelected: (String) -> Unit,
+    onLabelsFileSelected: (String) -> Unit
+) {
+    val context = LocalContext.current
+
+    val modelLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { onModelFileSelected(it.toString()) }
+    }
+    val tokenizerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { onTokenizerFileSelected(it.toString()) }
+    }
+    val labelsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { onLabelsFileSelected(it.toString()) }
+    }
+
+    SettingsCard(title = "Date/Time NER Model (ONNX)") {
+        FileSelector(
+            label = "Model File (.onnx)",
+            selectedFileUri = state.nerModelUri,
+            onSelectClick = { modelLauncher.launch("*/*") },
+            context = context
+        )
+        FileSelector(
+            label = "Tokenizer File (.json)",
+            selectedFileUri = state.nerTokenizerUri,
+            onSelectClick = { tokenizerLauncher.launch("application/json") },
+            context = context
+        )
+        FileSelector(
+            label = "Labels File (.json)",
+            selectedFileUri = state.nerLabelsUri,
+            onSelectClick = { labelsLauncher.launch("application/json") },
+            context = context
+        )
+    }
+}
+
+@Composable
+private fun FileSelector(
+    label: String,
+    selectedFileUri: String,
+    onSelectClick: () -> Unit,
+    context: Context
+) {
+    val fileName = remember(selectedFileUri) {
+        if (selectedFileUri.isNotBlank()) getFileName(Uri.parse(selectedFileUri), context) else "Not selected"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                fileName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        OutlinedButton(onClick = onSelectClick) {
+            Text("Select")
+        }
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModelSelector(
@@ -240,7 +364,9 @@ private fun ModelSelector(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
         )
         ExposedDropdownMenu(
             expanded = isExpanded,

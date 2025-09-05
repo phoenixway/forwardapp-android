@@ -13,6 +13,9 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.domain.ReminderParser
+import com.romankozak.forwardappmobile.domain.ner.NerManager
+import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
@@ -71,8 +74,10 @@ data class UiState(
     val refreshTrigger: Int = 0,
     // --- ПОЧАТОК ЗМІНИ ---
     val detectedReminderSuggestion: String? = null,
-    val detectedReminderCalendar: Calendar? = null
-    // --- КІНЕЦЬ ЗМІНИ ---
+    val detectedReminderCalendar: Calendar? = null,
+
+    val nerState: NerState = NerState.NotInitialized // <-- ДОДАНО СТАН NER
+
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -158,6 +163,9 @@ class GoalDetailViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val contextHandler: ContextHandler,
     private val alarmScheduler: AlarmScheduler,
+    private val nerManager: NerManager, // <-- ВПРОВАДЖЕНО NER MANAGER
+    private val reminderParser: ReminderParser, // <-- ВПРОВАДЖЕНО ГІБРИДНИЙ ПАРСЕР
+
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener,
     SelectionHandler.ResultListener, InboxHandler.ResultListener, InboxMarkdownHandler.ResultListener, BacklogMarkdownHandlerResultListener {
@@ -175,7 +183,7 @@ class GoalDetailViewModel @Inject constructor(
 
     // --- Handlers ---
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
-    val inputHandler = InputHandler(goalRepository, viewModelScope, listIdFlow, this)
+    val inputHandler = InputHandler(goalRepository, viewModelScope, listIdFlow, this, reminderParser)
     val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
     val inboxHandler = InboxHandler(goalRepository, viewModelScope, listIdFlow, this)
     val inboxMarkdownHandler = InboxMarkdownHandler(goalRepository, viewModelScope, this)
@@ -255,6 +263,13 @@ class GoalDetailViewModel @Inject constructor(
 
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
+
+        viewModelScope.launch {
+            nerManager.nerState.collect { state ->
+                _uiState.update { it.copy(nerState = state) }
+            }
+        }
+
         viewModelScope.launch {
             goalList.filterNotNull()
                 .map { it.defaultViewModeName }

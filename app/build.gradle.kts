@@ -181,4 +181,12 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
 
+    // ONNX Runtime для Android
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
+
+    // DJL HuggingFace Tokenizer
+    implementation("ai.djl.huggingface:tokenizers:0.27.0")
+
+    // DJL вимагає SLF4J, додаємо реалізацію без логування, щоб уникнути помилок
+    implementation("org.slf4j:slf4j-nop:2.0.13")
 }
