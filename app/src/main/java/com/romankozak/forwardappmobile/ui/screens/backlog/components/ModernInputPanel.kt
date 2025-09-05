@@ -89,9 +89,9 @@ fun ModernInputPanel(
     onExportToMarkdown: () -> Unit,
     onImportBacklogFromMarkdown: () -> Unit,
     onExportBacklogToMarkdown: () -> Unit,
-    reminderParseResult: ReminderParseResult?, // <-- НОВИЙ ПАРАМЕТР
-    onClearReminder: () -> Unit, // <-- НОВИЙ ПАРАМЕТР
-
+    reminderParseResult: ReminderParseResult?,
+    onClearReminder: () -> Unit,
+    isNerActive: Boolean
 ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
@@ -182,16 +182,20 @@ fun ModernInputPanel(
                 onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
                 onExportBacklogToMarkdown = onExportBacklogToMarkdown
             )
+
             AnimatedVisibility(
-                visible = reminderParseResult?.calendar != null && reminderParseResult.suggestionText != null,
-                enter = fadeIn() + slideInVertically { -it / 2 },
-                exit = fadeOut() + slideOutVertically { -it / 2 }
+                visible = reminderParseResult != null,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
             ) {
-                ReminderChip(
-                    suggestionText = reminderParseResult?.suggestionText ?: "",
-                    onClear = onClearReminder
-                )
+                reminderParseResult?.let {
+                    ReminderChip(
+                        suggestionText = it.suggestionText ?: "",
+                        onClear = onClearReminder
+                    )
+                }
             }
+
             Row(
                 modifier = Modifier
                     .heightIn(min = 64.dp)
@@ -315,6 +319,11 @@ fun ModernInputPanel(
                                     )
                                 }
                                 innerTextField()
+
+                                NerIndicator(
+                                    isActive = isNerActive,
+                                    modifier = Modifier.align(Alignment.CenterEnd)
+                                )
                             }
                         }
                     )
@@ -348,7 +357,6 @@ fun ModernInputPanel(
     if (showModeMenu) {
         val menuWidth = 280.dp
 
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -357,7 +365,6 @@ fun ModernInputPanel(
             DropdownMenu(
                 expanded = showModeMenu,
                 onDismissRequest = { showModeMenu = false },
-
                 offset = DpOffset(x = -menuWidth / 2, y = 0.dp),
                 modifier = Modifier
                     .width(menuWidth)
@@ -384,8 +391,8 @@ fun ModernInputPanel(
                     modifier = Modifier.background(panelColors.contentColor.copy(alpha = 0.08f))
                 )
 
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
                 Text(
                     text = "ПОШУК",
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
@@ -409,8 +416,8 @@ fun ModernInputPanel(
                     }
                 )
 
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
                 Text(
                     text = "ДОДАВАННЯ ПОСИЛАНЬ",
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
@@ -442,9 +449,8 @@ fun ModernInputPanel(
                     }
                 )
 
-
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
                 Text(
                     text = "ДОДАВАННЯ В БЕКЛОГ",
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
@@ -477,6 +483,23 @@ fun ModernInputPanel(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun NerIndicator(isActive: Boolean, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = isActive,
+        modifier = modifier,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut()
+    ) {
+        Icon(
+            imageVector = Icons.Default.AutoAwesome,
+            contentDescription = "Smart recognition active",
+            tint = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
@@ -577,19 +600,6 @@ private fun NavigationBar(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            // --- ПОЧАТОК ЗМІНИ ---
-            IconButton(
-                onClick = onRecentsClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = "Останні", // Recent
-                    tint = contentColor.copy(alpha = 0.8f), // "Ненав'язливий" вигляд
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            // --- КІНЕЦЬ ЗМІНИ ---
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
