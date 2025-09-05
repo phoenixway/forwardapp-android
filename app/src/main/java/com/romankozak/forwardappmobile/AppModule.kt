@@ -19,6 +19,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+        // INFO: Видалено старі міграції, яких немає у наданих файлах, для уникнення помилок
+        // Якщо вони вам потрібні, переконайтесь, що файли з ними є.
+        // Я додав усі міграції до 19->20, які ми обговорювали.
         return Room.databaseBuilder(
             context.applicationContext,
             AppDatabase::class.java,
@@ -31,51 +34,64 @@ object AppModule {
                 MIGRATION_12_13,
                 MIGRATION_13_14,
                 MIGRATION_14_15,
-                MIGRATION_15_16 // ✨ ВИПРАВЛЕНО: Додано відсутню міграцію
+                MIGRATION_15_16,
+                MIGRATION_16_17,
+                MIGRATION_17_18,
+                MIGRATION_18_19,
+                MIGRATION_19_20
             )
             .build()
     }
 
     @Provides
-    @Singleton // ✨ ДОДАНО: Найкраща практика - робити DAO синглтонами
+    @Singleton
     fun provideGoalDao(database: AppDatabase): GoalDao {
         return database.goalDao()
     }
 
     @Provides
-    @Singleton // ✨ ДОДАНО
+    @Singleton
     fun provideGoalListDao(database: AppDatabase): GoalListDao {
         return database.goalListDao()
     }
 
     @Provides
-    @Singleton // ✨ ДОДАНО
+    @Singleton
     fun provideListItemDao(database: AppDatabase): ListItemDao {
         return database.listItemDao()
     }
 
     @Provides
-    @Singleton // ✨ ДОДАНО
+    @Singleton
     fun provideActivityRecordDao(database: AppDatabase): ActivityRecordDao {
         return database.activityRecordDao()
     }
 
     @Provides
-    @Singleton // ✨ ДОДАНО
+    @Singleton
     fun provideRecentListDao(database: AppDatabase): RecentListDao {
         return database.recentListDao()
     }
 
-    // ✨ ДОДАНО: Провайдер для нового LinkItemDao, без якого була помилка Hilt
     @Provides
     @Singleton
     fun provideLinkItemDao(database: AppDatabase): LinkItemDao {
         return database.linkItemDao()
     }
 
+    // --- ПОЧАТОК ЗМІНИ ---
+
     @Provides
+    @Singleton // AlarmScheduler має бути синглтоном
+    fun provideAlarmScheduler(@ApplicationContext context: Context): com.romankozak.forwardappmobile.reminders.AlarmScheduler {
+        return com.romankozak.forwardappmobile.reminders.AlarmScheduler(context)
+    }
+
+    @Provides
+    @Singleton // Також додамо @Singleton для консистентності
     fun provideInboxRecordDao(appDatabase: AppDatabase): InboxRecordDao {
         return appDatabase.inboxRecordDao()
     }
 
+    // --- КІНЕЦЬ ЗМІНИ ---
 }

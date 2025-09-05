@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.domain.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -88,6 +89,9 @@ fun ModernInputPanel(
     onExportToMarkdown: () -> Unit,
     onImportBacklogFromMarkdown: () -> Unit,
     onExportBacklogToMarkdown: () -> Unit,
+    reminderParseResult: ReminderParseResult?, // <-- НОВИЙ ПАРАМЕТР
+    onClearReminder: () -> Unit, // <-- НОВИЙ ПАРАМЕТР
+
 ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
@@ -178,7 +182,16 @@ fun ModernInputPanel(
                 onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
                 onExportBacklogToMarkdown = onExportBacklogToMarkdown
             )
-
+            AnimatedVisibility(
+                visible = reminderParseResult?.calendar != null && reminderParseResult.suggestionText != null,
+                enter = fadeIn() + slideInVertically { -it / 2 },
+                exit = fadeOut() + slideOutVertically { -it / 2 }
+            ) {
+                ReminderChip(
+                    suggestionText = reminderParseResult?.suggestionText ?: "",
+                    onClear = onClearReminder
+                )
+            }
             Row(
                 modifier = Modifier
                     .heightIn(min = 64.dp)

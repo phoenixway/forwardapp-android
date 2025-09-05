@@ -3,6 +3,11 @@
 
 package com.romankozak.forwardappmobile.ui.screens.goaledit
 
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -17,6 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -33,21 +39,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
-import com.romankozak.forwardappmobile.ui.shared.NavigationResultViewModel
 import com.romankozak.forwardappmobile.ui.utils.formatDate
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 
 
@@ -66,22 +71,16 @@ fun GoalEditScreen(
     navController: NavController,
     viewModel: GoalEditViewModel = hiltViewModel(),
 ) {
-    // --- Основні стани та контекст ---
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // --- Обробка навігаційних подій від ViewModel ---
     LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
             when (event) {
-                // ЗМІНЕНО: Поведінка NavigateBack трохи змінилася
                 is GoalEditEvent.NavigateBack -> {
                     event.message?.let {
                         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                     }
-                    // Повідомляємо попередній екран, що потрібно оновити дані
-                    // через SavedStateHandle, це більш надійно
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set("refresh_needed", true)
@@ -94,38 +93,19 @@ fun GoalEditScreen(
         }
     }
 
-    // Отримання результату від екрана вибору списку (list_chooser_screen)
     val navBackStackEntry = navController.currentBackStackEntry
     LaunchedEffect(navBackStackEntry) {
-        // Ми використовуємо observeAsState, щоб реагувати на зміни
         val resultFlow = navBackStackEntry?.savedStateHandle
             ?.getLiveData<String>("list_chooser_result")
 
         resultFlow?.observe(navBackStackEntry) { result ->
             if (result != null) {
-                // Як тільки результат отримано, викликаємо ViewModel
                 viewModel.onListChooserResult(result)
-                // І одразу ж очищуємо його, щоб уникнути повторної обробки
-                // при зміні конфігурації (напр. поворот екрана)
                 navBackStackEntry.savedStateHandle.remove<String>("list_chooser_result")
             }
         }
     }
 
-
-/*    // --- Отримання результату від екрана вибору списку ---
-    LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            // Перевіряємо, чи повернувся ID обраного списку
-            val selectedListId = resultViewModel.consumeResult<String>("selectedListId")
-            if (selectedListId != null) {
-                viewModel.onListChooserResult(selectedListId)
-            }
-        }
-    }*/
-
-
-    // --- Логіка для підказок контекстів (@...) ---
     val allContexts by viewModel.allContextNames.collectAsStateWithLifecycle()
     var showSuggestions by remember { mutableStateOf(false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -247,6 +227,14 @@ fun GoalEditScreen(
                         onAddLink = viewModel::onAddLinkRequest,
                         onAddWebLink = viewModel::onAddWebLinkRequest,
                         onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+                    )
+                }
+
+                item {
+                    ReminderSection(
+                        reminderTime = uiState.reminderTime,
+                        onSetReminder = viewModel::onSetReminder,
+                        onClearReminder = viewModel::onClearReminder
                     )
                 }
 
@@ -390,7 +378,6 @@ private fun LinkItem(
             LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
             LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-            else -> MaterialTheme.colorScheme.surfaceVariant
         },
         border = BorderStroke(
             1.dp,
@@ -398,7 +385,6 @@ private fun LinkItem(
                 LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                 LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                 LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-                else -> MaterialTheme.colorScheme.outline
             }
         )
     ) {
@@ -415,17 +401,15 @@ private fun LinkItem(
             ) {
                 Icon(
                     imageVector = when (link.type) {
-                        LinkType.GOAL_LIST -> Icons.Default.List
+                        LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.List
                         LinkType.URL -> Icons.Default.Language
-                        LinkType.OBSIDIAN -> Icons.Default.Note
-                        else -> Icons.Default.Link
+                        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
                     },
                     contentDescription = null,
                     tint = when (link.type) {
                         LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
                         LinkType.URL -> MaterialTheme.colorScheme.secondary
                         LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.onSurface
                     },
                     modifier = Modifier.size(20.dp)
                 )
@@ -446,7 +430,6 @@ private fun LinkItem(
                             LinkType.GOAL_LIST -> "Список цілей"
                             LinkType.URL -> "Веб-посилання"
                             LinkType.OBSIDIAN -> "Obsidian нотатка"
-                            else -> "Посилання"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -488,7 +471,7 @@ private fun AddLinksButtons(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    Icons.Default.List,
+                    Icons.AutoMirrored.Filled.List,
                     contentDescription = null,
                     modifier = Modifier.size(ButtonDefaults.IconSize)
                 )
@@ -514,7 +497,7 @@ private fun AddLinksButtons(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    Icons.Default.Note,
+                    Icons.AutoMirrored.Filled.Note,
                     contentDescription = null,
                     modifier = Modifier.size(ButtonDefaults.IconSize)
                 )
@@ -666,7 +649,9 @@ private fun EvaluationTabs(
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
             userScrollEnabled = isEnabled,
         ) { page ->
             Column(
@@ -783,4 +768,106 @@ private fun ParameterSlider(
             steps = (scale.size - 2).coerceAtLeast(0),
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderSection(
+    reminderTime: Long?,
+    onSetReminder: (year: Int, month: Int, day: Int, hour: Int, minute: Int) -> Unit,
+    onClearReminder: () -> Unit,
+) {
+    val context = LocalContext.current
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    val checkPermissionsAndShowDatePicker = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            Toast.makeText(context, "Потрібен дозвіл на точні нагадування", Toast.LENGTH_LONG).show()
+            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).also {
+                context.startActivity(it)
+            }
+        } else {
+            showDatePicker = true
+        }
+    }
+
+    var showTimePicker by remember { mutableStateOf(false) }
+    val timePickerState = rememberTimePickerState()
+
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Нагадування", style = MaterialTheme.typography.titleMedium)
+
+            if (reminderTime != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = formatDateTime(reminderTime), style = MaterialTheme.typography.bodyLarge)
+                    Row {
+                        IconButton(onClick = { checkPermissionsAndShowDatePicker() }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Змінити нагадування")
+                        }
+                        IconButton(onClick = onClearReminder) {
+                            Icon(Icons.Default.Delete, contentDescription = "Видалити нагадування", tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            } else {
+                OutlinedButton(onClick = { checkPermissionsAndShowDatePicker() }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.AlarmAdd, contentDescription = null)
+                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                    Text("Додати нагадування")
+                }
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false; showTimePicker = true }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Скасувати") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Виберіть час") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showTimePicker = false
+                        datePickerState.selectedDateMillis?.let { dateMillis ->
+                            val calendar = Calendar.getInstance().apply { timeInMillis = dateMillis }
+                            val year = calendar.get(Calendar.YEAR)
+                            val month = calendar.get(Calendar.MONTH)
+                            val day = calendar.get(Calendar.DAY_OF_MONTH)
+                            onSetReminder(year, month, day, timePickerState.hour, timePickerState.minute)
+                        }
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Скасувати") }
+            }
+        )
+    }
+}
+
+private fun formatDateTime(millis: Long): String {
+    val sdf = SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.getDefault())
+    return sdf.format(Date(millis))
 }

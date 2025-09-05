@@ -21,7 +21,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         LinkItemEntity::class,
         InboxRecord::class
     ],
-    version = 19,
+    version = 20,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -62,7 +62,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_15_16,
                         MIGRATION_16_17,
                         MIGRATION_17_18,
-                        MIGRATION_18_19
+                        MIGRATION_18_19,
+                        MIGRATION_19_20,
                     )
                     .build()
                 INSTANCE = instance

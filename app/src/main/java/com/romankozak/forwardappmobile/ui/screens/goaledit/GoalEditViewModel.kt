@@ -10,11 +10,13 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.reminders.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+import java.util.Calendar
 import java.util.UUID
 import javax.inject.Inject
 
@@ -43,13 +45,17 @@ data class GoalEditUiState(
     val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
-    val isDescriptionEditorOpen: Boolean = false
+    val isDescriptionEditorOpen: Boolean = false,
+    val reminderTime: Long? = null
+
 )
 
 @HiltViewModel
 class GoalEditViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val contextHandler: ContextHandler,
+    private val alarmScheduler: AlarmScheduler,
+
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -118,7 +124,9 @@ class GoalEditViewModel @Inject constructor(
                     rawScore = goal.rawScore,
                     displayScore = goal.displayScore,
                     scoringStatus = goal.scoringStatus,
-                    isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS
+                    isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS,
+                    reminderTime = goal.reminderTime
+
                 )
             }
         } else {
@@ -147,6 +155,17 @@ class GoalEditViewModel @Inject constructor(
 
             val goalFromState = buildGoalFromState(_uiState.value)
             val goalToSave = GoalScoringManager.calculateScores(goalFromState)
+            val oldReminderTime = currentGoal?.reminderTime
+            val newReminderTime = goalToSave.reminderTime
+
+            if (newReminderTime != oldReminderTime) {
+                if (newReminderTime != null) {
+                    alarmScheduler.schedule(goalToSave)
+                } else {
+                    // Скасовуємо тільки якщо старе нагадування існувало
+                    currentGoal?.let { alarmScheduler.cancel(it) }
+                }
+            }
 
             if (currentGoal != null) {
                 goalRepository.updateGoal(goalToSave)
@@ -185,7 +204,9 @@ class GoalEditViewModel @Inject constructor(
             weightEffort = state.weightEffort,
             weightCost = state.weightCost,
             weightRisk = state.weightRisk,
-            scoringStatus = state.scoringStatus
+            scoringStatus = state.scoringStatus,
+            reminderTime = state.reminderTime
+
         )
     }
 
@@ -274,4 +295,16 @@ class GoalEditViewModel @Inject constructor(
             _events.send(GoalEditEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
         }
     }
+
+    fun onSetReminder(year: Int, month: Int, day: Int, hour: Int, minute: Int) {
+        val calendar = Calendar.getInstance().apply {
+            set(year, month, day, hour, minute, 0)
+        }
+        _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
+    }
+
+    fun onClearReminder() {
+        _uiState.update { it.copy(reminderTime = null) }
+    }
+
 }

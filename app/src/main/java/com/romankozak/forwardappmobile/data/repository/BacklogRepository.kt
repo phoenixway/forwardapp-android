@@ -354,4 +354,32 @@ class GoalRepository @Inject constructor(
         addGoalToList(record.text, record.projectId)
         inboxRecordDao.deleteById(record.id)
     }
+
+    // Додайте цю нову функцію у ваш клас GoalRepository
+    suspend fun addGoalWithReminder(title: String, listId: String, reminderTime: Long): String {
+        val currentTime = System.currentTimeMillis()
+        val newGoal = Goal(
+            id = UUID.randomUUID().toString(),
+            text = title,
+            completed = false,
+            createdAt = currentTime,
+            updatedAt = currentTime,
+            reminderTime = reminderTime
+        )
+        goalDao.insertGoal(newGoal)
+        syncContextMarker(newGoal.id, listId, ContextTextAction.ADD)
+
+        val newListItem = ListItem(
+            id = UUID.randomUUID().toString(),
+            listId = listId,
+            itemType = ListItemType.GOAL,
+            entityId = newGoal.id,
+            order = -currentTime
+        )
+        listItemDao.insertItem(newListItem)
+
+        val finalGoalState = goalDao.getGoalById(newGoal.id)!!
+        contextHandler.handleContextsOnCreate(finalGoalState)
+        return newGoal.id // Повертаємо ID цілі, це важливо
+    }
 }
