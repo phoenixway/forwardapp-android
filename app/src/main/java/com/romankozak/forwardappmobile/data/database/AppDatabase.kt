@@ -41,7 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inboxRecordDao(): InboxRecordDao
 
 
-    companion object {
+   /* companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -69,5 +69,5 @@ abstract class AppDatabase : RoomDatabase() {
                 instance
             }
         }
-    }
+    }*/
 }
