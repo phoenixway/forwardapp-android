@@ -72,12 +72,9 @@ data class UiState(
     val showImportFromMarkdownDialog: Boolean = false,
     val showImportBacklogFromMarkdownDialog: Boolean = false,
     val refreshTrigger: Int = 0,
-    // --- ПОЧАТОК ЗМІНИ ---
     val detectedReminderSuggestion: String? = null,
     val detectedReminderCalendar: Calendar? = null,
-
     val nerState: NerState = NerState.NotInitialized // <-- ДОДАНО СТАН NER
-
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -163,10 +160,9 @@ class GoalDetailViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val contextHandler: ContextHandler,
     private val alarmScheduler: AlarmScheduler,
-    private val nerManager: NerManager, // <-- ВПРОВАДЖЕНО NER MANAGER
-    private val reminderParser: ReminderParser, // <-- ВПРОВАДЖЕНО ГІБРИДНИЙ ПАРСЕР
-
-    private val savedStateHandle: SavedStateHandle,
+    private val nerManager: NerManager,
+    private val reminderParser: ReminderParser,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener,
     SelectionHandler.ResultListener, InboxHandler.ResultListener, InboxMarkdownHandler.ResultListener, BacklogMarkdownHandlerResultListener {
 
@@ -181,7 +177,6 @@ class GoalDetailViewModel @Inject constructor(
     private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
     val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
-    // --- Handlers ---
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
     val inputHandler = InputHandler(goalRepository, viewModelScope, listIdFlow, this, reminderParser)
     val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
@@ -189,8 +184,6 @@ class GoalDetailViewModel @Inject constructor(
     val inboxMarkdownHandler = InboxMarkdownHandler(goalRepository, viewModelScope, this)
     val backlogMarkdownHandler = BacklogMarkdownHandler(goalRepository, viewModelScope, this)
 
-
-    // --- State Flows ---
     private val _uiState = MutableStateFlow(
         UiState(
             goalToHighlight = savedStateHandle.get<String>("goalId"),
@@ -547,7 +540,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // Ці методи є частиною одного з інтерфейсів ResultListener
     override fun updateCurrentView(view: ProjectViewMode) {
         _uiState.update { it.copy(currentView = view) }
     }
@@ -642,7 +634,6 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    // --- НОВА ФУНКЦІЯ ---
     fun onClearReminder() {
         updateInputState(clearDetectedReminder = true)
     }

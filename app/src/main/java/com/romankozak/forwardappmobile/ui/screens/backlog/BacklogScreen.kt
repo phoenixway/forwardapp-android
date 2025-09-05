@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/BacklogScreen.kt
-
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
@@ -7,9 +5,6 @@ package com.romankozak.forwardappmobile.ui.screens.backlog
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -36,23 +31,20 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ReminderParseResult
+import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.SublistItemRow
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
-import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddObsidianLinkDialog
-import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.AddWebLinkDialog
-import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.EditInboxRecordDialog
-import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalActionChoiceDialog
-import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.GoalTransportMenu
-import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.ImportMarkdownDialog
+import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -300,7 +292,7 @@ fun GoalDetailScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
                 LazyColumn {
-                    items(recentLists, key = { it.id }) { list ->
+                    items(recentLists, key = { it.id }) { list: GoalList ->
                         ListItem(
                             headlineContent = { Text(list.name) },
                             modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(list.id) }
@@ -324,7 +316,6 @@ fun GoalDetailScreen(
         )
     }
 
-    // --- ПОЧАТОК ЗМІНИ: Створюємо об'єкт ReminderParseResult ---
     val reminderParseResult = if (uiState.detectedReminderCalendar != null) {
         ReminderParseResult(
             originalText = uiState.inputValue.text,
@@ -334,7 +325,6 @@ fun GoalDetailScreen(
     } else {
         null
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -385,7 +375,6 @@ fun GoalDetailScreen(
                     onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
                     onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
                     onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
-                    // Navigation props
                     canGoBack = navController.previousBackStackEntry != null,
                     onBackClick = {
                         viewModel.flushPendingMoves()
@@ -409,10 +398,9 @@ fun GoalDetailScreen(
                     onExportToMarkdown = viewModel::onExportToMarkdownRequest,
                     onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
                     onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
-                    // --- ПОЧАТОК ЗМІНИ: Передаємо дані для чіпа ---
                     reminderParseResult = reminderParseResult,
                     onClearReminder = viewModel::onClearReminder,
-                    // --- КІНЕЦЬ ЗМІНИ ---
+                    isNerActive = uiState.nerState is NerState.Ready,
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding(),
@@ -420,7 +408,6 @@ fun GoalDetailScreen(
             }
         },
     ) { paddingValues ->
-        // Main container that changes content based on the selected view mode
         when (uiState.currentView) {
             ProjectViewMode.BACKLOG -> {
                 Column(
@@ -525,11 +512,9 @@ fun GoalDetailScreen(
                                 }
                             }
                         }
-
                     }
                 }
             }
-
             ProjectViewMode.INBOX -> {
                 Box(modifier = Modifier.padding(paddingValues)) {
                     InboxScreen(
@@ -542,7 +527,6 @@ fun GoalDetailScreen(
                     )
                 }
             }
-
             ProjectViewMode.ADDONS -> {
                 Box(
                     modifier = Modifier
