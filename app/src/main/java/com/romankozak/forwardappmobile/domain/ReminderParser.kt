@@ -1,27 +1,50 @@
-// ReminderParser.kt
-
 package com.romankozak.forwardappmobile.domain
 
+import com.romankozak.forwardappmobile.domain.ner.NerManager
+import com.romankozak.forwardappmobile.domain.ner.NerReminderParser
 import java.util.Calendar
-import java.util.Date
-import java.text.SimpleDateFormat
-import java.util.Locale
 import java.util.regex.Pattern
+import javax.inject.Inject
+import javax.inject.Singleton
 
-// Змінюємо назву поля для ясності
+// ВИЗНАЧЕННЯ DATA CLASS ДОДАНО СЮДИ
 data class ReminderParseResult(
-    val originalText: String, // Текст без змін
-    val calendar: Calendar?,     // Розпізнаний час, якщо є
-    val suggestionText: String? // Текст для підказки-чіпа
+    val originalText: String,
+    val calendar: Calendar?,
+    val suggestionText: String?
 )
 
-object ReminderParser {
+@Singleton
+class ReminderParser @Inject constructor(
+    private val nerManager: NerManager
+) {
 
+    /**
+     * Головний метод парсингу, який діє як фасад.
+     * Спочатку намагається розпізнати дату/час за допомогою NER-моделі.
+     * Якщо не вдається, використовує резервний парсер на основі регулярних виразів.
+     */
     fun parse(text: String): ReminderParseResult {
-        // Регулярний вираз для розпізнавання часу (напр. "о 15:00", "в 9")
+        // 1. Спроба розпізнавання через NER
+        val nerEntities = nerManager.predict(text)
+        if (nerEntities != null && nerEntities.isNotEmpty()) {
+            val nerResult = NerReminderParser.parse(text, nerEntities)
+            // Якщо NER-парсер успішно знайшов і розібрав дату/час, повертаємо його результат
+            if (nerResult.calendar != null) {
+                return nerResult
+            }
+        }
+
+        // 2. Резервний варіант: парсинг за допомогою регулярних виразів
+        return parseWithRegex(text)
+    }
+
+    /**
+     * Резервний парсер, що використовує регулярні вирази.
+     */
+    private fun parseWithRegex(text: String): ReminderParseResult {
         val timeRegex = "(\\sо\\s|\\sв\\s)?(\\d{1,2}:\\d{2}|\\d{1,2})".toRegex(RegexOption.IGNORE_CASE)
 
-        // Патерни для розпізнавання дат
         val patterns = mapOf(
             "завтра" to "завтра",
             "післязавтра" to "післязавтра",
@@ -35,11 +58,8 @@ object ReminderParser {
 
             if (matcher.find()) {
                 val foundDateText = matcher.group(0) ?: ""
-                // --- ЗМІНА: Не видаляємо розпізнаний текст ---
-                // var remainingText = text.replace(foundDateText, "", true).trim()
                 val calendar = Calendar.getInstance()
 
-                // Встановлюємо дату
                 when {
                     key.startsWith("завтра") -> calendar.add(Calendar.DAY_OF_YEAR, 1)
                     key.startsWith("післязавтра") -> calendar.add(Calendar.DAY_OF_YEAR, 2)
@@ -47,7 +67,6 @@ object ReminderParser {
                     key.startsWith("через (\\d+) хвилин") -> calendar.add(Calendar.MINUTE, matcher.group(1)?.toIntOrNull() ?: 0)
                 }
 
-                // Встановлюємо час
                 val timeMatch = timeRegex.find(text)
                 var suggestion = foundDateText.replaceFirstChar { it.uppercase() }
 
@@ -60,26 +79,15 @@ object ReminderParser {
                     calendar.set(Calendar.HOUR_OF_DAY, hour)
                     calendar.set(Calendar.MINUTE, minute)
                     calendar.set(Calendar.SECOND, 0)
-
-                    val fullTimeText = timeMatch.value
-                    suggestion += fullTimeText
-
-                    // --- ЗМІНА: Не видаляємо час з тексту ---
-                    // remainingText = remainingText.replace(fullTimeText, "", true).trim()
-
+                    suggestion += timeMatch.value
                 } else {
-                    // Якщо час не вказано, за замовчуванням ставимо на 9 ранку
                     calendar.set(Calendar.HOUR_OF_DAY, 9)
                     calendar.set(Calendar.MINUTE, 0)
                     calendar.set(Calendar.SECOND, 0)
                 }
-
-                // Повертаємо оригінальний текст і розпізнані дані
                 return ReminderParseResult(text, calendar, suggestion)
             }
         }
-
-        // Якщо нічого не знайдено, повертаємо текст як є
         return ReminderParseResult(text, null, null)
     }
 }

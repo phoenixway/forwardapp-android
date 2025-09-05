@@ -1,5 +1,3 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/data/repository/SettingsRepository.kt
-
 package com.romankozak.forwardappmobile.data.repository
 
 import android.content.Context
@@ -24,7 +22,6 @@ class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    // --- Існуючі ключі ---
     private val desktopAddressKey = stringPreferencesKey("desktop_address")
     private val obsidianVaultNameKey = stringPreferencesKey("obsidian_vault_name")
     private val showPlanningModesKey = booleanPreferencesKey("show_planning_modes")
@@ -32,11 +29,14 @@ class SettingsRepository @Inject constructor(
     private val mediumTagKey = stringPreferencesKey("medium_planning_tag")
     private val longTagKey = stringPreferencesKey("long_planning_tag")
 
-    // --- Ключі для Ollama (ДОДАНО) ---
     companion object {
         val OLLAMA_URL_KEY = stringPreferencesKey("ollama_url")
         val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
         val OLLAMA_SMART_MODEL_KEY = stringPreferencesKey("ollama_smart_model")
+
+        val NER_MODEL_URI_KEY = stringPreferencesKey("ner_model_uri")
+        val NER_TOKENIZER_URI_KEY = stringPreferencesKey("ner_tokenizer_uri")
+        val NER_LABELS_URI_KEY = stringPreferencesKey("ner_labels_uri")
     }
 
 
@@ -108,8 +108,6 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[longTagKey] = tag }
     }
 
-    // --- Ollama Settings (ДОДАНО) ---
-
     val ollamaUrlFlow: Flow<String> = context.dataStore.data
         .map { preferences -> preferences[OLLAMA_URL_KEY] ?: "http://10.0.2.2:11434" }
 
@@ -130,7 +128,22 @@ class SettingsRepository @Inject constructor(
         }
     }
 
-    // --- Reserved Contexts ---
+    val nerModelUriFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[NER_MODEL_URI_KEY] ?: "" }
+
+    val nerTokenizerUriFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[NER_TOKENIZER_URI_KEY] ?: "" }
+
+    val nerLabelsUriFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[NER_LABELS_URI_KEY] ?: "" }
+
+    suspend fun saveNerUris(modelUri: String, tokenizerUri: String, labelsUri: String) {
+        context.dataStore.edit { settings ->
+            settings[NER_MODEL_URI_KEY] = modelUri
+            settings[NER_TOKENIZER_URI_KEY] = tokenizerUri
+            settings[NER_LABELS_URI_KEY] = labelsUri
+        }
+    }
 
     fun getContextTagFlow(contextKey: Preferences.Key<String>): Flow<String> {
         return context.dataStore.data.map { preferences ->
@@ -158,17 +171,11 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[emojiKey] = emoji }
     }
 
-    // --- Custom Contexts ---
-
     val customContextNamesFlow: Flow<Set<String>> = context.dataStore.data
         .map { preferences ->
             try {
-                // Звичайний, правильний шлях читання
                 preferences[ContextKeys.CUSTOM_CONTEXT_NAMES] ?: emptySet()
             } catch (e: ClassCastException) {
-                // АВАРІЙНИЙ БЛОК: Спрацює, якщо дані пошкоджено (збережено String замість Set)
-                // Ми намагаємось прочитати це значення як рядок і вручну його розпарсити.
-                // Це дозволить додатку не впасти.
                 val corruptedValue = preferences[stringPreferencesKey(ContextKeys.CUSTOM_CONTEXT_NAMES.name)]
                 if (corruptedValue.isNullOrBlank() || corruptedValue == "[]" || !corruptedValue.startsWith("[")) {
                     emptySet()
@@ -181,7 +188,6 @@ class SettingsRepository @Inject constructor(
             }
         }
 
-    // ✨ ВИПРАВЛЕНО: Змінено 'private' на 'public' (за замовчуванням)
     suspend fun saveCustomContextNames(names: Set<String>) {
         context.dataStore.edit { settings -> settings[ContextKeys.CUSTOM_CONTEXT_NAMES] = names }
     }
@@ -213,41 +219,33 @@ class SettingsRepository @Inject constructor(
             settings.remove(customContextEmojiKey(name))
         }
     }
-    // ... всередині класу SettingsRepository
 
     suspend fun getPreferencesSnapshot(): Preferences {
         return context.dataStore.data.first()
     }
-
-// У файлі SettingsRepository.kt
 
     suspend fun restoreFromMap(settingsMap: Map<String, String>) {
         context.dataStore.edit { preferences ->
             preferences.clear()
             for ((key, value) in settingsMap) {
                 when (key) {
-                    // --- Обробка типу Boolean ---
                     showPlanningModesKey.name -> {
                         preferences[booleanPreferencesKey(key)] = value.toBoolean()
                     }
 
-                    // --- Обробка типу Set<String> ---
                     ContextKeys.CUSTOM_CONTEXT_NAMES.name -> {
                         val restoredSet: Set<String>
-                        // Надійна перевірка на порожній або некоректний рядок
                         if (value == "[]" || !value.startsWith("[") || !value.endsWith("]")) {
                             restoredSet = emptySet()
                         } else {
-                            // Видаляємо дужки [ ] і розділяємо елементи
                             restoredSet = value.substring(1, value.length - 1)
                                 .split(", ")
-                                .filter { it.isNotBlank() } // Дуже важливо: ігноруємо порожні елементи
+                                .filter { it.isNotBlank() }
                                 .toSet()
                         }
                         preferences[stringSetPreferencesKey(key)] = restoredSet
                     }
 
-                    // --- Обробка всіх інших як String (за замовчуванням) ---
                     else -> {
                         preferences[stringPreferencesKey(key)] = value
                     }
@@ -255,5 +253,4 @@ class SettingsRepository @Inject constructor(
             }
         }
     }
-
 }

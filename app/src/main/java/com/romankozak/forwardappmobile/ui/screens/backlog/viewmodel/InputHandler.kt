@@ -15,13 +15,14 @@ import kotlinx.coroutines.withContext
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Calendar
-import javax.inject.Inject
 
-class InputHandler @Inject constructor(
+// Клас більше не Singleton, а звичайний клас, що створюється у ViewModel
+class InputHandler(
     private val goalRepository: GoalRepository,
     private val scope: CoroutineScope,
     private val listIdFlow: StateFlow<String>,
-    private val resultListener: ResultListener
+    private val resultListener: ResultListener,
+    private val reminderParser: ReminderParser // <-- ЗАЛЕЖНІСТЬ
 ) {
     interface ResultListener {
         fun updateInputState(
@@ -44,10 +45,8 @@ class InputHandler @Inject constructor(
 
     fun onInputTextChanged(newValue: TextFieldValue, currentInputMode: InputMode) {
         if (currentInputMode == InputMode.AddGoal) {
-            // Парсимо текст, щоб знайти потенційне нагадування
-            val result = ReminderParser.parse(newValue.text)
-            // Оновлюємо стан, але НЕ ЗМІНЮЄМО текст у полі вводу.
-            // Користувач бачить те, що ввів, а під полем з'явиться чіп.
+            // Використовуємо впроваджений гібридний парсер
+            val result = reminderParser.parse(newValue.text)
             resultListener.updateInputState(
                 inputValue = newValue,
                 detectedReminderSuggestion = result.suggestionText,
@@ -75,18 +74,12 @@ class InputHandler @Inject constructor(
                 val currentListId = listIdFlow.value
                 if (currentListId.isBlank()) return
 
-                // Перед збереженням очищуємо текст від згадки про час
-                val parseResult = ReminderParser.parse(originalText)
+                // Повторно парсимо текст, щоб отримати suggestionText для очищення
+                val parseResult = reminderParser.parse(originalText)
                 var textToSave = originalText
+
                 if (parseResult.calendar != null && parseResult.suggestionText != null) {
-                    // Видаляємо розпізнану частину тексту
-                    textToSave = textToSave.replace(parseResult.suggestionText, "", ignoreCase = true).trim()
-
-                    // Додатково видаляємо можливі залишки, як-от "о", "в"
-                    val timeRegex = "(\\sо\\s|\\sв\\s)".toRegex(RegexOption.IGNORE_CASE)
-                    textToSave = textToSave.replace(timeRegex, " ").trim()
-
-                    // Якщо після очищення нічого не залишилось, використовуємо назву за замовчуванням
+                    textToSave = originalText.replace(parseResult.suggestionText, "", ignoreCase = true).trim()
                     if (textToSave.isBlank()) {
                         textToSave = "Ціль з нагадуванням"
                     }
@@ -94,20 +87,18 @@ class InputHandler @Inject constructor(
 
                 scope.launch(Dispatchers.IO) {
                     val reminderTime = detectedCalendar?.timeInMillis
-                    val newGoalId: String
+                    val newItemIdentifier: String
                     if (reminderTime != null) {
-                        newGoalId = goalRepository.addGoalWithReminder(textToSave, currentListId, reminderTime)
-                        resultListener.onGoalCreatedWithReminder(newGoalId)
+                        newItemIdentifier = goalRepository.addGoalWithReminder(textToSave, currentListId, reminderTime)
+                        resultListener.onGoalCreatedWithReminder(newItemIdentifier)
                     } else {
-                        // Викликаємо стару функцію, якщо нагадування не розпізнано.
-                        val listItemId = goalRepository.addGoalToList(textToSave, currentListId)
-                        newGoalId = listItemId // Тут може бути не той ID, але це обмеження старої функції
+                        newItemIdentifier = goalRepository.addGoalToList(textToSave, currentListId)
                     }
 
                     withContext(Dispatchers.Main) {
                         resultListener.updateInputState(
                             inputValue = TextFieldValue(""),
-                            newlyAddedItemId = newGoalId,
+                            newlyAddedItemId = newItemIdentifier,
                             clearDetectedReminder = true
                         )
                     }
@@ -126,6 +117,7 @@ class InputHandler @Inject constructor(
         resultListener.updateInputState(clearDetectedReminder = true)
     }
 
+    // ... решта методів без змін ...
     fun onAddWebLinkConfirm(url: String?, name: String?) {
         if (url.isNullOrBlank()) {
             onDismissLinkDialogs()
