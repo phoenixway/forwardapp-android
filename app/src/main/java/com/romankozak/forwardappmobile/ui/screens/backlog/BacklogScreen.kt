@@ -269,6 +269,33 @@ fun GoalDetailScreen(
         }
     }
 
+    LaunchedEffect(uiState.newlyAddedItemId, displayList) {
+        val itemId = uiState.newlyAddedItemId
+        Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
+        if (itemId != null) {
+            // Спробуємо знайти по item.id (для звичайних цілей)
+            var index = displayList.indexOfFirst { it.item.id == itemId }
+
+            // Якщо не знайшли по item.id, спробуємо по goal.id (для цілей з ремайндером)
+            if (index == -1) {
+                index = displayList.indexOfFirst {
+                    it is ListItemContent.GoalItem && it.goal.id == itemId
+                }
+                Log.d("AutoScrollDebug", "Trying goal.id search, found index: $index")
+            }
+
+            Log.d("AutoScrollDebug", "Final index: $index for itemId: $itemId")
+            if (index != -1) {
+                listState.animateScrollToItem(index)
+                viewModel.onScrolledToNewItem()
+            } else {
+                Log.w("AutoScrollDebug", "Item not found in displayList by any ID!")
+            }
+        }
+    }
+
+
+
     val attachmentItems = remember(listContent) {
         listContent.filterIsInstance<ListItemContent.LinkItem>()
     }
