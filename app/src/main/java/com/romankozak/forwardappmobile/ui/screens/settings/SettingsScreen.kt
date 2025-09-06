@@ -1,50 +1,24 @@
 package com.romankozak.forwardappmobile.ui.screens.settings
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -54,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import com.romankozak.forwardappmobile.ui.screens.backlogs.PlanningSettingsState
 
@@ -69,7 +44,6 @@ fun getFileName(uri: Uri, context: Context): String {
             }
         }
     } catch (e: Exception) {
-        // Fallback in case of error
         fileName = uri.lastPathSegment
     }
     return fileName ?: "Unknown file"
@@ -164,7 +138,8 @@ fun SettingsScreen(
                 state = uiState,
                 onModelFileSelected = { uri -> viewModel.onNerModelFileSelected(uri) },
                 onTokenizerFileSelected = { uri -> viewModel.onNerTokenizerFileSelected(uri) },
-                onLabelsFileSelected = { uri -> viewModel.onNerLabelsFileSelected(uri) }
+                onLabelsFileSelected = { uri -> viewModel.onNerLabelsFileSelected(uri) },
+                onReloadClick = viewModel::reloadNerModel
             )
 
             SettingsCard(title = "Planning Modes") {
@@ -273,39 +248,145 @@ private fun NerSettingsCard(
     state: SettingsUiState,
     onModelFileSelected: (String) -> Unit,
     onTokenizerFileSelected: (String) -> Unit,
-    onLabelsFileSelected: (String) -> Unit
+    onLabelsFileSelected: (String) -> Unit,
+    onReloadClick: () -> Unit
 ) {
     val context = LocalContext.current
 
-    val modelLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { onModelFileSelected(it.toString()) }
+    // --- ВИРІШЕННЯ: Використовуємо OpenDocument замість GetContent ---
+    val modelLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                // Запитуємо постійний дозвіл на читання
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                onModelFileSelected(it.toString())
+            } catch (e: SecurityException) {
+                Log.e("NerSettings", "Failed to take persistable permission for model file", e)
+                // Якщо не вдалося отримати постійний дозвіл, все одно спробуємо використати URI
+                onModelFileSelected(it.toString())
+            }
+        }
     }
-    val tokenizerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { onTokenizerFileSelected(it.toString()) }
+
+    val tokenizerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                onTokenizerFileSelected(it.toString())
+            } catch (e: SecurityException) {
+                Log.e("NerSettings", "Failed to take persistable permission for tokenizer file", e)
+                onTokenizerFileSelected(it.toString())
+            }
+        }
     }
-    val labelsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { onLabelsFileSelected(it.toString()) }
+
+    val labelsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                onLabelsFileSelected(it.toString())
+            } catch (e: SecurityException) {
+                Log.e("NerSettings", "Failed to take persistable permission for labels file", e)
+                onLabelsFileSelected(it.toString())
+            }
+        }
     }
 
     SettingsCard(title = "Date/Time NER Model (ONNX)") {
         FileSelector(
             label = "Model File (.onnx)",
             selectedFileUri = state.nerModelUri,
-            onSelectClick = { modelLauncher.launch("*/*") },
+            onSelectClick = {
+                // Специфікуємо MIME типи для кращої фільтрації
+                modelLauncher.launch(arrayOf("*/*", "application/octet-stream"))
+            },
             context = context
         )
         FileSelector(
             label = "Tokenizer File (.json)",
             selectedFileUri = state.nerTokenizerUri,
-            onSelectClick = { tokenizerLauncher.launch("application/json") },
+            onSelectClick = {
+                tokenizerLauncher.launch(arrayOf("application/json", "text/plain"))
+            },
             context = context
         )
         FileSelector(
             label = "Labels File (.json)",
             selectedFileUri = state.nerLabelsUri,
-            onSelectClick = { labelsLauncher.launch("application/json") },
+            onSelectClick = {
+                labelsLauncher.launch(arrayOf("application/json", "text/plain"))
+            },
             context = context
         )
+        Spacer(modifier = Modifier.height(12.dp))
+        NerStatusIndicator(
+            nerState = state.nerState,
+            onReloadClick = onReloadClick,
+            areAllFilesSelected = state.nerModelUri.isNotBlank() &&
+                    state.nerTokenizerUri.isNotBlank() &&
+                    state.nerLabelsUri.isNotBlank()
+        )
+    }
+}
+
+@Composable
+private fun NerStatusIndicator(
+    nerState: NerState,
+    onReloadClick: () -> Unit,
+    areAllFilesSelected: Boolean
+) {
+    val (icon, color, text) = when (nerState) {
+        is NerState.Downloading -> Triple(
+            Icons.Default.Sync,
+            MaterialTheme.colorScheme.primary,
+            "Завантаження та перевірка файлів... ${nerState.progress}%"
+        )
+        is NerState.Error -> Triple(
+            Icons.Default.Error,
+            MaterialTheme.colorScheme.error,
+            "Помилка: ${nerState.message}"
+        )
+        NerState.NotInitialized -> {
+            val message = if (areAllFilesSelected) "Натисніть 'Зберегти' та перезапустіть" else "Оберіть усі три файли"
+            Triple(Icons.Default.Error, MaterialTheme.colorScheme.onSurfaceVariant, message)
+        }
+        NerState.Ready -> Triple(
+            Icons.Default.CheckCircle,
+            Color(0xFF388E3C),
+            "Модель успішно завантажена і готова"
+        )
+    }
+
+    val animatedColor by animateColorAsState(targetValue = color, label = "ner_status_color")
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Icon(imageVector = icon, contentDescription = "Status", tint = animatedColor)
+        Text(text = text, style = MaterialTheme.typography.bodyMedium, color = animatedColor, modifier = Modifier.weight(1f))
+
+        if (nerState is NerState.Error || (nerState is NerState.NotInitialized && areAllFilesSelected)) {
+            OutlinedButton(onClick = onReloadClick) {
+                Text("Спробувати знову")
+            }
+        }
     }
 }
 

@@ -13,15 +13,15 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.domain.ReminderParser
-import com.romankozak.forwardappmobile.domain.ner.NerManager
-import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParser
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerManager
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
 import com.romankozak.forwardappmobile.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxMarkdownHandler
-import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InputHandler
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.SelectionHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -170,7 +170,7 @@ class GoalDetailViewModel @Inject constructor(
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
     }
 
-    private val TAG = "GoalDetailViewModel"
+    private val TAG = "GoalDetailViewModel_DEBUG"
     private var batchSaveJob: Job? = null
 
     private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
@@ -221,6 +221,7 @@ class GoalDetailViewModel @Inject constructor(
         marker?.let { emojiMap[it] }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+
     private val databaseContentStream: Flow<List<ListItemContent>> =
         combine(listIdFlow, _uiState.map { it.localSearchQuery }.distinctUntilChanged(), _refreshTrigger) { id, query, _ -> Pair(id, query) }
             .flatMapLatest { (id, query) ->
@@ -259,6 +260,14 @@ class GoalDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             nerManager.nerState.collect { state ->
+                Log.i(TAG, "NER State Changed -> $state")
+                _uiState.update { it.copy(nerState = state) }
+            }
+        }
+
+
+        viewModelScope.launch {
+            nerManager.nerState.collect { state ->
                 _uiState.update { it.copy(nerState = state) }
             }
         }
@@ -290,7 +299,10 @@ class GoalDetailViewModel @Inject constructor(
                 _inboxRecords.value = records.sortedBy { it.createdAt }
             }
         }
+
     }
+
+
 
     private fun getInputModeForView(viewMode: ProjectViewMode): InputMode {
         return if (viewMode == ProjectViewMode.INBOX) InputMode.AddQuickRecord else InputMode.AddGoal
@@ -340,19 +352,41 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     override fun updateInputState(
-        inputValue: TextFieldValue?, inputMode: InputMode?, localSearchQuery: String?, newlyAddedItemId: String?,
-        detectedReminderSuggestion: String?, detectedReminderCalendar: Calendar?, clearDetectedReminder: Boolean
+        inputValue: TextFieldValue?,
+        inputMode: InputMode?,
+        localSearchQuery: String?,
+        newlyAddedItemId: String?,
+        detectedReminderSuggestion: String?,
+        detectedReminderCalendar: Calendar?,
+        clearDetectedReminder: Boolean
     ) {
-        _uiState.update {
-            it.copy(
-                inputValue = inputValue ?: it.inputValue,
-                inputMode = inputMode ?: it.inputMode,
-                localSearchQuery = localSearchQuery ?: it.localSearchQuery,
+        _uiState.update { currentState ->
+            currentState.copy(
+                inputValue = inputValue ?: currentState.inputValue,
+                inputMode = inputMode ?: currentState.inputMode,
+                localSearchQuery = localSearchQuery ?: currentState.localSearchQuery,
                 newlyAddedItemId = newlyAddedItemId,
-                detectedReminderSuggestion = if (clearDetectedReminder) null else detectedReminderSuggestion ?: it.detectedReminderSuggestion,
-                detectedReminderCalendar = if (clearDetectedReminder) null else detectedReminderCalendar ?: it.detectedReminderCalendar
+                // Логіка для нагадувань: якщо clearDetectedReminder = true, очищуємо все
+                // Інакше оновлюємо тільки те, що передано (null означає "не змінювати")
+                detectedReminderSuggestion = when {
+                    clearDetectedReminder -> null
+                    detectedReminderSuggestion != null -> detectedReminderSuggestion
+                    else -> currentState.detectedReminderSuggestion
+                },
+                detectedReminderCalendar = when {
+                    clearDetectedReminder -> null
+                    detectedReminderCalendar != null -> detectedReminderCalendar
+                    else -> currentState.detectedReminderCalendar
+                }
             )
         }
+
+        // Логування для відладки (можна видалити в продакшені)
+        Log.d("BacklogViewModel",
+            "updateInputState: clearReminder=$clearDetectedReminder, " +
+                    "suggestion=$detectedReminderSuggestion, " +
+                    "calendar=${detectedReminderCalendar?.time}"
+        )
     }
 
     override fun updateDialogState(showAddWebLinkDialog: Boolean?, showAddObsidianLinkDialog: Boolean?) {
@@ -377,6 +411,9 @@ class GoalDetailViewModel @Inject constructor(
             goalRepository.getGoalById(goalId)?.let { newGoal ->
                 alarmScheduler.schedule(newGoal)
                 showSnackbar("Ціль створено з нагадуванням", null)
+
+                // Додаємо встановлення newlyAddedItemId для автоскролу
+                _uiState.update { it.copy(newlyAddedItemId = goalId) }
             }
         }
     }
@@ -503,6 +540,8 @@ class GoalDetailViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         batchSaveJob?.cancel()
+        inputHandler.cleanup()
+
     }
 
     fun toggleAttachmentsVisibility() {
@@ -637,4 +676,9 @@ class GoalDetailViewModel @Inject constructor(
     fun onClearReminder() {
         updateInputState(clearDetectedReminder = true)
     }
+
+    fun onClearDetectedReminder() {
+        inputHandler.onClearDetectedReminder()
+    }
+
 }

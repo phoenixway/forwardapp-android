@@ -34,14 +34,15 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.domain.ReminderParseResult
-import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.SublistItemRow
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.*
@@ -253,6 +254,21 @@ fun GoalDetailScreen(
         }
     }
 
+    LaunchedEffect(uiState.newlyAddedItemId, displayList) {
+        val itemId = uiState.newlyAddedItemId
+        if (itemId != null) {
+            // Шукаємо індекс елемента в поточному стані списку
+            val index = displayList.indexOfFirst { it.item.id == itemId }
+
+            // Якщо елемент знайдено (index != -1), прокручуємо до нього
+            if (index != -1) {
+                listState.animateScrollToItem(index)
+                // Повідомляємо ViewModel, що прокрутку виконано і можна скинути ID
+                viewModel.onScrolledToNewItem()
+            }
+        }
+    }
+
     val attachmentItems = remember(listContent) {
         listContent.filterIsInstance<ListItemContent.LinkItem>()
     }
@@ -316,15 +332,22 @@ fun GoalDetailScreen(
         )
     }
 
-    val reminderParseResult = if (uiState.detectedReminderCalendar != null) {
+    val reminderParseResult = if (uiState.detectedReminderCalendar != null &&
+        uiState.detectedReminderSuggestion != null &&
+        uiState.inputValue.text.isNotBlank()) {
         ReminderParseResult(
             originalText = uiState.inputValue.text,
             calendar = uiState.detectedReminderCalendar,
-            suggestionText = uiState.detectedReminderSuggestion
+            suggestionText = uiState.detectedReminderSuggestion,
+            dateTimeEntities = emptyList(),
+            otherEntities = emptyList(),
+            success = true,
+            errorMessage = null
         )
     } else {
-        null
+        null // Return null when there's no valid reminder
     }
+
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),

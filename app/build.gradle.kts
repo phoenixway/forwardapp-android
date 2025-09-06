@@ -29,6 +29,7 @@ android {
         versionName = "4.0-beta3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
     /*    buildTypes {
@@ -56,10 +57,27 @@ android {
     }
 
     packaging {
+        jniLibs {
+            pickFirsts += listOf(
+                "**/libtokenizers.so",
+                "**/libjni_tokenizers.so",
+                "**/libtorch_android.so",
+                "**/libc++_shared.so"
+            )
+        }
         resources {
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
+
+        excludes += listOf(
+            "META-INF/DEPENDENCIES",
+            "META-INF/LICENSE",
+            "META-INF/LICENSE.txt",
+            "META-INF/NOTICE",
+            "META-INF/NOTICE.txt"
+        )
         }
+
     }
 
     signingConfigs {
@@ -84,11 +102,21 @@ android {
         }
     }
 
-    splits {
+/*    splits {
         abi {
             isEnable = false // один APK для всіх архітектур
         }
+    }*/
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            isUniversalApk = false
+        }
     }
+
 }
 
 dependencies {
@@ -189,4 +217,11 @@ dependencies {
 
     // DJL вимагає SLF4J, додаємо реалізацію без логування, щоб уникнути помилок
     implementation("org.slf4j:slf4j-nop:2.0.13")
+
+    //implementation("ai.djl.android:core:0.25.0")
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
+
+    // Додайте явно нативну бібліотеку
+    //implementation("ai.djl.huggingface:tokenizers:0.25.0:android-native")
+
 }
