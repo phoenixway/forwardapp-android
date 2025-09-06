@@ -355,8 +355,7 @@ class GoalRepository @Inject constructor(
         inboxRecordDao.deleteById(record.id)
     }
 
-    // Додайте цю нову функцію у ваш клас GoalRepository
-    suspend fun addGoalWithReminder(title: String, listId: String, reminderTime: Long): String {
+    suspend fun addGoalWithReminder(title: String, listId: String, reminderTime: Long): Goal {
         val currentTime = System.currentTimeMillis()
         val newGoal = Goal(
             id = UUID.randomUUID().toString(),
@@ -380,6 +379,8 @@ class GoalRepository @Inject constructor(
 
         val finalGoalState = goalDao.getGoalById(newGoal.id)!!
         contextHandler.handleContextsOnCreate(finalGoalState)
-        return newListItem.id // Змінено: повертаємо ID ListItem замість Goal
+        // --- ЗМІНЕНО: Повертаємо створений об'єкт Goal ---
+        return newGoal
     }
+
 }

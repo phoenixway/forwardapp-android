@@ -19,19 +19,25 @@ class AlarmScheduler @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
-    private val TAG = "AlarmScheduler"
+    // --- ДОДАНО: Єдиний тег для логування всього процесу ---
+    private val TAG = "ReminderFlow"
 
     fun schedule(goal: Goal) {
-        Log.d(TAG, "schedule() called for goal ID: ${goal.id} with text: '${goal.text}'")
+        // --- ЗМІНЕНО: Більш детальний лог на вході ---
+        Log.d(TAG, "AlarmScheduler: schedule() called for goal ID: ${goal.id}, text: '${goal.text}', reminderTime: ${goal.reminderTime}")
 
         val reminderTime = goal.reminderTime
         if (reminderTime == null) {
-            Log.w(TAG, "Goal has no reminderTime. Aborting schedule.")
+            Log.w(TAG, "AlarmScheduler: Goal has no reminderTime. Aborting schedule.")
             return
         }
 
-        if (reminderTime < System.currentTimeMillis()) {
-            Log.w(TAG, "Reminder time is in the past. Aborting schedule.")
+        // --- ДОДАНО: Лог для перевірки часу ---
+        val currentTime = System.currentTimeMillis()
+        Log.d(TAG, "AlarmScheduler: Current time is $currentTime. Reminder time is $reminderTime. Is in past: ${reminderTime < currentTime}")
+
+        if (reminderTime < currentTime) {
+            Log.w(TAG, "AlarmScheduler: Reminder time is in the past. Aborting schedule.")
             return
         }
 
@@ -48,29 +54,29 @@ class AlarmScheduler @Inject constructor(
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            Log.e(TAG, "Cannot schedule exact alarms. Permission denied or not granted by user.")
+            Log.e(TAG, "AlarmScheduler: Cannot schedule exact alarms. Permission denied.")
             // Тут можна показати користувачеві повідомлення про необхідність надати дозвіл
             return
         }
 
         try {
             val formattedTime = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(Date(reminderTime))
-            Log.i(TAG, "Setting exact alarm for goal ID: ${goal.id} at $formattedTime")
+            Log.i(TAG, "AlarmScheduler: Setting exact alarm for goal ID: ${goal.id} at $formattedTime")
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 reminderTime,
                 pendingIntent
             )
-            Log.i(TAG, "Alarm successfully scheduled.")
+            Log.i(TAG, "AlarmScheduler: Alarm successfully scheduled.")
         } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException while scheduling alarm. Check permissions.", e)
+            Log.e(TAG, "AlarmScheduler: SecurityException while scheduling alarm. Check permissions.", e)
         } catch (e: Exception) {
-            Log.e(TAG, "An unexpected error occurred during scheduling.", e)
+            Log.e(TAG, "AlarmScheduler: An unexpected error occurred during scheduling.", e)
         }
     }
 
     fun cancel(goal: Goal) {
-        Log.d(TAG, "cancel() called for goal ID: ${goal.id}")
+        Log.d(TAG, "AlarmScheduler: cancel() called for goal ID: ${goal.id}")
         val intent = Intent(context, ReminderBroadcastReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -79,6 +85,6 @@ class AlarmScheduler @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
-        Log.i(TAG, "Alarm for goal ID: ${goal.id} was cancelled.")
+        Log.i(TAG, "AlarmScheduler: Alarm for goal ID: ${goal.id} was cancelled.")
     }
 }

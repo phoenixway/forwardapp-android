@@ -102,6 +102,7 @@ fun ModernInputPanel(
 
     val currentModeIndex = modes.indexOf(inputMode)
 
+    // --- ВИПРАВЛЕНО: Повернуто унікальні колірні схеми для кожного режиму пошуку ---
     val panelColors = when (inputMode) {
         InputMode.AddGoal -> PanelColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -115,10 +116,16 @@ fun ModernInputPanel(
             accentColor = MaterialTheme.colorScheme.secondary,
             inputFieldColor = MaterialTheme.colorScheme.surface
         )
-        InputMode.SearchInList, InputMode.SearchGlobal -> PanelColors( // Змінено для консистентності
+        InputMode.SearchInList -> PanelColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            accentColor = MaterialTheme.colorScheme.tertiary, // Використовуємо інший акцент для пошуку
+            accentColor = MaterialTheme.colorScheme.primary,
+            inputFieldColor = MaterialTheme.colorScheme.surface
+        )
+        InputMode.SearchGlobal -> PanelColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.9f),
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            accentColor = MaterialTheme.colorScheme.tertiary,
             inputFieldColor = MaterialTheme.colorScheme.surface
         )
     }
@@ -358,8 +365,6 @@ fun ModernInputPanel(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // --- ЗМІНЕНО: Умова видимості кнопки "Надіслати" ---
-                // Тепер вона з'являється в будь-якому режимі, якщо поле вводу не пусте.
                 AnimatedVisibility(
                     visible = inputValue.text.isNotBlank(),
                     enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
@@ -371,10 +376,10 @@ fun ModernInputPanel(
                             .size(44.dp)
                             .background(color = panelColors.accentColor, shape = CircleShape),
                         colors = IconButtonDefaults.iconButtonColors(
-                            // Використовуємо відповідний колір для акцентної кнопки
                             contentColor = when(inputMode) {
                                 InputMode.AddGoal, InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
-                                else -> MaterialTheme.colorScheme.onTertiary
+                                InputMode.SearchInList -> MaterialTheme.colorScheme.onPrimary
+                                InputMode.SearchGlobal -> MaterialTheme.colorScheme.onTertiary
                             }
                         )
                     ) {
