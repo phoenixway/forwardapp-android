@@ -17,16 +17,29 @@ import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,7 +47,17 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.MainActivity
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import kotlinx.coroutines.delay
+import androidx.activity.OnBackPressedCallback
 
+
+/**
+ * Improved ReminderLockScreenActivity with polished UI/UX for the lock-screen reminder.
+ * - nicer gradient background
+ * - larger emoji with subtle pulse animation
+ * - clearer hierarchy of text
+ * - accessible buttons with icons and descriptive labels
+ * - haptic feedback on primary actions
+ */
 class ReminderLockScreenActivity : ComponentActivity() {
 
     private var wakeLock: PowerManager.WakeLock? = null
@@ -73,6 +96,14 @@ class ReminderLockScreenActivity : ComponentActivity() {
                 )
             }
         }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Тут нічого не робимо — ігноруємо натискання
+                Log.d(tag, "Back button pressed - ignored to avoid accidental dismiss")
+            }
+        })
+
     }
 
     private fun setupLockScreenFlags() {
@@ -144,7 +175,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
                 getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
 
-            val vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500, 1000)
+            val vibrationPattern = longArrayOf(0, 800, 400, 800)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
             } else {
@@ -203,10 +234,6 @@ class ReminderLockScreenActivity : ComponentActivity() {
         Log.d(tag, "ReminderLockScreenActivity destroyed")
     }
 
-    override fun onBackPressed() {
-        // Prevent back button from closing the reminder
-        Log.d(tag, "Back button pressed - ignoring")
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -220,6 +247,7 @@ fun ReminderLockScreen(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     var timeRemaining by remember { mutableStateOf(300) } // 5 minutes auto-dismiss
 
     // Countdown timer
@@ -232,45 +260,84 @@ fun ReminderLockScreen(
         onDismiss()
     }
 
+    // Pulse animation for the emoji
+    val transition = rememberInfiniteTransition()
+    val pulse by transition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing)
+        )
+    )
+
+    // Background gradient for better visual hierarchy
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.95f)),
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF0F172A), Color(0xFF071033))
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-                .border(3.dp, Color.Red, RoundedCornerShape(16.dp)),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                .fillMaxWidth(0.92f)
+                .wrapContentHeight()
+                .padding(8.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Emergency indicator
-                Text(
-                    text = "🚨 URGENT REMINDER 🚨",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Red,
-                    textAlign = TextAlign.Center
-                )
+                // Header row with small badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Reminder",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF111827)
+                    )
 
-                // Goal emoji
-                Text(
-                    text = goalEmoji,
-                    fontSize = 64.sp,
-                    textAlign = TextAlign.Center
-                )
+                    // Small dismiss shortcut (icon only)
+                    IconButton(onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onDismiss()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Dismiss reminder",
+                            tint = Color(0xFF6B7280)
+                        )
+                    }
+                }
+
+                // Emoji with pulse + soft circular background
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .background(Color(0xFFF1F5F9), shape = CircleShape)
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = goalEmoji,
+                        fontSize = 56.sp,
+                        modifier = Modifier.scale(pulse),
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 // Goal text
                 Text(
@@ -278,75 +345,89 @@ fun ReminderLockScreen(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    color = Color.Black
+                    color = Color(0xFF0F172A)
                 )
 
-                // Time info
+                // Subtext / instruction
                 Text(
-                    text = "⏰ Act now to achieve your goal!",
+                    text = "You scheduled this reminder — take a moment to act.",
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
-                    color = Color.Gray
+                    color = Color(0xFF6B7280)
                 )
 
-                // Countdown
+                // Countdown and urgency
                 Text(
-                    text = "Auto-dismiss in: ${timeRemaining / 60}:${(timeRemaining % 60).toString().padStart(2, '0')}",
+                    text = "Auto-dismiss: ${timeRemaining / 60}:${(timeRemaining % 60).toString().padStart(2, '0')}",
                     fontSize = 12.sp,
-                    color = Color.Red
+                    color = Color(0xFFEF4444),
+                    fontWeight = FontWeight.Medium
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // Action buttons
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Primary action: Completed
+                Button(
+                    onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onComplete()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
                 ) {
-                    Button(
-                        onClick = onComplete,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50)
-                        )
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Mark completed",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Completed", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+
+                // Secondary actions in a row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            onSnooze()
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("✅ COMPLETED!", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Icon(imageVector = Icons.Default.Snooze, contentDescription = "Snooze 10 min")
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Snooze 10 min", fontSize = 14.sp)
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Button(
-                            onClick = onSnooze,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFF9800)
-                            )
-                        ) {
-                            Text("⏰ SNOOZE\n10 MIN", fontSize = 12.sp, textAlign = TextAlign.Center)
-                        }
-
-                        Button(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFF5722)
-                            )
-                        ) {
-                            Text("❌ SKIP", fontSize = 12.sp)
-                        }
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Skip reminder")
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Skip", fontSize = 14.sp)
                     }
                 }
 
-                // Instructions
+                // Tiny accessibility hint
                 Text(
-                    text = "This reminder will stay until you take action",
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Light
+                    text = "This reminder will remain until you choose an action.",
+                    fontSize = 11.sp,
+                    color = Color(0xFF9CA3AF),
+                    textAlign = TextAlign.Center
                 )
+
             }
         }
     }
