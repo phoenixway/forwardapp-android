@@ -76,20 +76,33 @@ fun SettingsScreen(
     var tempLongTag by remember(planningSettings.longTag) { mutableStateOf(planningSettings.longTag) }
     var tempVaultName by remember(initialVaultName) { mutableStateOf(initialVaultName) }
 
+    // --- ПОКРАЩЕННЯ: Зберігаємо початковий стан ViewModel для порівняння ---
+    var initialViewModelState by remember { mutableStateOf<SettingsUiState?>(null) }
+    LaunchedEffect(uiState) {
+        if (initialViewModelState == null && uiState != SettingsUiState()) {
+            initialViewModelState = uiState
+        }
+    }
+
     // --- ПОКРАЩЕННЯ: Визначаємо, чи були внесені зміни, щоб активувати кнопку "Зберегти" ---
-    val isDirty by remember {
+    val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName) {
         derivedStateOf {
-            tempShowModes != planningSettings.showModes ||
+            val planningIsDirty = tempShowModes != planningSettings.showModes ||
                     tempDailyTag != planningSettings.dailyTag ||
                     tempMediumTag != planningSettings.mediumTag ||
                     tempLongTag != planningSettings.longTag ||
-                    tempVaultName != initialVaultName ||
-                    uiState.ollamaUrl != viewModel.uiState.value.ollamaUrl ||
-                    uiState.fastModel != viewModel.uiState.value.fastModel ||
-                    uiState.smartModel != viewModel.uiState.value.smartModel ||
-                    uiState.nerModelUri != viewModel.uiState.value.nerModelUri ||
-                    uiState.nerTokenizerUri != viewModel.uiState.value.nerTokenizerUri ||
-                    uiState.nerLabelsUri != viewModel.uiState.value.nerLabelsUri
+                    tempVaultName != initialVaultName
+
+            val viewModelIsDirty = initialViewModelState?.let {
+                uiState.ollamaUrl != it.ollamaUrl ||
+                        uiState.fastModel != it.fastModel ||
+                        uiState.smartModel != it.smartModel ||
+                        uiState.nerModelUri != it.nerModelUri ||
+                        uiState.nerTokenizerUri != it.nerTokenizerUri ||
+                        uiState.nerLabelsUri != it.nerLabelsUri
+            } ?: false
+
+            planningIsDirty || viewModelIsDirty
         }
     }
 
@@ -386,6 +399,9 @@ private fun NerSettingsCard(
     onReloadClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val areAllFilesSelected = state.nerModelUri.isNotBlank() &&
+            state.nerTokenizerUri.isNotBlank() &&
+            state.nerLabelsUri.isNotBlank()
 
     val modelLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -460,39 +476,51 @@ private fun NerSettingsCard(
         Spacer(modifier = Modifier.height(12.dp))
         NerStatusIndicator(
             nerState = state.nerState,
-            onReloadClick = onReloadClick,
-            areAllFilesSelected = state.nerModelUri.isNotBlank() &&
-                    state.nerTokenizerUri.isNotBlank() &&
-                    state.nerLabelsUri.isNotBlank()
+            areAllFilesSelected = areAllFilesSelected
         )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // --- ПОКРАЩЕННЯ: Додано дієву кнопку перезавантаження моделі ---
+        OutlinedButton(
+            onClick = onReloadClick,
+            enabled = areAllFilesSelected && state.nerState !is NerState.Downloading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Sync,
+                contentDescription = "Reload",
+                modifier = Modifier.size(ButtonDefaults.IconSize)
+            )
+            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+            Text(if (state.nerState is NerState.Error) "Try Again" else "Reload Model")
+        }
     }
 }
 
 @Composable
 private fun NerStatusIndicator(
     nerState: NerState,
-    onReloadClick: () -> Unit,
     areAllFilesSelected: Boolean
 ) {
     val (icon, color, text) = when (nerState) {
         is NerState.Downloading -> Triple(
             Icons.Default.Sync,
             MaterialTheme.colorScheme.primary,
-            "Завантаження: ${nerState.progress}%"
+            "Loading: ${nerState.progress}%"
         )
         is NerState.Error -> Triple(
             Icons.Default.Error,
             MaterialTheme.colorScheme.error,
-            "Помилка: ${nerState.message}"
+            "Error: ${nerState.message}"
         )
         NerState.NotInitialized -> {
-            val message = if (areAllFilesSelected) "Натисніть 'Зберегти' та перезапустіть" else "Оберіть усі три файли"
-            Triple(Icons.Default.Error, MaterialTheme.colorScheme.onSurfaceVariant, message)
+            val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
+            Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
         }
         NerState.Ready -> Triple(
             Icons.Default.CheckCircle,
             Color(0xFF388E3C),
-            "Модель успішно завантажена"
+            "Model loaded successfully"
         )
     }
 
@@ -506,12 +534,6 @@ private fun NerStatusIndicator(
         ) {
             Icon(imageVector = icon, contentDescription = "Status", tint = animatedColor)
             Text(text = text, style = MaterialTheme.typography.bodyMedium, color = animatedColor, modifier = Modifier.weight(1f))
-
-            if (nerState is NerState.Error || (nerState is NerState.NotInitialized && areAllFilesSelected)) {
-                OutlinedButton(onClick = onReloadClick) {
-                    Text("Спробувати")
-                }
-            }
         }
         // --- ПОКРАЩЕННЯ: Додано індикатор прогресу ---
         if (nerState is NerState.Downloading) {

@@ -109,8 +109,17 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(nerLabelsUri = uri) }
     }
 
+    // --- ПОКРАЩЕННЯ: Кнопка перезавантаження тепер спочатку зберігає нові URI, а потім перезавантажує ---
     fun reloadNerModel() {
-        nerManager.reinitialize()
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            settingsRepo.saveNerUris(
+                modelUri = currentState.nerModelUri,
+                tokenizerUri = currentState.nerTokenizerUri,
+                labelsUri = currentState.nerLabelsUri
+            )
+            nerManager.reinitialize()
+        }
     }
 
     fun saveSettings() {
