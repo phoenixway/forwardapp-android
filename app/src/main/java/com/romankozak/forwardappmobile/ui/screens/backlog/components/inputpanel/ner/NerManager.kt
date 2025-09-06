@@ -346,9 +346,19 @@ private class UkDtNerProcessor(
 
             val inputIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.ids), shape)
             val attnTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.attentionMask), shape)
-            val inputs = mapOf("input_ids" to inputIdsTensor, "attention_mask" to attnTensor)
 
+// --- ADD THIS LINE ---
+// BERT models also need token_type_ids. For a single sentence, this is just an array of zeros.
+            val tokenTypeIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(LongArray(encoding.ids.size) { 0L }), shape)
+
+// --- UPDATE THIS LINE ---
+            val inputs = mapOf(
+                "input_ids" to inputIdsTensor,
+                "attention_mask" to attnTensor,
+                "token_type_ids" to tokenTypeIdsTensor // <-- Add the third input
+            )
             val entities = mutableListOf<Entity>()
+
 
             try {
                 val logits = session.run(inputs).use { results ->
