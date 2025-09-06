@@ -42,14 +42,14 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-// --- НОВИЙ ОБ'ЄКТ-УТИЛІТА ДЛЯ РОБОТИ З ЧАСОМ ---
+// --- ОБ'ЄКТ-УТИЛІТА ДЛЯ РОБОТИ З ЧАСОМ ---
 private object ReminderTextUtil {
 
     private const val ONE_MINUTE_MILLIS = 60 * 1000L
     private const val ONE_HOUR_MILLIS = 60 * ONE_MINUTE_MILLIS
 
-    fun formatReminderTime(reminderTime: Long): String {
-        val now = System.currentTimeMillis()
+    // --- ЗМІНЕНО: Функція тепер приймає поточний час 'now' для динамічного розрахунку ---
+    fun formatReminderTime(reminderTime: Long, now: Long): String {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = reminderTime
 
@@ -98,13 +98,15 @@ private object ReminderTextUtil {
     }
 }
 
-// --- НОВИЙ КОМПОНЕНТ ДЛЯ ВІДОБРАЖЕННЯ НАГАДУВАННЯ ---
+// --- КОМПОНЕНТ ДЛЯ ВІДОБРАЖЕННЯ НАГАДУВАННЯ ---
 @Composable
-private fun EnhancedReminderBadge(reminderTime: Long) {
-    val reminderText = remember(reminderTime) {
-        ReminderTextUtil.formatReminderTime(reminderTime)
+private fun EnhancedReminderBadge(reminderTime: Long, currentTimeMillis: Long) { // --- ЗМІНЕНО: Додано currentTimeMillis
+    // --- ЗМІНЕНО: remember тепер залежить від currentTimeMillis, що змушує його перераховуватись ---
+    val reminderText = remember(reminderTime, currentTimeMillis) {
+        ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
     }
-    val isPastDue = reminderTime < System.currentTimeMillis()
+    // --- ЗМІНЕНО: Використовуємо currentTimeMillis для визначення, чи прострочене нагадування ---
+    val isPastDue = reminderTime < currentTimeMillis
 
     val backgroundColor by animateColorAsState(
         targetValue = if (isPastDue) {
@@ -492,6 +494,7 @@ fun GoalItem(
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
+    currentTimeMillis: Long, // --- ЗМІНЕНО: Додано параметр currentTimeMillis ---
 ) {
     val parsedData = remember(goal.text, contextMarkerToEmojiMap) {
         parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
@@ -535,7 +538,6 @@ fun GoalItem(
                 ),
             )
 
-            // --- ЗМІНЕНО: Додано перевірку на goal.reminderTime ---
             val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                     (goal.reminderTime != null) ||
                     (parsedData.icons.isNotEmpty()) ||
@@ -556,9 +558,12 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        // --- ДОДАНО: Відображення чіпа нагадування ---
+                        // --- ЗМІНЕНО: Відображення чіпа нагадування з передачею currentTimeMillis ---
                         goal.reminderTime?.let { time ->
-                            EnhancedReminderBadge(reminderTime = time)
+                            EnhancedReminderBadge(
+                                reminderTime = time,
+                                currentTimeMillis = currentTimeMillis
+                            )
                         }
 
                         EnhancedScoreStatusBadge(goal = goal)
@@ -627,6 +632,7 @@ fun GoalItem(
     onLongClick: () -> Unit,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
+    currentTimeMillis: Long, // --- ЗМІНЕНО: Додано параметр currentTimeMillis ---
 ) {
     val goal = goalContent.goal
 
@@ -669,7 +675,6 @@ fun GoalItem(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            // --- ЗМІНЕНО: Додано перевірку на goal.reminderTime ---
             val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                     (goal.reminderTime != null) ||
                     (parsedData.icons.isNotEmpty()) ||
@@ -690,9 +695,12 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        // --- ДОДАНО: Відображення чіпа нагадування ---
+                        // --- ЗМІНЕНО: Відображення чіпа нагадування з передачею currentTimeMillis ---
                         goal.reminderTime?.let { time ->
-                            EnhancedReminderBadge(reminderTime = time)
+                            EnhancedReminderBadge(
+                                reminderTime = time,
+                                currentTimeMillis = currentTimeMillis
+                            )
                         }
 
                         EnhancedScoreStatusBadge(goal = goal)
