@@ -218,32 +218,45 @@ fun MessageBubble(message: ChatMessage) {
                 },
                 tonalElevation = if (isUser) 0.dp else 1.dp
             ) {
-                Text(
-                    text = message.text,
+                Row(
                     modifier = Modifier.padding(
                         horizontal = 16.dp,
                         vertical = 10.dp
                     ),
-                    color = when {
-                        message.isError -> MaterialTheme.colorScheme.onErrorContainer
-                        isUser -> MaterialTheme.colorScheme.onPrimaryContainer
-                        else -> MaterialTheme.colorScheme.onSurface
-                    },
-                    fontSize = 15.sp,
-                    lineHeight = 20.sp
-                )
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = if (message.text.isBlank() && message.isStreaming) "..." else message.text,
+                        modifier = Modifier.weight(1f),
+                        color = when {
+                            message.isError -> MaterialTheme.colorScheme.onErrorContainer
+                            isUser -> MaterialTheme.colorScheme.onPrimaryContainer
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
+                    )
+
+                    // Показуємо індикатор стрімінгу для повідомлень асистента
+                    if (message.isStreaming && !isUser) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        StreamingIndicator()
+                    }
+                }
             }
 
             // Час повідомлення
-            Text(
-                text = formatTime(message.timestamp),
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(
-                    horizontal = 8.dp,
-                    vertical = 2.dp
+            if (!message.isStreaming) { // Показуємо час тільки після завершення стрімінгу
+                Text(
+                    text = formatTime(message.timestamp),
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(
+                        horizontal = 8.dp,
+                        vertical = 2.dp
+                    )
                 )
-            )
+            }
         }
 
         if (isUser) {
@@ -267,6 +280,27 @@ fun MessageBubble(message: ChatMessage) {
     }
 }
 
+@Composable
+fun StreamingIndicator() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .background(
+                MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                RoundedCornerShape(4.dp)
+            )
+    )
+}
 @Composable
 fun ChatInput(
     value: String,

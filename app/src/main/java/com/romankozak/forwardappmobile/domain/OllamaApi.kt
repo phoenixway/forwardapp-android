@@ -1,6 +1,6 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/data/OllamaApi.kt
 
-package com.romankozak.forwardappmobile.data // ✨ ВИПРАВЛЕНО: Назва пакета
+package com.romankozak.forwardappmobile.domain // ✨ ВИПРАВЛЕНО: Назва пакета
 
 import kotlinx.serialization.SerialName // ✨ ДОДАНО: Імпорт для анотації
 import kotlinx.serialization.Serializable // ✨ ДОДАНО: Правильний імпорт
@@ -8,6 +8,7 @@ import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Streaming
 
 // --- Універсальні моделі ---
 @Serializable
@@ -49,7 +50,6 @@ data class OllamaErrorResponse(
     val error: String
 )
 
-
 @Serializable
 data class OllamaChatRequest(
     val model: String,
@@ -59,23 +59,21 @@ data class OllamaChatRequest(
 
 interface OllamaApi {
     @POST("/api/generate")
-
     suspend fun generateCompletion(@Body request: OllamaCompletionRequest): OllamaResponse
-
-/*    @POST("/api/chat")
-    suspend fun generateChat(@Body request: OllamaChatRequest): OllamaChatResponse*/
-
-    @POST("/api/generate")
-    suspend fun testGenerateAsChat(@Body request: OllamaChatRequest): OllamaResponse
 
     @POST("/api/generate")
     suspend fun generateCompletionRaw(@Body request: OllamaCompletionRequest): ResponseBody
 
-
     @GET("/api/tags")
     suspend fun getTags(): OllamaTagsResponse
 
+    // ✨ ДОДАНО: @Streaming анотація для правильного стрімінгу
+    @Streaming
     @POST("/api/chat")
-    suspend fun generateChat(@Body request: OllamaChatRequest): ResponseBody // Change return type
+    suspend fun generateChat(@Body request: OllamaChatRequest): ResponseBody
 
+    // ✨ ДОДАНО: Альтернативний метод через /api/generate для стрімінгу
+    @Streaming
+    @POST("/api/generate")
+    suspend fun generateCompletionStream(@Body request: OllamaCompletionRequest): ResponseBody
 }
