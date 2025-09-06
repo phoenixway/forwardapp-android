@@ -7,6 +7,8 @@ import com.romankozak.forwardappmobile.data.OllamaCompletionRequest
 import com.romankozak.forwardappmobile.data.OllamaErrorResponse
 import com.romankozak.forwardappmobile.data.OllamaOptions
 import com.romankozak.forwardappmobile.data.OllamaResponse
+import com.romankozak.forwardappmobile.data.Message // ✨ ДОДАНО: Імпорт
+import com.romankozak.forwardappmobile.data.OllamaChatRequest // ✨ ДОДАНО: Імпорт
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
@@ -45,6 +47,34 @@ class OllamaService @Inject constructor() {
             Result.failure(e)
         }
     }
+
+    // ✨ ---- ПОЧАТОК: НОВА ФУНКЦІЯ ДЛЯ ЧАТУ ---- ✨
+    suspend fun generateChatResponse(baseUrl: String, model: String, messages: List<Message>): Result<String> {
+        if (baseUrl.isBlank() || model.isBlank()) {
+            return Result.failure(IllegalArgumentException("URL or model is not configured"))
+        }
+
+        return try {
+            val api = buildRetrofitApi(baseUrl)
+            val request = OllamaChatRequest(
+                model = model,
+                messages = messages,
+                stream = false
+            )
+
+            Log.d("OllamaServiceChat", "Sending chat request to model $model with ${messages.size} messages.")
+            val response = api.generateChat(request)
+            val responseContent = response.message.content.trim()
+            Log.d("OllamaServiceChat", "Received response: '$responseContent'")
+
+            Result.success(responseContent)
+        } catch (e: Exception) {
+            Log.e("OllamaServiceChat", "Error generating chat response: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    // ✨ ---- КІНЕЦЬ: НОВА ФУНКЦІЯ ДЛЯ ЧАТУ ---- ✨
+
 
     suspend fun generateTitle(baseUrl: String, model: String, fullText: String): Result<String> {
         if (baseUrl.isBlank() || model.isBlank()) {
