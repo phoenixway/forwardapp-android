@@ -411,7 +411,7 @@ fun GoalDetailScreen(
                         viewModel.inputHandler.submitInput(
                             uiState.inputValue,
                             uiState.inputMode,
-                            uiState.detectedReminderCalendar
+                           // uiState.detectedReminderCalendar
                         )
                     },
                     onInputModeSelected = {

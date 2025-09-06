@@ -178,7 +178,9 @@ class GoalDetailViewModel @Inject constructor(
     val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
     val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
-    val inputHandler = InputHandler(goalRepository, viewModelScope, listIdFlow, this, reminderParser)
+
+
+
     val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
     val inboxHandler = InboxHandler(goalRepository, viewModelScope, listIdFlow, this)
     val inboxMarkdownHandler = InboxMarkdownHandler(goalRepository, viewModelScope, this)
@@ -191,6 +193,31 @@ class GoalDetailViewModel @Inject constructor(
         )
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val detectedCalendarFlow: StateFlow<Calendar?> = uiState.map { it.detectedReminderCalendar }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    private val detectedSuggestionFlow: StateFlow<String?> = uiState.map { it.detectedReminderSuggestion }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    // 3. ОНОВІТЬ КОНСТРУКТОР INPUTHANDLER
+    val inputHandler = InputHandler(
+        goalRepository,
+        viewModelScope,
+        listIdFlow,
+        this,                 // ViewModel як ResultListener
+        reminderParser        // Parser
+    )
+
+
     private val _refreshTrigger = MutableStateFlow(0)
 
     private val _uiEventFlow = Channel<UiEvent>()
