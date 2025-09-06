@@ -410,10 +410,7 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch {
             goalRepository.getGoalById(goalId)?.let { newGoal ->
                 alarmScheduler.schedule(newGoal)
-                showSnackbar("Ціль створено з нагадуванням", null)
-
-                // Додаємо встановлення newlyAddedItemId для автоскролу
-                _uiState.update { it.copy(newlyAddedItemId = goalId) }
+                // НЕ показуємо snackbar тут, це робиться в InputHandler
             }
         }
     }

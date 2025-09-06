@@ -380,6 +380,6 @@ class GoalRepository @Inject constructor(
 
         val finalGoalState = goalDao.getGoalById(newGoal.id)!!
         contextHandler.handleContextsOnCreate(finalGoalState)
-        return newGoal.id // Повертаємо ID цілі, це важливо
+        return newListItem.id // Змінено: повертаємо ID ListItem замість Goal
     }
 }

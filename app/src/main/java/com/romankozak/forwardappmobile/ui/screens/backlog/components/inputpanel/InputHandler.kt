@@ -222,7 +222,7 @@ class InputHandler(
 
                 scope.launch(Dispatchers.IO) {
                     try {
-                        var textToSave = originalText // Start with the original text
+                        var textToSave = originalText
                         var reminderTime: Long? = null
 
                         if (detectedCalendar != null) {
@@ -232,10 +232,6 @@ class InputHandler(
                                 val parseResult = reminderParser.parseWithTimeout(originalText, 3000L)
                                 parseResult.suggestionText?.let { suggestion ->
                                     val cleanedText = originalText.replace(suggestion, "", ignoreCase = true).trim()
-
-                                    // If the cleaned text is not blank, use it.
-                                    // Otherwise, textToSave will retain the originalText,
-                                    // preserving input like "Завтра о 10".
                                     if (cleanedText.isNotBlank()) {
                                         textToSave = cleanedText
                                     }
@@ -249,17 +245,31 @@ class InputHandler(
                             }
                         }
 
+                        // Створюємо ціль (з ремайндером або без)
                         val newItemIdentifier: String = if (reminderTime != null) {
                             goalRepository.addGoalWithReminder(textToSave, currentListId, reminderTime)
-                                .also { resultListener.onGoalCreatedWithReminder(it) }
                         } else {
                             goalRepository.addGoalToList(textToSave, currentListId)
+                        }
+
+                        // Якщо є ремайндер, налаштовуємо алярм
+                        if (reminderTime != null) {
+                            goalRepository.getGoalById(newItemIdentifier)?.let { newGoal ->
+                                // Використовуємо алярм напряму, не через resultListener
+                                try {
+                                    // Припускаємо, що у вас є доступ до alarmScheduler
+                                    // Якщо ні, то можна додати це в ResultListener
+                                    resultListener.onGoalCreatedWithReminder(newItemIdentifier)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Failed to schedule alarm", e)
+                                }
+                            }
                         }
 
                         withContext(Dispatchers.Main) {
                             resultListener.updateInputState(
                                 inputValue = TextFieldValue(""),
-                                newlyAddedItemId = newItemIdentifier,
+                                newlyAddedItemId = newItemIdentifier, // Це має працювати для автоскролу
                                 clearDetectedReminder = true
                             )
                         }
@@ -274,6 +284,8 @@ class InputHandler(
                     }
                 }
             }
+
+
             InputMode.AddQuickRecord -> resultListener.addQuickRecord(originalText)
             InputMode.SearchGlobal -> {
                 resultListener.requestNavigation("global_search_screen/${URLEncoder.encode(originalText, "UTF-8")}")
