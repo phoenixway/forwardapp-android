@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParser
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.CoroutineScope
@@ -19,20 +20,18 @@ import java.net.URL
 import java.net.URLEncoder
 import java.util.Calendar
 
-// Improved debouncer with better cancellation handling
 class SmartDebouncer(private val delayMs: Long) {
     private var job: Job? = null
     private var lastInputTime = 0L
 
-    fun debounce(coroutineScope: CoroutineScope, block: suspend () -> Unit) {
+    fun debounce(coroutineScope: CoroutineScope, block: suspend () -> Unit): Job {
         val currentTime = System.currentTimeMillis()
         lastInputTime = currentTime
 
         job?.cancel()
         job = coroutineScope.launch {
             delay(delayMs)
-            // Only proceed if this is still the latest input
-            if (lastInputTime <= currentTime + 50) { // 50ms tolerance
+            if (lastInputTime <= currentTime + 50) {
                 try {
                     block()
                 } catch (e: Exception) {
@@ -42,6 +41,7 @@ class SmartDebouncer(private val delayMs: Long) {
                 }
             }
         }
+        return job!!
     }
 
     fun cancel() {
@@ -58,7 +58,8 @@ class InputHandler(
     private val reminderParser: ReminderParser
 ) {
     private val TAG = "NER_DEBUG"
-    private val smartDebouncer = SmartDebouncer(800L) // Increased delay to allow NER to complete
+    private val smartDebouncer = SmartDebouncer(800L)
+    private var nerJob: Job? = null
 
     interface ResultListener {
         fun updateInputState(
@@ -80,213 +81,121 @@ class InputHandler(
     }
 
     fun onInputTextChanged(newValue: TextFieldValue, currentInputMode: InputMode) {
-        Log.d(TAG, "[InputHandler] onInputTextChanged. Mode: $currentInputMode, Text: '${newValue.text}'")
-
-        when (currentInputMode) {
-            InputMode.AddGoal -> {
-                resultListener.updateInputState(inputValue = newValue)
-                if (newValue.text.trim().isNotEmpty()) {
-                    smartDebouncer.debounce(scope) {
-                        Log.d(TAG, "[InputHandler] Starting parsing for: '${newValue.text}'")
-                        parseReminderWithTimeout(newValue.text.trim())
-                    }
-                } else {
-                    smartDebouncer.cancel()
-                    resultListener.updateInputState(clearDetectedReminder = true)
+        resultListener.updateInputState(inputValue = newValue)
+        if (currentInputMode == InputMode.AddGoal) {
+            if (newValue.text.trim().isNotEmpty()) {
+                nerJob = smartDebouncer.debounce(scope) {
+                    parseReminderForSuggestion(newValue.text.trim())
                 }
+            } else {
+                clearAndCancelParsing()
             }
-            InputMode.SearchInList -> {
-                Log.d(TAG, "[InputHandler] Mode is SearchInList. Updating search query.")
-                resultListener.updateInputState(
-                    inputValue = newValue,
-                    localSearchQuery = newValue.text
-                )
-            }
-            else -> {
-                Log.d(TAG, "[InputHandler] Mode is OTHER. Just updating input value.")
-                resultListener.updateInputState(inputValue = newValue)
-            }
+        } else if (currentInputMode == InputMode.SearchInList) {
+            resultListener.updateInputState(localSearchQuery = newValue.text)
         }
     }
 
-    private suspend fun parseReminderWithTimeout(text: String) {
+    // This function is now only for the live UI suggestion.
+    private suspend fun parseReminderForSuggestion(text: String) {
         try {
-            Log.d(TAG, "[InputHandler] Parsing reminder: '$text'")
-            val result = reminderParser.parseWithTimeout(text, 10000L) // 10 second timeout
-
+            val result = reminderParser.parseWithTimeout(text, 10000L)
             withContext(Dispatchers.Main) {
                 if (result.success) {
-                    Log.d(TAG, "[InputHandler] Parse SUCCESS: suggestion=${result.suggestionText}")
                     resultListener.updateInputState(
                         detectedReminderSuggestion = result.suggestionText,
                         detectedReminderCalendar = result.calendar
                     )
                 } else {
-                    Log.d(TAG, "[InputHandler] Parse FAILED: ${result.errorMessage}")
-                    // Try simple fallback parsing
-                    val fallbackResult = tryFallbackParsing(text)
-                    if (fallbackResult != null) {
-                        Log.d(TAG, "[InputHandler] Fallback parsing SUCCESS")
-                        resultListener.updateInputState(
-                            detectedReminderSuggestion = fallbackResult.suggestionText,
-                            detectedReminderCalendar = fallbackResult.calendar
-                        )
-                    } else {
-                        resultListener.updateInputState(clearDetectedReminder = true)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "[InputHandler] Parse error: ${e.message}", e)
-            withContext(Dispatchers.Main) {
-                // Try fallback parsing even on exception
-                val fallbackResult = tryFallbackParsing(text)
-                if (fallbackResult != null) {
-                    Log.d(TAG, "[InputHandler] Fallback parsing after error SUCCESS")
-                    resultListener.updateInputState(
-                        detectedReminderSuggestion = fallbackResult.suggestionText,
-                        detectedReminderCalendar = fallbackResult.calendar
-                    )
-                } else {
                     resultListener.updateInputState(clearDetectedReminder = true)
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "[InputHandler] Suggestion parse error: ${e.message}", e)
+            withContext(Dispatchers.Main) {
+                resultListener.updateInputState(clearDetectedReminder = true)
+            }
         }
     }
-
-    private fun tryFallbackParsing(text: String): FallbackResult? {
-        val cleanText = text.lowercase().trim()
-
-        // Pattern for "через X хв/год/днів"
-        val durationPattern = Regex("""через\s*(\d+)\s*(хв|хвилин|год|годин|дні|день|тижн|місяць)""")
-        val match = durationPattern.find(cleanText) ?: return null
-
-        val number = match.groups[1]?.value?.toIntOrNull() ?: return null
-        val unit = match.groups[2]?.value ?: return null
-        val calendar = Calendar.getInstance()
-
-        val success = when (unit) {
-            "хв", "хвилин" -> {
-                calendar.add(Calendar.MINUTE, number)
-                true
-            }
-            "год", "годин" -> {
-                calendar.add(Calendar.HOUR_OF_DAY, number)
-                true
-            }
-            "дні", "день" -> {
-                calendar.add(Calendar.DAY_OF_YEAR, number)
-                true
-            }
-            "тижн" -> {
-                calendar.add(Calendar.WEEK_OF_YEAR, number)
-                true
-            }
-            "місяць" -> {
-                calendar.add(Calendar.MONTH, number)
-                true
-            }
-            else -> false
-        }
-
-        return if (success) {
-            FallbackResult(match.value, calendar)
-        } else null
-    }
-
-    private data class FallbackResult(
-        val suggestionText: String,
-        val calendar: Calendar
-    )
 
     fun onInputModeSelected(mode: InputMode, currentInputValue: TextFieldValue) {
-        // Cancel any ongoing parsing when mode changes
-        smartDebouncer.cancel()
-        onClearDetectedReminder()
-
+        clearAndCancelParsing()
         val searchQuery = if (mode == InputMode.SearchInList) currentInputValue.text else ""
         resultListener.updateInputState(inputMode = mode, localSearchQuery = searchQuery)
     }
 
-    fun submitInput(inputValue: TextFieldValue, inputMode: InputMode, detectedCalendar: Calendar?) {
+    // ... (початок файлу InputHandler.kt без змін) ...
+
+    fun submitInput(inputValue: TextFieldValue, inputMode: InputMode) {
         val originalText = inputValue.text.trim()
         if (originalText.isBlank()) return
 
-        // Cancel parsing on submit
-        smartDebouncer.cancel()
+        // Скасовуємо будь-який фоновий аналіз для підказок
+        clearAndCancelParsing()
 
         when (inputMode) {
             InputMode.AddGoal -> {
                 val currentListId = listIdFlow.value
                 if (currentListId.isBlank()) return
 
+                // --- НОВА ЛОГІКА ---
+                // 1. Надаємо миттєвий зворотний зв'язок: очищуємо поле введення.
+                // UI більше не чекає на завершення аналізу.
+                resultListener.updateInputState(
+                    inputValue = TextFieldValue(""),
+                    clearDetectedReminder = true
+                )
+
+                // 2. Запускаємо "важку" роботу (аналіз та збереження) у фоновому потоці.
                 scope.launch(Dispatchers.IO) {
                     try {
+                        // Запускаємо аналіз тексту безпосередньо для результату.
+                        val definitiveResult = reminderParser.parseWithTimeout(originalText, 10000L)
+                        Log.d(TAG, "[InputHandler] Parser for submit finished. Success: ${definitiveResult.success}")
+
                         var textToSave = originalText
                         var reminderTime: Long? = null
 
-                        if (detectedCalendar != null) {
-                            reminderTime = detectedCalendar.timeInMillis
+                        if (definitiveResult.success) {
+                            val detectedCalendar = definitiveResult.calendar
+                            val detectedSuggestion = definitiveResult.suggestionText
 
-                            try {
-                                val parseResult = reminderParser.parseWithTimeout(originalText, 3000L)
-                                parseResult.suggestionText?.let { suggestion ->
-                                    val cleanedText = originalText.replace(suggestion, "", ignoreCase = true).trim()
-                                    if (cleanedText.isNotBlank()) {
-                                        textToSave = cleanedText
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Could not clean text, using original", e)
-                                val fallbackCleaned = cleanTextWithFallback(originalText)
-                                if (fallbackCleaned.isNotBlank()) {
-                                    textToSave = fallbackCleaned
-                                }
+                            if (detectedCalendar != null && !detectedSuggestion.isNullOrBlank()) {
+                                reminderTime = detectedCalendar.timeInMillis
+                                val cleanedText = originalText.replace(detectedSuggestion, "", ignoreCase = true).trim()
+                                textToSave = if (cleanedText.isNotBlank()) cleanedText else originalText
                             }
                         }
 
-                        // Створюємо ціль (з ремайндером або без)
+                        // Зберігаємо ціль в базу даних.
                         val newItemIdentifier: String = if (reminderTime != null) {
                             goalRepository.addGoalWithReminder(textToSave, currentListId, reminderTime)
                         } else {
                             goalRepository.addGoalToList(textToSave, currentListId)
                         }
 
-                        // Якщо є ремайндер, налаштовуємо алярм
                         if (reminderTime != null) {
-                            goalRepository.getGoalById(newItemIdentifier)?.let { newGoal ->
-                                // Використовуємо алярм напряму, не через resultListener
-                                try {
-                                    // Припускаємо, що у вас є доступ до alarmScheduler
-                                    // Якщо ні, то можна додати це в ResultListener
-                                    resultListener.onGoalCreatedWithReminder(newItemIdentifier)
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Failed to schedule alarm", e)
-                                }
-                            }
+                            resultListener.onGoalCreatedWithReminder(newItemIdentifier)
                         }
 
+                        // 3. Після завершення фонової роботи, оновлюємо UI,
+                        // щоб список прокрутився до нової цілі.
                         withContext(Dispatchers.Main) {
                             resultListener.updateInputState(
-                                inputValue = TextFieldValue(""),
-                                newlyAddedItemId = newItemIdentifier, // Це має працювати для автоскролу
-                                clearDetectedReminder = true
+                                newlyAddedItemId = newItemIdentifier
                             )
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "[InputHandler] Submit error: ${e.message}", e)
-                        withContext(Dispatchers.Main) {
-                            resultListener.updateInputState(
-                                inputValue = TextFieldValue(""),
-                                clearDetectedReminder = true
-                            )
-                        }
+                        // У випадку помилки можна показати сповіщення користувачу.
+                        // Наразі поле вже очищено, тому додаткових дій не потрібно.
                     }
                 }
             }
-
-
-            InputMode.AddQuickRecord -> resultListener.addQuickRecord(originalText)
+            InputMode.AddQuickRecord -> {
+                // Для швидких записів поведінка може бути аналогічною
+                resultListener.updateInputState(inputValue = TextFieldValue(""))
+                resultListener.addQuickRecord(originalText)
+            }
             InputMode.SearchGlobal -> {
                 resultListener.requestNavigation("global_search_screen/${URLEncoder.encode(originalText, "UTF-8")}")
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
@@ -295,21 +204,23 @@ class InputHandler(
         }
     }
 
-    private fun cleanTextWithFallback(originalText: String): String {
-        val durationPattern = Regex("""через\s*\d+\s*(хв|хвилин|год|годин|дні|день|тижн|місяць)""")
-        return originalText.replace(durationPattern, "").trim()
-    }
+// ... (решта файлу InputHandler.kt без змін) ...
 
     fun onClearDetectedReminder() {
+        clearAndCancelParsing()
+    }
+
+    private fun clearAndCancelParsing() {
+        nerJob?.cancel()
         smartDebouncer.cancel()
         resultListener.updateInputState(clearDetectedReminder = true)
     }
 
     fun cleanup() {
-        smartDebouncer.cancel()
+        clearAndCancelParsing()
     }
 
-    // ... rest of methods without changes ...
+    // ... (rest of the file is unchanged)
     fun onAddWebLinkConfirm(url: String?, name: String?) {
         if (url.isNullOrBlank()) {
             onDismissLinkDialogs()
