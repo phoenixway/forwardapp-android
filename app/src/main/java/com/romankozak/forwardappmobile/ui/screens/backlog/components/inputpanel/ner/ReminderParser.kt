@@ -115,6 +115,8 @@ class ReminderParser @Inject constructor(
 
     // --- ЗМІНЕНО: Резервний парсер тепер обробляє числа, написані словами ---
 // Виправлений fallback parser метод для ReminderParser.kt
+// Виправлений fallback parser метод для ReminderParser.kt
+// Виправлений fallback parser метод для ReminderParser.kt
     private fun fallbackParseDuration(text: String): ReminderParseResult? {
         val cleanText = text.lowercase(Locale.forLanguageTag("uk-UA")).trim()
         Log.d(TAG, "[ReminderParser] Fallback parsing: '$cleanText'")
@@ -134,6 +136,8 @@ class ReminderParser @Inject constructor(
         for (pattern in patterns) {
             val match = pattern.find(cleanText)
             if (match != null) {
+                Log.d(TAG, "[ReminderParser] Found match: '${match.value}' at range ${match.range} in text '$cleanText'")
+
                 val calendar = Calendar.getInstance()
                 var success = false
                 val suggestionText = match.value
@@ -146,7 +150,7 @@ class ReminderParser @Inject constructor(
                     val number = textToNumberMap[numberString] ?: numberString.toIntOrNull() ?: continue
                     val unit = match.groups[3]?.value ?: continue
 
-                    Log.d(TAG, "[ReminderParser] Fallback found: number=$number, unit='$unit'")
+                    Log.d(TAG, "[ReminderParser] Fallback found: number=$number, unit='$unit', match='${match.value}' at ${match.range}")
 
                     success = when {
                         unit.startsWith("хв") -> { calendar.add(Calendar.MINUTE, number); true }

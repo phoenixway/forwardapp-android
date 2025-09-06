@@ -101,6 +101,17 @@ object NerReminderParser {
         val suggestion = timeRelatedEntities.sortedBy { it.start }
             .joinToString(" ") { it.text }
 
+        // ДОДАНО: Витягуємо goal text
+        val goalText = extractGoalText(text, timeRelatedEntities)
+        if (goalText.isNotEmpty()) {
+            detectedOtherEntities.add(Entity(
+                text = goalText,
+                label = "GOAL",
+                start = 0,
+                end = goalText.length
+            ))
+        }
+
         return ReminderParseResult(
             originalText = text,
             dateTimeEntities = detectedDateTimeEntities,
@@ -112,7 +123,7 @@ object NerReminderParser {
         )
     }
 
-    // НОВА ФУНКЦІЯ: Розширює DURATION entities, шукаючи повні фрази
+    // ВИПРАВЛЕНА ФУНКЦІЯ: Розширює DURATION entities, шукаючи повні фрази
     private fun expandDurationEntities(text: String, entities: List<Entity>): List<Entity> {
         val result = mutableListOf<Entity>()
         val textLower = text.lowercase(Locale.getDefault())
@@ -131,15 +142,15 @@ object NerReminderParser {
         return result
     }
 
-    // НОВА ФУНКЦІЯ: Розширює конкретний DURATION entity
+    // ВИПРАВЛЕНА ФУНКЦІЯ: Розширює конкретний DURATION entity
     private fun expandDurationEntity(textLower: String, entity: Entity): Entity {
         val originalText = entity.text.lowercase()
         var newStart = entity.start
         var newEnd = entity.end
 
-        // Регулярний вираз для пошуку повної фрази з тривалістю
+        // ВИПРАВЛЕНИЙ регулярний вираз для пошуку повної фрази з тривалістю
         val durationPattern = Regex(
-            """(через|за)\s*(\d+|один|одну|одна|два|дві|три|чотири|п'ять|шість|сім|вісім|дев'ять|десять)\s*(хв|хвилин|хвилину|год|годин|годину|дні|днів|день|тижн|тижні|тиждень|місяць|місяці|року|років)"""
+            """(через|за)\s*(\d+|один|одну|одна|два|дві|три|чотири|п'ять|пять|шість|сім|вісім|дев'ять|девять|десять)\s*(хвилин[уи]?|хв|годин[уи]?|год|дн[іи]в?|день|тижн[іи]в?|тиждень|місяц[іи]в?|місяць|рок[иу]в?|року)"""
         )
 
         // Шукаємо найближчу повну фразу, що включає наш entity
@@ -155,6 +166,8 @@ object NerReminderParser {
                 newEnd = matchEnd
                 val newText = textLower.substring(newStart, newEnd)
 
+                Log.d("NerReminderParser", "Found full duration pattern: '$newText' at $newStart-$newEnd")
+
                 return Entity(
                     label = entity.label,
                     start = newStart,
@@ -164,8 +177,46 @@ object NerReminderParser {
             }
         }
 
-        // Якщо не знайшли повного match, повертаємо оригінальний entity
+        // Якщо не знайшли повного match, спробуємо альтернативний підхід
+        // Шукаємо слова часу поряд з entity
+        val entityWords = entity.text.split(" ")
+        val entityEnd = entity.end
+
+        // Шукаємо наступне слово після entity
+        val nextWordMatch = Regex("""\s*([а-яії']+)""").find(textLower, entityEnd)
+        if (nextWordMatch != null) {
+            val nextWord = nextWordMatch.groups[1]?.value
+            if (nextWord != null && isTimeUnit(nextWord)) {
+                val newEndPos = nextWordMatch.range.last + 1
+                val newText = textLower.substring(entity.start, newEndPos)
+
+                Log.d("NerReminderParser", "Extended entity with next word: '$newText'")
+
+                return Entity(
+                    label = entity.label,
+                    start = entity.start,
+                    end = newEndPos,
+                    text = newText
+                )
+            }
+        }
+
+        // Якщо не знайшли розширення, повертаємо оригінальний entity
+        Log.d("NerReminderParser", "No expansion found, keeping original entity")
         return entity
+    }
+
+    // НОВА ФУНКЦІЯ: Перевіряє, чи є слово одиницею часу
+    private fun isTimeUnit(word: String): Boolean {
+        return when {
+            word.startsWith("хвилин") || word == "хв" -> true
+            word.startsWith("годин") || word == "год" -> true
+            word.startsWith("дн") || word == "день" -> true
+            word.startsWith("тижн") -> true
+            word.startsWith("місяц") -> true
+            word.startsWith("рок") -> true
+            else -> false
+        }
     }
 
     private fun parseDate(dateText: String, calendar: Calendar): Boolean {
@@ -221,12 +272,25 @@ object NerReminderParser {
         }
 
         val result = when {
-            normalizedText.contains("хв") -> { calendar.add(Calendar.MINUTE, number!!); true }
-            normalizedText.contains("год") -> { calendar.add(Calendar.HOUR_OF_DAY, number!!); true }
-            normalizedText.contains("дн") || normalizedText.contains("день") -> { calendar.add(Calendar.DAY_OF_YEAR, number!!); true }
-            normalizedText.contains("тижн") -> { calendar.add(Calendar.WEEK_OF_YEAR, number!!); true }
-            normalizedText.contains("місяц") -> { calendar.add(Calendar.MONTH, number!!); true }
-            normalizedText.contains("рок") -> { calendar.add(Calendar.YEAR, number!!); true }
+            // ВИПРАВЛЕНО: Повні форми мають пріоритет і правильний порядок перевірки
+            normalizedText.contains("хвилину") || normalizedText.contains("хвилини") || normalizedText.contains("хвилин") || normalizedText.contains("хв") -> {
+                calendar.add(Calendar.MINUTE, number!!); true
+            }
+            normalizedText.contains("годину") || normalizedText.contains("години") || normalizedText.contains("годин") || normalizedText.contains("год") -> {
+                calendar.add(Calendar.HOUR_OF_DAY, number!!); true
+            }
+            normalizedText.contains("днів") || normalizedText.contains("дні") || normalizedText.contains("день") || normalizedText.contains("дн") -> {
+                calendar.add(Calendar.DAY_OF_YEAR, number!!); true
+            }
+            normalizedText.contains("тижнів") || normalizedText.contains("тижні") || normalizedText.contains("тиждень") || normalizedText.contains("тижн") -> {
+                calendar.add(Calendar.WEEK_OF_YEAR, number!!); true
+            }
+            normalizedText.contains("місяців") || normalizedText.contains("місяці") || normalizedText.contains("місяць") -> {
+                calendar.add(Calendar.MONTH, number!!); true
+            }
+            normalizedText.contains("років") || normalizedText.contains("роки") || normalizedText.contains("року") || normalizedText.contains("рок") -> {
+                calendar.add(Calendar.YEAR, number!!); true
+            }
             else -> {
                 Log.w("NerReminderParser", "No time unit found in duration text: '$durationText'")
                 false
@@ -279,8 +343,10 @@ object NerReminderParser {
         } catch (e: Exception) { false }
     }
 
-    // НОВА ФУНКЦІЯ: Витягує goal text, видаляючи time-related entities
+    // ВИПРАВЛЕНА ФУНКЦІЯ: Витягує goal text, видаляючи time-related entities
     private fun extractGoalText(originalText: String, timeRelatedEntities: List<Entity>): String {
+        Log.d("NerReminderParser", "Extracting goal text from: '$originalText' with entities: $timeRelatedEntities")
+
         if (timeRelatedEntities.isEmpty()) return originalText.trim()
 
         // Сортуємо entities за позицією
@@ -290,9 +356,13 @@ object NerReminderParser {
         var lastEnd = 0
 
         sortedEntities.forEach { entity ->
+            Log.d("NerReminderParser", "Processing entity: '${entity.text}' at ${entity.start}-${entity.end}")
+
             // Додаємо текст до поточного entity
             if (entity.start > lastEnd) {
-                result.append(originalText.substring(lastEnd, entity.start))
+                val beforeText = originalText.substring(lastEnd, entity.start)
+                Log.d("NerReminderParser", "Adding text before entity: '$beforeText'")
+                result.append(beforeText)
             }
             // Пропускаємо сам entity
             lastEnd = entity.end
@@ -300,10 +370,15 @@ object NerReminderParser {
 
         // Додаємо решту тексту після останнього entity
         if (lastEnd < originalText.length) {
-            result.append(originalText.substring(lastEnd))
+            val afterText = originalText.substring(lastEnd)
+            Log.d("NerReminderParser", "Adding text after last entity: '$afterText'")
+            result.append(afterText)
         }
 
-        return result.toString().trim()
+        val finalResult = result.toString().trim()
+        Log.d("NerReminderParser", "Final goal text: '$finalResult'")
+
+        return finalResult
     }
 
     private fun toDateTimeEntity(entity: Entity): DateTimeEntity {
