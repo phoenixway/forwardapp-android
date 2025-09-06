@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.data.OllamaOptions
 import com.romankozak.forwardappmobile.data.OllamaResponse
 import com.romankozak.forwardappmobile.data.Message // ✨ ДОДАНО: Імпорт
 import com.romankozak.forwardappmobile.data.OllamaChatRequest // ✨ ДОДАНО: Імпорт
+import com.romankozak.forwardappmobile.data.OllamaChatResponse
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
@@ -17,6 +18,7 @@ import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 
+private val TAG = "AI_CHAT_DEBUG"
 
 @Singleton
 class OllamaService @Inject constructor() {
@@ -48,7 +50,8 @@ class OllamaService @Inject constructor() {
         }
     }
 
-    // ✨ ---- ПОЧАТОК: НОВА ФУНКЦІЯ ДЛЯ ЧАТУ ---- ✨
+    // ... existing code ...
+
     suspend fun generateChatResponse(baseUrl: String, model: String, messages: List<Message>): Result<String> {
         if (baseUrl.isBlank() || model.isBlank()) {
             return Result.failure(IllegalArgumentException("URL or model is not configured"))
@@ -59,21 +62,37 @@ class OllamaService @Inject constructor() {
             val request = OllamaChatRequest(
                 model = model,
                 messages = messages,
-                stream = false
+                stream = false // Keep stream = false for single response but the server may still send chunks
             )
 
-            Log.d("OllamaServiceChat", "Sending chat request to model $model with ${messages.size} messages.")
-            val response = api.generateChat(request)
-            val responseContent = response.message.content.trim()
-            Log.d("OllamaServiceChat", "Received response: '$responseContent'")
+            Log.d(TAG, "Sending chat request to model $model with ${messages.size} messages.")
 
-            Result.success(responseContent)
+            // Change this line to use the raw response
+            val responseBody = api.generateChat(request)
+
+            val json = Json { ignoreUnknownKeys = true }
+            val fullResponse = responseBody.string().lines()
+                .filter { it.isNotBlank() }
+                .mapNotNull { line ->
+                    try {
+                        json.decodeFromString<OllamaChatResponse>(line).message.content
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to parse line: $line", e)
+                        null
+                    }
+                }
+                .joinToString("")
+
+            Log.d(TAG, "Received response: '$fullResponse'")
+            Result.success(fullResponse.trim())
+
         } catch (e: Exception) {
-            Log.e("OllamaServiceChat", "Error generating chat response: ${e.message}", e)
+            Log.e(TAG, "Error generating chat response: ${e.message}", e)
             Result.failure(e)
         }
     }
-    // ✨ ---- КІНЕЦЬ: НОВА ФУНКЦІЯ ДЛЯ ЧАТУ ---- ✨
+
+// ... existing code ...
 
 
     suspend fun generateTitle(baseUrl: String, model: String, fullText: String): Result<String> {

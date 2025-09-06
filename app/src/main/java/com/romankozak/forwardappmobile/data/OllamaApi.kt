@@ -62,8 +62,8 @@ interface OllamaApi {
 
     suspend fun generateCompletion(@Body request: OllamaCompletionRequest): OllamaResponse
 
-    @POST("/api/chat")
-    suspend fun generateChat(@Body request: OllamaChatRequest): OllamaChatResponse
+/*    @POST("/api/chat")
+    suspend fun generateChat(@Body request: OllamaChatRequest): OllamaChatResponse*/
 
     @POST("/api/generate")
     suspend fun testGenerateAsChat(@Body request: OllamaChatRequest): OllamaResponse
