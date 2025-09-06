@@ -115,16 +115,10 @@ fun ModernInputPanel(
             accentColor = MaterialTheme.colorScheme.secondary,
             inputFieldColor = MaterialTheme.colorScheme.surface
         )
-        InputMode.SearchInList -> PanelColors(
+        InputMode.SearchInList, InputMode.SearchGlobal -> PanelColors( // Змінено для консистентності
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            accentColor = MaterialTheme.colorScheme.primary,
-            inputFieldColor = MaterialTheme.colorScheme.surface
-        )
-        InputMode.SearchGlobal -> PanelColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.9f),
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            accentColor = MaterialTheme.colorScheme.tertiary,
+            accentColor = MaterialTheme.colorScheme.tertiary, // Використовуємо інший акцент для пошуку
             inputFieldColor = MaterialTheme.colorScheme.surface
         )
     }
@@ -148,232 +142,252 @@ fun ModernInputPanel(
         }
     }
 
-    // CHANGE: The root composable is now a Column to host the reminder chip above the input panel.
-    // The main modifier, which includes padding, is applied here.
-    Column(modifier = modifier) {
-        // CHANGE: The reminder chip's visibility is controlled here, outside and above the main panel Surface.
-        AnimatedVisibility(
-            visible = reminderParseResult != null,
-            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
-        ) {
-            reminderParseResult?.let {
-                Column {
+    Surface(
+        modifier = modifier
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+        color = animatedContainerColor,
+        border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f))
+    ) {
+        Column {
+            NavigationBar(
+                canGoBack = canGoBack,
+                onBackClick = onBackClick,
+                onForwardClick = onForwardClick,
+                onHomeClick = onHomeClick,
+                isAttachmentsExpanded = isAttachmentsExpanded,
+                onToggleAttachments = onToggleAttachments,
+                onEditList = onEditList,
+                onShareList = onShareList,
+                onDeleteList = onDeleteList,
+                menuExpanded = menuExpanded,
+                onMenuExpandedChange = onMenuExpandedChange,
+                currentView = currentView,
+                onViewChange = onViewChange,
+                onImportFromMarkdown = onImportFromMarkdown,
+                onExportToMarkdown = onExportToMarkdown,
+                contentColor = panelColors.contentColor,
+                onRecentsClick = onRecentsClick,
+                onInputModeSelected = onInputModeSelected,
+                onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+                onExportBacklogToMarkdown = onExportBacklogToMarkdown
+            )
+
+            AnimatedVisibility(
+                visible = reminderParseResult != null,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+            ) {
+                reminderParseResult?.let {
                     if (it.success) {
                         ReminderChip(
                             suggestionText = it.suggestionText ?: "",
                             onClear = onClearReminder
                         )
                     } else {
-                        // Show error message for failed parsing
                         Text(
                             text = "Не вдалося розпізнати дату/час: ${it.errorMessage}",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
-                            // CHANGE: Horizontal padding removed to respect parent padding.
-                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp)) // Add space between chip and panel
                 }
             }
-        }
 
-        Surface(
-            // CHANGE: The padding from the main modifier is now handled by the parent Column.
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            shadowElevation = 0.dp,
-            tonalElevation = 0.dp,
-            color = animatedContainerColor,
-            border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f))
-        ) {
-            Column {
-                NavigationBar(
-                    canGoBack = canGoBack,
-                    onBackClick = onBackClick,
-                    onForwardClick = onForwardClick,
-                    onHomeClick = onHomeClick,
-                    isAttachmentsExpanded = isAttachmentsExpanded,
-                    onToggleAttachments = onToggleAttachments,
-                    onEditList = onEditList,
-                    onShareList = onShareList,
-                    onDeleteList = onDeleteList,
-                    menuExpanded = menuExpanded,
-                    onMenuExpandedChange = onMenuExpandedChange,
-                    currentView = currentView,
-                    onViewChange = onViewChange,
-                    onImportFromMarkdown = onImportFromMarkdown,
-                    onExportToMarkdown = onExportToMarkdown,
-                    contentColor = panelColors.contentColor,
-                    onRecentsClick = onRecentsClick,
-                    onInputModeSelected = onInputModeSelected,
-                    onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-                    onExportBacklogToMarkdown = onExportBacklogToMarkdown
-                )
-
-                // CHANGE: The AnimatedVisibility block for the reminder chip has been removed from here.
-
-                Row(
-                    modifier = Modifier
-                        .heightIn(min = 64.dp)
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box {
-                        Surface(
-                            onClick = { showModeMenu = true },
-                            shape = CircleShape,
-                            color = panelColors.contentColor.copy(alpha = 0.1f),
-                            contentColor = panelColors.contentColor,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .scale(buttonScale)
-                                .pointerInput(inputMode) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { isPressed = true },
-                                        onDragEnd = {
-                                            isPressed = false
-                                            val threshold = 50f
-                                            when {
-                                                dragOffset > threshold -> {
-                                                    animationDirection = -1
-                                                    val prevIndex = ((currentModeIndex - 1) + modes.size) % modes.size
-                                                    onInputModeSelected(modes[prevIndex])
-                                                }
-                                                dragOffset < -threshold -> {
-                                                    animationDirection = 1
-                                                    val nextIndex = (currentModeIndex + 1) % modes.size
-                                                    onInputModeSelected(modes[nextIndex])
-                                                }
+            Row(
+                modifier = Modifier
+                    .heightIn(min = 64.dp)
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box {
+                    Surface(
+                        onClick = { showModeMenu = true },
+                        shape = CircleShape,
+                        color = panelColors.contentColor.copy(alpha = 0.1f),
+                        contentColor = panelColors.contentColor,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .scale(buttonScale)
+                            .pointerInput(inputMode) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { isPressed = true },
+                                    onDragEnd = {
+                                        isPressed = false
+                                        val threshold = 50f
+                                        when {
+                                            dragOffset > threshold -> {
+                                                animationDirection = -1
+                                                val prevIndex = ((currentModeIndex - 1) + modes.size) % modes.size
+                                                onInputModeSelected(modes[prevIndex])
                                             }
-                                            dragOffset = 0f
+                                            dragOffset < -threshold -> {
+                                                animationDirection = 1
+                                                val nextIndex = (currentModeIndex + 1) % modes.size
+                                                onInputModeSelected(modes[nextIndex])
+                                            }
                                         }
-                                    ) { _, dragAmount -> dragOffset += dragAmount }
-                                }
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                AnimatedContent(
-                                    targetState = inputMode,
-                                    transitionSpec = {
-                                        val slideIn = slideInHorizontally(animationSpec = tween(250)) { if (animationDirection == 1) it else -it }
-                                        val slideOut = slideOutHorizontally(animationSpec = tween(250)) { if (animationDirection == 1) -it else it }
-                                        (slideIn togetherWith slideOut).using(SizeTransform(clip = false))
-                                    },
-                                    label = "mode_icon_animation"
-                                ) { mode ->
-                                    val icon = when (mode) {
-                                        InputMode.AddGoal -> Icons.Outlined.Add
-                                        InputMode.AddQuickRecord -> Icons.Outlined.Inbox
-                                        InputMode.SearchInList -> Icons.Outlined.Search
-                                        InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+                                        dragOffset = 0f
                                     }
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(22.dp)
-                                            .graphicsLayer { rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f }
-                                    )
+                                ) { _, dragAmount -> dragOffset += dragAmount }
+                            }
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            AnimatedContent(
+                                targetState = inputMode,
+                                transitionSpec = {
+                                    val slideIn = slideInHorizontally(animationSpec = tween(250)) { if (animationDirection == 1) it else -it }
+                                    val slideOut = slideOutHorizontally(animationSpec = tween(250)) { if (animationDirection == 1) -it else it }
+                                    (slideIn togetherWith slideOut).using(SizeTransform(clip = false))
+                                },
+                                label = "mode_icon_animation"
+                            ) { mode ->
+                                val icon = when (mode) {
+                                    InputMode.AddGoal -> Icons.Outlined.Add
+                                    InputMode.AddQuickRecord -> Icons.Outlined.Inbox
+                                    InputMode.SearchInList -> Icons.Outlined.Search
+                                    InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
                                 }
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .graphicsLayer { rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f }
+                                )
                             }
                         }
-
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(8.dp)
-                                .background(color = panelColors.accentColor, shape = CircleShape)
-                                .padding(1.dp)
-                                .background(color = panelColors.contentColor.copy(alpha = 0.3f), shape = CircleShape)
-                        )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Surface(
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        color = panelColors.inputFieldColor,
-                        border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
-                        shadowElevation = 1.dp
-                    ) {
-                        BasicTextField(
-                            value = inputValue,
-                            onValueChange = onValueChange,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .focusRequester(focusRequester),
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = panelColors.contentColor,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Normal
-                            ),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
-                            singleLine = true,
-                            cursorBrush = SolidColor(panelColors.accentColor),
-                            decorationBox = { innerTextField ->
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (inputValue.text.isEmpty()) {
-                                        Text(
-                                            text = when (inputMode) {
-                                                InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
-                                                InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
-                                                InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
-                                                InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
-                                            },
-                                            style = MaterialTheme.typography.bodyLarge.copy(
-                                                color = panelColors.contentColor.copy(alpha = 0.7f),
-                                                fontSize = 16.sp
-                                            ),
-                                        )
-                                    }
-                                    innerTextField()
+                            .align(Alignment.TopEnd)
+                            .size(8.dp)
+                            .background(color = panelColors.accentColor, shape = CircleShape)
+                            .padding(1.dp)
+                            .background(color = panelColors.contentColor.copy(alpha = 0.3f), shape = CircleShape)
+                    )
+                }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = panelColors.inputFieldColor,
+                    border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
+                    shadowElevation = 1.dp
+                ) {
+                    BasicTextField(
+                        value = inputValue,
+                        onValueChange = onValueChange,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .focusRequester(focusRequester),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = panelColors.contentColor,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
+                        singleLine = true,
+                        cursorBrush = SolidColor(panelColors.accentColor),
+                        decorationBox = { innerTextField ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (inputValue.text.isEmpty()) {
+                                    Text(
+                                        text = when (inputMode) {
+                                            InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                                            InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
+                                            InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
+                                            InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
+                                        },
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            color = panelColors.contentColor.copy(alpha = 0.7f),
+                                            fontSize = 16.sp
+                                        ),
+                                    )
+                                }
+
+                                innerTextField()
+
+                                Row(
+                                    modifier = Modifier.align(Alignment.CenterEnd),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     NerIndicator(
                                         isActive = isNerActive,
-                                        hasText = inputValue.text.isNotBlank(), // Add this line
-                                        modifier = Modifier.align(Alignment.CenterEnd)
+                                        hasText = inputValue.text.isNotBlank()
                                     )
+
+                                    AnimatedVisibility(
+                                        visible = inputValue.text.isNotBlank(),
+                                        enter = fadeIn() + scaleIn(),
+                                        exit = fadeOut() + scaleOut()
+                                    ) {
+                                        IconButton(
+                                            onClick = { onValueChange(TextFieldValue("")) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = stringResource(R.string.clear_input),
+                                                tint = panelColors.contentColor.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    AnimatedVisibility(
-                        visible = inputValue.text.isNotBlank() && (inputMode == InputMode.AddGoal || inputMode == InputMode.AddQuickRecord),
-                        enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
-                        exit = fadeOut() + scaleOut(targetScale = 0.8f)
-                    ) {
-                        IconButton(
-                            onClick = onSubmit,
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(color = panelColors.accentColor, shape = CircleShape),
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.onPrimary)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = stringResource(R.string.send),
-                                modifier = Modifier.size(20.dp)
-                            )
                         }
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // --- ЗМІНЕНО: Умова видимості кнопки "Надіслати" ---
+                // Тепер вона з'являється в будь-якому режимі, якщо поле вводу не пусте.
+                AnimatedVisibility(
+                    visible = inputValue.text.isNotBlank(),
+                    enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
+                    exit = fadeOut() + scaleOut(targetScale = 0.8f)
+                ) {
+                    IconButton(
+                        onClick = onSubmit,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(color = panelColors.accentColor, shape = CircleShape),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            // Використовуємо відповідний колір для акцентної кнопки
+                            contentColor = when(inputMode) {
+                                InputMode.AddGoal, InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
+                                else -> MaterialTheme.colorScheme.onTertiary
+                            }
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(R.string.send),
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
         }
     }
-
 
     if (showModeMenu) {
         val menuWidth = 280.dp
@@ -510,16 +524,15 @@ fun ModernInputPanel(
 @Composable
 private fun NerIndicator(
     isActive: Boolean,
-    hasText: Boolean, // Add this parameter
+    hasText: Boolean,
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
-        visible = isActive && hasText, // Show only when NER is active AND there's text
+        visible = isActive && hasText,
         modifier = modifier,
         enter = fadeIn() + scaleIn(),
         exit = fadeOut() + scaleOut()
     ) {
-        // CHANGE: Added an infinite transition to create a glowing/pulsing animation.
         val infiniteTransition = rememberInfiniteTransition(label = "ner_indicator_transition")
         val scale by infiniteTransition.animateFloat(
             initialValue = 1f,
@@ -543,7 +556,6 @@ private fun NerIndicator(
         Icon(
             imageVector = Icons.Default.AutoAwesome,
             contentDescription = "Smart recognition active",
-            // CHANGE: The tint and modifier now use the animated values.
             tint = MaterialTheme.colorScheme.tertiary.copy(alpha = alpha),
             modifier = Modifier
                 .size(18.dp)

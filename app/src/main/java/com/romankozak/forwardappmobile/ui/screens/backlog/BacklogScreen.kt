@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -47,6 +48,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.Adap
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +57,22 @@ fun GoalDetailScreen(
     navController: NavController,
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
+
+
+
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        flow {
+            while (true) {
+                emit(System.currentTimeMillis())
+                delay(60_000L) // Чекаємо одну хвилину
+            }
+        }.collect {
+            currentTime = it
+        }
+    }
+
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
@@ -77,6 +95,15 @@ fun GoalDetailScreen(
 
     val inboxRecords by viewModel.inboxRecords.collectAsStateWithLifecycle()
     val inboxListState = rememberLazyListState()
+
+    BackHandler(enabled = uiState.inputValue.text.isNotEmpty()) {
+        // Викликаємо правильний метод з InputHandler для очищення поля.
+        // Це гарантує, що вся пов'язана логіка (наприклад, скасування аналізу) також спрацює.
+        viewModel.inputHandler.onInputTextChanged(
+            TextFieldValue(""),
+            uiState.inputMode
+        )
+    }
 
     if (uiState.showAddWebLinkDialog) {
         AddWebLinkDialog(
@@ -539,7 +566,9 @@ fun GoalDetailScreen(
                                             onTagClick = { tag -> viewModel.onTagClicked(tag) },
                                             onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                                            emojiToHide = currentListContextEmojiToHide
+                                            emojiToHide = currentListContextEmojiToHide,
+                                            // --- ВИПРАВЛЕНО: Передаємо поточний час в GoalItem ---
+                                            currentTimeMillis = currentTime
                                         )
                                     }
                                     is ListItemContent.SublistItem -> {
@@ -563,6 +592,7 @@ fun GoalDetailScreen(
                             }
                         }
                     }
+
                 }
             }
             ProjectViewMode.INBOX -> {
