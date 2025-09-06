@@ -74,4 +74,8 @@ interface OllamaApi {
 
     @GET("/api/tags")
     suspend fun getTags(): OllamaTagsResponse
+
+    @POST("/api/chat")
+    suspend fun generateChat(@Body request: OllamaChatRequest): ResponseBody // Change return type
+
 }

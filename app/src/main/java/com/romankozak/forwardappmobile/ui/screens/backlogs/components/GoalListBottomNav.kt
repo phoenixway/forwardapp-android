@@ -83,8 +83,8 @@ internal fun GoalListBottomNav(
             )
             BottomNavButton(
                 text = "AI Chat",
-                icon = { Icon(Icons.Outlined.AddComment, contentDescription = "Chat with AI") },
-                onClick = {}
+                icon = { Icon(Icons.Outlined.Chat, "AI Chat") },
+                onClick = { navController.navigate("chat_screen") } // ✨ ЗМІНЕНО
             )
         }
     }
