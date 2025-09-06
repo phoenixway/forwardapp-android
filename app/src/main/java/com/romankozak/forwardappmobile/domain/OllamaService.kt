@@ -2,21 +2,23 @@ package com.romankozak.forwardappmobile.domain
 
 import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import okhttp3.OkHttpClient
-import retrofit2.Retrofit
-import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.boolean
 import okhttp3.MediaType.Companion.toMediaType
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
+import retrofit2.Retrofit
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val TAG = "AI_CHAT_DEBUG"
 
@@ -63,12 +65,9 @@ class OllamaService @Inject constructor() {
                 stream = false
             )
 
-            Log.d("OllamaServiceChat", "Sending chat request to model $model with ${messages.size} messages.")
+            Log.d("OllamaServiceChat", "Sending chat request to model $model with ${messages.size} messages: ${messages.joinToString("\n") { "${it.role}: ${it.content}" }}")
 
-            // Отримуємо необроблений ResponseBody
             val responseBody = api.generateChat(request)
-
-            // Парсимо JSON-об'єкти рядок за рядком
             val json = Json { ignoreUnknownKeys = true }
 
             val fullResponseContent = responseBody.string()
@@ -90,7 +89,6 @@ class OllamaService @Inject constructor() {
             }
 
             Log.d("OllamaServiceChat", "Received response: '$fullResponseContent'")
-
             Result.success(fullResponseContent.trim())
         } catch (e: Exception) {
             Log.e("OllamaServiceChat", "Error generating chat response: ${e.message}", e)
@@ -103,7 +101,6 @@ class OllamaService @Inject constructor() {
             return Result.failure(IllegalArgumentException("URL or model is not configured"))
         }
 
-        // Clean text from unwanted characters
         val cleanText = fullText.trim()
             .replace("\n", " ")
             .replace("\r", " ")
@@ -117,8 +114,6 @@ class OllamaService @Inject constructor() {
 
         return try {
             val api = buildRetrofitApi(baseUrl)
-
-            // Use data class instead of manual JSON creation
             val request = OllamaCompletionRequest(
                 model = model,
                 prompt = prompt,
@@ -133,15 +128,13 @@ class OllamaService @Inject constructor() {
 
             Log.d("OllamaService", "Raw response: $response")
 
-            // Parse JSON objects line by line
             val json = Json { ignoreUnknownKeys = true }
 
-            // Check if response contains an error
             try {
                 val errorResponse = json.decodeFromString<OllamaErrorResponse>(response)
                 return Result.failure(IllegalStateException("Ollama API error: ${errorResponse.error}"))
             } catch (e: Exception) {
-                // If failed to parse as error, continue processing as successful response
+                // Not an error response, proceed with parsing
             }
 
             val responses = response.lines()
@@ -160,7 +153,6 @@ class OllamaService @Inject constructor() {
                 Log.d("OllamaService", "Response part: '${resp.response}', done: ${resp.done}")
             }
 
-            // Збираємо повний текст з усіх частин відповіді
             val fullResponse = responses.joinToString("") { it.response }
             Log.d("OllamaService", "Full combined response: '$fullResponse'")
 
@@ -183,52 +175,45 @@ class OllamaService @Inject constructor() {
         }
     }
 
-    suspend fun generateChatResponseStream(baseUrl: String, model: String, messages: List<Message>): kotlinx.coroutines.flow.Flow<String> = flow {
+    suspend fun generateChatResponseStream(baseUrl: String, model: String, messages: List<Message>): Flow<String> = flow {
         if (baseUrl.isBlank() || model.isBlank()) {
             throw IllegalArgumentException("URL or model is not configured")
         }
 
+        val api = buildRetrofitApi(baseUrl)
+
         try {
-            val api = buildRetrofitApi(baseUrl)
+            Log.d(TAG, "Trying /api/chat endpoint for streaming...")
+            Log.d(TAG, "Chat request: ${messages.joinToString("\n") { "${it.role}: ${it.content}" }}")
+            val chatRequest = OllamaChatRequest(
+                model = model,
+                messages = messages,
+                stream = true
+            )
 
-            // Спочатку спробуємо через /api/chat
-            try {
-                Log.d(TAG, "Trying /api/chat endpoint for streaming...")
-                val chatRequest = OllamaChatRequest(
-                    model = model,
-                    messages = messages,
-                    stream = true
-                )
-
-                Log.d(TAG, "Chat request: $chatRequest")
-                val responseBody = api.generateChat(chatRequest)
-
-                processStreamingResponse(responseBody, isGenerateEndpoint = false)
-
-            } catch (e: Exception) {
-                Log.w(TAG, "/api/chat failed, trying /api/generate: ${e.message}")
-
-                // Якщо /api/chat не працює, спробуємо /api/generate
-                val messagesText = messages.joinToString("\n") { "${it.role}: ${it.content}" }
-                val prompt = "Continue this conversation:\n$messagesText\nassistant:"
-
-                val generateRequest = OllamaCompletionRequest(
-                    model = model,
-                    prompt = prompt,
-                    stream = true
-                )
-
-                Log.d(TAG, "Generate request: $generateRequest")
-                val responseBody = api.generateCompletionStream(generateRequest)
-
-                processStreamingResponse(responseBody, isGenerateEndpoint = true)
-            }
+            val responseBody = api.generateChat(chatRequest)
+            processStreamingResponse(responseBody, isGenerateEndpoint = false)
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error during streaming: ${e.message}", e)
-            throw e
+            Log.w(TAG, "/api/chat failed, trying /api/generate: ${e.message}", e)
+
+            val messagesText = messages.joinToString("\n") { "${it.role}: ${it.content}" }
+            val prompt = "Continue this conversation:\n$messagesText\nassistant:"
+
+            Log.d(TAG, "Generate request prompt: $prompt")
+            val generateRequest = OllamaCompletionRequest(
+                model = model,
+                prompt = prompt,
+                stream = true
+            )
+
+            val responseBody = api.generateCompletionStream(generateRequest)
+            processStreamingResponse(responseBody, isGenerateEndpoint = true)
         }
-    }
+    }.catch { e ->
+        Log.e(TAG, "Error during streaming: ${e.message}", e)
+        throw e // Rethrow to be handled by the ViewModel
+    }.flowOn(Dispatchers.IO) // Ensure emissions occur on Dispatchers.IO
 
     private suspend fun kotlinx.coroutines.flow.FlowCollector<String>.processStreamingResponse(
         responseBody: ResponseBody,
@@ -236,67 +221,81 @@ class OllamaService @Inject constructor() {
     ) {
         val json = Json { ignoreUnknownKeys = true }
 
-        // КРИТИЧНО ВАЖЛИВО: Читаємо стрім рядок за рядком в реальному часі
-        withContext(Dispatchers.IO) {
-            responseBody.byteStream().bufferedReader().use { reader ->
-                var lineCount = 0
-                var shouldContinue = true
+        responseBody.byteStream().bufferedReader().use { reader ->
+            var lineCount = 0
+            var shouldContinue = true
 
-                while (shouldContinue) {
-                    val line = reader.readLine()
-                    if (line == null) {
-                        break
-                    }
+            while (shouldContinue) {
+                val line = reader.readLine() ?: break
+                lineCount++
+                Log.d(TAG, "Stream line #$lineCount: '$line'")
 
-                    lineCount++
-                    Log.d(TAG, "Stream line #$lineCount: '$line'")
+                if (line.isBlank()) continue
 
-                    if (line.isNotBlank()) {
-                        try {
-                            if (isGenerateEndpoint) {
-                                // Парсимо як OllamaResponse для /api/generate
-                                val ollamaResponse = json.decodeFromString<OllamaResponse>(line)
-                                val content = ollamaResponse.response
-
-                                Log.d(TAG, "Generate endpoint - parsed content: '$content'")
-
-                                if (content.isNotEmpty()) {
-                                    Log.d(TAG, "Emitting chunk: '$content'")
-                                    emit(content)
-                                }
-
-                                if (ollamaResponse.done) {
-                                    Log.d(TAG, "Stream completed (done=true)")
-                                    shouldContinue = false
-                                }
-                            } else {
-                                // Парсимо як OllamaChatResponse для /api/chat
-                                val ollamaResponse = json.decodeFromString<OllamaChatResponse>(line)
-                                val content = ollamaResponse.message.content
-
-                                Log.d(TAG, "Chat endpoint - parsed content: '$content'")
-
-                                if (content.isNotEmpty()) {
-                                    Log.d(TAG, "Emitting chunk: '$content'")
-                                    emit(content)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to parse streaming line: '$line'", e)
-
-                            // Спробуємо як помилку
-                            try {
-                                val errorResponse = json.decodeFromString<OllamaErrorResponse>(line)
-                                throw IllegalStateException("Ollama API error: ${errorResponse.error}")
-                            } catch (e2: Exception) {
-                                Log.w(TAG, "Ignoring unparseable line: '$line'")
-                            }
-                        }
-                    }
+                // Parse the line as JSON
+                val jsonElement = try {
+                    json.parseToJsonElement(line)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to parse line as JSON: '$line', error: ${e.message}")
+                    continue
                 }
 
-                Log.d(TAG, "Stream reading completed. Total lines processed: $lineCount")
+                // Check for error response first
+                try {
+                    val errorResponse = json.decodeFromString<OllamaErrorResponse>(line)
+                    throw IllegalStateException("Ollama API error: ${errorResponse.error}")
+                } catch (e: Exception) {
+                    // Not an error response, proceed with parsing
+                }
+
+                if (isGenerateEndpoint) {
+                    // Parse as OllamaResponse for /api/generate
+                    val ollamaResponse = try {
+                        json.decodeFromString<OllamaResponse>(line)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to parse line as OllamaResponse: '$line', error: ${e.message}")
+                        continue
+                    }
+
+                    val content = ollamaResponse.response
+                    if (content.isNotEmpty()) {
+                        Log.d(TAG, "Emitting chunk: '$content'")
+                        emit(content)
+                    } else {
+                        Log.d(TAG, "Skipping empty content for /api/generate: '$content'")
+                    }
+
+                    if (ollamaResponse.done) {
+                        Log.d(TAG, "Stream completed (done=true)")
+                        shouldContinue = false
+                    }
+                } else {
+                    // Parse as OllamaChatResponse for /api/chat
+                    val ollamaResponse = try {
+                        json.decodeFromString<OllamaChatResponse>(line)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to parse line as OllamaChatResponse: '$line', error: ${e.message}")
+                        continue
+                    }
+
+                    val content = ollamaResponse.message.content
+                    if (content.isNotEmpty()) {
+                        Log.d(TAG, "Emitting chunk: '$content'")
+                        emit(content)
+                    } else {
+                        Log.d(TAG, "Skipping empty content for /api/chat: '$content'")
+                    }
+
+                    // Check for "done" flag
+                    val done = jsonElement.jsonObject["done"]?.jsonPrimitive?.boolean ?: false
+                    if (done) {
+                        Log.d(TAG, "Stream completed (done=true)")
+                        shouldContinue = false
+                    }
+                }
             }
+
+            Log.d(TAG, "Stream reading completed. Total lines processed: $lineCount")
         }
     }
 }

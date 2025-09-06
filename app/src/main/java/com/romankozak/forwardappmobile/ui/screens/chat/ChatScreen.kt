@@ -50,14 +50,12 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Анімація скролу до останнього повідомлення
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.lastIndex)
         }
     }
 
-    // Градієнт для фону
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
             MaterialTheme.colorScheme.surface,
@@ -119,7 +117,6 @@ fun ChatScreen(
                     .padding(paddingValues)
                     .imePadding()
             ) {
-                // Список повідомлень
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -144,7 +141,6 @@ fun ChatScreen(
                         }
                     }
 
-                    // Індикатор набору тексту
                     if (uiState.isLoading) {
                         item {
                             TypingIndicator()
@@ -152,7 +148,6 @@ fun ChatScreen(
                     }
                 }
 
-                // Панель вводу
                 ChatInput(
                     value = userInput,
                     onValueChange = viewModel::onUserInputChange,
@@ -177,7 +172,6 @@ fun MessageBubble(message: ChatMessage) {
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
         if (!isUser) {
-            // Аватар для AI
             Surface(
                 modifier = Modifier.size(32.dp),
                 shape = RoundedCornerShape(16.dp),
@@ -199,7 +193,6 @@ fun MessageBubble(message: ChatMessage) {
             modifier = Modifier.widthIn(max = 280.dp),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
         ) {
-            // Пухирець повідомлення
             Surface(
                 modifier = Modifier
                     .clip(
@@ -237,7 +230,6 @@ fun MessageBubble(message: ChatMessage) {
                         lineHeight = 20.sp
                     )
 
-                    // Показуємо індикатор стрімінгу для повідомлень асистента
                     if (message.isStreaming && !isUser) {
                         Spacer(modifier = Modifier.width(8.dp))
                         StreamingIndicator()
@@ -245,8 +237,7 @@ fun MessageBubble(message: ChatMessage) {
                 }
             }
 
-            // Час повідомлення
-            if (!message.isStreaming) { // Показуємо час тільки після завершення стрімінгу
+            if (!message.isStreaming) {
                 Text(
                     text = formatTime(message.timestamp),
                     fontSize = 11.sp,
@@ -261,7 +252,6 @@ fun MessageBubble(message: ChatMessage) {
 
         if (isUser) {
             Spacer(modifier = Modifier.width(8.dp))
-            // Аватар користувача
             Surface(
                 modifier = Modifier.size(32.dp),
                 shape = RoundedCornerShape(16.dp),
@@ -301,6 +291,7 @@ fun StreamingIndicator() {
             )
     )
 }
+
 @Composable
 fun ChatInput(
     value: String,
@@ -347,7 +338,6 @@ fun ChatInput(
                 maxLines = 4
             )
 
-            // Кнопка відправки з анімацією
             AnimatedContent(
                 targetState = isLoading,
                 transitionSpec = {
