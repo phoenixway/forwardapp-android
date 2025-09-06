@@ -14,14 +14,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private var TAG="AI_CHAT_DEBUG"
+private const val TAG = "AI_CHAT_DEBUG"
 
 data class ChatMessage(
     val text: String,
     val isFromUser: Boolean,
     val isError: Boolean = false,
     val timestamp: Long = System.currentTimeMillis(),
-    val isStreaming: Boolean = false // Додаємо прапорець для стрімінгу
+    val isStreaming: Boolean = false
 )
 
 data class ChatUiState(
@@ -59,17 +59,14 @@ class ChatViewModel @Inject constructor(
         val messageText = _userInput.value.trim()
         if (messageText.isBlank() || _uiState.value.isLoading) return
 
-        // 1. Додаємо повідомлення користувача до UI
         val userMessage = ChatMessage(messageText, isFromUser = true)
         _uiState.update { it.copy(messages = it.messages + userMessage, isLoading = true) }
-        _userInput.value = "" // Очищуємо поле вводу
+        _userInput.value = ""
 
         viewModelScope.launch {
-            // Отримуємо налаштування з репозиторію
             val ollamaUrl = settingsRepo.ollamaUrlFlow.first()
             val smartModel = settingsRepo.ollamaSmartModelFlow.first()
 
-            // Перевіряємо, чи налаштовані URL та модель
             if (ollamaUrl.isBlank() || smartModel.isBlank()) {
                 val errorMessage = ChatMessage(
                     text = "Ollama URL or Smart Model is not configured in settings.",
@@ -80,14 +77,12 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
-            // Готуємо історію чату для API (виключаємо повідомлення з помилками та стрімінгові)
             val history = _uiState.value.messages.mapNotNull { msg ->
                 if (!msg.isError && !msg.isStreaming) {
                     Message(role = if (msg.isFromUser) "user" else "assistant", content = msg.text)
                 } else null
             }
 
-            // 2. Додаємо початкове порожнє повідомлення асистента для стрімінгу
             val initialAssistantMessage = ChatMessage(
                 text = "",
                 isFromUser = false,
@@ -96,7 +91,6 @@ class ChatViewModel @Inject constructor(
             _uiState.update { it.copy(messages = it.messages + initialAssistantMessage) }
 
             try {
-                // 3. Запускаємо потік і оновлюємо UI з кожним отриманим чанком тексту
                 var fullResponse = ""
                 var chunkCount = 0
                 ollamaService.generateChatResponseStream(ollamaUrl, smartModel, history)
@@ -106,20 +100,17 @@ class ChatViewModel @Inject constructor(
                         Log.d(TAG, "ViewModel received chunk #$chunkCount: '$chunk'")
                         Log.d(TAG, "Full response so far: '$fullResponse'")
 
-                        // Оновлюємо UI, замінюючи останнє повідомлення асистента новим текстом
                         _uiState.update { currentState ->
                             val updatedMessages = currentState.messages.toMutableList()
                             val lastMessageIndex = updatedMessages.lastIndex
 
-                            // Перевіряємо, що останнє повідомлення дійсно від асистента і стрімінгове
                             if (lastMessageIndex >= 0 &&
                                 !updatedMessages[lastMessageIndex].isFromUser &&
-                                updatedMessages[lastMessageIndex].isStreaming) {
-
+                                updatedMessages[lastMessageIndex].isStreaming
+                            ) {
                                 updatedMessages[lastMessageIndex] = updatedMessages[lastMessageIndex].copy(
                                     text = fullResponse
                                 )
-
                                 Log.d(TAG, "UI updated with message: '${fullResponse.take(50)}...'")
                             }
 
@@ -129,42 +120,34 @@ class ChatViewModel @Inject constructor(
 
                 Log.d(TAG, "Stream collection completed. Total chunks: $chunkCount")
 
-                // 4. Після завершення стріму позначаємо повідомлення як завершене
                 _uiState.update { currentState ->
                     val updatedMessages = currentState.messages.toMutableList()
                     val lastMessageIndex = updatedMessages.lastIndex
 
                     if (lastMessageIndex >= 0 &&
                         !updatedMessages[lastMessageIndex].isFromUser &&
-                        updatedMessages[lastMessageIndex].isStreaming) {
-
+                        updatedMessages[lastMessageIndex].isStreaming
+                    ) {
                         updatedMessages[lastMessageIndex] = updatedMessages[lastMessageIndex].copy(
                             isStreaming = false
                         )
-
                         Log.d(TAG, "Message marked as completed")
                     }
 
-                    currentState.copy(messages = updatedMessages)
+                    currentState.copy(messages = updatedMessages, isLoading = false)
                 }
 
             } catch (e: Exception) {
-                // Обробка помилок під час потокової передачі
                 Log.e(TAG, "Error during streaming: ${e.message}", e)
-
-                // Видаляємо порожнє стрімінгове повідомлення і додаємо повідомлення про помилку
                 _uiState.update { currentState ->
                     val messagesWithoutStreaming = currentState.messages.filter { !it.isStreaming }
                     val errorMessage = ChatMessage(
-                        text = "Error: ${e.message}",
+                        text = "Error: ${e.message ?: "Unknown error"}",
                         isFromUser = false,
                         isError = true
                     )
-                    currentState.copy(messages = messagesWithoutStreaming + errorMessage)
+                    currentState.copy(messages = messagesWithoutStreaming + errorMessage, isLoading = false)
                 }
-            } finally {
-                // 5. Після завершення потоку вимикаємо індикатор завантаження
-                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
