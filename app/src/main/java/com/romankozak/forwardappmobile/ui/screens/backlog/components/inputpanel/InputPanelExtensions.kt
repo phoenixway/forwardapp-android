@@ -227,9 +227,9 @@ fun ReminderChip(
     modifier: Modifier = Modifier
 ) {
     Surface(
+        // CHANGE: The internal padding has been adjusted to allow the parent composable to control alignment.
         modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
