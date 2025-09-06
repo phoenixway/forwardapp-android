@@ -1,4 +1,3 @@
-// ReminderParser.kt - Improved version with better error handling
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner
 
 import android.util.Log
@@ -27,10 +26,17 @@ class ReminderParser @Inject constructor(
 ) {
     private val TAG = "ReminderParser"
 
+    // --- ДОДАНО: Словник для конвертації слів у числа ---
+    private val textToNumberMap = mapOf(
+        "один" to 1, "одну" to 1, "одна" to 1,
+        "два" to 2, "дві" to 2,
+        "три" to 3, "чотири" to 4, "п'ять" to 5, "шість" to 6,
+        "сім" to 7, "вісім" to 8, "дев'ять" to 9, "десять" to 10
+    )
+
     fun parseAsync(text: String, callback: (ReminderParseResult) -> Unit) {
         Log.d(TAG, "[ReminderParser] Parsing started: '$text'")
 
-        // Check NER manager state first
         val nerState = nerManager.nerState.value
         if (nerState !is NerState.Ready) {
             Log.w(TAG, "[ReminderParser] NER not ready, state: $nerState, trying fallback")
@@ -83,7 +89,6 @@ class ReminderParser @Inject constructor(
             }
         } catch (e: TimeoutCancellationException) {
             Log.w(TAG, "Parsing timeout for: '$text', trying fallback")
-            // Try fallback parsing on timeout
             fallbackParseDuration(text) ?: ReminderParseResult(
                 originalText = text,
                 dateTimeEntities = emptyList(),
@@ -93,7 +98,6 @@ class ReminderParser @Inject constructor(
             )
         } catch (e: Exception) {
             Log.e(TAG, "Parsing error for: '$text'", e)
-            // Try fallback parsing on error
             fallbackParseDuration(text) ?: ReminderParseResult(
                 originalText = text,
                 dateTimeEntities = emptyList(),
@@ -109,20 +113,21 @@ class ReminderParser @Inject constructor(
         return NerReminderParser.parse(text, nerEntities)
     }
 
-    // Enhanced fallback parser with more patterns
+    // --- ЗМІНЕНО: Резервний парсер тепер обробляє числа, написані словами ---
+// Виправлений fallback parser метод для ReminderParser.kt
     private fun fallbackParseDuration(text: String): ReminderParseResult? {
         val cleanText = text.lowercase(Locale.forLanguageTag("uk-UA")).trim()
         Log.d(TAG, "[ReminderParser] Fallback parsing: '$cleanText'")
 
-        // Enhanced pattern to match various Ukrainian duration formats
+        // Створюємо рядок з усіма числовими словами для Regex
+        val numberWords = textToNumberMap.keys.joinToString("|")
+
+        // ВИПРАВЛЕНИЙ патерн - тепер включає всі варіанти слів для хвилин
+        val durationPattern = Regex("""(через|за)\s*(\d+|$numberWords)\s*(хв|хвилин|хвилину|год|годин|годину|дні|днів|день|тижн|тижні|тиждень|місяць|місяці|року|років)""")
+
         val patterns = listOf(
-            // "через X хв/год/днів" pattern
-            Regex("""через\s*(\d+)\s*(хв|хвилин|год|годин|дні|днів|день|тижн|тижні|тиждень|місяць|місяці)"""),
-            // "за X хв/год" pattern
-            Regex("""за\s*(\d+)\s*(хв|хвилин|год|годин|дні|днів|день|тижн|тижні|тиждень|місяць|місяці)"""),
-            // "о 15:30" or "в 9" time patterns
+            durationPattern,
             Regex("""(?:о|в)\s*(\d{1,2})(?:[:.]\s*(\d{2}))?"""),
-            // "завтра", "сьогодні" etc
             Regex("""(сьогодні|завтра|післязавтра)(?:\s*о?\s*(\d{1,2})(?:[:.]\s*(\d{2}))?)?""")
         )
 
@@ -131,90 +136,91 @@ class ReminderParser @Inject constructor(
             if (match != null) {
                 val calendar = Calendar.getInstance()
                 var success = false
-                var suggestionText = match.value
+                val suggestionText = match.value
 
-                when {
-                    // Duration patterns (через/за X units)
-                    match.groups[2]?.value != null -> {
-                        val number = match.groups[1]?.value?.toIntOrNull() ?: continue
-                        val unit = match.groups[2]?.value ?: continue
+                // Визначаємо, чи це патерн тривалості
+                val isDuration = pattern == durationPattern
+                if (isDuration) {
+                    val numberString = match.groups[2]?.value ?: continue
+                    // Конвертуємо або слово, або цифру в число
+                    val number = textToNumberMap[numberString] ?: numberString.toIntOrNull() ?: continue
+                    val unit = match.groups[3]?.value ?: continue
 
-                        success = when (unit) {
-                            "хв", "хвилин" -> {
-                                calendar.add(Calendar.MINUTE, number)
-                                true
-                            }
-                            "год", "годин" -> {
-                                calendar.add(Calendar.HOUR_OF_DAY, number)
-                                true
-                            }
-                            "дні", "днів", "день" -> {
-                                calendar.add(Calendar.DAY_OF_YEAR, number)
-                                true
-                            }
-                            "тижн", "тижні", "тиждень" -> {
-                                calendar.add(Calendar.WEEK_OF_YEAR, number)
-                                true
-                            }
-                            "місяць", "місяці" -> {
-                                calendar.add(Calendar.MONTH, number)
-                                true
-                            }
-                            else -> false
+                    Log.d(TAG, "[ReminderParser] Fallback found: number=$number, unit='$unit'")
+
+                    success = when {
+                        unit.startsWith("хв") -> { calendar.add(Calendar.MINUTE, number); true }
+                        unit.startsWith("год") -> { calendar.add(Calendar.HOUR_OF_DAY, number); true }
+                        unit.startsWith("дн") || unit.startsWith("день") -> { calendar.add(Calendar.DAY_OF_YEAR, number); true }
+                        unit.startsWith("тижн") -> { calendar.add(Calendar.WEEK_OF_YEAR, number); true }
+                        unit.startsWith("місяць") -> { calendar.add(Calendar.MONTH, number); true }
+                        unit.startsWith("рок") -> { calendar.add(Calendar.YEAR, number); true }
+                        else -> {
+                            Log.w(TAG, "[ReminderParser] Unknown time unit: '$unit'")
+                            false
                         }
                     }
+                } else {
+                    // Логіка для інших патернів (час, відносні дати)
+                    when {
+                        // Time patterns (о/в X:XX)
+                        match.groups[1]?.value?.toIntOrNull() != null -> {
+                            val hour = match.groups[1]?.value?.toInt() ?: continue
+                            val minute = match.groups[2]?.value?.toIntOrNull() ?: 0
+                            if (hour in 0..23 && minute in 0..59) {
+                                calendar.set(Calendar.HOUR_OF_DAY, hour)
+                                calendar.set(Calendar.MINUTE, minute)
+                                calendar.set(Calendar.SECOND, 0)
+                                calendar.set(Calendar.MILLISECOND, 0)
 
-                    // Time patterns (о/в X:XX)
-                    match.groups[1]?.value?.toIntOrNull() != null -> {
-                        val hour = match.groups[1]?.value?.toIntOrNull() ?: continue
-                        val minute = match.groups[2]?.value?.toIntOrNull() ?: 0
-
-                        if (hour in 0..23 && minute in 0..59) {
-                            calendar.set(Calendar.HOUR_OF_DAY, hour)
-                            calendar.set(Calendar.MINUTE, minute)
-                            calendar.set(Calendar.SECOND, 0)
-                            calendar.set(Calendar.MILLISECOND, 0)
-
-                            // If time is in the past, move to tomorrow
-                            if (calendar.timeInMillis < System.currentTimeMillis()) {
-                                calendar.add(Calendar.DAY_OF_YEAR, 1)
-                            }
-                            success = true
-                        }
-                    }
-
-                    // Date patterns (завтра, сьогодні etc)
-                    else -> {
-                        val dateWord = match.groups[1]?.value
-                        val hour = match.groups[2]?.value?.toIntOrNull()
-                        val minute = match.groups[3]?.value?.toIntOrNull() ?: 0
-
-                        when (dateWord) {
-                            "завтра" -> {
-                                calendar.add(Calendar.DAY_OF_YEAR, 1)
-                                success = true
-                            }
-                            "післязавтра" -> {
-                                calendar.add(Calendar.DAY_OF_YEAR, 2)
-                                success = true
-                            }
-                            "сьогодні" -> {
+                                // Якщо час уже минув сьогодні, перенести на завтра
+                                val now = Calendar.getInstance()
+                                if (calendar.timeInMillis < now.timeInMillis) {
+                                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+                                }
                                 success = true
                             }
                         }
-
-                        if (success && hour != null && hour in 0..23 && minute in 0..59) {
-                            calendar.set(Calendar.HOUR_OF_DAY, hour)
-                            calendar.set(Calendar.MINUTE, minute)
-                        } else if (success) {
-                            // Default time if no time specified
-                            calendar.set(Calendar.HOUR_OF_DAY, 9)
-                            calendar.set(Calendar.MINUTE, 0)
-                        }
-
-                        if (success) {
-                            calendar.set(Calendar.SECOND, 0)
-                            calendar.set(Calendar.MILLISECOND, 0)
+                        // Date patterns (завтра, сьогодні etc)
+                        else -> {
+                            val dateWord = match.groups[1]?.value
+                            when (dateWord) {
+                                "сьогодні" -> {
+                                    // Якщо є час, встановлюємо його
+                                    val hour = match.groups[2]?.value?.toIntOrNull()
+                                    val minute = match.groups[3]?.value?.toIntOrNull() ?: 0
+                                    if (hour != null) {
+                                        calendar.set(Calendar.HOUR_OF_DAY, hour)
+                                        calendar.set(Calendar.MINUTE, minute)
+                                    } else {
+                                        calendar.set(Calendar.HOUR_OF_DAY, 9)
+                                        calendar.set(Calendar.MINUTE, 0)
+                                    }
+                                    calendar.set(Calendar.SECOND, 0)
+                                    calendar.set(Calendar.MILLISECOND, 0)
+                                    success = true
+                                }
+                                "завтра" -> {
+                                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+                                    val hour = match.groups[2]?.value?.toIntOrNull() ?: 9
+                                    val minute = match.groups[3]?.value?.toIntOrNull() ?: 0
+                                    calendar.set(Calendar.HOUR_OF_DAY, hour)
+                                    calendar.set(Calendar.MINUTE, minute)
+                                    calendar.set(Calendar.SECOND, 0)
+                                    calendar.set(Calendar.MILLISECOND, 0)
+                                    success = true
+                                }
+                                "післязавтра" -> {
+                                    calendar.add(Calendar.DAY_OF_YEAR, 2)
+                                    val hour = match.groups[2]?.value?.toIntOrNull() ?: 9
+                                    val minute = match.groups[3]?.value?.toIntOrNull() ?: 0
+                                    calendar.set(Calendar.HOUR_OF_DAY, hour)
+                                    calendar.set(Calendar.MINUTE, minute)
+                                    calendar.set(Calendar.SECOND, 0)
+                                    calendar.set(Calendar.MILLISECOND, 0)
+                                    success = true
+                                }
+                            }
                         }
                     }
                 }
@@ -222,17 +228,24 @@ class ReminderParser @Inject constructor(
                 if (success) {
                     Log.d(TAG, "[ReminderParser] Fallback successful with pattern: ${pattern.pattern}")
 
-                    // Extract goal text (everything except the time expression)
-                    val goalText = cleanText.replace(match.value, "").trim()
+                    // ВИПРАВЛЕНО: Правильне видалення розпізнаної частини з тексту
+                    val matchStart = match.range.first
+                    val matchEnd = match.range.last + 1
+
+                    val beforeMatch = cleanText.substring(0, matchStart).trim()
+                    val afterMatch = cleanText.substring(matchEnd).trim()
+                    val goalText = (beforeMatch + " " + afterMatch).trim()
+
+                    Log.d(TAG, "[ReminderParser] Goal text extracted: '$goalText' (before: '$beforeMatch', after: '$afterMatch')")
 
                     return ReminderParseResult(
                         originalText = text,
                         dateTimeEntities = listOf(
                             DateTimeEntity(
                                 text = match.value,
-                                label = "DURATION",
-                                start = match.range.first,
-                                end = match.range.last + 1,
+                                label = if (isDuration) "DURATION" else "TIME",
+                                start = matchStart,
+                                end = matchEnd,
                                 confidence = 0.8f
                             )
                         ),
