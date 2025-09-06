@@ -5,8 +5,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParser
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.CoroutineScope
@@ -50,17 +50,20 @@ class SmartDebouncer(private val delayMs: Long) {
     }
 }
 
+// --- ЗМІНЕНО: Додано alarmScheduler в конструктор ---
 class InputHandler(
     private val goalRepository: GoalRepository,
     private val scope: CoroutineScope,
     private val listIdFlow: StateFlow<String>,
     private val resultListener: ResultListener,
-    private val reminderParser: ReminderParser
+    private val reminderParser: ReminderParser,
+    private val alarmScheduler: AlarmScheduler // Додана залежність
 ) {
-    private val TAG = "NER_DEBUG"
+    private val TAG = "ReminderFlow"
     private val smartDebouncer = SmartDebouncer(800L)
     private var nerJob: Job? = null
 
+    // --- ЗМІНЕНО: Видалено непотрібний метод onGoalCreatedWithReminder ---
     interface ResultListener {
         fun updateInputState(
             inputValue: TextFieldValue? = null,
@@ -77,7 +80,6 @@ class InputHandler(
         fun requestNavigation(route: String)
         fun forceRefresh()
         fun addQuickRecord(text: String)
-        fun onGoalCreatedWithReminder(goalId: String)
     }
 
     fun onInputTextChanged(newValue: TextFieldValue, currentInputMode: InputMode) {
@@ -95,7 +97,6 @@ class InputHandler(
         }
     }
 
-    // This function is now only for the live UI suggestion.
     private suspend fun parseReminderForSuggestion(text: String) {
         try {
             val result = reminderParser.parseWithTimeout(text, 10000L)
@@ -110,7 +111,7 @@ class InputHandler(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "[InputHandler] Suggestion parse error: ${e.message}", e)
+            Log.e(TAG, "Suggestion parse error: ${e.message}", e)
             withContext(Dispatchers.Main) {
                 resultListener.updateInputState(clearDetectedReminder = true)
             }
@@ -123,13 +124,10 @@ class InputHandler(
         resultListener.updateInputState(inputMode = mode, localSearchQuery = searchQuery)
     }
 
-    // ... (початок файлу InputHandler.kt без змін) ...
-
     fun submitInput(inputValue: TextFieldValue, inputMode: InputMode) {
         val originalText = inputValue.text.trim()
         if (originalText.isBlank()) return
 
-        // Скасовуємо будь-який фоновий аналіз для підказок
         clearAndCancelParsing()
 
         when (inputMode) {
@@ -137,20 +135,15 @@ class InputHandler(
                 val currentListId = listIdFlow.value
                 if (currentListId.isBlank()) return
 
-                // --- НОВА ЛОГІКА ---
-                // 1. Надаємо миттєвий зворотний зв'язок: очищуємо поле введення.
-                // UI більше не чекає на завершення аналізу.
                 resultListener.updateInputState(
                     inputValue = TextFieldValue(""),
                     clearDetectedReminder = true
                 )
 
-                // 2. Запускаємо "важку" роботу (аналіз та збереження) у фоновому потоці.
                 scope.launch(Dispatchers.IO) {
                     try {
-                        // Запускаємо аналіз тексту безпосередньо для результату.
                         val definitiveResult = reminderParser.parseWithTimeout(originalText, 10000L)
-                        Log.d(TAG, "[InputHandler] Parser for submit finished. Success: ${definitiveResult.success}")
+                        Log.d(TAG, "Submit Parser Result: success=${definitiveResult.success}, calendar=${definitiveResult.calendar?.time}, suggestion='${definitiveResult.suggestionText}'")
 
                         var textToSave = originalText
                         var reminderTime: Long? = null
@@ -166,33 +159,28 @@ class InputHandler(
                             }
                         }
 
-                        // Зберігаємо ціль в базу даних.
-                        val newItemIdentifier: String = if (reminderTime != null) {
-                            goalRepository.addGoalWithReminder(textToSave, currentListId, reminderTime)
-                        } else {
-                            goalRepository.addGoalToList(textToSave, currentListId)
-                        }
-
+                        val newItemIdentifier: String
                         if (reminderTime != null) {
-                            resultListener.onGoalCreatedWithReminder(newItemIdentifier)
+                            // --- ЗМІНЕНО: Отримуємо повний об'єкт Goal, а не лише ID ---
+                            val newGoal = goalRepository.addGoalWithReminder(textToSave, currentListId, reminderTime)
+                            newItemIdentifier = newGoal.id
+                            Log.d(TAG, "Goal object created, now scheduling: ID=${newGoal.id}, text='${newGoal.text}', reminderTime=${newGoal.reminderTime}")
+                            alarmScheduler.schedule(newGoal)
+                        } else {
+                            newItemIdentifier = goalRepository.addGoalToList(textToSave, currentListId)
                         }
 
-                        // 3. Після завершення фонової роботи, оновлюємо UI,
-                        // щоб список прокрутився до нової цілі.
                         withContext(Dispatchers.Main) {
                             resultListener.updateInputState(
                                 newlyAddedItemId = newItemIdentifier
                             )
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "[InputHandler] Submit error: ${e.message}", e)
-                        // У випадку помилки можна показати сповіщення користувачу.
-                        // Наразі поле вже очищено, тому додаткових дій не потрібно.
+                        Log.e(TAG, "Submit error: ${e.message}", e)
                     }
                 }
             }
             InputMode.AddQuickRecord -> {
-                // Для швидких записів поведінка може бути аналогічною
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
                 resultListener.addQuickRecord(originalText)
             }
@@ -203,8 +191,6 @@ class InputHandler(
             InputMode.SearchInList -> { /* Live search, no action */ }
         }
     }
-
-// ... (решта файлу InputHandler.kt без змін) ...
 
     fun onClearDetectedReminder() {
         clearAndCancelParsing()
@@ -220,7 +206,6 @@ class InputHandler(
         clearAndCancelParsing()
     }
 
-    // ... (rest of the file is unchanged)
     fun onAddWebLinkConfirm(url: String?, name: String?) {
         if (url.isNullOrBlank()) {
             onDismissLinkDialogs()

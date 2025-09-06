@@ -20,32 +20,33 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         private const val CHANNEL_ID = "goal_reminders_channel"
     }
 
-    private val TAG = "ReminderReceiver"
+    // --- ДОДАНО: Єдиний тег для логування всього процесу ---
+    private val TAG = "ReminderFlow"
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.i(TAG, "onReceive triggered! The alarm fired.")
+        Log.i(TAG, "Receiver: onReceive triggered! The alarm fired.")
 
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID)
         val goalText = intent.getStringExtra(EXTRA_GOAL_TEXT)
 
         if (goalId == null || goalText == null) {
-            Log.e(TAG, "Received broadcast with missing data. GoalId: $goalId, GoalText: $goalText")
+            Log.e(TAG, "Receiver: Received broadcast with missing data. GoalId: $goalId, GoalText: $goalText")
             return
         }
 
-        Log.d(TAG, "Received data: GoalId='$goalId', GoalText='$goalText'")
+        Log.d(TAG, "Receiver: Received data: GoalId='$goalId', GoalText='$goalText'")
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.d(TAG, "Creating notification channel '$CHANNEL_ID'.")
+            Log.d(TAG, "Receiver: Creating notification channel '$CHANNEL_ID'.")
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Нагадування по цілях",
                 NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
-            Log.d(TAG, "Notification channel created.")
+            Log.d(TAG, "Receiver: Notification channel created.")
         }
 
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
@@ -68,13 +69,13 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             .build()
 
         try {
-            Log.i(TAG, "Showing notification for goal ID: $goalId")
+            Log.i(TAG, "Receiver: Showing notification for goal ID: $goalId")
             notificationManager.notify(goalId.hashCode(), notification)
-            Log.i(TAG, "Notification successfully posted.")
+            Log.i(TAG, "Receiver: Notification successfully posted.")
         } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException while showing notification. Check POST_NOTIFICATIONS permission.", e)
+            Log.e(TAG, "Receiver: SecurityException while showing notification. Check POST_NOTIFICATIONS permission.", e)
         } catch (e: Exception) {
-            Log.e(TAG, "An unexpected error occurred during notification display.", e)
+            Log.e(TAG, "Receiver: An unexpected error occurred during notification display.", e)
         }
     }
 }

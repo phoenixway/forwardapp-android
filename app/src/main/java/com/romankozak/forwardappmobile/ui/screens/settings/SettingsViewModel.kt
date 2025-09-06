@@ -22,7 +22,6 @@ data class SettingsUiState(
     val nerModelUri: String = "",
     val nerTokenizerUri: String = "",
     val nerLabelsUri: String = "",
-    // --- ДОДАНО: Властивість для стану NER-моделі ---
     val nerState: NerState = NerState.NotInitialized
 )
 
@@ -30,7 +29,6 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
     private val ollamaService: OllamaService,
-    // --- ДОДАНО: Впровадження NerManager ---
     private val nerManager: NerManager
 ) : ViewModel() {
 
@@ -38,7 +36,6 @@ class SettingsViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     init {
-        // --- ДОДАНО: Відстеження стану NER-моделі ---
         viewModelScope.launch {
             nerManager.nerState.collect { state ->
                 _uiState.update { it.copy(nerState = state) }
@@ -56,8 +53,6 @@ class SettingsViewModel @Inject constructor(
             )
 
             combine(settingsFlows) { values ->
-                // Оновлюємо _uiState, але не перезаписуємо nerState,
-                // оскільки він надходить з окремого потоку.
                 _uiState.update {
                     it.copy(
                         ollamaUrl = values[0],
@@ -69,7 +64,6 @@ class SettingsViewModel @Inject constructor(
                     )
                 }
             }.collect {
-                // Автоматично завантажуємо моделі Ollama, якщо URL є
                 if (_uiState.value.ollamaUrl.isNotBlank()) {
                     fetchAvailableModels()
                 }
@@ -115,7 +109,6 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(nerLabelsUri = uri) }
     }
 
-    // --- ДОДАНО: Метод для перезавантаження моделі ---
     fun reloadNerModel() {
         nerManager.reinitialize()
     }
@@ -123,10 +116,8 @@ class SettingsViewModel @Inject constructor(
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
-            // Save Ollama settings
             settingsRepo.saveOllamaUrl(currentState.ollamaUrl)
             settingsRepo.saveOllamaModels(currentState.fastModel, currentState.smartModel)
-            // Save NER settings
             settingsRepo.saveNerUris(
                 modelUri = currentState.nerModelUri,
                 tokenizerUri = currentState.nerTokenizerUri,

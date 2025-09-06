@@ -214,7 +214,9 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope,
         listIdFlow,
         this,                 // ViewModel як ResultListener
-        reminderParser        // Parser
+        reminderParser,
+        alarmScheduler // <-- Передайте екземпляр планувальника
+
     )
 
 
@@ -433,14 +435,14 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(selectedItemIds = selectedIds) }
     }
 
-    override fun onGoalCreatedWithReminder(goalId: String) {
+    /*fun onGoalCreatedWithReminder(goalId: String) {
         viewModelScope.launch {
             goalRepository.getGoalById(goalId)?.let { newGoal ->
                 alarmScheduler.schedule(newGoal)
                 // НЕ показуємо snackbar тут, це робиться в InputHandler
             }
         }
-    }
+    }*/
 
     fun onListChooserResult(targetListId: String) {
         val actionType = pendingAction ?: return

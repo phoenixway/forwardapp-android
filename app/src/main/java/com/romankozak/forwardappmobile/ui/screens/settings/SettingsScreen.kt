@@ -1,9 +1,14 @@
 package com.romankozak.forwardappmobile.ui.screens.settings
 
+import android.Manifest
+import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,18 +19,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
@@ -49,7 +54,7 @@ fun getFileName(uri: Uri, context: Context): String {
     return fileName ?: "Unknown file"
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     planningSettings: PlanningSettingsState,
@@ -71,7 +76,25 @@ fun SettingsScreen(
     var tempLongTag by remember(planningSettings.longTag) { mutableStateOf(planningSettings.longTag) }
     var tempVaultName by remember(initialVaultName) { mutableStateOf(initialVaultName) }
 
+    // --- ПОКРАЩЕННЯ: Визначаємо, чи були внесені зміни, щоб активувати кнопку "Зберегти" ---
+    val isDirty by remember {
+        derivedStateOf {
+            tempShowModes != planningSettings.showModes ||
+                    tempDailyTag != planningSettings.dailyTag ||
+                    tempMediumTag != planningSettings.mediumTag ||
+                    tempLongTag != planningSettings.longTag ||
+                    tempVaultName != initialVaultName ||
+                    uiState.ollamaUrl != viewModel.uiState.value.ollamaUrl ||
+                    uiState.fastModel != viewModel.uiState.value.fastModel ||
+                    uiState.smartModel != viewModel.uiState.value.smartModel ||
+                    uiState.nerModelUri != viewModel.uiState.value.nerModelUri ||
+                    uiState.nerTokenizerUri != viewModel.uiState.value.nerTokenizerUri ||
+                    uiState.nerLabelsUri != viewModel.uiState.value.nerLabelsUri
+        }
+    }
+
     Scaffold(
+        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
@@ -89,7 +112,8 @@ fun SettingsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(12.dp)
+                    .imePadding(),
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(
@@ -101,6 +125,8 @@ fun SettingsScreen(
                 ) { Text("Cancel") }
                 Spacer(Modifier.width(8.dp))
                 Button(
+                    // --- ПОКРАЩЕННЯ: Кнопка активна лише за наявності змін ---
+                    enabled = isDirty,
                     onClick = {
                         onSave(
                             tempShowModes,
@@ -122,9 +148,11 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .fillMaxSize()
+                .imePadding()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            PermissionsSettingsCard()
 
             OllamaSettingsCard(
                 state = uiState,
@@ -136,13 +164,16 @@ fun SettingsScreen(
 
             NerSettingsCard(
                 state = uiState,
-                onModelFileSelected = { uri -> viewModel.onNerModelFileSelected(uri) },
-                onTokenizerFileSelected = { uri -> viewModel.onNerTokenizerFileSelected(uri) },
-                onLabelsFileSelected = { uri -> viewModel.onNerLabelsFileSelected(uri) },
+                onModelFileSelected = viewModel::onNerModelFileSelected,
+                onTokenizerFileSelected = viewModel::onNerTokenizerFileSelected,
+                onLabelsFileSelected = viewModel::onNerLabelsFileSelected,
                 onReloadClick = viewModel::reloadNerModel
             )
 
-            SettingsCard(title = "Planning Modes") {
+            SettingsCard(
+                title = "Planning Modes",
+                icon = Icons.Default.Tune
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text("Show planning scale modes", modifier = Modifier.weight(1f))
                     Switch(checked = tempShowModes, onCheckedChange = { tempShowModes = it })
@@ -167,7 +198,10 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsCard(title = "Integrations") {
+            SettingsCard(
+                title = "Integrations",
+                icon = Icons.Default.Link
+            ) {
                 Text("Specify the exact name of your Obsidian Vault for link integration.")
                 AnimatedTextField(
                     value = tempVaultName,
@@ -178,7 +212,10 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsCard(title = "Contexts") {
+            SettingsCard(
+                title = "Contexts",
+                icon = Icons.Default.Label
+            ) {
                 OutlinedButton(
                     onClick = onManageContextsClick,
                     modifier = Modifier.fillMaxWidth(),
@@ -188,6 +225,100 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+// --- ПОКРАЩЕННЯ: Повністю перероблена секція дозволів для кращого вигляду ---
+@Composable
+private fun PermissionsSettingsCard() {
+    val context = LocalContext.current
+    var permissionUpdateTrigger by remember { mutableIntStateOf(0) }
+
+    val hasNotificationPermission = remember(permissionUpdateTrigger) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    val canScheduleExactAlarms = remember(permissionUpdateTrigger) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
+    }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { permissionUpdateTrigger++ }
+    )
+
+    SettingsCard(title = "Permissions", icon = Icons.Default.Security) {
+        PermissionRow(
+            icon = Icons.Default.Notifications,
+            name = "Notifications",
+            description = "Required to show reminders",
+            isGranted = hasNotificationPermission,
+            onGrantClick = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        )
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        PermissionRow(
+            icon = Icons.Default.Alarm,
+            name = "Exact Alarms",
+            description = "Required for reminders to be on time",
+            isGranted = canScheduleExactAlarms,
+            onGrantClick = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PermissionRow(
+    icon: ImageVector,
+    name: String,
+    description: String,
+    isGranted: Boolean,
+    onGrantClick: () -> Unit
+) {
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        headlineContent = { Text(name) },
+        supportingContent = { Text(description) },
+        trailingContent = {
+            if (isGranted) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Granted",
+                    tint = Color(0xFF388E3C)
+                )
+            } else {
+                Button(onClick = onGrantClick, contentPadding = PaddingValues(horizontal = 16.dp)) {
+                    Text("Grant")
+                }
+            }
+        }
+    )
 }
 
 
@@ -200,7 +331,10 @@ private fun OllamaSettingsCard(
     onFastModelSelect: (String) -> Unit,
     onSmartModelSelect: (String) -> Unit
 ) {
-    SettingsCard(title = "Ollama AI Integration") {
+    SettingsCard(
+        title = "Ollama AI Integration",
+        icon = Icons.Default.Dns
+    ) {
         AnimatedTextField(
             value = state.ollamaUrl,
             onValueChange = onUrlChange,
@@ -253,21 +387,15 @@ private fun NerSettingsCard(
 ) {
     val context = LocalContext.current
 
-    // --- ВИРІШЕННЯ: Використовуємо OpenDocument замість GetContent ---
     val modelLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let {
             try {
-                // Запитуємо постійний дозвіл на читання
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 onModelFileSelected(it.toString())
             } catch (e: SecurityException) {
                 Log.e("NerSettings", "Failed to take persistable permission for model file", e)
-                // Якщо не вдалося отримати постійний дозвіл, все одно спробуємо використати URI
                 onModelFileSelected(it.toString())
             }
         }
@@ -278,10 +406,7 @@ private fun NerSettingsCard(
     ) { uri: Uri? ->
         uri?.let {
             try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 onTokenizerFileSelected(it.toString())
             } catch (e: SecurityException) {
                 Log.e("NerSettings", "Failed to take persistable permission for tokenizer file", e)
@@ -295,10 +420,7 @@ private fun NerSettingsCard(
     ) { uri: Uri? ->
         uri?.let {
             try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 onLabelsFileSelected(it.toString())
             } catch (e: SecurityException) {
                 Log.e("NerSettings", "Failed to take persistable permission for labels file", e)
@@ -307,12 +429,14 @@ private fun NerSettingsCard(
         }
     }
 
-    SettingsCard(title = "Date/Time NER Model (ONNX)") {
+    SettingsCard(
+        title = "Date/Time NER Model (ONNX)",
+        icon = Icons.Default.Memory
+    ) {
         FileSelector(
             label = "Model File (.onnx)",
             selectedFileUri = state.nerModelUri,
             onSelectClick = {
-                // Специфікуємо MIME типи для кращої фільтрації
                 modelLauncher.launch(arrayOf("*/*", "application/octet-stream"))
             },
             context = context
@@ -354,7 +478,7 @@ private fun NerStatusIndicator(
         is NerState.Downloading -> Triple(
             Icons.Default.Sync,
             MaterialTheme.colorScheme.primary,
-            "Завантаження та перевірка файлів... ${nerState.progress}%"
+            "Завантаження: ${nerState.progress}%"
         )
         is NerState.Error -> Triple(
             Icons.Default.Error,
@@ -368,24 +492,34 @@ private fun NerStatusIndicator(
         NerState.Ready -> Triple(
             Icons.Default.CheckCircle,
             Color(0xFF388E3C),
-            "Модель успішно завантажена і готова"
+            "Модель успішно завантажена"
         )
     }
 
     val animatedColor by animateColorAsState(targetValue = color, label = "ner_status_color")
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(vertical = 4.dp)
-    ) {
-        Icon(imageVector = icon, contentDescription = "Status", tint = animatedColor)
-        Text(text = text, style = MaterialTheme.typography.bodyMedium, color = animatedColor, modifier = Modifier.weight(1f))
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            Icon(imageVector = icon, contentDescription = "Status", tint = animatedColor)
+            Text(text = text, style = MaterialTheme.typography.bodyMedium, color = animatedColor, modifier = Modifier.weight(1f))
 
-        if (nerState is NerState.Error || (nerState is NerState.NotInitialized && areAllFilesSelected)) {
-            OutlinedButton(onClick = onReloadClick) {
-                Text("Спробувати знову")
+            if (nerState is NerState.Error || (nerState is NerState.NotInitialized && areAllFilesSelected)) {
+                OutlinedButton(onClick = onReloadClick) {
+                    Text("Спробувати")
+                }
             }
+        }
+        // --- ПОКРАЩЕННЯ: Додано індикатор прогресу ---
+        if (nerState is NerState.Downloading) {
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { nerState.progress / 100f },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -467,9 +601,11 @@ private fun ModelSelector(
 }
 
 
+// --- ПОКРАЩЕННЯ: SettingsCard тепер може приймати іконку ---
 @Composable
 private fun SettingsCard(
     title: String,
+    icon: ImageVector? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -477,7 +613,16 @@ private fun SettingsCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(title, style = MaterialTheme.typography.titleMedium)
+            }
             content()
         }
     }
