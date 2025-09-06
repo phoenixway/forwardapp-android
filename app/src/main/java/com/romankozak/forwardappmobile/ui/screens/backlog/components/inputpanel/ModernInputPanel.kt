@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.backlog.components
+package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -44,10 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.domain.ReminderParseResult
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
 import kotlinx.coroutines.delay
-import kotlin.math.abs
 
 private val modes = listOf(InputMode.SearchInList, InputMode.SearchGlobal, InputMode.AddGoal, InputMode.AddQuickRecord)
 
@@ -189,10 +188,20 @@ fun ModernInputPanel(
                 exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
             ) {
                 reminderParseResult?.let {
-                    ReminderChip(
-                        suggestionText = it.suggestionText ?: "",
-                        onClear = onClearReminder
-                    )
+                    if (it.success) {
+                        ReminderChip(
+                            suggestionText = it.suggestionText ?: "",
+                            onClear = onClearReminder
+                        )
+                    } else {
+                        // Show error message for failed parsing
+                        Text(
+                            text = "Не вдалося розпізнати дату/час: ${it.errorMessage}",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 
@@ -322,6 +331,7 @@ fun ModernInputPanel(
 
                                 NerIndicator(
                                     isActive = isNerActive,
+                                    hasText = inputValue.text.isNotBlank(), // Add this line
                                     modifier = Modifier.align(Alignment.CenterEnd)
                                 )
                             }
@@ -487,9 +497,13 @@ fun ModernInputPanel(
 }
 
 @Composable
-private fun NerIndicator(isActive: Boolean, modifier: Modifier = Modifier) {
+private fun NerIndicator(
+    isActive: Boolean,
+    hasText: Boolean, // Add this parameter
+    modifier: Modifier = Modifier
+) {
     AnimatedVisibility(
-        visible = isActive,
+        visible = isActive && hasText, // Show only when NER is active AND there's text
         modifier = modifier,
         enter = fadeIn() + scaleIn(),
         exit = fadeOut() + scaleOut()

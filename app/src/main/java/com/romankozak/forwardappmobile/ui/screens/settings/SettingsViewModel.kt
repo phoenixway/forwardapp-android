@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerManager
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -19,19 +21,30 @@ data class SettingsUiState(
     // NER Model
     val nerModelUri: String = "",
     val nerTokenizerUri: String = "",
-    val nerLabelsUri: String = ""
+    val nerLabelsUri: String = "",
+    // --- ДОДАНО: Властивість для стану NER-моделі ---
+    val nerState: NerState = NerState.NotInitialized
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
-    private val ollamaService: OllamaService
+    private val ollamaService: OllamaService,
+    // --- ДОДАНО: Впровадження NerManager ---
+    private val nerManager: NerManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState = _uiState.asStateFlow()
 
     init {
+        // --- ДОДАНО: Відстеження стану NER-моделі ---
+        viewModelScope.launch {
+            nerManager.nerState.collect { state ->
+                _uiState.update { it.copy(nerState = state) }
+            }
+        }
+
         viewModelScope.launch {
             val settingsFlows = listOf(
                 settingsRepo.ollamaUrlFlow,
@@ -43,26 +56,21 @@ class SettingsViewModel @Inject constructor(
             )
 
             combine(settingsFlows) { values ->
-                SettingsUiState(
-                    ollamaUrl = values[0],
-                    fastModel = values[1],
-                    smartModel = values[2],
-                    nerModelUri = values[3],
-                    nerTokenizerUri = values[4],
-                    nerLabelsUri = values[5]
-                )
-            }.collect { state ->
+                // Оновлюємо _uiState, але не перезаписуємо nerState,
+                // оскільки він надходить з окремого потоку.
                 _uiState.update {
                     it.copy(
-                        ollamaUrl = state.ollamaUrl,
-                        fastModel = state.fastModel,
-                        smartModel = state.smartModel,
-                        nerModelUri = state.nerModelUri,
-                        nerTokenizerUri = state.nerTokenizerUri,
-                        nerLabelsUri = state.nerLabelsUri
+                        ollamaUrl = values[0],
+                        fastModel = values[1],
+                        smartModel = values[2],
+                        nerModelUri = values[3],
+                        nerTokenizerUri = values[4],
+                        nerLabelsUri = values[5]
                     )
                 }
-                if (state.ollamaUrl.isNotBlank()) {
+            }.collect {
+                // Автоматично завантажуємо моделі Ollama, якщо URL є
+                if (_uiState.value.ollamaUrl.isNotBlank()) {
                     fetchAvailableModels()
                 }
             }
@@ -105,6 +113,11 @@ class SettingsViewModel @Inject constructor(
 
     fun onNerLabelsFileSelected(uri: String) {
         _uiState.update { it.copy(nerLabelsUri = uri) }
+    }
+
+    // --- ДОДАНО: Метод для перезавантаження моделі ---
+    fun reloadNerModel() {
+        nerManager.reinitialize()
     }
 
     fun saveSettings() {
