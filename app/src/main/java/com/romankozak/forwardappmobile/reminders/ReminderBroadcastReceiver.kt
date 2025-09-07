@@ -10,10 +10,9 @@ import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.romankozak.forwardappmobile.MainActivity
-import com.romankozak.forwardappmobile.R
 
 class ReminderBroadcastReceiver : BroadcastReceiver() {
 
@@ -22,6 +21,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         const val EXTRA_GOAL_TEXT = "EXTRA_GOAL_TEXT"
         const val EXTRA_GOAL_DESCRIPTION = "EXTRA_GOAL_DESCRIPTION"
         const val EXTRA_GOAL_EMOJI = "EXTRA_GOAL_EMOJI"
+        const val EXTRA_INFO = "EXTRA_INFO"
         private const val CHANNEL_ID = "goal_reminders_channel"
         private const val ACTION_COMPLETE = "ACTION_COMPLETE"
         private const val ACTION_SNOOZE = "ACTION_SNOOZE"
@@ -30,21 +30,17 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.i(tag, "onReceive triggered! The alarm fired.")
+        Log.i(tag, "onReceive triggered! Action: ${intent.action}")
 
-        // Handle notification actions
         when (intent.action) {
             ACTION_COMPLETE -> {
-                handleCompleteAction(context, intent)
-                return
+                handleCompleteAction(context, intent); return
             }
             ACTION_SNOOZE -> {
-                handleSnoozeAction(context, intent)
-                return
+                handleSnoozeAction(context, intent); return
             }
             ACTION_DISMISS -> {
-                handleDismissAction(context, intent)
-                return
+                handleDismissAction(context, intent); return
             }
         }
 
@@ -52,15 +48,71 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val goalText = intent.getStringExtra(EXTRA_GOAL_TEXT)
         val goalDescription = intent.getStringExtra(EXTRA_GOAL_DESCRIPTION)
         val goalEmoji = intent.getStringExtra(EXTRA_GOAL_EMOJI) ?: "🎯"
+        val extraInfo = intent.getStringExtra(EXTRA_INFO)
 
-        if ((goalId == null) || (goalText == null)) {
+        if (goalId == null || goalText == null) {
             Log.e(tag, "Received broadcast with missing data. GoalId: $goalId, GoalText: $goalText")
             return
         }
 
+        Log.d(tag, "Starting reminder for goal: $goalText")
+
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val isScreenOn = pm.isInteractive
+
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel(notificationManager)
-        showNotification(context, notificationManager, goalId, goalText, goalDescription, goalEmoji)
+
+        if (!isScreenOn) {
+            // Увімкнути екран
+            val wl = pm.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "ForwardApp:ReminderWakeLock"
+            )
+            wl.acquire(3000) // потримати 3 секунди
+
+            startLockScreenActivity(context, goalId, goalText, goalDescription, goalEmoji, extraInfo)
+        } else {
+            val notificationText = buildString {
+                if (!goalDescription.isNullOrBlank()) append(goalDescription)
+                if (!extraInfo.isNullOrBlank()) {
+                    if (isNotEmpty()) append("\n")
+                    append(extraInfo)
+                }
+            }
+            showNotification(context, notificationManager, goalId, goalText, notificationText, goalEmoji)
+        }
+    }
+
+    private fun startLockScreenActivity(
+        context: Context,
+        goalId: String,
+        goalText: String,
+        goalDescription: String?,
+        goalEmoji: String,
+        extraInfo: String?
+    ) {
+        try {
+            val lockScreenIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
+                putExtra(EXTRA_GOAL_ID, goalId)
+                putExtra(EXTRA_GOAL_TEXT, goalText)
+                putExtra(EXTRA_GOAL_DESCRIPTION, goalDescription)
+                putExtra(EXTRA_GOAL_EMOJI, goalEmoji)
+                putExtra(EXTRA_INFO, extraInfo)
+
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            }
+
+            context.startActivity(lockScreenIntent)
+            Log.d(tag, "Lock screen activity started successfully for goal: $goalId")
+        } catch (e: Exception) {
+            Log.e(tag, "Error starting lock screen activity", e)
+        }
     }
 
     private fun createNotificationChannel(notificationManager: NotificationManager) {
@@ -97,22 +149,6 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         goalDescription: String?,
         goalEmoji: String
     ) {
-        // Intent для відкриття lock screen Activity
-        val lockScreenIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(EXTRA_GOAL_ID, goalId)
-            putExtra(EXTRA_GOAL_TEXT, goalText)
-            putExtra(EXTRA_GOAL_DESCRIPTION, goalDescription)
-            putExtra(EXTRA_GOAL_EMOJI, goalEmoji)
-        }
-        val fullScreenPendingIntent = PendingIntent.getActivity(
-            context,
-            goalId.hashCode(),
-            lockScreenIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Actions
         val completeIntent = createActionIntent(context, ACTION_COMPLETE, goalId)
         val snoozeIntent = createActionIntent(context, ACTION_SNOOZE, goalId)
         val dismissIntent = createActionIntent(context, ACTION_DISMISS, goalId)
@@ -127,23 +163,21 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("$goalEmoji Reminder")
-            .setContentText(goalText)
+            .setContentTitle("$goalEmoji $goalText")
+            .setContentText(goalDescription)
             .setStyle(
                 NotificationCompat.BigTextStyle()
                     .bigText(expandedText)
-                    .setSummaryText("Time to achieve your goals!")
+                    .setSummaryText("Час досягати ваших цілей!")
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(false)
             .setOngoing(true)
-            .setContentIntent(fullScreenPendingIntent)
-            .setFullScreenIntent(fullScreenPendingIntent, true) // ⚡ Головне місце!
-            .addAction(android.R.drawable.ic_menu_save, "Done ✅", completeIntent)
-            .addAction(android.R.drawable.ic_media_pause, "Snooze ⏰", snoozeIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Skip ❌", dismissIntent)
-            .setColor(0xFF4CAF50.toInt())
+            .addAction(android.R.drawable.ic_menu_save, "Готово ✅", completeIntent)
+            .addAction(android.R.drawable.ic_media_pause, "Відкласти ⏰", snoozeIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Пропустити ❌", dismissIntent)
+            .setColor(0xFF6366F1.toInt())
             .setVibrate(longArrayOf(0, 300, 200, 300, 200, 800))
             .setLights(Color.BLUE, 1000, 500)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -167,18 +201,21 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
     private fun handleCompleteAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
+        Log.d(tag, "Goal completed via notification: $goalId")
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(goalId.hashCode())
     }
 
     private fun handleSnoozeAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        Log.d(tag, "Goal snoozed via notification: $goalId")
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE)  as NotificationManager
         nm.cancel(goalId.hashCode())
     }
 
     private fun handleDismissAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
+        Log.d(tag, "Goal dismissed via notification: $goalId")
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(goalId.hashCode())
     }

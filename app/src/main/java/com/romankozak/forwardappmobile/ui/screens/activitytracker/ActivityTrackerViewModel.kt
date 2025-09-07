@@ -6,14 +6,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.reminders.cancelForActivityRecord
+import com.romankozak.forwardappmobile.reminders.scheduleForActivityRecord
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
 class ActivityTrackerViewModel @Inject constructor(
-    private val repository: ActivityRepository
+    private val repository: ActivityRepository,
+    private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
 
     private val _inputText = MutableStateFlow("")
@@ -28,13 +33,16 @@ class ActivityTrackerViewModel @Inject constructor(
     private val _isEditingLastTimedRecord = MutableStateFlow(false)
     val isEditingLastTimedRecord = _isEditingLastTimedRecord.asStateFlow()
 
+    // Додаємо стан для діалогу нагадування
+    private val _recordForReminder = MutableStateFlow<ActivityRecord?>(null)
+    val recordForReminder = _recordForReminder.asStateFlow()
+
     val activityLog: StateFlow<List<ActivityRecord>> = repository.getLogStream()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val lastOngoingActivity: StateFlow<ActivityRecord?> = activityLog.map { log ->
         log.firstOrNull { it.isOngoing }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
 
     fun onInputTextChanged(text: String) {
         _inputText.value = text
@@ -66,18 +74,12 @@ class ActivityTrackerViewModel @Inject constructor(
         clearInput()
     }
 
-    // ✨ ВИПРАВЛЕНО: Логіка тепер явно фільтрує "коментарі"
     fun onEditRequest(record: ActivityRecord) {
-        // Ця логіка стосується тільки записів, що мають час
         if (!record.isTimeless) {
-            // 1. Створюємо список тільки "справжніх" активностей (не коментарів)
             val timedRecords = activityLog.value.filter { !it.isTimeless }
-            // 2. Знаходимо останню з них
             val lastTimedRecord = timedRecords.lastOrNull()
-            // 3. Порівнюємо ID запису, що редагується, з ID останньої активності
             _isEditingLastTimedRecord.value = (record.id == lastTimedRecord?.id)
         } else {
-            // Коментарі ніколи не можуть бути "останньою активністю"
             _isEditingLastTimedRecord.value = false
         }
         _editingRecord.value = record
@@ -137,5 +139,43 @@ class ActivityTrackerViewModel @Inject constructor(
 
     fun onClearLogConfirm() = viewModelScope.launch {
         repository.clearLog()
+    }
+
+    // Реалізуємо функції для роботи з нагадуваннями
+    fun onSetReminder(record: ActivityRecord) {
+        _recordForReminder.value = record
+    }
+
+    fun onReminderDialogDismiss() {
+        _recordForReminder.value = null
+    }
+
+    fun onSetReminderTime(year: Int, month: Int, day: Int, hour: Int, minute: Int) = viewModelScope.launch {
+        val record = _recordForReminder.value
+        if (record != null) {
+            val calendar = Calendar.getInstance().apply {
+                set(year, month, day, hour, minute, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+
+            val updatedRecord = record.copy(reminderTime = calendar.timeInMillis)
+            repository.updateRecord(updatedRecord)
+
+            // Плануємо нагадування через AlarmScheduler
+            alarmScheduler.scheduleForActivityRecord(updatedRecord)
+        }
+        onReminderDialogDismiss()
+    }
+
+    fun onClearReminder() = viewModelScope.launch {
+        val record = _recordForReminder.value
+        if (record != null) {
+            val updatedRecord = record.copy(reminderTime = null)
+            repository.updateRecord(updatedRecord)
+
+            // Скасовуємо нагадування
+            alarmScheduler.cancelForActivityRecord(record)
+        }
+        onReminderDialogDismiss()
     }
 }

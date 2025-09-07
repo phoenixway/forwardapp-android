@@ -205,3 +205,10 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
         db.execSQL("ALTER TABLE goals ADD COLUMN reminder_time INTEGER")
     }
 }
+
+val MIGRATION_20_21 = object : Migration(20, 21) { // Замініть X та Y на відповідні номери версій
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE activity_records ADD COLUMN reminderTime INTEGER")
+    }
+}
+

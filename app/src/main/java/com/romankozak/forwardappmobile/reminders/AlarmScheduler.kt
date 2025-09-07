@@ -1,3 +1,5 @@
+// Файл: app/src/main/java/com/romankozak/forwardappmobile/reminders/AlarmScheduler.kt
+
 package com.romankozak.forwardappmobile.reminders
 
 import android.app.AlarmManager
@@ -20,95 +22,103 @@ import javax.inject.Singleton
 @Singleton
 class AlarmScheduler @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : AlarmSchedulerInterface { // Імплементуємо інтерфейс
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
     private val tag = "ReminderFlow"
 
+    // Існуючий метод для Goal
     fun schedule(goal: Goal) {
         Log.d(tag, "AlarmScheduler: schedule() called for goal ID: ${goal.id}, text: '${goal.text}', reminderTime: ${goal.reminderTime}")
-
-        val reminderTime = goal.reminderTime
-        if (reminderTime == null) {
-            Log.w(tag, "AlarmScheduler: Goal has no reminderTime. Aborting schedule.")
-            return
-        }
-
-        // Check current time and reminder time
-        val currentTime = System.currentTimeMillis()
-        val formattedCurrent = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(Date(currentTime))
-        val formattedReminder = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(Date(reminderTime))
-
-        Log.d(tag, "AlarmScheduler: Current time: $formattedCurrent ($currentTime)")
-        Log.d(tag, "AlarmScheduler: Reminder time: $formattedReminder ($reminderTime)")
-        Log.d(tag, "AlarmScheduler: Time difference: ${reminderTime - currentTime}ms")
-
-        if (reminderTime <= currentTime) {
+        val reminderTime = goal.reminderTime ?: return
+        if (reminderTime <= System.currentTimeMillis()) {
             Log.w(tag, "AlarmScheduler: Reminder time is in the past or now. Aborting schedule.")
             return
         }
-
-        // Check all necessary permissions
-        if (!checkPermissions()) {
-            return
-        }
+        if (!checkPermissions()) return
 
         val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, goal.id)
             putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, goal.text)
-            // Add additional data for better UX
             putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, goal.description)
             putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "🎯")
         }
+        setExactAlarm(goal.id.hashCode(), reminderTime, intent)
+    }
 
+    // Існуючий метод для Goal
+    fun cancel(goal: Goal) {
+        Log.d(tag, "AlarmScheduler: cancel() called for goal ID: ${goal.id}")
+        cancelAlarm(goal.id.hashCode())
+    }
+
+    // Новий універсальний метод для планування
+    override fun scheduleNotification(
+        requestCode: Int,
+        triggerTime: Long,
+        title: String,
+        message: String,
+        extraInfo: String?
+    ) {
+        Log.d(tag, "AlarmScheduler: scheduleNotification() called for requestCode: $requestCode, triggerTime: $triggerTime")
+        if (triggerTime <= System.currentTimeMillis()) {
+            Log.w(tag, "AlarmScheduler: Trigger time is in the past. Aborting schedule.")
+            return
+        }
+        if (!checkPermissions()) return
+
+        val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
+            // Використовуємо стандартні поля для універсальності
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, requestCode.toString())
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, title)
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, message)
+            putExtra("EXTRA_INFO", extraInfo) // Додаткова інформація
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "🔔")
+        }
+        setExactAlarm(requestCode, triggerTime, intent)
+    }
+
+    // Новий універсальний метод для скасування
+    override fun cancelNotification(requestCode: Int) {
+        Log.d(tag, "AlarmScheduler: cancelNotification() called for requestCode: $requestCode")
+        cancelAlarm(requestCode)
+    }
+
+    private fun setExactAlarm(requestCode: Int, triggerTime: Long, intent: Intent) {
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            goal.id.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         try {
-            Log.i(tag, "AlarmScheduler: Setting exact alarm for goal ID: ${goal.id} at $formattedReminder")
+            val formattedReminder = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(Date(triggerTime))
+            Log.i(tag, "AlarmScheduler: Setting exact alarm for requestCode: $requestCode at $formattedReminder")
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    reminderTime,
-                    pendingIntent
-                )
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             } else {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    reminderTime,
-                    pendingIntent
-                )
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             }
-
             Log.i(tag, "AlarmScheduler: Alarm successfully scheduled.")
-
-            // Verify the alarm was set
-            verifyAlarmSet(goal.id, reminderTime)
-
         } catch (e: SecurityException) {
-            Log.e(tag, "AlarmScheduler: SecurityException while scheduling alarm. Check permissions.", e)
-        } catch (e: Exception) {
-            Log.e(tag, "AlarmScheduler: An unexpected error occurred during scheduling.", e)
+            Log.e(tag, "AlarmScheduler: SecurityException while scheduling alarm.", e)
         }
     }
 
-    fun cancel(goal: Goal) {
-        Log.d(tag, "AlarmScheduler: cancel() called for goal ID: ${goal.id}")
+    private fun cancelAlarm(requestCode: Int) {
         val intent = Intent(context, ReminderBroadcastReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            goal.id.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
-        Log.i(tag, "AlarmScheduler: Alarm for goal ID: ${goal.id} was cancelled.")
+        Log.i(tag, "AlarmScheduler: Alarm for requestCode: $requestCode was cancelled.")
     }
 
+    // Решта коду без змін (checkPermissions, checkBatteryOptimization, etc.)
     private fun checkPermissions(): Boolean {
         // Check POST_NOTIFICATIONS permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

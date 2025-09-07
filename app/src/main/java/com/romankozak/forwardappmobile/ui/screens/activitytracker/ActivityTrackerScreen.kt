@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/activitytracker/ActivityTrackerScreen.kt ---
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.activitytracker
@@ -44,7 +43,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
-// ✨ ДОДАНО: Властивості-розширення, що виправляє помилки 'Unresolved reference'
+// Властивості-розширення, що виправляє помилки 'Unresolved reference'
 private val ActivityRecord.isTimeless: Boolean
     get() = this.startTime == null
 
@@ -62,6 +61,7 @@ fun ActivityTrackerScreen(
     val editingRecord by viewModel.editingRecord.collectAsStateWithLifecycle()
     val recordToDelete by viewModel.recordToDelete.collectAsStateWithLifecycle()
     val isEditingLastTimedRecord by viewModel.isEditingLastTimedRecord.collectAsStateWithLifecycle()
+    val recordForReminder by viewModel.recordForReminder.collectAsStateWithLifecycle()
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -101,8 +101,10 @@ fun ActivityTrackerScreen(
             modifier = Modifier.padding(paddingValues),
             onEdit = viewModel::onEditRequest,
             onRestart = viewModel::onRestartActivity,
-            onDelete = viewModel::onDeleteRequest
+            onDelete = viewModel::onDeleteRequest,
+            onSetReminder = viewModel::onSetReminder
         )
+
         editingRecord?.let { recordToEdit ->
             EditRecordDialog(
                 record = recordToEdit,
@@ -131,6 +133,13 @@ fun ActivityTrackerScreen(
                 dismissButton = { TextButton(onClick = { showClearConfirmDialog = false }) { Text("Скасувати") } }
             )
         }
+
+        ReminderDialog(
+            record = recordForReminder,
+            onDismiss = viewModel::onReminderDialogDismiss,
+            onSetReminder = viewModel::onSetReminderTime,
+            onClearReminder = viewModel::onClearReminder
+        )
     }
 }
 
@@ -161,7 +170,8 @@ private fun ActivityLog(
     modifier: Modifier = Modifier,
     onEdit: (ActivityRecord) -> Unit,
     onRestart: (ActivityRecord) -> Unit,
-    onDelete: (ActivityRecord) -> Unit
+    onDelete: (ActivityRecord) -> Unit,
+    onSetReminder: (ActivityRecord) -> Unit
 ) {
     val groupedByDate = remember(log) { log.groupBy { toDateHeader(it.createdAt) } }
     val lazyListState = rememberLazyListState()
@@ -199,7 +209,8 @@ private fun ActivityLog(
                         record = record,
                         onEdit = onEdit,
                         onRestart = onRestart,
-                        onDelete = onDelete
+                        onDelete = onDelete,
+                        onSetReminder = onSetReminder
                     )
                     if (records.last() != record) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -215,7 +226,8 @@ private fun LogEntryItem(
     record: ActivityRecord,
     onEdit: (ActivityRecord) -> Unit,
     onRestart: (ActivityRecord) -> Unit,
-    onDelete: (ActivityRecord) -> Unit
+    onDelete: (ActivityRecord) -> Unit,
+    onSetReminder: (ActivityRecord) -> Unit
 ) {
     if (record.isTimeless) {
         OutlinedCard(
@@ -277,6 +289,25 @@ private fun LogEntryItem(
             )
 
             Row {
+                // ========= ЗМІНА ТУТ =========
+                if (record.isOngoing) {
+                    val isReminderSet = record.reminderTime != null
+                    FilledTonalIconButton(
+                        onClick = { onSetReminder(record) },
+                        modifier = Modifier.size(32.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = if (isReminderSet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isReminderSet) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (isReminderSet) Icons.Default.NotificationImportant else Icons.Default.Notifications,
+                            contentDescription = "Встановити нагадування",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                // ========= КІНЕЦЬ ЗМІНИ =========
                 IconButton(onClick = { onRestart(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
                 IconButton(onClick = { onDelete(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
                 IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary) }
@@ -284,6 +315,9 @@ private fun LogEntryItem(
         }
     }
 }
+
+
+// --- РЕШТА ФАЙЛУ ЗАЛИШАЄТЬСЯ БЕЗ ЗМІН ---
 
 @Composable
 private fun TextWithBadgeLayout(
@@ -334,6 +368,7 @@ private fun TextWithBadgeLayout(
                 textPlaceableForSingleLine.placeRelative(
                     0,
                     Alignment.CenterVertically.align(textPlaceableForSingleLine.height, totalHeight)
+
                 )
                 badgePlaceable?.placeRelative(
                     textPlaceableForSingleLine.width + horizontalGap,
@@ -653,5 +688,165 @@ private fun formatDuration(millis: Long): String {
         hours > 0 -> "${hours}h"
         minutes > 0 -> "${minutes}m"
         else -> "< 1m"
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderDialog(
+    record: ActivityRecord?,
+    onDismiss: () -> Unit,
+    onSetReminder: (Int, Int, Int, Int, Int) -> Unit,
+    onClearReminder: () -> Unit
+) {
+    if (record == null) return
+
+    var selectedDate by remember { mutableStateOf<Long?>(null) }
+    var selectedTime by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val calendar = Calendar.getInstance()
+    val currentReminderTime = record.reminderTime
+
+    LaunchedEffect(currentReminderTime) {
+        if (currentReminderTime != null) {
+            calendar.timeInMillis = currentReminderTime
+            selectedDate = currentReminderTime
+            selectedTime = calendar.get(Calendar.HOUR_OF_DAY) to calendar.get(Calendar.MINUTE)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Встановити нагадування") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Активність: ${record.text}")
+
+                if (currentReminderTime != null) {
+                    Text(
+                        "Поточне нагадування: ${SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(currentReminderTime))}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showDatePicker = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            selectedDate?.let {
+                                SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(it))
+                            } ?: "Дата"
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = { showTimePicker = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            selectedTime?.let { (hour, minute) ->
+                                String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+                            } ?: "Час"
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Row {
+                if (currentReminderTime != null) {
+                    TextButton(onClick = onClearReminder) {
+                        Text("Скасувати")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Button(
+                    onClick = {
+                        val date = selectedDate
+                        val time = selectedTime
+                        if (date != null && time != null) {
+                            calendar.timeInMillis = date
+                            onSetReminder(
+                                calendar.get(Calendar.YEAR),
+                                calendar.get(Calendar.MONTH),
+                                calendar.get(Calendar.DAY_OF_MONTH),
+                                time.first,
+                                time.second
+                            )
+                        }
+                    },
+                    enabled = selectedDate != null && selectedTime != null
+                ) {
+                    Text("Встановити")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Відмінити")
+            }
+        }
+    )
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate ?: System.currentTimeMillis()
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedDate = datePickerState.selectedDateMillis
+                    showDatePicker = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Скасувати")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        val currentTime = selectedTime ?: (calendar.get(Calendar.HOUR_OF_DAY) to calendar.get(Calendar.MINUTE))
+        val timePickerState = rememberTimePickerState(
+            initialHour = currentTime.first,
+            initialMinute = currentTime.second,
+            is24Hour = true
+        )
+
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedTime = timePickerState.hour to timePickerState.minute
+                    showTimePicker = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Скасувати")
+                }
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
     }
 }
