@@ -1,18 +1,23 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -25,14 +30,13 @@ fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
     dragDropState: SimpleDragDropState,
-    isSelected: Boolean, // Додано для визначення фону
-    isHighlighted: Boolean, // Додано для визначення фону
+    isSelected: Boolean,
+    isHighlighted: Boolean,
 
     // Параметри для SwipeableListItem
     swipeEnabled: Boolean,
     isAnotherItemSwiped: Boolean,
     resetTrigger: Int,
-    // backgroundColor: Color, // <-- ВИДАЛЕНО, будемо розраховувати тут
     onSwipeStart: () -> Unit,
     onDelete: () -> Unit,
     onMoreActionsRequest: () -> Unit,
@@ -64,15 +68,12 @@ fun InteractiveListItem(
         label = "alpha",
     )
 
-    // --- ПОЧАТОК КЛЮЧОВИХ ЗМІН ---
-    // 1. Визначаємо, чи елемент завершено
     val isCompleted = when (item) {
         is ListItemContent.GoalItem -> item.goal.completed
         is ListItemContent.SublistItem -> item.sublist.isCompleted
         else -> false
     }
 
-    // 2. Розраховуємо колір фону тут, на основі всіх станів
     val backgroundColor by animateColorAsState(
         targetValue = when {
             isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
@@ -82,11 +83,10 @@ fun InteractiveListItem(
         },
         animationSpec = spring(), label = "interactive_item_background"
     )
-    // --- КІНЕЦЬ КЛЮЧОВИХ ЗМІН ---
-
 
     val isDraggable = item is ListItemContent.GoalItem || item is ListItemContent.SublistItem
 
+    // Цей модифікатор містить всю логіку DND і він не змінюється.
     val itemModifier = modifier
         .pointerInput(dragDropState, item.item.id, isDraggable) {
             if (isDraggable) {
@@ -112,33 +112,40 @@ fun InteractiveListItem(
         }
 
     Box(modifier = itemModifier) {
-        SwipeableListItem(
-            isDragging = isDragging,
-            isAnyItemDragging = dragDropState.isDragging,
-            swipeEnabled = swipeEnabled,
-            isAnotherItemSwiped = isAnotherItemSwiped,
-            resetTrigger = resetTrigger,
-            onSwipeStart = onSwipeStart,
-            onDelete = onDelete,
-            onMoreActionsRequest = onMoreActionsRequest,
-            onGoalTransportRequest = onGoalTransportRequest,
-            onCopyContentRequest = onCopyContentRequest,
-            backgroundColor = backgroundColor, // <-- Передаємо наш розрахований колір
-            content = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        content(isDragging)
+        // --- ПОЧАТОК КЛЮЧОВОГО ВИПРАВЛЕННЯ ---
+        // Обгортаємо SwipeableListItem в `key`. Коли `swipeEnabled` зміниться
+        // з false на true, Compose повністю перестворить цей компонент з нуля,
+        // що гарантує коректну ініціалізацію його внутрішнього стану для свайпів.
+        key(swipeEnabled) {
+            SwipeableListItem(
+                isDragging = isDragging,
+                isAnyItemDragging = dragDropState.isDragging,
+                swipeEnabled = swipeEnabled,
+                isAnotherItemSwiped = isAnotherItemSwiped,
+                resetTrigger = resetTrigger,
+                onSwipeStart = onSwipeStart,
+                onDelete = onDelete,
+                onMoreActionsRequest = onMoreActionsRequest,
+                onGoalTransportRequest = onGoalTransportRequest,
+                onCopyContentRequest = onCopyContentRequest,
+                backgroundColor = backgroundColor,
+                content = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            content(isDragging)
+                        }
+                        if (isDraggable) {
+                            DragHandleIcon()
+                        }
                     }
-                    // Ручка тепер завжди тут, і фон під нею буде правильним
-                    if (isDraggable) {
-                        DragHandleIcon()
-                    }
-                }
-            },
-        )
+                },
+            )
+        }
+        // --- КІНЕЦЬ КЛЮЧОВОГО ВИПРАВЛЕННЯ ---
+
         val isTarget = dragDropState.isDragging &&
                 dragDropState.targetIndexOfDraggedItem == index &&
                 dragDropState.initialIndexOfDraggedItem != index
@@ -154,7 +161,7 @@ fun InteractiveListItem(
     }
 }
 
-// ... (решта файлу без змін) ...
+
 @Composable
 private fun DragHandleIcon(modifier: Modifier = Modifier) {
     Box(

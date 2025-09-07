@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
+import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
@@ -13,6 +14,9 @@ class SelectionHandler(
     private val listContentFlow: StateFlow<List<ListItemContent>>,
     private val resultListener: ResultListener
 ) {
+
+    private val TAG = "SelectionHandler_DEBUG"
+
 
     interface ResultListener : BaseHandlerResultListener {
         fun updateSelectionState(selectedIds: Set<String>)
@@ -34,59 +38,64 @@ class SelectionHandler(
     }
 
     fun clearSelection() {
+        // --- ДОДАНО ЛОГУВАННЯ ---
+        Log.i(TAG, "ВИКЛИК: clearSelection()")
         resultListener.updateSelectionState(emptySet())
     }
 
-    // --- ЗМІНЕНО ---
-    // Метод toggleCompletionForSelectedGoals видалено.
-    // Додано два нові методи з чіткою дією.
-
     /**
-     * Позначає всі виділені цілі як виконані, незалежно від їхнього поточного статусу.
+     * Позначає всі виділені цілі як виконані.
+     * UI оновлюється негайно, а операція з базою даних виконується у фоні.
      */
     fun markSelectedAsComplete(selectedIds: Set<String>) {
-        scope.launch {
-            if (selectedIds.isEmpty()) return@launch
+        if (selectedIds.isEmpty()) return
 
-            val goalsToUpdate = listContentFlow.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { (it as ListItemContent.GoalItem).goal }
-                .distinctBy { it.id }
+        Log.d(TAG, "ДІЯ: markSelectedAsComplete для ${selectedIds.size} елементів.")
 
-            if (goalsToUpdate.isNotEmpty()) {
+        val goalsToUpdate = listContentFlow.value
+            .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
+            .map { (it as ListItemContent.GoalItem).goal }
+            .distinctBy { it.id }
+
+        // --- ВИПРАВЛЕННЯ: Негайно виходимо з режиму вибору ---
+        clearSelection()
+
+        if (goalsToUpdate.isNotEmpty()) {
+            scope.launch {
                 val updatedGoals = goalsToUpdate.map { it.copy(completed = true, updatedAt = System.currentTimeMillis()) }
                 goalRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Позначено як виконані: ${goalsToUpdate.size}", null)
+                resultListener.forceRefresh()
             }
-
-            clearSelection()
-            resultListener.forceRefresh()
         }
     }
 
     /**
-     * Знімає позначку виконання з усіх виділених цілей, незалежно від їхнього поточного статусу.
+     * Знімає позначку виконання з усіх виділених цілей.
+     * UI оновлюється негайно, а операція з базою даних виконується у фоні.
      */
     fun markSelectedAsIncomplete(selectedIds: Set<String>) {
-        scope.launch {
-            if (selectedIds.isEmpty()) return@launch
+        if (selectedIds.isEmpty()) return
 
-            val goalsToUpdate = listContentFlow.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { (it as ListItemContent.GoalItem).goal }
-                .distinctBy { it.id }
+        Log.d(TAG, "ДІЯ: markSelectedAsIncomplete для ${selectedIds.size} елементів.")
 
-            if (goalsToUpdate.isNotEmpty()) {
+        val goalsToUpdate = listContentFlow.value
+            .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
+            .map { (it as ListItemContent.GoalItem).goal }
+            .distinctBy { it.id }
+
+        // --- ВИПРАВЛЕННЯ: Негайно виходимо з режиму вибору ---
+        clearSelection()
+
+        if (goalsToUpdate.isNotEmpty()) {
+            scope.launch {
                 val updatedGoals = goalsToUpdate.map { it.copy(completed = false, updatedAt = System.currentTimeMillis()) }
                 goalRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Знято позначку виконання: ${goalsToUpdate.size}", null)
+                resultListener.forceRefresh()
             }
-
-            clearSelection()
-            resultListener.forceRefresh()
         }
     }
-    // --- КІНЕЦЬ ЗМІН ---
 
     fun onBulkActionRequest(actionType: GoalActionType, selectedIds: Set<String>) {
         if (selectedIds.isEmpty()) return
@@ -99,11 +108,20 @@ class SelectionHandler(
         resultListener.setPendingAction(actionType, selectedIds, sourceGoalIds)
     }
 
+    /**
+     * Видаляє вибрані елементи.
+     * UI оновлюється негайно, а операція з базою даних виконується у фоні.
+     */
     fun deleteSelectedItems(selectedIds: Set<String>) {
+        if (selectedIds.isEmpty()) return
+        Log.d(TAG, "ДІЯ: deleteSelectedItems для ${selectedIds.size} елементів.")
+
+
+        // --- ВИПРАВЛЕННЯ: Негайно виходимо з режиму вибору ---
+        clearSelection()
+
         scope.launch {
-            if (selectedIds.isEmpty()) return@launch
             goalRepository.deleteListItems(selectedIds.toList())
-            clearSelection()
             resultListener.showSnackbar("Видалено елементів: ${selectedIds.size}", "Скасувати")
         }
     }
