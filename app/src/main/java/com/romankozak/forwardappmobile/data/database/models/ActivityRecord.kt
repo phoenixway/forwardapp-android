@@ -13,7 +13,8 @@ data class ActivityRecord(
     val text: String,
     val createdAt: Long = System.currentTimeMillis(),
     val startTime: Long? = null,
-    val endTime: Long? = null
+    val endTime: Long? = null,
+    val reminderTime: Long? = null
 ) {
     val isTimeless: Boolean
         get() = startTime == null && endTime == null

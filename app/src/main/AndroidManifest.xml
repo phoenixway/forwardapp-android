@@ -48,15 +48,14 @@
 
         <activity
             android:name=".reminders.ReminderLockScreenActivity"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
-            android:excludeFromRecents="true"
-
-            android:launchMode="singleTop"
+            android:exported="true"
             android:showWhenLocked="true"
-            android:taskAffinity=""
+            android:turnScreenOn="true"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
             android:screenOrientation="portrait"
-            android:resizeableActivity="false" />
+            tools:ignore="LockedOrientationActivity"
+            android:theme="@style/Theme.ForwardAppMobile.LockScreen" />
 
 
         <receiver

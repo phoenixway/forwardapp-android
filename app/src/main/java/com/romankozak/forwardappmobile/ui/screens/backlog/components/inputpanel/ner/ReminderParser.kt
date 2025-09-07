@@ -125,7 +125,7 @@ class ReminderParser @Inject constructor(
         val numberWords = textToNumberMap.keys.joinToString("|")
 
         // ВИПРАВЛЕНИЙ патерн - тепер включає всі варіанти слів для хвилин
-        val durationPattern = Regex("""(через|за)\s*(\d+|$numberWords)\s*(хв|хвилин|хвилину|год|годин|годину|дні|днів|день|тижн|тижні|тиждень|місяць|місяці|року|років)""")
+        val durationPattern = Regex("""(через|за)\s*(\d+|$numberWords)\s*(хвилину|хвилин|годину|годин|день|днів|тиждень|тижні|місяць|місяці|рік|років|хв|год|дн)\b""")
 
         val patterns = listOf(
             durationPattern,

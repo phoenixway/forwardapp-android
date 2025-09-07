@@ -409,10 +409,12 @@ private fun NerSettingsCard(
         uri?.let {
             try {
                 context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                // Зберігаємо URI тільки якщо дозвіл отримано успішно
                 onModelFileSelected(it.toString())
             } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for model file", e)
-                onModelFileSelected(it.toString())
+                // Якщо не вдалося, логуємо помилку і не зберігаємо URI
+                Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
+                // Тут можна показати повідомлення користувачу, наприклад, через Snackbar
             }
         }
     }
@@ -425,8 +427,7 @@ private fun NerSettingsCard(
                 context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 onTokenizerFileSelected(it.toString())
             } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for tokenizer file", e)
-                onTokenizerFileSelected(it.toString())
+                Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
             }
         }
     }
@@ -439,8 +440,7 @@ private fun NerSettingsCard(
                 context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 onLabelsFileSelected(it.toString())
             } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for labels file", e)
-                onLabelsFileSelected(it.toString())
+                Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
             }
         }
     }
