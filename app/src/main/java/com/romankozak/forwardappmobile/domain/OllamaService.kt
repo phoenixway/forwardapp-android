@@ -184,7 +184,7 @@ class OllamaService @Inject constructor() {
 
         try {
             Log.d(TAG, "Trying /api/chat endpoint for streaming...")
-            Log.d(TAG, "Chat request: ${messages.joinToString("\n") { "${it.role}: ${it.content}" }}")
+            Log.d(TAG, "Chat request messages: ${messages.joinToString("\n") { "${it.role}: ${it.content}" }}")
             val chatRequest = OllamaChatRequest(
                 model = model,
                 messages = messages,
@@ -198,7 +198,7 @@ class OllamaService @Inject constructor() {
             Log.w(TAG, "/api/chat failed, trying /api/generate: ${e.message}", e)
 
             val messagesText = messages.joinToString("\n") { "${it.role}: ${it.content}" }
-            val prompt = "Continue this conversation:\n$messagesText\nassistant:"
+            val prompt = "Respond to the user's query with information relevant to the conversation:\n$messagesText\nassistant:"
 
             Log.d(TAG, "Generate request prompt: $prompt")
             val generateRequest = OllamaCompletionRequest(
@@ -212,8 +212,9 @@ class OllamaService @Inject constructor() {
         }
     }.catch { e ->
         Log.e(TAG, "Error during streaming: ${e.message}", e)
-        throw e // Rethrow to be handled by the ViewModel
-    }.flowOn(Dispatchers.IO) // Ensure emissions occur on Dispatchers.IO
+        throw e
+    }.flowOn(Dispatchers.IO)
+
 
     private suspend fun kotlinx.coroutines.flow.FlowCollector<String>.processStreamingResponse(
         responseBody: ResponseBody,

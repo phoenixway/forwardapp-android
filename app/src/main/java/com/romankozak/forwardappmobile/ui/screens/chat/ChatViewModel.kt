@@ -77,7 +77,13 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
-            val history = _uiState.value.messages.mapNotNull { msg ->
+            // Add system message to the beginning of the history
+            val systemMessage = Message(
+                role = "system",
+                content = "You are a helpful assistant who answers concisely and accurately."
+            )
+
+            val history = listOf(systemMessage) + _uiState.value.messages.mapNotNull { msg ->
                 if (!msg.isError && !msg.isStreaming) {
                     Message(role = if (msg.isFromUser) "user" else "assistant", content = msg.text)
                 } else null
