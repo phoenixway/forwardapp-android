@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
 import javax.inject.Inject
 
 sealed class GoalListUiEvent {
@@ -35,6 +36,7 @@ sealed class GoalListUiEvent {
     data class ScrollToIndex(val index: Int) : GoalListUiEvent()
     object FocusSearchField : GoalListUiEvent()
     data class NavigateToEditListScreen(val listId: String) : GoalListUiEvent()
+    data class Navigate(val route: String) : GoalListUiEvent()
 }
 
 sealed class PlanningMode {
@@ -52,7 +54,6 @@ data class AppStatistics(
 sealed class DialogState {
     object Hidden : DialogState()
     data class AddList(val parentId: String?) : DialogState()
-    data class MoveList(val list: GoalList) : DialogState()
     data class ContextMenu(val list: GoalList) : DialogState()
     data class ConfirmDelete(val list: GoalList) : DialogState()
     data class EditList(val list: GoalList) : DialogState()
@@ -91,6 +92,7 @@ class GoalListViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "GoalListViewModel_DEBUG"
+        private const val LIST_BEING_MOVED_ID_KEY = "listBeingMovedId"
     }
 
     private val _highlightedListId = MutableStateFlow<String?>(null)
@@ -293,6 +295,9 @@ class GoalListViewModel @Inject constructor(
     private val _uiEventChannel = Channel<GoalListUiEvent>()
     val uiEventFlow = _uiEventChannel.receiveAsFlow()
     private val wifiSyncServer = WifiSyncServer(syncRepo, application)
+
+    private val listBeingMovedId = savedStateHandle.getStateFlow<String?>(LIST_BEING_MOVED_ID_KEY, null)
+
 
     private val reservedContextKeyMap = mapOf(
         "buy" to (SettingsRepository.ContextKeys.BUY to SettingsRepository.ContextKeys.EMOJI_BUY),
@@ -632,7 +637,41 @@ class GoalListViewModel @Inject constructor(
         _dialogState.value = DialogState.AddList(parentList.id)
     }
 
-    fun onMoveListRequest(list: GoalList) { _dialogState.value = DialogState.MoveList(list) }
+    private fun getDescendantIds(listId: String, childMap: Map<String, List<GoalList>>): Set<String> {
+        val descendants = mutableSetOf<String>()
+        val queue = ArrayDeque<String>()
+        queue.add(listId)
+        while (queue.isNotEmpty()) {
+            val currentId = queue.removeFirst()
+            childMap[currentId]?.forEach { child ->
+                descendants.add(child.id)
+                queue.add(child.id)
+            }
+        }
+        return descendants
+    }
+
+
+    fun onMoveListRequest(list: GoalList) {
+        dismissDialog()
+        savedStateHandle[LIST_BEING_MOVED_ID_KEY] = list.id
+        Log.d("MOVE_DEBUG", "[ViewModel] onMoveListRequest for list: '${list.name}' (ID: ${list.id})")
+        viewModelScope.launch {
+            val title = "Перемістити '${list.name}'"
+            val encodedTitle = URLEncoder.encode(title, "UTF-8")
+
+            val allLists = _allListsFlat.first()
+            val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+            val descendantIds = getDescendantIds(list.id, childMap).joinToString(",")
+            val currentParentId = list.parentId ?: "root"
+            val disabledIds = "${list.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
+
+            val route = "list_chooser_screen/$encodedTitle?currentParentId=$currentParentId&disabledIds=$disabledIds"
+            Log.d("MOVE_DEBUG", "[ViewModel] Generated route: $route")
+            _uiEventChannel.send(GoalListUiEvent.Navigate(route))
+        }
+    }
+
     fun onMenuRequested(list: GoalList) {
         _dialogState.value = DialogState.ContextMenu(list)
     }
@@ -786,26 +825,46 @@ class GoalListViewModel @Inject constructor(
         _listChooserUserExpandedIds.value = currentIds
     }
 
-    fun onMoveListConfirmed(newParentId: String?) {
-        val state = _dialogState.value
-        if (state !is DialogState.MoveList) return
-        val listToMove = state.list
-        if (listToMove.parentId == newParentId) {
-            dismissDialog()
-            return
-        }
+    fun onListChooserResult(newParentId: String?) {
+        Log.d("MOVE_DEBUG", "[ViewModel] onListChooserResult called with newParentId: '$newParentId'")
         viewModelScope.launch {
-            goalRepository.moveGoalList(listToMove, newParentId)
+            val listIdToMove = listBeingMovedId.value
+            Log.d("MOVE_DEBUG", "[ViewModel] Retrieved listIdToMove from state: '$listIdToMove'")
+            if (listIdToMove == null) {
+                Log.e("MOVE_DEBUG", "[ViewModel] listIdToMove is null. Aborting.")
+                return@launch
+            }
 
-            if (newParentId != null) {
-                val parentList = _allListsFlat.value.find { it.id == newParentId }
+            val listToMove = _allListsFlat.value.find { it.id == listIdToMove }
+            if (listToMove == null) {
+                Log.e("MOVE_DEBUG", "[ViewModel] Could not find list with ID '$listIdToMove' in allListsFlat. Aborting.")
+                return@launch
+            }
+
+            val finalNewParentId = if (newParentId == "root") null else newParentId
+            Log.d("MOVE_DEBUG", "[ViewModel] Final new parent ID: '$finalNewParentId'")
+
+            if (listToMove.parentId == finalNewParentId) {
+                Log.d("MOVE_DEBUG", "[ViewModel] Parent ID is unchanged. No action needed.")
+                savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
+                return@launch
+            }
+
+            Log.d("MOVE_DEBUG", "[ViewModel] Calling goalRepository.moveGoalList for list '${listToMove.name}' to parent '$finalNewParentId'")
+            goalRepository.moveGoalList(listToMove, finalNewParentId)
+
+            if (finalNewParentId != null) {
+                val parentList = _allListsFlat.value.find { it.id == finalNewParentId }
                 if (parentList != null && !parentList.isExpanded) {
+                    Log.d("MOVE_DEBUG", "[ViewModel] Expanding new parent: '${parentList.name}'")
                     goalRepository.updateGoalList(parentList.copy(isExpanded = true))
                 }
             }
+            Log.d("MOVE_DEBUG", "[ViewModel] Move operation complete. Clearing state.")
+            savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
         }
-        dismissDialog()
     }
+
 
     fun dismissDialog() {
         _dialogState.value = DialogState.Hidden

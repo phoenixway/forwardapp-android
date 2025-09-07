@@ -36,6 +36,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.DragAndDropState
@@ -89,6 +92,10 @@ fun GoalListScreen(
 
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // --- ПОЧАТОК КЛЮЧОВИХ ЗМІН: Заміна LaunchedEffect на DisposableEffect ---
+    // Обробник для розкриття списку
     LaunchedEffect(savedStateHandle) {
         savedStateHandle?.getStateFlow<String?>("list_to_reveal", null)
             ?.filterNotNull()
@@ -97,6 +104,25 @@ fun GoalListScreen(
                 savedStateHandle["list_to_reveal"] = null
             }
     }
+
+    // Обробник для результату з екрана вибору списку (надійний спосіб)
+    DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (savedStateHandle?.contains("list_chooser_result") == true) {
+                    val result = savedStateHandle.get<String?>("list_chooser_result")
+                    Log.d("MOVE_DEBUG", "[Screen] Resumed and found result: '$result'")
+                    viewModel.onListChooserResult(result)
+                    savedStateHandle.remove<String?>("list_chooser_result")
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    // --- КІНЕЦЬ КЛЮЧОВИХ ЗМІН ---
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
@@ -131,6 +157,9 @@ fun GoalListScreen(
                 }
                 is GoalListUiEvent.NavigateToEditListScreen -> {
                     navController.navigate("edit_list_screen/${event.listId}")
+                }
+                is GoalListUiEvent.Navigate -> {
+                    navController.navigate(event.route)
                 }
             }
         }
