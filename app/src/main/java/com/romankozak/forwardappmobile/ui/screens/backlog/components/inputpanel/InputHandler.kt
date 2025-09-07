@@ -5,10 +5,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
-import com.romankozak.forwardappmobile.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParser
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
-import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

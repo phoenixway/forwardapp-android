@@ -13,12 +13,12 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParser
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerManager
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
-import com.romankozak.forwardappmobile.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.domain.ner.ReminderParser
+import com.romankozak.forwardappmobile.domain.ner.NerManager
+import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
-import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxMarkdownHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputHandler

@@ -47,7 +47,7 @@
         </activity>
 
         <activity
-            android:name=".reminders.ReminderLockScreenActivity"
+            android:name=".domain.reminders.ReminderLockScreenActivity"
             android:exported="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
@@ -59,7 +59,7 @@
 
 
         <receiver
-            android:name=".reminders.ReminderBroadcastReceiver"
+            android:name=".domain.reminders.ReminderBroadcastReceiver"
             android:enabled="true"
             android:exported="false"/>
 

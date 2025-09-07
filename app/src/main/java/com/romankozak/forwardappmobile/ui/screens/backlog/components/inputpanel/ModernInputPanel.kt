@@ -42,13 +42,14 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.PopupProperties
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.screens.backlog.types.InputMode
+import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputMode
 import kotlinx.coroutines.delay
 
-private val modes = listOf(InputMode.SearchInList, InputMode.SearchGlobal, InputMode.AddGoal, InputMode.AddQuickRecord)
+private val modes = listOf(InputMode.AddGoal, InputMode.AddQuickRecord, InputMode.SearchGlobal, InputMode.SearchInList)
 
 private data class PanelColors(
     val containerColor: Color,
@@ -307,31 +308,34 @@ fun ModernInputPanel(
                         singleLine = true,
                         cursorBrush = SolidColor(panelColors.accentColor),
                         decorationBox = { innerTextField ->
-                            Box(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.CenterStart
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (inputValue.text.isEmpty()) {
-                                    Text(
-                                        text = when (inputMode) {
-                                            InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
-                                            InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
-                                            InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
-                                            InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
-                                        },
-                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                            color = panelColors.contentColor.copy(alpha = 0.7f),
-                                            fontSize = 16.sp
-                                        ),
-                                    )
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (inputValue.text.isEmpty()) {
+                                        Text(
+                                            text = when (inputMode) {
+                                                InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                                                InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
+                                                InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
+                                                InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
+                                            },
+                                            style = MaterialTheme.typography.bodyLarge.copy(
+                                                color = panelColors.contentColor.copy(alpha = 0.7f),
+                                                fontSize = 16.sp
+                                            ),
+                                        )
+                                    }
+                                    innerTextField()
                                 }
 
-                                innerTextField()
-
                                 Row(
-                                    modifier = Modifier.align(Alignment.CenterEnd),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
@@ -342,8 +346,8 @@ fun ModernInputPanel(
 
                                     AnimatedVisibility(
                                         visible = inputValue.text.isNotBlank(),
-                                        enter = fadeIn() + scaleIn(),
-                                        exit = fadeOut() + scaleOut()
+                                        enter = fadeIn(),
+                                        exit = fadeOut()
                                     ) {
                                         IconButton(
                                             onClick = { onValueChange(TextFieldValue("")) },
@@ -361,6 +365,7 @@ fun ModernInputPanel(
                             }
                         }
                     )
+
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -666,6 +671,24 @@ private fun NavigationBar(
                     modifier = Modifier.size(20.dp)
                 )
             }
+            AnimatedVisibility(
+                visible = true, // <-- Нова властивість для видимості кнопки Недавні
+                enter = fadeIn() + slideInHorizontally(),
+                exit = fadeOut() + slideOutHorizontally()
+            ) {
+                IconButton(
+                    onClick = onRecentsClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Restore,
+                        contentDescription = stringResource(R.string.recents),
+                        tint = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
@@ -756,6 +779,8 @@ private fun NavigationBar(
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { onMenuExpandedChange(false) },
+                    properties = PopupProperties(focusable = false),
+
                     modifier = Modifier
                         .width(240.dp)
                         .background(

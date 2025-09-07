@@ -1,5 +1,6 @@
-package com.romankozak.forwardappmobile.reminders
+package com.romankozak.forwardappmobile.domain.reminders
 
+import android.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -162,7 +163,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_dialog_info)
             .setContentTitle("$goalEmoji $goalText")
             .setContentText(goalDescription)
             .setStyle(
@@ -174,9 +175,9 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(false)
             .setOngoing(true)
-            .addAction(android.R.drawable.ic_menu_save, "Готово ✅", completeIntent)
-            .addAction(android.R.drawable.ic_media_pause, "Відкласти ⏰", snoozeIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Пропустити ❌", dismissIntent)
+            .addAction(R.drawable.ic_menu_save, "Готово ✅", completeIntent)
+            .addAction(R.drawable.ic_media_pause, "Відкласти ⏰", snoozeIntent)
+            .addAction(R.drawable.ic_menu_close_clear_cancel, "Пропустити ❌", dismissIntent)
             .setColor(0xFF6366F1.toInt())
             .setVibrate(longArrayOf(0, 300, 200, 300, 200, 800))
             .setLights(Color.BLUE, 1000, 500)

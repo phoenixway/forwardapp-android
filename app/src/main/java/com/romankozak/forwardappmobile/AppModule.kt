@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.room.Room
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.*
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -83,8 +84,8 @@ object AppModule {
 
     @Provides
     @Singleton // AlarmScheduler має бути синглтоном
-    fun provideAlarmScheduler(@ApplicationContext context: Context): com.romankozak.forwardappmobile.reminders.AlarmScheduler {
-        return com.romankozak.forwardappmobile.reminders.AlarmScheduler(context)
+    fun provideAlarmScheduler(@ApplicationContext context: Context): AlarmScheduler {
+        return AlarmScheduler(context)
     }
 
     @Provides

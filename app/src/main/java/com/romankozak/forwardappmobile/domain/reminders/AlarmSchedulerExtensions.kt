@@ -1,6 +1,6 @@
 // Файл: app/src/main/java/com/romankozak/forwardappmobile/reminders/AlarmSchedulerExtensions.kt
 
-package com.romankozak.forwardappmobile.reminders
+package com.romankozak.forwardappmobile.domain.reminders
 
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import java.text.SimpleDateFormat

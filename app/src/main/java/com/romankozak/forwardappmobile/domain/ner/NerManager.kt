@@ -1,5 +1,5 @@
 // NerManager.kt - Виправлена версія
-package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner
+package com.romankozak.forwardappmobile.domain.ner
 
 import android.content.Context
 import android.net.Uri

@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.romankozak.forwardappmobile.reminders.ReminderBroadcastReceiver
+import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
