@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -50,16 +49,18 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    LaunchedEffect(uiState.messages.size) {
+    // Autoscroll when messages list changes or the last streaming message updates
+    LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.text) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.lastIndex)
         }
     }
 
+    // Градієнт для фону
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
             MaterialTheme.colorScheme.surface,
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         )
     )
 
@@ -69,26 +70,26 @@ fun ChatScreen(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
                             Icons.Default.SmartToy,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                         Column {
                             Text(
                                 "AI Assistant",
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
                             )
-                            if (uiState.isLoading) {
+                            if (uiState.isLoading)
+
                                 Text(
                                     "Typing...",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                            }
                         }
                     }
                 },
@@ -96,34 +97,35 @@ fun ChatScreen(
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
             )
-        }
+        },
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(backgroundBrush)
+                .background(backgroundBrush),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .imePadding()
+                    .imePadding(),
             ) {
+                // Список повідомлень
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
+                    contentPadding = PaddingValues(vertical = 16.dp),
                 ) {
                     if (uiState.messages.isEmpty()) {
                         item {
@@ -134,13 +136,14 @@ fun ChatScreen(
                     items(uiState.messages) { message ->
                         AnimatedVisibility(
                             visible = true,
-                            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                            modifier = Modifier.fillMaxWidth()
+                            enter = slideInVertically { it } + fadeIn(),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             MessageBubble(message)
                         }
                     }
 
+                    // Індикатор набору тексту
                     if (uiState.isLoading) {
                         item {
                             TypingIndicator()
@@ -148,6 +151,7 @@ fun ChatScreen(
                     }
                 }
 
+                // Панель вводу
                 ChatInput(
                     value = userInput,
                     onValueChange = viewModel::onUserInputChange,
@@ -156,7 +160,7 @@ fun ChatScreen(
                         keyboardController?.hide()
                     },
                     isLoading = uiState.isLoading,
-                    modifier = Modifier.shadow(8.dp)
+                    modifier = Modifier.shadow(8.dp),
                 )
             }
         }
@@ -169,20 +173,21 @@ fun MessageBubble(message: ChatMessage) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         if (!isUser) {
+            // Аватар для AI
             Surface(
                 modifier = Modifier.size(32.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+                color = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Default.SmartToy,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
@@ -191,8 +196,9 @@ fun MessageBubble(message: ChatMessage) {
 
         Column(
             modifier = Modifier.widthIn(max = 280.dp),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
+            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
+            // Пухирець повідомлення
             Surface(
                 modifier = Modifier
                     .clip(
@@ -200,7 +206,7 @@ fun MessageBubble(message: ChatMessage) {
                             topStart = if (isUser) 20.dp else 4.dp,
                             topEnd = if (isUser) 4.dp else 20.dp,
                             bottomStart = 20.dp,
-                            bottomEnd = 20.dp
+                            bottomEnd = 20.dp,
                         )
                     )
                     .shadow(2.dp, RoundedCornerShape(20.dp)),
@@ -209,14 +215,14 @@ fun MessageBubble(message: ChatMessage) {
                     isUser -> MaterialTheme.colorScheme.primaryContainer
                     else -> MaterialTheme.colorScheme.surface
                 },
-                tonalElevation = if (isUser) 0.dp else 1.dp
+                tonalElevation = if (isUser) 0.dp else 1.dp,
             ) {
                 Row(
                     modifier = Modifier.padding(
                         horizontal = 16.dp,
-                        vertical = 10.dp
+                        vertical = 10.dp,
                     ),
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.Top,
                 ) {
                     Text(
                         text = if (message.text.isBlank() && message.isStreaming) "..." else message.text,
@@ -227,9 +233,10 @@ fun MessageBubble(message: ChatMessage) {
                             else -> MaterialTheme.colorScheme.onSurface
                         },
                         fontSize = 15.sp,
-                        lineHeight = 20.sp
+                        lineHeight = 20.sp,
                     )
 
+                    // Показуємо індикатор стрімінгу для повідомлень асистента
                     if (message.isStreaming && !isUser) {
                         Spacer(modifier = Modifier.width(8.dp))
                         StreamingIndicator()
@@ -237,32 +244,34 @@ fun MessageBubble(message: ChatMessage) {
                 }
             }
 
-            if (!message.isStreaming) {
+            // Час повідомлення
+            if (!message.isStreaming) { // Показуємо час тільки після завершення стрімінгу
                 Text(
                     text = formatTime(message.timestamp),
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(
                         horizontal = 8.dp,
-                        vertical = 2.dp
-                    )
+                        vertical = 2.dp,
+                    ),
                 )
             }
         }
 
         if (isUser) {
             Spacer(modifier = Modifier.width(8.dp))
+            // Аватар користувача
             Surface(
                 modifier = Modifier.size(32.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.tertiaryContainer
+                color = MaterialTheme.colorScheme.tertiaryContainer,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         "U",
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
                     )
                 }
             }
@@ -278,8 +287,8 @@ fun StreamingIndicator() {
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        )
+            repeatMode = RepeatMode.Reverse,
+        ),
     )
 
     Box(
@@ -287,8 +296,8 @@ fun StreamingIndicator() {
             .size(8.dp)
             .background(
                 MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-                RoundedCornerShape(4.dp)
-            )
+                RoundedCornerShape(4.dp),
+            ),
     )
 }
 
@@ -298,19 +307,19 @@ fun ChatInput(
     onValueChange: (String) -> Unit,
     onSendClick: () -> Unit,
     isLoading: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
+        tonalElevation = 8.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedTextField(
                 value = value,
@@ -321,41 +330,42 @@ fun ChatInput(
                 placeholder = {
                     Text(
                         "Напишіть повідомлення...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Send
+                    imeAction = ImeAction.Send,
                 ),
                 keyboardActions = KeyboardActions(onSend = { onSendClick() }),
                 enabled = !isLoading,
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                 ),
-                maxLines = 4
+                maxLines = 4,
             )
 
+            // Кнопка відправки з анімацією
             AnimatedContent(
                 targetState = isLoading,
                 transitionSpec = {
                     slideInHorizontally { it } + fadeIn() togetherWith
                             slideOutHorizontally { -it } + fadeOut()
-                }
+                },
             ) { loading ->
                 if (loading) {
                     Surface(
                         modifier = Modifier.size(48.dp),
                         shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        color = MaterialTheme.colorScheme.primaryContainer,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }
@@ -369,7 +379,7 @@ fun ChatInput(
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.surfaceVariant
-                        }
+                        },
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
@@ -380,7 +390,7 @@ fun ChatInput(
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                     }
@@ -394,19 +404,19 @@ fun ChatInput(
 fun TypingIndicator() {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
+        horizontalArrangement = Arrangement.Start,
     ) {
         Surface(
             modifier = Modifier.size(32.dp),
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.primaryContainer
+            color = MaterialTheme.colorScheme.primaryContainer,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Default.SmartToy,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
         }
@@ -415,11 +425,11 @@ fun TypingIndicator() {
         Surface(
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 4.dp),
         ) {
             Row(
                 modifier = Modifier.padding(16.dp, 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 repeat(3) { index ->
                     val infiniteTransition = rememberInfiniteTransition()
@@ -428,8 +438,8 @@ fun TypingIndicator() {
                         targetValue = 1f,
                         animationSpec = infiniteRepeatable(
                             animation = tween(600),
-                            repeatMode = RepeatMode.Reverse
-                        )
+                            repeatMode = RepeatMode.Reverse,
+                        ),
                     )
 
                     LaunchedEffect(Unit) {
@@ -441,8 +451,8 @@ fun TypingIndicator() {
                             .size(8.dp)
                             .background(
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
-                                RoundedCornerShape(4.dp)
-                            )
+                                RoundedCornerShape(4.dp),
+                            ),
                     )
                 }
             }
@@ -456,13 +466,13 @@ fun EmptyStateMessage() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             Icons.Default.SmartToy,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -470,7 +480,7 @@ fun EmptyStateMessage() {
             fontSize = 20.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -478,7 +488,7 @@ fun EmptyStateMessage() {
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = 20.sp
+            lineHeight = 20.sp,
         )
     }
 }
