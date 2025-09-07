@@ -192,28 +192,6 @@ fun HandleDialogs(
                 onEditRequest = { viewModel.onEditRequest(it) },
             )
         }
-        is DialogState.MoveList -> {
-            val disabledIds = remember(state.list.id, filteredListHierarchyForDialog.childMap) {
-                getDescendantIds(
-                    state.list.id,
-                    filteredListHierarchyForDialog.childMap,
-                ) + state.list.id
-            }
-            FilterableListChooser(
-                title = "Перемістити '${state.list.name}'",
-                filterText = listChooserFilterText,
-                onFilterTextChanged = viewModel::onListChooserFilterChanged,
-                topLevelLists = filteredListHierarchyForDialog.topLevelLists,
-                childMap = filteredListHierarchyForDialog.childMap,
-                expandedIds = listChooserExpandedIds,
-                onToggleExpanded = viewModel::onListChooserToggleExpanded,
-                onDismiss = { viewModel.dismissDialog() },
-                onConfirm = { newParentId -> viewModel.onMoveListConfirmed(newParentId) },
-                currentParentId = state.list.parentId,
-                disabledIds = disabledIds,
-                onAddNewList = viewModel::addNewList,
-            )
-        }
 
         is DialogState.ConfirmDelete -> {
             AlertDialog(

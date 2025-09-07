@@ -183,9 +183,13 @@ fun AppNavigation(
         }
 
         composable(
-            route = "list_chooser_screen/{title}?disabledIds={disabledIds}",
+            route = "list_chooser_screen/{title}?currentParentId={currentParentId}&disabledIds={disabledIds}",
             arguments = listOf(
                 navArgument("title") { type = NavType.StringType },
+                navArgument("currentParentId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
                 navArgument("disabledIds") {
                     type = NavType.StringType
                     nullable = true
@@ -193,12 +197,21 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val viewModel: FilterableListChooserViewModel = hiltViewModel()
-            val TAG = "AddSublistDebug"
+            val TAG = "MOVE_DEBUG"
 
             val title = backStackEntry.arguments?.getString("title")?.let {
                 URLDecoder.decode(it, "UTF-8")
-            } ?: "Виберіть список"
+            } ?: "Select a list"
+
             val disabledIds = backStackEntry.arguments?.getString("disabledIds")?.split(",")?.toSet() ?: emptySet()
+            val currentParentIdArg = backStackEntry.arguments?.getString("currentParentId")
+            val currentParentId = if (currentParentIdArg == "root") null else currentParentIdArg
+
+            Log.d(TAG, "[Nav] list_chooser_screen launched.")
+            Log.d(TAG, "[Nav] Received title: '$title'")
+            Log.d(TAG, "[Nav] Received currentParentId: '$currentParentId' (from arg '$currentParentIdArg')")
+            Log.d(TAG, "[Nav] Received disabledIds: $disabledIds")
+
 
             val chooserUiState by viewModel.chooserState.collectAsStateWithLifecycle()
             val filterText by viewModel.filterText.collectAsStateWithLifecycle()
@@ -215,19 +228,14 @@ fun AppNavigation(
                 onToggleExpanded = viewModel::toggleExpanded,
                 onNavigateBack = { navController.popBackStack() },
                 onConfirm = { selectedId ->
-                    // --- ПОЧАТОК КЛЮЧОВИХ ЗМІН ---
-                    Log.d(TAG, "[ChooserScreen] onConfirm: User selected ID: '$selectedId'")
-                    // 1. Встановлюємо результат для попереднього екрана через SavedStateHandle
+                    Log.d(TAG, "[Nav] onConfirm called with selectedId: '$selectedId'. Setting result.")
                     navController.previousBackStackEntry
                         ?.savedStateHandle
-                        ?.set("list_chooser_result", selectedId ?: "") // Передаємо ID або "" для root
+                        ?.set("list_chooser_result", selectedId ?: "root")
 
-                    // 2. Повертаємось на попередній екран
                     navController.popBackStack()
-                    Log.d(TAG, "[ChooserScreen] Result set and popped backstack.")
-                    // --- КІНЕЦЬ КЛЮЧОВИХ ЗМІН ---
                 },
-                currentParentId = null,
+                currentParentId = currentParentId,
                 disabledIds = disabledIds,
                 onAddNewList = viewModel::addNewList,
                 showDescendants = showDescendants,
