@@ -1,3 +1,5 @@
+// File: GoalDetailScreen.kt
+
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
@@ -35,8 +37,8 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
+import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
@@ -414,8 +416,18 @@ fun GoalDetailScreen(
                 onClearSelection = { viewModel.selectionHandler.clearSelection() },
                 onSelectAll = { viewModel.selectionHandler.selectAllItems() },
                 onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                onToggleComplete = { viewModel.selectionHandler.toggleCompletionForSelectedGoals(uiState.selectedItemIds) },
                 onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
+                // --- ЗМІНЕНО ---
+                // Замінено onToggleComplete на дві нові дії
+                onMarkAsComplete = {
+                    // Припускаємо, що в SelectionHandler є метод markSelectedAsComplete
+                    viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds)
+                },
+                onMarkAsIncomplete = {
+                    // Припускаємо, що в SelectionHandler є метод markSelectedAsIncomplete
+                    viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds)
+                }
+                // --- КІНЕЦЬ ЗМІН ---
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -438,7 +450,7 @@ fun GoalDetailScreen(
                         viewModel.inputHandler.submitInput(
                             uiState.inputValue,
                             uiState.inputMode,
-                           // uiState.detectedReminderCalendar
+                            // uiState.detectedReminderCalendar
                         )
                     },
                     onInputModeSelected = {

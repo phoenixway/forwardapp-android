@@ -1,3 +1,5 @@
+// File: AdaptiveTopBar.kt
+
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
 import androidx.compose.foundation.layout.Column
@@ -12,8 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 
 /**
- * Спрощений AdaptiveTopBar без навігаційної панелі
- * Навігація перенесена в ModernInputPanel
+ * Спрощена AdaptiveTopBar без навігаційної панелі.
+ * Навігацію перенесено в ModernInputPanel.
  */
 @Composable
 fun AdaptiveTopBar(
@@ -24,7 +26,11 @@ fun AdaptiveTopBar(
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onDelete: () -> Unit,
-    onToggleComplete: () -> Unit,
+    // --- ЗМІНЕНО ---
+    // Видалено onToggleComplete і додано дві нові дії
+    onMarkAsComplete: () -> Unit,
+    onMarkAsIncomplete: () -> Unit,
+    // --- КІНЕЦЬ ЗМІН ---
     onMoreActions: (GoalActionType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -43,8 +49,12 @@ fun AdaptiveTopBar(
                     onClearSelection = onClearSelection,
                     onSelectAll = onSelectAll,
                     onDelete = onDelete,
-                    onToggleComplete = onToggleComplete,
                     onMoreActions = onMoreActions,
+                    // --- ЗМІНЕНО ---
+                    // Передаємо нові функції, отримані в параметрах
+                    onMarkAsComplete = onMarkAsComplete,
+                    onMarkAsIncomplete = onMarkAsIncomplete
+                    // --- КІНЕЦЬ ЗМІН ---
                 )
             }
         } else {

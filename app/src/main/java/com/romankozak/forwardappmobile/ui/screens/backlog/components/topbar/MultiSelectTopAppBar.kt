@@ -27,7 +27,12 @@ fun MultiSelectTopAppBar(
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onDelete: () -> Unit,
-    onToggleComplete: () -> Unit,
+    // --- ЗМІНЕНО ---
+    // Видалено onToggleComplete: () -> Unit
+    // Додано дві нові дії
+    onMarkAsComplete: () -> Unit,
+    onMarkAsIncomplete: () -> Unit,
+    // --- КІНЕЦЬ ЗМІН ---
     onMoreActions: (GoalActionType) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -84,16 +89,33 @@ fun MultiSelectTopAppBar(
                 )
             }
 
+            // --- ЗМІНЕНО ---
+            // Стару кнопку "DoneAll" видалено і замінено на дві нові.
+
+            // Нова кнопка "Зняти позначку виконання"
             IconButton(
-                onClick = onToggleComplete,
+                onClick = onMarkAsIncomplete,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.DoneAll,
-                    contentDescription = stringResource(R.string.toggle_completed_status),
+                    imageVector = Icons.Default.RemoveDone, // Іконка для зняття виконання
+                    contentDescription = stringResource(R.string.mark_as_incomplete), // Новий текстовий ресурс
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // Нова кнопка "Позначити як виконане"
+            IconButton(
+                onClick = onMarkAsComplete,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.TaskAlt, // Іконка для позначення виконання
+                    contentDescription = stringResource(R.string.mark_as_complete), // Новий текстовий ресурс
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            // --- КІНЕЦЬ ЗМІН ---
 
             IconButton(
                 onClick = onDelete,

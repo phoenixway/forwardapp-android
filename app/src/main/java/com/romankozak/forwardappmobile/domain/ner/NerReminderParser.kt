@@ -1,5 +1,5 @@
 // File: NerReminderParser.kt
-package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner
+package com.romankozak.forwardappmobile.domain.ner
 
 import android.util.Log
 import java.util.Calendar

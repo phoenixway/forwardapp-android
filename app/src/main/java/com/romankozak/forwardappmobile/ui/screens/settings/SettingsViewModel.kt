@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.OllamaService
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerManager
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
+import com.romankozak.forwardappmobile.domain.ner.NerManager
+import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*

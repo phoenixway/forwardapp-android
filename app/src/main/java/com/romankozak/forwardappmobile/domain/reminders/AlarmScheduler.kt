@@ -1,14 +1,15 @@
 // Файл: app/src/main/java/com/romankozak/forwardappmobile/reminders/AlarmScheduler.kt
 
-package com.romankozak.forwardappmobile.reminders
+package com.romankozak.forwardappmobile.domain.reminders
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.provider.Settings
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -124,7 +125,7 @@ class AlarmScheduler @Inject constructor(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val notificationPermission = ContextCompat.checkSelfPermission(
                 context,
-                android.Manifest.permission.POST_NOTIFICATIONS
+                Manifest.permission.POST_NOTIFICATIONS
             )
             if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
                 Log.e(tag, "AlarmScheduler: POST_NOTIFICATIONS permission not granted")
@@ -150,7 +151,7 @@ class AlarmScheduler @Inject constructor(
 
     private fun checkBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
             val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(context.packageName)
 
             if (!isIgnoringBatteryOptimizations) {

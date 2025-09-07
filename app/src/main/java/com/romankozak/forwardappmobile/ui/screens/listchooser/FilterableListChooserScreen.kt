@@ -199,6 +199,9 @@ fun FilterableListChooserScreen(
                 )
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
+                    LaunchedEffect(Unit) {
+                        searchFocusRequester.requestFocus()
+                    }
                     OutlinedTextField(
                         value = filterText,
                         onValueChange = onFilterTextChanged,

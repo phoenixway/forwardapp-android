@@ -36,24 +36,57 @@ class SelectionHandler(
     fun clearSelection() {
         resultListener.updateSelectionState(emptySet())
     }
-    fun toggleCompletionForSelectedGoals(selectedIds: Set<String>) {
+
+    // --- ЗМІНЕНО ---
+    // Метод toggleCompletionForSelectedGoals видалено.
+    // Додано два нові методи з чіткою дією.
+
+    /**
+     * Позначає всі виділені цілі як виконані, незалежно від їхнього поточного статусу.
+     */
+    fun markSelectedAsComplete(selectedIds: Set<String>) {
         scope.launch {
             if (selectedIds.isEmpty()) return@launch
+
             val goalsToUpdate = listContentFlow.value
                 .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
                 .map { (it as ListItemContent.GoalItem).goal }
                 .distinctBy { it.id }
 
             if (goalsToUpdate.isNotEmpty()) {
-                val areAllCompleted = goalsToUpdate.all { it.completed }
-                val targetState = !areAllCompleted
-                val updatedGoals = goalsToUpdate.map { it.copy(completed = targetState, updatedAt = System.currentTimeMillis()) }
+                val updatedGoals = goalsToUpdate.map { it.copy(completed = true, updatedAt = System.currentTimeMillis()) }
                 goalRepository.updateGoals(updatedGoals)
+                resultListener.showSnackbar("Позначено як виконані: ${goalsToUpdate.size}", null)
             }
+
             clearSelection()
             resultListener.forceRefresh()
         }
     }
+
+    /**
+     * Знімає позначку виконання з усіх виділених цілей, незалежно від їхнього поточного статусу.
+     */
+    fun markSelectedAsIncomplete(selectedIds: Set<String>) {
+        scope.launch {
+            if (selectedIds.isEmpty()) return@launch
+
+            val goalsToUpdate = listContentFlow.value
+                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
+                .map { (it as ListItemContent.GoalItem).goal }
+                .distinctBy { it.id }
+
+            if (goalsToUpdate.isNotEmpty()) {
+                val updatedGoals = goalsToUpdate.map { it.copy(completed = false, updatedAt = System.currentTimeMillis()) }
+                goalRepository.updateGoals(updatedGoals)
+                resultListener.showSnackbar("Знято позначку виконання: ${goalsToUpdate.size}", null)
+            }
+
+            clearSelection()
+            resultListener.forceRefresh()
+        }
+    }
+    // --- КІНЕЦЬ ЗМІН ---
 
     fun onBulkActionRequest(actionType: GoalActionType, selectedIds: Set<String>) {
         if (selectedIds.isEmpty()) return

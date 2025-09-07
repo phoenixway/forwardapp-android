@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ner.NerState
+import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import com.romankozak.forwardappmobile.ui.screens.backlogs.PlanningSettingsState
 

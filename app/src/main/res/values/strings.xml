@@ -155,6 +155,9 @@
 
     <string name="item_added">Item added</string>
     <string name="undo">Undo</string>
+    <string name="mark_as_complete">mark_as_complete</string>
+    <string name="mark_as_incomplete">mark_as_incomplete</string>
+    <string name="recents">recents</string>
 
 
 </resources>
