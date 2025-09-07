@@ -271,7 +271,11 @@ class GoalDetailViewModel @Inject constructor(
 
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedItemIds.isNotEmpty() }
+        // --- ПОЧАТОК ЗМІН: ДОДАНО ЛОГУВАННЯ ---
+        .onEach { isActive -> Log.d(TAG, "СТАН: isSelectionModeActive змінився на: $isActive") }
+        // --- КІНЕЦЬ ЗМІН ---
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
 
     val obsidianVaultName: StateFlow<String> = settingsRepository.obsidianVaultNameFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
@@ -432,6 +436,8 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     override fun updateSelectionState(selectedIds: Set<String>) {
+        // --- ДОДАНО ЛОГУВАННЯ ---
+        Log.d(TAG, "ВИКЛИК: updateSelectionState з ${selectedIds.size} елементами.")
         _uiState.update { it.copy(selectedItemIds = selectedIds) }
     }
 

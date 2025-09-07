@@ -53,6 +53,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
+private const val TAG = "BacklogScreen_DEBUG"
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalDetailScreen(
@@ -497,7 +500,11 @@ fun GoalDetailScreen(
             }
         },
     ) { paddingValues ->
+        val calculatedSwipeEnabled = !isSelectionModeActive && !dragDropState.isDragging
+        Log.v(TAG, "РЕКОМПОЗИЦІЯ ЕКРАНУ: isSelectionModeActive=$isSelectionModeActive, dragDropState.isDragging=${dragDropState.isDragging}, calculatedSwipeEnabled=$calculatedSwipeEnabled")
+
         when (uiState.currentView) {
+
             ProjectViewMode.BACKLOG -> {
                 Column(
                     modifier = Modifier
