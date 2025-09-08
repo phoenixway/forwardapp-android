@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,8 +50,10 @@ import com.romankozak.forwardappmobile.domain.RoleFile
 import com.romankozak.forwardappmobile.domain.RoleFolder
 import com.romankozak.forwardappmobile.domain.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +67,10 @@ fun ChatScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
 
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
+
+
     var showMenu by remember { mutableStateOf(false) }
     var showRoleSelectorDialog by remember { mutableStateOf(false) }
     var showTemperatureDialog by remember { mutableStateOf(false) }
@@ -70,9 +78,13 @@ fun ChatScreen(
 
     LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.text) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.lastIndex)
+            coroutineScope.launch {
+                // Даємо команду показати елемент, до якого прив'язаний requester
+                bringIntoViewRequester.bringIntoView()
+            }
         }
     }
+
 
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
@@ -208,7 +220,7 @@ fun ChatScreen(
                 state = listState,
                 modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
             ) {
                 if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
                     item { EmptyStateMessage() }
@@ -216,7 +228,7 @@ fun ChatScreen(
 
                 itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
                     val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
-
+                    val isLastMessage = index == uiState.messages.lastIndex
                     MessageBubble(
                         message = message,
                         isLastAssistantMessage = isLastAssistantMessage,
@@ -225,8 +237,13 @@ fun ChatScreen(
                             val clip = ClipData.newPlainText("chat_message", text)
                             clipboard.setPrimaryClip(clip)
                         },
-                        onRegenerate = viewModel::regenerateLastResponse
+                        onRegenerate = viewModel::regenerateLastResponse,
+                        onTranslate = { viewModel.translateMessage(message.id) },
+                        // --- ПОЧАТОК ЗМІНИ: Передаємо requester в останнє повідомлення ---
+                        bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null
+                        // --- КІНЕЦЬ ЗМІНИ ---
                     )
+
                 }
             }
 
@@ -253,13 +270,15 @@ fun ChatScreen(
     }
 }
 
-
+@OptIn(ExperimentalFoundationApi::class) // Додайте анотацію
 @Composable
 fun MessageBubble(
     message: ChatMessage,
     isLastAssistantMessage: Boolean,
     onCopyToClipboard: (String) -> Unit,
-    onRegenerate: () -> Unit
+    onRegenerate: () -> Unit,
+    onTranslate: () -> Unit,
+    bringIntoViewRequester: BringIntoViewRequester? = null // Новий параметр
 ) {
     val isUser = message.isFromUser
 
@@ -269,11 +288,13 @@ fun MessageBubble(
     ) {
         Row(
             horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Bottom,
             modifier = Modifier.fillMaxWidth()
         ) {
+            // Аватар AI
             if (!isUser) {
                 Surface(
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(32.dp).padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
@@ -289,12 +310,11 @@ fun MessageBubble(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            Column(
-                modifier = Modifier.widthIn(max = 280.dp),
-                horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
-            ) {
-                Surface(
-                    modifier = Modifier.clip(
+            // Основний контейнер повідомлення
+            Surface(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .clip(
                         RoundedCornerShape(
                             topStart = if (isUser) 20.dp else 4.dp,
                             topEnd = if (isUser) 4.dp else 20.dp,
@@ -302,17 +322,19 @@ fun MessageBubble(
                             bottomEnd = 20.dp,
                         )
                     ),
-                    color = when {
-                        message.isError -> MaterialTheme.colorScheme.errorContainer
-                        isUser -> MaterialTheme.colorScheme.primaryContainer
-                        else -> MaterialTheme.colorScheme.surface
-                    },
-                    tonalElevation = if (isUser) 0.dp else 1.dp
+                color = when {
+                    message.isError -> MaterialTheme.colorScheme.errorContainer
+                    isUser -> MaterialTheme.colorScheme.primaryContainer
+                    else -> MaterialTheme.colorScheme.surface
+                },
+                tonalElevation = if (isUser) 0.dp else 1.dp
+            ) {
+                // Вміст бульбашки... (код залишається без змін)
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
+                    // Текст повідомлення та індикатор стрімінгу
+                    Row(verticalAlignment = Alignment.Top) {
                         Text(
                             text = if (message.text.isBlank() && message.isStreaming) "..." else message.text,
                             modifier = Modifier.weight(1f, fill = false),
@@ -324,79 +346,78 @@ fun MessageBubble(
                             fontSize = 15.sp,
                             lineHeight = 20.sp
                         )
-
                         if (message.isStreaming && !isUser) {
                             Spacer(modifier = Modifier.width(8.dp))
                             StreamingIndicator()
                         }
                     }
-                }
 
-                if (!message.isStreaming) {
-                    Text(
-                        text = formatTime(message.timestamp),
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
+                    // Перекладений текст
+                    message.translatedText?.let {
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                            lineHeight = 18.sp
+                        )
+                    }
+
+                    // Час та кнопки
+                    if (!message.isStreaming) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = formatTime(message.timestamp),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (!message.isError && !isUser) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                IconButton(onClick = { onCopyToClipboard(message.text) }, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.ContentCopy, "Copy", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                if (message.isTranslating) {
+                                    CircularProgressIndicator(modifier = Modifier.size(28.dp).padding(6.dp), strokeWidth = 1.5.dp)
+                                } else {
+                                    IconButton(onClick = onTranslate, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Translate, "Translate", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                }
+                                if (isLastAssistantMessage) {
+                                    IconButton(onClick = onRegenerate, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Refresh, "Regenerate", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
+            // Аватар користувача
             if (isUser) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(32.dp).padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            "U",
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
+                        Text("U", color = MaterialTheme.colorScheme.onTertiaryContainer, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }
         }
 
-        if (!message.isStreaming && !message.isError) {
-            Row(
+        // --- ПОЧАТОК ЗМІНИ: Додаємо невидимий "якір" ---
+        bringIntoViewRequester?.let {
+            Box(
                 modifier = Modifier
-                    .padding(
-                        start = if (isUser) 0.dp else 48.dp,
-                        end = if (isUser) 48.dp else 0.dp,
-                        top = 4.dp
-                    ),
-                horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-            ) {
-                IconButton(
-                    onClick = { onCopyToClipboard(message.text) },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (isLastAssistantMessage) {
-                    IconButton(
-                        onClick = onRegenerate,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Regenerate",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+                    .height(1.dp) // Мінімальна висота, щоб не впливати на UI
+                    .fillMaxWidth()
+                    .bringIntoViewRequester(it)
+            )
         }
+        // --- КІНЕЦЬ ЗМІНИ ---
     }
 }
 
@@ -416,11 +437,15 @@ fun RoleSelectorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 500.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 200.dp, max = 500.dp)
         ) {
             Column {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (backStack.isNotEmpty()) {
@@ -439,7 +464,11 @@ fun RoleSelectorDialog(
                 }
                 Divider()
                 if (roles.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp), contentAlignment = Alignment.Center
+                    ) {
                         Text(
                             "Folder with roles is not selected in settings.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -447,8 +476,15 @@ fun RoleSelectorDialog(
                         )
                     }
                 } else if (currentItems.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text("No roles found in this folder.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp), contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No roles found in this folder.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
@@ -457,15 +493,35 @@ fun RoleSelectorDialog(
                                 is RoleFolder -> {
                                     ListItem(
                                         headlineContent = { Text(item.name) },
-                                        leadingContent = { Icon(Icons.Default.Folder, contentDescription = "Folder") },
+                                        leadingContent = {
+                                            Icon(
+                                                Icons.Default.Folder,
+                                                contentDescription = "Folder"
+                                            )
+                                        },
                                         modifier = Modifier.clickable { backStack.add(item) }
                                     )
                                 }
                                 is RoleFile -> {
                                     ListItem(
-                                        headlineContent = { Text(item.name, fontWeight = FontWeight.Medium) },
-                                        supportingContent = { Text(item.prompt.take(100) + if(item.prompt.length > 100) "..." else "", maxLines = 2) },
-                                        leadingContent = { Icon(Icons.Default.Article, contentDescription = "Role file") },
+                                        headlineContent = {
+                                            Text(
+                                                item.name,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        },
+                                        supportingContent = {
+                                            Text(
+                                                item.prompt.take(100) + if (item.prompt.length > 100) "..." else "",
+                                                maxLines = 2
+                                            )
+                                        },
+                                        leadingContent = {
+                                            Icon(
+                                                Icons.Default.Article,
+                                                contentDescription = "Role file"
+                                            )
+                                        },
                                         modifier = Modifier.clickable { onRoleSelected(item) }
                                     )
                                 }
@@ -487,11 +543,15 @@ fun ModelSelectorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 500.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 200.dp, max = 500.dp)
         ) {
             Column {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -633,7 +693,9 @@ fun ChatInput(
             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 InputChip(
@@ -646,7 +708,13 @@ fun ChatInput(
                 // --- ПОЧАТОК ЗМІНИ: Додано чіп для моделі ---
                 InputChip(
                     onClick = onModelClick,
-                    label = { Text(modelName.split(":")[0], maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    label = {
+                        Text(
+                            modelName.split(":")[0],
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     icon = Icons.Default.Memory,
                     modifier = Modifier.weight(1f, fill = false)
                 )
@@ -692,7 +760,9 @@ fun ChatInput(
                 ) { loading ->
                     if (loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp).padding(12.dp),
+                            modifier = Modifier
+                                .size(48.dp)
+                                .padding(12.dp),
                             strokeWidth = 2.dp
                         )
                     } else {
