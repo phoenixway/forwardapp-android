@@ -123,6 +123,8 @@ class ChatViewModel @Inject constructor(
                             chatMessage.copy(translatedText = it)
                         } ?: chatMessage
                     }
+                    Log.d(TAG, "ViewModel State Updated: New message count = ${newMessages.size}, History size = ${history.size}")
+
                     currentState.copy(
                         messages = newMessages,
                         // --- КІНЕЦЬ ЗМІНИ ---
@@ -134,7 +136,15 @@ class ChatViewModel @Inject constructor(
                     )
                 }
             }.collect()
-            // --- КІНЕЦЬ ЗМІНИ ---
+
+/*            viewModelScope.launch {
+                // Затримка, щоб дати UI час ініціалізуватися
+                kotlinx.coroutines.delay(1000)
+                // Очистимо чат перед початком тесту для чистоти експерименту
+                chatRepo.clearChat()
+                startStreamingTest()
+            }*/
+
         }
 
 
@@ -323,4 +333,47 @@ class ChatViewModel @Inject constructor(
             chatRepo.updateMessageStreamingStatus(assistantMessageId, isStreaming = false)
         }
     }
+
+    fun sendMockMessage() {
+        val messageText = _userInput.value.trim()
+        if (messageText.isBlank() || uiState.value.messages.any { it.isStreaming }) return
+
+        viewModelScope.launch {
+            Log.d(TAG, "sendMockMessage: Method called. User input: '$messageText'")
+
+            // 1. Додаємо повідомлення користувача в історію
+            val userMessage = ChatMessage(text = messageText, isFromUser = true)
+            chatRepo.addMessage(userMessage.toEntity())
+            _userInput.value = "" // Очищуємо поле вводу
+            Log.d(TAG, "sendMockMessage: User message entity added to repository.")
+
+            // --- КЛЮЧОВА ЗМІНА ---
+            // Додаємо невелику затримку, щоб Compose встиг обробити
+            // додавання повідомлення користувача і виконати прокрутку.
+            kotlinx.coroutines.delay(50)
+            // --- КІНЕЦЬ ЗМІНИ ---
+
+            // 2. Додаємо пусте повідомлення від асистента зі статусом isStreaming
+            val assistantMessage = ChatMessage(text = "", isFromUser = false, isStreaming = true)
+            val assistantMessageId = chatRepo.addMessage(assistantMessage.toEntity())
+            Log.d(TAG, "sendMockMessage: Assistant placeholder message added.")
+
+
+            // 3. Імітуємо відповідь по частинах
+            val mockResponse = "Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол.Це імітація відповіді. Кожне слово з'являється із затримкою, щоб перевірити анімацію та автоскрол."
+            val words = mockResponse.split(" ")
+            var currentText = ""
+
+            for (word in words) {
+                kotlinx.coroutines.delay(150)
+                currentText += "$word "
+                chatRepo.updateMessageText(assistantMessageId, currentText.trim())
+            }
+
+            // 4. Завершуємо "генерацію"
+            chatRepo.updateMessageStreamingStatus(assistantMessageId, isStreaming = false)
+            Log.d(TAG, "sendMockMessage: Mock response finished.")
+        }
+    }
+
 }
