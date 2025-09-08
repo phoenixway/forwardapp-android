@@ -11,8 +11,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,10 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,12 +37,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.domain.RoleFile
+import com.romankozak.forwardappmobile.domain.RoleFolder
+import com.romankozak.forwardappmobile.domain.RoleItem
+import com.romankozak.forwardappmobile.ui.ModelsState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -60,7 +64,9 @@ fun ChatScreen(
     val context = LocalContext.current
 
     var showMenu by remember { mutableStateOf(false) }
-    var showSystemPromptDialog by remember { mutableStateOf(false) }
+    var showRoleSelectorDialog by remember { mutableStateOf(false) }
+    var showTemperatureDialog by remember { mutableStateOf(false) }
+    var showModelSelectorDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.text) {
         if (uiState.messages.isNotEmpty()) {
@@ -75,13 +81,36 @@ fun ChatScreen(
         )
     )
 
-    if (showSystemPromptDialog) {
-        SystemPromptDialog(
-            currentPrompt = uiState.systemPrompt,
-            onDismiss = { showSystemPromptDialog = false },
-            onSave = { newPrompt ->
-                viewModel.updateSystemPrompt(newPrompt)
-                showSystemPromptDialog = false
+    if (showRoleSelectorDialog) {
+        RoleSelectorDialog(
+            roles = uiState.rolesHierarchy,
+            onDismiss = { showRoleSelectorDialog = false },
+        ) { roleFile ->
+            viewModel.updateSystemPromptAndTitle(
+                newPrompt = roleFile.prompt,
+                newTitle = roleFile.name
+            )
+            showRoleSelectorDialog = false
+        }
+    }
+
+    if (showTemperatureDialog) {
+        TemperatureDialog(
+            currentTemperature = uiState.temperature,
+            onDismiss = { showTemperatureDialog = false },
+        ) { newTemp ->
+            viewModel.updateTemperature(newTemp)
+            showTemperatureDialog = false
+        }
+    }
+
+    if (showModelSelectorDialog) {
+        ModelSelectorDialog(
+            modelsState = uiState.availableModels,
+            onDismiss = { showModelSelectorDialog = false },
+            onModelSelected = { modelName ->
+                viewModel.selectSmartModel(modelName)
+                showModelSelectorDialog = false
             }
         )
     }
@@ -98,8 +127,8 @@ fun ChatScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column {
-                            Text("AI Assistant", fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                            if (uiState.isLoading) {
+                            Text(uiState.roleTitle, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                            if (uiState.messages.any { it.isStreaming }) {
                                 Text(
                                     "Typing...",
                                     fontSize = 12.sp,
@@ -131,9 +160,9 @@ fun ChatScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Edit System Prompt") },
+                                text = { Text("Change Role") },
                                 onClick = {
-                                    showSystemPromptDialog = true
+                                    showRoleSelectorDialog = true
                                     showMenu = false
                                 }
                             )
@@ -148,6 +177,14 @@ fun ChatScreen(
                                     }
                                     val shareIntent = Intent.createChooser(sendIntent, null)
                                     context.startActivity(shareIntent)
+                                    showMenu = false
+                                }
+                            )
+                            Divider()
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                onClick = {
+                                    navController.navigate("settings_graph")
                                     showMenu = false
                                 }
                             )
@@ -173,7 +210,7 @@ fun ChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 16.dp),
             ) {
-                if (uiState.messages.isEmpty() && !uiState.isLoading) {
+                if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
                     item { EmptyStateMessage() }
                 }
 
@@ -200,7 +237,16 @@ fun ChatScreen(
                     viewModel.sendMessage()
                     keyboardController?.hide()
                 },
-                isLoading = uiState.isLoading,
+                isLoading = uiState.messages.any { it.isStreaming },
+                roleTitle = uiState.roleTitle,
+                temperature = uiState.temperature,
+                modelName = uiState.smartModel,
+                onModelClick = {
+                    viewModel.loadAvailableModels()
+                    showModelSelectorDialog = true
+                },
+                onRoleClick = { showRoleSelectorDialog = true },
+                onTemperatureClick = { showTemperatureDialog = true },
                 modifier = Modifier.shadow(8.dp),
             )
         }
@@ -315,11 +361,15 @@ fun MessageBubble(
             }
         }
 
-        // Кнопки дій для повідомлень асистента
-        if (!isUser && !message.isStreaming && !message.isError) {
+        if (!message.isStreaming && !message.isError) {
             Row(
                 modifier = Modifier
-                    .padding(start = 48.dp, top = 4.dp)
+                    .padding(
+                        start = if (isUser) 0.dp else 48.dp,
+                        end = if (isUser) 48.dp else 0.dp,
+                        top = 4.dp
+                    ),
+                horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
             ) {
                 IconButton(
                     onClick = { onCopyToClipboard(message.text) },
@@ -350,39 +400,77 @@ fun MessageBubble(
     }
 }
 
-
 @Composable
-fun SystemPromptDialog(
-    currentPrompt: String,
+fun RoleSelectorDialog(
+    roles: List<RoleItem>,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit
+    onRoleSelected: (RoleFile) -> Unit
 ) {
-    var prompt by remember { mutableStateOf(currentPrompt) }
+    val backStack = remember { mutableStateListOf<RoleFolder>() }
+    val currentItems: List<RoleItem> by remember(backStack.size) {
+        derivedStateOf {
+            if (backStack.isEmpty()) roles else backStack.last().children
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 500.dp)
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text("Edit System Prompt", style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = prompt,
-                    onValueChange = { prompt = it },
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
-                    label = { Text("System Prompt") }
-                )
-                Spacer(Modifier.height(24.dp))
+            Column {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                    if (backStack.isNotEmpty()) {
+                        IconButton(onClick = { backStack.removeAt(backStack.lastIndex) }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = { onSave(prompt) }) {
-                        Text("Save")
+                    Text(
+                        text = backStack.lastOrNull()?.name ?: "Available Roles",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+                Divider()
+                if (roles.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Folder with roles is not selected in settings.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else if (currentItems.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("No roles found in this folder.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(currentItems, key = { it.path }) { item ->
+                            when (item) {
+                                is RoleFolder -> {
+                                    ListItem(
+                                        headlineContent = { Text(item.name) },
+                                        leadingContent = { Icon(Icons.Default.Folder, contentDescription = "Folder") },
+                                        modifier = Modifier.clickable { backStack.add(item) }
+                                    )
+                                }
+                                is RoleFile -> {
+                                    ListItem(
+                                        headlineContent = { Text(item.name, fontWeight = FontWeight.Medium) },
+                                        supportingContent = { Text(item.prompt.take(100) + if(item.prompt.length > 100) "..." else "", maxLines = 2) },
+                                        leadingContent = { Icon(Icons.Default.Article, contentDescription = "Role file") },
+                                        modifier = Modifier.clickable { onRoleSelected(item) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -390,8 +478,113 @@ fun SystemPromptDialog(
     }
 }
 
-// --- Решта коду (ChatInput, StreamingIndicator, тощо) залишається без змін ---
-// (Включено для повноти)
+@Composable
+fun ModelSelectorDialog(
+    modelsState: ModelsState,
+    onDismiss: () -> Unit,
+    onModelSelected: (String) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 500.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Select a Model",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+                Divider()
+
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (modelsState) {
+                        is ModelsState.Loading -> CircularProgressIndicator()
+                        is ModelsState.Error -> Text(
+                            modelsState.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        is ModelsState.Success -> {
+                            if (modelsState.models.isEmpty()) {
+                                Text("No models found", modifier = Modifier.padding(16.dp))
+                            } else {
+                                LazyColumn {
+                                    items(modelsState.models) { model ->
+                                        ListItem(
+                                            headlineContent = { Text(model) },
+                                            modifier = Modifier.clickable { onModelSelected(model) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun TemperatureDialog(
+    currentTemperature: Float,
+    onDismiss: () -> Unit,
+    onSave: (Float) -> Unit
+) {
+    var temp by remember { mutableStateOf(currentTemperature) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text("Model Temperature", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Controls randomness. Lower values make the model more deterministic, higher values make it more creative.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(20.dp))
+
+                Text(
+                    text = String.format("%.2f", temp),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    fontWeight = FontWeight.Bold
+                )
+                Slider(
+                    value = temp,
+                    onValueChange = { temp = it },
+                    valueRange = 0f..2f,
+                    steps = 19,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = { onSave(temp) }) { Text("Save") }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun StreamingIndicator() {
@@ -415,100 +608,143 @@ fun StreamingIndicator() {
     )
 }
 
+// --- ПОЧАТОК ЗМІНИ: Оновлено сигнатуру ChatInput ---
 @Composable
 fun ChatInput(
     value: String,
     onValueChange: (String) -> Unit,
     onSendClick: () -> Unit,
     isLoading: Boolean,
+    roleTitle: String,
+    temperature: Float,
+    modelName: String,
+    onModelClick: () -> Unit,
+    onRoleClick: () -> Unit,
+    onTemperatureClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+// --- КІНЕЦЬ ЗМІНИ ---
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Column(
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp)
         ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(24.dp)),
-                placeholder = {
-                    Text(
-                        "Напишіть повідомлення...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Send,
-                ),
-                keyboardActions = KeyboardActions(onSend = { onSendClick() }),
-                enabled = !isLoading,
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                ),
-                maxLines = 4,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InputChip(
+                    onClick = onRoleClick,
+                    label = { Text(roleTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    icon = Icons.Default.Person,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
 
-            AnimatedContent(
-                targetState = isLoading,
-                label = "send_button",
-                transitionSpec = {
-                    slideInHorizontally { it } + fadeIn() togetherWith
-                            slideOutHorizontally { -it } + fadeOut()
-                },
-            ) { loading ->
-                if (loading) {
-                    Surface(
-                        modifier = Modifier.size(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary,
+                // --- ПОЧАТОК ЗМІНИ: Додано чіп для моделі ---
+                InputChip(
+                    onClick = onModelClick,
+                    label = { Text(modelName.split(":")[0], maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    icon = Icons.Default.Memory,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                // --- КІНЕЦЬ ЗМІНИ ---
+
+                InputChip(
+                    onClick = onTemperatureClick,
+                    label = { Text(String.format("%.1f", temperature)) },
+                    icon = Icons.Default.Thermostat,
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Напишіть повідомлення...") },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Send,
+                    ),
+                    keyboardActions = KeyboardActions(onSend = { if (value.isNotBlank()) onSendClick() }),
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    ),
+                    maxLines = 4,
+                )
+
+                AnimatedContent(
+                    targetState = isLoading,
+                    label = "send_button",
+                    transitionSpec = {
+                        slideInHorizontally { it } + fadeIn() togetherWith
+                                slideOutHorizontally { -it } + fadeOut()
+                    },
+                ) { loading ->
+                    if (loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp).padding(12.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        IconButton(
+                            onClick = onSendClick,
+                            enabled = value.isNotBlank(),
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
-                    }
-                } else {
-                    Surface(
-                        onClick = onSendClick,
-                        enabled = value.isNotBlank(),
-                        modifier = Modifier.size(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        color = if (value.isNotBlank()) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "Send",
-                                tint = if (value.isNotBlank()) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
                                 modifier = Modifier.size(20.dp),
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InputChip(
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            ProvideTextStyle(value = MaterialTheme.typography.labelMedium) {
+                label()
             }
         }
     }

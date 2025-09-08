@@ -24,4 +24,9 @@ interface ChatDao {
 
     @Query("DELETE FROM chat_messages WHERE id = :messageId")
     suspend fun deleteMessageById(messageId: Long)
+
+    // --- ПОЧАТОК ЗМІНИ: Додано новий метод ---
+    @Query("SELECT * FROM chat_messages WHERE id = :messageId")
+    suspend fun getMessageById(messageId: Long): ChatMessageEntity?
+    // --- КІНЕЦЬ ЗМІНИ ---
 }

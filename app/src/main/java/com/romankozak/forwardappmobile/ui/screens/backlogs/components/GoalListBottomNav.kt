@@ -1,9 +1,16 @@
+// File: ui/screens/backlogs/components/GoalListBottomNav.kt
 package com.romankozak.forwardappmobile.ui.screens.backlogs.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.*
@@ -11,7 +18,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -24,93 +36,311 @@ internal fun GoalListBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     currentMode: PlanningMode,
-    onModeSelectorClick: () -> Unit,
+    onPlanningModeChange: (PlanningMode) -> Unit,
     onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit
 ) {
-    Surface(tonalElevation = 3.dp) {
-        Row(
+    var showMoreMenu by remember { mutableStateOf(false) }
+
+    Surface(
+        tonalElevation = 6.dp,
+        shadowElevation = 8.dp,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .background(
+                    MaterialTheme.colorScheme.surface,
+                    RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                )
+                .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
-            BottomNavButton(
-                text = "Track",
-                icon = { Icon(Icons.Outlined.Timeline, contentDescription = "Activity Tracker") },
-                onClick = { navController.navigate("activity_tracker_screen") }
-            )
-            BottomNavButton(
-                text = "Search",
-                icon = { Icon(Icons.Outlined.Search, contentDescription = "Global Search") },
-                onClick = onGlobalSearchClick
-            )
-            BottomNavButton(
-                text = "Filter",
-                icon = { Icon(Icons.Outlined.FilterList, contentDescription = "Filter") },
-                isSelected = isSearchActive,
-                onClick = { onToggleSearch(true) }
-            )
-            BottomNavButton(
-                text = "Contexts",
-                icon = { Icon(Icons.Outlined.Style, contentDescription = "Contexts") },
-                onClick = onContextsClick
-            )
-            BottomNavButton(
-                text = "Recent",
-                icon = { Icon(Icons.Outlined.History, contentDescription = "Recent Lists") },
-                onClick = onRecentsClick
-            )
+            // Новий верхній ряд - Режими планування (менші)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                SmallBottomNavButton( // Використовуємо новий компонент для менших кнопок
+                    text = "All",
+                    icon = Icons.AutoMirrored.Outlined.List,
+                    isSelected = currentMode is PlanningMode.All,
+                    onClick = { onPlanningModeChange(PlanningMode.All) }
+                )
 
-            val (currentIcon, currentLabel) = when (currentMode) {
-                is PlanningMode.Daily -> Icons.Outlined.Today to "Daily"
-                is PlanningMode.Medium -> Icons.Outlined.QueryStats to "Medium"
-                is PlanningMode.Long -> Icons.Outlined.TrackChanges to "Long"
-                else -> Icons.AutoMirrored.Outlined.List to "All"
+                SmallBottomNavButton(
+                    text = "Daily",
+                    icon = Icons.Outlined.Today,
+                    isSelected = currentMode is PlanningMode.Daily,
+                    onClick = { onPlanningModeChange(PlanningMode.Daily) }
+                )
+
+                SmallBottomNavButton(
+                    text = "Medium",
+                    icon = Icons.Outlined.QueryStats,
+                    isSelected = currentMode is PlanningMode.Medium,
+                    onClick = { onPlanningModeChange(PlanningMode.Medium) }
+                )
+
+                SmallBottomNavButton(
+                    text = "Long",
+                    icon = Icons.Outlined.TrackChanges,
+                    isSelected = currentMode is PlanningMode.Long,
+                    onClick = { onPlanningModeChange(PlanningMode.Long) }
+                )
+
+                // More меню
+                Box {
+                    SmallBottomNavButton( // Також менша кнопка для "More"
+                        text = "More",
+                        icon = Icons.Outlined.MoreHoriz,
+                        onClick = { showMoreMenu = !showMoreMenu },
+                        isSelected = showMoreMenu
+                    )
+
+                    // Dropdown menu (залишається без змін)
+                    DropdownMenu(
+                        expanded = showMoreMenu,
+                        onDismissRequest = { showMoreMenu = false },
+                        offset = DpOffset((-16).dp, (-8).dp),
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainer,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clip(RoundedCornerShape(16.dp))
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Search,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        "Global Search",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    )
+                                }
+                            },
+                            onClick = {
+                                onGlobalSearchClick()
+                                showMoreMenu = false
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        )
+
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Lightbulb,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Column {
+                                        Text(
+                                            "AI Insights",
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
+                                        Text(
+                                            "Smart recommendations",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = {
+                                // TODO: Navigate to AI Insights
+                                showMoreMenu = false
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.AccountBox,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.tertiary
+                                    )
+                                    Column {
+                                        Text(
+                                            "AI Inbox",
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
+                                        Text(
+                                            "Messages from AI",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = {
+                                // TODO: Navigate to AI Inbox
+                                showMoreMenu = false
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
+                }
             }
 
-            BottomNavButton(
-                text = currentLabel,
-                icon = { Icon(currentIcon, contentDescription = "Change planning mode") },
-                isSelected = !isSearchActive && (currentMode !is PlanningMode.All),
-                onClick = onModeSelectorClick
-            )
-            BottomNavButton(
-                text = "AI Inbox",
-                icon = { Icon(Icons.Outlined.AccountBox, contentDescription = "Messages from AI") },
-                onClick = {}
-            )
-            BottomNavButton(
-                text = "AI Chat",
-                icon = { Icon(Icons.Outlined.Chat, "AI Chat") },
-                onClick = { navController.navigate("chat_screen") } // ✨ ЗМІНЕНО
-            )
+            Spacer(modifier = Modifier.height(6.dp)) // Збільшений відступ між ярусами
+
+            // Новий нижній ряд - Основні дії (більші, як раніше)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ModernBottomNavButton( // Використовуємо існуючий компонент
+                    text = "Track",
+                    icon = Icons.Outlined.Timeline,
+                    onClick = { navController.navigate("activity_tracker_screen") }
+                )
+
+                ModernBottomNavButton(
+                    text = "Filter",
+                    icon = Icons.Outlined.FilterList,
+                    isSelected = isSearchActive,
+                    onClick = { onToggleSearch(true) }
+                )
+
+                ModernBottomNavButton(
+                    text = "Contexts",
+                    icon = Icons.Outlined.Style,
+                    onClick = onContextsClick
+                )
+
+                ModernBottomNavButton(
+                    text = "Recent",
+                    icon = Icons.Outlined.History,
+                    onClick = onRecentsClick
+                )
+
+                ModernBottomNavButton(
+                    text = "AI Chat",
+                    icon = Icons.Outlined.Chat,
+                    onClick = { navController.navigate("chat_screen") }
+                )
+            }
         }
     }
 }
 
+// Компонент для більших кнопок (залишається без змін)
 @Composable
-private fun BottomNavButton(
+private fun ModernBottomNavButton(
     text: String,
-    icon: @Composable () -> Unit,
+    icon: ImageVector,
     isSelected: Boolean = false,
     onClick: () -> Unit
 ) {
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else LocalContentColor.current
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+        else -> Color.Transparent
+    }
+
+    val contentColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+    }
+
     Column(
         modifier = Modifier
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .widthIn(min = 60.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Просто викликаємо передану іконку
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
-            icon()
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = text,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
+        )
+
+        Spacer(modifier = Modifier.height(3.dp))
+
         Text(
             text = text,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = contentColor
+        )
+    }
+}
+
+// НОВИЙ Компонент для менших кнопок
+@Composable
+private fun SmallBottomNavButton(
+    text: String,
+    icon: ImageVector,
+    isSelected: Boolean = false,
+    onClick: () -> Unit
+) {
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+        else -> Color.Transparent
+    }
+
+    val contentColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+    }
+
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp)) // Трохи менші заокруглення
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 4.dp) // Менші внутрішні відступи
+            .widthIn(min = 50.dp), // Менша мінімальна ширина
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = text,
+            tint = contentColor,
+            modifier = Modifier.size(18.dp) // Менші іконки
+        )
+
+        Spacer(modifier = Modifier.height(2.dp)) // Менший відступ
+
+        Text(
+            text = text,
+            fontSize = 9.sp, // Менший розмір шрифту
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = contentColor

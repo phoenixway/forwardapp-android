@@ -4,14 +4,13 @@ import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.boolean
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
@@ -42,6 +41,7 @@ class OllamaService @Inject constructor() {
             .create(OllamaApi::class.java)
     }
 
+    // --- ПОЧАТОК ЗМІНИ: Відновлено відсутній метод ---
     suspend fun getAvailableModels(baseUrl: String): Result<List<String>> {
         if (baseUrl.isBlank()) return Result.failure(IllegalArgumentException("Base URL is empty"))
         return try {
@@ -52,144 +52,30 @@ class OllamaService @Inject constructor() {
             Result.failure(e)
         }
     }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
-    suspend fun generateChatResponse(baseUrl: String, model: String, messages: List<Message>): Result<String> {
-        if (baseUrl.isBlank() || model.isBlank()) {
-            return Result.failure(IllegalArgumentException("URL or model is not configured"))
-        }
 
-        return try {
-            val api = buildRetrofitApi(baseUrl)
-            val request = OllamaChatRequest(
-                model = model,
-                messages = messages,
-                stream = false
-            )
-
-            Log.d("OllamaServiceChat", "Sending chat request to model $model with ${messages.size} messages: ${messages.joinToString("\n") { "${it.role}: ${it.content}" }}")
-
-            val responseBody = api.generateChat(request)
-            val json = Json { ignoreUnknownKeys = true }
-
-            val fullResponseContent = responseBody.string()
-                .lines()
-                .filter { it.isNotBlank() }
-                .mapNotNull { line ->
-                    try {
-                        json.decodeFromString<OllamaChatResponse>(line).message.content
-                    } catch (e: Exception) {
-                        Log.e("OllamaServiceChat", "Failed to parse line: $line", e)
-                        null
-                    }
-                }
-                .joinToString("")
-
-            if (fullResponseContent.isBlank()) {
-                val errorResponse = json.decodeFromString<OllamaErrorResponse>(responseBody.string())
-                return Result.failure(IllegalStateException("Ollama API error: ${errorResponse.error}"))
-            }
-
-            Log.d("OllamaServiceChat", "Received response: '$fullResponseContent'")
-            Result.success(fullResponseContent.trim())
-        } catch (e: Exception) {
-            Log.e("OllamaServiceChat", "Error generating chat response: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun generateTitle(baseUrl: String, model: String, fullText: String): Result<String> {
-        if (baseUrl.isBlank() || model.isBlank()) {
-            return Result.failure(IllegalArgumentException("URL or model is not configured"))
-        }
-
-        val cleanText = fullText.trim()
-            .replace("\n", " ")
-            .replace("\r", " ")
-            .replace("\"", "'")
-            .replace("\t", " ")
-
-        val prompt = "Generate a very short, concise title (3-7 words, max 80 characters) for the following text. " +
-                "Respond with ONLY the title itself and absolutely nothing else. " +
-                "TEXT: \"$cleanText\" " +
-                "TITLE:"
-
-        return try {
-            val api = buildRetrofitApi(baseUrl)
-            val request = OllamaCompletionRequest(
-                model = model,
-                prompt = prompt,
-                stream = false,
-                options = OllamaOptions(numPredict = 20),
-            )
-
-            Log.d("OllamaService", "Sending request: model=$model, prompt length=${prompt.length}")
-
-            val responseBody = api.generateCompletionRaw(request)
-            val response = responseBody.string()
-
-            Log.d("OllamaService", "Raw response: $response")
-
-            val json = Json { ignoreUnknownKeys = true }
-
-            try {
-                val errorResponse = json.decodeFromString<OllamaErrorResponse>(response)
-                return Result.failure(IllegalStateException("Ollama API error: ${errorResponse.error}"))
-            } catch (e: Exception) {
-                // Not an error response, proceed with parsing
-            }
-
-            val responses = response.lines()
-                .filter { it.trim().isNotEmpty() }
-                .mapNotNull { line ->
-                    try {
-                        json.decodeFromString<OllamaResponse>(line)
-                    } catch (e: Exception) {
-                        Log.e("OllamaService", "Failed to parse line: $line", e)
-                        null
-                    }
-                }
-
-            Log.d("OllamaService", "Parsed ${responses.size} responses")
-            responses.forEach { resp ->
-                Log.d("OllamaService", "Response part: '${resp.response}', done: ${resp.done}")
-            }
-
-            val fullResponse = responses.joinToString("") { it.response }
-            Log.d("OllamaService", "Full combined response: '$fullResponse'")
-
-            val cleanResponse = fullResponse
-                .trim()
-                .removeSurrounding("\"")
-                .take(80)
-
-            Log.d("OllamaService", "Final clean response: '$cleanResponse'")
-
-            if (cleanResponse.isBlank()) {
-                Log.w("OllamaService", "Generated title is empty!")
-                return Result.failure(IllegalStateException("Generated title is empty"))
-            }
-
-            Result.success(cleanResponse)
-        } catch (e: Exception) {
-            Log.e("OllamaService", "Error generating title: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun generateChatResponseStream(baseUrl: String, model: String, messages: List<Message>): Flow<String> = flow {
+    suspend fun generateChatResponseStream(
+        baseUrl: String,
+        model: String,
+        messages: List<Message>,
+        temperature: Float
+    ): Flow<String> = flow {
         if (baseUrl.isBlank() || model.isBlank()) {
             throw IllegalArgumentException("URL or model is not configured")
         }
 
         val api = buildRetrofitApi(baseUrl)
+        val requestOptions = OllamaOptions(temperature = temperature)
 
         try {
-            Log.d(TAG, "Trying /api/chat endpoint for streaming...")
+            Log.d(TAG, "Trying /api/chat endpoint for streaming with temperature: $temperature...")
             Log.d(TAG, "Chat request messages: ${messages.joinToString("\n") { "${it.role}: ${it.content}" }}")
             val chatRequest = OllamaChatRequest(
                 model = model,
                 messages = messages,
-                stream = true
+                stream = true,
+                options = requestOptions
             )
 
             val responseBody = api.generateChat(chatRequest)
@@ -206,7 +92,8 @@ class OllamaService @Inject constructor() {
                 val generateRequest = OllamaCompletionRequest(
                     model = model,
                     prompt = prompt,
-                    stream = true
+                    stream = true,
+                    options = requestOptions
                 )
 
                 val responseBody = api.generateCompletionStream(generateRequest)

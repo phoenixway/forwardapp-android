@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.util.Log
@@ -54,6 +55,21 @@ fun getFileName(uri: Uri, context: Context): String {
     return fileName ?: "Unknown file"
 }
 
+fun getFolderName(uri: Uri, context: Context): String {
+    return try {
+        val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
+        context.contentResolver.query(docUri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+            } else {
+                uri.lastPathSegment ?: "Selected Folder"
+            }
+        } ?: uri.toString()
+    } catch (e: Exception) {
+        uri.lastPathSegment ?: "Selected Folder"
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
@@ -76,7 +92,6 @@ fun SettingsScreen(
     var tempLongTag by remember(planningSettings.longTag) { mutableStateOf(planningSettings.longTag) }
     var tempVaultName by remember(initialVaultName) { mutableStateOf(initialVaultName) }
 
-    // --- ПОКРАЩЕННЯ: Зберігаємо початковий стан ViewModel для порівняння ---
     var initialViewModelState by remember { mutableStateOf<SettingsUiState?>(null) }
     LaunchedEffect(uiState) {
         if (initialViewModelState == null && uiState != SettingsUiState()) {
@@ -84,7 +99,6 @@ fun SettingsScreen(
         }
     }
 
-    // --- ПОКРАЩЕННЯ: Визначаємо, чи були внесені зміни, щоб активувати кнопку "Зберегти" ---
     val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName) {
         derivedStateOf {
             val planningIsDirty = tempShowModes != planningSettings.showModes ||
@@ -99,7 +113,8 @@ fun SettingsScreen(
                         uiState.smartModel != it.smartModel ||
                         uiState.nerModelUri != it.nerModelUri ||
                         uiState.nerTokenizerUri != it.nerTokenizerUri ||
-                        uiState.nerLabelsUri != it.nerLabelsUri
+                        uiState.nerLabelsUri != it.nerLabelsUri ||
+                        uiState.rolesFolderUri != it.rolesFolderUri
             } ?: false
 
             planningIsDirty || viewModelIsDirty
@@ -138,7 +153,6 @@ fun SettingsScreen(
                 ) { Text("Cancel") }
                 Spacer(Modifier.width(8.dp))
                 Button(
-                    // --- ПОКРАЩЕННЯ: Кнопка активна лише за наявності змін ---
                     enabled = isDirty,
                     onClick = {
                         onSave(
@@ -175,6 +189,13 @@ fun SettingsScreen(
                 onSmartModelSelect = viewModel::onSmartModelSelected
             )
 
+            // --- ПОЧАТОК ЗМІНИ: Додано картку налаштувань для ролей ---
+            RolesSettingsCard(
+                state = uiState,
+                onFolderSelected = viewModel::onRolesFolderSelected
+            )
+            // --- КІНЕЦЬ ЗМІНИ ---
+
             NerSettingsCard(
                 state = uiState,
                 onModelFileSelected = viewModel::onNerModelFileSelected,
@@ -183,6 +204,7 @@ fun SettingsScreen(
                 onReloadClick = viewModel::reloadNerModel
             )
 
+            // --- ПОЧАТОК ЗМІНИ: Відновлено втрачені картки налаштувань ---
             SettingsCard(
                 title = "Planning Modes",
                 icon = Icons.Default.Tune
@@ -236,11 +258,85 @@ fun SettingsScreen(
                     colors = ButtonDefaults.outlinedButtonColors()
                 )
             }
+            // --- КІНЕЦЬ ЗМІНИ ---
         }
     }
 }
 
-// --- ПОКРАЩЕННЯ: Повністю перероблена секція дозволів для кращого вигляду ---
+@Composable
+private fun RolesSettingsCard(
+    state: SettingsUiState,
+    onFolderSelected: (Uri, Context) -> Unit
+) {
+    val context = LocalContext.current
+
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                onFolderSelected(it, context)
+            }
+        }
+    )
+
+    SettingsCard(
+        title = "Chat Roles",
+        icon = Icons.Default.Face
+    ) {
+        Text("Select a folder containing your role files (.md or .txt).")
+        Spacer(modifier = Modifier.height(8.dp))
+        FileSelector(
+            label = "Roles Folder",
+            selectedFileUri = state.rolesFolderUri,
+            onSelectClick = { folderPickerLauncher.launch(null) },
+            context = context,
+            isFolder = true
+        )
+    }
+}
+
+
+@Composable
+private fun FileSelector(
+    label: String,
+    selectedFileUri: String,
+    onSelectClick: () -> Unit,
+    context: Context,
+    isFolder: Boolean = false
+) {
+    val displayName = remember(selectedFileUri) {
+        if (selectedFileUri.isNotBlank()) {
+            val uri = Uri.parse(selectedFileUri)
+            if (isFolder) getFolderName(uri, context) else getFileName(uri, context)
+        } else {
+            "Not selected"
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                displayName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        OutlinedButton(onClick = onSelectClick) {
+            Text(if (isFolder) "Select Folder" else "Select File")
+        }
+    }
+}
+
+// --- Усі решта composable-функцій (PermissionsSettingsCard, OllamaSettingsCard, NerSettingsCard і т.д.) залишаються без змін ---
+
 @Composable
 private fun PermissionsSettingsCard() {
     val context = LocalContext.current
@@ -409,12 +505,9 @@ private fun NerSettingsCard(
         uri?.let {
             try {
                 context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                // Зберігаємо URI тільки якщо дозвіл отримано успішно
                 onModelFileSelected(it.toString())
             } catch (e: SecurityException) {
-                // Якщо не вдалося, логуємо помилку і не зберігаємо URI
                 Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
-                // Тут можна показати повідомлення користувачу, наприклад, через Snackbar
             }
         }
     }
@@ -480,7 +573,6 @@ private fun NerSettingsCard(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        // --- ПОКРАЩЕННЯ: Додано дієву кнопку перезавантаження моделі ---
         OutlinedButton(
             onClick = onReloadClick,
             enabled = areAllFilesSelected && state.nerState !is NerState.Downloading,
@@ -535,7 +627,6 @@ private fun NerStatusIndicator(
             Icon(imageVector = icon, contentDescription = "Status", tint = animatedColor)
             Text(text = text, style = MaterialTheme.typography.bodyMedium, color = animatedColor, modifier = Modifier.weight(1f))
         }
-        // --- ПОКРАЩЕННЯ: Додано індикатор прогресу ---
         if (nerState is NerState.Downloading) {
             Spacer(modifier = Modifier.height(8.dp))
             LinearProgressIndicator(
@@ -545,40 +636,6 @@ private fun NerStatusIndicator(
         }
     }
 }
-
-@Composable
-private fun FileSelector(
-    label: String,
-    selectedFileUri: String,
-    onSelectClick: () -> Unit,
-    context: Context
-) {
-    val fileName = remember(selectedFileUri) {
-        if (selectedFileUri.isNotBlank()) getFileName(Uri.parse(selectedFileUri), context) else "Not selected"
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                fileName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        OutlinedButton(onClick = onSelectClick) {
-            Text("Select")
-        }
-    }
-}
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -622,8 +679,6 @@ private fun ModelSelector(
     }
 }
 
-
-// --- ПОКРАЩЕННЯ: SettingsCard тепер може приймати іконку ---
 @Composable
 private fun SettingsCard(
     title: String,
