@@ -34,7 +34,7 @@ enum class LinkType {
 data class RelatedLink(
     val type: LinkType,
     val target: String,
-    val displayName: String? = null
+    val displayName: String? = null,
 )
 
 enum class ScoringStatus {
@@ -103,7 +103,9 @@ class Converters {
 data class LinkItemEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(name = "link_data")
-    val linkData: RelatedLink
+    val linkData: RelatedLink,
+    // ВИПРАВЛЕНО: Додано поле createdAt для можливості сортування
+    val createdAt: Long,
 )
 
 
@@ -149,7 +151,6 @@ data class Goal(
     val financialCost: Float? = null,
     @ColumnInfo(name = "reminder_time")
     val reminderTime: Long? = null,
-
 )
 
 @Entity(tableName = "goal_lists")
@@ -170,7 +171,7 @@ data class GoalList(
     @ColumnInfo(name = "default_view_mode", defaultValue = "'BACKLOG'")
     val defaultViewModeName: String = ProjectViewMode.BACKLOG.name,
     @ColumnInfo(name = "is_completed", defaultValue = "0")
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
 )
 
 @Entity(
@@ -180,9 +181,9 @@ data class GoalList(
             entity = GoalList::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
 )
 data class InboxRecord(
     @PrimaryKey val id: String,
@@ -191,7 +192,7 @@ data class InboxRecord(
     val text: String,
     val createdAt: Long,
     @ColumnInfo(name = "item_order")
-    val order: Long
+    val order: Long,
 )
 
 @Entity(
@@ -201,9 +202,9 @@ data class InboxRecord(
             entity = GoalList::class,
             parentColumns = ["id"],
             childColumns = ["listId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
 )
 data class ListItem(
     @PrimaryKey val id: String,
@@ -212,7 +213,7 @@ data class ListItem(
     val itemType: ListItemType,
     val entityId: String,
     @ColumnInfo(name = "item_order")
-    val order: Long
+    val order: Long,
 )
 
 sealed class ListItemContent {
@@ -227,7 +228,7 @@ data class GlobalSearchResult(
     @Embedded
     val goal: Goal,
     val listId: String,
-    val listName: String
+    val listName: String,
 )
 
 data class GlobalLinkSearchResult(
@@ -245,8 +246,46 @@ data class GlobalSublistSearchResult(
     val parentListName: String,
 )
 
+// Припускаємо, що клас ActivityRecord визначено в іншому місці
+// data class ActivityRecord(...)
+
 sealed class GlobalSearchResultItem {
-    data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem()
-    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem()
-    data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem()
+    /**
+     * Спільна властивість для сортування всіх результатів за часом (новіші спочатку).
+     */
+    abstract val timestamp: Long
+
+    /**
+     * Унікальний ідентифікатор для кожного елемента, необхідний для стабільної роботи UI (LazyColumn keys).
+     */
+    abstract val uniqueId: String
+
+    data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem() {
+        // ВИПРАВЛЕНО: Використовуємо createdAt, якщо updatedAt == null
+        override val timestamp: Long get() = searchResult.goal.updatedAt ?: searchResult.goal.createdAt
+        override val uniqueId: String get() = "goal_${searchResult.goal.id}_${searchResult.listId}"
+    }
+
+    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
+        // ВИПРАВЛЕНО: Тепер поле існує в LinkItemEntity
+        override val timestamp: Long get() = searchResult.link.createdAt
+        override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.listId}"
+    }
+
+    data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem() {
+        // ВИПРАВЛЕНО: Використовуємо createdAt, якщо updatedAt == null
+        override val timestamp: Long get() = searchResult.sublist.updatedAt ?: searchResult.sublist.createdAt
+        override val uniqueId: String get() = "sublist_${searchResult.sublist.id}_${searchResult.parentListId}"
+    }
+
+    data class ListItem(val list: GoalList) : GlobalSearchResultItem() {
+        // ВИПРАВЛЕНО: Використовуємо createdAt, якщо updatedAt == null
+        override val timestamp: Long get() = list.updatedAt ?: list.createdAt
+        override val uniqueId: String get() = "list_${list.id}"
+    }
+
+    data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = record.createdAt
+        override val uniqueId: String get() = "activity_${record.id}"
+    }
 }

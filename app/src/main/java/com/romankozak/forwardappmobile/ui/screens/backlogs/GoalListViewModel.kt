@@ -131,6 +131,10 @@ class GoalListViewModel @Inject constructor(
         .debounce(350L)
         .distinctUntilChanged()
 
+    val areAnyListsExpanded: StateFlow<Boolean> = _allListsFlat.map { lists ->
+        lists.any { it.isExpanded }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val appStatistics: StateFlow<AppStatistics> =
         combine(_allListsFlat, goalRepository.getAllGoalsCountFlow()) { allLists, allGoalsCount ->
             AppStatistics(listCount = allLists.size, goalCount = allGoalsCount)
@@ -472,6 +476,18 @@ class GoalListViewModel @Inject constructor(
             _searchQuery.value = ""
         }
         _planningMode.value = mode
+    }
+
+    fun collapseAllLists() {
+        viewModelScope.launch {
+            val listsToCollapse = _allListsFlat.value
+                .filter { it.isExpanded }
+                .map { it.copy(isExpanded = false) }
+
+            if (listsToCollapse.isNotEmpty()) {
+                goalRepository.updateGoalLists(listsToCollapse)
+            }
+        }
     }
 
     fun onToggleExpanded(list: GoalList) {

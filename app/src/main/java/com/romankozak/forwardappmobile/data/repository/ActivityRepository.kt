@@ -60,4 +60,10 @@ class ActivityRepository @Inject constructor(
     suspend fun deleteRecord(record: ActivityRecord) {
         activityRecordDao.delete(record)
     }
+
+    // --- ПОЧАТОК ЗМІНИ: Новий метод для пошуку в записах активності ---
+    suspend fun searchActivities(query: String): List<ActivityRecord> {
+        return activityRecordDao.search(query)
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
 }

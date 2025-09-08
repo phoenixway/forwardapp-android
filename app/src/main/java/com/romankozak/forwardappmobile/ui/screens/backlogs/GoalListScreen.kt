@@ -31,6 +31,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -89,12 +90,12 @@ fun GoalListScreen(
 
     val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
     val recentLists by viewModel.recentLists.collectAsState()
+    val areAnyListsExpanded by viewModel.areAnyListsExpanded.collectAsState()
 
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // --- ПОЧАТОК КЛЮЧОВИХ ЗМІН: Заміна LaunchedEffect на DisposableEffect ---
     // Обробник для розкриття списку
     LaunchedEffect(savedStateHandle) {
         savedStateHandle?.getStateFlow<String?>("list_to_reveal", null)
@@ -105,15 +106,19 @@ fun GoalListScreen(
             }
     }
 
-    // Обробник для результату з екрана вибору списку (надійний спосіб)
+    // --- ПОЧАТОК КЛЮЧОВИХ ЗМІН: Заміна на надійний обробник ---
+    // Обробник для результату з екрана вибору списку
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                if (savedStateHandle?.contains("list_chooser_result") == true) {
-                    val result = savedStateHandle.get<String?>("list_chooser_result")
-                    Log.d("MOVE_DEBUG", "[Screen] Resumed and found result: '$result'")
+                // Атомарно отримуємо та видаляємо результат. Це набагато безпечніше,
+                // ніж перевірка contains(), а потім get(), що і викликало креш.
+                val result = savedStateHandle?.remove<String?>("list_chooser_result")
+
+                // Обробляємо результат, лише якщо він дійсно був (remove поверне не-null)
+                if (result != null) {
+                    Log.d("MOVE_DEBUG", "[Screen] Resumed and processed result: '$result'")
                     viewModel.onListChooserResult(result)
-                    savedStateHandle.remove<String?>("list_chooser_result")
                 }
             }
         }
@@ -252,6 +257,11 @@ fun GoalListScreen(
     }
 
     BackHandler(enabled = isSearchActive) { viewModel.onToggleSearch(isActive = false) }
+
+    BackHandler(enabled = !isSearchActive && areAnyListsExpanded) {
+        viewModel.collapseAllLists()
+    }
+
     val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
         // Викликаємо новий метод, який показує діалог, а не імпортує напряму
         uri?.let { viewModel.onImportFromFileRequested(it) }
@@ -288,43 +298,83 @@ fun GoalListScreen(
             )
         },
     ) { paddingValues ->
-        val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
-        if (isListEmpty) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                val emptyText = when {
-                    isSearchActive -> "No lists found for your query."
-                    planningMode is PlanningMode.Daily -> "No lists with tag '#${planningSettings.dailyTag}'"
-                    planningMode is PlanningMode.Medium -> "No lists with tag '#${planningSettings.mediumTag}'"
-                    planningMode is PlanningMode.Long -> "No lists with tag '#${planningSettings.longTag}'"
-                    else -> "Create your first list"
-                }
-                Text(emptyText, style = MaterialTheme.typography.bodyLarge)
-            }
-        } else {
-            DragAndDropContainer(state = dragAndDropState, enabled = !isSearchActive) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            if (isSearchActive && searchQuery.isNotBlank()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 4.dp
                 ) {
-                    renderGoalList(
-                        lists = hierarchy.topLevelLists,
-                        childMap = hierarchy.childMap,
-                        level = 0,
-                        dragAndDropState = dragAndDropState,
-                        viewModel = viewModel,
-                        allListsFlat = hierarchy.allLists,
-                        isSearchActive = isSearchActive,
-                        planningMode = planningMode,
-                        highlightedListId = highlightedListId,
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.onPerformGlobalSearch(searchQuery) }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            text = "Search everywhere for ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+
+                            )
+                        Text(
+                            text = "\"$searchQuery\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
+                }
+            }
+
+            val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
+            if (isListEmpty) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val emptyText = when {
+                        isSearchActive -> "No projects found for your query."
+                        planningMode is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
+                        planningMode is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
+                        planningMode is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
+                        else -> "Create your first project"
+                    }
+                    Text(emptyText, style = MaterialTheme.typography.bodyLarge)
+                }
+            } else {
+                DragAndDropContainer(
+                    state = dragAndDropState,
+                    enabled = !isSearchActive,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        renderGoalList(
+                            lists = hierarchy.topLevelLists,
+                            childMap = hierarchy.childMap,
+                            level = 0,
+                            dragAndDropState = dragAndDropState,
+                            viewModel = viewModel,
+                            allListsFlat = hierarchy.allLists,
+                            isSearchActive = isSearchActive,
+                            planningMode = planningMode,
+                            highlightedListId = highlightedListId,
+                        )
+                    }
                 }
             }
         }
@@ -358,32 +408,50 @@ private fun GoalListTopAppBar(
     focusRequester: FocusRequester
 ) {
     val focusManager = LocalFocusManager.current
+
     TopAppBar(
-        title = { if (!isSearchActive) Text("Backlogs") },
-        actions = {
+        title = {
             if (isSearchActive) {
                 TextField(
                     value = searchQuery,
                     onValueChange = onQueryChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp)
                         .focusRequester(focusRequester),
-                    placeholder = { Text("Filter lists...") },
-                    shape = CircleShape,
+                    placeholder = { Text("Filter projects...") },
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Search, "Search Icon") },
-                    trailingIcon = { IconButton(onClick = onToggleSearch) { Icon(Icons.Default.Close, "Close filter") } },
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                     colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
                     ),
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { onQueryChange("") }) {
+                                Icon(Icons.Default.Clear, "Clear input")
+                            }
+                        }
+                    }
                 )
             } else {
-                IconButton(onClick = onAddNewList) { Icon(Icons.Default.Add, "Add new list") }
+                Text("Projects")
+            }
+        },
+        navigationIcon = {
+            if (isSearchActive) {
+                IconButton(onClick = onToggleSearch) {
+                    Icon(Icons.Filled.ArrowBack, "Close filter")
+                }
+            }
+        },
+        actions = {
+            if (!isSearchActive) {
+                IconButton(onClick = onAddNewList) { Icon(Icons.Default.Add, "Add new project") }
                 var menuExpanded by remember { mutableStateOf(value = false) }
                 IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {

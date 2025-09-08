@@ -30,4 +30,7 @@ interface ActivityRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<ActivityRecord>)
 
+    // --- ДОДАНО: Новий метод для повнотекстового пошуку ---
+    @Query("SELECT * FROM activity_records WHERE text LIKE :query ORDER BY createdAt DESC")
+    suspend fun search(query: String): List<ActivityRecord>
 }
