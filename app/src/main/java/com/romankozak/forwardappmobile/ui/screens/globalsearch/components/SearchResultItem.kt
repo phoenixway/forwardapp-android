@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/SublistSearchResultItem.kt
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/GoalSearchResultItem.kt
 
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
@@ -11,25 +11,23 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GlobalSublistSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
 
 @Composable
-fun SublistSearchResultItem(
-    result: GlobalSublistSearchResult,
-    onClick: () -> Unit
-) {
+fun SearchResultItem(result: GlobalSearchResult, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -45,67 +43,61 @@ fun SublistSearchResultItem(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClickLabel = "Перейти до списку",
-                role = Role.Button,
                 onClick = onClick
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
+                    .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Link,
-                    contentDescription = "Link to nested project", // Оновлено
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    imageVector = if (result.goal.completed) Icons.Default.CheckCircleOutline else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = if (result.goal.completed) "Завершено" else "Не завершено",
+                    tint = if (result.goal.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = result.sublist.name,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    text = result.goal.text,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-
                 Spacer(modifier = Modifier.height(6.dp))
-
-                // --- ЗМІНА ТУТ ---
-                Text(
-                    text = "Link to nested project: ${result.parentListName}", // Оновлено текст
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ListAlt,
+                        contentDescription = "Список",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = result.listName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Перейти до батьківського списку",
+                contentDescription = "Перейти до деталей",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(start = 8.dp)
             )

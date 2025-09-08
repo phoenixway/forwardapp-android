@@ -73,6 +73,10 @@ interface GoalListDao {
 """)
     suspend fun searchSublistsGlobal(query: String): List<GlobalSublistSearchResult>
 
+    // --- ДОДАНО: Новий метод для пошуку списків за назвою ---
+    @Query("SELECT * FROM goal_lists WHERE name LIKE :query")
+    suspend fun searchListsGlobal(query: String): List<GoalList>
+
     @Query("DELETE FROM goal_lists")
     suspend fun deleteAll()
 

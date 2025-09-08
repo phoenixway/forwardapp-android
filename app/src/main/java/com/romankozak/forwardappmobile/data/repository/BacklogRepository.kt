@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.RecentListDao
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord // Додано імпорт
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalList
@@ -38,8 +39,10 @@ class GoalRepository @Inject constructor(
     private val linkItemDao: LinkItemDao,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val inboxRecordDao: InboxRecordDao,
-
-    ) {
+    // --- ПОЧАТОК ЗМІНИ: Додано залежність від ActivityRepository ---
+    private val activityRepository: ActivityRepository
+    // --- КІНЕЦЬ ЗМІНИ ---
+) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "AddSublistDebug"
 
@@ -236,19 +239,35 @@ class GoalRepository @Inject constructor(
 
     fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 
+    // --- ПОЧАТОК ЗМІНИ: Оновлений метод глобального пошуку ---
     @Transaction
     suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResultItem> {
+        // 1. Пошук цілей
         val goalResults = goalDao.searchGoalsGlobal(query).map {
             GlobalSearchResultItem.GoalItem(it)
         }
+        // 2. Пошук посилань (LinkItem)
         val linkResults = linkItemDao.searchLinksGlobal(query).map {
             GlobalSearchResultItem.LinkItem(it)
         }
+        // 3. Пошук вкладених списків (Sublist)
         val sublistResults = goalListDao.searchSublistsGlobal(query).map {
             GlobalSearchResultItem.SublistItem(it)
         }
-        return goalResults + linkResults + sublistResults
+        // 4. Пошук самих списків
+        val listResults = goalListDao.searchListsGlobal(query).map {
+            GlobalSearchResultItem.ListItem(it)
+        }
+        // 5. Пошук записів трекера
+        val activityResults = activityRepository.searchActivities(query).map {
+            GlobalSearchResultItem.ActivityItem(it)
+        }
+
+        // Об'єднання всіх результатів та сортування за датою (новіші спочатку)
+        return (goalResults + linkResults + sublistResults + listResults + activityResults)
+            .sortedByDescending { it.timestamp }
     }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     suspend fun logListAccess(listId: String) {
         recentListDao.logAccess(RecentListEntry(listId = listId, lastAccessed = System.currentTimeMillis()))
@@ -290,7 +309,9 @@ class GoalRepository @Inject constructor(
     suspend fun addLinkItemToList(listId: String, link: RelatedLink): String {
         val newLinkEntity = LinkItemEntity(
             id = UUID.randomUUID().toString(),
-            linkData = link
+            linkData = link,
+            // ВИПРАВЛЕНО: Передаємо поточний час для нового поля
+            createdAt = System.currentTimeMillis()
         )
         linkItemDao.insert(newLinkEntity)
 
@@ -382,5 +403,4 @@ class GoalRepository @Inject constructor(
         // --- ЗМІНЕНО: Повертаємо створений об'єкт Goal ---
         return newGoal
     }
-
 }

@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/SublistSearchResultItem.kt
+// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/ListSearchResultItem.kt
 
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
@@ -11,25 +11,22 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GlobalSublistSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GoalList
 
 @Composable
-fun SublistSearchResultItem(
-    result: GlobalSublistSearchResult,
-    onClick: () -> Unit
-) {
+fun ListSearchResultItem(list: GoalList, onClick: () -> Unit) {
+    // --- ОНОВЛЕНО: Додано анімацію натискання, як в елементі цілі ---
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -44,68 +41,58 @@ fun SublistSearchResultItem(
             .scale(scale)
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
-                onClickLabel = "Перейти до списку",
-                role = Role.Button,
+                indication = null, // Вимикаємо стандартний ripple для чистоти анімації
                 onClick = onClick
             ),
+        // --- ОНОВЛЕНО: Стиль картки ---
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            // --- ОНОВЛЕНО: Уніфіковані відступи ---
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // --- ОНОВЛЕНО: Іконка тепер у стилізованому Box ---
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
+                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Link,
-                    contentDescription = "Link to nested project", // Оновлено
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    imageVector = Icons.AutoMirrored.Filled.ListAlt,
+                    contentDescription = "Іконка списку",
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(22.dp)
                 )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = result.sublist.name,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    text = list.name,
+                    // --- ОНОВЛЕНО: Стиль тексту ---
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
-
                 Spacer(modifier = Modifier.height(6.dp))
-
-                // --- ЗМІНА ТУТ ---
                 Text(
-                    text = "Link to nested project: ${result.parentListName}", // Оновлено текст
+                    text = "Project",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
                 )
             }
 
+            // --- ОНОВЛЕНО: Іконка-стрілка для консистентності ---
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Перейти до батьківського списку",
+                contentDescription = "Показати у списку",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(start = 8.dp)
             )

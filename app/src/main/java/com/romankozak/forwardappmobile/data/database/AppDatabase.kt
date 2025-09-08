@@ -21,7 +21,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         LinkItemEntity::class,
         InboxRecord::class
     ],
-    version = 21,
+    version = 22,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)

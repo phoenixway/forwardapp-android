@@ -212,3 +212,11 @@ val MIGRATION_20_21 = object : Migration(20, 21) { // Замініть X та Y 
     }
 }
 
+val MIGRATION_21_22 = object : Migration(1, 2) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Додаємо нову колонку 'createdAt' до таблиці 'link_items'.
+        // Вона не може бути NULL, тому для існуючих рядків встановлюємо
+        // стандартне значення 0.
+        database.execSQL("ALTER TABLE link_items ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+    }
+}
