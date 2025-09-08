@@ -34,6 +34,10 @@ class SettingsRepository @Inject constructor(
         val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
         val OLLAMA_SMART_MODEL_KEY = stringPreferencesKey("ollama_smart_model")
 
+        // --- ПОЧАТОК ЗМІНИ: Додано ключ для системного промпту ---
+        val SYSTEM_PROMPT_KEY = stringPreferencesKey("system_prompt")
+        // --- КІНЕЦЬ ЗМІНИ ---
+
         val NER_MODEL_URI_KEY = stringPreferencesKey("ner_model_uri")
         val NER_TOKENIZER_URI_KEY = stringPreferencesKey("ner_tokenizer_uri")
         val NER_LABELS_URI_KEY = stringPreferencesKey("ner_labels_uri")
@@ -116,6 +120,19 @@ class SettingsRepository @Inject constructor(
 
     val ollamaSmartModelFlow: Flow<String> = context.dataStore.data
         .map { preferences -> preferences[OLLAMA_SMART_MODEL_KEY] ?: "" }
+
+    // --- ПОЧАТОК ЗМІНИ: Додано логіку для системного промпту ---
+    val systemPromptFlow: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[SYSTEM_PROMPT_KEY] ?: "You are a helpful assistant who answers concisely and accurately."
+        }
+
+    suspend fun setSystemPrompt(prompt: String) {
+        context.dataStore.edit { settings ->
+            settings[SYSTEM_PROMPT_KEY] = prompt
+        }
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     suspend fun saveOllamaUrl(url: String) {
         context.dataStore.edit { settings -> settings[OLLAMA_URL_KEY] = url }

@@ -17,11 +17,13 @@ import com.romankozak.forwardappmobile.data.database.models.*
         // Note::class, // <-- ВИДАЛЕНО
         ListItem::class,
         ActivityRecord::class,
+        ActivityRecordFts::class,
         RecentListEntry::class,
         LinkItemEntity::class,
-        InboxRecord::class
+        InboxRecord::class,
+        ChatMessageEntity::class,
     ],
-    version = 22,
+    version = 23,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -39,37 +41,38 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recentListDao(): RecentListDao
     abstract fun linkItemDao(): LinkItemDao
     abstract fun inboxRecordDao(): InboxRecordDao
+    abstract fun chatDao(): ChatDao
 
 
-   /* companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
+    /* companion object {
+         @Volatile
+         private var INSTANCE: AppDatabase? = null
 
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "forward_app_database"
-                )
-                    .addMigrations(
-                        MIGRATION_8_9,
-                        MIGRATION_10_11,
-                        MIGRATION_11_12,
-                        MIGRATION_12_13,
-                        MIGRATION_13_14,
-                        MIGRATION_14_15,
-                        MIGRATION_15_16,
-                        MIGRATION_16_17,
-                        MIGRATION_17_18,
-                        MIGRATION_18_19,
-                        MIGRATION_19_20,
-                        MIGRATION_20_21,
-                    )
-                    .build()
-                INSTANCE = instance
-                instance
-            }
-        }
-    }*/
+         fun getDatabase(context: Context): AppDatabase {
+             return INSTANCE ?: synchronized(this) {
+                 val instance = Room.databaseBuilder(
+                     context.applicationContext,
+                     AppDatabase::class.java,
+                     "forward_app_database"
+                 )
+                     .addMigrations(
+                         MIGRATION_8_9,
+                         MIGRATION_10_11,
+                         MIGRATION_11_12,
+                         MIGRATION_12_13,
+                         MIGRATION_13_14,
+                         MIGRATION_14_15,
+                         MIGRATION_15_16,
+                         MIGRATION_16_17,
+                         MIGRATION_17_18,
+                         MIGRATION_18_19,
+                         MIGRATION_19_20,
+                         MIGRATION_20_21,
+                     )
+                     .build()
+                 INSTANCE = instance
+                 instance
+             }
+         }
+     }*/
 }

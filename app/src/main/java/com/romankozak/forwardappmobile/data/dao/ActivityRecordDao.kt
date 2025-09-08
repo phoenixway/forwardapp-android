@@ -18,6 +18,7 @@ interface ActivityRecordDao {
     @Query("SELECT * FROM activity_records ORDER BY createdAt ASC")
     fun getAllRecordsStream(): Flow<List<ActivityRecord>>
 
+    // Цей запит тепер працюватиме, оскільки модель ActivityRecord оновлена
     @Query("SELECT * FROM activity_records WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
     suspend fun findLastOngoingActivity(): ActivityRecord?
 
@@ -30,7 +31,13 @@ interface ActivityRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<ActivityRecord>)
 
-    // --- ДОДАНО: Новий метод для повнотекстового пошуку ---
-    @Query("SELECT * FROM activity_records WHERE text LIKE :query ORDER BY createdAt DESC")
+    // --- ОНОВЛЕНО: Новий метод для ефективного повнотекстового пошуку (FTS) ---
+    // Запит знаходить збіги в FTS-таблиці та повертає повні об'єкти з основної таблиці
+    @Query("""
+        SELECT ar.* FROM activity_records AS ar
+        JOIN activity_records_fts AS fts ON ar.id = fts.rowid
+        WHERE fts.text MATCH :query
+        ORDER BY ar.createdAt DESC
+    """)
     suspend fun search(query: String): List<ActivityRecord>
 }

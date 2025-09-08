@@ -212,11 +212,51 @@ val MIGRATION_20_21 = object : Migration(20, 21) { // Замініть X та Y 
     }
 }
 
-val MIGRATION_21_22 = object : Migration(1, 2) {
+val MIGRATION_21_22 = object : Migration(21, 22) {
     override fun migrate(database: SupportSQLiteDatabase) {
         // Додаємо нову колонку 'createdAt' до таблиці 'link_items'.
         // Вона не може бути NULL, тому для існуючих рядків встановлюємо
         // стандартне значення 0.
         database.execSQL("ALTER TABLE link_items ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN target_id TEXT")
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN target_type TEXT")
+        // Створення індексу для нової колонки покращить продуктивність
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_target_id` ON `activity_records` (`target_id`)")
+    }
+}
+
+
+val MIGRATION_23_24 = object : Migration(23, 24) { // <-- ЗАМІНІТЬ START_VERSION та END_VERSION
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // 1. Створення нової таблиці для ActivityRecord
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `activity_records` (
+                `id` TEXT NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `description` TEXT NOT NULL,
+                `target_id` TEXT,
+                `target_type` TEXT,
+                PRIMARY KEY(`id`)
+            )
+        """)
+        // Створюємо індекс для колонки target_id, як зазначено в @ColumnInfo
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_target_id` ON `activity_records` (`target_id`)")
+
+        // 2. Додавання колонки 'createdAt' до 'link_items'
+        // Встановлюємо значення за замовчуванням 0, оскільки поле не може бути NULL
+        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `createdAt` INTEGER NOT NULL DEFAULT 0")
+
+        // 3. Додавання колонки 'default_view_mode' до 'goal_lists'
+        // Значення за замовчуванням 'BACKLOG' береться з анотації @ColumnInfo
+        db.execSQL("ALTER TABLE `goal_lists` ADD COLUMN `default_view_mode` TEXT NOT NULL DEFAULT 'BACKLOG'")
+
+        // 4. Додавання колонки 'is_completed' до 'goal_lists'
+        // Значення за замовчуванням 0 (false) береться з анотації @ColumnInfo
+        db.execSQL("ALTER TABLE `goal_lists` ADD COLUMN `is_completed` INTEGER NOT NULL DEFAULT 0")
     }
 }

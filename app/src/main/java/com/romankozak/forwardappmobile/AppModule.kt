@@ -94,5 +94,9 @@ object AppModule {
         return appDatabase.inboxRecordDao()
     }
 
-    // --- КІНЕЦЬ ЗМІНИ ---
+    @Provides
+    fun provideChatDao(appDatabase: AppDatabase): ChatDao {
+        return appDatabase.chatDao()
+    }
+
 }
