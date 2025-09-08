@@ -2,6 +2,7 @@
 
 package com.romankozak.forwardappmobile.data.database.models
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.UUID
@@ -14,7 +15,13 @@ data class ActivityRecord(
     val createdAt: Long = System.currentTimeMillis(),
     val startTime: Long? = null,
     val endTime: Long? = null,
-    val reminderTime: Long? = null
+    val reminderTime: Long? = null,
+
+    // Поля, перенесені зі старої версії
+    @ColumnInfo(name = "target_id", index = true)
+    val targetId: String? = null,
+    @ColumnInfo(name = "target_type")
+    val targetType: String? = null
 ) {
     val isTimeless: Boolean
         get() = startTime == null && endTime == null

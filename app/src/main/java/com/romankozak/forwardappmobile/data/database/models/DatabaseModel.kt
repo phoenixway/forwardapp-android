@@ -5,6 +5,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Fts4
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
@@ -195,6 +196,7 @@ data class InboxRecord(
     val order: Long,
 )
 
+// --- ПОЧАТОК ВИПРАВЛЕННЯ: Анотація @Entity переміщена до свого класу ListItem ---
 @Entity(
     tableName = "list_items",
     foreignKeys = [
@@ -214,6 +216,14 @@ data class ListItem(
     val entityId: String,
     @ColumnInfo(name = "item_order")
     val order: Long,
+)
+// --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
+
+@Entity(tableName = "activity_records_fts")
+@Fts4(contentEntity = ActivityRecord::class)
+data class ActivityRecordFts(
+    // Поля, за якими буде здійснюватися пошук
+    val text: String,
 )
 
 sealed class ListItemContent {
@@ -245,9 +255,6 @@ data class GlobalSublistSearchResult(
     val parentListId: String,
     val parentListName: String,
 )
-
-// Припускаємо, що клас ActivityRecord визначено в іншому місці
-// data class ActivityRecord(...)
 
 sealed class GlobalSearchResultItem {
     /**

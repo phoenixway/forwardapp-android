@@ -15,6 +15,7 @@ import kotlinx.serialization.json.boolean
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -195,20 +196,24 @@ class OllamaService @Inject constructor() {
             processStreamingResponse(responseBody, isGenerateEndpoint = false)
 
         } catch (e: Exception) {
-            Log.w(TAG, "/api/chat failed, trying /api/generate: ${e.message}", e)
+            if (e is HttpException && e.code() == 404) {
+                Log.w(TAG, "/api/chat failed (404), trying /api/generate as fallback: ${e.message}", e)
 
-            val messagesText = messages.joinToString("\n") { "${it.role}: ${it.content}" }
-            val prompt = "Respond to the user's query with information relevant to the conversation:\n$messagesText\nassistant:"
+                val messagesText = messages.joinToString("\n") { "${it.role}: ${it.content}" }
+                val prompt = "Respond to the user's query with information relevant to the conversation:\n$messagesText\nassistant:"
 
-            Log.d(TAG, "Generate request prompt: $prompt")
-            val generateRequest = OllamaCompletionRequest(
-                model = model,
-                prompt = prompt,
-                stream = true
-            )
+                Log.d(TAG, "Generate request prompt: $prompt")
+                val generateRequest = OllamaCompletionRequest(
+                    model = model,
+                    prompt = prompt,
+                    stream = true
+                )
 
-            val responseBody = api.generateCompletionStream(generateRequest)
-            processStreamingResponse(responseBody, isGenerateEndpoint = true)
+                val responseBody = api.generateCompletionStream(generateRequest)
+                processStreamingResponse(responseBody, isGenerateEndpoint = true)
+            } else {
+                throw e
+            }
         }
     }.catch { e ->
         Log.e(TAG, "Error during streaming: ${e.message}", e)
@@ -233,7 +238,6 @@ class OllamaService @Inject constructor() {
 
                 if (line.isBlank()) continue
 
-                // Parse the line as JSON
                 val jsonElement = try {
                     json.parseToJsonElement(line)
                 } catch (e: Exception) {
@@ -241,16 +245,14 @@ class OllamaService @Inject constructor() {
                     continue
                 }
 
-                // Check for error response first
                 try {
                     val errorResponse = json.decodeFromString<OllamaErrorResponse>(line)
                     throw IllegalStateException("Ollama API error: ${errorResponse.error}")
                 } catch (e: Exception) {
-                    // Not an error response, proceed with parsing
+                    // Not an error response
                 }
 
                 if (isGenerateEndpoint) {
-                    // Parse as OllamaResponse for /api/generate
                     val ollamaResponse = try {
                         json.decodeFromString<OllamaResponse>(line)
                     } catch (e: Exception) {
@@ -260,18 +262,13 @@ class OllamaService @Inject constructor() {
 
                     val content = ollamaResponse.response
                     if (content.isNotEmpty()) {
-                        Log.d(TAG, "Emitting chunk: '$content'")
                         emit(content)
-                    } else {
-                        Log.d(TAG, "Skipping empty content for /api/generate: '$content'")
                     }
 
                     if (ollamaResponse.done) {
-                        Log.d(TAG, "Stream completed (done=true)")
                         shouldContinue = false
                     }
                 } else {
-                    // Parse as OllamaChatResponse for /api/chat
                     val ollamaResponse = try {
                         json.decodeFromString<OllamaChatResponse>(line)
                     } catch (e: Exception) {
@@ -281,21 +278,15 @@ class OllamaService @Inject constructor() {
 
                     val content = ollamaResponse.message.content
                     if (content.isNotEmpty()) {
-                        Log.d(TAG, "Emitting chunk: '$content'")
                         emit(content)
-                    } else {
-                        Log.d(TAG, "Skipping empty content for /api/chat: '$content'")
                     }
 
-                    // Check for "done" flag
                     val done = jsonElement.jsonObject["done"]?.jsonPrimitive?.boolean ?: false
                     if (done) {
-                        Log.d(TAG, "Stream completed (done=true)")
                         shouldContinue = false
                     }
                 }
             }
-
             Log.d(TAG, "Stream reading completed. Total lines processed: $lineCount")
         }
     }
