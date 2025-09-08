@@ -4,12 +4,14 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -50,12 +53,19 @@ import com.romankozak.forwardappmobile.domain.RoleFile
 import com.romankozak.forwardappmobile.domain.RoleFolder
 import com.romankozak.forwardappmobile.domain.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val TAG = "AI_CHAT_DEBUG"
+
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(
     navController: NavController,
@@ -67,23 +77,37 @@ fun ChatScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
 
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-    val coroutineScope = rememberCoroutineScope()
-
-
     var showMenu by remember { mutableStateOf(false) }
     var showRoleSelectorDialog by remember { mutableStateOf(false) }
     var showTemperatureDialog by remember { mutableStateOf(false) }
     var showModelSelectorDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.text) {
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
+
+
+    LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             coroutineScope.launch {
-                // Даємо команду показати елемент, до якого прив'язаний requester
+                delay(150) // Даємо час на анімацію клавіатури
+                Log.d(TAG, "[EFFECT 1] Scrolling to new message, index: ${uiState.messages.size - 1}")
+                listState.animateScrollToItem(uiState.messages.size - 1)
+            }
+        }
+    }
+
+    // ЕФЕКТ №2: Прокрутка під час СТРІМІНГУ (коли змінюється текст останнього повідомлення).
+    // Використовує BringIntoViewRequester, щоб тримати кінець повідомлення у фокусі.
+    LaunchedEffect(uiState.messages.lastOrNull()?.text) {
+        if (uiState.messages.isNotEmpty()) {
+            coroutineScope.launch {
+                Log.d(TAG, "[EFFECT 2] Bringing streaming text into view.")
                 bringIntoViewRequester.bringIntoView()
             }
         }
     }
+
+
 
 
     val backgroundBrush = Brush.verticalGradient(
@@ -218,7 +242,9 @@ fun ChatScreen(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
             ) {
@@ -228,10 +254,14 @@ fun ChatScreen(
 
                 itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
                     val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
+                    // 3. Визначаємо, чи є це повідомлення останнім у чаті
                     val isLastMessage = index == uiState.messages.lastIndex
+
                     MessageBubble(
                         message = message,
                         isLastAssistantMessage = isLastAssistantMessage,
+                        // 4. Передаємо requester ТІЛЬКИ в останнє повідомлення
+                        bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null,
                         onCopyToClipboard = { text ->
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText("chat_message", text)
@@ -239,11 +269,7 @@ fun ChatScreen(
                         },
                         onRegenerate = viewModel::regenerateLastResponse,
                         onTranslate = { viewModel.translateMessage(message.id) },
-                        // --- ПОЧАТОК ЗМІНИ: Передаємо requester в останнє повідомлення ---
-                        bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null
-                        // --- КІНЕЦЬ ЗМІНИ ---
                     )
-
                 }
             }
 
@@ -252,6 +278,8 @@ fun ChatScreen(
                 onValueChange = viewModel::onUserInputChange,
                 onSendClick = {
                     viewModel.sendMessage()
+                    //viewModel.sendMockMessage() // <-- ТИМЧАСОВА ЗАМІНА
+
                     keyboardController?.hide()
                 },
                 isLoading = uiState.messages.any { it.isStreaming },
@@ -270,7 +298,7 @@ fun ChatScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class) // Додайте анотацію
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     message: ChatMessage,
@@ -278,7 +306,8 @@ fun MessageBubble(
     onCopyToClipboard: (String) -> Unit,
     onRegenerate: () -> Unit,
     onTranslate: () -> Unit,
-    bringIntoViewRequester: BringIntoViewRequester? = null // Новий параметр
+    bringIntoViewRequester: BringIntoViewRequester? = null
+
 ) {
     val isUser = message.isFromUser
 
@@ -291,10 +320,11 @@ fun MessageBubble(
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Аватар AI
             if (!isUser) {
                 Surface(
-                    modifier = Modifier.size(32.dp).padding(bottom = 8.dp),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
@@ -310,7 +340,6 @@ fun MessageBubble(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            // Основний контейнер повідомлення
             Surface(
                 modifier = Modifier
                     .widthIn(max = 280.dp)
@@ -329,11 +358,9 @@ fun MessageBubble(
                 },
                 tonalElevation = if (isUser) 0.dp else 1.dp
             ) {
-                // Вміст бульбашки... (код залишається без змін)
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    // Текст повідомлення та індикатор стрімінгу
                     Row(verticalAlignment = Alignment.Top) {
                         Text(
                             text = if (message.text.isBlank() && message.isStreaming) "..." else message.text,
@@ -352,7 +379,6 @@ fun MessageBubble(
                         }
                     }
 
-                    // Перекладений текст
                     message.translatedText?.let {
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
@@ -363,7 +389,6 @@ fun MessageBubble(
                         )
                     }
 
-                    // Час та кнопки
                     if (!message.isStreaming) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(
@@ -393,11 +418,12 @@ fun MessageBubble(
                 }
             }
 
-            // Аватар користувача
             if (isUser) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
-                    modifier = Modifier.size(32.dp).padding(bottom = 8.dp),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
@@ -407,8 +433,6 @@ fun MessageBubble(
                 }
             }
         }
-
-        // --- ПОЧАТОК ЗМІНИ: Додаємо невидимий "якір" ---
         bringIntoViewRequester?.let {
             Box(
                 modifier = Modifier
@@ -417,7 +441,7 @@ fun MessageBubble(
                     .bringIntoViewRequester(it)
             )
         }
-        // --- КІНЕЦЬ ЗМІНИ ---
+
     }
 }
 
@@ -488,7 +512,7 @@ fun RoleSelectorDialog(
                     }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(currentItems, key = { it.path }) { item ->
+                        items(items = currentItems, key = { it.path }) { item ->
                             when (item) {
                                 is RoleFolder -> {
                                     ListItem(
@@ -581,7 +605,8 @@ fun ModelSelectorDialog(
                                 Text("No models found", modifier = Modifier.padding(16.dp))
                             } else {
                                 LazyColumn {
-                                    items(modelsState.models) { model ->
+                                    items(modelsState.models.size, key = { modelsState.models[it] }) { index ->
+                                        val model = modelsState.models[index]
                                         ListItem(
                                             headlineContent = { Text(model) },
                                             modifier = Modifier.clickable { onModelSelected(model) }
@@ -668,7 +693,6 @@ fun StreamingIndicator() {
     )
 }
 
-// --- ПОЧАТОК ЗМІНИ: Оновлено сигнатуру ChatInput ---
 @Composable
 fun ChatInput(
     value: String,
@@ -683,7 +707,6 @@ fun ChatInput(
     onTemperatureClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-// --- КІНЕЦЬ ЗМІНИ ---
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
@@ -705,7 +728,6 @@ fun ChatInput(
                     modifier = Modifier.weight(1f, fill = false)
                 )
 
-                // --- ПОЧАТОК ЗМІНИ: Додано чіп для моделі ---
                 InputChip(
                     onClick = onModelClick,
                     label = {
@@ -718,7 +740,6 @@ fun ChatInput(
                     icon = Icons.Default.Memory,
                     modifier = Modifier.weight(1f, fill = false)
                 )
-                // --- КІНЕЦЬ ЗМІНИ ---
 
                 InputChip(
                     onClick = onTemperatureClick,
@@ -792,7 +813,7 @@ fun ChatInput(
 private fun InputChip(
     onClick: () -> Unit,
     label: @Composable () -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
 ) {
     Surface(
