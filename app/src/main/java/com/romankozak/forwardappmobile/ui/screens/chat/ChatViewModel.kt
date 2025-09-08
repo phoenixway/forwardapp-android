@@ -6,6 +6,10 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.TranslatorOptions
 import com.romankozak.forwardappmobile.data.database.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
@@ -19,6 +23,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 private const val TAG = "AI_CHAT_DEBUG"
@@ -30,7 +35,11 @@ data class ChatMessage(
     val isFromUser: Boolean,
     val isError: Boolean = false,
     val timestamp: Long = System.currentTimeMillis(),
-    val isStreaming: Boolean = false
+    val isStreaming: Boolean = false,
+    // --- ПОЧАТОК ЗМІНИ: Додано поля для перекладу ---
+    val translatedText: String? = null,
+    val isTranslating: Boolean = false
+    // --- КІНЕЦЬ ЗМІНИ ---
 )
 
 // Extension-функції для мапінгу
@@ -40,7 +49,11 @@ fun ChatMessageEntity.toChatMessage() = ChatMessage(
     isFromUser = this.isFromUser,
     isError = this.isError,
     timestamp = this.timestamp,
-    isStreaming = this.isStreaming
+    isStreaming = this.isStreaming,
+    // --- ПОЧАТОК ЗМІНИ: Ініціалізуємо нові поля ---
+    translatedText = null, // Не зберігаємо переклад в базі
+    isTranslating = false
+    // --- КІНЕЦЬ ЗМІНИ ---
 )
 
 fun ChatMessage.toEntity() = ChatMessageEntity(
@@ -99,8 +112,20 @@ class ChatViewModel @Inject constructor(
                 val (temp, roles) = fiveResults.second
 
                 _uiState.update { currentState ->
+                    // --- ПОЧАТОК ЗМІНИ: Зберігаємо існуючі переклади при оновленні історії ---
+                    val existingTranslations = currentState.messages
+                        .filter { it.translatedText != null }
+                        .associate { it.id to it.translatedText }
+
+                    val newMessages = history.map { entity ->
+                        val chatMessage = entity.toChatMessage()
+                        existingTranslations[chatMessage.id]?.let {
+                            chatMessage.copy(translatedText = it)
+                        } ?: chatMessage
+                    }
                     currentState.copy(
-                        messages = history.map { it.toChatMessage() },
+                        messages = newMessages,
+                        // --- КІНЕЦЬ ЗМІНИ ---
                         systemPrompt = prompt,
                         roleTitle = title,
                         temperature = temp,
@@ -111,7 +136,68 @@ class ChatViewModel @Inject constructor(
             }.collect()
             // --- КІНЕЦЬ ЗМІНИ ---
         }
+
+
+/*        viewModelScope.launch {
+            // Затримка, щоб дати UI час ініціалізуватися
+            kotlinx.coroutines.delay(1000)
+            // Очистимо чат перед початком тесту для чистоти експерименту
+            chatRepo.clearChat()
+            startStreamingTest()
+        }*/
     }
+
+    // --- ПОЧАТОК ЗМІНИ: Додано функцію перекладу ---
+    fun translateMessage(messageId: Long) {
+        viewModelScope.launch {
+            val message = _uiState.value.messages.find { it.id == messageId }
+            if (message == null || message.text.isBlank()) return@launch
+
+            // Показуємо індикатор завантаження
+            _uiState.update { currentState ->
+                currentState.copy(messages = currentState.messages.map {
+                    if (it.id == messageId) it.copy(isTranslating = true) else it
+                })
+            }
+
+            try {
+                val options = TranslatorOptions.Builder()
+                    .setSourceLanguage(TranslateLanguage.ENGLISH)
+                    .setTargetLanguage(TranslateLanguage.UKRAINIAN)
+                    .build()
+                val englishUkrainianTranslator = Translation.getClient(options)
+
+                val conditions = DownloadConditions.Builder()
+                    .requireWifi()
+                    .build()
+                englishUkrainianTranslator.downloadModelIfNeeded(conditions).await()
+
+                val translatedText = englishUkrainianTranslator.translate(message.text).await()
+
+                _uiState.update { currentState ->
+                    currentState.copy(messages = currentState.messages.map {
+                        if (it.id == messageId) {
+                            it.copy(translatedText = translatedText, isTranslating = false)
+                        } else {
+                            it
+                        }
+                    })
+                }
+                englishUkrainianTranslator.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Translation failed", e)
+                _uiState.update { currentState ->
+                    currentState.copy(messages = currentState.messages.map {
+                        if (it.id == messageId) it.copy(
+                            translatedText = "Помилка перекладу: ${e.localizedMessage}",
+                            isTranslating = false
+                        ) else it
+                    })
+                }
+            }
+        }
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     fun loadAvailableModels() {
         viewModelScope.launch {
@@ -199,6 +285,42 @@ class ChatViewModel @Inject constructor(
         return _uiState.value.messages.joinToString("\n\n") { msg ->
             val prefix = if (msg.isFromUser) "[USER]" else "[ASSISTANT] - ${_uiState.value.roleTitle}"
             "$prefix\n${msg.text}"
+        }
+    }
+
+    fun startStreamingTest() {
+        // Не запускати тест, якщо повідомлення вже генерується
+        if (uiState.value.messages.any { it.isStreaming }) return
+
+        viewModelScope.launch {
+            // 1. Додаємо фейкове повідомлення від користувача
+            val userMessage = ChatMessage(text = "Test message for scrolling.", isFromUser = true)
+            chatRepo.addMessage(userMessage.toEntity())
+
+            // 2. Додаємо пусте повідомлення від асистента зі статусом isStreaming
+            val assistantMessage = ChatMessage(text = "", isFromUser = false, isStreaming = true)
+            val assistantMessageId = chatRepo.addMessage(assistantMessage.toEntity())
+
+            val longText = "Це дуже довгий тестовий текст, який емулює відповідь від великої мовної моделі. " +
+                    "Кожне речення буде додаватися з невеликою затримкою, щоб ми могли чітко побачити, " +
+                    "чи працює автоскрол коректно. Зараз ми перевіряємо, чи буде LazyColumn прокручуватися вниз " +
+                    "разом із додаванням нового контенту. Якщо все налаштовано правильно, ви повинні бачити " +
+                    "останнє згенероване слово внизу екрана. Текст повинен продовжувати з'являтися, " +
+                    "і скрол не повинен зупинятися чи стрибати нагору. Ще трохи тексту для маси. " +
+                    "Один, два, три, чотири, п'ять. Перевірка завершується."
+
+            val words = longText.split(" ")
+            var currentText = ""
+
+            // 3. У циклі додаємо по слову з затримкою, оновлюючи повідомлення в базі
+            for (word in words) {
+                kotlinx.coroutines.delay(100) // Затримка для імітації генерації
+                currentText += "$word "
+                chatRepo.updateMessageText(assistantMessageId, currentText)
+            }
+
+            // 4. Завершуємо генерацію, прибираючи прапор isStreaming
+            chatRepo.updateMessageStreamingStatus(assistantMessageId, isStreaming = false)
         }
     }
 }

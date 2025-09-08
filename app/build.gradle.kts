@@ -224,4 +224,9 @@ dependencies {
     // Додайте явно нативну бібліотеку
     //implementation("ai.djl.huggingface:tokenizers:0.25.0:android-native")
 
+    implementation("com.google.mlkit:translate:17.0.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+
+
 }

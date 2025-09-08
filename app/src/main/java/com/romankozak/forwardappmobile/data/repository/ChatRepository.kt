@@ -31,9 +31,30 @@ class ChatRepository @Inject constructor(private val chatDao: ChatDao) {
         }
     }
 
-    // --- ПОЧАТОК ЗМІНИ: Додано новий метод ---
     suspend fun getMessageById(messageId: Long): ChatMessageEntity? {
         return chatDao.getMessageById(messageId)
+    }
+
+    // --- ПОЧАТОК ЗМІНИ: Реалізація відсутніх методів ---
+
+    suspend fun updateMessageText(id: Long, newText: String) {
+        // Отримуємо повідомлення за ID
+        val message = getMessageById(id)
+        message?.let {
+            // Створюємо копію об'єкта з новим текстом
+            val updatedMessage = it.copy(text = newText)
+            // Зберігаємо оновлений об'єкт. Room замінить старий завдяки OnConflictStrategy.REPLACE
+            updateMessage(updatedMessage)
+        }
+    }
+
+    suspend fun updateMessageStreamingStatus(id: Long, isStreaming: Boolean) {
+        // Та сама логіка для оновлення статусу стрімінгу
+        val message = getMessageById(id)
+        message?.let {
+            val updatedMessage = it.copy(isStreaming = isStreaming)
+            updateMessage(updatedMessage)
+        }
     }
     // --- КІНЕЦЬ ЗМІНИ ---
 }
