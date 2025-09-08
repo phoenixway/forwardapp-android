@@ -1,3 +1,4 @@
+// File: ui/screens/backlogs/GoalListScreen.kt
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlogs
@@ -100,7 +101,6 @@ fun GoalListScreen(
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
 
-    var showPlanningModeSheet by remember { mutableStateOf(value = false) }
     var showContextSheet by remember { mutableStateOf(value = false) }
 
     val allContexts by viewModel.allContextsForDialog.collectAsState()
@@ -183,54 +183,6 @@ fun GoalListScreen(
         }
     }
 
-
-    if (showPlanningModeSheet) {
-        ModalBottomSheet(onDismissRequest = { showPlanningModeSheet = false }) {
-            Column(Modifier.navigationBarsPadding()) {
-                Text(
-                    text = "Обрати режим",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-                ListItem(
-                    headlineContent = { Text("Всі") },
-                    leadingContent = { Icon(Icons.AutoMirrored.Outlined.List, contentDescription = "Всі") },
-                    modifier = Modifier.clickable {
-                        viewModel.onPlanningModeChange(PlanningMode.All)
-                        showPlanningModeSheet = false
-                    },
-                )
-                if (planningSettings.showModes) {
-                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                    ListItem(
-                        headlineContent = { Text("Денний") },
-                        leadingContent = { Icon(Icons.Outlined.Today, contentDescription = "Денний") },
-                        modifier = Modifier.clickable {
-                            viewModel.onPlanningModeChange(PlanningMode.Daily)
-                            showPlanningModeSheet = false
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Середньостроковий") },
-                        leadingContent = { Icon(Icons.Outlined.QueryStats, contentDescription = "Середньостроковий") },
-                        modifier = Modifier.clickable {
-                            viewModel.onPlanningModeChange(PlanningMode.Medium)
-                            showPlanningModeSheet = false
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Довгостроковий") },
-                        leadingContent = { Icon(Icons.Outlined.TrackChanges, contentDescription = "Довгостроковий") },
-                        modifier = Modifier.clickable {
-                            viewModel.onPlanningModeChange(PlanningMode.Long)
-                            showPlanningModeSheet = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-
     if (showContextSheet) {
         ModalBottomSheet(onDismissRequest = { showContextSheet = false }) {
             Column(Modifier.navigationBarsPadding()) {
@@ -308,7 +260,7 @@ fun GoalListScreen(
                     onToggleSearch = viewModel::onToggleSearch,
                     onGlobalSearchClick = { viewModel.onShowSearchDialog() },
                     currentMode = planningMode,
-                    onModeSelectorClick = { showPlanningModeSheet = true },
+                    onPlanningModeChange = viewModel::onPlanningModeChange,
                     onContextsClick = { showContextSheet = true },
                     onRecentsClick = { viewModel.onShowRecentLists() }
                 )
@@ -377,6 +329,7 @@ fun GoalListScreen(
     )
 }
 
+// ... (GoalListTopAppBar and SearchBottomBar remain unchanged)
 @Composable
 private fun GoalListTopAppBar(
     isSearchActive: Boolean,

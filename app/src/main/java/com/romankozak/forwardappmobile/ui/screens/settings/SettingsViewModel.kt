@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.ui.screens.settings
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -22,7 +25,10 @@ data class SettingsUiState(
     val nerModelUri: String = "",
     val nerTokenizerUri: String = "",
     val nerLabelsUri: String = "",
-    val nerState: NerState = NerState.NotInitialized
+    val nerState: NerState = NerState.NotInitialized,
+    // --- ПОЧАТОК ЗМІНИ: Додано стан для папки ролей ---
+    val rolesFolderUri: String = ""
+    // --- КІНЕЦЬ ЗМІНИ ---
 )
 
 @HiltViewModel
@@ -43,14 +49,17 @@ class SettingsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // --- ПОЧАТОК ЗМІНИ: Додано потік для папки ролей ---
             val settingsFlows = listOf(
                 settingsRepo.ollamaUrlFlow,
                 settingsRepo.ollamaFastModelFlow,
                 settingsRepo.ollamaSmartModelFlow,
                 settingsRepo.nerModelUriFlow,
                 settingsRepo.nerTokenizerUriFlow,
-                settingsRepo.nerLabelsUriFlow
+                settingsRepo.nerLabelsUriFlow,
+                settingsRepo.rolesFolderUriFlow // Додано новий потік
             )
+            // --- КІНЕЦЬ ЗМІНИ ---
 
             combine(settingsFlows) { values ->
                 _uiState.update {
@@ -60,7 +69,10 @@ class SettingsViewModel @Inject constructor(
                         smartModel = values[2],
                         nerModelUri = values[3],
                         nerTokenizerUri = values[4],
-                        nerLabelsUri = values[5]
+                        nerLabelsUri = values[5],
+                        // --- ПОЧАТОК ЗМІНИ: Оновлюємо стан папки ролей ---
+                        rolesFolderUri = values[6]
+                        // --- КІНЕЦЬ ЗМІНИ ---
                     )
                 }
             }.collect {
@@ -109,7 +121,6 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(nerLabelsUri = uri) }
     }
 
-    // --- ПОКРАЩЕННЯ: Кнопка перезавантаження тепер спочатку зберігає нові URI, а потім перезавантажує ---
     fun reloadNerModel() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -122,6 +133,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // --- ПОЧАТОК ЗМІНИ: Додано обробник для вибору папки ролей ---
+    fun onRolesFolderSelected(uri: Uri, context: Context) {
+        // Щоб мати доступ до папки після перезапуску, потрібно взяти постійний дозвіл.
+        val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        context.contentResolver.takePersistableUriPermission(uri, takeFlags)
+        _uiState.update { it.copy(rolesFolderUri = uri.toString()) }
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
+
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -132,6 +152,9 @@ class SettingsViewModel @Inject constructor(
                 tokenizerUri = currentState.nerTokenizerUri,
                 labelsUri = currentState.nerLabelsUri
             )
+            // --- ПОЧАТОК ЗМІНИ: Зберігаємо шлях до папки ролей ---
+            settingsRepo.saveRolesFolderUri(currentState.rolesFolderUri)
+            // --- КІНЕЦЬ ЗМІНИ ---
         }
     }
 }

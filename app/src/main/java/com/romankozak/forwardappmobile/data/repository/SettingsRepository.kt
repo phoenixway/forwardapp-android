@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -33,9 +34,14 @@ class SettingsRepository @Inject constructor(
         val OLLAMA_URL_KEY = stringPreferencesKey("ollama_url")
         val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
         val OLLAMA_SMART_MODEL_KEY = stringPreferencesKey("ollama_smart_model")
-
-        // --- ПОЧАТОК ЗМІНИ: Додано ключ для системного промпту ---
         val SYSTEM_PROMPT_KEY = stringPreferencesKey("system_prompt")
+
+        // --- ПОЧАТОК ЗМІНИ: Додано ключі для ролі та температури ---
+        val ROLE_TITLE_KEY = stringPreferencesKey("role_title")
+        val TEMPERATURE_KEY = floatPreferencesKey("temperature")
+
+        val ROLES_FOLDER_URI_KEY = stringPreferencesKey("roles_folder_uri")
+
         // --- КІНЕЦЬ ЗМІНИ ---
 
         val NER_MODEL_URI_KEY = stringPreferencesKey("ner_model_uri")
@@ -121,7 +127,6 @@ class SettingsRepository @Inject constructor(
     val ollamaSmartModelFlow: Flow<String> = context.dataStore.data
         .map { preferences -> preferences[OLLAMA_SMART_MODEL_KEY] ?: "" }
 
-    // --- ПОЧАТОК ЗМІНИ: Додано логіку для системного промпту ---
     val systemPromptFlow: Flow<String> = context.dataStore.data
         .map { preferences ->
             preferences[SYSTEM_PROMPT_KEY] ?: "You are a helpful assistant who answers concisely and accurately."
@@ -130,6 +135,29 @@ class SettingsRepository @Inject constructor(
     suspend fun setSystemPrompt(prompt: String) {
         context.dataStore.edit { settings ->
             settings[SYSTEM_PROMPT_KEY] = prompt
+        }
+    }
+
+    // --- ПОЧАТОК ЗМІНИ: Додано логіку для ролі та температури ---
+    val roleTitleFlow: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[ROLE_TITLE_KEY] ?: "Assistant"
+        }
+
+    suspend fun setRoleTitle(title: String) {
+        context.dataStore.edit { settings ->
+            settings[ROLE_TITLE_KEY] = title
+        }
+    }
+
+    val temperatureFlow: Flow<Float> = context.dataStore.data
+        .map { preferences ->
+            preferences[TEMPERATURE_KEY] ?: 0.8f
+        }
+
+    suspend fun setTemperature(temperature: Float) {
+        context.dataStore.edit { settings ->
+            settings[TEMPERATURE_KEY] = temperature
         }
     }
     // --- КІНЕЦЬ ЗМІНИ ---
@@ -270,4 +298,12 @@ class SettingsRepository @Inject constructor(
             }
         }
     }
+
+    val rolesFolderUriFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[ROLES_FOLDER_URI_KEY] ?: "" }
+
+    suspend fun saveRolesFolderUri(uri: String) {
+        context.dataStore.edit { settings -> settings[ROLES_FOLDER_URI_KEY] = uri }
+    }
+
 }

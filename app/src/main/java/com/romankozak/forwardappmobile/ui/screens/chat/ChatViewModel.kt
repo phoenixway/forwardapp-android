@@ -1,14 +1,22 @@
 package com.romankozak.forwardappmobile.ui.screens.chat
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
+import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.domain.GenerationService
 import com.romankozak.forwardappmobile.domain.Message
 import com.romankozak.forwardappmobile.domain.OllamaService
+import com.romankozak.forwardappmobile.domain.RoleItem
+import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -48,14 +56,21 @@ fun ChatMessage.toEntity() = ChatMessageEntity(
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
-    val systemPrompt: String = ""
+    val systemPrompt: String = "",
+    val roleTitle: String = "Assistant",
+    val temperature: Float = 0.8f,
+    val rolesHierarchy: List<RoleItem> = emptyList(),
+    val smartModel: String = "",
+    val availableModels: ModelsState = ModelsState.Loading
 )
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val ollamaService: OllamaService,
     private val settingsRepo: SettingsRepository,
-    private val chatRepo: ChatRepository, // INFO: Додано кінцеву кому
+    private val chatRepo: ChatRepository,
+    private val rolesRepo: RolesRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -66,24 +81,60 @@ class ChatViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Комбінуємо історію чату та системний промпт
-            combine(
+            // --- ПОЧАТОК ЗМІНИ: Виправлено combine для 6 потоків шляхом вкладення ---
+            val fiveFlows = combine(
                 chatRepo.getChatHistory(),
-                // ERROR: ВИПРАВЛЕНО - Припускаємо, що settingsRepo має 'systemPromptFlow'
                 settingsRepo.systemPromptFlow,
-            ) { history, prompt ->
-                ChatUiState(
-                    messages = history.map { it.toChatMessage() },
-                    systemPrompt = prompt, // INFO: Додано кінцеву кому
-                )
-            }.collect { combinedState ->
-                // З цим виправленням тип `combinedState` тепер правильно визначається як `ChatUiState`
-                _uiState.value = _uiState.value.copy(
-                    // ERROR: ВИПРАВЛЕНО - Поля 'messages' та 'systemPrompt' тепер доступні
-                    messages = combinedState.messages,
-                    systemPrompt = combinedState.systemPrompt, // INFO: Додано кінцеву кому
-                )
+                settingsRepo.roleTitleFlow,
+                settingsRepo.temperatureFlow,
+                rolesRepo.rolesHierarchyFlow,
+            ) { history, prompt, title, temp, roles ->
+                // Групуємо результати перших 5 потоків
+                Triple(history, prompt, title) to (temp to roles)
             }
+
+            // Комбінуємо результат перших 5 з 6-м потоком
+            combine(fiveFlows, settingsRepo.ollamaSmartModelFlow) { fiveResults, model ->
+                val (history, prompt, title) = fiveResults.first
+                val (temp, roles) = fiveResults.second
+
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        messages = history.map { it.toChatMessage() },
+                        systemPrompt = prompt,
+                        roleTitle = title,
+                        temperature = temp,
+                        rolesHierarchy = roles,
+                        smartModel = model
+                    )
+                }
+            }.collect()
+            // --- КІНЕЦЬ ЗМІНИ ---
+        }
+    }
+
+    fun loadAvailableModels() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(availableModels = ModelsState.Loading) }
+            val ollamaUrl = settingsRepo.ollamaUrlFlow.first()
+            if (ollamaUrl.isBlank()) {
+                _uiState.update { it.copy(availableModels = ModelsState.Error("Ollama URL is not set")) }
+                return@launch
+            }
+
+            val result = ollamaService.getAvailableModels(ollamaUrl)
+            result.onSuccess { models ->
+                _uiState.update { it.copy(availableModels = ModelsState.Success(models)) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(availableModels = ModelsState.Error("Error: ${error.message}")) }
+            }
+        }
+    }
+
+    fun selectSmartModel(modelName: String) {
+        viewModelScope.launch {
+            val currentFastModel = settingsRepo.ollamaFastModelFlow.first()
+            settingsRepo.saveOllamaModels(fastModel = currentFastModel, smartModel = modelName)
         }
     }
 
@@ -93,79 +144,28 @@ class ChatViewModel @Inject constructor(
 
     fun sendMessage(regenerate: Boolean = false) {
         val messageText = _userInput.value.trim()
-        if ((messageText.isBlank() && !regenerate) || _uiState.value.isLoading) return
+        if ((messageText.isBlank() && !regenerate) || uiState.value.messages.any { it.isStreaming }) return
 
         viewModelScope.launch {
-            if (!regenerate) {
+            if (regenerate) {
+                chatRepo.deleteLastAssistantMessage()
+            } else {
                 val userMessage = ChatMessage(text = messageText, isFromUser = true)
                 chatRepo.addMessage(userMessage.toEntity())
                 _userInput.value = ""
-            } else {
-                // Видаляємо останню відповідь асистента перед регенерацією
-                chatRepo.deleteLastAssistantMessage()
             }
-
-            _uiState.update { it.copy(isLoading = true) }
-
-            val ollamaUrl = settingsRepo.ollamaUrlFlow.first()
-            val smartModel = settingsRepo.ollamaSmartModelFlow.first()
-
-            if (ollamaUrl.isBlank() || smartModel.isBlank()) {
-                val errorMessage = ChatMessage(
-                    text = "Ollama URL or Smart Model is not configured in settings.",
-                    isFromUser = false,
-                    isError = true
-                )
-                chatRepo.addMessage(errorMessage.toEntity())
-                _uiState.update { it.copy(isLoading = false) }
-                return@launch
-            }
-
-            val systemMessage = Message(role = "system", content = _uiState.value.systemPrompt)
-
-            val history = listOf(systemMessage) + _uiState.value.messages
-                .filter { !it.isError && !it.isStreaming }
-                .map { msg ->
-                    Message(role = if (msg.isFromUser) "user" else "assistant", content = msg.text)
-                }
 
             val assistantMessage = ChatMessage(text = "", isFromUser = false, isStreaming = true)
             val assistantMessageId = chatRepo.addMessage(assistantMessage.toEntity())
 
-            try {
-                var fullResponse = ""
-                ollamaService.generateChatResponseStream(ollamaUrl, smartModel, history)
-                    .collect { chunk ->
-                        fullResponse += chunk
-                        val updatedMessage = ChatMessage(
-                            id = assistantMessageId,
-                            text = fullResponse,
-                            isFromUser = false,
-                            isStreaming = true
-                        )
-                        chatRepo.updateMessage(updatedMessage.toEntity())
-                    }
+            val serviceIntent = Intent(context, GenerationService::class.java).apply {
+                putExtra("assistantMessageId", assistantMessageId)
+            }
 
-                // Завершення стрімінгу
-                val finalMessage = ChatMessage(
-                    id = assistantMessageId,
-                    text = fullResponse,
-                    isFromUser = false,
-                    isStreaming = false
-                )
-                chatRepo.updateMessage(finalMessage.toEntity())
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during streaming: ${e.message}", e)
-                val errorMessage = ChatMessage(
-                    id = assistantMessageId,
-                    text = "Error: ${e.message ?: "Unknown error"}",
-                    isFromUser = false,
-                    isError = true
-                )
-                chatRepo.updateMessage(errorMessage.toEntity())
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
             }
         }
     }
@@ -182,15 +182,22 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun updateSystemPrompt(newPrompt: String) {
+    fun updateSystemPromptAndTitle(newPrompt: String, newTitle: String) {
         viewModelScope.launch {
             settingsRepo.setSystemPrompt(newPrompt)
+            settingsRepo.setRoleTitle(newTitle)
+        }
+    }
+
+    fun updateTemperature(newTemperature: Float) {
+        viewModelScope.launch {
+            settingsRepo.setTemperature(newTemperature)
         }
     }
 
     fun exportChat(): String {
         return _uiState.value.messages.joinToString("\n\n") { msg ->
-            val prefix = if (msg.isFromUser) "[USER]" else "[ASSISTANT]"
+            val prefix = if (msg.isFromUser) "[USER]" else "[ASSISTANT] - ${_uiState.value.roleTitle}"
             "$prefix\n${msg.text}"
         }
     }
