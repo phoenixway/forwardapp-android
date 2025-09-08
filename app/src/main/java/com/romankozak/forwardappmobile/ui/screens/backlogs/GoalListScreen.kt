@@ -447,9 +447,9 @@ private fun SearchBottomBar(
     onQueryChange: (String) -> Unit,
     onCloseSearch: () -> Unit,
     onPerformGlobalSearch: (String) -> Unit,
-    focusRequester: FocusRequester
+    focusRequester: FocusRequester,
 ) {
-    // Авто-фокус на текстовому полі при першому відображенні
+    // Auto-focus the text field when the composable is first displayed
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
@@ -457,21 +457,22 @@ private fun SearchBottomBar(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)), // Softer shadow, larger radius
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
         Column(
             modifier = Modifier
                 .navigationBarsPadding()
                 .imePadding()
+            // --- ЗМІНА: Зайвий нижній відступ видалено для симетрії ---
         ) {
-            // Опція глобального пошуку
+            // Global search option
             AnimatedVisibility(
                 visible = searchQuery.isNotBlank(),
                 enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
-                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150))
+                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
             ) {
                 Surface(
                     modifier = Modifier
@@ -481,22 +482,22 @@ private fun SearchBottomBar(
                         .clip(RoundedCornerShape(12.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                         ) { onPerformGlobalSearch(searchQuery) },
                     color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
                         modifier = Modifier
                             .padding(horizontal = 12.dp)
                             .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Search,
                             contentDescription = "Perform global search",
                             modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -505,28 +506,31 @@ private fun SearchBottomBar(
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
             }
 
-            // Рядок з полем вводу пошуку
+            // Search input field
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // --- ЗМІНА: Вертикальні відступи зменшено ---
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .height(52.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val focusManager = LocalFocusManager.current
                 val interactionSource = remember { MutableInteractionSource() }
                 val isFocused by interactionSource.collectIsFocusedAsState()
 
-                // Кнопка "Назад"
+                // Back button
                 IconButton(
                     onClick = onCloseSearch,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier
+                        .size(44.dp)
+                        .scale(if (isFocused) 1f else 0.95f)
+                        .animateContentSize(),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.ArrowBack,
@@ -538,7 +542,7 @@ private fun SearchBottomBar(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Кастомне текстове поле
+                // Custom text field
                 BasicTextField(
                     value = searchQuery,
                     onValueChange = onQueryChange,
@@ -583,6 +587,7 @@ private fun SearchBottomBar(
                                         text = "Search projects...",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.semantics { contentDescription = "Search placeholder" },
                                     )
                                 }
                                 innerTextField()
