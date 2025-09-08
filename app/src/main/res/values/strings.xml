@@ -159,5 +159,7 @@
     <string name="mark_as_incomplete">mark_as_incomplete</string>
     <string name="recents">recents</string>
 
+    <string name="search_everywhere_for">Шукати скрізь за запитом</string>
+
 
 </resources>
