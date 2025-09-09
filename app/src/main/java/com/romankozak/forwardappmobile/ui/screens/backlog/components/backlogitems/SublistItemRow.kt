@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -25,55 +24,45 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagChip
 
 /**
- * List icon badge component matching the note indicator style
+ * List icon badge component (status indicator for sublists)
  */
 @Composable
 private fun SublistIconBadge(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .background(
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                shape = CircleShape,
-            )
-            .padding(4.dp)
-            .semantics {
-                contentDescription = "Підсписок"
-            },
+            .semantics { contentDescription = "Підсписок" },
+        contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.List,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp),
         )
     }
 }
 
 /**
  * A unified, reusable Composable for displaying a sublist item.
- * Now consistent with GoalItem design patterns.
+ * Matches GoalItem structure, but shows a special status badge.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SublistItemRow(
     sublistContent: ListItemContent.SublistItem,
-    isSelected: Boolean, // isSelected залишається для логіки всередині (напр. показ повного тексту)
+    isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
     onCheckedChange: (Boolean) -> Unit,
-    // endAction більше не потрібен тут, оскільки ручка перетягування буде зовні
 ) {
     val sublist = sublistContent.sublist
-
-    // ВИДАЛЕНО: Card та вся логіка фону, тіні та рамок.
-    // Тепер це просто Row, що заповнює простір, наданий батьком.
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .padding(horizontal = 8.dp, vertical = 6.dp), // Відступи, як у GoalItem
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         EnhancedCustomCheckbox(
@@ -83,7 +72,6 @@ fun SublistItemRow(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Main content column
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -109,7 +97,7 @@ fun SublistItemRow(
                 textDecoration = textDecoration
             )
 
-            val hasExtraContent = !sublist.tags.isNullOrEmpty() || !sublist.description.isNullOrBlank()
+            val hasExtraContent = true // завжди показуємо рядок статусу для бейджа
 
             AnimatedVisibility(
                 visible = hasExtraContent,
@@ -125,6 +113,7 @@ fun SublistItemRow(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        // завжди показуємо бейдж підсписку
                         SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
 
                         if (!sublist.tags.isNullOrEmpty()) {
@@ -151,6 +140,5 @@ fun SublistItemRow(
                 )
             }
         }
-        // ВИДАЛЕНО endAction() - ручка тепер завжди зовні
     }
 }
