@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.*
@@ -39,6 +40,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ListSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.LinkSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SearchResultItem
@@ -378,6 +380,9 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.ActivityItem -> {
                             ActivitySearchResultItem(record = result.record)
                         }
+                        is GlobalSearchResultItem.InboxItem -> {
+                            InboxSearchResultItem(record = result.record)
+                        }
                     }
                 }
             }
@@ -468,6 +473,7 @@ private fun ActivitySearchResultItem(
         }
     }
 }
+
 
 private fun handleRelatedLinkClick(link: RelatedLink, obsidianVaultName: String, context: Context) {
     try {

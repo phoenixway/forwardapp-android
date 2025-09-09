@@ -295,4 +295,9 @@ sealed class GlobalSearchResultItem {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "activity_${record.id}"
     }
+
+    data class InboxItem(val record: InboxRecord) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = record.createdAt
+        override val uniqueId: String get() = "inbox_${record.id}"
+    }
 }

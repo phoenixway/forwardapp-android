@@ -262,9 +262,13 @@ class GoalRepository @Inject constructor(
         val activityResults = activityRepository.searchActivities(query).map {
             GlobalSearchResultItem.ActivityItem(it)
         }
+        // 6. Пошук записів інбоксу
+        val inboxResults = inboxRecordDao.searchInboxRecordsGlobal(query).map {
+            GlobalSearchResultItem.InboxItem(it)
+        }
 
         // Об'єднання всіх результатів та сортування за датою (новіші спочатку)
-        return (goalResults + linkResults + sublistResults + listResults + activityResults)
+        return (goalResults + linkResults + sublistResults + listResults + activityResults + inboxResults)
             .sortedByDescending { it.timestamp }
     }
     // --- КІНЕЦЬ ЗМІНИ ---
