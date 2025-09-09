@@ -19,6 +19,9 @@ interface InboxRecordDao {
     @Query("DELETE FROM inbox_records WHERE id = :id")
     suspend fun deleteById(id: String)
 
+    @Query("SELECT * FROM inbox_records WHERE text LIKE :query ORDER BY createdAt DESC")
+    suspend fun searchInboxRecordsGlobal(query: String): List<InboxRecord>
+
     // --- Методи для імпорту/експорту ---
 
     @Query("SELECT * FROM inbox_records")
