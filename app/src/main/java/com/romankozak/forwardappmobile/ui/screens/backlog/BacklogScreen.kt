@@ -53,7 +53,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
-private const val TAG = "BacklogScreen_DEBUG"
+private const val TAG = "BACKLOG_UI_DEBUG"
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -270,6 +270,47 @@ fun GoalDetailScreen(
         }
         viewModel.onHighlightShown()
     }
+
+    // --- ПОЧАТОК ЗМІНИ: Більш надійна логіка підсвічування ---
+
+    // Ефект №1: Відповідає за перемикання на вкладку INBOX
+    LaunchedEffect(uiState.inboxRecordToHighlight, inboxRecords.isNotEmpty()) {
+        val recordId = uiState.inboxRecordToHighlight
+        val recordsAreLoaded = inboxRecords.isNotEmpty()
+
+        if (recordId != null && recordsAreLoaded && uiState.currentView != ProjectViewMode.INBOX) {
+            val recordExists = inboxRecords.any { it.id == recordId }
+            if (recordExists) {
+                Log.d(TAG, "Highlight requested. Switching to INBOX view.")
+                viewModel.onProjectViewChange(ProjectViewMode.INBOX)
+            }
+        }
+    }
+
+    // Ефект №2: Відповідає за прокрутку та підсвічування, коли вкладка INBOX вже активна
+    LaunchedEffect(uiState.inboxRecordToHighlight, uiState.currentView, inboxRecords) {
+        val recordId = uiState.inboxRecordToHighlight
+
+        if (recordId != null && uiState.currentView == ProjectViewMode.INBOX && inboxRecords.isNotEmpty()) {
+            val indexToScroll = inboxRecords.indexOfFirst { it.id == recordId }
+            Log.d(TAG, "INBOX view is active. Searching for record. Found index: $indexToScroll")
+
+            if (indexToScroll != -1) {
+                Log.d(TAG, "Scrolling to index: $indexToScroll")
+                inboxListState.animateScrollToItem(indexToScroll)
+
+                Log.d(TAG, "Waiting for highlight to finish...")
+                delay(2500L)
+                Log.d(TAG, "Highlight duration passed. Resetting state.")
+                viewModel.onInboxHighlightShown()
+            } else {
+                // Якщо запис не знайдено (малоймовірно, але можливо), просто скидаємо стан
+                Log.w(TAG, "Record ID $recordId not found. Clearing highlight state.")
+                viewModel.onInboxHighlightShown()
+            }
+        }
+    }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.selectionHandler.clearSelection()
@@ -622,7 +663,8 @@ fun GoalDetailScreen(
                         onPromoteToGoal = viewModel::promoteInboxRecordToGoal,
                         onRecordClick = viewModel::onInboxRecordEditRequest,
                         onCopy = { text -> viewModel.copyInboxRecordText(text) },
-                        listState = inboxListState
+                        listState = inboxListState,
+                        highlightedRecordId = uiState.inboxRecordToHighlight
                     )
                 }
             }

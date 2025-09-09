@@ -124,7 +124,7 @@ fun AppNavigation(
         }
 
         composable(
-            route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}",
+            route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}",
             arguments = listOf(
                 navArgument("listId") {
                     type = NavType.StringType
@@ -135,6 +135,11 @@ fun AppNavigation(
                     defaultValue = null
                 },
                 navArgument("itemIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("inboxRecordIdToHighlight") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null

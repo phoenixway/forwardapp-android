@@ -37,6 +37,9 @@ import java.net.URLEncoder
 import java.util.Calendar
 import javax.inject.Inject
 
+private const val TAG = "BACKLOG_VM_DEBUG"
+
+
 sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
     data class Navigate(val route: String) : UiEvent()
@@ -66,6 +69,7 @@ data class UiState(
     val showAddWebLinkDialog: Boolean = false,
     val showAddObsidianLinkDialog: Boolean = false,
     val itemToHighlight: String? = null,
+    val inboxRecordToHighlight: String? = null,
     val needsStateRefresh: Boolean = false,
     val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
     val showRecentListsSheet: Boolean = false,
@@ -170,7 +174,6 @@ class GoalDetailViewModel @Inject constructor(
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
     }
 
-    private val TAG = "GoalDetailViewModel_DEBUG"
     private var batchSaveJob: Job? = null
 
     private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
@@ -190,6 +193,7 @@ class GoalDetailViewModel @Inject constructor(
         UiState(
             goalToHighlight = savedStateHandle.get<String>("goalId"),
             itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"),
+            inboxRecordToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")
         )
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -290,6 +294,10 @@ class GoalDetailViewModel @Inject constructor(
 
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
+
+        val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")
+        Log.d(TAG, "Received 'inboxRecordIdToHighlight' from SavedStateHandle: $inboxIdToHighlight")
+
 
         viewModelScope.launch {
             nerManager.nerState.collect { state ->
@@ -496,6 +504,13 @@ class GoalDetailViewModel @Inject constructor(
     fun onHighlightShown() {
         _uiState.update { it.copy(goalToHighlight = null, itemToHighlight = null) }
     }
+
+    fun onInboxHighlightShown() {
+        Log.d(TAG, "Clearing inbox highlight state.")
+
+        _uiState.update { it.copy(inboxRecordToHighlight = null) }
+    }
+
 
     fun onScrolledToNewItem() {
         _uiState.update { it.copy(newlyAddedItemId = null) }
