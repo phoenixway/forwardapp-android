@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
+import android.util.Log
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,14 +18,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color // <-- ДОДАЙТЕ ЦЕЙ ІМПОРТ
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+
+private const val TAG = "INBOX_UI_DEBUG"
 
 @Composable
 fun InboxScreen(
@@ -31,7 +38,8 @@ fun InboxScreen(
     onPromoteToGoal: (InboxRecord) -> Unit,
     onRecordClick: (InboxRecord) -> Unit, // Ця функція тепер викликатиметься для редагування
     onCopy: (String) -> Unit,
-    listState: LazyListState // --- ЗМІНЕНО: Видалено значення за замовчуванням
+    listState: LazyListState, // --- ЗМІНЕНО: Видалено значення за замовчуванням
+    highlightedRecordId: String? = null
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -62,8 +70,13 @@ fun InboxScreen(
                 contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp)
             ) {
                 items(records, key = { it.id }) { record ->
+                    val isHighlighted = record.id == highlightedRecordId
+                    if (isHighlighted) {
+                        Log.d(TAG, "Item with ID ${record.id} is being marked for highlighting.")
+                    }
                     InboxItemRow(
                         record = record,
+                        isHighlighted = isHighlighted,
                         onDelete = {
                             onDelete(record.id)
                             scope.launch {
@@ -98,31 +111,60 @@ fun InboxScreen(
 @Composable
 fun InboxItemRow(
     record: InboxRecord,
+    isHighlighted: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onPromoteToGoal: () -> Unit,
     onCopy: () -> Unit
 ) {
-    // Форматтер для дати
     val formatter = DateTimeFormatter
         .ofPattern("dd.MM.yyyy HH:mm")
         .withZone(ZoneId.systemDefault())
 
-    // Стан для розгортання/згортання тексту
     var isExpanded by remember { mutableStateOf(false) }
+
+    var highlightActive by remember { mutableStateOf(isHighlighted) }
+    LaunchedEffect(isHighlighted) {
+        if (isHighlighted) {
+            Log.d(TAG, "InboxItemRow (ID: ${record.id}) received highlight=true. Starting animation.")
+            highlightActive = true
+            delay(2500L)
+            highlightActive = false
+            Log.d(TAG, "InboxItemRow (ID: ${record.id}) highlight animation finished.")
+        }
+    }
+
+    // --- ПОЧАТОК ЗМІНИ ---
+
+    // Використовуємо дуже помітний колір для тестування. Потім можете повернути свій
+    // MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+    val highlightColor = Color.Yellow.copy(alpha = 0.4f)
+
+    val containerColor by animateColorAsState(
+        targetValue = if (highlightActive) highlightColor else Color.Transparent,
+        animationSpec = tween(durationMillis = 500),
+        label = "highlight_color_animation"
+    )
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                isExpanded = !isExpanded // Перемикаємо стан при натисканні
+                isExpanded = !isExpanded
             }
             .animateContentSize()
             .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
         tonalElevation = 2.dp
+        // Ми більше не встановлюємо колір тут
     ) {
         ListItem(
+            // --- ПОЧАТОК ЗМІНИ: Застосовуємо колір тут ---
+            colors = ListItemDefaults.colors(
+                containerColor = containerColor
+            ),
+            // --- КІНЕЦЬ ЗМІНИ ---
             headlineContent = {
                 Text(
                     text = record.text,
@@ -134,9 +176,8 @@ fun InboxItemRow(
             },
             supportingContent = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp) // Зменшено відстань
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Показуємо "Більше/Менше" для довгих текстів
                     if (record.text.length > 100) {
                         Text(
                             text = if (isExpanded) "Менше" else "Більше",
@@ -144,10 +185,9 @@ fun InboxItemRow(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .clickable { isExpanded = !isExpanded }
-                                .padding(top = 8.dp) // Відступ зверху
+                                .padding(top = 8.dp)
                         )
                     }
-                    // Кнопки та дата в одному рядку
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -155,7 +195,6 @@ fun InboxItemRow(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Кнопки зліва
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
@@ -204,19 +243,16 @@ fun InboxItemRow(
                                 )
                             }
                         }
-                        // Дата справа
-                        record.createdAt?.let {
-                            Text(
-                                text = formatter.format(Instant.ofEpochMilli(it)),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f, fill = false) // Вирівнювання справа
-                            )
-                        }
+                        Text(
+                            text = formatter.format(Instant.ofEpochMilli(record.createdAt)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
                     }
                 }
             },
-            trailingContent = null // Завжди null, кнопки переміщено вниз
+            trailingContent = null
         )
     }
 }

@@ -4,10 +4,14 @@ package com.romankozak.forwardappmobile.ui.screens.globalsearch
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -16,6 +20,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -25,6 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -50,6 +56,9 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private const val TAG = "SEARCH_DEBUG"
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -381,7 +390,16 @@ private fun SearchResultsContent(
                             ActivitySearchResultItem(record = result.record)
                         }
                         is GlobalSearchResultItem.InboxItem -> {
-                            InboxSearchResultItem(record = result.record)
+                            InboxSearchResultItem(
+                                record = result.record,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    val route = "goal_detail_screen/${result.record.projectId}?inboxRecordIdToHighlight=${result.record.id}"
+                                    Log.d(TAG, "Navigating to Inbox. Route: $route")
+
+                                    navController.navigate(route)
+                                }
+                            )
                         }
                     }
                 }
@@ -473,6 +491,7 @@ private fun ActivitySearchResultItem(
         }
     }
 }
+
 
 
 private fun handleRelatedLinkClick(link: RelatedLink, obsidianVaultName: String, context: Context) {
