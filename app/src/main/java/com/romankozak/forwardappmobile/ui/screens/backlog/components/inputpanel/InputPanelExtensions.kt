@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.*
@@ -122,6 +123,7 @@ fun QuickActionsRow(
                             InputMode.AddQuickRecord -> "Запис"
                             InputMode.SearchInList -> "Пошук"
                             InputMode.SearchGlobal -> "Глобально"
+                            InputMode.AddProjectLog -> "Лог"
                         },
                         style = MaterialTheme.typography.labelSmall
                     )
@@ -154,6 +156,7 @@ fun InputStatusIndicator(
                 InputMode.AddQuickRecord -> MaterialTheme.colorScheme.primary
                 InputMode.SearchInList -> MaterialTheme.colorScheme.secondary
                 InputMode.SearchGlobal -> MaterialTheme.colorScheme.tertiary
+                InputMode.AddProjectLog -> MaterialTheme.colorScheme.secondary
             }
             else -> MaterialTheme.colorScheme.outline
         },
@@ -210,6 +213,7 @@ object InputModeUtils {
         InputMode.AddQuickRecord -> Icons.Outlined.Inbox
         InputMode.SearchInList -> Icons.Outlined.Search
         InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+        InputMode.AddProjectLog -> Icons.Outlined.PostAdd
     }
 
     fun getModeColor(mode: InputMode, colorScheme: ColorScheme) = when (mode) {
@@ -217,6 +221,7 @@ object InputModeUtils {
         InputMode.AddQuickRecord -> colorScheme.primary
         InputMode.SearchInList -> colorScheme.secondary
         InputMode.SearchGlobal -> colorScheme.tertiary
+        InputMode.AddProjectLog -> colorScheme.secondary
     }
 }
 

@@ -6,5 +6,5 @@ enum class InputMode {
     SearchInList,
     SearchGlobal,
     AddQuickRecord, // <-- ЗМІНЕНО з AddNote
-
+    AddProjectLog,
 }

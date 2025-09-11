@@ -49,8 +49,6 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import kotlinx.coroutines.delay
 
-private val modes = listOf(InputMode.AddGoal, InputMode.AddQuickRecord, InputMode.SearchGlobal, InputMode.SearchInList)
-
 private data class PanelColors(
     val containerColor: Color,
     val contentColor: Color,
@@ -100,6 +98,16 @@ fun ModernInputPanel(
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
 
+    val modes = remember(isProjectManagementEnabled) {
+        listOfNotNull(
+            InputMode.AddGoal,
+            InputMode.AddQuickRecord,
+            if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
+            InputMode.SearchGlobal,
+            InputMode.SearchInList
+        )
+    }
+
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var isPressed by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
@@ -131,6 +139,12 @@ fun ModernInputPanel(
             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
             accentColor = MaterialTheme.colorScheme.tertiary,
             inputFieldColor = MaterialTheme.colorScheme.surface
+        )
+        InputMode.AddProjectLog -> PanelColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            accentColor = MaterialTheme.colorScheme.secondary,
+            inputFieldColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
@@ -266,6 +280,7 @@ fun ModernInputPanel(
                                     InputMode.AddQuickRecord -> Icons.Outlined.Inbox
                                     InputMode.SearchInList -> Icons.Outlined.Search
                                     InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
+                                    InputMode.AddProjectLog -> Icons.Outlined.PostAdd
                                 }
                                 Icon(
                                     imageVector = icon,
@@ -334,6 +349,7 @@ fun ModernInputPanel(
                                                 InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
                                                 InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
                                                 InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
+                                                InputMode.AddProjectLog -> "Додати коментар до проекту..."
                                             },
                                             style = MaterialTheme.typography.bodyLarge.copy(
                                                 color = panelColors.contentColor.copy(alpha = 0.7f),
@@ -394,6 +410,7 @@ fun ModernInputPanel(
                                 InputMode.AddGoal, InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
                                 InputMode.SearchInList -> MaterialTheme.colorScheme.onPrimary
                                 InputMode.SearchGlobal -> MaterialTheme.colorScheme.onTertiary
+                                InputMode.AddProjectLog -> MaterialTheme.colorScheme.onSecondary
                             }
                         )
                     ) {
@@ -436,6 +453,7 @@ fun ModernInputPanel(
                                 InputMode.AddQuickRecord -> stringResource(R.string.menu_add_quick_record)
                                 InputMode.SearchInList -> stringResource(R.string.menu_search_in_list)
                                 InputMode.SearchGlobal -> stringResource(R.string.menu_search_everywhere)
+                                InputMode.AddProjectLog -> "Додавання запису в лог"
                             },
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = panelColors.accentColor
@@ -535,6 +553,16 @@ fun ModernInputPanel(
                         showModeMenu = false
                     }
                 )
+                if (isProjectManagementEnabled) {
+                    DropdownMenuItem(
+                        text = { Text("Додати запис в лог проекту", style = MaterialTheme.typography.bodyMedium) },
+                        leadingIcon = { Icon(Icons.Outlined.PostAdd, null, modifier = Modifier.size(20.dp), tint = if (inputMode == InputMode.AddProjectLog) panelColors.accentColor else MaterialTheme.colorScheme.onSurfaceVariant) },
+                        onClick = {
+                            onInputModeSelected(InputMode.AddProjectLog)
+                            showModeMenu = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -1028,4 +1056,3 @@ private fun NavigationBar(
         }
     }
 }
-
