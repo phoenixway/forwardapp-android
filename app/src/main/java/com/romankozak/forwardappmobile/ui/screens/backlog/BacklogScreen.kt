@@ -40,6 +40,7 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderDialog
+import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
@@ -456,12 +457,16 @@ fun GoalDetailScreen(
         null // Return null when there's no valid reminder
     }
 
-    ReminderDialog(
-        record = uiState.recordForReminderDialog,
-        onDismiss = viewModel::onReminderDialogDismiss,
-        onSetReminder = viewModel::onSetReminderTime,
-        onClearReminder = viewModel::onClearReminder
-    )
+    uiState.recordForReminderDialog?.let { record ->
+        ReminderPickerDialog(
+            onDismiss = viewModel::onReminderDialogDismiss,
+            onSetReminder = viewModel::onSetReminder,
+            // --- ВИПРАВЛЕНО: Виклик обернуто в лямбду для відповідності типів ---
+            onClearReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
+            currentReminderTime = record.reminderTime,
+        )
+    }
+
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),

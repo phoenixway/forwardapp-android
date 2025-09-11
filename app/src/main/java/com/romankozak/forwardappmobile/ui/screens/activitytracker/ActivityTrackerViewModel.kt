@@ -172,32 +172,25 @@ class ActivityTrackerViewModel @Inject constructor(
         _recordForReminder.value = null
     }
 
-    fun onSetReminderTime(year: Int, month: Int, day: Int, hour: Int, minute: Int) = viewModelScope.launch {
-        val record = _recordForReminder.value
-        if (record != null) {
-            val calendar = Calendar.getInstance().apply {
-                set(year, month, day, hour, minute, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
+    fun onSetReminder(timestamp: Long) = viewModelScope.launch {
+        val record = _recordForReminder.value ?: return@launch
 
-            val updatedRecord = record.copy(reminderTime = calendar.timeInMillis)
-            repository.updateRecord(updatedRecord)
+        val updatedRecord = record.copy(reminderTime = timestamp)
+        repository.updateRecord(updatedRecord)
 
-            // Плануємо нагадування через AlarmScheduler
-            alarmScheduler.scheduleForActivityRecord(updatedRecord)
-        }
+        alarmScheduler.scheduleForActivityRecord(updatedRecord)
         onReminderDialogDismiss()
     }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     fun onClearReminder() = viewModelScope.launch {
         val record = _recordForReminder.value
         if (record != null) {
             val updatedRecord = record.copy(reminderTime = null)
             repository.updateRecord(updatedRecord)
-
-            // Скасовуємо нагадування
             alarmScheduler.cancelForActivityRecord(record)
         }
         onReminderDialogDismiss()
     }
+
 }

@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderDialog
+import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.formatDuration
 import kotlinx.coroutines.delay
@@ -137,12 +138,17 @@ fun ActivityTrackerScreen(
             )
         }
 
-        ReminderDialog(
-            record = recordForReminder,
-            onDismiss = viewModel::onReminderDialogDismiss,
-            onSetReminder = viewModel::onSetReminderTime,
-            onClearReminder = viewModel::onClearReminder
-        )
+        recordForReminder?.let { record ->
+            ReminderPickerDialog(
+                onDismiss = viewModel::onReminderDialogDismiss,
+                onSetReminder = viewModel::onSetReminder,
+                // --- ВИПРАВЛЕНО: Виклик обернуто в лямбду для відповідності типів ---
+                onClearReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
+                currentReminderTime = record.reminderTime,
+            )
+        }
+
+
     }
 }
 
