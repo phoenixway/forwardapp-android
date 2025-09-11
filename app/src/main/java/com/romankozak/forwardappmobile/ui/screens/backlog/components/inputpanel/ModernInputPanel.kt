@@ -87,6 +87,7 @@ fun ModernInputPanel(
     onExportToMarkdown: () -> Unit,
     onImportBacklogFromMarkdown: () -> Unit,
     onExportBacklogToMarkdown: () -> Unit,
+    onExportProjectState: () -> Unit,
     reminderParseResult: ReminderParseResult?,
     onClearReminder: () -> Unit,
     isNerActive: Boolean,
@@ -199,6 +200,7 @@ fun ModernInputPanel(
                 onInputModeSelected = onInputModeSelected,
                 onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
                 onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+                onExportProjectState = onExportProjectState,
                 onStartTrackingCurrentProject = onStartTrackingCurrentProject,
                 isProjectManagementEnabled = isProjectManagementEnabled,
 
@@ -635,6 +637,7 @@ private fun NavigationBar(
     modifier: Modifier = Modifier,
     onImportBacklogFromMarkdown: () -> Unit,
     onExportBacklogToMarkdown: () -> Unit,
+    onExportProjectState: () -> Unit,
     onStartTrackingCurrentProject: () -> Unit,
     isProjectManagementEnabled: Boolean,
 
@@ -1024,6 +1027,30 @@ private fun NavigationBar(
                             }
                         )
                     }
+
+                    if (isProjectManagementEnabled) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Експортувати історію і стан",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = {
+                                onExportProjectState()
+                                onMenuExpandedChange(false)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Outlined.Assessment,
+                                    contentDescription = "Експортувати історію і стан",
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                    }
+
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 4.dp),

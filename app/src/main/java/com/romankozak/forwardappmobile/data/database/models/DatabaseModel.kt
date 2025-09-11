@@ -41,7 +41,7 @@ enum class ScoringStatus {
 
 enum class ProjectStatus(val displayName: String) {
     NO_PLAN("Без плану"),
-    PLANNING("В плануванні"),
+    PLANNING("Планується"),
     IN_PROGRESS("В реалізації"),
     COMPLETED("Завершено"),
     ON_HOLD("Відкладено"),
@@ -356,8 +356,4 @@ sealed class GlobalSearchResultItem {
         override val uniqueId: String get() = "inbox_${record.id}"
     }
 }
-
-
-
-
 

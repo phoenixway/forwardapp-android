@@ -6,31 +6,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 
-/**
- * Спрощена AdaptiveTopBar без навігаційної панелі.
- * Навігацію перенесено в ModernInputPanel.
- */
 @Composable
 fun AdaptiveTopBar(
     isSelectionModeActive: Boolean,
-    title: String,
+    goalList: GoalList?, // Змінено з title: String
     selectedCount: Int,
     areAllSelected: Boolean,
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onDelete: () -> Unit,
-    // --- ЗМІНЕНО ---
-    // Видалено onToggleComplete і додано дві нові дії
     onMarkAsComplete: () -> Unit,
     onMarkAsIncomplete: () -> Unit,
-    // --- КІНЕЦЬ ЗМІН ---
     onMoreActions: (GoalActionType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -42,7 +34,8 @@ fun AdaptiveTopBar(
     ) {
         if (isSelectionModeActive) {
             Column(modifier = Modifier.statusBarsPadding()) {
-                ListTitleBar(title = title)
+                // У режимі вибору показуємо заголовок без статусу
+                ListTitleBar(goalList = goalList?.copy(isProjectManagementEnabled = false))
                 MultiSelectTopAppBar(
                     selectedCount = selectedCount,
                     areAllSelected = areAllSelected,
@@ -50,39 +43,13 @@ fun AdaptiveTopBar(
                     onSelectAll = onSelectAll,
                     onDelete = onDelete,
                     onMoreActions = onMoreActions,
-                    // --- ЗМІНЕНО ---
-                    // Передаємо нові функції, отримані в параметрах
                     onMarkAsComplete = onMarkAsComplete,
                     onMarkAsIncomplete = onMarkAsIncomplete
-                    // --- КІНЕЦЬ ЗМІН ---
                 )
             }
         } else {
-            // Простий заголовок без навігації
-            SubcomposeLayout(modifier = Modifier.statusBarsPadding()) { constraints ->
-                val titleTextPlaceable = subcompose(AdaptiveTopBarSlot.TITLE_TEXT) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }.first().measure(constraints)
-
-                // Завжди показуємо тільки заголовок
-                val titleBarPlaceable = subcompose(AdaptiveTopBarSlot.TITLE_BAR) {
-                    ListTitleBar(title = title)
-                }.first().measure(constraints)
-
-                val totalHeight = titleBarPlaceable.height
-                layout(constraints.maxWidth, totalHeight) {
-                    titleBarPlaceable.placeRelative(0, 0)
-                }
-            }
+            // У звичайному режимі показуємо заголовок зі статусом
+            ListTitleBar(goalList = goalList)
         }
     }
-}
-
-private enum class AdaptiveTopBarSlot {
-    TITLE_TEXT,
-    TITLE_BAR
 }
