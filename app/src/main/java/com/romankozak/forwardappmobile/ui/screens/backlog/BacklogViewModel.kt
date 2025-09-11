@@ -39,6 +39,7 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
@@ -763,18 +764,18 @@ class GoalDetailViewModel @Inject constructor(
         _uiState.update { it.copy(recordForReminderDialog = null) }
     }
 
-    fun onSetReminderTime(year: Int, month: Int, day: Int, hour: Int, minute: Int) = viewModelScope.launch {
+    fun onSetReminder(timestamp: Long) = viewModelScope.launch {
         val record = _uiState.value.recordForReminderDialog ?: return@launch
-        val calendar = Calendar.getInstance().apply {
-            set(year, month, day, hour, minute, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val updatedRecord = record.copy(reminderTime = calendar.timeInMillis)
+
+        val updatedRecord = record.copy(reminderTime = timestamp)
         activityRepository.updateRecord(updatedRecord)
         alarmScheduler.scheduleForActivityRecord(updatedRecord)
         onReminderDialogDismiss()
-        showSnackbar("Нагадування встановлено на ${SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(calendar.time)}", null)
+        showSnackbar("Нагадування встановлено на ${SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(
+            Date(timestamp)
+        )}", null)
     }
+    // --- КІНЕЦЬ ЗМІНИ ---
 
     fun onClearReminder() = viewModelScope.launch {
         val record = _uiState.value.recordForReminderDialog ?: return@launch
