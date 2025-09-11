@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -152,7 +153,12 @@ class SettingsRepository @Inject constructor(
 
     val temperatureFlow: Flow<Float> = context.dataStore.data
         .map { preferences ->
-            preferences[TEMPERATURE_KEY] ?: 0.8f
+            try {
+                preferences[TEMPERATURE_KEY] ?: 0.8f
+            } catch (e: ClassCastException) {
+                Log.e("SettingsRepository", "Failed to cast temperature, resetting to default.", e)
+                (preferences[stringPreferencesKey(TEMPERATURE_KEY.name)]?.toFloatOrNull()) ?: 0.8f
+            }
         }
 
     suspend fun setTemperature(temperature: Float) {
@@ -276,6 +282,10 @@ class SettingsRepository @Inject constructor(
                 when (key) {
                     showPlanningModesKey.name -> {
                         preferences[booleanPreferencesKey(key)] = value.toBoolean()
+                    }
+
+                    TEMPERATURE_KEY.name -> {
+                        preferences[floatPreferencesKey(key)] = value.toFloatOrNull() ?: 0.8f
                     }
 
                     ContextKeys.CUSTOM_CONTEXT_NAMES.name -> {

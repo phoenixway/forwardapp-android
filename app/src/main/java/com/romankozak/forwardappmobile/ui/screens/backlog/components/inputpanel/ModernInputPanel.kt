@@ -162,7 +162,8 @@ fun ModernInputPanel(
     )
 
     LaunchedEffect(inputMode) {
-        if (inputMode != InputMode.AddGoal) {
+        // Запитуємо фокус тільки для режимів пошуку
+        if (inputMode == InputMode.SearchInList || inputMode == InputMode.SearchGlobal) {
             delay(60)
             focusRequester.requestFocus()
         }
@@ -1083,3 +1084,4 @@ private fun NavigationBar(
         }
     }
 }
+
