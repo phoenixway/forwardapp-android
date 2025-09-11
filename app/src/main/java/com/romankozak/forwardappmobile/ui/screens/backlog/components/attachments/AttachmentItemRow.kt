@@ -8,14 +8,17 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.SwipeableLi
 
 // ... імпорти
 
+// File: AttachmentItemRow.kt
+
 @Composable
 fun AttachmentItemRow(
     onDelete: () -> Unit,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     SwipeableListItem(
+        modifier = modifier, // ПОПЕРЕДЖЕННЯ ВИПРАВЛЕНО: modifier тепер використовується
         isDragging = false,
         isAnyItemDragging = false,
         swipeEnabled = true,
@@ -26,7 +29,8 @@ fun AttachmentItemRow(
         onMoreActionsRequest = { },
         onGoalTransportRequest = { },
         onCopyContentRequest = { },
+        onStartTrackingRequest = { }, // ПОМИЛКА ВИПРАВЛЕНО: Додано відсутній параметр
         backgroundColor = backgroundColor,
-        content = content // Передаємо контент сюди
+        content = content,
     )
 }

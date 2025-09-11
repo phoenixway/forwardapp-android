@@ -260,3 +260,15 @@ val MIGRATION_23_24 = object : Migration(23, 24) { // <-- ЗАМІНІТЬ START
         db.execSQL("ALTER TABLE `goal_lists` ADD COLUMN `is_completed` INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_24_25 = object : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Додавання колонки для ID цілі
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `goal_id` TEXT DEFAULT NULL")
+        // Додавання колонки для ID списку
+        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `list_id` TEXT DEFAULT NULL")
+        // Створення індексів для нових колонок для покращення продуктивності запитів
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_goal_id` ON `activity_records` (`goal_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_list_id` ON `activity_records` (`list_id`)")
+    }
+}

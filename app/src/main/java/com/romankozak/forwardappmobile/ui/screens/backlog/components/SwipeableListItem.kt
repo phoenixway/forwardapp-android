@@ -74,6 +74,7 @@ fun SwipeableListItem(
     onMoreActionsRequest: () -> Unit,
     onGoalTransportRequest: () -> Unit, // Нова функція для транспорту цілі
     onCopyContentRequest: () -> Unit, // Нова функція для копіювання контенту
+    onStartTrackingRequest: () -> Unit, // Нова функція для запуску трекінгу
     content: @Composable () -> Unit,
     swipeEnabled: Boolean = true,
 ) {
@@ -213,11 +214,11 @@ fun SwipeableListItem(
                     )
                     // Четверта дія залишається порожньою або можна додати ще одну
                     SwipeActionButton(
-                        icon = Icons.Default.PlayArrow,
-                        contentDescription = "Резерв",
+                        icon = Icons.Default.PlayCircleOutline, // Змінено іконку
+                        contentDescription = "Почати трекінг", // Змінено опис
                         color = MaterialTheme.colorScheme.inversePrimary,
                         scale = leftActionsScale,
-                        onClick = { resetSwipe() }
+                        onClick = { onStartTrackingRequest(); resetSwipe() } // Прив'язано нову дію
                     )
                 }
             }

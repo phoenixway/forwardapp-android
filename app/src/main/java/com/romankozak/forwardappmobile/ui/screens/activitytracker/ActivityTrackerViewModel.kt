@@ -2,6 +2,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.activitytracker
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
@@ -18,7 +19,9 @@ import javax.inject.Inject
 @HiltViewModel
 class ActivityTrackerViewModel @Inject constructor(
     private val repository: ActivityRepository,
-    private val alarmScheduler: AlarmScheduler
+    private val alarmScheduler: AlarmScheduler,
+    private val savedStateHandle: SavedStateHandle // <-- ДОДАНО ЗАЛЕЖНІСТЬ
+
 ) : ViewModel() {
 
     private val _inputText = MutableStateFlow("")
@@ -52,6 +55,25 @@ class ActivityTrackerViewModel @Inject constructor(
         _inputText.value = ""
     }
 
+    init {
+        // --- ПОЧАТОК ЗМІНИ: Обробка аргументу навігації ---
+        savedStateHandle.get<String>("recordIdToEdit")?.let { recordId ->
+            viewModelScope.launch {
+                // Очікуємо, поки в потоці даних з'явиться потрібний запис,
+                // а потім запускаємо для нього режим редагування.
+                activityLog.mapNotNull { log -> log.find { it.id == recordId } }
+                    .first() // Призупиняє корутину, доки запис не буде знайдено
+                    .let { record ->
+                        onEditRequest(record)
+                        // Видаляємо аргумент, щоб діалог не відкривався повторно
+                        // при зміні конфігурації (наприклад, повороті екрана).
+                        savedStateHandle.remove<String>("recordIdToEdit")
+                    }
+            }
+        }
+        // --- КІНЕЦЬ ЗМІНИ ---
+    }
+
     fun onTimelessRecordClick() = viewModelScope.launch {
         if (_inputText.value.isBlank()) return@launch
         repository.addTimelessRecord(_inputText.value)
@@ -63,12 +85,12 @@ class ActivityTrackerViewModel @Inject constructor(
         val ongoingActivity = lastOngoingActivity.value
         val now = System.currentTimeMillis()
 
-        if (ongoingActivity != null) {
-            repository.endLastActivity(now)
-        }
-
         if (text.isNotBlank()) {
+            // Цей виклик тепер АВТОМАТИЧНО зупинить попередню активність, якщо вона є.
             repository.startActivity(text, now)
+        } else if (ongoingActivity != null) {
+            // Якщо поле вводу порожнє, ми просто зупиняємо поточну активність.
+            repository.endLastActivity(now)
         }
 
         clearInput()
