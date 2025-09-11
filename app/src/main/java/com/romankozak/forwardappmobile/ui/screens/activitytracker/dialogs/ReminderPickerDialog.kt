@@ -321,34 +321,163 @@ private fun CustomDurationPicker(
     minutes: String,
     onMinutesChanged: (String) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val currentMinutes = minutes.toIntOrNull() ?: 0
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             "Через скільки хвилин нагадати:",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Medium
         )
 
-        OutlinedTextField(
-            value = minutes,
-            onValueChange = { value ->
-                if (value.isEmpty() || value.all { it.isDigit() }) {
-                    onMinutesChanged(value)
-                }
-            },
-            label = { Text("Хвилини") },
-            placeholder = { Text("Наприклад: 25") },
-            singleLine = true,
+        // Швидкі кнопки налаштування
+        // File: ReminderPickerDialog.kt
+
+        FlowRow( // Використовуємо FlowRow для автоматичного перенесення
             modifier = Modifier.fillMaxWidth(),
-            supportingText = {
-                if (minutes.isNotEmpty()) {
-                    val mins = minutes.toIntOrNull()
-                    if (mins != null && mins > 0) {
-                        val future = System.currentTimeMillis() + mins * 60 * 1000L
-                        Text("Нагадування: ${formatDateTime(future)}")
-                    }
+            horizontalArrangement = Arrangement.spacedBy(8.dp), // Відступи між кнопками
+            verticalArrangement = Arrangement.spacedBy(8.dp)   // Відступи між рядами кнопок
+        ) {
+            listOf(1, 2, 3, 5, 10, 30).forEach { mins ->
+                OutlinedButton(
+                    onClick = {
+                        val newValue = maxOf(0, currentMinutes + mins)
+                        onMinutesChanged(newValue.toString())
+                    },
+                    // ВИДАЛЕНО: modifier = Modifier.weight(1f)
+                    // Дозволяємо кнопці займати лише потрібну ширину
+                ) {
+                    Text(
+                        text = "+$mins",
+                        softWrap = false
+                    )
                 }
             }
+        }
+
+        // Слайдер для точного налаштування
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Хвилин: $currentMinutes",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Row {
+                        IconButton(
+                            onClick = {
+                                val newValue = maxOf(0, currentMinutes - 1)
+                                onMinutesChanged(newValue.toString())
+                            },
+                            enabled = currentMinutes > 0
+                        ) {
+                            Text("−", style = MaterialTheme.typography.headlineSmall)
+                        }
+
+                        IconButton(
+                            onClick = {
+                                val newValue = minOf(1440, currentMinutes + 1) // максимум 24 години
+                                onMinutesChanged(newValue.toString())
+                            },
+                            enabled = currentMinutes < 1440
+                        ) {
+                            Text("+", style = MaterialTheme.typography.headlineSmall)
+                        }
+                    }
+                }
+
+                Slider(
+                    value = currentMinutes.toFloat(),
+                    onValueChange = { onMinutesChanged(it.toInt().toString()) },
+                    valueRange = 1f..240f, // від 1 хвилини до 4 годин
+                    steps = 239,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("1 хв", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("4 год", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        // Показуємо час нагадування
+        if (currentMinutes > 0) {
+            val future = System.currentTimeMillis() + currentMinutes * 60 * 1000L
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Text(
+                    text = "Нагадування: ${formatDateTime(future)}",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+
+        // Швидкі пресети для великих значень
+        Text(
+            "Або виберіть:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        val presets = listOf(
+            "2 год" to 120,
+            "3 год" to 180,
+            "6 год" to 360,
+            "12 год" to 720,
+            "24 год" to 1440
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            presets.take(3).forEach { (label, mins) ->
+                FilterChip(
+                    onClick = { onMinutesChanged(mins.toString()) },
+                    label = { Text(label) },
+                    selected = currentMinutes == mins,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            presets.drop(3).forEach { (label, mins) ->
+                FilterChip(
+                    onClick = { onMinutesChanged(mins.toString()) },
+                    label = { Text(label) },
+                    selected = currentMinutes == mins,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            // Заповнюємо пустий простір
+            Spacer(modifier = Modifier.weight(1f))
+        }
     }
 }
 
