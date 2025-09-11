@@ -1,5 +1,3 @@
-// File: GoalDetailScreen.kt
-
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
@@ -48,6 +46,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitem
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.InteractiveListItem
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ModernInputPanel
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.project_dashboard.ProjectDashboardView
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.*
@@ -72,7 +71,7 @@ fun GoalDetailScreen(
         flow {
             while (true) {
                 emit(System.currentTimeMillis())
-                delay(60_000L) // Чекаємо одну хвилину
+                delay(60_000L)
             }
         }.collect {
             currentTime = it
@@ -83,8 +82,8 @@ fun GoalDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-
     val list by viewModel.goalList.collectAsStateWithLifecycle()
+    val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val showRecentListsSheet = uiState.showRecentListsSheet
     val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
@@ -104,8 +103,6 @@ fun GoalDetailScreen(
     val inboxListState = rememberLazyListState()
 
     BackHandler(enabled = uiState.inputValue.text.isNotEmpty()) {
-        // Викликаємо правильний метод з InputHandler для очищення поля.
-        // Це гарантує, що вся пов'язана логіка (наприклад, скасування аналізу) також спрацює.
         viewModel.inputHandler.onInputTextChanged(
             TextFieldValue(""),
             uiState.inputMode
@@ -228,13 +225,10 @@ fun GoalDetailScreen(
                             duration = SnackbarDuration.Short,
                         )
                         if (result == SnackbarResult.ActionPerformed) {
-                            // --- ПОЧАТОК ЗМІНИ: Розрізняємо дії за текстовим лейблом ---
                             when (event.action) {
                                 "Обмежити в часі" -> viewModel.onLimitLastActivityRequested()
-                                // Дія за замовчуванням (наприклад, для скасування видалення)
                                 else -> viewModel.itemActionHandler.undoDelete()
                             }
-                            // --- КІНЕЦЬ ЗМІНИ ---
                         }
                     }
                 }
@@ -280,9 +274,6 @@ fun GoalDetailScreen(
         viewModel.onHighlightShown()
     }
 
-    // --- ПОЧАТОК ЗМІНИ: Більш надійна логіка підсвічування ---
-
-    // Ефект №1: Відповідає за перемикання на вкладку INBOX
     LaunchedEffect(uiState.inboxRecordToHighlight, inboxRecords.isNotEmpty()) {
         val recordId = uiState.inboxRecordToHighlight
         val recordsAreLoaded = inboxRecords.isNotEmpty()
@@ -296,7 +287,6 @@ fun GoalDetailScreen(
         }
     }
 
-    // Ефект №2: Відповідає за прокрутку та підсвічування, коли вкладка INBOX вже активна
     LaunchedEffect(uiState.inboxRecordToHighlight, uiState.currentView, inboxRecords) {
         val recordId = uiState.inboxRecordToHighlight
 
@@ -313,13 +303,11 @@ fun GoalDetailScreen(
                 Log.d(TAG, "Highlight duration passed. Resetting state.")
                 viewModel.onInboxHighlightShown()
             } else {
-                // Якщо запис не знайдено (малоймовірно, але можливо), просто скидаємо стан
                 Log.w(TAG, "Record ID $recordId not found. Clearing highlight state.")
                 viewModel.onInboxHighlightShown()
             }
         }
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     BackHandler(enabled = isSelectionModeActive) {
         viewModel.selectionHandler.clearSelection()
@@ -339,13 +327,10 @@ fun GoalDetailScreen(
     LaunchedEffect(uiState.newlyAddedItemId, displayList) {
         val itemId = uiState.newlyAddedItemId
         if (itemId != null) {
-            // Шукаємо індекс елемента в поточному стані списку
             val index = displayList.indexOfFirst { it.item.id == itemId }
 
-            // Якщо елемент знайдено (index != -1), прокручуємо до нього
             if (index != -1) {
                 listState.animateScrollToItem(index)
-                // Повідомляємо ViewModel, що прокрутку виконано і можна скинути ID
                 viewModel.onScrolledToNewItem()
             }
         }
@@ -355,10 +340,8 @@ fun GoalDetailScreen(
         val itemId = uiState.newlyAddedItemId
         Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
         if (itemId != null) {
-            // Спробуємо знайти по item.id (для звичайних цілей)
             var index = displayList.indexOfFirst { it.item.id == itemId }
 
-            // Якщо не знайшли по item.id, спробуємо по goal.id (для цілей з ремайндером)
             if (index == -1) {
                 index = displayList.indexOfFirst {
                     it is ListItemContent.GoalItem && it.goal.id == itemId
@@ -454,14 +437,13 @@ fun GoalDetailScreen(
             errorMessage = null
         )
     } else {
-        null // Return null when there's no valid reminder
+        null
     }
 
     uiState.recordForReminderDialog?.let { record ->
         ReminderPickerDialog(
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,
-            // --- ВИПРАВЛЕНО: Виклик обернуто в лямбду для відповідності типів ---
             onClearReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
             currentReminderTime = record.reminderTime,
         )
@@ -480,17 +462,12 @@ fun GoalDetailScreen(
                 onSelectAll = { viewModel.selectionHandler.selectAllItems() },
                 onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
                 onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
-                // --- ЗМІНЕНО ---
-                // Замінено onToggleComplete на дві нові дії
                 onMarkAsComplete = {
-                    // Припускаємо, що в SelectionHandler є метод markSelectedAsComplete
                     viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds)
                 },
                 onMarkAsIncomplete = {
-                    // Припускаємо, що в SelectionHandler є метод markSelectedAsIncomplete
                     viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds)
                 }
-                // --- КІНЕЦЬ ЗМІН ---
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -510,11 +487,14 @@ fun GoalDetailScreen(
                         )
                     },
                     onSubmit = {
-                        viewModel.inputHandler.submitInput(
-                            uiState.inputValue,
-                            uiState.inputMode,
-                            // uiState.detectedReminderCalendar
-                        )
+                        if (uiState.currentView == ProjectViewMode.DASHBOARD) {
+                            viewModel.onAddProjectComment(uiState.inputValue.text)
+                        } else {
+                            viewModel.inputHandler.submitInput(
+                                uiState.inputValue,
+                                uiState.inputMode,
+                            )
+                        }
                     },
                     onInputModeSelected = {
                         viewModel.inputHandler.onInputModeSelected(
@@ -534,7 +514,7 @@ fun GoalDetailScreen(
                     },
                     onForwardClick = { /* Not implemented */ },
                     onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
-                    isAttachmentsExpanded = list?.isAttachmentsExpanded == true,
+                    isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
                     onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
                     onEditList = {
                         menuExpanded = false
@@ -553,10 +533,14 @@ fun GoalDetailScreen(
                     reminderParseResult = reminderParseResult,
                     onClearReminder = viewModel::onClearReminder,
                     isNerActive = uiState.nerState is NerState.Ready,
-                    onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject, // <-- ДОДАЙТЕ ЦЕЙ РЯДОК
+
+                    onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
+                    isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
+
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding(),
+                    onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 )
             }
         },
@@ -650,7 +634,6 @@ fun GoalDetailScreen(
                                             onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                             emojiToHide = currentListContextEmojiToHide,
-                                            // --- ВИПРАВЛЕНО: Передаємо поточний час в GoalItem ---
                                             currentTimeMillis = currentTime
                                         )
                                     }
@@ -691,16 +674,16 @@ fun GoalDetailScreen(
                     )
                 }
             }
-            ProjectViewMode.ADDONS -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Add-ons (in development)")
-                }
+            ProjectViewMode.DASHBOARD -> {
+                ProjectDashboardView(
+                    modifier = Modifier.padding(paddingValues),
+                    goalList = list,
+                    projectLogs = projectLogs,
+                    onToggleProjectManagement = viewModel::onToggleProjectManagement,
+                    onStatusUpdate = viewModel::onProjectStatusUpdate
+                )
             }
+            
         }
     }
 }
@@ -715,3 +698,4 @@ fun rememberSimpleDragDropState(
         SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
     }
 }
+

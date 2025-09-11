@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/sync/SyncRepository.kt ---
 package com.romankozak.forwardappmobile.data.repository
 
 import android.content.ContentValues
@@ -16,6 +15,7 @@ import com.romankozak.forwardappmobile.data.dao.GoalListDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentListDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.*
@@ -76,7 +76,8 @@ class SyncRepository @Inject constructor(
     private val activityRecordDao: ActivityRecordDao,
     private val recentListDao: RecentListDao,
     private val inboxRecordDao: InboxRecordDao,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val projectManagementDao: ProjectManagementDao
 ) {
     private val TAG = "SyncRepository"
     private val gson = Gson()
@@ -102,7 +103,6 @@ class SyncRepository @Inject constructor(
         }
     }
 
-    // --- ПОЧАТОК ЗМІНИ: Відновлено метод createBackupJsonString ---
     suspend fun createBackupJsonString(): String {
         val lists = goalListDao.getAll()
         val goals = goalDao.getAll()
@@ -156,7 +156,6 @@ class SyncRepository @Inject constructor(
 
         return gson.toJson(desktopBackupFile)
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     suspend fun exportFullBackupToFile(): Result<String> {
         return try {
@@ -194,7 +193,8 @@ class SyncRepository @Inject constructor(
             activityRecords = activityRecordDao.getAllRecordsStream().first(),
             recentListEntries = recentListDao.getAllEntries(),
             linkItemEntities = linkItemDao.getAllEntities(),
-            inboxRecords = inboxRecordDao.getAll()
+            inboxRecords = inboxRecordDao.getAll(),
+            projectExecutionLogs = projectManagementDao.getAllLogs()
         )
 
         val settingsSnapshot: Preferences = settingsRepository.getPreferencesSnapshot()
@@ -227,13 +227,19 @@ class SyncRepository @Inject constructor(
             Log.d(IMPORT_TAG, "Починаємо очищення даних для сумісності...")
             val cleanedGoalLists = backup.database.goalLists.map { listFromBackup ->
                 listFromBackup.copy(
-                    defaultViewModeName = listFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name
+                    defaultViewModeName = listFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
+                    isProjectManagementEnabled = listFromBackup.isProjectManagementEnabled ?: false,
+                    projectStatus = listFromBackup.projectStatus ?: ProjectStatus.NO_PLAN,
+                    projectStatusText = listFromBackup.projectStatusText ?: "",
+                    projectLogLevel = listFromBackup.projectLogLevel ?: ProjectLogLevel.NORMAL,
+                    totalTimeSpentMinutes = listFromBackup.totalTimeSpentMinutes ?: 0
                 )
             }
             Log.d(IMPORT_TAG, "Очищення даних завершено.")
 
             appDatabase.withTransaction {
                 Log.d(IMPORT_TAG, "Початок транзакції в БД. Очищення старих даних...")
+                projectManagementDao.deleteAllLogs()
                 inboxRecordDao.deleteAll()
                 linkItemDao.deleteAll()
                 recentListDao.deleteAll()
@@ -252,6 +258,7 @@ class SyncRepository @Inject constructor(
                 backup.database.recentListEntries?.let { recentListDao.insertAll(it) }
                 backup.database.linkItemEntities?.let { linkItemDao.insertAll(it) }
                 backup.database.inboxRecords?.let { inboxRecordDao.insertAll(it) }
+                backup.database.projectExecutionLogs?.let { projectManagementDao.insertAllLogs(it) }
 
                 Log.d(IMPORT_TAG, "Вставка даних завершена.")
             }
@@ -422,3 +429,4 @@ class SyncRepository @Inject constructor(
         }
     }
 }
+

@@ -7,19 +7,9 @@ import com.romankozak.forwardappmobile.data.dao.GoalListDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentListDao
-import com.romankozak.forwardappmobile.data.database.models.ActivityRecord // Додано імпорт
-import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.InboxRecord
-import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
-import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ListItemType
-import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.data.database.models.RecentListEntry
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -39,21 +29,80 @@ class GoalRepository @Inject constructor(
     private val linkItemDao: LinkItemDao,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val inboxRecordDao: InboxRecordDao,
-    // --- ПОЧАТОК ЗМІНИ: Додано залежність від ActivityRepository ---
-    private val activityRepository: ActivityRepository
-    // --- КІНЕЦЬ ЗМІНИ ---
+    private val activityRepository: ActivityRepository,
+    private val projectManagementDao: ProjectManagementDao
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "AddSublistDebug"
 
-    // --- ПОЧАТОК ЗМІНИ: Новий метод для оновлення режиму перегляду списку ---
+    // --- Project Management ---
+
+    fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> {
+        return projectManagementDao.getLogsForProjectStream(projectId)
+    }
+
+    suspend fun toggleProjectManagement(listId: String, isEnabled: Boolean) {
+        val list = getGoalListById(listId) ?: return
+        if (list.isProjectManagementEnabled == isEnabled) return
+
+        updateGoalList(list.copy(isProjectManagementEnabled = isEnabled))
+
+        val status = if (isEnabled) "активовано" else "деактивовано"
+        addProjectLogEntry(
+            projectId = listId,
+            type = ProjectLogEntryType.AUTOMATIC,
+            description = "Управління проектом було $status."
+        )
+    }
+
+    suspend fun updateProjectStatus(listId: String, newStatus: ProjectStatus, statusText: String?) {
+        val list = getGoalListById(listId) ?: return
+        if (list.projectStatus == newStatus && list.projectStatusText == statusText) return
+
+        updateGoalList(list.copy(
+            projectStatus = newStatus,
+            projectStatusText = statusText,
+            updatedAt = System.currentTimeMillis()
+        ))
+
+        val logDescription = "Статус змінено на '$newStatus'." +
+                (statusText?.let { "\nКоментар: $it" } ?: "")
+
+        addProjectLogEntry(
+            projectId = listId,
+            type = ProjectLogEntryType.STATUS_CHANGE,
+            description = logDescription
+        )
+    }
+
+    suspend fun addProjectComment(projectId: String, comment: String) {
+        addProjectLogEntry(
+            projectId = projectId,
+            type = ProjectLogEntryType.COMMENT,
+            description = comment
+        )
+    }
+
+    private suspend fun addProjectLogEntry(projectId: String, type: ProjectLogEntryType, description: String, details: String? = null) {
+        val logEntry = ProjectExecutionLog(
+            id = UUID.randomUUID().toString(),
+            projectId = projectId,
+            timestamp = System.currentTimeMillis(),
+            type = type,
+            description = description,
+            details = details
+        )
+        projectManagementDao.insertLog(logEntry)
+    }
+
+    // --- Goal & List Management ---
+
     suspend fun updateGoalListViewMode(listId: String, viewMode: ProjectViewMode) {
         val list = getGoalListById(listId)
         if (list != null) {
             updateGoalList(list.copy(defaultViewModeName = viewMode.name))
         }
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     fun getListContentStream(listId: String): Flow<List<ListItemContent>> {
         return listItemDao.getItemsForListStream(listId).map { items ->
@@ -62,7 +111,6 @@ class GoalRepository @Inject constructor(
                     ListItemType.GOAL -> goalDao.getGoalById(item.entityId)?.let { ListItemContent.GoalItem(it, item) }
                     ListItemType.SUBLIST -> goalListDao.getGoalListById(item.entityId)?.let { ListItemContent.SublistItem(it, item) }
                     ListItemType.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId)?.let { ListItemContent.LinkItem(it, item) }
-                    else -> null
                 }
             }
         }
@@ -239,39 +287,30 @@ class GoalRepository @Inject constructor(
 
     fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 
-    // --- ПОЧАТОК ЗМІНИ: Оновлений метод глобального пошуку ---
     @Transaction
     suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResultItem> {
-        // 1. Пошук цілей
         val goalResults = goalDao.searchGoalsGlobal(query).map {
             GlobalSearchResultItem.GoalItem(it)
         }
-        // 2. Пошук посилань (LinkItem)
         val linkResults = linkItemDao.searchLinksGlobal(query).map {
             GlobalSearchResultItem.LinkItem(it)
         }
-        // 3. Пошук вкладених списків (Sublist)
         val sublistResults = goalListDao.searchSublistsGlobal(query).map {
             GlobalSearchResultItem.SublistItem(it)
         }
-        // 4. Пошук самих списків
         val listResults = goalListDao.searchListsGlobal(query).map {
             GlobalSearchResultItem.ListItem(it)
         }
-        // 5. Пошук записів трекера
         val activityResults = activityRepository.searchActivities(query).map {
             GlobalSearchResultItem.ActivityItem(it)
         }
-        // 6. Пошук записів інбоксу
         val inboxResults = inboxRecordDao.searchInboxRecordsGlobal(query).map {
             GlobalSearchResultItem.InboxItem(it)
         }
 
-        // Об'єднання всіх результатів та сортування за датою (новіші спочатку)
         return (goalResults + linkResults + sublistResults + listResults + activityResults + inboxResults)
             .sortedByDescending { it.timestamp }
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     suspend fun logListAccess(listId: String) {
         recentListDao.logAccess(RecentListEntry(listId = listId, lastAccessed = System.currentTimeMillis()))
@@ -314,7 +353,6 @@ class GoalRepository @Inject constructor(
         val newLinkEntity = LinkItemEntity(
             id = UUID.randomUUID().toString(),
             linkData = link,
-            // ВИПРАВЛЕНО: Передаємо поточний час для нового поля
             createdAt = System.currentTimeMillis()
         )
         linkItemDao.insert(newLinkEntity)
@@ -404,7 +442,7 @@ class GoalRepository @Inject constructor(
 
         val finalGoalState = goalDao.getGoalById(newGoal.id)!!
         contextHandler.handleContextsOnCreate(finalGoalState)
-        // --- ЗМІНЕНО: Повертаємо створений об'єкт Goal ---
         return newGoal
     }
 }
+

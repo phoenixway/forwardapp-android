@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/database/models/DatabaseModel.kt ---
 package com.romankozak.forwardappmobile.data.database.models
 
 import androidx.room.ColumnInfo
@@ -12,22 +11,18 @@ import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-// --- ПОЧАТОК ЗМІНИ: Додано enum для режиму перегляду ---
 enum class ProjectViewMode {
-    BACKLOG, INBOX, ADDONS
+    BACKLOG, INBOX, DASHBOARD
 }
-// --- КІНЕЦЬ ЗМІНИ ---
 
 enum class ListItemType {
     GOAL,
-    // NOTE, // Видалено
     SUBLIST,
     LINK_ITEM
 }
 
 enum class LinkType {
     GOAL_LIST,
-    // NOTE, // Видалено
     URL,
     OBSIDIAN
 }
@@ -42,6 +37,27 @@ enum class ScoringStatus {
     NOT_ASSESSED,
     IMPOSSIBLE_TO_ASSESS,
     ASSESSED
+}
+
+enum class ProjectStatus(val displayName: String) {
+    NO_PLAN("Без плану"),
+    PLANNING("В плануванні"),
+    IN_PROGRESS("В реалізації"),
+    COMPLETED("Завершено"),
+    ON_HOLD("Відкладено"),
+    PAUSED("На паузі")
+}
+
+enum class ProjectLogLevel {
+    DETAILED, NORMAL
+}
+
+enum class ProjectLogEntryType {
+    STATUS_CHANGE,
+    COMMENT,
+    AUTOMATIC,
+    INSIGHT,
+    MILESTONE
 }
 
 @TypeConverters(Converters::class)
@@ -98,14 +114,32 @@ class Converters {
         if (json == null) return null
         return gson.fromJson(json, RelatedLink::class.java)
     }
+
+    @TypeConverter
+    fun fromProjectStatus(status: ProjectStatus?): String? = status?.name
+
+    @TypeConverter
+    fun toProjectStatus(value: String?): ProjectStatus? = value?.let { ProjectStatus.valueOf(it) }
+
+    @TypeConverter
+    fun fromProjectLogLevel(level: ProjectLogLevel?): String? = level?.name
+
+    @TypeConverter
+    fun toProjectLogLevel(value: String?): ProjectLogLevel? = value?.let { ProjectLogLevel.valueOf(it) }
+
+    @TypeConverter
+    fun fromProjectLogEntryType(type: ProjectLogEntryType?): String? = type?.name
+
+    @TypeConverter
+    fun toProjectLogEntryType(value: String?): ProjectLogEntryType? = value?.let { ProjectLogEntryType.valueOf(it) }
 }
+
 
 @Entity(tableName = "link_items")
 data class LinkItemEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(name = "link_data")
     val linkData: RelatedLink,
-    // ВИПРАВЛЕНО: Додано поле createdAt для можливості сортування
     val createdAt: Long,
 )
 
@@ -169,11 +203,46 @@ data class GoalList(
     val order: Long = 0,
     @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0")
     val isAttachmentsExpanded: Boolean = false,
-    @ColumnInfo(name = "default_view_mode", defaultValue = "'BACKLOG'")
-    val defaultViewModeName: String = ProjectViewMode.BACKLOG.name,
+    @ColumnInfo(name = "default_view_mode")
+    val defaultViewModeName: String? = ProjectViewMode.BACKLOG.name,
     @ColumnInfo(name = "is_completed", defaultValue = "0")
     val isCompleted: Boolean = false,
+
+    // Project Management Fields
+    @ColumnInfo(name = "is_project_management_enabled")
+    val isProjectManagementEnabled: Boolean? = false,
+    @ColumnInfo(name = "project_status")
+    val projectStatus: ProjectStatus? = ProjectStatus.NO_PLAN,
+    @ColumnInfo(name = "project_status_text")
+    val projectStatusText: String? = null,
+    @ColumnInfo(name = "project_log_level")
+    val projectLogLevel: ProjectLogLevel? = ProjectLogLevel.NORMAL,
+    @ColumnInfo(name = "total_time_spent_minutes")
+    val totalTimeSpentMinutes: Long? = 0
 )
+
+@Entity(
+    tableName = "project_execution_logs",
+    foreignKeys = [
+        ForeignKey(
+            entity = GoalList::class,
+            parentColumns = ["id"],
+            childColumns = ["projectId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ProjectExecutionLog(
+    @PrimaryKey val id: String,
+    @ColumnInfo(index = true)
+    val projectId: String,
+    val timestamp: Long,
+    @ColumnInfo(name = "type")
+    val type: ProjectLogEntryType,
+    val description: String,
+    val details: String? = null
+)
+
 
 @Entity(
     tableName = "inbox_records",
@@ -189,14 +258,13 @@ data class GoalList(
 data class InboxRecord(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true)
-    val projectId: String, // Зв'язок з GoalList (проєктом)
+    val projectId: String,
     val text: String,
     val createdAt: Long,
     @ColumnInfo(name = "item_order")
     val order: Long,
 )
 
-// --- ПОЧАТОК ВИПРАВЛЕННЯ: Анотація @Entity переміщена до свого класу ListItem ---
 @Entity(
     tableName = "list_items",
     foreignKeys = [
@@ -217,19 +285,17 @@ data class ListItem(
     @ColumnInfo(name = "item_order")
     val order: Long,
 )
-// --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
+
 
 @Entity(tableName = "activity_records_fts")
 @Fts4(contentEntity = ActivityRecord::class)
 data class ActivityRecordFts(
-    // Поля, за якими буде здійснюватися пошук
     val text: String,
 )
 
 sealed class ListItemContent {
     abstract val item: ListItem
     data class GoalItem(val goal: Goal, override val item: ListItem) : ListItemContent()
-    // NoteItem видалено
     data class SublistItem(val sublist: GoalList, override val item: ListItem) : ListItemContent()
     data class LinkItem(val link: LinkItemEntity, override val item: ListItem) : ListItemContent()
 }
@@ -257,42 +323,31 @@ data class GlobalSublistSearchResult(
 )
 
 sealed class GlobalSearchResultItem {
-    /**
-     * Спільна властивість для сортування всіх результатів за часом (новіші спочатку).
-     */
     abstract val timestamp: Long
-
-    /**
-     * Унікальний ідентифікатор для кожного елемента, необхідний для стабільної роботи UI (LazyColumn keys).
-     */
     abstract val uniqueId: String
 
     data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem() {
-        // ВИПРАВЛЕНО: Використовуємо createdAt, якщо updatedAt == null
         override val timestamp: Long get() = searchResult.goal.updatedAt ?: searchResult.goal.createdAt
         override val uniqueId: String get() = "goal_${searchResult.goal.id}_${searchResult.listId}"
     }
 
     data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
-        // ВИПРАВЛЕНО: Тепер поле існує в LinkItemEntity
         override val timestamp: Long get() = searchResult.link.createdAt
         override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.listId}"
     }
 
     data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem() {
-        // ВИПРАВЛЕНО: Використовуємо createdAt, якщо updatedAt == null
         override val timestamp: Long get() = searchResult.sublist.updatedAt ?: searchResult.sublist.createdAt
         override val uniqueId: String get() = "sublist_${searchResult.sublist.id}_${searchResult.parentListId}"
     }
 
     data class ListItem(val list: GoalList) : GlobalSearchResultItem() {
-        // ВИПРАВЛЕНО: Використовуємо createdAt, якщо updatedAt == null
         override val timestamp: Long get() = list.updatedAt ?: list.createdAt
         override val uniqueId: String get() = "list_${list.id}"
     }
 
     data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = record.createdAt
+        override val timestamp: Long get() = record.startTime ?: record.createdAt
         override val uniqueId: String get() = "activity_${record.id}"
     }
 
@@ -301,3 +356,8 @@ sealed class GlobalSearchResultItem {
         override val uniqueId: String get() = "inbox_${record.id}"
     }
 }
+
+
+
+
+

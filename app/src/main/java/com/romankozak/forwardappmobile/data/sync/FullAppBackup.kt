@@ -27,7 +27,9 @@ data class DatabaseContent(
     val activityRecords: List<ActivityRecord>? = null,
     val recentListEntries: List<RecentListEntry>? = null,
     val linkItemEntities: List<LinkItemEntity>? = null,
-    val inboxRecords: List<InboxRecord>? = null
+    val inboxRecords: List<InboxRecord>? = null,
+    // --- ДОДАНО: Нова таблиця для логів проекту ---
+    val projectExecutionLogs: List<ProjectExecutionLog>? = null
     // --- КІНЕЦЬ ЗМІНИ ---
 
 )

@@ -272,3 +272,71 @@ val MIGRATION_24_25 = object : Migration(23, 24) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_list_id` ON `activity_records` (`list_id`)")
     }
 }
+
+val MIGRATION_25_26 = object : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // 1. Додавання нових колонок до таблиці goal_lists
+        db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_project_management_enabled INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_status TEXT NOT NULL DEFAULT 'NO_PLAN'")
+        db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_status_text TEXT")
+        db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_log_level TEXT NOT NULL DEFAULT 'NORMAL'")
+        db.execSQL("ALTER TABLE goal_lists ADD COLUMN total_time_spent_minutes INTEGER NOT NULL DEFAULT 0")
+
+        // 2. Створення нової таблиці для логів виконання проекту
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `project_execution_logs` (
+                `id` TEXT NOT NULL, 
+                `projectId` TEXT NOT NULL, 
+                `timestamp` INTEGER NOT NULL, 
+                `type` TEXT NOT NULL, 
+                `description` TEXT NOT NULL, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`projectId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """)
+        // 3. Створення індексу для нової таблиці
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs` (`projectId`)")
+    }
+}
+val MIGRATION_26_27 = object : Migration(26, 27) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Порожня міграція. Room автоматично обробить зміну колонок з NOT NULL на NULL.
+    }
+}
+
+
+// --- ПОЧАТОК ЗМІНИ: Міграція для відновлення трекера часу та виправлення чату ---
+val MIGRATION_27_28 = object : Migration(27, 28) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Крок 1: Відновлення таблиці activity_records
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN startTime INTEGER")
+        db.execSQL("ALTER TABLE activity_records ADD COLUMN endTime INTEGER")
+        // 'text' вже має бути, оскільки ми повернули його в моделі, але перейменування description -> text
+        // може вимагати більш складної міграції, якщо дані вже були записані.
+        // Для простоти, припускаємо, що можна просто додати колонки.
+
+        // Крок 2: Виправлення таблиці chat_messages
+        // Створюємо нову таблицю з правильною назвою колонки
+        db.execSQL("""
+            CREATE TABLE chat_messages_new (
+                `id` TEXT NOT NULL, 
+                `text` TEXT NOT NULL, 
+                `timestamp` INTEGER NOT NULL, 
+                `isFromUser` INTEGER NOT NULL, 
+                `image_uri` TEXT, 
+                PRIMARY KEY(`id`)
+            )
+        """)
+        // Копіюємо дані зі старої таблиці в нову, зіставляючи isUser -> isFromUser
+        db.execSQL("""
+            INSERT INTO chat_messages_new (id, text, timestamp, isFromUser, image_uri)
+            SELECT id, text, timestamp, isUser, image_uri FROM chat_messages
+        """)
+        // Видаляємо стару таблицю
+        db.execSQL("DROP TABLE chat_messages")
+        // Перейменовуємо нову таблицю на стару назву
+        db.execSQL("ALTER TABLE chat_messages_new RENAME TO chat_messages")
+    }
+}
+// --- КІНЕЦЬ ЗМІНИ ---
+
