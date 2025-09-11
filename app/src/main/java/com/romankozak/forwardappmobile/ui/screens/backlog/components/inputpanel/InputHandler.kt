@@ -80,6 +80,7 @@ class InputHandler(
         fun requestNavigation(route: String)
         fun forceRefresh()
         fun addQuickRecord(text: String)
+        fun addProjectComment(text: String)
     }
 
     fun onInputTextChanged(newValue: TextFieldValue, currentInputMode: InputMode) {
@@ -189,6 +190,10 @@ class InputHandler(
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
             }
             InputMode.SearchInList -> { /* Live search, no action */ }
+            InputMode.AddProjectLog -> {
+                resultListener.updateInputState(inputValue = TextFieldValue(""))
+                resultListener.addProjectComment(originalText)
+            }
         }
     }
 

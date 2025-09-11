@@ -314,6 +314,11 @@ class GoalDetailViewModel @Inject constructor(
                         Log.d(TAG, "Inconsistency detected: Project management is OFF but view is DASHBOARD. Switching to BACKLOG.")
                         onProjectViewChange(ProjectViewMode.BACKLOG)
                     }
+
+                    val currentInputMode = uiState.value.inputMode
+                    if (!isManagementEnabled && currentInputMode == InputMode.AddProjectLog) {
+                        _uiState.update { it.copy(inputMode = InputMode.AddGoal) }
+                    }
                 }
             }
         }
@@ -381,10 +386,10 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun onAddProjectComment(comment: String) {
-        if (comment.isBlank()) return
+    override fun addProjectComment(text: String) {
+        if (text.isBlank()) return
         viewModelScope.launch(Dispatchers.IO) {
-            goalRepository.addProjectComment(listIdFlow.value, comment)
+            goalRepository.addProjectComment(listIdFlow.value, text)
             withContext(Dispatchers.Main) {
                 // Очищуємо поле вводу після додавання коментаря
                 _uiState.update { it.copy(inputValue = TextFieldValue("")) }
@@ -397,7 +402,7 @@ class GoalDetailViewModel @Inject constructor(
         return when (viewMode) {
             ProjectViewMode.INBOX -> InputMode.AddQuickRecord
             // В режимі DASHBOARD панель вводу буде додавати коментарі
-            ProjectViewMode.DASHBOARD -> InputMode.AddGoal
+            ProjectViewMode.DASHBOARD -> InputMode.AddProjectLog
             else -> InputMode.AddGoal
         }
     }
@@ -848,4 +853,3 @@ class GoalDetailViewModel @Inject constructor(
     }
 
 }
-

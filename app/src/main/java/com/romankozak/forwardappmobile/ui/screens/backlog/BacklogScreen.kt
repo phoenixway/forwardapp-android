@@ -487,14 +487,10 @@ fun GoalDetailScreen(
                         )
                     },
                     onSubmit = {
-                        if (uiState.currentView == ProjectViewMode.DASHBOARD) {
-                            viewModel.onAddProjectComment(uiState.inputValue.text)
-                        } else {
-                            viewModel.inputHandler.submitInput(
-                                uiState.inputValue,
-                                uiState.inputMode,
-                            )
-                        }
+                        viewModel.inputHandler.submitInput(
+                            uiState.inputValue,
+                            uiState.inputMode,
+                        )
                     },
                     onInputModeSelected = {
                         viewModel.inputHandler.onInputModeSelected(
@@ -683,7 +679,7 @@ fun GoalDetailScreen(
                     onStatusUpdate = viewModel::onProjectStatusUpdate
                 )
             }
-            
+
         }
     }
 }
@@ -698,4 +694,3 @@ fun rememberSimpleDragDropState(
         SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
     }
 }
-
