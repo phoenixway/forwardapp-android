@@ -39,6 +39,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
@@ -213,6 +214,7 @@ fun GoalDetailScreen(
         }
     }
 
+
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
@@ -225,7 +227,13 @@ fun GoalDetailScreen(
                             duration = SnackbarDuration.Short,
                         )
                         if (result == SnackbarResult.ActionPerformed) {
-                            viewModel.itemActionHandler.undoDelete()
+                            // --- ПОЧАТОК ЗМІНИ: Розрізняємо дії за текстовим лейблом ---
+                            when (event.action) {
+                                "Обмежити в часі" -> viewModel.onLimitLastActivityRequested()
+                                // Дія за замовчуванням (наприклад, для скасування видалення)
+                                else -> viewModel.itemActionHandler.undoDelete()
+                            }
+                            // --- КІНЕЦЬ ЗМІНИ ---
                         }
                     }
                 }
@@ -448,6 +456,12 @@ fun GoalDetailScreen(
         null // Return null when there's no valid reminder
     }
 
+    ReminderDialog(
+        record = uiState.recordForReminderDialog,
+        onDismiss = viewModel::onReminderDialogDismiss,
+        onSetReminder = viewModel::onSetReminderTime,
+        onClearReminder = viewModel::onClearReminder
+    )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -608,6 +622,9 @@ fun GoalDetailScreen(
                                 onGoalTransportRequest = { viewModel.itemActionHandler.onGoalTransportInitiated(content) },
                                 onCopyContentRequest = {
                                     viewModel.itemActionHandler.copyContentRequest(content)
+                                },
+                                onStartTrackingRequest = {
+                                    viewModel.onStartTrackingRequest(content)
                                 }
                             ) { isDragging ->
                                 when (content) {

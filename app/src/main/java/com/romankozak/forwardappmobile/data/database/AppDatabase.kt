@@ -23,7 +23,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         InboxRecord::class,
         ChatMessageEntity::class,
     ],
-    version = 23,
+    version = 25, // <-- ЗМІНЕНО
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10)
@@ -68,6 +68,9 @@ abstract class AppDatabase : RoomDatabase() {
                          MIGRATION_18_19,
                          MIGRATION_19_20,
                          MIGRATION_20_21,
+                         MIGRATION_21_22,
+                         MIGRATION_22_23,
+                         MIGRATION_23_24 // <-- ДОДАНО
                      )
                      .build()
                  INSTANCE = instance

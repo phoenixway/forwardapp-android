@@ -21,7 +21,14 @@ data class ActivityRecord(
     @ColumnInfo(name = "target_id", index = true)
     val targetId: String? = null,
     @ColumnInfo(name = "target_type")
-    val targetType: String? = null
+    val targetType: String? = null,
+
+    // --- ПОЧАТОК ЗМІНИ: Додано ID для відстеження конкретних сутностей ---
+    @ColumnInfo(name = "goal_id", index = true)
+    val goalId: String? = null,
+    @ColumnInfo(name = "list_id", index = true)
+    val listId: String? = null
+    // --- КІНЕЦЬ ЗМІНИ ---
 ) {
     val isTimeless: Boolean
         get() = startTime == null && endTime == null

@@ -22,6 +22,14 @@ interface ActivityRecordDao {
     @Query("SELECT * FROM activity_records WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
     suspend fun findLastOngoingActivity(): ActivityRecord?
 
+    // --- ПОЧАТОК ЗМІНИ: Нові методи для пошуку активних записів для цілей та списків ---
+    @Query("SELECT * FROM activity_records WHERE goal_id = :goalId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
+    suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord?
+
+    @Query("SELECT * FROM activity_records WHERE list_id = :listId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
+    suspend fun findLastOngoingActivityForList(listId: String): ActivityRecord?
+    // --- КІНЕЦЬ ЗМІНИ ---
+
     @Query("DELETE FROM activity_records")
     suspend fun clearAll()
 

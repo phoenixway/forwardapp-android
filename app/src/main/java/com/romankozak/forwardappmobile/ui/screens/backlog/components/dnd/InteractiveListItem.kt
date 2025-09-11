@@ -45,6 +45,7 @@ fun InteractiveListItem(
     onCopyGoalRequest: () -> Unit,
     onGoalTransportRequest: () -> Unit,
     onCopyContentRequest: () -> Unit,
+    onStartTrackingRequest: () -> Unit,
 
     // Контент
     modifier: Modifier = Modifier,
@@ -128,6 +129,7 @@ fun InteractiveListItem(
                 onMoreActionsRequest = onMoreActionsRequest,
                 onGoalTransportRequest = onGoalTransportRequest,
                 onCopyContentRequest = onCopyContentRequest,
+                onStartTrackingRequest = onStartTrackingRequest,
                 backgroundColor = backgroundColor,
                 content = {
                     Row(

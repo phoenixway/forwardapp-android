@@ -11,12 +11,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
+import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxHandler
@@ -34,7 +37,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 import javax.inject.Inject
 
 private const val TAG = "BACKLOG_VM_DEBUG"
@@ -78,7 +83,9 @@ data class UiState(
     val refreshTrigger: Int = 0,
     val detectedReminderSuggestion: String? = null,
     val detectedReminderCalendar: Calendar? = null,
-    val nerState: NerState = NerState.NotInitialized // <-- ДОДАНО СТАН NER
+    val nerState: NerState = NerState.NotInitialized,
+    val recordForReminderDialog: ActivityRecord? = null
+
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -166,6 +173,7 @@ class GoalDetailViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
     private val nerManager: NerManager,
     private val reminderParser: ReminderParser,
+    private val activityRepository: ActivityRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener,
     SelectionHandler.ResultListener, InboxHandler.ResultListener, InboxMarkdownHandler.ResultListener, BacklogMarkdownHandlerResultListener {
@@ -205,13 +213,6 @@ class GoalDetailViewModel @Inject constructor(
             initialValue = null
         )
 
-    private val detectedSuggestionFlow: StateFlow<String?> = uiState.map { it.detectedReminderSuggestion }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
-
     // 3. ОНОВІТЬ КОНСТРУКТОР INPUTHANDLER
     val inputHandler = InputHandler(
         goalRepository,
@@ -220,8 +221,8 @@ class GoalDetailViewModel @Inject constructor(
         this,                 // ViewModel як ResultListener
         reminderParser,
         alarmScheduler // <-- Передайте екземпляр планувальника
-
     )
+
 
 
     private val _refreshTrigger = MutableStateFlow(0)
@@ -291,6 +292,9 @@ class GoalDetailViewModel @Inject constructor(
     val inboxRecords: StateFlow<List<InboxRecord>> = _inboxRecords.asStateFlow()
     private val _recordToEdit = MutableStateFlow<InboxRecord?>(null)
     val recordToEdit: StateFlow<InboxRecord?> = _recordToEdit.asStateFlow()
+
+    private var pendingActivityForReminder: ActivityRecord? = null
+
 
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
@@ -720,12 +724,65 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun onClearReminder() {
-        updateInputState(clearDetectedReminder = true)
-    }
-
     fun onClearDetectedReminder() {
         inputHandler.onClearDetectedReminder()
+    }
+    fun onStartTrackingRequest(item: ListItemContent) {
+        viewModelScope.launch {
+            val result = when (item) {
+                is ListItemContent.GoalItem -> {
+                    val record = activityRepository.startGoalActivity(item.goal.id)
+                    record to "Відстежую ціль"
+                }
+                is ListItemContent.SublistItem -> {
+                    val record = activityRepository.startListActivity(item.sublist.id)
+                    record to "Відстежую проєкт"
+                }
+                else -> null to null
+            }
+
+            val (newRecord, message) = result
+            if (newRecord != null && message != null) {
+                // --- ЗМІНЕНО: Зберігаємо запис у тимчасову змінну, а не в UiState ---
+                pendingActivityForReminder = newRecord
+                showSnackbar(message, "Обмежити в часі")
+            }
+        }
+    }
+
+    // --- ЗМІНЕНО: Метод тепер бере дані з тимчасової змінної і оновлює UiState ---
+    fun onLimitLastActivityRequested() {
+        // Переносимо запис з тимчасової змінної в UiState, щоб UI оновився і показав діалог
+        _uiState.update { it.copy(recordForReminderDialog = pendingActivityForReminder) }
+        // Очищуємо тимчасову змінну
+        pendingActivityForReminder = null
+    }
+
+    fun onReminderDialogDismiss() {
+        // Очищуємо поле в UiState, щоб приховати діалог
+        _uiState.update { it.copy(recordForReminderDialog = null) }
+    }
+
+    fun onSetReminderTime(year: Int, month: Int, day: Int, hour: Int, minute: Int) = viewModelScope.launch {
+        val record = _uiState.value.recordForReminderDialog ?: return@launch
+        val calendar = Calendar.getInstance().apply {
+            set(year, month, day, hour, minute, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val updatedRecord = record.copy(reminderTime = calendar.timeInMillis)
+        activityRepository.updateRecord(updatedRecord)
+        alarmScheduler.scheduleForActivityRecord(updatedRecord)
+        onReminderDialogDismiss()
+        showSnackbar("Нагадування встановлено на ${SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(calendar.time)}", null)
+    }
+
+    fun onClearReminder() = viewModelScope.launch {
+        val record = _uiState.value.recordForReminderDialog ?: return@launch
+        val updatedRecord = record.copy(reminderTime = null)
+        activityRepository.updateRecord(updatedRecord)
+        alarmScheduler.cancelForActivityRecord(record)
+        onReminderDialogDismiss()
+        showSnackbar("Нагадування скасовано", null)
     }
 
 }
