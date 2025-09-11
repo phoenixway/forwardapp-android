@@ -785,5 +785,20 @@ class GoalDetailViewModel @Inject constructor(
         onReminderDialogDismiss()
         showSnackbar("Нагадування скасовано", null)
     }
+    fun onStartTrackingCurrentProject() {
+        val currentListId = listIdFlow.value
+        if (currentListId.isBlank()) return
+
+        viewModelScope.launch {
+            // activityRepository - це ваш екземпляр ActivityRepository
+            val record = activityRepository.startListActivity(currentListId)
+            if (record != null) {
+                // Показуємо сповіщення, як ми робили це раніше
+                showSnackbar("Відстежую проєкт", "Обмежити в часі")
+                // Зберігаємо посилання на запис для діалогу
+                pendingActivityForReminder = record
+            }
+        }
+    }
 
 }

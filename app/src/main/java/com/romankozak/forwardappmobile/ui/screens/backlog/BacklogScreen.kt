@@ -553,6 +553,7 @@ fun GoalDetailScreen(
                     reminderParseResult = reminderParseResult,
                     onClearReminder = viewModel::onClearReminder,
                     isNerActive = uiState.nerState is NerState.Ready,
+                    onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject, // <-- ДОДАЙТЕ ЦЕЙ РЯДОК
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding(),

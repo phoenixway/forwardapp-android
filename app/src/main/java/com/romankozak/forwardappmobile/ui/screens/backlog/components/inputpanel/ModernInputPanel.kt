@@ -91,8 +91,9 @@ fun ModernInputPanel(
     onExportBacklogToMarkdown: () -> Unit,
     reminderParseResult: ReminderParseResult?,
     onClearReminder: () -> Unit,
-    isNerActive: Boolean
-) {
+    isNerActive: Boolean,
+    onStartTrackingCurrentProject: () -> Unit,
+    ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
 
@@ -181,8 +182,10 @@ fun ModernInputPanel(
                 onRecentsClick = onRecentsClick,
                 onInputModeSelected = onInputModeSelected,
                 onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-                onExportBacklogToMarkdown = onExportBacklogToMarkdown
-            )
+                onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+                onStartTrackingCurrentProject = onStartTrackingCurrentProject,
+
+                )
 
             AnimatedVisibility(
                 visible = reminderParseResult != null,
@@ -597,8 +600,10 @@ private fun NavigationBar(
     onInputModeSelected: (InputMode) -> Unit,
     modifier: Modifier = Modifier,
     onImportBacklogFromMarkdown: () -> Unit,
-    onExportBacklogToMarkdown: () -> Unit
-) {
+    onExportBacklogToMarkdown: () -> Unit,
+    onStartTrackingCurrentProject: () -> Unit,
+
+    ) {
     val haptic = LocalHapticFeedback.current
 
     val attachmentIconScale by animateFloatAsState(
@@ -808,7 +813,26 @@ private fun NavigationBar(
                             )
                         }
                     )
-
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Start tracking current project",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            onStartTrackingCurrentProject()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.PlayCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    )
                     DropdownMenuItem(
                         text = {
                             Text(
