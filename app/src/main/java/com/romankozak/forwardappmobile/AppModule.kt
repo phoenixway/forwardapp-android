@@ -1,11 +1,9 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/AppModule.kt ---
-package com.romankozak.forwardappmobile
+package com.romankozak.forwardappmobile.di
 
 import android.content.Context
 import androidx.room.Room
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.*
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -15,88 +13,51 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object AppModule {
+object DatabaseModule {
 
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        // INFO: Видалено старі міграції, яких немає у наданих файлах, для уникнення помилок
-        // Якщо вони вам потрібні, переконайтесь, що файли з ними є.
-        // Я додав усі міграції до 19->20, які ми обговорювали.
         return Room.databaseBuilder(
-            context.applicationContext,
+            context,
             AppDatabase::class.java,
             "forward_app_database"
         )
             .addMigrations(
-                MIGRATION_8_9,
-                MIGRATION_10_11,
-                MIGRATION_11_12,
-                MIGRATION_12_13,
-                MIGRATION_13_14,
-                MIGRATION_14_15,
-                MIGRATION_15_16,
-                MIGRATION_16_17,
-                MIGRATION_17_18,
-                MIGRATION_18_19,
-                MIGRATION_19_20
+                MIGRATION_8_9, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+                MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
+                MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
+                MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
+                MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28
             )
             .build()
     }
 
     @Provides
-    @Singleton
-    fun provideGoalDao(database: AppDatabase): GoalDao {
-        return database.goalDao()
-    }
+    fun provideGoalDao(db: AppDatabase): GoalDao = db.goalDao()
 
     @Provides
-    @Singleton
-    fun provideGoalListDao(database: AppDatabase): GoalListDao {
-        return database.goalListDao()
-    }
+    fun provideGoalListDao(db: AppDatabase): GoalListDao = db.goalListDao()
 
     @Provides
-    @Singleton
-    fun provideListItemDao(database: AppDatabase): ListItemDao {
-        return database.listItemDao()
-    }
+    fun provideListItemDao(db: AppDatabase): ListItemDao = db.listItemDao()
 
     @Provides
-    @Singleton
-    fun provideActivityRecordDao(database: AppDatabase): ActivityRecordDao {
-        return database.activityRecordDao()
-    }
+    fun provideActivityRecordDao(db: AppDatabase): ActivityRecordDao = db.activityRecordDao()
 
     @Provides
-    @Singleton
-    fun provideRecentListDao(database: AppDatabase): RecentListDao {
-        return database.recentListDao()
-    }
+    fun provideRecentListDao(db: AppDatabase): RecentListDao = db.recentListDao()
 
     @Provides
-    @Singleton
-    fun provideLinkItemDao(database: AppDatabase): LinkItemDao {
-        return database.linkItemDao()
-    }
-
-    // --- ПОЧАТОК ЗМІНИ ---
+    fun provideLinkItemDao(db: AppDatabase): LinkItemDao = db.linkItemDao()
 
     @Provides
-    @Singleton // AlarmScheduler має бути синглтоном
-    fun provideAlarmScheduler(@ApplicationContext context: Context): AlarmScheduler {
-        return AlarmScheduler(context)
-    }
+    fun provideInboxRecordDao(db: AppDatabase): InboxRecordDao = db.inboxRecordDao()
 
     @Provides
-    @Singleton // Також додамо @Singleton для консистентності
-    fun provideInboxRecordDao(appDatabase: AppDatabase): InboxRecordDao {
-        return appDatabase.inboxRecordDao()
-    }
+    fun provideChatDao(db: AppDatabase): ChatDao = db.chatDao()
 
     @Provides
-    fun provideChatDao(appDatabase: AppDatabase): ChatDao {
-        return appDatabase.chatDao()
-    }
-
+    fun provideProjectManagementDao(db: AppDatabase): ProjectManagementDao = db.projectManagementDao()
 }
+

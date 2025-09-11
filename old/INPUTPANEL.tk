@@ -34,7 +34,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +46,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputMode
 import kotlinx.coroutines.delay
 
 private val modes = listOf(InputMode.AddGoal, InputMode.AddQuickRecord, InputMode.SearchGlobal, InputMode.SearchInList)
@@ -93,10 +93,7 @@ fun ModernInputPanel(
     onClearReminder: () -> Unit,
     isNerActive: Boolean,
     onStartTrackingCurrentProject: () -> Unit,
-    isProjectManagementEnabled: Boolean,
-
-    onToggleProjectManagement: () -> Unit,
-) {
+    ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
 
@@ -107,6 +104,7 @@ fun ModernInputPanel(
 
     val currentModeIndex = modes.indexOf(inputMode)
 
+    // --- ВИПРАВЛЕНО: Повернуто унікальні колірні схеми для кожного режиму пошуку ---
     val panelColors = when (inputMode) {
         InputMode.AddGoal -> PanelColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -186,10 +184,8 @@ fun ModernInputPanel(
                 onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
                 onExportBacklogToMarkdown = onExportBacklogToMarkdown,
                 onStartTrackingCurrentProject = onStartTrackingCurrentProject,
-                isProjectManagementEnabled = isProjectManagementEnabled,
 
-                onToggleProjectManagement = onToggleProjectManagement,
-            )
+                )
 
             AnimatedVisibility(
                 visible = reminderParseResult != null,
@@ -215,9 +211,9 @@ fun ModernInputPanel(
 
             Row(
                 modifier = Modifier
-                    .defaultMinSize(minHeight = 64.dp)
+                    .heightIn(min = 64.dp)
                     .padding(horizontal = 8.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.Bottom,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box {
                     Surface(
@@ -293,8 +289,7 @@ fun ModernInputPanel(
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
-                        .defaultMinSize(minHeight = 44.dp),
+                        .height(44.dp),
                     shape = RoundedCornerShape(20.dp),
                     color = panelColors.inputFieldColor,
                     border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
@@ -304,8 +299,7 @@ fun ModernInputPanel(
                         value = inputValue,
                         onValueChange = onValueChange,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp)
+                            .fillMaxSize()
                             .focusRequester(focusRequester),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = panelColors.contentColor,
@@ -314,12 +308,12 @@ fun ModernInputPanel(
                         ),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
-                        singleLine = false,
+                        singleLine = true,
                         cursorBrush = SolidColor(panelColors.accentColor),
                         decorationBox = { innerTextField ->
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .fillMaxSize()
                                     .padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -608,10 +602,8 @@ private fun NavigationBar(
     onImportBacklogFromMarkdown: () -> Unit,
     onExportBacklogToMarkdown: () -> Unit,
     onStartTrackingCurrentProject: () -> Unit,
-    isProjectManagementEnabled: Boolean,
 
-    onToggleProjectManagement: () -> Unit,
-) {
+    ) {
     val haptic = LocalHapticFeedback.current
 
     val attachmentIconScale by animateFloatAsState(
@@ -685,7 +677,7 @@ private fun NavigationBar(
                 )
             }
             AnimatedVisibility(
-                visible = true,
+                visible = true, // <-- Нова властивість для видимості кнопки Недавні
                 enter = fadeIn() + slideInHorizontally(),
                 exit = fadeOut() + slideOutHorizontally()
             ) {
@@ -701,6 +693,7 @@ private fun NavigationBar(
                     )
                 }
             }
+
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
@@ -750,29 +743,6 @@ private fun NavigationBar(
                             tint = contentColor
                         )
                     }
-                    if (isProjectManagementEnabled) {
-                        IconButton(
-                            onClick = {
-                                onViewChange(ProjectViewMode.DASHBOARD)
-                                onInputModeSelected(InputMode.AddQuickRecord)
-                            },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(
-                                    color = if (currentView == ProjectViewMode.DASHBOARD) contentColor.copy(
-                                        alpha = 0.2f
-                                    ) else Color.Transparent,
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Dashboard,
-                                contentDescription = "Dashboard",
-                                modifier = Modifier.size(18.dp),
-                                tint = contentColor
-                            )
-                        }
-                    }
                 }
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -814,9 +784,10 @@ private fun NavigationBar(
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { onMenuExpandedChange(false) },
-                    properties = PopupProperties(focusable = true),
+                    properties = PopupProperties(focusable = false),
+
                     modifier = Modifier
-                        .width(280.dp)
+                        .width(240.dp)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             shape = RoundedCornerShape(16.dp)
@@ -837,26 +808,6 @@ private fun NavigationBar(
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "Toggle realization support",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        },
-                        onClick = {
-                            onToggleProjectManagement()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.Construction,
-                                contentDescription = "Toggle realization support",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -1028,4 +979,3 @@ private fun NavigationBar(
         }
     }
 }
-

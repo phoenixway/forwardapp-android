@@ -207,6 +207,14 @@ class GoalDetailViewModel @Inject constructor(
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    val projectLogs: StateFlow<List<ProjectExecutionLog>> = listIdFlow.flatMapLatest { id ->
+        if (id.isNotEmpty()) {
+            goalRepository.getProjectLogsStream(id)
+        } else {
+            flowOf(emptyList())
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val detectedCalendarFlow: StateFlow<Calendar?> = uiState.map { it.detectedReminderCalendar }
         .stateIn(
             scope = viewModelScope,
@@ -214,14 +222,13 @@ class GoalDetailViewModel @Inject constructor(
             initialValue = null
         )
 
-    // 3. ОНОВІТЬ КОНСТРУКТОР INPUTHANDLER
     val inputHandler = InputHandler(
         goalRepository,
         viewModelScope,
         listIdFlow,
-        this,                 // ViewModel як ResultListener
+        this,
         reminderParser,
-        alarmScheduler // <-- Передайте екземпляр планувальника
+        alarmScheduler
     )
 
 
@@ -277,9 +284,7 @@ class GoalDetailViewModel @Inject constructor(
 
     val isSelectionModeActive: StateFlow<Boolean> = _uiState
         .map { it.selectedItemIds.isNotEmpty() }
-        // --- ПОЧАТОК ЗМІН: ДОДАНО ЛОГУВАННЯ ---
         .onEach { isActive -> Log.d(TAG, "СТАН: isSelectionModeActive змінився на: $isActive") }
-        // --- КІНЕЦЬ ЗМІН ---
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
 
@@ -299,6 +304,19 @@ class GoalDetailViewModel @Inject constructor(
 
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
+
+        viewModelScope.launch {
+            goalList.collect { list ->
+                if (list != null) {
+                    val isManagementEnabled = list.isProjectManagementEnabled ?: false
+                    val currentView = uiState.value.currentView
+                    if (!isManagementEnabled && currentView == ProjectViewMode.DASHBOARD) {
+                        Log.d(TAG, "Inconsistency detected: Project management is OFF but view is DASHBOARD. Switching to BACKLOG.")
+                        onProjectViewChange(ProjectViewMode.BACKLOG)
+                    }
+                }
+            }
+        }
 
         val inboxIdToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight")
         Log.d(TAG, "Received 'inboxRecordIdToHighlight' from SavedStateHandle: $inboxIdToHighlight")
@@ -324,8 +342,11 @@ class GoalDetailViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collect { savedModeName ->
                     val viewMode = try {
-                        ProjectViewMode.valueOf(savedModeName)
-                    } catch (e: Exception) { ProjectViewMode.BACKLOG }
+                        // ВИПРАВЛЕНО: Додано безпечну обробку null за допомогою оператора Elvis
+                        ProjectViewMode.valueOf(savedModeName ?: ProjectViewMode.BACKLOG.name)
+                    } catch (e: Exception) {
+                        ProjectViewMode.BACKLOG
+                    }
                     _uiState.update {
                         it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
                     }
@@ -348,10 +369,37 @@ class GoalDetailViewModel @Inject constructor(
 
     }
 
+    fun onToggleProjectManagement(isEnabled: Boolean) {
+        viewModelScope.launch {
+            goalRepository.toggleProjectManagement(listIdFlow.value, isEnabled)
+        }
+    }
+
+    fun onProjectStatusUpdate(newStatus: ProjectStatus, statusText: String?) {
+        viewModelScope.launch {
+            goalRepository.updateProjectStatus(listIdFlow.value, newStatus, statusText)
+        }
+    }
+
+    fun onAddProjectComment(comment: String) {
+        if (comment.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            goalRepository.addProjectComment(listIdFlow.value, comment)
+            withContext(Dispatchers.Main) {
+                // Очищуємо поле вводу після додавання коментаря
+                _uiState.update { it.copy(inputValue = TextFieldValue("")) }
+            }
+        }
+    }
 
 
     private fun getInputModeForView(viewMode: ProjectViewMode): InputMode {
-        return if (viewMode == ProjectViewMode.INBOX) InputMode.AddQuickRecord else InputMode.AddGoal
+        return when (viewMode) {
+            ProjectViewMode.INBOX -> InputMode.AddQuickRecord
+            // В режимі DASHBOARD панель вводу буде додавати коментарі
+            ProjectViewMode.DASHBOARD -> InputMode.AddGoal
+            else -> InputMode.AddGoal
+        }
     }
 
     override fun requestNavigation(route: String) {
@@ -412,8 +460,6 @@ class GoalDetailViewModel @Inject constructor(
                 inputMode = inputMode ?: currentState.inputMode,
                 localSearchQuery = localSearchQuery ?: currentState.localSearchQuery,
                 newlyAddedItemId = newlyAddedItemId,
-                // Логіка для нагадувань: якщо clearDetectedReminder = true, очищуємо все
-                // Інакше оновлюємо тільки те, що передано (null означає "не змінювати")
                 detectedReminderSuggestion = when {
                     clearDetectedReminder -> null
                     detectedReminderSuggestion != null -> detectedReminderSuggestion
@@ -427,7 +473,6 @@ class GoalDetailViewModel @Inject constructor(
             )
         }
 
-        // Логування для відладки (можна видалити в продакшені)
         Log.d("BacklogViewModel",
             "updateInputState: clearReminder=$clearDetectedReminder, " +
                     "suggestion=$detectedReminderSuggestion, " +
@@ -449,19 +494,9 @@ class GoalDetailViewModel @Inject constructor(
     }
 
     override fun updateSelectionState(selectedIds: Set<String>) {
-        // --- ДОДАНО ЛОГУВАННЯ ---
         Log.d(TAG, "ВИКЛИК: updateSelectionState з ${selectedIds.size} елементами.")
         _uiState.update { it.copy(selectedItemIds = selectedIds) }
     }
-
-    /*fun onGoalCreatedWithReminder(goalId: String) {
-        viewModelScope.launch {
-            goalRepository.getGoalById(goalId)?.let { newGoal ->
-                alarmScheduler.schedule(newGoal)
-                // НЕ показуємо snackbar тут, це робиться в InputHandler
-            }
-        }
-    }*/
 
     fun onListChooserResult(targetListId: String) {
         val actionType = pendingAction ?: return
@@ -599,7 +634,7 @@ class GoalDetailViewModel @Inject constructor(
     fun toggleAttachmentsVisibility() {
         viewModelScope.launch(Dispatchers.IO) {
             val currentList = goalList.value ?: return@launch
-            val newState = !currentList.isAttachmentsExpanded
+            val newState = !(currentList.isAttachmentsExpanded ?: false)
             goalRepository.updateGoalList(currentList.copy(isAttachmentsExpanded = newState))
         }
     }
@@ -744,23 +779,18 @@ class GoalDetailViewModel @Inject constructor(
 
             val (newRecord, message) = result
             if (newRecord != null && message != null) {
-                // --- ЗМІНЕНО: Зберігаємо запис у тимчасову змінну, а не в UiState ---
                 pendingActivityForReminder = newRecord
                 showSnackbar(message, "Обмежити в часі")
             }
         }
     }
 
-    // --- ЗМІНЕНО: Метод тепер бере дані з тимчасової змінної і оновлює UiState ---
     fun onLimitLastActivityRequested() {
-        // Переносимо запис з тимчасової змінної в UiState, щоб UI оновився і показав діалог
         _uiState.update { it.copy(recordForReminderDialog = pendingActivityForReminder) }
-        // Очищуємо тимчасову змінну
         pendingActivityForReminder = null
     }
 
     fun onReminderDialogDismiss() {
-        // Очищуємо поле в UiState, щоб приховати діалог
         _uiState.update { it.copy(recordForReminderDialog = null) }
     }
 
@@ -775,7 +805,6 @@ class GoalDetailViewModel @Inject constructor(
             Date(timestamp)
         )}", null)
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     fun onClearReminder() = viewModelScope.launch {
         val record = _uiState.value.recordForReminderDialog ?: return@launch
@@ -790,15 +819,33 @@ class GoalDetailViewModel @Inject constructor(
         if (currentListId.isBlank()) return
 
         viewModelScope.launch {
-            // activityRepository - це ваш екземпляр ActivityRepository
             val record = activityRepository.startListActivity(currentListId)
             if (record != null) {
-                // Показуємо сповіщення, як ми робили це раніше
                 showSnackbar("Відстежую проєкт", "Обмежити в часі")
-                // Зберігаємо посилання на запис для діалогу
                 pendingActivityForReminder = record
             }
         }
     }
 
+    fun onToggleProjectManagement() {
+        viewModelScope.launch {
+            val list = goalList.value ?: return@launch
+            val currentState = list.isProjectManagementEnabled ?: false
+            val newState = !currentState
+            val currentView = uiState.value.currentView
+
+            goalRepository.toggleProjectManagement(list.id, newState)
+
+            // Якщо ми щойно увімкнули підтримку, автоматично переходимо на дашборд
+            if (newState) {
+                onProjectViewChange(ProjectViewMode.DASHBOARD)
+            }
+            // А якщо вимкнули, перебуваючи на дашборді, повертаємось до беклогу
+            else if (currentView == ProjectViewMode.DASHBOARD) {
+                onProjectViewChange(ProjectViewMode.BACKLOG)
+            }
+        }
+    }
+
 }
+
