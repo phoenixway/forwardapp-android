@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxMarkdownHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ItemActionHandler
+import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ProjectMarkdownExporter
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.SelectionHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -175,6 +176,7 @@ class GoalDetailViewModel @Inject constructor(
     private val nerManager: NerManager,
     private val reminderParser: ReminderParser,
     private val activityRepository: ActivityRepository,
+    private val projectMarkdownExporter: ProjectMarkdownExporter,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel(), ItemActionHandler.ResultListener, InputHandler.ResultListener,
     SelectionHandler.ResultListener, InboxHandler.ResultListener, InboxMarkdownHandler.ResultListener, BacklogMarkdownHandlerResultListener {
@@ -755,6 +757,15 @@ class GoalDetailViewModel @Inject constructor(
 
     fun onExportBacklogToMarkdownRequest() {
         backlogMarkdownHandler.exportToMarkdown(listContent.value)
+    }
+
+    fun onExportProjectStateRequest() {
+        projectMarkdownExporter.exportProjectStateToMarkdown(
+            project = goalList.value,
+            backlog = listContent.value,
+            logs = projectLogs.value,
+            listener = this
+        )
     }
 
     fun onSublistCompletedChanged(sublist: GoalList, isCompleted: Boolean) {

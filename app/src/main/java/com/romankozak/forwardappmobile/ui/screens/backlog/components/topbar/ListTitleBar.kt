@@ -1,45 +1,47 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.data.database.models.GoalList
 
 @Composable
 fun ListTitleBar(
-    title: String,
+    goalList: GoalList?,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = Color.Transparent
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            contentAlignment = Alignment.Center
+                .padding(vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = title,
+                text = goalList?.name ?: stringResource(id = R.string.loading),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .padding(horizontal = 28.dp), // Більше відступ, щоб уникнути накладання
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold,
@@ -49,6 +51,16 @@ fun ListTitleBar(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            // Показуємо індикатор статусу, тільки якщо увімкнено управління проектом
+            AnimatedVisibility(visible = goalList?.isProjectManagementEnabled == true && goalList.projectStatus != null) {
+                if (goalList?.projectStatus != null) {
+                    ProjectStatusIndicator(
+                        status = goalList.projectStatus,
+                        statusText = goalList.projectStatusText
+                    )
+                }
+            }
         }
     }
 }

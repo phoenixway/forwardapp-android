@@ -455,7 +455,7 @@ fun GoalDetailScreen(
         topBar = {
             AdaptiveTopBar(
                 isSelectionModeActive = isSelectionModeActive,
-                title = list?.name ?: stringResource(R.string.loading),
+                goalList = list,
                 selectedCount = uiState.selectedItemIds.size,
                 areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
                 onClearSelection = { viewModel.selectionHandler.clearSelection() },
@@ -537,6 +537,7 @@ fun GoalDetailScreen(
                         .navigationBarsPadding()
                         .imePadding(),
                     onToggleProjectManagement = viewModel::onToggleProjectManagement,
+                    onExportProjectState = viewModel::onExportProjectStateRequest,
                 )
             }
         },
