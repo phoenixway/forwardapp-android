@@ -16,11 +16,11 @@ import com.romankozak.forwardappmobile.R
 @Composable
 fun AddWebLinkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (url: String, name: String?) -> Unit
+    onConfirm: (url: String, name: String?) -> Unit,
 ) {
     var url by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    val isUrlValid = url.isNotBlank() // Проста перевірка, можна ускладнити
+    val isUrlValid = url.isNotBlank() 
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -31,20 +31,20 @@ fun AddWebLinkDialog(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text("URL") },
-                    isError = !isUrlValid && url.isNotEmpty()
+                    isError = !isUrlValid && url.isNotEmpty(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.display_name_optional)) }
+                    label = { Text(stringResource(R.string.display_name_optional)) },
                 )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(url, name.takeIf { it.isNotBlank() }) },
-                enabled = isUrlValid
+                enabled = isUrlValid,
             ) {
                 Text(stringResource(R.string.add))
             }
@@ -53,14 +53,14 @@ fun AddWebLinkDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
-        }
+        },
     )
 }
 
 @Composable
 fun AddObsidianLinkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (noteName: String) -> Unit
+    onConfirm: (noteName: String) -> Unit,
 ) {
     var noteName by remember { mutableStateOf("") }
 
@@ -71,13 +71,13 @@ fun AddObsidianLinkDialog(
             OutlinedTextField(
                 value = noteName,
                 onValueChange = { noteName = it },
-                label = { Text(stringResource(R.string.note_name)) }
+                label = { Text(stringResource(R.string.note_name)) },
             )
         },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(noteName) },
-                enabled = noteName.isNotBlank()
+                enabled = noteName.isNotBlank(),
             ) {
                 Text(stringResource(R.string.add))
             }
@@ -86,14 +86,6 @@ fun AddObsidianLinkDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
-        }
+        },
     )
 }
-
-// Додайте ці рядки до res/values/strings.xml, якщо їх немає
-/*
-<string name="display_name_optional">Назва (необов\'язково)</string>
-<string name="add">Додати</string>
-<string name="cancel">Скасувати</string>
-<string name="note_name">Назва нотатки</string>
-*/

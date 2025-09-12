@@ -34,9 +34,10 @@ fun ContextMenuDialog(
                     text = list.name,
                     style = MaterialTheme.typography.titleLarge,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                 )
                 HorizontalDivider()
                 DialogActionItem(
@@ -48,7 +49,6 @@ fun ContextMenuDialog(
                 DialogActionItem(
                     text = "Редагувати",
                     icon = Icons.Default.Edit,
-                    // ЗАЛИШАЄМО onDismissRequest() ТІЛЬКИ ТУТ
                     onClick = {
                         onEditRequest(list)
                         onDismissRequest()
@@ -80,17 +80,18 @@ private fun DialogActionItem(
     color: Color = LocalContentColor.current,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = color.takeIf { it != Color.Unspecified } ?: MaterialTheme.colorScheme.primary
+            tint = color.takeIf { it != Color.Unspecified } ?: MaterialTheme.colorScheme.primary,
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = text, style = MaterialTheme.typography.bodyLarge, color = color)

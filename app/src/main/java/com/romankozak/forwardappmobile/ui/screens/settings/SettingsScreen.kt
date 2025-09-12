@@ -38,7 +38,10 @@ import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import com.romankozak.forwardappmobile.ui.screens.backlogs.PlanningSettingsState
 
-fun getFileName(uri: Uri, context: Context): String {
+fun getFileName(
+    uri: Uri,
+    context: Context,
+): String {
     var fileName: String? = null
     try {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -55,8 +58,11 @@ fun getFileName(uri: Uri, context: Context): String {
     return fileName ?: "Unknown file"
 }
 
-fun getFolderName(uri: Uri, context: Context): String {
-    return try {
+fun getFolderName(
+    uri: Uri,
+    context: Context,
+): String =
+    try {
         val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
         context.contentResolver.query(docUri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -68,7 +74,6 @@ fun getFolderName(uri: Uri, context: Context): String {
     } catch (e: Exception) {
         uri.lastPathSegment ?: "Selected Folder"
     }
-}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -79,10 +84,13 @@ fun SettingsScreen(
     onManageContextsClick: () -> Unit,
     onBack: () -> Unit,
     onSave: (
-        showModes: Boolean, dailyTag: String, mediumTag: String, longTag: String,
-        vaultName: String
+        showModes: Boolean,
+        dailyTag: String,
+        mediumTag: String,
+        longTag: String,
+        vaultName: String,
     ) -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -101,21 +109,23 @@ fun SettingsScreen(
 
     val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName) {
         derivedStateOf {
-            val planningIsDirty = tempShowModes != planningSettings.showModes ||
+            val planningIsDirty =
+                tempShowModes != planningSettings.showModes ||
                     tempDailyTag != planningSettings.dailyTag ||
                     tempMediumTag != planningSettings.mediumTag ||
                     tempLongTag != planningSettings.longTag ||
                     tempVaultName != initialVaultName
 
-            val viewModelIsDirty = initialViewModelState?.let {
-                uiState.ollamaUrl != it.ollamaUrl ||
+            val viewModelIsDirty =
+                initialViewModelState?.let {
+                    uiState.ollamaUrl != it.ollamaUrl ||
                         uiState.fastModel != it.fastModel ||
                         uiState.smartModel != it.smartModel ||
                         uiState.nerModelUri != it.nerModelUri ||
                         uiState.nerTokenizerUri != it.nerTokenizerUri ||
                         uiState.nerLabelsUri != it.nerLabelsUri ||
                         uiState.rolesFolderUri != it.rolesFolderUri
-            } ?: false
+                } ?: false
 
             planningIsDirty || viewModelIsDirty
         }
@@ -130,26 +140,28 @@ fun SettingsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
-                }
+                },
             )
         },
         bottomBar = {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-                    .imePadding(),
-                horizontalArrangement = Arrangement.End
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .imePadding(),
+                horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(
                     onClick = onBack,
-                    colors = ButtonDefaults.textButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = MaterialTheme.colorScheme.primary,
+                        ),
                 ) { Text("Cancel") }
                 Spacer(Modifier.width(8.dp))
                 Button(
@@ -160,24 +172,25 @@ fun SettingsScreen(
                             tempDailyTag,
                             tempMediumTag,
                             tempLongTag,
-                            tempVaultName
+                            tempVaultName,
                         )
                         viewModel.saveSettings()
                         onBack()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 ) { Text("Save") }
             }
-        }
+        },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .fillMaxSize()
-                .imePadding()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxSize()
+                    .imePadding()
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             PermissionsSettingsCard()
 
@@ -186,28 +199,24 @@ fun SettingsScreen(
                 onUrlChange = viewModel::onUrlChanged,
                 onFetchClick = viewModel::fetchAvailableModels,
                 onFastModelSelect = viewModel::onFastModelSelected,
-                onSmartModelSelect = viewModel::onSmartModelSelected
+                onSmartModelSelect = viewModel::onSmartModelSelected,
             )
 
-            // --- ПОЧАТОК ЗМІНИ: Додано картку налаштувань для ролей ---
             RolesSettingsCard(
                 state = uiState,
-                onFolderSelected = viewModel::onRolesFolderSelected
+                onFolderSelected = viewModel::onRolesFolderSelected,
             )
-            // --- КІНЕЦЬ ЗМІНИ ---
-
             NerSettingsCard(
                 state = uiState,
                 onModelFileSelected = viewModel::onNerModelFileSelected,
                 onTokenizerFileSelected = viewModel::onNerTokenizerFileSelected,
                 onLabelsFileSelected = viewModel::onNerLabelsFileSelected,
-                onReloadClick = viewModel::reloadNerModel
+                onReloadClick = viewModel::reloadNerModel,
             )
 
-            // --- ПОЧАТОК ЗМІНИ: Відновлено втрачені картки налаштувань ---
             SettingsCard(
                 title = "Planning Modes",
-                icon = Icons.Default.Tune
+                icon = Icons.Default.Tune,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text("Show planning scale modes", modifier = Modifier.weight(1f))
@@ -217,25 +226,25 @@ fun SettingsScreen(
                     value = tempDailyTag,
                     onValueChange = { tempDailyTag = it },
                     label = "Daily Mode Tag",
-                    helper = "Tag used for daily planning mode"
+                    helper = "Tag used for daily planning mode",
                 )
                 AnimatedTextField(
                     value = tempMediumTag,
                     onValueChange = { tempMediumTag = it },
                     label = "Medium Mode Tag",
-                    helper = "Tag used for medium planning mode"
+                    helper = "Tag used for medium planning mode",
                 )
                 AnimatedTextField(
                     value = tempLongTag,
                     onValueChange = { tempLongTag = it },
                     label = "Long Mode Tag",
-                    helper = "Tag used for long planning mode"
+                    helper = "Tag used for long planning mode",
                 )
             }
 
             SettingsCard(
                 title = "Integrations",
-                icon = Icons.Default.Link
+                icon = Icons.Default.Link,
             ) {
                 Text("Specify the exact name of your Obsidian Vault for link integration.")
                 AnimatedTextField(
@@ -243,22 +252,22 @@ fun SettingsScreen(
                     onValueChange = { tempVaultName = it },
                     label = "Obsidian Vault Name",
                     helper = "Exact vault name for link integration",
-                    singleLine = true
+                    singleLine = true,
                 )
             }
 
             SettingsCard(
                 title = "Contexts",
-                icon = Icons.Default.Label
+                icon = Icons.Default.Label,
             ) {
                 OutlinedButton(
                     onClick = onManageContextsClick,
                     modifier = Modifier.fillMaxWidth(),
                     content = { Text("Manage Reserved Contexts ($reservedContextCount)") },
-                    colors = ButtonDefaults.outlinedButtonColors()
+                    colors = ButtonDefaults.outlinedButtonColors(),
                 )
             }
-            // --- КІНЕЦЬ ЗМІНИ ---
+            
         }
     }
 }
@@ -266,22 +275,23 @@ fun SettingsScreen(
 @Composable
 private fun RolesSettingsCard(
     state: SettingsUiState,
-    onFolderSelected: (Uri, Context) -> Unit
+    onFolderSelected: (Uri, Context) -> Unit,
 ) {
     val context = LocalContext.current
 
-    val folderPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-        onResult = { uri: Uri? ->
-            uri?.let {
-                onFolderSelected(it, context)
-            }
-        }
-    )
+    val folderPickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+            onResult = { uri: Uri? ->
+                uri?.let {
+                    onFolderSelected(it, context)
+                }
+            },
+        )
 
     SettingsCard(
         title = "Chat Roles",
-        icon = Icons.Default.Face
+        icon = Icons.Default.Face,
     ) {
         Text("Select a folder containing your role files (.md or .txt).")
         Spacer(modifier = Modifier.height(8.dp))
@@ -290,11 +300,10 @@ private fun RolesSettingsCard(
             selectedFileUri = state.rolesFolderUri,
             onSelectClick = { folderPickerLauncher.launch(null) },
             context = context,
-            isFolder = true
+            isFolder = true,
         )
     }
 }
-
 
 @Composable
 private fun FileSelector(
@@ -302,21 +311,22 @@ private fun FileSelector(
     selectedFileUri: String,
     onSelectClick: () -> Unit,
     context: Context,
-    isFolder: Boolean = false
+    isFolder: Boolean = false,
 ) {
-    val displayName = remember(selectedFileUri) {
-        if (selectedFileUri.isNotBlank()) {
-            val uri = Uri.parse(selectedFileUri)
-            if (isFolder) getFolderName(uri, context) else getFileName(uri, context)
-        } else {
-            "Not selected"
+    val displayName =
+        remember(selectedFileUri) {
+            if (selectedFileUri.isNotBlank()) {
+                val uri = Uri.parse(selectedFileUri)
+                if (isFolder) getFolderName(uri, context) else getFileName(uri, context)
+            } else {
+                "Not selected"
+            }
         }
-    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
@@ -325,7 +335,7 @@ private fun FileSelector(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
@@ -335,34 +345,35 @@ private fun FileSelector(
     }
 }
 
-// --- Усі решта composable-функцій (PermissionsSettingsCard, OllamaSettingsCard, NerSettingsCard і т.д.) залишаються без змін ---
-
 @Composable
 private fun PermissionsSettingsCard() {
     val context = LocalContext.current
     var permissionUpdateTrigger by remember { mutableIntStateOf(0) }
 
-    val hasNotificationPermission = remember(permissionUpdateTrigger) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
+    val hasNotificationPermission =
+        remember(permissionUpdateTrigger) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
         }
-    }
 
-    val canScheduleExactAlarms = remember(permissionUpdateTrigger) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.canScheduleExactAlarms()
-        } else {
-            true
+    val canScheduleExactAlarms =
+        remember(permissionUpdateTrigger) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                alarmManager.canScheduleExactAlarms()
+            } else {
+                true
+            }
         }
-    }
 
-    val notificationLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { permissionUpdateTrigger++ }
-    )
+    val notificationLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { permissionUpdateTrigger++ },
+        )
 
     SettingsCard(title = "Permissions", icon = Icons.Default.Security) {
         PermissionRow(
@@ -374,7 +385,7 @@ private fun PermissionsSettingsCard() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
-            }
+            },
         )
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         PermissionRow(
@@ -384,12 +395,13 @@ private fun PermissionsSettingsCard() {
             isGranted = canScheduleExactAlarms,
             onGrantClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                        data = Uri.fromParts("package", context.packageName, null)
-                    }
+                    val intent =
+                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
                     context.startActivity(intent)
                 }
-            }
+            },
         )
     }
 }
@@ -401,7 +413,7 @@ private fun PermissionRow(
     name: String,
     description: String,
     isGranted: Boolean,
-    onGrantClick: () -> Unit
+    onGrantClick: () -> Unit,
 ) {
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -409,7 +421,7 @@ private fun PermissionRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
         },
         headlineContent = { Text(name) },
@@ -419,17 +431,16 @@ private fun PermissionRow(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Granted",
-                    tint = Color(0xFF388E3C)
+                    tint = Color(0xFF388E3C),
                 )
             } else {
                 Button(onClick = onGrantClick, contentPadding = PaddingValues(horizontal = 16.dp)) {
                     Text("Grant")
                 }
             }
-        }
+        },
     )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -438,23 +449,23 @@ private fun OllamaSettingsCard(
     onUrlChange: (String) -> Unit,
     onFetchClick: () -> Unit,
     onFastModelSelect: (String) -> Unit,
-    onSmartModelSelect: (String) -> Unit
+    onSmartModelSelect: (String) -> Unit,
 ) {
     SettingsCard(
         title = "Ollama AI Integration",
-        icon = Icons.Default.Dns
+        icon = Icons.Default.Dns,
     ) {
         AnimatedTextField(
             value = state.ollamaUrl,
             onValueChange = onUrlChange,
             label = "Ollama Server URL",
             helper = "e.g., http://192.168.1.5:11434",
-            singleLine = true
+            singleLine = true,
         )
         OutlinedButton(
             onClick = onFetchClick,
             modifier = Modifier.fillMaxWidth(),
-            enabled = state.ollamaUrl.isNotBlank() && state.modelsState !is ModelsState.Loading
+            enabled = state.ollamaUrl.isNotBlank() && state.modelsState !is ModelsState.Loading,
         ) {
             if (state.modelsState is ModelsState.Loading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
@@ -472,16 +483,16 @@ private fun OllamaSettingsCard(
                     label = "Fast Model",
                     selectedValue = state.fastModel,
                     models = modelsState.models,
-                    onModelSelected = onFastModelSelect
+                    onModelSelected = onFastModelSelect,
                 )
                 ModelSelector(
                     label = "Smart Model",
                     selectedValue = state.smartModel,
                     models = modelsState.models,
-                    onModelSelected = onSmartModelSelect
+                    onModelSelected = onSmartModelSelect,
                 )
             }
-            ModelsState.Loading -> { /* Handled by button state */ }
+            ModelsState.Loading -> {  }
         }
     }
 }
@@ -492,55 +503,59 @@ private fun NerSettingsCard(
     onModelFileSelected: (String) -> Unit,
     onTokenizerFileSelected: (String) -> Unit,
     onLabelsFileSelected: (String) -> Unit,
-    onReloadClick: () -> Unit
+    onReloadClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    val areAllFilesSelected = state.nerModelUri.isNotBlank() &&
+    val areAllFilesSelected =
+        state.nerModelUri.isNotBlank() &&
             state.nerTokenizerUri.isNotBlank() &&
             state.nerLabelsUri.isNotBlank()
 
-    val modelLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                onModelFileSelected(it.toString())
-            } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
+    val modelLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    onModelFileSelected(it.toString())
+                } catch (e: SecurityException) {
+                    Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
+                }
             }
         }
-    }
 
-    val tokenizerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                onTokenizerFileSelected(it.toString())
-            } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
+    val tokenizerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    onTokenizerFileSelected(it.toString())
+                } catch (e: SecurityException) {
+                    Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
+                }
             }
         }
-    }
 
-    val labelsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                onLabelsFileSelected(it.toString())
-            } catch (e: SecurityException) {
-                Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
+    val labelsLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    onLabelsFileSelected(it.toString())
+                } catch (e: SecurityException) {
+                    Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
+                }
             }
         }
-    }
 
     SettingsCard(
         title = "Date/Time NER Model (ONNX)",
-        icon = Icons.Default.Memory
+        icon = Icons.Default.Memory,
     ) {
         FileSelector(
             label = "Model File (.onnx)",
@@ -548,7 +563,7 @@ private fun NerSettingsCard(
             onSelectClick = {
                 modelLauncher.launch(arrayOf("*/*", "application/octet-stream"))
             },
-            context = context
+            context = context,
         )
         FileSelector(
             label = "Tokenizer File (.json)",
@@ -556,7 +571,7 @@ private fun NerSettingsCard(
             onSelectClick = {
                 tokenizerLauncher.launch(arrayOf("application/json", "text/plain"))
             },
-            context = context
+            context = context,
         )
         FileSelector(
             label = "Labels File (.json)",
@@ -564,24 +579,24 @@ private fun NerSettingsCard(
             onSelectClick = {
                 labelsLauncher.launch(arrayOf("application/json", "text/plain"))
             },
-            context = context
+            context = context,
         )
         Spacer(modifier = Modifier.height(12.dp))
         NerStatusIndicator(
             nerState = state.nerState,
-            areAllFilesSelected = areAllFilesSelected
+            areAllFilesSelected = areAllFilesSelected,
         )
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedButton(
             onClick = onReloadClick,
             enabled = areAllFilesSelected && state.nerState !is NerState.Downloading,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(
                 imageVector = Icons.Default.Sync,
                 contentDescription = "Reload",
-                modifier = Modifier.size(ButtonDefaults.IconSize)
+                modifier = Modifier.size(ButtonDefaults.IconSize),
             )
             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
             Text(if (state.nerState is NerState.Error) "Try Again" else "Reload Model")
@@ -592,29 +607,33 @@ private fun NerSettingsCard(
 @Composable
 private fun NerStatusIndicator(
     nerState: NerState,
-    areAllFilesSelected: Boolean
+    areAllFilesSelected: Boolean,
 ) {
-    val (icon, color, text) = when (nerState) {
-        is NerState.Downloading -> Triple(
-            Icons.Default.Sync,
-            MaterialTheme.colorScheme.primary,
-            "Loading: ${nerState.progress}%"
-        )
-        is NerState.Error -> Triple(
-            Icons.Default.Error,
-            MaterialTheme.colorScheme.error,
-            "Error: ${nerState.message}"
-        )
-        NerState.NotInitialized -> {
-            val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
-            Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
+    val (icon, color, text) =
+        when (nerState) {
+            is NerState.Downloading ->
+                Triple(
+                    Icons.Default.Sync,
+                    MaterialTheme.colorScheme.primary,
+                    "Loading: ${nerState.progress}%",
+                )
+            is NerState.Error ->
+                Triple(
+                    Icons.Default.Error,
+                    MaterialTheme.colorScheme.error,
+                    "Error: ${nerState.message}",
+                )
+            NerState.NotInitialized -> {
+                val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
+                Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
+            }
+            NerState.Ready ->
+                Triple(
+                    Icons.Default.CheckCircle,
+                    Color(0xFF388E3C),
+                    "Model loaded successfully",
+                )
         }
-        NerState.Ready -> Triple(
-            Icons.Default.CheckCircle,
-            Color(0xFF388E3C),
-            "Model loaded successfully"
-        )
-    }
 
     val animatedColor by animateColorAsState(targetValue = color, label = "ner_status_color")
 
@@ -622,7 +641,7 @@ private fun NerStatusIndicator(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(vertical = 4.dp)
+            modifier = Modifier.padding(vertical = 4.dp),
         ) {
             Icon(imageVector = icon, contentDescription = "Status", tint = animatedColor)
             Text(text = text, style = MaterialTheme.typography.bodyMedium, color = animatedColor, modifier = Modifier.weight(1f))
@@ -631,7 +650,7 @@ private fun NerStatusIndicator(
             Spacer(modifier = Modifier.height(8.dp))
             LinearProgressIndicator(
                 progress = { nerState.progress / 100f },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -643,14 +662,14 @@ private fun ModelSelector(
     label: String,
     selectedValue: String,
     models: List<String>,
-    onModelSelected: (String) -> Unit
+    onModelSelected: (String) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded = isExpanded,
         onExpandedChange = { isExpanded = it },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         OutlinedTextField(
             value = selectedValue,
@@ -658,13 +677,14 @@ private fun ModelSelector(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
+            modifier =
+                Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = isExpanded,
-            onDismissRequest = { isExpanded = false }
+            onDismissRequest = { isExpanded = false },
         ) {
             models.forEach { model ->
                 DropdownMenuItem(
@@ -672,7 +692,7 @@ private fun ModelSelector(
                     onClick = {
                         onModelSelected(model)
                         isExpanded = false
-                    }
+                    },
                 )
             }
         }
@@ -683,11 +703,11 @@ private fun ModelSelector(
 private fun SettingsCard(
     title: String,
     icon: ImageVector? = null,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -695,7 +715,7 @@ private fun SettingsCard(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
                 Text(title, style = MaterialTheme.typography.titleMedium)
@@ -711,12 +731,16 @@ private fun AnimatedTextField(
     onValueChange: (String) -> Unit,
     label: String,
     helper: String,
-    singleLine: Boolean = false
+    singleLine: Boolean = false,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val backgroundColor by animateColorAsState(
-        if (isFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-        else Color.Transparent, label = ""
+        if (isFocused) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+        } else {
+            Color.Transparent
+        },
+        label = "",
     )
     OutlinedTextField(
         value = value,
@@ -724,9 +748,10 @@ private fun AnimatedTextField(
         label = { Text(label) },
         supportingText = { Text(helper) },
         singleLine = singleLine,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(backgroundColor)
-            .onFocusChanged { isFocused = it.isFocused }
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(backgroundColor)
+                .onFocusChanged { isFocused = it.isFocused },
     )
 }

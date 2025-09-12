@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/dao/GoalListDao.kt ---
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.Dao
@@ -17,7 +16,6 @@ interface GoalListDao {
     @Query("SELECT * FROM goal_lists ORDER BY goal_order ASC")
     fun getAllLists(): Flow<List<GoalList>>
 
-    // --- Функції для синхронізації ---
     @Query("SELECT * FROM goal_lists")
     suspend fun getAll(): List<GoalList>
 
@@ -49,7 +47,10 @@ interface GoalListDao {
     fun getGoalListByIdStream(id: String): Flow<GoalList?>
 
     @Query("UPDATE goal_lists SET goal_order = :order WHERE id = :listId")
-    suspend fun updateOrder(listId: String, order: Long)
+    suspend fun updateOrder(
+        listId: String,
+        order: Long,
+    )
 
     @Query("SELECT * FROM goal_lists WHERE parentId = :parentId ORDER BY goal_order ASC")
     suspend fun getListsByParentId(parentId: String): List<GoalList>
@@ -64,20 +65,20 @@ interface GoalListDao {
     suspend fun getListIdsByTag(tag: String): List<String>
 
     @Transaction
-    @Query("""
+    @Query(
+        """
     SELECT sublist.*, parent_list.id as parentListId, parent_list.name as parentListName
     FROM goal_lists AS sublist
     INNER JOIN list_items AS li ON sublist.id = li.entityId
     INNER JOIN goal_lists AS parent_list ON li.listId = parent_list.id
     WHERE li.itemType = 'SUBLIST' AND sublist.name LIKE :query
-""")
+""",
+    )
     suspend fun searchSublistsGlobal(query: String): List<GlobalSublistSearchResult>
 
-    // --- ДОДАНО: Новий метод для пошуку списків за назвою ---
     @Query("SELECT * FROM goal_lists WHERE name LIKE :query")
     suspend fun searchListsGlobal(query: String): List<GoalList>
 
     @Query("DELETE FROM goal_lists")
     suspend fun deleteAll()
-
 }

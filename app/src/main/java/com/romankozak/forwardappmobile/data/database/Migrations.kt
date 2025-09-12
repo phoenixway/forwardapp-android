@@ -7,43 +7,30 @@ import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 
-/**
- * Міграція бази даних з версії 8 на 9.
- * Впроваджує нову систему оцінки цілей (Система Б).
- */
-val MIGRATION_8_9 = object : Migration(8, 9) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // ... (код цієї міграції залишається без змін)
+val MIGRATION_8_9 =
+    object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+        }
     }
-}
 
-/**
- * Міграція бази даних з версії 10 на 11.
- * Впроваджує поле статусу оцінки цілі (неоціненно, неможливо-оцінити, оцінено).
- */
-val MIGRATION_10_11 = object : Migration(10, 11) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // ... (код цієї міграції залишається без змін)
+val MIGRATION_10_11 =
+    object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+        }
     }
-}
 
-/**
- * Міграція бази даних з версії 11 на 12.
- * Додає підтримку тегів для списків цілей (GoalList).
- */
-val MIGRATION_11_12 = object : Migration(11, 12) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN tags TEXT")
+val MIGRATION_11_12 =
+    object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN tags TEXT")
+        }
     }
-}
 
-/**
- * Міграція бази даних з версії 12 на 13.
- * Додає таблицю для відстеження активності.
- */
-val MIGRATION_12_13 = object : Migration(12, 13) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("""
+val MIGRATION_12_13 =
+    object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
             CREATE TABLE IF NOT EXISTS `activity_records` (
                 `id` TEXT NOT NULL, 
                 `text` TEXT NOT NULL, 
@@ -52,45 +39,49 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
                 `endTime` INTEGER, 
                 PRIMARY KEY(`id`)
             )
-        """)
+        """,
+            )
+        }
     }
-}
 
-/**
- * Міграція бази даних з версії 13 на 14.
- * Додає таблицю для зберігання історії нещодавно відкритих списків.
- */
-val MIGRATION_13_14 = object : Migration(13, 14) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("""
+val MIGRATION_13_14 =
+    object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
             CREATE TABLE IF NOT EXISTS `recent_list_entries` (
                 `list_id` TEXT NOT NULL, 
                 `last_accessed` INTEGER NOT NULL, 
                 PRIMARY KEY(`list_id`), 
                 FOREIGN KEY(`list_id`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
-        """)
+        """,
+            )
+        }
     }
-}
 
-val MIGRATION_14_15 = object : Migration(14, 15) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // --- ЧАСТИНА 1: Створення нових таблиць ---
-        db.execSQL("CREATE TABLE IF NOT EXISTS `notes` (`id` TEXT NOT NULL, `title` TEXT, `content` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, PRIMARY KEY(`id`))")
-        db.execSQL("CREATE TABLE IF NOT EXISTS `list_items` (`id` TEXT NOT NULL, `listId` TEXT NOT NULL, `itemType` TEXT NOT NULL, `entityId` TEXT NOT NULL, `item_order` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`listId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_list_items_listId` ON `list_items` (`listId`)")
+val MIGRATION_14_15 =
+    object : Migration(14, 15) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `notes` (`id` TEXT NOT NULL, `title` TEXT, `content` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, PRIMARY KEY(`id`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `list_items` (`id` TEXT NOT NULL, `listId` TEXT NOT NULL, `itemType` TEXT NOT NULL, `entityId` TEXT NOT NULL, `item_order` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`listId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_list_items_listId` ON `list_items` (`listId`)")
 
-        // --- ЧАСТИНА 2: Перенесення даних з GoalInstance до ListItem ---
-        db.execSQL("""
+            db.execSQL(
+                """
             INSERT INTO `list_items` (id, listId, itemType, entityId, item_order)
             SELECT instance_id, listId, 'GOAL', goalId, goal_order FROM goal_instances
-        """)
+        """,
+            )
 
-        // --- ЧАСТИНА 3: Видалення старої таблиці GoalInstance ---
-        db.execSQL("DROP TABLE `goal_instances`")
+            db.execSQL("DROP TABLE `goal_instances`")
 
-        // --- ЧАСТИНА 4: Міграція associatedListIds -> relatedLinks у таблиці Goal ---
-        db.execSQL("""
+            db.execSQL(
+                """
             CREATE TABLE `goals_new` (
                 `id` TEXT NOT NULL, 
                 `text` TEXT NOT NULL, 
@@ -117,68 +108,75 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
                 `financialCost` REAL DEFAULT 0.0,
                 PRIMARY KEY(`id`)
             )
-        """)
+        """,
+            )
 
-        val cursor = db.query("SELECT id, associatedListIds FROM goals WHERE associatedListIds IS NOT NULL")
-        val gson = Gson()
-        val listStringType = object : TypeToken<List<String>>() {}.type
-        val relatedLinkList = mutableListOf<Pair<String, String>>()
+            val cursor = db.query("SELECT id, associatedListIds FROM goals WHERE associatedListIds IS NOT NULL")
+            val gson = Gson()
+            val listStringType = object : TypeToken<List<String>>() {}.type
+            val relatedLinkList = mutableListOf<Pair<String, String>>()
 
-        if (cursor.moveToFirst()) {
-            do {
-                val goalId = cursor.getString(cursor.getColumnIndexOrThrow("id"))
-                val jsonOld = cursor.getString(cursor.getColumnIndexOrThrow("associatedListIds"))
+            if (cursor.moveToFirst()) {
+                do {
+                    val goalId = cursor.getString(cursor.getColumnIndexOrThrow("id"))
+                    val jsonOld = cursor.getString(cursor.getColumnIndexOrThrow("associatedListIds"))
 
-                if (jsonOld != null) {
-                    val oldListIds: List<String> = gson.fromJson(jsonOld, listStringType)
-                    val newRelatedLinks = oldListIds.map { listId ->
-                        RelatedLink(type = LinkType.GOAL_LIST, target = listId)
+                    if (jsonOld != null) {
+                        val oldListIds: List<String> = gson.fromJson(jsonOld, listStringType)
+                        val newRelatedLinks =
+                            oldListIds.map { listId ->
+                                RelatedLink(type = LinkType.GOAL_LIST, target = listId)
+                            }
+                        val jsonNew = gson.toJson(newRelatedLinks)
+                        relatedLinkList.add(goalId to jsonNew)
                     }
-                    val jsonNew = gson.toJson(newRelatedLinks)
-                    relatedLinkList.add(goalId to jsonNew)
-                }
-            } while (cursor.moveToNext())
-        }
-        cursor.close()
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
 
-        db.execSQL("""
+            db.execSQL(
+                """
             INSERT INTO `goals_new` (id, text, description, completed, createdAt, updatedAt, tags, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoring_status, parentValueImportance, impactOnParentGoal, timeCost, financialCost)
             SELECT id, text, description, completed, createdAt, updatedAt, tags, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoring_status, parentValueImportance, impactOnParentGoal, timeCost, financialCost FROM `goals`
-        """)
+        """,
+            )
 
-        relatedLinkList.forEach { (goalId, jsonNew) ->
-            db.execSQL("UPDATE goals_new SET relatedLinks = ? WHERE id = ?", arrayOf(jsonNew, goalId))
+            relatedLinkList.forEach { (goalId, jsonNew) ->
+                db.execSQL("UPDATE goals_new SET relatedLinks = ? WHERE id = ?", arrayOf(jsonNew, goalId))
+            }
+
+            db.execSQL("DROP TABLE `goals`")
+            db.execSQL("ALTER TABLE `goals_new` RENAME TO `goals`")
         }
-
-        db.execSQL("DROP TABLE `goals`")
-        db.execSQL("ALTER TABLE `goals_new` RENAME TO `goals`")
     }
-}
 
-val MIGRATION_15_16 = object : Migration(15, 16) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("""
+val MIGRATION_15_16 =
+    object : Migration(15, 16) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
             CREATE TABLE IF NOT EXISTS `link_items` (
                 `id` TEXT NOT NULL, 
                 `link_data` TEXT NOT NULL, 
                 PRIMARY KEY(`id`)
             )
-        """)
+        """,
+            )
+        }
     }
-}
 
-// ПЕРЕВІРТЕ ЦЮ МІГРАЦІЮ
-val MIGRATION_16_17 = object : Migration(16, 17) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // SQL-запит для додавання нової колонки.
-        // INTEGER NOT NULL DEFAULT 0 - це точна відповідність для поля Boolean = false в Kotlin
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_attachments_expanded INTEGER NOT NULL DEFAULT 0")
+val MIGRATION_16_17 =
+    object : Migration(16, 17) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_attachments_expanded INTEGER NOT NULL DEFAULT 0")
+        }
     }
-}
 
-val MIGRATION_17_18 = object : Migration(17, 18) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("""
+val MIGRATION_17_18 =
+    object : Migration(17, 18) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
             CREATE TABLE IF NOT EXISTS `inbox_records` (
                 `id` TEXT NOT NULL, 
                 `projectId` TEXT NOT NULL, 
@@ -188,53 +186,54 @@ val MIGRATION_17_18 = object : Migration(17, 18) {
                 PRIMARY KEY(`id`), 
                 FOREIGN KEY(`projectId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
-        """)
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_inbox_records_projectId` ON `inbox_records` (`projectId`)")
+        """,
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_inbox_records_projectId` ON `inbox_records` (`projectId`)")
+        }
     }
 
-}
-
-val MIGRATION_18_19 = object : Migration(18, 19) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_completed INTEGER NOT NULL DEFAULT 0")
+val MIGRATION_18_19 =
+    object : Migration(18, 19) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_completed INTEGER NOT NULL DEFAULT 0")
+        }
     }
-}
 
-val MIGRATION_19_20 = object : Migration(19, 20) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE goals ADD COLUMN reminder_time INTEGER")
+val MIGRATION_19_20 =
+    object : Migration(19, 20) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE goals ADD COLUMN reminder_time INTEGER")
+        }
     }
-}
 
-val MIGRATION_20_21 = object : Migration(20, 21) { // Замініть X та Y на відповідні номери версій
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE activity_records ADD COLUMN reminderTime INTEGER")
+val MIGRATION_20_21 =
+    object : Migration(20, 21) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE activity_records ADD COLUMN reminderTime INTEGER")
+        }
     }
-}
 
-val MIGRATION_21_22 = object : Migration(21, 22) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        // Додаємо нову колонку 'createdAt' до таблиці 'link_items'.
-        // Вона не може бути NULL, тому для існуючих рядків встановлюємо
-        // стандартне значення 0.
-        database.execSQL("ALTER TABLE link_items ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+val MIGRATION_21_22 =
+    object : Migration(21, 22) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE link_items ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+        }
     }
-}
 
-val MIGRATION_22_23 = object : Migration(22, 23) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE activity_records ADD COLUMN target_id TEXT")
-        db.execSQL("ALTER TABLE activity_records ADD COLUMN target_type TEXT")
-        // Створення індексу для нової колонки покращить продуктивність
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_target_id` ON `activity_records` (`target_id`)")
+val MIGRATION_22_23 =
+    object : Migration(22, 23) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE activity_records ADD COLUMN target_id TEXT")
+            db.execSQL("ALTER TABLE activity_records ADD COLUMN target_type TEXT")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_target_id` ON `activity_records` (`target_id`)")
+        }
     }
-}
 
-
-val MIGRATION_23_24 = object : Migration(23, 24) { // <-- ЗАМІНІТЬ START_VERSION та END_VERSION
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // 1. Створення нової таблиці для ActivityRecord
-        db.execSQL("""
+val MIGRATION_23_24 =
+    object : Migration(23, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
             CREATE TABLE IF NOT EXISTS `activity_records` (
                 `id` TEXT NOT NULL,
                 `createdAt` INTEGER NOT NULL,
@@ -243,47 +242,39 @@ val MIGRATION_23_24 = object : Migration(23, 24) { // <-- ЗАМІНІТЬ START
                 `target_type` TEXT,
                 PRIMARY KEY(`id`)
             )
-        """)
-        // Створюємо індекс для колонки target_id, як зазначено в @ColumnInfo
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_target_id` ON `activity_records` (`target_id`)")
+        """,
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_target_id` ON `activity_records` (`target_id`)")
 
-        // 2. Додавання колонки 'createdAt' до 'link_items'
-        // Встановлюємо значення за замовчуванням 0, оскільки поле не може бути NULL
-        db.execSQL("ALTER TABLE `link_items` ADD COLUMN `createdAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `link_items` ADD COLUMN `createdAt` INTEGER NOT NULL DEFAULT 0")
 
-        // 3. Додавання колонки 'default_view_mode' до 'goal_lists'
-        // Значення за замовчуванням 'BACKLOG' береться з анотації @ColumnInfo
-        db.execSQL("ALTER TABLE `goal_lists` ADD COLUMN `default_view_mode` TEXT NOT NULL DEFAULT 'BACKLOG'")
+            db.execSQL("ALTER TABLE `goal_lists` ADD COLUMN `default_view_mode` TEXT NOT NULL DEFAULT 'BACKLOG'")
 
-        // 4. Додавання колонки 'is_completed' до 'goal_lists'
-        // Значення за замовчуванням 0 (false) береться з анотації @ColumnInfo
-        db.execSQL("ALTER TABLE `goal_lists` ADD COLUMN `is_completed` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `goal_lists` ADD COLUMN `is_completed` INTEGER NOT NULL DEFAULT 0")
+        }
     }
-}
 
-val MIGRATION_24_25 = object : Migration(23, 24) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // Додавання колонки для ID цілі
-        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `goal_id` TEXT DEFAULT NULL")
-        // Додавання колонки для ID списку
-        db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `list_id` TEXT DEFAULT NULL")
-        // Створення індексів для нових колонок для покращення продуктивності запитів
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_goal_id` ON `activity_records` (`goal_id`)")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_list_id` ON `activity_records` (`list_id`)")
+val MIGRATION_24_25 =
+    object : Migration(23, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `goal_id` TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `list_id` TEXT DEFAULT NULL")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_goal_id` ON `activity_records` (`goal_id`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_records_list_id` ON `activity_records` (`list_id`)")
+        }
     }
-}
 
-val MIGRATION_25_26 = object : Migration(25, 26) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // 1. Додавання нових колонок до таблиці goal_lists
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_project_management_enabled INTEGER NOT NULL DEFAULT 0")
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_status TEXT NOT NULL DEFAULT 'NO_PLAN'")
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_status_text TEXT")
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_log_level TEXT NOT NULL DEFAULT 'NORMAL'")
-        db.execSQL("ALTER TABLE goal_lists ADD COLUMN total_time_spent_minutes INTEGER NOT NULL DEFAULT 0")
+val MIGRATION_25_26 =
+    object : Migration(25, 26) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN is_project_management_enabled INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_status TEXT NOT NULL DEFAULT 'NO_PLAN'")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_status_text TEXT")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN project_log_level TEXT NOT NULL DEFAULT 'NORMAL'")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN total_time_spent_minutes INTEGER NOT NULL DEFAULT 0")
 
-        // 2. Створення нової таблиці для логів виконання проекту
-        db.execSQL("""
+            db.execSQL(
+                """
             CREATE TABLE IF NOT EXISTS `project_execution_logs` (
                 `id` TEXT NOT NULL, 
                 `projectId` TEXT NOT NULL, 
@@ -293,31 +284,24 @@ val MIGRATION_25_26 = object : Migration(25, 26) {
                 PRIMARY KEY(`id`), 
                 FOREIGN KEY(`projectId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
-        """)
-        // 3. Створення індексу для нової таблиці
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs` (`projectId`)")
+        """,
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs` (`projectId`)")
+        }
     }
-}
-val MIGRATION_26_27 = object : Migration(26, 27) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // Порожня міграція. Room автоматично обробить зміну колонок з NOT NULL на NULL.
+val MIGRATION_26_27 =
+    object : Migration(26, 27) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+        }
     }
-}
 
-
-// --- ПОЧАТОК ЗМІНИ: Міграція для відновлення трекера часу та виправлення чату ---
-val MIGRATION_27_28 = object : Migration(27, 28) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        // Крок 1: Відновлення таблиці activity_records
-        db.execSQL("ALTER TABLE activity_records ADD COLUMN startTime INTEGER")
-        db.execSQL("ALTER TABLE activity_records ADD COLUMN endTime INTEGER")
-        // 'text' вже має бути, оскільки ми повернули його в моделі, але перейменування description -> text
-        // може вимагати більш складної міграції, якщо дані вже були записані.
-        // Для простоти, припускаємо, що можна просто додати колонки.
-
-        // Крок 2: Виправлення таблиці chat_messages
-        // Створюємо нову таблицю з правильною назвою колонки
-        db.execSQL("""
+val MIGRATION_27_28 =
+    object : Migration(27, 28) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE activity_records ADD COLUMN startTime INTEGER")
+            db.execSQL("ALTER TABLE activity_records ADD COLUMN endTime INTEGER")
+            db.execSQL(
+                """
             CREATE TABLE chat_messages_new (
                 `id` TEXT NOT NULL, 
                 `text` TEXT NOT NULL, 
@@ -326,17 +310,15 @@ val MIGRATION_27_28 = object : Migration(27, 28) {
                 `image_uri` TEXT, 
                 PRIMARY KEY(`id`)
             )
-        """)
-        // Копіюємо дані зі старої таблиці в нову, зіставляючи isUser -> isFromUser
-        db.execSQL("""
+        """,
+            )
+            db.execSQL(
+                """
             INSERT INTO chat_messages_new (id, text, timestamp, isFromUser, image_uri)
             SELECT id, text, timestamp, isUser, image_uri FROM chat_messages
-        """)
-        // Видаляємо стару таблицю
-        db.execSQL("DROP TABLE chat_messages")
-        // Перейменовуємо нову таблицю на стару назву
-        db.execSQL("ALTER TABLE chat_messages_new RENAME TO chat_messages")
+        """,
+            )
+            db.execSQL("DROP TABLE chat_messages")
+            db.execSQL("ALTER TABLE chat_messages_new RENAME TO chat_messages")
+        }
     }
-}
-// --- КІНЕЦЬ ЗМІНИ ---
-

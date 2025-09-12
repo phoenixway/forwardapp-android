@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/attachments/AttachmentsSection.kt
-
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments
 
 import androidx.compose.animation.*
@@ -26,10 +24,11 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
-
-
 enum class AttachmentType {
-    WEB_LINK, OBSIDIAN_LINK, LIST_LINK, SHORTCUT
+    WEB_LINK,
+    OBSIDIAN_LINK,
+    LIST_LINK,
+    SHORTCUT,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,17 +48,17 @@ fun AttachmentsSection(
         exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(tween(300)),
     ) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-
-                // Заголовок з кількістю
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -72,7 +71,8 @@ fun AttachmentsSection(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.attachments_header) +
+                        text =
+                            stringResource(R.string.attachments_header) +
                                 if (attachments.isNotEmpty()) " (${attachments.size})" else "",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
@@ -81,12 +81,12 @@ fun AttachmentsSection(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Порожній стан
                 if (attachments.isEmpty()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Icon(
@@ -112,7 +112,7 @@ fun AttachmentsSection(
                     ) {
                         items(attachments, key = { it.hashCode() }) { item ->
                             AnimatedVisibility(
-                                visible = true, // Цей параметр можна залишити, якщо у вас є логіка для видалення елементів
+                                visible = true,
                                 enter = expandVertically() + fadeIn(),
                                 exit = shrinkVertically() + fadeOut(),
                             ) {
@@ -135,7 +135,6 @@ fun AttachmentsSection(
     }
 }
 
-
 @Composable
 private fun AttachmentItemCard(
     item: ListItemContent,
@@ -144,9 +143,10 @@ private fun AttachmentItemCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         val endAction = @Composable {
@@ -180,19 +180,18 @@ private fun AttachmentItemCard(
 }
 
 @Composable
-private fun AddAttachmentButton(
-    onAddAttachment: (AttachmentType) -> Unit,
-) {
+private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
     var showAddMenu by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         FilledTonalButton(
             onClick = { showAddMenu = true },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ),
+            colors =
+                ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
         ) {
             Icon(
                 Icons.Default.Add,
@@ -209,25 +208,29 @@ private fun AddAttachmentButton(
         DropdownMenu(
             expanded = showAddMenu,
             onDismissRequest = { showAddMenu = false },
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface),
         ) {
             AttachmentTypeMenuItem(R.string.attachment_type_web_link, AttachmentType.WEB_LINK) { type ->
-                onAddAttachment(type); showAddMenu = false
+                onAddAttachment(type)
+                showAddMenu = false
             }
             AttachmentTypeMenuItem(R.string.attachment_type_obsidian, AttachmentType.OBSIDIAN_LINK) { type ->
-                onAddAttachment(type); showAddMenu = false
+                onAddAttachment(type)
+                showAddMenu = false
             }
             AttachmentTypeMenuItem(R.string.attachment_type_list_link, AttachmentType.LIST_LINK) { type ->
-                onAddAttachment(type); showAddMenu = false
+                onAddAttachment(type)
+                showAddMenu = false
             }
-            // --- ПОЧАТОК ЗМІН ---
             Divider()
             AttachmentTypeMenuItem(R.string.menu_add_list_shortcut, AttachmentType.SHORTCUT) { type ->
-                onAddAttachment(type); showAddMenu = false
+                onAddAttachment(type)
+                showAddMenu = false
             }
-            // --- КІНЕЦЬ ЗМІН ---
+            
         }
     }
 }

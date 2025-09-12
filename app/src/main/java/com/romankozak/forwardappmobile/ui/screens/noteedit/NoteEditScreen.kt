@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/noteedit/NoteEditScreen.kt
 package com.romankozak.forwardappmobile.ui.screens.noteedit
 
 import android.view.ViewGroup
@@ -19,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner // ОНОВЛЕНО: Сучасний імпорт
+import androidx.lifecycle.compose.LocalLifecycleOwner 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
@@ -35,7 +34,7 @@ fun NoteEditScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isEditMode by remember { mutableStateOf(value = true) }
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current // ОНОВЛЕНО: Використання сучасного API
+    val lifecycleOwner = LocalLifecycleOwner.current 
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -59,8 +58,6 @@ fun NoteEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                // ВИПРАВЛЕНО: Використано прямі рядки замість відсутніх ресурсів.
-                // Рекомендація: перенесіть ці рядки у ваш res/values/strings.xml
                 title = { Text(if (uiState.isNewNote) "Нова нотатка" else "Редагувати нотатку") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -84,10 +81,11 @@ fun NoteEditScreen(
         },
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .imePadding(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .imePadding(),
         ) {
             if (!uiState.isReady) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -97,9 +95,10 @@ fun NoteEditScreen(
                 OutlinedTextField(
                     value = uiState.title,
                     onValueChange = viewModel::onTitleChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder = { Text("Заголовок") },
                     singleLine = true,
                     isError = uiState.error != null,
@@ -109,9 +108,10 @@ fun NoteEditScreen(
                     value = uiState.content,
                     onValueChange = viewModel::onContentChange,
                     isEditMode = isEditMode,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                 )
 
                 val footerText = uiState.error ?: "${uiState.content.text.length} символів"
@@ -119,9 +119,10 @@ fun NoteEditScreen(
 
                 Text(
                     text = footerText,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = footerColor,
                 )
@@ -146,11 +147,10 @@ fun FinalMarkdownEditor(
             StyledTextFieldWrapper(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                // ВИДАЛЕНО: Параметр 'placeholder' викликав помилку компіляції.
-                // Ви можете повернути його, якщо додасте підтримку в сам компонент StyledTextFieldWrapper.
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
             )
         } else {
             if (value.text.isNotBlank()) {
@@ -158,10 +158,11 @@ fun FinalMarkdownEditor(
                     AndroidView(
                         factory = { ctx ->
                             WebViewMarkdownViewer(ctx).apply {
-                                layoutParams = ViewGroup.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                )
+                                layoutParams =
+                                    ViewGroup.LayoutParams(
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                    )
                             }
                         },
                         update = { viewer ->

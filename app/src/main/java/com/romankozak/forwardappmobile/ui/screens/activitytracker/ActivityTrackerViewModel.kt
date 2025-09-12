@@ -1,5 +1,3 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/activitytracker/ActivityTrackerViewModel.kt
-
 package com.romankozak.forwardappmobile.ui.screens.activitytracker
 
 import androidx.lifecycle.SavedStateHandle
@@ -17,180 +15,184 @@ import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
-class ActivityTrackerViewModel @Inject constructor(
-    private val repository: ActivityRepository,
-    private val alarmScheduler: AlarmScheduler,
-    private val savedStateHandle: SavedStateHandle // <-- ДОДАНО ЗАЛЕЖНІСТЬ
+class ActivityTrackerViewModel
+    @Inject
+    constructor(
+        private val repository: ActivityRepository,
+        private val alarmScheduler: AlarmScheduler,
+        private val savedStateHandle: SavedStateHandle, 
+    ) : ViewModel() {
+        private val _inputText = MutableStateFlow("")
+        val inputText = _inputText.asStateFlow()
 
-) : ViewModel() {
+        private val _editingRecord = MutableStateFlow<ActivityRecord?>(null)
+        val editingRecord = _editingRecord.asStateFlow()
 
-    private val _inputText = MutableStateFlow("")
-    val inputText = _inputText.asStateFlow()
+        private val _recordToDelete = MutableStateFlow<ActivityRecord?>(null)
+        val recordToDelete = _recordToDelete.asStateFlow()
 
-    private val _editingRecord = MutableStateFlow<ActivityRecord?>(null)
-    val editingRecord = _editingRecord.asStateFlow()
+        private val _isEditingLastTimedRecord = MutableStateFlow(false)
+        val isEditingLastTimedRecord = _isEditingLastTimedRecord.asStateFlow()
 
-    private val _recordToDelete = MutableStateFlow<ActivityRecord?>(null)
-    val recordToDelete = _recordToDelete.asStateFlow()
+        private val _recordForReminder = MutableStateFlow<ActivityRecord?>(null)
+        val recordForReminder = _recordForReminder.asStateFlow()
 
-    private val _isEditingLastTimedRecord = MutableStateFlow(false)
-    val isEditingLastTimedRecord = _isEditingLastTimedRecord.asStateFlow()
+        val activityLog: StateFlow<List<ActivityRecord>> =
+            repository
+                .getLogStream()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Додаємо стан для діалогу нагадування
-    private val _recordForReminder = MutableStateFlow<ActivityRecord?>(null)
-    val recordForReminder = _recordForReminder.asStateFlow()
+        val lastOngoingActivity: StateFlow<ActivityRecord?> =
+            activityLog
+                .map { log ->
+                    log.firstOrNull { it.isOngoing }
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val activityLog: StateFlow<List<ActivityRecord>> = repository.getLogStream()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        fun onInputTextChanged(text: String) {
+            _inputText.value = text
+        }
 
-    val lastOngoingActivity: StateFlow<ActivityRecord?> = activityLog.map { log ->
-        log.firstOrNull { it.isOngoing }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        private fun clearInput() {
+            _inputText.value = ""
+        }
 
-    fun onInputTextChanged(text: String) {
-        _inputText.value = text
-    }
-
-    private fun clearInput() {
-        _inputText.value = ""
-    }
-
-    init {
-        // --- ПОЧАТОК ЗМІНИ: Обробка аргументу навігації ---
-        savedStateHandle.get<String>("recordIdToEdit")?.let { recordId ->
-            viewModelScope.launch {
-                // Очікуємо, поки в потоці даних з'явиться потрібний запис,
-                // а потім запускаємо для нього режим редагування.
-                activityLog.mapNotNull { log -> log.find { it.id == recordId } }
-                    .first() // Призупиняє корутину, доки запис не буде знайдено
-                    .let { record ->
-                        onEditRequest(record)
-                        // Видаляємо аргумент, щоб діалог не відкривався повторно
-                        // при зміні конфігурації (наприклад, повороті екрана).
-                        savedStateHandle.remove<String>("recordIdToEdit")
-                    }
+        init {
+            savedStateHandle.get<String>("recordIdToEdit")?.let { recordId ->
+                viewModelScope.launch {
+                    activityLog
+                        .mapNotNull { log -> log.find { it.id == recordId } }
+                        .first()
+                        .let { record ->
+                            onEditRequest(record)
+                            savedStateHandle.remove<String>("recordIdToEdit")
+                        }
+                }
             }
         }
-        // --- КІНЕЦЬ ЗМІНИ ---
-    }
 
-    fun onTimelessRecordClick() = viewModelScope.launch {
-        if (_inputText.value.isBlank()) return@launch
-        repository.addTimelessRecord(_inputText.value)
-        clearInput()
-    }
+        fun onTimelessRecordClick() =
+            viewModelScope.launch {
+                if (_inputText.value.isBlank()) return@launch
+                repository.addTimelessRecord(_inputText.value)
+                clearInput()
+            }
 
-    fun onToggleStartStop() = viewModelScope.launch {
-        val text = _inputText.value
-        val ongoingActivity = lastOngoingActivity.value
-        val now = System.currentTimeMillis()
+        fun onToggleStartStop() =
+            viewModelScope.launch {
+                val text = _inputText.value
+                val ongoingActivity = lastOngoingActivity.value
+                val now = System.currentTimeMillis()
 
-        if (text.isNotBlank()) {
-            // Цей виклик тепер АВТОМАТИЧНО зупинить попередню активність, якщо вона є.
-            repository.startActivity(text, now)
-        } else if (ongoingActivity != null) {
-            // Якщо поле вводу порожнє, ми просто зупиняємо поточну активність.
-            repository.endLastActivity(now)
+                if (text.isNotBlank()) {
+                    repository.startActivity(text, now)
+                } else if (ongoingActivity != null) {
+                    repository.endLastActivity(now)
+                }
+
+                clearInput()
+            }
+
+        fun onEditRequest(record: ActivityRecord) {
+            if (!record.isTimeless) {
+                val timedRecords = activityLog.value.filter { !it.isTimeless }
+                val lastTimedRecord = timedRecords.lastOrNull()
+                _isEditingLastTimedRecord.value = (record.id == lastTimedRecord?.id)
+            } else {
+                _isEditingLastTimedRecord.value = false
+            }
+            _editingRecord.value = record
         }
 
-        clearInput()
-    }
-
-    fun onEditRequest(record: ActivityRecord) {
-        if (!record.isTimeless) {
-            val timedRecords = activityLog.value.filter { !it.isTimeless }
-            val lastTimedRecord = timedRecords.lastOrNull()
-            _isEditingLastTimedRecord.value = (record.id == lastTimedRecord?.id)
-        } else {
+        fun onEditDialogDismiss() {
+            _editingRecord.value = null
             _isEditingLastTimedRecord.value = false
         }
-        _editingRecord.value = record
-    }
 
-    fun onEditDialogDismiss() {
-        _editingRecord.value = null
-        _isEditingLastTimedRecord.value = false
-    }
+        fun onRecordUpdated(
+            newText: String,
+            newStartTime: Long?,
+            newEndTime: Long?,
+        ) = viewModelScope.launch {
+            val recordToUpdate = _editingRecord.value
+            if (recordToUpdate != null && newText.isNotBlank()) {
+                val isTimeValid = if (newStartTime != null && newEndTime != null) newEndTime >= newStartTime else true
 
-    fun onRecordUpdated(newText: String, newStartTime: Long?, newEndTime: Long?) = viewModelScope.launch {
-        val recordToUpdate = _editingRecord.value
-        if (recordToUpdate != null && newText.isNotBlank()) {
-            val isTimeValid = if (newStartTime != null && newEndTime != null) newEndTime >= newStartTime else true
-
-            if (isTimeValid) {
-                if (newStartTime != null && newEndTime == null) {
-                    lastOngoingActivity.value?.let {
-                        if (it.id != recordToUpdate.id) {
-                            repository.endLastActivity(System.currentTimeMillis())
+                if (isTimeValid) {
+                    if (newStartTime != null && newEndTime == null) {
+                        lastOngoingActivity.value?.let {
+                            if (it.id != recordToUpdate.id) {
+                                repository.endLastActivity(System.currentTimeMillis())
+                            }
                         }
                     }
+                    val updatedRecord = recordToUpdate.copy(text = newText, startTime = newStartTime, endTime = newEndTime)
+                    repository.updateRecord(updatedRecord)
                 }
-                val updatedRecord = recordToUpdate.copy(text = newText, startTime = newStartTime, endTime = newEndTime)
-                repository.updateRecord(updatedRecord)
             }
-        }
-        onEditDialogDismiss()
-    }
-
-    fun onRestartActivity(record: ActivityRecord) = viewModelScope.launch {
-        val ongoingActivity = lastOngoingActivity.value
-        val now = System.currentTimeMillis()
-
-        if (ongoingActivity != null) {
-            repository.endLastActivity(now)
+            onEditDialogDismiss()
         }
 
-        repository.startActivity(record.text, now)
-        clearInput()
-    }
+        fun onRestartActivity(record: ActivityRecord) =
+            viewModelScope.launch {
+                val ongoingActivity = lastOngoingActivity.value
+                val now = System.currentTimeMillis()
 
-    fun onDeleteRequest(record: ActivityRecord) {
-        _recordToDelete.value = record
-    }
+                if (ongoingActivity != null) {
+                    repository.endLastActivity(now)
+                }
 
-    fun onDeleteConfirm() = viewModelScope.launch {
-        _recordToDelete.value?.let {
-            repository.deleteRecord(it)
+                repository.startActivity(record.text, now)
+                clearInput()
+            }
+
+        fun onDeleteRequest(record: ActivityRecord) {
+            _recordToDelete.value = record
         }
-        onDeleteDismiss()
-    }
 
-    fun onDeleteDismiss() {
-        _recordToDelete.value = null
-    }
+        fun onDeleteConfirm() =
+            viewModelScope.launch {
+                _recordToDelete.value?.let {
+                    repository.deleteRecord(it)
+                }
+                onDeleteDismiss()
+            }
 
-    fun onClearLogConfirm() = viewModelScope.launch {
-        repository.clearLog()
-    }
-
-    // Реалізуємо функції для роботи з нагадуваннями
-    fun onSetReminder(record: ActivityRecord) {
-        _recordForReminder.value = record
-    }
-
-    fun onReminderDialogDismiss() {
-        _recordForReminder.value = null
-    }
-
-    fun onSetReminder(timestamp: Long) = viewModelScope.launch {
-        val record = _recordForReminder.value ?: return@launch
-
-        val updatedRecord = record.copy(reminderTime = timestamp)
-        repository.updateRecord(updatedRecord)
-
-        alarmScheduler.scheduleForActivityRecord(updatedRecord)
-        onReminderDialogDismiss()
-    }
-    // --- КІНЕЦЬ ЗМІНИ ---
-
-    fun onClearReminder() = viewModelScope.launch {
-        val record = _recordForReminder.value
-        if (record != null) {
-            val updatedRecord = record.copy(reminderTime = null)
-            repository.updateRecord(updatedRecord)
-            alarmScheduler.cancelForActivityRecord(record)
+        fun onDeleteDismiss() {
+            _recordToDelete.value = null
         }
-        onReminderDialogDismiss()
-    }
 
-}
+        fun onClearLogConfirm() =
+            viewModelScope.launch {
+                repository.clearLog()
+            }
+
+        fun onSetReminder(record: ActivityRecord) {
+            _recordForReminder.value = record
+        }
+
+        fun onReminderDialogDismiss() {
+            _recordForReminder.value = null
+        }
+
+        fun onSetReminder(timestamp: Long) =
+            viewModelScope.launch {
+                val record = _recordForReminder.value ?: return@launch
+
+                val updatedRecord = record.copy(reminderTime = timestamp)
+                repository.updateRecord(updatedRecord)
+
+                alarmScheduler.scheduleForActivityRecord(updatedRecord)
+                onReminderDialogDismiss()
+            }
+
+        fun onClearReminder() =
+            viewModelScope.launch {
+                val record = _recordForReminder.value
+                if (record != null) {
+                    val updatedRecord = record.copy(reminderTime = null)
+                    repository.updateRecord(updatedRecord)
+                    alarmScheduler.cancelForActivityRecord(record)
+                }
+                onReminderDialogDismiss()
+            }
+    }

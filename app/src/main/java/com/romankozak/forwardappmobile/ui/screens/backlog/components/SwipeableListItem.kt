@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/listItemsRenderers/SwipeableListItem.kt
-
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -22,9 +20,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Moving
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayCircleOutline
-// --- ПОЧАТОК ЗМІН ---
-import androidx.compose.material.icons.filled.Share // Додано новий імпорт
-// --- КІНЕЦЬ ЗМІН ---
+import androidx.compose.material.icons.filled.Share 
 import androidx.compose.material.icons.filled.Start
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Icon
@@ -72,9 +68,9 @@ fun SwipeableListItem(
     isAnotherItemSwiped: Boolean,
     onDelete: () -> Unit,
     onMoreActionsRequest: () -> Unit,
-    onGoalTransportRequest: () -> Unit, // Нова функція для транспорту цілі
-    onCopyContentRequest: () -> Unit, // Нова функція для копіювання контенту
-    onStartTrackingRequest: () -> Unit, // Нова функція для запуску трекінгу
+    onGoalTransportRequest: () -> Unit,
+    onCopyContentRequest: () -> Unit,
+    onStartTrackingRequest: () -> Unit,
     content: @Composable () -> Unit,
     swipeEnabled: Boolean = true,
 ) {
@@ -87,60 +83,62 @@ fun SwipeableListItem(
         val actionsRevealPx = with(density) { leftActionsWidth.toPx() }
         val actionsRevealPxNegative = with(density) { -(rightActionsWidth.toPx()) }
 
-        val anchors = remember {
-            DraggableAnchors {
-                SwipeState.ActionsRevealedStart at actionsRevealPx
-                SwipeState.Normal at 0f
-                SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
+        val anchors =
+            remember {
+                DraggableAnchors {
+                    SwipeState.ActionsRevealedStart at actionsRevealPx
+                    SwipeState.Normal at 0f
+                    SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
+                }
             }
-        }
 
         var lastConfirmedState by remember { mutableStateOf(SwipeState.Normal) }
         var swipeDirection by remember { mutableStateOf<Int?>(null) }
 
-        val swipeState = remember {
-            AnchoredDraggableState(
-                initialValue = SwipeState.Normal,
-                anchors = anchors,
-                positionalThreshold = { distance: Float -> distance * SwipeConstants.SWIPE_THRESHOLD },
-                velocityThreshold = { with(density) { SwipeConstants.VELOCITY_THRESHOLD_DP.dp.toPx() } },
-                snapAnimationSpec = tween(durationMillis = SwipeConstants.ANIMATION_DURATION, easing = FastOutSlowInEasing),
-                decayAnimationSpec = exponentialDecay(),
-                confirmValueChange = { newValue ->
-                    // КЛЮЧОВЕ ВИПРАВЛЕННЯ: Не дозволяємо swipe під час dragging або якщо він вимкнений
-                    if (!swipeEnabled || isDragging || isAnyItemDragging) return@AnchoredDraggableState false
+        val swipeState =
+            remember {
+                AnchoredDraggableState(
+                    initialValue = SwipeState.Normal,
+                    anchors = anchors,
+                    positionalThreshold = { distance: Float -> distance * SwipeConstants.SWIPE_THRESHOLD },
+                    velocityThreshold = { with(density) { SwipeConstants.VELOCITY_THRESHOLD_DP.dp.toPx() } },
+                    snapAnimationSpec = tween(durationMillis = SwipeConstants.ANIMATION_DURATION, easing = FastOutSlowInEasing),
+                    decayAnimationSpec = exponentialDecay(),
+                    confirmValueChange = { newValue ->
+                        if (!swipeEnabled || isDragging || isAnyItemDragging) return@AnchoredDraggableState false
 
-                    when {
-                        newValue == SwipeState.Normal -> {
-                            swipeDirection = null
-                            lastConfirmedState = newValue
-                            true
-                        }
-                        lastConfirmedState == SwipeState.Normal -> {
-                            swipeDirection = when (newValue) {
-                                SwipeState.ActionsRevealedStart -> 1
-                                SwipeState.ActionsRevealedEnd -> -1
-                                else -> null
+                        when {
+                            newValue == SwipeState.Normal -> {
+                                swipeDirection = null
+                                lastConfirmedState = newValue
+                                true
                             }
-                            lastConfirmedState = newValue
-                            true
-                        }
-                        else -> {
-                            val newDirection = when (newValue) {
-                                SwipeState.ActionsRevealedStart -> 1
-                                SwipeState.ActionsRevealedEnd -> -1
-                                else -> null
+                            lastConfirmedState == SwipeState.Normal -> {
+                                swipeDirection =
+                                    when (newValue) {
+                                        SwipeState.ActionsRevealedStart -> 1
+                                        SwipeState.ActionsRevealedEnd -> -1
+                                        else -> null
+                                    }
+                                lastConfirmedState = newValue
+                                true
                             }
-                            val canChange = swipeDirection == null || swipeDirection == newDirection
-                            if (canChange) lastConfirmedState = newValue
-                            canChange
+                            else -> {
+                                val newDirection =
+                                    when (newValue) {
+                                        SwipeState.ActionsRevealedStart -> 1
+                                        SwipeState.ActionsRevealedEnd -> -1
+                                        else -> null
+                                    }
+                                val canChange = swipeDirection == null || swipeDirection == newDirection
+                                if (canChange) lastConfirmedState = newValue
+                                canChange
+                            }
                         }
-                    }
-                },
-            )
-        }
+                    },
+                )
+            }
 
-        // ВАЖЛИВО: Скидаємо swipe стан при початку dragging
         LaunchedEffect(isAnyItemDragging) {
             if (isAnyItemDragging && !isDragging && swipeState.currentValue != SwipeState.Normal) {
                 coroutineScope.launch { swipeState.animateTo(SwipeState.Normal) }
@@ -164,25 +162,71 @@ fun SwipeableListItem(
 
         val offset = swipeState.requireOffset()
         val actionsAlpha = (abs(offset) / (if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative))).coerceIn(0f, 1f)
-        val leftActionsScale by animateFloatAsState(targetValue = if (offset > 0) (0.8f + 0.2f * actionsAlpha) else 0.8f, animationSpec = tween(200), label = "leftActionsScale")
-        val rightActionsScale by animateFloatAsState(targetValue = if (offset < 0) (0.8f + 0.2f * actionsAlpha) else 0.8f, animationSpec = tween(200), label = "rightActionsScale")
+        val leftActionsScale by animateFloatAsState(
+            targetValue =
+                if (offset >
+                    0
+                ) {
+                    (0.8f + 0.2f * actionsAlpha)
+                } else {
+                    0.8f
+                },
+            animationSpec = tween(200),
+            label = "leftActionsScale",
+        )
+        val rightActionsScale by animateFloatAsState(
+            targetValue =
+                if (offset <
+                    0
+                ) {
+                    (0.8f + 0.2f * actionsAlpha)
+                } else {
+                    0.8f
+                },
+            animationSpec = tween(200),
+            label = "rightActionsScale",
+        )
 
-        val dynamicShape = remember(offset > 0, offset < 0) {
-            when {
-                offset > 0 -> RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = SwipeConstants.CORNER_RADIUS, bottomEnd = SwipeConstants.CORNER_RADIUS)
-                offset < 0 -> RoundedCornerShape(topStart = SwipeConstants.CORNER_RADIUS, bottomStart = SwipeConstants.CORNER_RADIUS, topEnd = 0.dp, bottomEnd = 0.dp)
-                else -> RoundedCornerShape(SwipeConstants.CORNER_RADIUS)
+        val dynamicShape =
+            remember(offset > 0, offset < 0) {
+                when {
+                    offset > 0 ->
+                        RoundedCornerShape(
+                            topStart = 0.dp,
+                            bottomStart = 0.dp,
+                            topEnd = SwipeConstants.CORNER_RADIUS,
+                            bottomEnd = SwipeConstants.CORNER_RADIUS,
+                        )
+                    offset < 0 ->
+                        RoundedCornerShape(
+                            topStart = SwipeConstants.CORNER_RADIUS,
+                            bottomStart = SwipeConstants.CORNER_RADIUS,
+                            topEnd = 0.dp,
+                            bottomEnd = 0.dp,
+                        )
+                    else -> RoundedCornerShape(SwipeConstants.CORNER_RADIUS)
+                }
             }
-        }
 
-        val shadowElevation by animateFloatAsState(targetValue = if (abs(offset) > 10f) SwipeConstants.SHADOW_ELEVATION.value else 0f, animationSpec = tween(200), label = "shadowElevation")
+        val shadowElevation by animateFloatAsState(
+            targetValue =
+                if (abs(offset) >
+                    10f
+                ) {
+                    SwipeConstants.SHADOW_ELEVATION.value
+                } else {
+                    0f
+                },
+            animationSpec = tween(200),
+            label = "shadowElevation",
+        )
 
         Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 2.dp)
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
-            // Дії для swipe вправо (оновлені дії)
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset > 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(start = 8.dp),
@@ -194,36 +238,44 @@ fun SwipeableListItem(
                         contentDescription = "Більше дій",
                         color = MaterialTheme.colorScheme.secondary,
                         scale = leftActionsScale,
-                        onClick = { onMoreActionsRequest(); resetSwipe() }
+                        onClick = {
+                            onMoreActionsRequest()
+                            resetSwipe()
+                        },
                     )
                     SwipeActionButton(
-                        // --- ПОЧАТОК ЗМІН ---
-                        icon = Icons.Default.Share, // Замінено іконку
-                        // --- КІНЕЦЬ ЗМІН ---
+                        icon = Icons.Default.Share,
                         contentDescription = "Транспорт цілі",
                         color = MaterialTheme.colorScheme.primary,
                         scale = leftActionsScale,
-                        onClick = { onGoalTransportRequest(); resetSwipe() }
+                        onClick = {
+                            onGoalTransportRequest()
+                            resetSwipe()
+                        },
                     )
                     SwipeActionButton(
                         icon = Icons.Default.ContentCopy,
                         contentDescription = "Копіювати контент",
                         color = MaterialTheme.colorScheme.tertiary,
                         scale = leftActionsScale,
-                        onClick = { onCopyContentRequest(); resetSwipe() }
+                        onClick = {
+                            onCopyContentRequest()
+                            resetSwipe()
+                        },
                     )
-                    // Четверта дія залишається порожньою або можна додати ще одну
                     SwipeActionButton(
-                        icon = Icons.Default.PlayCircleOutline, // Змінено іконку
-                        contentDescription = "Почати трекінг", // Змінено опис
+                        icon = Icons.Default.PlayCircleOutline,
+                        contentDescription = "Почати трекінг",
                         color = MaterialTheme.colorScheme.inversePrimary,
                         scale = leftActionsScale,
-                        onClick = { onStartTrackingRequest(); resetSwipe() } // Прив'язано нову дію
+                        onClick = {
+                            onStartTrackingRequest()
+                            resetSwipe()
+                        },
                     )
                 }
             }
 
-            // Дії для swipe вліво (залишаються без змін)
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset < 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(end = 1.dp),
@@ -235,33 +287,36 @@ fun SwipeableListItem(
                         contentDescription = "Видалити",
                         color = MaterialTheme.colorScheme.error,
                         scale = rightActionsScale,
-                        onClick = { onDelete(); resetSwipe() }
+                        onClick = {
+                            onDelete()
+                            resetSwipe()
+                        },
                     )
                     SwipeActionButton(
                         icon = Icons.Default.DeleteForever,
                         contentDescription = "Видалити назавжди",
                         color = MaterialTheme.colorScheme.errorContainer,
                         scale = rightActionsScale,
-                        onClick = { resetSwipe() }
+                        onClick = { resetSwipe() },
                     )
                 }
             }
 
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(offset.roundToInt(), 0) }
-                    .shadow(elevation = shadowElevation.dp, shape = dynamicShape)
-                    .graphicsLayer { rotationZ = (offset / 50f).coerceIn(-2f, 2f) }
-                    .anchoredDraggable(
-                        state = swipeState,
-                        orientation = Orientation.Horizontal,
-                        // КЛЮЧОВЕ ВИПРАВЛЕННЯ: Вимикаємо swipe під час dragging або якщо він вимкнений
-                        enabled = swipeEnabled && !isDragging && !isAnyItemDragging
-                    ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .offset { IntOffset(offset.roundToInt(), 0) }
+                        .shadow(elevation = shadowElevation.dp, shape = dynamicShape)
+                        .graphicsLayer { rotationZ = (offset / 50f).coerceIn(-2f, 2f) }
+                        .anchoredDraggable(
+                            state = swipeState,
+                            orientation = Orientation.Horizontal,
+                            enabled = swipeEnabled && !isDragging && !isAnyItemDragging,
+                        ),
                 color = backgroundColor,
                 shape = dynamicShape,
-                tonalElevation = if (abs(offset) > 10f) 4.dp else 0.dp
+                tonalElevation = if (abs(offset) > 10f) 4.dp else 0.dp,
             ) {
                 content()
             }
@@ -275,20 +330,20 @@ private fun SwipeActionButton(
     contentDescription: String,
     color: Color,
     scale: Float,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.size(48.dp).scale(scale),
         shape = RoundedCornerShape(12.dp),
         color = color.copy(alpha = 0.85f),
-        onClick = onClick
+        onClick = onClick,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
                 tint = Color.White,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
         }
     }

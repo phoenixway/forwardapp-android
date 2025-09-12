@@ -1,6 +1,8 @@
-// NerManager.kt - Виправлена версія
 package com.romankozak.forwardappmobile.domain.ner
 
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -12,176 +14,196 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.LongBuffer
 import javax.inject.Inject
 import javax.inject.Singleton
-
-// Переконайтеся, що всі класи правильно імпортовані
-import ai.onnxruntime.OnnxTensor
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtSession
-import java.nio.LongBuffer
 
 data class Entity(
     val label: String,
     val start: Int,
     val end: Int,
-    val text: String
+    val text: String,
 )
 
 sealed class NerState {
     object NotInitialized : NerState()
-    data class Downloading(val progress: Int) : NerState()
+
+    data class Downloading(
+        val progress: Int,
+    ) : NerState()
+
     object Ready : NerState()
-    data class Error(val message: String) : NerState()
+
+    data class Error(
+        val message: String,
+    ) : NerState()
 }
 
 sealed class PredictionState {
     object Idle : PredictionState()
+
     object Processing : PredictionState()
-    data class Error(val message: String) : PredictionState()
+
+    data class Error(
+        val message: String,
+    ) : PredictionState()
 }
 
 @Singleton
-class NerManager @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val settingsRepository: SettingsRepository
-) {
-    private val _nerState = MutableStateFlow<NerState>(NerState.NotInitialized)
-    val nerState = _nerState.asStateFlow()
+class NerManager
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+        private val settingsRepository: SettingsRepository,
+    ) {
+        private val _nerState = MutableStateFlow<NerState>(NerState.NotInitialized)
+        val nerState = _nerState.asStateFlow()
 
-    private val _predictionState = MutableStateFlow<PredictionState>(PredictionState.Idle)
-    val predictionState = _predictionState.asStateFlow()
+        private val _predictionState = MutableStateFlow<PredictionState>(PredictionState.Idle)
+        val predictionState = _predictionState.asStateFlow()
 
-    private var nerProcessor: UkDtNerProcessor? = null
-    private var currentModelUri = ""
-    private var currentTokenizerUri = ""
-    private var currentLabelsUri = ""
+        private var nerProcessor: UkDtNerProcessor? = null
+        private var currentModelUri = ""
+        private var currentTokenizerUri = ""
+        private var currentLabelsUri = ""
 
-    private val managerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        private val managerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    init {
-        CoroutineScope(Dispatchers.IO).launch {
-            combine(
-                settingsRepository.nerModelUriFlow,
-                settingsRepository.nerTokenizerUriFlow,
-                settingsRepository.nerLabelsUriFlow
-            ) { modelUri, tokenizerUri, labelsUri ->
-                Triple(modelUri, tokenizerUri, labelsUri)
-            }.distinctUntilChanged().collect { (modelUri, tokenizerUri, labelsUri) ->
-                currentModelUri = modelUri
-                currentTokenizerUri = tokenizerUri
-                currentLabelsUri = labelsUri
+        init {
+            CoroutineScope(Dispatchers.IO).launch {
+                combine(
+                    settingsRepository.nerModelUriFlow,
+                    settingsRepository.nerTokenizerUriFlow,
+                    settingsRepository.nerLabelsUriFlow,
+                ) { modelUri, tokenizerUri, labelsUri ->
+                    Triple(modelUri, tokenizerUri, labelsUri)
+                }.distinctUntilChanged().collect { (modelUri, tokenizerUri, labelsUri) ->
+                    currentModelUri = modelUri
+                    currentTokenizerUri = tokenizerUri
+                    currentLabelsUri = labelsUri
 
-                if (modelUri.isNotBlank() && tokenizerUri.isNotBlank() && labelsUri.isNotBlank()) {
-                    initialize(modelUri, tokenizerUri, labelsUri)
-                } else {
-                    _nerState.value = NerState.NotInitialized
-                    nerProcessor = null
+                    if (modelUri.isNotBlank() && tokenizerUri.isNotBlank() && labelsUri.isNotBlank()) {
+                        initialize(modelUri, tokenizerUri, labelsUri)
+                    } else {
+                        _nerState.value = NerState.NotInitialized
+                        nerProcessor = null
+                    }
+                    Log.d("NerManager", "Model URI: $currentModelUri")
+                    Log.d("NerManager", "Tokenizer URI: $currentTokenizerUri")
+                    Log.d("NerManager", "Labels URI: $currentLabelsUri")
                 }
-                Log.d("NerManager", "Model URI: $currentModelUri")
-                Log.d("NerManager", "Tokenizer URI: $currentTokenizerUri")
-                Log.d("NerManager", "Labels URI: $currentLabelsUri")
+            }
+        }
 
+        private fun initialize(
+            modelUri: String,
+            tokenizerUri: String,
+            labelsUri: String,
+        ) {
+            val processor = UkDtNerProcessor(context, modelUri, tokenizerUri, labelsUri)
+            nerProcessor = processor
+            _nerState.value = NerState.Downloading(0)
+            processor.initAsync(
+                object : UkDtNerProcessor.ProgressListener {
+                    override fun onProgress(percent: Int) {
+                        _nerState.value = NerState.Downloading(percent)
+                    }
 
+                    override fun onComplete(
+                        success: Boolean,
+                        errorMessage: String?,
+                    ) {
+                        _nerState.value = if (success) NerState.Ready else NerState.Error(errorMessage ?: "Unknown error")
+                    }
+                },
+            )
+        }
+
+        fun reinitialize() {
+            if (currentModelUri.isNotBlank() && currentTokenizerUri.isNotBlank() && currentLabelsUri.isNotBlank()) {
+                Log.d("NerManager", "Re-initializing NER model...")
+                initialize(currentModelUri, currentTokenizerUri, currentLabelsUri)
+            } else {
+                Log.w("NerManager", "Re-initialization requested but not all file URIs are set.")
+            }
+        }
+
+        fun predictAsync(
+            text: String,
+            callback: (List<Entity>?) -> Unit,
+        ) {
+            Log.d("NerManager", "predictAsync called with text: '$text', state: ${_nerState.value}")
+
+            if (_nerState.value !is NerState.Ready) {
+                Log.w("NerManager", "NER not ready, current state: ${_nerState.value}")
+                callback(null)
+                return
+            }
+
+            _predictionState.value = PredictionState.Processing
+
+            managerScope.launch {
+                try {
+                    val result =
+                        withTimeout(15000L) {
+                            nerProcessor?.predict(text)
+                        }
+                    withContext(Dispatchers.Main) {
+                        _predictionState.value = PredictionState.Idle
+                        callback(result)
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Log.e("NerManager", "Prediction timeout")
+                    withContext(Dispatchers.Main) {
+                        _predictionState.value = PredictionState.Error("Prediction timeout")
+                        callback(null)
+                    }
+                } catch (e: Exception) {
+                    Log.e("NerManager", "Prediction failed", e)
+                    withContext(Dispatchers.Main) {
+                        _predictionState.value = PredictionState.Error(e.message ?: "Prediction failed")
+                        callback(null)
+                    }
+                }
             }
         }
     }
 
-    private fun initialize(modelUri: String, tokenizerUri: String, labelsUri: String) {
-        val processor = UkDtNerProcessor(context, modelUri, tokenizerUri, labelsUri)
-        nerProcessor = processor
-        _nerState.value = NerState.Downloading(0)
-        processor.initAsync(object : UkDtNerProcessor.ProgressListener {
-            override fun onProgress(percent: Int) {
-                _nerState.value = NerState.Downloading(percent)
-            }
-            override fun onComplete(success: Boolean, errorMessage: String?) {
-                _nerState.value = if (success) NerState.Ready else NerState.Error(errorMessage ?: "Unknown error")
-            }
-        })
-    }
-
-    fun reinitialize() {
-        if (currentModelUri.isNotBlank() && currentTokenizerUri.isNotBlank() && currentLabelsUri.isNotBlank()) {
-            Log.d("NerManager", "Re-initializing NER model...")
-            initialize(currentModelUri, currentTokenizerUri, currentLabelsUri)
-        } else {
-            Log.w("NerManager", "Re-initialization requested but not all file URIs are set.")
-        }
-    }
-
-    fun predictAsync(text: String, callback: (List<Entity>?) -> Unit) {
-        Log.d("NerManager", "predictAsync called with text: '$text', state: ${_nerState.value}")
-
-        if (_nerState.value !is NerState.Ready) {
-            Log.w("NerManager", "NER not ready, current state: ${_nerState.value}")
-            callback(null)
-            return
-        }
-
-        _predictionState.value = PredictionState.Processing
-
-        managerScope.launch {
-            try {
-                val result = withTimeout(15000L) { // 15 секунд timeout
-                    nerProcessor?.predict(text)
-                }
-                withContext(Dispatchers.Main) {
-                    _predictionState.value = PredictionState.Idle
-                    callback(result)
-                }
-            } catch (e: TimeoutCancellationException) {
-                Log.e("NerManager", "Prediction timeout")
-                withContext(Dispatchers.Main) {
-                    _predictionState.value = PredictionState.Error("Prediction timeout")
-                    callback(null)
-                }
-            } catch (e: Exception) {
-                Log.e("NerManager", "Prediction failed", e)
-                withContext(Dispatchers.Main) {
-                    _predictionState.value = PredictionState.Error(e.message ?: "Prediction failed")
-                    callback(null)
-                }
-            }
-        }
-    }
-}
-
-// Простий BERT tokenizer без зовнішніх залежностей
 class BertTokenizer private constructor(
     private val vocabMap: Map<String, Int>,
-    private val maxLength: Int = 512
+    private val maxLength: Int = 512,
 ) {
     companion object {
         fun fromJsonFile(tokenizerFile: File): BertTokenizer {
             val jsonText = tokenizerFile.readText()
             val json = JSONObject(jsonText)
 
-            val vocabMap = when {
-                json.has("model") && json.getJSONObject("model").has("vocab") -> {
-                    val vocab = json.getJSONObject("model").getJSONObject("vocab")
-                    mutableMapOf<String, Int>().apply {
-                        vocab.keys().forEach { key ->
-                            put(key, vocab.getInt(key))
+            val vocabMap =
+                when {
+                    json.has("model") && json.getJSONObject("model").has("vocab") -> {
+                        val vocab = json.getJSONObject("model").getJSONObject("vocab")
+                        mutableMapOf<String, Int>().apply {
+                            vocab.keys().forEach { key ->
+                                put(key, vocab.getInt(key))
+                            }
+                        }
+                    }
+                    json.has("vocab") -> {
+                        val vocab = json.getJSONObject("vocab")
+                        mutableMapOf<String, Int>().apply {
+                            vocab.keys().forEach { key ->
+                                put(key, vocab.getInt(key))
+                            }
+                        }
+                    }
+                    else -> {
+                        mutableMapOf<String, Int>().apply {
+                            json.keys().forEach { key ->
+                                put(key, json.getInt(key))
+                            }
                         }
                     }
                 }
-                json.has("vocab") -> {
-                    val vocab = json.getJSONObject("vocab")
-                    mutableMapOf<String, Int>().apply {
-                        vocab.keys().forEach { key ->
-                            put(key, vocab.getInt(key))
-                        }
-                    }
-                }
-                else -> {
-                    mutableMapOf<String, Int>().apply {
-                        json.keys().forEach { key ->
-                            put(key, json.getInt(key))
-                        }
-                    }
-                }
-            }
 
             return BertTokenizer(vocabMap)
         }
@@ -210,14 +232,15 @@ class BertTokenizer private constructor(
             val wordStart = text.indexOf(word, currentPos)
             val wordEnd = wordStart + word.length
 
-            val subTokens = if (word.length > 10) {
-                val chunks = word.chunked(6)
-                chunks.mapIndexed { index, chunk ->
-                    if (index == 0) chunk else "##$chunk"
+            val subTokens =
+                if (word.length > 10) {
+                    val chunks = word.chunked(6)
+                    chunks.mapIndexed { index, chunk ->
+                        if (index == 0) chunk else "##$chunk"
+                    }
+                } else {
+                    listOf(word)
                 }
-            } else {
-                listOf(word)
-            }
 
             subTokens.forEach { subToken ->
                 tokens.add(subToken)
@@ -247,35 +270,34 @@ class BertTokenizer private constructor(
             tokenIds[maxLength - 1] = getTokenId(sepToken)
         }
 
-        val attentionMask = LongArray(tokenIds.size) {
-            if (tokens[it] == padToken) 0L else 1L
-        }
+        val attentionMask =
+            LongArray(tokenIds.size) {
+                if (tokens[it] == padToken) 0L else 1L
+            }
 
         return EncodingResult(
             tokens = tokens.toTypedArray(),
             ids = tokenIds.toLongArray(),
             attentionMask = attentionMask,
-            charSpans = charSpans.toTypedArray()
+            charSpans = charSpans.toTypedArray(),
         )
     }
 
-    private fun getTokenId(token: String): Long {
-        return vocabMap[token]?.toLong() ?: vocabMap[unkToken]?.toLong() ?: 100L
-    }
+    private fun getTokenId(token: String): Long = vocabMap[token]?.toLong() ?: vocabMap[unkToken]?.toLong() ?: 100L
 }
 
 data class EncodingResult(
     val tokens: Array<String>,
     val ids: LongArray,
     val attentionMask: LongArray,
-    val charSpans: Array<Pair<Int, Int>>
+    val charSpans: Array<Pair<Int, Int>>,
 )
 
 private class UkDtNerProcessor(
     private val context: Context,
     private val modelUri: String,
     private val tokenizerUri: String,
-    private val labelsUri: String
+    private val labelsUri: String,
 ) {
     private val TAG = "UkDtNerProcessor"
     private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
@@ -285,7 +307,11 @@ private class UkDtNerProcessor(
 
     interface ProgressListener {
         fun onProgress(percent: Int)
-        fun onComplete(success: Boolean, errorMessage: String? = null)
+
+        fun onComplete(
+            success: Boolean,
+            errorMessage: String? = null,
+        )
     }
 
     fun initAsync(listener: ProgressListener) {
@@ -320,8 +346,11 @@ private class UkDtNerProcessor(
         }
     }
 
-    private suspend fun copyFileFromUriToCache(uriString: String, destinationFile: File): File {
-        return withContext(Dispatchers.IO) {
+    private suspend fun copyFileFromUriToCache(
+        uriString: String,
+        destinationFile: File,
+    ): File =
+        withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(Uri.parse(uriString))?.use { inputStream ->
                 FileOutputStream(destinationFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
@@ -329,7 +358,6 @@ private class UkDtNerProcessor(
             } ?: throw Exception("Failed to open input stream for URI: $uriString")
             destinationFile
         }
-    }
 
     fun predict(text: String): List<Entity> {
         if (!::session.isInitialized || !::tokenizer.isInitialized) {
@@ -347,28 +375,27 @@ private class UkDtNerProcessor(
             val inputIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.ids), shape)
             val attnTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.attentionMask), shape)
 
-// --- ADD THIS LINE ---
-// BERT models also need token_type_ids. For a single sentence, this is just an array of zeros.
             val tokenTypeIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(LongArray(encoding.ids.size) { 0L }), shape)
 
-// --- UPDATE THIS LINE ---
-            val inputs = mapOf(
-                "input_ids" to inputIdsTensor,
-                "attention_mask" to attnTensor,
-                "token_type_ids" to tokenTypeIdsTensor // <-- Add the third input
-            )
+            val inputs =
+                mapOf(
+                    "input_ids" to inputIdsTensor,
+                    "attention_mask" to attnTensor,
+                    "token_type_ids" to tokenTypeIdsTensor,
+                )
             val entities = mutableListOf<Entity>()
 
-
             try {
-                val logits = session.run(inputs).use { results ->
-                    @Suppress("UNCHECKED_CAST")
-                    results[0].value as Array<Array<FloatArray>>
-                }
+                val logits =
+                    session.run(inputs).use { results ->
+                        @Suppress("UNCHECKED_CAST")
+                        results[0].value as Array<Array<FloatArray>>
+                    }
 
-                val predIds = logits[0].map { row ->
-                    row.indices.maxByOrNull { row[it] } ?: 0
-                }
+                val predIds =
+                    logits[0].map { row ->
+                        row.indices.maxByOrNull { row[it] } ?: 0
+                    }
 
                 var i = 0
                 while (i < predIds.size && i < encoding.tokens.size) {
@@ -390,18 +417,20 @@ private class UkDtNerProcessor(
                             while (i < predIds.size &&
                                 i < labels.size &&
                                 predIds[i] < labels.size &&
-                                labels[predIds[i]] == "I-$kind") {
+                                labels[predIds[i]] == "I-$kind"
+                            ) {
                                 endTok = i
                                 i++
                             }
 
                             if (startTok < encoding.charSpans.size && endTok < encoding.charSpans.size) {
                                 val (s, _) = encoding.charSpans[startTok]
-                                val (_, e) = if (endTok < encoding.charSpans.size) {
-                                    encoding.charSpans[endTok]
-                                } else {
-                                    encoding.charSpans[startTok]
-                                }
+                                val (_, e) =
+                                    if (endTok < encoding.charSpans.size) {
+                                        encoding.charSpans[endTok]
+                                    } else {
+                                        encoding.charSpans[startTok]
+                                    }
 
                                 val start = s.coerceIn(0, text.length)
                                 val end = e.coerceIn(start, text.length)
@@ -416,7 +445,6 @@ private class UkDtNerProcessor(
                     }
                     i++
                 }
-
             } finally {
                 inputIdsTensor.close()
                 attnTensor.close()

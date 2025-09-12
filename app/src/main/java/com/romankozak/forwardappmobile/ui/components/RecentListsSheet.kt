@@ -1,4 +1,3 @@
-// File: ui/components/RecentListsSheet.kt
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.foundation.clickable
@@ -21,7 +20,7 @@ fun RecentListsSheet(
     showSheet: Boolean,
     recentLists: List<GoalList>,
     onDismiss: () -> Unit,
-    onListClick: (String) -> Unit
+    onListClick: (String) -> Unit,
 ) {
     if (showSheet) {
         ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -43,7 +42,7 @@ fun RecentListsSheet(
                             ListItem(
                                 headlineContent = { Text(list.name) },
                                 leadingContent = { Icon(Icons.Outlined.History, contentDescription = null) },
-                                modifier = Modifier.clickable { onListClick(list.id) }
+                                modifier = Modifier.clickable { onListClick(list.id) },
                             )
                         }
                     }

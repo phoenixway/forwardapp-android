@@ -15,34 +15,35 @@ import com.romankozak.forwardappmobile.ui.screens.backlogs.AppStatistics
 
 @Composable
 fun AboutAppDialog(
-    stats: AppStatistics, // ✨ ПАРАМЕТР ДЛЯ СТАТИСТИКИ
-    onDismiss: () -> Unit
+    stats: AppStatistics,
+    onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val packageInfo: PackageInfo? = remember {
-        try {
-            context.packageManager.getPackageInfo(context.packageName, 0)
-        } catch (e: Exception) {
-            null
+    val packageInfo: PackageInfo? =
+        remember {
+            try {
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            } catch (e: Exception) {
+                null
+            }
         }
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("About Forward App") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // ✨ ВІДОБРАЖЕННЯ СТАТИСТИКИ
                 Text("Total lists: ${stats.listCount}")
                 Text("Total goals: ${stats.goalCount}")
                 Text("---")
                 Text("Version: ${packageInfo?.versionName ?: "N/A"}")
-                val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo?.longVersionCode ?: -1
-                } else {
-                    @Suppress("DEPRECATION")
-                    packageInfo?.versionCode?.toLong() ?: -1
-                }
+                val versionCode =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        packageInfo?.longVersionCode ?: -1
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageInfo?.versionCode?.toLong() ?: -1
+                    }
                 if (versionCode != -1L) {
                     Text("Build: $versionCode")
                 }
@@ -52,6 +53,6 @@ fun AboutAppDialog(
             TextButton(onClick = onDismiss) {
                 Text("Close")
             }
-        }
+        },
     )
 }

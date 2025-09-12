@@ -30,7 +30,7 @@ fun UpdateStatusDialog(
     currentStatus: ProjectStatus,
     currentStatusText: String,
     onDismissRequest: () -> Unit,
-    onSave: (ProjectStatus, String?) -> Unit
+    onSave: (ProjectStatus, String?) -> Unit,
 ) {
     var selectedStatus by remember { mutableStateOf(currentStatus) }
     var statusText by remember { mutableStateOf(currentStatusText) }
@@ -41,12 +41,11 @@ fun UpdateStatusDialog(
         title = { Text("Оновити статус проекту") },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Dropdown для вибору статусу
                 ExposedDropdownMenuBox(
                     expanded = isDropdownExpanded,
-                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded }
+                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
                 ) {
                     OutlinedTextField(
                         value = selectedStatus.displayName,
@@ -54,20 +53,24 @@ fun UpdateStatusDialog(
                         readOnly = true,
                         label = { Text("Статус") },
                         trailingIcon = {
-                            val rotation by animateFloatAsState(targetValue = if (isDropdownExpanded) 180f else 0f, label = "dropdownIconRotation")
+                            val rotation by animateFloatAsState(
+                                targetValue = if (isDropdownExpanded) 180f else 0f,
+                                label = "dropdownIconRotation",
+                            )
                             Icon(
                                 Icons.Default.ArrowDropDown,
                                 contentDescription = "Вибрати статус",
-                                Modifier.rotate(rotation)
+                                Modifier.rotate(rotation),
                             )
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
                     )
                     ExposedDropdownMenu(
                         expanded = isDropdownExpanded,
-                        onDismissRequest = { isDropdownExpanded = false }
+                        onDismissRequest = { isDropdownExpanded = false },
                     ) {
                         ProjectStatus.values().forEach { status ->
                             DropdownMenuItem(
@@ -75,19 +78,18 @@ fun UpdateStatusDialog(
                                 onClick = {
                                     selectedStatus = status
                                     isDropdownExpanded = false
-                                }
+                                },
                             )
                         }
                     }
                 }
 
-                // Текстове поле для опису
                 OutlinedTextField(
                     value = statusText,
                     onValueChange = { statusText = it },
                     label = { Text("Якісний опис (опційно)") },
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 5
+                    maxLines = 5,
                 )
             }
         },
@@ -95,7 +97,7 @@ fun UpdateStatusDialog(
             TextButton(
                 onClick = {
                     onSave(selectedStatus, statusText.takeIf { it.isNotBlank() })
-                }
+                },
             ) {
                 Text("Зберегти")
             }
@@ -104,6 +106,6 @@ fun UpdateStatusDialog(
             TextButton(onClick = onDismissRequest) {
                 Text("Скасувати")
             }
-        }
+        },
     )
 }

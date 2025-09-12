@@ -1,4 +1,3 @@
-// --- File: com/romankozak/forwardappmobile/data/dao/GoalDao.kt ---
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.Dao
@@ -13,7 +12,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GoalDao {
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGoal(goal: Goal)
 
@@ -45,20 +43,25 @@ interface GoalDao {
     fun searchGoalsByText(query: String): Flow<List<Goal>>
 
     @Transaction
-    @Query("""
+    @Query(
+        """
     SELECT DISTINCT g.*, gl.id as listId, gl.name as listName
     FROM goals g
     JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
     JOIN goal_lists gl ON li.listId = gl.id
     WHERE g.text LIKE :query
-    """)
+    """,
+    )
     suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult>
 
     @Query("SELECT COUNT(*) FROM goals")
     fun getAllGoalsCountFlow(): Flow<Int>
 
     @Query("UPDATE goals SET description = :markdown WHERE id = :goalId")
-    suspend fun updateMarkdown(goalId: String, markdown: String)
+    suspend fun updateMarkdown(
+        goalId: String,
+        markdown: String,
+    )
 
     @Query("DELETE FROM goal_lists WHERE id = :listId")
     suspend fun deleteGoalListById(listId: String)

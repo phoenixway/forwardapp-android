@@ -21,12 +21,10 @@ import androidx.compose.ui.window.Dialog
 
 @Composable
 fun WifiImportDialog(
-    // ЗМІНА: Отримуємо поточне значення адреси ззовні
     desktopAddress: String,
-    // ЗМІНА: Отримуємо колбек для повідомлення про зміну адреси
     onAddressChange: (String) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
@@ -36,16 +34,15 @@ fun WifiImportDialog(
                 Text("Введіть IP-адресу та порт десктоп-додатку:")
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
-                    // ЗМІНА: Використовуємо передані значення
                     value = desktopAddress,
                     onValueChange = onAddressChange,
                     placeholder = { Text("Напр. 192.168.1.5:8080") },
-                    singleLine = true
+                    singleLine = true,
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text("Скасувати")
@@ -53,7 +50,7 @@ fun WifiImportDialog(
                     Spacer(Modifier.width(8.dp))
                     Button(
                         onClick = { onConfirm(desktopAddress) },
-                        enabled = desktopAddress.isNotBlank()
+                        enabled = desktopAddress.isNotBlank(),
                     ) {
                         Text("Отримати дані")
                     }

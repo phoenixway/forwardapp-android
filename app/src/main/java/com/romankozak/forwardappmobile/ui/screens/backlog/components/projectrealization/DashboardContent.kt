@@ -48,36 +48,32 @@ fun DashboardContent(
     goalList: GoalList,
     onStatusUpdate: (ProjectStatus, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
-    onRecalculateTime: () -> Unit, // <-- ДОДАНО
-    projectTimeMetrics: ProjectTimeMetrics?, // <-- ДОДАНО
-
+    onRecalculateTime: () -> Unit,
+    projectTimeMetrics: ProjectTimeMetrics?,
 ) {
     var showStatusDialog by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AnimatedContent(
             targetState = goalList.isProjectManagementEnabled == true,
             label = "DashboardContentAnimation",
-            // ... (решта AnimatedContent)
         ) { isManagementEnabled ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (!isManagementEnabled) {
-                    EnableSupportCard(onEnable = { onToggleProjectManagement(true) }) //
+                    EnableSupportCard(onEnable = { onToggleProjectManagement(true) })
                 } else {
-                    // Відображення поточного статусу
-                    StatusDisplayCard( //
-                        status = goalList.projectStatus ?: ProjectStatus.NO_PLAN, //
-                        statusText = goalList.projectStatusText, //
-                        onClick = { showStatusDialog = true } //
-                    )
+                    StatusDisplayCard(status = goalList.projectStatus ?: ProjectStatus.NO_PLAN, statusText = goalList.projectStatusText, onClick = {
+                        showStatusDialog = true
+                    })
 
                     projectTimeMetrics?.let { metrics ->
                         Spacer(modifier = Modifier.height(8.dp))
@@ -87,13 +83,10 @@ fun DashboardContent(
                     OutlinedButton(onClick = onRecalculateTime) {
                         Text("Recalculate")
                     }
-                    // --- КІНЕЦЬ ЗМІНИ ---
-
-                    // Заглушка для майбутніх метрик
                     Text(
                         "Тут будуть метрики та рекомендовані дії",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -101,14 +94,16 @@ fun DashboardContent(
     }
 
     if (showStatusDialog) {
-        UpdateStatusDialog( //
-            currentStatus = goalList.projectStatus ?: ProjectStatus.NO_PLAN, //
-            currentStatusText = goalList.projectStatusText ?: "", //
-            onDismissRequest = { showStatusDialog = false }, //
-            onSave = { newStatus, newText -> //
-                onStatusUpdate(newStatus, newText) //
-                showStatusDialog = false //
-            }
+        UpdateStatusDialog(
+            currentStatus = goalList.projectStatus ?: ProjectStatus.NO_PLAN,
+            currentStatusText = goalList.projectStatusText ?: "",
+            onDismissRequest = {
+                showStatusDialog = false
+            },
+            onSave = { newStatus, newText ->
+                onStatusUpdate(newStatus, newText)
+                showStatusDialog = false
+            },
         )
     }
 }
@@ -118,17 +113,17 @@ fun DashboardContent(
 private fun StatusDisplayCard(
     status: ProjectStatus,
     statusText: String?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Поточний статус", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -140,14 +135,14 @@ private fun StatusDisplayCard(
                         text = statusText,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
             Icon(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Редагувати статус",
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -157,20 +152,21 @@ private fun StatusDisplayCard(
 private fun EnableSupportCard(onEnable: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("Підтримка реалізації вимкнена", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Увімкніть, щоб відстежувати історію, статуси та інсайти по проекту.",
                 style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Button(onClick = onEnable) {
                 Text("Увімкнути підтримку")
@@ -184,11 +180,11 @@ private fun MetricsDisplayCard(metrics: ProjectTimeMetrics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceAround
+            horizontalArrangement = Arrangement.SpaceAround,
         ) {
             MetricItem(label = "Час за сьогодні", value = formatDurationForUi(metrics.timeToday))
             MetricItem(label = "Загальний час", value = formatDurationForUi(metrics.timeTotal))
@@ -197,7 +193,10 @@ private fun MetricsDisplayCard(metrics: ProjectTimeMetrics) {
 }
 
 @Composable
-private fun MetricItem(label: String, value: String) {
+private fun MetricItem(
+    label: String,
+    value: String,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(4.dp))

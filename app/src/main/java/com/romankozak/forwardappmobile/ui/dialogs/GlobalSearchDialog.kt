@@ -17,7 +17,10 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 
 @Composable
-fun GlobalSearchDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+fun GlobalSearchDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
     var text by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
@@ -30,18 +33,19 @@ fun GlobalSearchDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 onValueChange = { text = it },
                 label = { Text("Що шукати?") },
                 singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
             )
         },
         confirmButton = {
             Button(
                 onClick = { onConfirm(text) },
-                enabled = text.isNotBlank()
+                enabled = text.isNotBlank(),
             ) { Text("Знайти") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
     )
 
     LaunchedEffect(Unit) {

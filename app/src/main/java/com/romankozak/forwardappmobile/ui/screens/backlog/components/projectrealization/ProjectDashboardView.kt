@@ -12,11 +12,12 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.projectreal
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.projectrealization.InsightsContent
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.projectrealization.LogContent
 
-// Внутрішній enum для навігації між вкладками
-private enum class ProjectManagementTab(val displayName: String) {
+private enum class ProjectManagementTab(
+    val displayName: String,
+) {
     Dashboard("Дашборд"),
     Log("Історія"),
-    Insights("Інсайти")
+    Insights("Інсайти"),
 }
 
 @Composable
@@ -26,47 +27,41 @@ fun ProjectDashboardView(
     projectLogs: List<ProjectExecutionLog>,
     onStatusUpdate: (ProjectStatus, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
-    onRecalculateTime: () -> Unit, // <-- ДОДАНО
-    projectTimeMetrics: ProjectTimeMetrics?, // <-- ДОДАНО
-
-
+    onRecalculateTime: () -> Unit,
+    projectTimeMetrics: ProjectTimeMetrics?,
 ) {
     if (goalList == null) return
 
     var selectedTab by remember { mutableStateOf(ProjectManagementTab.Dashboard) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        // Перемикач між трьома екранами
         TabRow(
             selectedTabIndex = selectedTab.ordinal,
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary
+            contentColor = MaterialTheme.colorScheme.primary,
         ) {
             ProjectManagementTab.values().forEach { tab ->
                 Tab(
                     selected = selectedTab == tab,
                     onClick = { selectedTab = tab },
-                    text = { Text(tab.displayName) }
+                    text = { Text(tab.displayName) },
                 )
             }
         }
 
         when (selectedTab) {
-            ProjectManagementTab.Dashboard -> DashboardContent(
-                goalList = goalList,
-                onStatusUpdate = onStatusUpdate,
-                onToggleProjectManagement = onToggleProjectManagement,
-                onRecalculateTime = onRecalculateTime,
-                projectTimeMetrics = projectTimeMetrics, // <-- ДОДАНО
-
-            )
-            ProjectManagementTab.Log -> LogContent( //
-                logs = projectLogs, //
-                isManagementEnabled = goalList.isProjectManagementEnabled == true //
-            )
-            ProjectManagementTab.Insights -> InsightsContent( //
-                isManagementEnabled = goalList.isProjectManagementEnabled == true //
-            )
+            ProjectManagementTab.Dashboard ->
+                DashboardContent(
+                    goalList = goalList,
+                    onStatusUpdate = onStatusUpdate,
+                    onToggleProjectManagement = onToggleProjectManagement,
+                    onRecalculateTime = onRecalculateTime,
+                    projectTimeMetrics = projectTimeMetrics,
+                )
+            ProjectManagementTab.Log ->
+                LogContent(logs = projectLogs, isManagementEnabled = goalList.isProjectManagementEnabled == true)
+            ProjectManagementTab.Insights ->
+                InsightsContent(isManagementEnabled = goalList.isProjectManagementEnabled == true)
         }
     }
 }

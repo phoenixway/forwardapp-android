@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProjectManagementDao {
-
     @Query("SELECT * FROM project_execution_logs WHERE projectId = :projectId ORDER BY timestamp DESC")
     fun getLogsForProjectStream(projectId: String): Flow<List<ProjectExecutionLog>>
 
@@ -25,4 +24,3 @@ interface ProjectManagementDao {
     @Query("DELETE FROM project_execution_logs")
     suspend fun deleteAllLogs()
 }
-

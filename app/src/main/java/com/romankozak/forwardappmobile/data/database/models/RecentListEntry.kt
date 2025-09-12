@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/data/database/models/RecentListEntry.kt
 package com.romankozak.forwardappmobile.data.database.models
 
 import androidx.room.ColumnInfo
@@ -13,15 +12,14 @@ import androidx.room.PrimaryKey
             entity = GoalList::class,
             parentColumns = ["id"],
             childColumns = ["list_id"],
-            onDelete = ForeignKey.CASCADE // Якщо список видаляється, запис історії теж видаляється
-        )
-    ]
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
 )
 data class RecentListEntry(
     @PrimaryKey
     @ColumnInfo(name = "list_id")
     val listId: String,
-
     @ColumnInfo(name = "last_accessed")
-    val lastAccessed: Long
+    val lastAccessed: Long,
 )

@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface InboxRecordDao {
-
     @Query("SELECT * FROM inbox_records WHERE projectId = :projectId ORDER BY item_order DESC")
     fun getRecordsForProjectStream(projectId: String): Flow<List<InboxRecord>>
 
@@ -21,8 +20,6 @@ interface InboxRecordDao {
 
     @Query("SELECT * FROM inbox_records WHERE text LIKE :query ORDER BY createdAt DESC")
     suspend fun searchInboxRecordsGlobal(query: String): List<InboxRecord>
-
-    // --- Методи для імпорту/експорту ---
 
     @Query("SELECT * FROM inbox_records")
     suspend fun getAll(): List<InboxRecord>

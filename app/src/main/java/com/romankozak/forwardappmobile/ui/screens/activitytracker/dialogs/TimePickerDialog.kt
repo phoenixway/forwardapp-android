@@ -10,32 +10,33 @@ import androidx.compose.runtime.Composable
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 public fun TimePickerDialog(
     initialTime: Long,
     onDismiss: () -> Unit,
-    onConfirm: (Long) -> Unit
+    onConfirm: (Long) -> Unit,
 ) {
     val calendar = Calendar.getInstance().apply { timeInMillis = initialTime }
-    val timePickerState = rememberTimePickerState(
-        initialHour = calendar.get(Calendar.HOUR_OF_DAY),
-        initialMinute = calendar.get(Calendar.MINUTE),
-        is24Hour = true
-    )
+    val timePickerState =
+        rememberTimePickerState(
+            initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+            initialMinute = calendar.get(Calendar.MINUTE),
+            is24Hour = true,
+        )
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
-                val newCalendar = Calendar.getInstance().apply {
-                    timeInMillis = initialTime
-                    set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                    set(Calendar.MINUTE, timePickerState.minute)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
+                val newCalendar =
+                    Calendar.getInstance().apply {
+                        timeInMillis = initialTime
+                        set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                        set(Calendar.MINUTE, timePickerState.minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
                 onConfirm(newCalendar.timeInMillis)
             }) {
                 Text("OK")
@@ -44,7 +45,7 @@ public fun TimePickerDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
         text = {
             TimePicker(state = timePickerState)
-        }
+        },
     )
 }
 

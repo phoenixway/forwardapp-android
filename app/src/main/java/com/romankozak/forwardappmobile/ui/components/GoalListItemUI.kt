@@ -33,44 +33,45 @@ fun GoalListRow(
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    // ✨ ПОВЕРНУЛИ АНІМАЦІЮ: Плавна зміна фону для підсвітки
     val backgroundColor by animateColorAsState(
-        targetValue = if (isHighlighted) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        } else {
-            Color.Transparent
-        },
+        targetValue =
+            if (isHighlighted) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            } else {
+                Color.Transparent
+            },
         animationSpec = tween(durationMillis = 500),
-        label = "Highlight Animation"
+        label = "Highlight Animation",
     )
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(backgroundColor)
-            .padding(start = (level * 24).dp)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(backgroundColor)
+                .padding(start = (level * 24).dp),
     ) {
-        // Індикатор зверху
         if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onListClick(list.id) }
-                .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                .padding(vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onListClick(list.id) }
+                    .alpha(if (isCurrentlyDragging) 0.6f else 1f)
+                    .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (hasChildren) {
                 IconButton(onClick = { onToggleExpanded(list) }) {
                     Icon(
                         imageVector = if (list.isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
-                        contentDescription = "Згорнути/Розгорнути"
+                        contentDescription = "Згорнути/Розгорнути",
                     )
                 }
             } else {
@@ -82,7 +83,7 @@ fun GoalListRow(
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
 
             IconButton(onClick = { onMenuRequested(list) }) {
@@ -90,7 +91,6 @@ fun GoalListRow(
             }
         }
 
-        // Індикатор знизу
         if (isHovered && isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
         }

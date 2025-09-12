@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/sync/SyncScreen.kt
-
 package com.romankozak.forwardappmobile.ui.screens.sync
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -29,17 +27,20 @@ import com.romankozak.forwardappmobile.data.repository.SyncChange
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 
 private object ChangeTypeMetadata {
-    data class Metadata(val title: String, val icon: ImageVector, val color: Color)
+    data class Metadata(
+        val title: String,
+        val icon: ImageVector,
+        val color: Color,
+    )
 
     @Composable
-    fun get(changeType: ChangeType): Metadata {
-        return when (changeType) {
+    fun get(changeType: ChangeType): Metadata =
+        when (changeType) {
             ChangeType.Add -> Metadata("Додавання", Icons.Default.AddCircle, MaterialTheme.colorScheme.primary)
             ChangeType.Update -> Metadata("Оновлення", Icons.Default.Refresh, MaterialTheme.colorScheme.secondary)
             ChangeType.Move -> Metadata("Переміщення", Icons.Default.SwapHoriz, MaterialTheme.colorScheme.tertiary)
             ChangeType.Delete -> Metadata("Видалення", Icons.Default.Delete, MaterialTheme.colorScheme.error)
         }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,11 +48,8 @@ private object ChangeTypeMetadata {
 fun SyncScreen(
     syncDataViewModel: SyncDataViewModel,
     onSyncComplete: () -> Unit,
-    // ✨ ЗМІНЕНО: ViewModel тепер отримується через Hilt
     viewModel: SyncViewModel = hiltViewModel(),
 ) {
-    // ❌ ВИДАЛЕНО: Весь код для ручного створення залежностей
-
     val report by viewModel.report.collectAsState()
     val approvedIds by viewModel.approvedChangeIds.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -65,37 +63,42 @@ fun SyncScreen(
         bottomBar = {
             Button(
                 onClick = { viewModel.applyChanges(onSyncComplete) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                enabled = (report != null && error == null)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                enabled = (report != null && error == null),
             ) {
                 Text("Застосувати зміни (${approvedIds.size})")
             }
-        }
+        },
     ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+        ) {
             when {
                 error != null -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
                         verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             text = "Помилка синхронізації",
                             style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = error!!,
                             style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = {
@@ -117,22 +120,27 @@ fun SyncScreen(
                     }
                 }
                 else -> {
-                    val groupedChanges = remember(report) {
-                        report!!.changes.groupBy { it.type }
-                            .toSortedMap(compareBy { it.ordinal })
-                    }
+                    val groupedChanges =
+                        remember(report) {
+                            report!!
+                                .changes
+                                .groupBy { it.type }
+                                .toSortedMap(compareBy { it.ordinal })
+                        }
 
-                    val expandedGroups = remember {
-                        mutableStateOf(groupedChanges.keys)
-                    }
+                    val expandedGroups =
+                        remember {
+                            mutableStateOf(groupedChanges.keys)
+                        }
 
                     Column {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Button(onClick = { viewModel.selectAllChanges() }) { Text("Обрати все") }
                             Spacer(Modifier.width(8.dp))
@@ -153,7 +161,7 @@ fun SyncScreen(
                                             val current = expandedGroups.value.toMutableSet()
                                             if (isExpanded) current.remove(changeType) else current.add(changeType)
                                             expandedGroups.value = current
-                                        }
+                                        },
                                     )
                                 }
                                 if (isExpanded) {
@@ -161,7 +169,7 @@ fun SyncScreen(
                                         SyncChangeItem(
                                             change = change,
                                             isChecked = (change.id + change.type.name) in approvedIds,
-                                            onToggle = { viewModel.toggleApproval(change.id, change.type.name) }
+                                            onToggle = { viewModel.toggleApproval(change.id, change.type.name) },
                                         )
                                     }
                                 }
@@ -179,17 +187,18 @@ private fun GroupHeader(
     changeType: ChangeType,
     count: Int,
     isExpanded: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
 ) {
     val metadata = ChangeTypeMetadata.get(changeType = changeType)
     val rotationAngle by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "rotation")
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .padding(top = 16.dp, bottom = 8.dp, start = 8.dp, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(top = 16.dp, bottom = 8.dp, start = 8.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(imageVector = metadata.icon, contentDescription = metadata.title, tint = metadata.color)
         Spacer(Modifier.width(8.dp))
@@ -198,49 +207,62 @@ private fun GroupHeader(
             style = MaterialTheme.typography.titleMedium,
             color = metadata.color,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         Icon(
             imageVector = Icons.Default.ArrowDropDown,
             contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
-            modifier = Modifier.rotate(rotationAngle)
+            modifier = Modifier.rotate(rotationAngle),
         )
     }
 }
 
 @Composable
-private fun SyncChangeItem(change: SyncChange, isChecked: Boolean, onToggle: () -> Unit) {
+private fun SyncChangeItem(
+    change: SyncChange,
+    isChecked: Boolean,
+    onToggle: () -> Unit,
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 4.dp)
-            .clickable(onClick = onToggle),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 4.dp)
+                .clickable(onClick = onToggle),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isChecked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isChecked) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(
+                            alpha = 0.3f,
+                        )
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+            ),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
                 checked = isChecked,
                 onCheckedChange = { onToggle() },
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
             Spacer(modifier = Modifier.size(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = change.description,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
                 )
                 if (change.longDescription != null) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = change.longDescription,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

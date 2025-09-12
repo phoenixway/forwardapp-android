@@ -23,15 +23,13 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagChip
 
-/**
- * List icon badge component (status indicator for sublists)
- */
 @Composable
 private fun SublistIconBadge(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .semantics { contentDescription = "Підсписок" },
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .semantics { contentDescription = "Підсписок" },
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.List,
@@ -42,10 +40,6 @@ private fun SublistIconBadge(modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * A unified, reusable Composable for displaying a sublist item.
- * Matches GoalItem structure, but shows a special status badge.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SublistItemRow(
@@ -59,33 +53,37 @@ fun SublistItemRow(
     val sublist = sublistContent.sublist
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         EnhancedCustomCheckbox(
             checked = sublist.isCompleted,
-            onCheckedChange = onCheckedChange
+            onCheckedChange = onCheckedChange,
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .pointerInput(onClick, onLongClick) {
-                    detectTapGestures(
-                        onLongPress = { onLongClick() },
-                        onTap = { onClick() }
-                    )
-                }
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .pointerInput(onClick, onLongClick) {
+                        detectTapGestures(
+                            onLongPress = { onLongClick() },
+                            onTap = { onClick() },
+                        )
+                    },
         ) {
-            val textColor = if (sublist.isCompleted)
-                MaterialTheme.colorScheme.onSurfaceVariant
-            else
-                MaterialTheme.colorScheme.onSurface
+            val textColor =
+                if (sublist.isCompleted) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
             val textDecoration = if (sublist.isCompleted) TextDecoration.LineThrough else null
 
             Text(
@@ -94,17 +92,18 @@ fun SublistItemRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = textColor,
-                textDecoration = textDecoration
+                textDecoration = textDecoration,
             )
 
-            val hasExtraContent = true // завжди показуємо рядок статусу для бейджа
+            val hasExtraContent = true 
 
             AnimatedVisibility(
                 visible = hasExtraContent,
-                enter = slideInVertically(
-                    initialOffsetY = { height -> -height },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                ) + fadeIn(),
+                enter =
+                    slideInVertically(
+                        initialOffsetY = { height -> -height },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    ) + fadeIn(),
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -113,7 +112,6 @@ fun SublistItemRow(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        // завжди показуємо бейдж підсписку
                         SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
 
                         if (!sublist.tags.isNullOrEmpty()) {
@@ -121,7 +119,7 @@ fun SublistItemRow(
                                 TagChip(
                                     text = "#$tag",
                                     onDismiss = {},
-                                    isDismissible = false
+                                    isDismissible = false,
                                 )
                             }
                         }

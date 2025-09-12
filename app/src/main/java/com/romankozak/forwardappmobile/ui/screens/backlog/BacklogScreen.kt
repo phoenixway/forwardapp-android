@@ -35,8 +35,8 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.*
@@ -56,16 +56,12 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "BACKLOG_UI_DEBUG"
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalDetailScreen(
     navController: NavController,
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
-
-
-
     var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         flow {
@@ -77,7 +73,6 @@ fun GoalDetailScreen(
             currentTime = it
         }
     }
-
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -105,7 +100,7 @@ fun GoalDetailScreen(
     BackHandler(enabled = uiState.inputValue.text.isNotEmpty()) {
         viewModel.inputHandler.onInputTextChanged(
             TextFieldValue(""),
-            uiState.inputMode
+            uiState.inputMode,
         )
     }
 
@@ -114,7 +109,7 @@ fun GoalDetailScreen(
             onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
             onConfirm = { url, name ->
                 viewModel.inputHandler.onAddWebLinkConfirm(url, name)
-            }
+            },
         )
     }
 
@@ -123,7 +118,7 @@ fun GoalDetailScreen(
             onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
             onConfirm = { noteName ->
                 viewModel.inputHandler.onAddObsidianLinkConfirm(noteName)
-            }
+            },
         )
     }
 
@@ -132,31 +127,34 @@ fun GoalDetailScreen(
         EditInboxRecordDialog(
             record = record,
             onDismiss = { viewModel.onInboxRecordEditDismiss() },
-            onConfirm = { newText -> viewModel.onInboxRecordEditConfirm(newText) }
+            onConfirm = { newText -> viewModel.onInboxRecordEditConfirm(newText) },
         )
     }
 
-    val displayList = remember(listContent, list?.isAttachmentsExpanded) {
-        val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
-        val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem }
+    val displayList =
+        remember(listContent, list?.isAttachmentsExpanded) {
+            val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
+            val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem }
 
-        if (list?.isAttachmentsExpanded == true) {
-            attachmentItems + draggableItems
-        } else {
-            draggableItems
+            if (list?.isAttachmentsExpanded == true) {
+                attachmentItems + draggableItems
+            } else {
+                draggableItems
+            }
         }
-    }
 
-    val dragDropState = rememberSimpleDragDropState(
-        lazyListState = listState,
-        onMove = { fromIndex, toIndex ->
-            viewModel.moveItem(fromIndex, toIndex)
+    val dragDropState =
+        rememberSimpleDragDropState(
+            lazyListState = listState,
+            onMove = { fromIndex, toIndex ->
+                viewModel.moveItem(fromIndex, toIndex)
+            },
+        )
+
+    val newItemInList =
+        uiState.newlyAddedItemId?.let { id ->
+            displayList.find { it.item.id == id }
         }
-    )
-
-    val newItemInList = uiState.newlyAddedItemId?.let { id ->
-        displayList.find { it.item.id == id }
-    }
 
     LaunchedEffect(newItemInList) {
         if (newItemInList != null) {
@@ -169,18 +167,19 @@ fun GoalDetailScreen(
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
 
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                if (savedStateHandle?.contains("list_chooser_result") == true) {
-                    val result = savedStateHandle.get<String>("list_chooser_result")
-                    if (result != null) {
-                        Log.d("AddSublistDebug", "BacklogScreen: Received result from chooser: '$result'")
-                        viewModel.onListChooserResult(result)
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    if (savedStateHandle?.contains("list_chooser_result") == true) {
+                        val result = savedStateHandle.get<String>("list_chooser_result")
+                        if (result != null) {
+                            Log.d("AddSublistDebug", "BacklogScreen: Received result from chooser: '$result'")
+                            viewModel.onListChooserResult(result)
+                        }
+                        savedStateHandle.remove<String>("list_chooser_result")
                     }
-                    savedStateHandle.remove<String>("list_chooser_result")
                 }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -188,11 +187,12 @@ fun GoalDetailScreen(
     }
 
     DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.forceRefresh()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    viewModel.forceRefresh()
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -212,18 +212,18 @@ fun GoalDetailScreen(
         }
     }
 
-
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
                 is UiEvent.Navigate -> navController.navigate(event.route)
                 is UiEvent.ShowSnackbar -> {
                     coroutineScope.launch {
-                        val result = snackbarHostState.showSnackbar(
-                            message = event.message,
-                            actionLabel = event.action,
-                            duration = SnackbarDuration.Short,
-                        )
+                        val result =
+                            snackbarHostState.showSnackbar(
+                                message = event.message,
+                                actionLabel = event.action,
+                                duration = SnackbarDuration.Short,
+                            )
                         if (result == SnackbarResult.ActionPerformed) {
                             when (event.action) {
                                 "Обмежити в часі" -> viewModel.onLimitLastActivityRequested()
@@ -233,7 +233,8 @@ fun GoalDetailScreen(
                     }
                 }
                 is UiEvent.NavigateBackAndReveal -> {
-                    navController.getBackStackEntry("goal_lists_screen")
+                    navController
+                        .getBackStackEntry("goal_lists_screen")
                         .savedStateHandle["list_to_reveal"] = event.listId
                     navController.popBackStack("goal_lists_screen", inclusive = false)
                 }
@@ -261,11 +262,12 @@ fun GoalDetailScreen(
             return@LaunchedEffect
         }
 
-        val indexToScroll = when {
-            goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
-            itemId != null -> displayList.indexOfFirst { it.item.id == itemId }.takeIf { it != -1 }
-            else -> null
-        }
+        val indexToScroll =
+            when {
+                goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
+                itemId != null -> displayList.indexOfFirst { it.item.id == itemId }.takeIf { it != -1 }
+                else -> null
+            }
 
         if (indexToScroll != null) {
             listState.animateScrollToItem(indexToScroll)
@@ -343,9 +345,10 @@ fun GoalDetailScreen(
             var index = displayList.indexOfFirst { it.item.id == itemId }
 
             if (index == -1) {
-                index = displayList.indexOfFirst {
-                    it is ListItemContent.GoalItem && it.goal.id == itemId
-                }
+                index =
+                    displayList.indexOfFirst {
+                        it is ListItemContent.GoalItem && it.goal.id == itemId
+                    }
                 Log.d("AutoScrollDebug", "Trying goal.id search, found index: $index")
             }
 
@@ -359,14 +362,14 @@ fun GoalDetailScreen(
         }
     }
 
-
-
-    val attachmentItems = remember(listContent) {
-        listContent.filterIsInstance<ListItemContent.LinkItem>()
-    }
-    val draggableItems = remember(listContent) {
-        listContent.filterNot { it is ListItemContent.LinkItem }
-    }
+    val attachmentItems =
+        remember(listContent) {
+            listContent.filterIsInstance<ListItemContent.LinkItem>()
+        }
+    val draggableItems =
+        remember(listContent) {
+            listContent.filterNot { it is ListItemContent.LinkItem }
+        }
 
     if (goalActionState is GoalActionDialogState.AwaitingActionChoice) {
         val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent
@@ -375,7 +378,7 @@ fun GoalDetailScreen(
             onDismiss = { viewModel.itemActionHandler.onDismissGoalActionDialogs() },
             onActionSelected = { actionType ->
                 viewModel.itemActionHandler.onGoalActionSelected(actionType, itemContent)
-            }
+            },
         )
     }
 
@@ -384,26 +387,27 @@ fun GoalDetailScreen(
         onDismiss = { viewModel.itemActionHandler.onDismissGoalTransportMenu() },
         onCreateInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CreateInstance) },
         onMoveInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.MoveInstance) },
-        onCopyGoalRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CopyGoal) }
+        onCopyGoalRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CopyGoal) },
     )
 
     if (showRecentListsSheet) {
         ModalBottomSheet(onDismissRequest = { viewModel.inputHandler.onDismissRecentLists() }) {
             Column(
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp)
+                modifier =
+                    Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = 16.dp),
             ) {
                 Text(
                     text = stringResource(R.string.recent_lists),
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 LazyColumn {
                     items(recentLists, key = { it.id }) { list: GoalList ->
                         ListItem(
                             headlineContent = { Text(list.name) },
-                            modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(list.id) }
+                            modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(list.id) },
                         )
                     }
                 }
@@ -413,42 +417,48 @@ fun GoalDetailScreen(
     if (uiState.showImportFromMarkdownDialog) {
         ImportMarkdownDialog(
             onDismiss = viewModel::onImportFromMarkdownDismiss,
-            onConfirm = viewModel::onImportFromMarkdownConfirm
+            onConfirm = viewModel::onImportFromMarkdownConfirm,
         )
     }
 
     if (uiState.showImportBacklogFromMarkdownDialog) {
         ImportMarkdownDialog(
             onDismiss = viewModel::onImportBacklogFromMarkdownDismiss,
-            onConfirm = viewModel::onImportBacklogFromMarkdownConfirm
+            onConfirm = viewModel::onImportBacklogFromMarkdownConfirm,
         )
     }
 
-    val reminderParseResult = if (uiState.detectedReminderCalendar != null &&
-        uiState.detectedReminderSuggestion != null &&
-        uiState.inputValue.text.isNotBlank()) {
-        ReminderParseResult(
-            originalText = uiState.inputValue.text,
-            calendar = uiState.detectedReminderCalendar,
-            suggestionText = uiState.detectedReminderSuggestion,
-            dateTimeEntities = emptyList(),
-            otherEntities = emptyList(),
-            success = true,
-            errorMessage = null
-        )
-    } else {
-        null
-    }
+    val reminderParseResult =
+        if (uiState.detectedReminderCalendar != null &&
+            uiState.detectedReminderSuggestion != null &&
+            uiState.inputValue.text.isNotBlank()
+        ) {
+            ReminderParseResult(
+                originalText = uiState.inputValue.text,
+                calendar = uiState.detectedReminderCalendar,
+                suggestionText = uiState.detectedReminderSuggestion,
+                dateTimeEntities = emptyList(),
+                otherEntities = emptyList(),
+                success = true,
+                errorMessage = null,
+            )
+        } else {
+            null
+        }
 
     uiState.recordForReminderDialog?.let { record ->
         ReminderPickerDialog(
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,
-            onClearReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
+            onClearReminder =
+                if (record.reminderTime != null) {
+                    { viewModel.onClearReminder() }
+                } else {
+                    null
+                },
             currentReminderTime = record.reminderTime,
         )
     }
-
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -467,7 +477,7 @@ fun GoalDetailScreen(
                 },
                 onMarkAsIncomplete = {
                     viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds)
-                }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -483,7 +493,7 @@ fun GoalDetailScreen(
                     onValueChange = {
                         viewModel.inputHandler.onInputTextChanged(
                             it,
-                            uiState.inputMode
+                            uiState.inputMode,
                         )
                     },
                     onSubmit = {
@@ -495,7 +505,7 @@ fun GoalDetailScreen(
                     onInputModeSelected = {
                         viewModel.inputHandler.onInputModeSelected(
                             it,
-                            uiState.inputValue
+                            uiState.inputValue,
                         )
                     },
                     onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
@@ -508,7 +518,7 @@ fun GoalDetailScreen(
                         viewModel.flushPendingMoves()
                         navController.popBackStack()
                     },
-                    onForwardClick = { /* Not implemented */ },
+                    onForwardClick = {  },
                     onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
                     isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
                     onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
@@ -516,7 +526,7 @@ fun GoalDetailScreen(
                         menuExpanded = false
                         navController.navigate("edit_list_screen/${list?.id}")
                     },
-                    onShareList = { /* Not implemented */ },
+                    onShareList = {  },
                     onDeleteList = { viewModel.deleteCurrentList() },
                     menuExpanded = menuExpanded,
                     onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
@@ -529,13 +539,12 @@ fun GoalDetailScreen(
                     reminderParseResult = reminderParseResult,
                     onClearReminder = viewModel::onClearReminder,
                     isNerActive = uiState.nerState is NerState.Ready,
-
                     onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
                     isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
-
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .imePadding(),
+                    modifier =
+                        Modifier
+                            .navigationBarsPadding()
+                            .imePadding(),
                     onToggleProjectManagement = viewModel::onToggleProjectManagement,
                     onExportProjectState = viewModel::onExportProjectStateRequest,
                 )
@@ -543,15 +552,18 @@ fun GoalDetailScreen(
         },
     ) { paddingValues ->
         val calculatedSwipeEnabled = !isSelectionModeActive && !dragDropState.isDragging
-        Log.v(TAG, "РЕКОМПОЗИЦІЯ ЕКРАНУ: isSelectionModeActive=$isSelectionModeActive, dragDropState.isDragging=${dragDropState.isDragging}, calculatedSwipeEnabled=$calculatedSwipeEnabled")
+        Log.v(
+            TAG,
+            "РЕКОМПОЗИЦІЯ ЕКРАНУ: isSelectionModeActive=$isSelectionModeActive, dragDropState.isDragging=${dragDropState.isDragging}, calculatedSwipeEnabled=$calculatedSwipeEnabled",
+        )
 
         when (uiState.currentView) {
-
             ProjectViewMode.BACKLOG -> {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
                 ) {
                     AttachmentsSection(
                         attachments = attachmentItems,
@@ -563,16 +575,18 @@ fun GoalDetailScreen(
 
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
                     ) {
                         itemsIndexed(
                             items = draggableItems,
-                            key = { _, item -> item.item.id }
+                            key = { _, item -> item.item.id },
                         ) { index, content ->
                             val isSelected = content.item.id in uiState.selectedItemIds
-                            val isHighlighted = (uiState.itemToHighlight == content.item.id) ||
+                            val isHighlighted =
+                                (uiState.itemToHighlight == content.item.id) ||
                                     (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
                             InteractiveListItem(
@@ -590,19 +604,19 @@ fun GoalDetailScreen(
                                 onCreateInstanceRequest = {
                                     viewModel.itemActionHandler.onGoalActionSelected(
                                         GoalActionType.CreateInstance,
-                                        content
+                                        content,
                                     )
                                 },
                                 onMoveInstanceRequest = {
                                     viewModel.itemActionHandler.onGoalActionSelected(
                                         GoalActionType.MoveInstance,
-                                        content
+                                        content,
                                     )
                                 },
                                 onCopyGoalRequest = {
                                     viewModel.itemActionHandler.onGoalActionSelected(
                                         GoalActionType.CopyGoal,
-                                        content
+                                        content,
                                     )
                                 },
                                 modifier = Modifier,
@@ -612,7 +626,7 @@ fun GoalDetailScreen(
                                 },
                                 onStartTrackingRequest = {
                                     viewModel.onStartTrackingRequest(content)
-                                }
+                                },
                             ) { isDragging ->
                                 when (content) {
                                     is ListItemContent.GoalItem -> {
@@ -622,7 +636,7 @@ fun GoalDetailScreen(
                                             onToggle = { isChecked ->
                                                 viewModel.itemActionHandler.toggleGoalCompletedWithState(
                                                     content.goal,
-                                                    isChecked
+                                                    isChecked,
                                                 )
                                             },
                                             onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
@@ -631,7 +645,7 @@ fun GoalDetailScreen(
                                             onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                             emojiToHide = currentListContextEmojiToHide,
-                                            currentTimeMillis = currentTime
+                                            currentTimeMillis = currentTime,
                                         )
                                     }
                                     is ListItemContent.SublistItem -> {
@@ -642,20 +656,19 @@ fun GoalDetailScreen(
                                             onLongClick = { viewModel.toggleSelection(content.item.id) },
                                             onCheckedChange = { isCompleted ->
                                                 viewModel.onSublistCompletedChanged(content.sublist, isCompleted)
-                                            }
+                                            },
                                         )
                                     }
                                     else -> {
                                         Log.w(
                                             "BacklogScreen",
-                                            "Unsupported type in draggableItems list: ${content::class.simpleName}"
+                                            "Unsupported type in draggableItems list: ${content::class.simpleName}",
                                         )
                                     }
                                 }
                             }
                         }
                     }
-
                 }
             }
             ProjectViewMode.INBOX -> {
@@ -667,12 +680,10 @@ fun GoalDetailScreen(
                         onRecordClick = viewModel::onInboxRecordEditRequest,
                         onCopy = { text -> viewModel.copyInboxRecordText(text) },
                         listState = inboxListState,
-                        highlightedRecordId = uiState.inboxRecordToHighlight
+                        highlightedRecordId = uiState.inboxRecordToHighlight,
                     )
                 }
             }
-// --- File: BacklogScreen.kt ---
-
             ProjectViewMode.DASHBOARD -> {
                 ProjectDashboardView(
                     modifier = Modifier.padding(paddingValues),
@@ -680,11 +691,10 @@ fun GoalDetailScreen(
                     projectLogs = projectLogs,
                     onToggleProjectManagement = viewModel::onToggleProjectManagement,
                     onStatusUpdate = viewModel::onProjectStatusUpdate,
-                    projectTimeMetrics = uiState.projectTimeMetrics, // <-- ДОДАНО
-                    onRecalculateTime = viewModel::onRecalculateTime
+                    projectTimeMetrics = uiState.projectTimeMetrics,
+                    onRecalculateTime = viewModel::onRecalculateTime,
                 )
             }
-
         }
     }
 }
@@ -692,7 +702,7 @@ fun GoalDetailScreen(
 @Composable
 fun rememberSimpleDragDropState(
     lazyListState: LazyListState,
-    onMove: (Int, Int) -> Unit
+    onMove: (Int, Int) -> Unit,
 ): SimpleDragDropState {
     val scope = rememberCoroutineScope()
     return remember(lazyListState) {

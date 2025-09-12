@@ -1,7 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/ManageContextsScreen.kt
-
 package com.romankozak.forwardappmobile.ui.screens
-
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -31,18 +28,20 @@ fun ManageContextsScreen(
 
     val hasNameErrors by remember {
         derivedStateOf {
-            val names = contexts
-                .filter { !it.isReserved }
-                .map { it.name.lowercase().trim() }
-                .filter { it.isNotEmpty() }
+            val names =
+                contexts
+                    .filter { !it.isReserved }
+                    .map { it.name.lowercase().trim() }
+                    .filter { it.isNotEmpty() }
             names.size != names.distinct().size
         }
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text("Manage Contexts") },
@@ -66,15 +65,15 @@ fun ManageContextsScreen(
         val custom = contexts.filter { !it.isReserved }
 
         LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item { Spacer(Modifier.height(8.dp)) }
 
-            // Reserved section
             if (reserved.isNotEmpty()) {
                 item { SectionHeader("Reserved") }
                 items(reserved, key = { it.id }) { context ->
@@ -88,15 +87,15 @@ fun ManageContextsScreen(
                 }
             }
 
-            // Custom section
             item { SectionHeader("Custom") }
 
             if (custom.isEmpty()) {
                 item {
                     OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         Text(
@@ -119,7 +118,6 @@ fun ManageContextsScreen(
                 }
             }
 
-            // Add new custom context
             item {
                 Spacer(Modifier.height(8.dp))
                 FilledTonalButton(
@@ -145,9 +143,10 @@ private fun SectionHeader(title: String) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
         )
     }
 }
@@ -160,11 +159,13 @@ private fun ContextEditorItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isNameError = remember(context.name, contextsList.size) {
-        !context.isReserved && context.name.isNotBlank() && contextsList.any {
-            (it.id != context.id) && it.name.equals(context.name, ignoreCase = true)
+    val isNameError =
+        remember(context.name, contextsList.size) {
+            !context.isReserved && context.name.isNotBlank() &&
+                contextsList.any {
+                    (it.id != context.id) && it.name.equals(context.name, ignoreCase = true)
+                }
         }
-    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -209,8 +210,6 @@ private fun ContextEditorItem(
                 OutlinedTextField(
                     value = context.emoji,
                     onValueChange = { newText ->
-                        // Використовуємо BreakIterator, щоб знайти перший повний символ (графему),
-                        // що коректно працює зі складними емодзі на всіх версіях Android.
                         if (newText.isNotEmpty()) {
                             val breakIterator = java.text.BreakIterator.getCharacterInstance()
                             breakIterator.setText(newText)

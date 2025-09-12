@@ -22,7 +22,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun LogContent(logs: List<ProjectExecutionLog>, isManagementEnabled: Boolean) {
+fun LogContent(
+    logs: List<ProjectExecutionLog>,
+    isManagementEnabled: Boolean,
+) {
     if (!isManagementEnabled) {
         PlaceholderContent(text = "Увімкніть підтримку реалізації на Дашборді, щоб бачити історію.")
         return
@@ -31,14 +34,14 @@ fun LogContent(logs: List<ProjectExecutionLog>, isManagementEnabled: Boolean) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (logs.isEmpty()) {
             item {
                 Text(
                     "Історія проекту порожня.",
                     modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
             }
         } else {
@@ -51,46 +54,47 @@ fun LogContent(logs: List<ProjectExecutionLog>, isManagementEnabled: Boolean) {
 
 @Composable
 private fun LogEntryItem(log: ProjectExecutionLog) {
-    val icon = when (log.type) {
-        ProjectLogEntryType.STATUS_CHANGE -> Icons.Default.TrendingUp
-        ProjectLogEntryType.COMMENT -> Icons.Default.Comment
-        ProjectLogEntryType.AUTOMATIC -> Icons.Default.ReceiptLong
-        ProjectLogEntryType.INSIGHT -> Icons.Default.Lightbulb
-        ProjectLogEntryType.MILESTONE -> TODO()
-    }
+    val icon =
+        when (log.type) {
+            ProjectLogEntryType.STATUS_CHANGE -> Icons.Default.TrendingUp
+            ProjectLogEntryType.COMMENT -> Icons.Default.Comment
+            ProjectLogEntryType.AUTOMATIC -> Icons.Default.ReceiptLong
+            ProjectLogEntryType.INSIGHT -> Icons.Default.Lightbulb
+            ProjectLogEntryType.MILESTONE -> TODO()
+        }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = log.type.name,
                 modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = log.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
                 log.details?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
                     text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(log.timestamp)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = MaterialTheme.colorScheme.outline,
                 )
             }
         }
@@ -100,10 +104,11 @@ private fun LogEntryItem(log: ProjectExecutionLog) {
 @Composable
 internal fun PlaceholderContent(text: String) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

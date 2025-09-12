@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/notesEditors/MarkdownEditorViewer.kt
 package com.romankozak.forwardappmobile.ui.components.notesEditors
 
 import android.view.ViewGroup
@@ -32,66 +31,67 @@ fun MarkdownEditorViewer(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     isEditMode: Boolean,
-    modifier: Modifier = Modifier // Модифікатор буде застосовано до кореневого елемента
+    modifier: Modifier = Modifier, 
 ) {
     val scrollState = rememberScrollState()
 
     AnimatedContent(
-        // ВИПРАВЛЕНО: Ми застосовуємо ТІЛЬКИ той модифікатор, що передали ззовні.
-        // .fillMaxSize() та .imePadding() ВИДАЛЕНО.
         modifier = modifier,
         targetState = isEditMode,
         label = "MarkdownEditorViewerMode",
-        transitionSpec = { fadeIn() with fadeOut() }
+        transitionSpec = { fadeIn() with fadeOut() },
     ) { isEditing ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             if (isEditing) {
-                // Edit Mode
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    textStyle = TextStyle(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = MaterialTheme.typography.bodyLarge.fontSize
-                    ),
+                    textStyle =
+                        TextStyle(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                        ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     decorationBox = { innerTextField ->
                         if (value.text.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.description_placeholder_with_markdown_hint),
-                                style = TextStyle(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = MaterialTheme.typography.bodyLarge.fontSize
-                                )
+                                style =
+                                    TextStyle(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                                    ),
                             )
                         }
                         innerTextField()
                     },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState),
                 )
             } else {
-                // Preview Mode
                 AndroidView(
                     factory = { ctx ->
                         WebViewMarkdownViewer(ctx).apply {
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT
-                            )
+                            layoutParams =
+                                ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                )
                         }
                     },
                     update = { viewer ->
                         viewer.renderMarkdown(value.text)
                     },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }

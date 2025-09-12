@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlog/components/LinkItemRow.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments
 
 import androidx.compose.animation.animateColorAsState
@@ -33,11 +32,12 @@ fun LinkItemRow(
     endAction: @Composable () -> Unit = {},
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-            isSelected -> MaterialTheme.colorScheme.primaryContainer
-            else -> MaterialTheme.colorScheme.surface
-        },
+        targetValue =
+            when {
+                isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surface
+            },
         animationSpec = spring(),
         label = "link_item_background",
     )
@@ -54,27 +54,28 @@ fun LinkItemRow(
         onMoreActionsRequest = {},
         onGoalTransportRequest = {},
         onCopyContentRequest = {},
-        onStartTrackingRequest = {}, // ПОМИЛКА ВИПРАВЛЕНО
+        onStartTrackingRequest = {},
         backgroundColor = backgroundColor,
         content = {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .pointerInput(onClick, onLongClick) {
-                        detectTapGestures(
-                            onLongPress = { onLongClick() },
-                            onTap = { onClick() },
-                        )
-                    }
-                    .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .pointerInput(onClick, onLongClick) {
+                            detectTapGestures(
+                                onLongPress = { onLongClick() },
+                                onTap = { onClick() },
+                            )
+                        }.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = when (link.type) {
-                        LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
-                        LinkType.URL -> Icons.Default.Language
-                        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
-                    }, // ПОПЕРЕДЖЕННЯ ВИПРАВЛЕНО: видалено 'else'
+                    imageVector =
+                        when (link.type) {
+                            LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
+                            LinkType.URL -> Icons.Default.Language
+                            LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                        },
                     contentDescription = "Link icon",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
@@ -88,11 +89,12 @@ fun LinkItemRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = when (link.type) {
-                            LinkType.GOAL_LIST -> "Посилання на список"
-                            LinkType.URL -> link.target
-                            LinkType.OBSIDIAN -> "Нотатка Obsidian"
-                        }, // ПОПЕРЕДЖЕННЯ ВИПРАВЛЕНО: видалено 'else'
+                        text =
+                            when (link.type) {
+                                LinkType.GOAL_LIST -> "Посилання на список"
+                                LinkType.URL -> link.target
+                                LinkType.OBSIDIAN -> "Нотатка Obsidian"
+                            },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

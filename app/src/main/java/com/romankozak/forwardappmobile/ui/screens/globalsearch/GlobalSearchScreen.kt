@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/GlobalSearchScreen.kt
-
 package com.romankozak.forwardappmobile.ui.screens.globalsearch
 
 import android.content.Context
@@ -47,8 +45,8 @@ import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultIt
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
-import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ListSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.LinkSearchResultItem
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ListSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SublistSearchResultItem
 import kotlinx.coroutines.launch
@@ -58,7 +56,6 @@ import java.util.Date
 import java.util.Locale
 
 private const val TAG = "SEARCH_DEBUG"
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,22 +114,22 @@ fun GlobalSearchScreen(
                         )
                     }
                 },
-                // --- ЗМІНА: Додано індикатор кількості до actions ---
                 actions = {
                     AnimatedVisibility(
                         visible = !uiState.isLoading && uiState.results.isNotEmpty(),
                         enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
-                        exit = fadeOut() + scaleOut()
+                        exit = fadeOut() + scaleOut(),
                     ) {
                         ResultsCountBadge(
                             count = uiState.results.size,
-                            modifier = Modifier.padding(end = 16.dp)
+                            modifier = Modifier.padding(end = 16.dp),
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    ),
             )
         },
         floatingActionButton = {
@@ -149,7 +146,7 @@ fun GlobalSearchScreen(
                     },
                     shape = RoundedCornerShape(16.dp),
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 ) {
                     Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Нагору")
                 }
@@ -158,25 +155,28 @@ fun GlobalSearchScreen(
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.background,
-                        ),
-                        startY = 0.1f
-                    )
-                )
-                .padding(paddingValues),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush =
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        MaterialTheme.colorScheme.surface,
+                                        MaterialTheme.colorScheme.background,
+                                    ),
+                                startY = 0.1f,
+                            ),
+                    ).padding(paddingValues),
         ) {
             when {
                 uiState.isLoading -> {
                     LoadingContent(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
                     )
                 }
                 uiState.results.isEmpty() -> {
@@ -192,14 +192,15 @@ fun GlobalSearchScreen(
                         obsidianVaultName = obsidianVaultName,
                         context = context,
                         listState = listState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(alpha = resultsAlpha),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(alpha = resultsAlpha),
                     )
                 }
             }
 
-            // --- ЗМІНА: Індикатор кількості видалено звідси ---
+            
         }
     }
 }
@@ -243,17 +244,20 @@ private fun EmptySearchContent(
             modifier = Modifier.padding(32.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            ),
+                modifier =
+                    Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            brush =
+                                Brush.verticalGradient(
+                                    colors =
+                                        listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        ),
+                                ),
                         ),
-                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -266,9 +270,10 @@ private fun EmptySearchContent(
 
             Text(
                 text = "Нічого не знайдено",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                ),
+                style =
+                    MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
@@ -306,18 +311,22 @@ private fun SearchResultsContent(
         ) { index, result ->
             AnimatedVisibility(
                 visible = true,
-                enter = slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = 0.7f,
-                        stiffness = 300f
-                    ),
-                    initialOffsetY = { it / 2 }
-                ) + fadeIn(
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        delayMillis = index * 40
-                    )
-                ),
+                enter =
+                    slideInVertically(
+                        animationSpec =
+                            spring(
+                                dampingRatio = 0.7f,
+                                stiffness = 300f,
+                            ),
+                        initialOffsetY = { it / 2 },
+                    ) +
+                        fadeIn(
+                            animationSpec =
+                                tween(
+                                    durationMillis = 300,
+                                    delayMillis = index * 40,
+                                ),
+                        ),
             ) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
@@ -398,7 +407,7 @@ private fun SearchResultsContent(
                                     Log.d(TAG, "Navigating to Inbox. Route: $route")
 
                                     navController.navigate(route)
-                                }
+                                },
                             )
                         }
                     }
@@ -433,30 +442,31 @@ private fun ResultsCountBadge(
 }
 
 @Composable
-private fun ActivitySearchResultItem(
-    record: com.romankozak.forwardappmobile.data.database.models.ActivityRecord,
-) {
+private fun ActivitySearchResultItem(record: com.romankozak.forwardappmobile.data.database.models.ActivityRecord) {
     val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
         shape = RoundedCornerShape(16.dp),
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -472,9 +482,10 @@ private fun ActivitySearchResultItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = record.text,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                    ),
+                    style =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -492,9 +503,11 @@ private fun ActivitySearchResultItem(
     }
 }
 
-
-
-private fun handleRelatedLinkClick(link: RelatedLink, obsidianVaultName: String, context: Context) {
+private fun handleRelatedLinkClick(
+    link: RelatedLink,
+    obsidianVaultName: String,
+    context: Context,
+) {
     try {
         when (link.type) {
             LinkType.URL -> {
@@ -513,7 +526,6 @@ private fun handleRelatedLinkClick(link: RelatedLink, obsidianVaultName: String,
                 }
             }
             else -> {
-                // Не для GOAL_LIST або NOTE типів
             }
         }
     } catch (e: Exception) {

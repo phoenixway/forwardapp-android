@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/components/notesEditors/LimitedMarkdownEditor.kt
 package com.romankozak.forwardappmobile.ui.components.notesEditors
 
 import androidx.compose.animation.AnimatedVisibility
@@ -35,56 +34,50 @@ fun LimitedMarkdownEditor(
     onValueChange: (TextFieldValue) -> Unit,
     maxHeight: Dp,
     onExpandClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    // State to track if the text is overflowing. We check it again when the text changes.
     var isOverflowing by remember(value.text) { mutableStateOf(false) }
     val textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
     val density = LocalDensity.current
 
     OutlinedCard(modifier = modifier) {
         Column {
-            // This Box will handle the clipping and scrolling for the text field.
             Box(
-                modifier = Modifier
-                    .heightIn(max = maxHeight)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                modifier =
+                    Modifier
+                        .heightIn(max = maxHeight)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
             ) {
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
                     textStyle = textStyle,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                     cursorBrush = SolidColor(LocalContentColor.current),
                     onTextLayout = {
-                        // This callback is invoked when the text layout is calculated.
-                        // We convert maxHeight from Dp to Px to compare it with the text's height.
                         val maxHeightPx = with(density) { maxHeight.toPx() }
-                        // Update the overflow state based on the comparison.
                         isOverflowing = it.size.height > maxHeightPx
                     },
                     decorationBox = { innerTextField ->
-                        // Placeholder if the field is empty
                         if (value.text.isEmpty()) {
                             Text(
                                 text = "Notes...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         innerTextField()
-                    }
+                    },
                 )
             }
 
-            // Show the "More..." button only if there is an overflow.
-            // Animate its appearance and disappearance.
             AnimatedVisibility(visible = isOverflowing) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.CenterEnd
+                    contentAlignment = Alignment.CenterEnd,
                 ) {
                     TextButton(onClick = onExpandClick) {
                         Text("More...")

@@ -42,14 +42,14 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-// --- ОБ'ЄКТ-УТИЛІТА ДЛЯ РОБОТИ З ЧАСОМ ---
 private object ReminderTextUtil {
-
     private const val ONE_MINUTE_MILLIS = 60 * 1000L
     private const val ONE_HOUR_MILLIS = 60 * ONE_MINUTE_MILLIS
 
-    // --- ЗМІНЕНО: Функція тепер приймає поточний час 'now' для динамічного розрахунку ---
-    fun formatReminderTime(reminderTime: Long, now: Long): String {
+    fun formatReminderTime(
+        reminderTime: Long,
+        now: Long,
+    ): String {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = reminderTime
 
@@ -57,11 +57,13 @@ private object ReminderTextUtil {
         val formattedTime = timeFormat.format(calendar.time)
 
         if (reminderTime < now) {
-            val relativeTime = DateUtils.getRelativeTimeSpanString(
-                reminderTime,
-                now,
-                DateUtils.MINUTE_IN_MILLIS
-            ).toString()
+            val relativeTime =
+                DateUtils
+                    .getRelativeTimeSpanString(
+                        reminderTime,
+                        now,
+                        DateUtils.MINUTE_IN_MILLIS,
+                    ).toString()
             return "Пропущено ($relativeTime)"
         }
 
@@ -94,35 +96,38 @@ private object ReminderTextUtil {
         target.timeInMillis = time
 
         return tomorrow.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
-                tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
+            tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
     }
 }
 
-// --- КОМПОНЕНТ ДЛЯ ВІДОБРАЖЕННЯ НАГАДУВАННЯ ---
 @Composable
-private fun EnhancedReminderBadge(reminderTime: Long, currentTimeMillis: Long) { // --- ЗМІНЕНО: Додано currentTimeMillis
-    // --- ЗМІНЕНО: remember тепер залежить від currentTimeMillis, що змушує його перераховуватись ---
-    val reminderText = remember(reminderTime, currentTimeMillis) {
-        ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
-    }
-    // --- ЗМІНЕНО: Використовуємо currentTimeMillis для визначення, чи прострочене нагадування ---
+private fun EnhancedReminderBadge(
+    reminderTime: Long,
+    currentTimeMillis: Long,
+) {
+    val reminderText =
+        remember(reminderTime, currentTimeMillis) {
+            ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
+        }
     val isPastDue = reminderTime < currentTimeMillis
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (isPastDue) {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-        } else {
-            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
-        },
-        label = "reminder_badge_bg"
+        targetValue =
+            if (isPastDue) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+            },
+        label = "reminder_badge_bg",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isPastDue) {
-            MaterialTheme.colorScheme.onErrorContainer
-        } else {
-            MaterialTheme.colorScheme.onTertiaryContainer
-        },
-        label = "reminder_badge_content"
+        targetValue =
+            if (isPastDue) {
+                MaterialTheme.colorScheme.onErrorContainer
+            } else {
+                MaterialTheme.colorScheme.onTertiaryContainer
+            },
+        label = "reminder_badge_content",
     )
 
     Surface(
@@ -143,10 +148,11 @@ private fun EnhancedReminderBadge(reminderTime: Long, currentTimeMillis: Long) {
             )
             Text(
                 text = reminderText,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 10.sp,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 10.sp,
+                    ),
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -155,8 +161,10 @@ private fun EnhancedReminderBadge(reminderTime: Long, currentTimeMillis: Long) {
     }
 }
 
-
-private data class ParsedGoalData(val icons: List<String>, val mainText: String)
+private data class ParsedGoalData(
+    val icons: List<String>,
+    val mainText: String,
+)
 
 private fun parseTextAndExtractIcons(
     text: String,
@@ -167,16 +175,17 @@ private fun parseTextAndExtractIcons(
 
     val allMarkersToIcons = mutableMapOf<String, String>()
 
-    val hardcodedIconsData = mapOf(
-        "🔥" to listOf("@critical", "! ", "!"),
-        "⭐" to listOf("@day", "+"),
-        "📌" to listOf("@week", "++"),
-        "🗓️" to listOf("@month"),
-        "🎯" to listOf("+++ "),
-        "🔭" to listOf("~ ", "~"),
-        "✨" to listOf("@str"),
-        "🌫️" to listOf("@unclear"),
-    )
+    val hardcodedIconsData =
+        mapOf(
+            "🔥" to listOf("@critical", "! ", "!"),
+            "⭐" to listOf("@day", "+"),
+            "📌" to listOf("@week", "++"),
+            "🗓️" to listOf("@month"),
+            "🎯" to listOf("+++ "),
+            "🔭" to listOf("~ ", "~"),
+            "✨" to listOf("@str"),
+            "🌫️" to listOf("@unclear"),
+        )
     hardcodedIconsData.forEach { (icon, markers) ->
         markers.forEach { marker ->
             allMarkersToIcons[marker] = icon
@@ -214,16 +223,21 @@ fun EnhancedCustomCheckbox(
 
     val animatedColor by animateColorAsState(
         targetValue = if (checked) MaterialTheme.colorScheme.primary else Color.Transparent,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium,
+            ),
         label = "checkbox_color",
     )
 
     val animatedBorderColor by animateColorAsState(
-        targetValue = if (checked) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.outline,
+        targetValue =
+            if (checked) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outline
+            },
         label = "checkbox_border",
     )
 
@@ -234,33 +248,34 @@ fun EnhancedCustomCheckbox(
     )
 
     Box(
-        modifier = modifier
-            .size(16.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(4.dp))
-            .background(animatedColor)
-            .border(1.dp, animatedBorderColor, RoundedCornerShape(4.dp))
-            .clickable {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onCheckedChange(!checked)
-            }
-            .semantics {
-                role = Role.Checkbox
-                this.stateDescription = if (checked) "Виконано" else "Не виконано"
-            },
+        modifier =
+            modifier
+                .size(16.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }.clip(RoundedCornerShape(4.dp))
+                .background(animatedColor)
+                .border(1.dp, animatedBorderColor, RoundedCornerShape(4.dp))
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onCheckedChange(!checked)
+                }.semantics {
+                    role = Role.Checkbox
+                    this.stateDescription = if (checked) "Виконано" else "Не виконано"
+                },
         contentAlignment = Alignment.Center,
     ) {
         AnimatedVisibility(
             visible = checked,
-            enter = scaleIn(
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-            ) + fadeIn(),
-            exit = scaleOut(
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-            ) + fadeOut(),
+            enter =
+                scaleIn(
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                ) + fadeIn(),
+            exit =
+                scaleOut(
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                ) + fadeOut(),
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
@@ -278,12 +293,13 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
         ScoringStatus.ASSESSED -> {
             if (goal.displayScore > 0) {
                 val animatedColor by animateColorAsState(
-                    targetValue = when {
-                        goal.displayScore >= 80 -> Color(0xFF4CAF50)
-                        goal.displayScore >= 60 -> Color(0xFFFF9800)
-                        goal.displayScore >= 40 -> Color(0xFFFFEB3B)
-                        else -> Color(0xFFE91E63)
-                    },
+                    targetValue =
+                        when {
+                            goal.displayScore >= 80 -> Color(0xFF4CAF50)
+                            goal.displayScore >= 60 -> Color(0xFFFF9800)
+                            goal.displayScore >= 40 -> Color(0xFFFFEB3B)
+                            else -> Color(0xFFE91E63)
+                        },
                     label = "score_color",
                 )
 
@@ -295,18 +311,20 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
 
                 AnimatedVisibility(
                     visible = isVisible,
-                    enter = slideInHorizontally(
-                        initialOffsetX = { fullWidth -> -fullWidth },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
+                    enter =
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        ) + fadeIn(),
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = animatedColor.copy(alpha = 0.15f),
                         border = BorderStroke(0.6.dp, animatedColor.copy(alpha = 0.3f)),
-                        modifier = Modifier.semantics {
-                            contentDescription = "Оцінка: ${goal.displayScore} з 100"
-                        },
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription = "Оцінка: ${goal.displayScore} з 100"
+                            },
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
@@ -321,11 +339,12 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
                             )
                             Text(
                                 text = "${goal.displayScore}/100",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.2.sp,
-                                    fontSize = 10.sp,
-                                ),
+                                style =
+                                    MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.2.sp,
+                                        fontSize = 10.sp,
+                                    ),
                                 color = animatedColor,
                             )
                         }
@@ -337,18 +356,20 @@ fun EnhancedScoreStatusBadge(goal: Goal) {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier
-                    .semantics {
-                        contentDescription = "Неможливо оцінити"
-                    },
+                modifier =
+                    Modifier
+                        .semantics {
+                            contentDescription = "Неможливо оцінити"
+                        },
             ) {
                 Icon(
                     imageVector = Icons.Default.FlashOff,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(16.dp)
-                        .padding(3.dp),
+                    modifier =
+                        Modifier
+                            .size(16.dp)
+                            .padding(3.dp),
                 )
             }
         }
@@ -374,15 +395,24 @@ fun EnhancedRelatedLinkChip(
     val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 
     Surface(
-        modifier = Modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
-                    onTap = { onClick() },
-                )
-            }
-            .semantics { contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"; role = Role.Button },
+        modifier =
+            Modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }.pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        },
+                        onTap = { onClick() },
+                    )
+                }.semantics {
+                    contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"
+                    role = Role.Button
+                },
         shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
         border = BorderStroke(0.7.dp, borderColor),
@@ -393,22 +423,24 @@ fun EnhancedRelatedLinkChip(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
-                imageVector = when (link.type) {
-                    LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
-                    LinkType.URL -> Icons.Default.Link
-                    LinkType.OBSIDIAN -> Icons.Default.Book
-                },
+                imageVector =
+                    when (link.type) {
+                        LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
+                        LinkType.URL -> Icons.Default.Link
+                        LinkType.OBSIDIAN -> Icons.Default.Book
+                    },
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(12.dp),
             )
             Text(
                 text = link.displayName ?: link.target,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.15.sp,
-                    fontSize = 10.sp,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.15.sp,
+                        fontSize = 10.sp,
+                    ),
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -431,24 +463,26 @@ fun AnimatedContextEmoji(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = scaleIn(
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow,
-            ),
-        ) + fadeIn(),
+        enter =
+            scaleIn(
+                animationSpec =
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+            ) + fadeIn(),
         modifier = modifier,
     ) {
         Box(
-            modifier = Modifier
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                    shape = CircleShape,
-                )
-                .padding(4.dp)
-                .semantics {
-                    contentDescription = "Контекст: $emoji"
-                },
+            modifier =
+                Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        shape = CircleShape,
+                    ).padding(4.dp)
+                    .semantics {
+                        contentDescription = "Контекст: $emoji"
+                    },
         ) {
             Text(
                 text = emoji,
@@ -462,15 +496,15 @@ fun AnimatedContextEmoji(
 @Composable
 private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .background(
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                shape = CircleShape,
-            )
-            .padding(4.dp)
-            .semantics {
-                contentDescription = "Містить нотатку"
-            },
+        modifier =
+            modifier
+                .background(
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                    shape = CircleShape,
+                ).padding(4.dp)
+                .semantics {
+                    contentDescription = "Містить нотатку"
+                },
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
@@ -494,16 +528,18 @@ fun GoalItem(
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
-    currentTimeMillis: Long, // --- ЗМІНЕНО: Додано параметр currentTimeMillis ---
+    currentTimeMillis: Long,
 ) {
-    val parsedData = remember(goal.text, contextMarkerToEmojiMap) {
-        parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
-    }
+    val parsedData =
+        remember(goal.text, contextMarkerToEmojiMap) {
+            parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
+        }
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         EnhancedCustomCheckbox(
@@ -514,14 +550,15 @@ fun GoalItem(
         Spacer(modifier = Modifier.width(8.dp))
 
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .pointerInput(onItemClick, onLongClick) {
-                    detectTapGestures(
-                        onLongPress = { onLongClick() },
-                        onTap = { onItemClick() },
-                    )
-                },
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .pointerInput(onItemClick, onLongClick) {
+                        detectTapGestures(
+                            onLongPress = { onLongClick() },
+                            onTap = { onItemClick() },
+                        )
+                    },
         ) {
             MarkdownText(
                 text = parsedData.mainText,
@@ -530,15 +567,17 @@ fun GoalItem(
                 onTagClick = onTagClick,
                 onTextClick = onItemClick,
                 onLongClick = onLongClick,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    lineHeight = 16.sp,
-                    letterSpacing = 0.1.sp,
-                    fontSize = 12.sp,
-                    fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
-                ),
+                style =
+                    MaterialTheme.typography.bodySmall.copy(
+                        lineHeight = 16.sp,
+                        letterSpacing = 0.1.sp,
+                        fontSize = 12.sp,
+                        fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                    ),
             )
 
-            val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+            val hasStatusContent =
+                (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                     (goal.reminderTime != null) ||
                     (parsedData.icons.isNotEmpty()) ||
                     (!goal.description.isNullOrBlank()) ||
@@ -546,10 +585,11 @@ fun GoalItem(
 
             AnimatedVisibility(
                 visible = hasStatusContent,
-                enter = slideInVertically(
-                    initialOffsetY = { height -> -height },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                ) + fadeIn(),
+                enter =
+                    slideInVertically(
+                        initialOffsetY = { height -> -height },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    ) + fadeIn(),
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(6.dp))
@@ -558,11 +598,10 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        // --- ЗМІНЕНО: Відображення чіпа нагадування з передачею currentTimeMillis ---
                         goal.reminderTime?.let { time ->
                             EnhancedReminderBadge(
                                 reminderTime = time,
-                                currentTimeMillis = currentTimeMillis
+                                currentTimeMillis = currentTimeMillis,
                             )
                         }
 
@@ -579,9 +618,10 @@ fun GoalItem(
                                     }
                                     AnimatedVisibility(
                                         visible = delayedVisible,
-                                        enter = scaleIn(
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        ) + fadeIn(),
+                                        enter =
+                                            scaleIn(
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            ) + fadeIn(),
                                     ) {
                                         AnimatedContextEmoji(
                                             emoji = icon,
@@ -604,10 +644,11 @@ fun GoalItem(
                                 }
                                 AnimatedVisibility(
                                     visible = delayedVisible,
-                                    enter = slideInHorizontally(
-                                        initialOffsetX = { fullWidth -> fullWidth },
-                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    ) + fadeIn(),
+                                    enter =
+                                        slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> fullWidth },
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        ) + fadeIn(),
                                 ) {
                                     EnhancedRelatedLinkChip(
                                         link = link,
@@ -632,39 +673,41 @@ fun GoalItem(
     onLongClick: () -> Unit,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
-    currentTimeMillis: Long, // --- ЗМІНЕНО: Додано параметр currentTimeMillis ---
+    currentTimeMillis: Long,
 ) {
     val goal = goalContent.goal
 
-    val parsedData = remember(goal.text) {
-        parseTextAndExtractIcons(goal.text, emptyMap())
-    }
+    val parsedData =
+        remember(goal.text) {
+            parseTextAndExtractIcons(goal.text, emptyMap())
+        }
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         EnhancedCustomCheckbox(
             checked = goal.completed,
             onCheckedChange = onCheckedChange,
-            modifier = Modifier.padding(start = 8.dp)
+            modifier = Modifier.padding(start = 8.dp),
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .pointerInput(onClick, onLongClick) {
-                    detectTapGestures(
-                        onLongPress = { onLongClick() },
-                        onTap = { onClick() },
-                    )
-                }
-                .padding(vertical = 6.dp),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .pointerInput(onClick, onLongClick) {
+                        detectTapGestures(
+                            onLongPress = { onLongClick() },
+                            onTap = { onClick() },
+                        )
+                    }.padding(vertical = 6.dp),
         ) {
             Text(
                 text = parsedData.mainText,
@@ -675,7 +718,8 @@ fun GoalItem(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            val hasStatusContent = (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+            val hasStatusContent =
+                (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                     (goal.reminderTime != null) ||
                     (parsedData.icons.isNotEmpty()) ||
                     (!goal.description.isNullOrBlank()) ||
@@ -683,10 +727,11 @@ fun GoalItem(
 
             AnimatedVisibility(
                 visible = hasStatusContent,
-                enter = slideInVertically(
-                    initialOffsetY = { height -> -height },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                ) + fadeIn(),
+                enter =
+                    slideInVertically(
+                        initialOffsetY = { height -> -height },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    ) + fadeIn(),
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -695,11 +740,10 @@ fun GoalItem(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        // --- ЗМІНЕНО: Відображення чіпа нагадування з передачею currentTimeMillis ---
                         goal.reminderTime?.let { time ->
                             EnhancedReminderBadge(
                                 reminderTime = time,
-                                currentTimeMillis = currentTimeMillis
+                                currentTimeMillis = currentTimeMillis,
                             )
                         }
 
@@ -714,9 +758,10 @@ fun GoalItem(
                                 }
                                 AnimatedVisibility(
                                     visible = delayedVisible,
-                                    enter = scaleIn(
-                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    ) + fadeIn(),
+                                    enter =
+                                        scaleIn(
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        ) + fadeIn(),
                                 ) {
                                     AnimatedContextEmoji(
                                         emoji = icon,
@@ -739,14 +784,15 @@ fun GoalItem(
                                 }
                                 AnimatedVisibility(
                                     visible = delayedVisible,
-                                    enter = slideInHorizontally(
-                                        initialOffsetX = { fullWidth -> fullWidth },
-                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    ) + fadeIn(),
+                                    enter =
+                                        slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> fullWidth },
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        ) + fadeIn(),
                                 ) {
                                     EnhancedRelatedLinkChip(
                                         link = link,
-                                        onClick = { /* Handle click if needed */ },
+                                        onClick = {  },
                                     )
                                 }
                             }

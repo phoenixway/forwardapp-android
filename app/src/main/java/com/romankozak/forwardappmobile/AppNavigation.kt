@@ -30,34 +30,28 @@ import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 
 @Composable
-fun AppNavigation(
-    syncDataViewModel: SyncDataViewModel,
-) {
+fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
     val navController = rememberNavController()
-    // val navGraphRoute = "app_graph" // Більше не потрібен для цього механізму
-
-
     NavHost(
         navController = navController,
         startDestination = "goal_lists_screen",
-        // route = navGraphRoute // Більше не потрібен для цього механізму
-
     ) {
         composable("goal_lists_screen") {
             val viewModel: GoalListViewModel = hiltViewModel()
             GoalListScreen(
                 navController = navController,
                 syncDataViewModel = syncDataViewModel,
-                viewModel = viewModel
+                viewModel = viewModel,
             )
         }
 
         composable("settings_screen") { backStackEntry ->
-            val goalListViewModel: GoalListViewModel = hiltViewModel(
-                remember(backStackEntry) {
-                    navController.getBackStackEntry("goal_lists_screen")
-                }
-            )
+            val goalListViewModel: GoalListViewModel =
+                hiltViewModel(
+                    remember(backStackEntry) {
+                        navController.getBackStackEntry("goal_lists_screen")
+                    },
+                )
 
             val planningSettings by goalListViewModel.planningSettingsState.collectAsState()
             val vaultName by goalListViewModel.obsidianVaultName.collectAsState()
@@ -78,18 +72,19 @@ fun AppNavigation(
                         dailyTag,
                         mediumTag,
                         longTag,
-                        newVaultName
+                        newVaultName,
                     )
-                }
+                },
             )
         }
 
         composable("manage_contexts_screen") { backStackEntry ->
-            val goalListViewModel: GoalListViewModel = hiltViewModel(
-                remember(backStackEntry) {
-                    navController.getBackStackEntry("goal_lists_screen")
-                }
-            )
+            val goalListViewModel: GoalListViewModel =
+                hiltViewModel(
+                    remember(backStackEntry) {
+                        navController.getBackStackEntry("goal_lists_screen")
+                    },
+                )
             val allContexts by goalListViewModel.allContextsForDialog.collectAsState()
 
             ManageContextsScreen(
@@ -98,7 +93,7 @@ fun AppNavigation(
                 onSave = { updatedContexts ->
                     goalListViewModel.saveAllContexts(updatedContexts)
                     navController.popBackStack()
-                }
+                },
             )
         }
 
@@ -108,107 +103,117 @@ fun AppNavigation(
 
         composable(
             route = "goal_edit_screen/{listId}?goalId={goalId}",
-            arguments = listOf(
-                navArgument("listId") { type = NavType.StringType },
-                navArgument("goalId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
+            arguments =
+                listOf(
+                    navArgument("listId") { type = NavType.StringType },
+                    navArgument("goalId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
         ) {
             GoalEditScreen(
                 navController = navController,
-                viewModel = hiltViewModel()
+                viewModel = hiltViewModel(),
             )
         }
 
         composable(
             route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}",
-            arguments = listOf(
-                navArgument("listId") {
-                    type = NavType.StringType
-                },
-                navArgument("goalId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("itemIdToHighlight") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("inboxRecordIdToHighlight") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
+            arguments =
+                listOf(
+                    navArgument("listId") {
+                        type = NavType.StringType
+                    },
+                    navArgument("goalId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("itemIdToHighlight") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("inboxRecordIdToHighlight") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
         ) {
             GoalDetailScreen(navController = navController)
         }
 
         composable(
             route = "edit_list_screen/{listId}",
-            arguments = listOf(
-                navArgument("listId") { type = NavType.StringType }
-            )
+            arguments =
+                listOf(
+                    navArgument("listId") { type = NavType.StringType },
+                ),
         ) { backStackEntry ->
             EditListScreen(
                 navController = navController,
-                listId = backStackEntry.arguments?.getString("listId") ?: ""
+                listId = backStackEntry.arguments?.getString("listId") ?: "",
             )
         }
 
         composable(
             "global_search_screen/{query}",
-            arguments = listOf(navArgument("query") { type = NavType.StringType })
+            arguments = listOf(navArgument("query") { type = NavType.StringType }),
         ) {
             GlobalSearchScreen(
                 viewModel = hiltViewModel(),
-                navController = navController
+                navController = navController,
             )
         }
 
         composable("sync_screen") {
             SyncScreen(
                 syncDataViewModel = syncDataViewModel,
-                onSyncComplete = { navController.popBackStack() }
+                onSyncComplete = { navController.popBackStack() },
             )
         }
         composable(
             route = "note_edit_screen/{listId}/{noteId}",
-            arguments = listOf(
-                navArgument("listId") { type = NavType.StringType },
-                navArgument("noteId") { type = NavType.StringType }
-            )
+            arguments =
+                listOf(
+                    navArgument("listId") { type = NavType.StringType },
+                    navArgument("noteId") { type = NavType.StringType },
+                ),
         ) {
             NoteEditScreen(navController = navController)
         }
 
         composable(
             route = "list_chooser_screen/{title}?currentParentId={currentParentId}&disabledIds={disabledIds}",
-            arguments = listOf(
-                navArgument("title") { type = NavType.StringType },
-                navArgument("currentParentId") {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument("disabledIds") {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
+            arguments =
+                listOf(
+                    navArgument("title") { type = NavType.StringType },
+                    navArgument("currentParentId") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("disabledIds") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                ),
         ) { backStackEntry ->
             val viewModel: FilterableListChooserViewModel = hiltViewModel()
             val TAG = "MOVE_DEBUG"
 
-            val title = backStackEntry.arguments?.getString("title")?.let {
-                URLDecoder.decode(it, "UTF-8")
-            } ?: "Select a list"
+            val title =
+                backStackEntry.arguments?.getString("title")?.let {
+                    URLDecoder.decode(it, "UTF-8")
+                } ?: "Select a list"
 
-            val disabledIds = backStackEntry.arguments?.getString("disabledIds")?.split(",")?.toSet() ?: emptySet()
+            val disabledIds =
+                backStackEntry.arguments
+                    ?.getString("disabledIds")
+                    ?.split(",")
+                    ?.toSet() ?: emptySet()
             val currentParentIdArg = backStackEntry.arguments?.getString("currentParentId")
             val currentParentId = if (currentParentIdArg == "root") null else currentParentIdArg
 
@@ -217,12 +222,10 @@ fun AppNavigation(
             Log.d(TAG, "[Nav] Received currentParentId: '$currentParentId' (from arg '$currentParentIdArg')")
             Log.d(TAG, "[Nav] Received disabledIds: $disabledIds")
 
-
             val chooserUiState by viewModel.chooserState.collectAsStateWithLifecycle()
             val filterText by viewModel.filterText.collectAsStateWithLifecycle()
             val expandedIds by viewModel.expandedIds.collectAsStateWithLifecycle()
             val showDescendants by viewModel.showDescendants.collectAsStateWithLifecycle()
-
 
             FilterableListChooserScreen(
                 title = title,
@@ -244,7 +247,7 @@ fun AppNavigation(
                 disabledIds = disabledIds,
                 onAddNewList = viewModel::addNewList,
                 showDescendants = showDescendants,
-                onToggleShowDescendants = viewModel::toggleShowDescendants
+                onToggleShowDescendants = viewModel::toggleShowDescendants,
             )
         }
         chatScreen(navController)

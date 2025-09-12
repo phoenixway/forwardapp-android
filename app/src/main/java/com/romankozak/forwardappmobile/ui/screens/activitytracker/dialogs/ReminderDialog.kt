@@ -32,14 +32,13 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 public fun ReminderDialog(
     record: ActivityRecord?,
     onDismiss: () -> Unit,
     onSetReminder: (Int, Int, Int, Int, Int) -> Unit,
-    onClearReminder: () -> Unit
+    onClearReminder: () -> Unit,
 ) {
     if (record == null) return
 
@@ -68,35 +67,38 @@ public fun ReminderDialog(
 
                 if (currentReminderTime != null) {
                     Text(
-                        "Поточне нагадування: ${SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(currentReminderTime))}",
+                        "Поточне нагадування: ${SimpleDateFormat(
+                            "dd.MM.yyyy HH:mm",
+                            Locale.getDefault(),
+                        ).format(Date(currentReminderTime))}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     OutlinedButton(
                         onClick = { showDatePicker = true },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text(
                             selectedDate?.let {
                                 SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(it))
-                            } ?: "Дата"
+                            } ?: "Дата",
                         )
                     }
 
                     OutlinedButton(
                         onClick = { showTimePicker = true },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text(
                             selectedTime?.let { (hour, minute) ->
                                 String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
-                            } ?: "Час"
+                            } ?: "Час",
                         )
                     }
                 }
@@ -121,11 +123,11 @@ public fun ReminderDialog(
                                 calendar.get(Calendar.MONTH),
                                 calendar.get(Calendar.DAY_OF_MONTH),
                                 time.first,
-                                time.second
+                                time.second,
                             )
                         }
                     },
-                    enabled = selectedDate != null && selectedTime != null
+                    enabled = selectedDate != null && selectedTime != null,
                 ) {
                     Text("Встановити")
                 }
@@ -135,13 +137,14 @@ public fun ReminderDialog(
             TextButton(onClick = onDismiss) {
                 Text("Відмінити")
             }
-        }
+        },
     )
 
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate ?: System.currentTimeMillis()
-        )
+        val datePickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis = selectedDate ?: System.currentTimeMillis(),
+            )
 
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -157,7 +160,7 @@ public fun ReminderDialog(
                 TextButton(onClick = { showDatePicker = false }) {
                     Text("Скасувати")
                 }
-            }
+            },
         ) {
             DatePicker(state = datePickerState)
         }
@@ -165,11 +168,12 @@ public fun ReminderDialog(
 
     if (showTimePicker) {
         val currentTime = selectedTime ?: (calendar.get(Calendar.HOUR_OF_DAY) to calendar.get(Calendar.MINUTE))
-        val timePickerState = rememberTimePickerState(
-            initialHour = currentTime.first,
-            initialMinute = currentTime.second,
-            is24Hour = true
-        )
+        val timePickerState =
+            rememberTimePickerState(
+                initialHour = currentTime.first,
+                initialMinute = currentTime.second,
+                is24Hour = true,
+            )
 
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
@@ -188,7 +192,7 @@ public fun ReminderDialog(
             },
             text = {
                 TimePicker(state = timePickerState)
-            }
+            },
         )
     }
 }
