@@ -14,21 +14,26 @@ interface ActivityRecordDao {
     @Update
     suspend fun update(record: ActivityRecord)
 
-    // ✨ ОНОВЛЕНО: Змінено сортування на ASC, щоб старіші записи були першими
     @Query("SELECT * FROM activity_records ORDER BY createdAt ASC")
     fun getAllRecordsStream(): Flow<List<ActivityRecord>>
 
-    // Цей запит тепер працюватиме, оскільки модель ActivityRecord оновлена
     @Query("SELECT * FROM activity_records WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
     suspend fun findLastOngoingActivity(): ActivityRecord?
 
-    // --- ПОЧАТОК ЗМІНИ: Нові методи для пошуку активних записів для цілей та списків ---
     @Query("SELECT * FROM activity_records WHERE goal_id = :goalId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
     suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord?
 
     @Query("SELECT * FROM activity_records WHERE list_id = :listId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
     suspend fun findLastOngoingActivityForList(listId: String): ActivityRecord?
-    // --- КІНЕЦЬ ЗМІНИ ---
+
+    @Query("""
+        SELECT * FROM activity_records
+        WHERE (list_id = :listId OR goal_id IN (:goalIds))
+        AND createdAt BETWEEN :startTime AND :endTime
+        AND startTime IS NOT NULL AND endTime IS NOT NULL
+    """)
+    suspend fun getCompletedActivitiesForProject(listId: String, goalIds: List<String>, startTime: Long, endTime: Long): List<ActivityRecord>
+
 
     @Query("DELETE FROM activity_records")
     suspend fun clearAll()
@@ -39,8 +44,6 @@ interface ActivityRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<ActivityRecord>)
 
-    // --- ОНОВЛЕНО: Новий метод для ефективного повнотекстового пошуку (FTS) ---
-    // Запит знаходить збіги в FTS-таблиці та повертає повні об'єкти з основної таблиці
     @Query("""
         SELECT ar.* FROM activity_records AS ar
         JOIN activity_records_fts AS fts ON ar.id = fts.rowid
@@ -48,4 +51,12 @@ interface ActivityRecordDao {
         ORDER BY ar.createdAt DESC
     """)
     suspend fun search(query: String): List<ActivityRecord>
+
+    @Query("""
+    SELECT * FROM activity_records
+    WHERE (list_id = :listId OR goal_id IN (:goalIds))
+    AND startTime IS NOT NULL AND endTime IS NOT NULL
+""")
+    suspend fun getAllCompletedActivitiesForProject(listId: String, goalIds: List<String>): List<ActivityRecord>
+
 }

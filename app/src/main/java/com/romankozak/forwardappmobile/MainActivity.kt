@@ -26,10 +26,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import java.util.Calendar
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -37,12 +42,17 @@ class MainActivity : ComponentActivity() {
     private val syncDataViewModel: SyncDataViewModel by viewModels()
     private val tag = "MainActivity"
 
+    @Inject
+    lateinit var goalRepository: GoalRepository
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         Log.d(tag, "MainActivity: onCreate called")
         handleReminderIntent(intent)
+        checkAndLogMissedDays()
 
         setContent {
             ForwardAppMobileTheme {
@@ -77,6 +87,39 @@ class MainActivity : ComponentActivity() {
             setIntent(cleanIntent)
         }
     }
+
+    private fun checkAndLogMissedDays() {
+        lifecycleScope.launch {
+            val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val lastLogTime = prefs.getLong("last_summary_log_time", 0L)
+
+            val lastLogCalendar = Calendar.getInstance().apply { timeInMillis = lastLogTime }
+            val todayCalendar = Calendar.getInstance()
+
+            // Якщо остання дата логування раніше, ніж сьогодні
+            if (lastLogCalendar.get(Calendar.YEAR) < todayCalendar.get(Calendar.YEAR) ||
+                lastLogCalendar.get(Calendar.DAY_OF_YEAR) < todayCalendar.get(Calendar.DAY_OF_YEAR)) {
+
+                // Починаємо з дня, наступного за днем останнього логу
+                val dayToProcess = lastLogCalendar.apply { add(Calendar.DAY_OF_YEAR, 1) }
+
+                // Створюємо звіти для всіх пропущених днів до вчора включно
+                while (dayToProcess.before(todayCalendar)) {
+                    // Тут вам потрібно отримати ID всіх проектів, для яких треба вести лог
+                    // Для прикладу, я захардкодив один ID
+                    val projectId = "your_project_id_to_log" // TODO: Замініть на реальну логіку отримання ID
+
+                    goalRepository.logProjectTimeSummaryForDate(projectId, dayToProcess)
+
+                    dayToProcess.add(Calendar.DAY_OF_YEAR, 1)
+                }
+
+                // Зберігаємо поточний час як час останнього логування
+                prefs.edit().putLong("last_summary_log_time", System.currentTimeMillis()).apply()
+            }
+        }
+    }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

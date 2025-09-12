@@ -111,4 +111,18 @@ class ActivityRepository @Inject constructor(
     suspend fun searchActivities(query: String): List<ActivityRecord> {
         return activityRecordDao.search(query)
     }
+
+    suspend fun getCompletedActivitiesForProject(listId: String, goalIds: List<String>, startTime: Long, endTime: Long): List<ActivityRecord> {
+        return activityRecordDao.getCompletedActivitiesForProject(listId, goalIds, startTime, endTime)
+    }
+
+
+    suspend fun getAllCompletedActivitiesForProject(
+        projectId: String,
+        goalIds: List<String>
+    ): List<ActivityRecord> { // ВИПРАВЛЕНО: Додано правильний тип повернення
+        // ВИПРАВЛЕНО: Викликається новий метод з DAO, який не потребує startTime та endTime
+        return activityRecordDao.getAllCompletedActivitiesForProject(projectId, goalIds)
+    }
+
 }

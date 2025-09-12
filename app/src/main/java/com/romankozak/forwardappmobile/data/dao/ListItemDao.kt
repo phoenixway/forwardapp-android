@@ -37,8 +37,6 @@ interface ListItemDao {
     @Query("SELECT * FROM list_items")
     suspend fun getAll(): List<ListItem>
 
-    // ... існуючі методи в ListItemDao
-
     @Query("SELECT COUNT(*) FROM list_items WHERE entityId = :entityId AND listId = :listId")
     suspend fun getLinkCount(entityId: String, listId: String): Int
 
@@ -50,7 +48,16 @@ interface ListItemDao {
 
     @Query("SELECT * FROM list_items WHERE listId = :listId ORDER BY item_order ASC, id ASC")
     suspend fun getItemsForListSyncForDebug(listId: String): List<ListItem>
-    // У ListItemDao.kt
+
     @Query("DELETE FROM list_items")
     suspend fun deleteAll()
+
+    // --- ПОЧАТОК ЗМІНИ: Новий метод для отримання ID завдань у списку ---
+    /**
+     * Повертає список ID сутностей, які є завданнями (GOAL) у вказаному списку.
+     * Це необхідно для пошуку всіх записів активності, пов'язаних із завданнями проекту.
+     */
+    @Query("SELECT entityId FROM list_items WHERE listId = :listId AND itemType = 'GOAL'")
+    suspend fun getGoalIdsForList(listId: String): List<String>
+    // --- КІНЕЦЬ ЗМІНИ ---
 }
