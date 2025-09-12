@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
     kotlin("kapt")
+    id("io.gitlab.arturbosch.detekt")
+
 }
 
 android {

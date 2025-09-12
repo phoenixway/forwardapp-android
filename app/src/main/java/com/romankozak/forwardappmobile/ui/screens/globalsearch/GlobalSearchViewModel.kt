@@ -3,8 +3,8 @@ package com.romankozak.forwardappmobile.ui.screens.globalsearch
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,47 +17,45 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class GlobalSearchUiState(
-    // MODIFIED: The list now holds the new sealed item type.
     val results: List<GlobalSearchResultItem> = emptyList(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
 )
 
 @HiltViewModel
-class GlobalSearchViewModel @Inject constructor(
-    private val goalRepository: GoalRepository,
-    // ADDED: Inject SettingsRepository to get Obsidian vault name.
-    private val settingsRepository: SettingsRepository,
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
+class GlobalSearchViewModel
+    @Inject
+    constructor(
+        private val goalRepository: GoalRepository,
+        private val settingsRepository: SettingsRepository,
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        val query: String = savedStateHandle.get<String>("query") ?: ""
 
-    val query: String = savedStateHandle.get<String>("query") ?: ""
+        private val _uiState = MutableStateFlow(GlobalSearchUiState())
+        val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow(GlobalSearchUiState())
-    val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
+        val obsidianVaultName: StateFlow<String> =
+            settingsRepository.obsidianVaultNameFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    // ADDED: Expose Obsidian vault name for the UI to handle obsidian:// links.
-    val obsidianVaultName: StateFlow<String> = settingsRepository.obsidianVaultNameFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    init {
-        performSearch()
-    }
-
-    private fun performSearch() {
-        if (query.isBlank()) {
-            _uiState.update { it.copy(isLoading = false) }
-            return
+        init {
+            performSearch()
         }
 
-        viewModelScope.launch {
-            // MODIFIED: This repository method now returns a list of GlobalSearchResultItem.
-            val results = goalRepository.searchGoalsGlobal("%$query%")
+        private fun performSearch() {
+            if (query.isBlank()) {
+                _uiState.update { it.copy(isLoading = false) }
+                return
+            }
 
-            val distinctResults = results.distinct()
+            viewModelScope.launch {
+                val results = goalRepository.searchGoalsGlobal("%$query%")
 
-            _uiState.update {
-                it.copy(results = distinctResults, isLoading = false)
+                val distinctResults = results.distinct()
+
+                _uiState.update {
+                    it.copy(results = distinctResults, isLoading = false)
+                }
             }
         }
     }
-}

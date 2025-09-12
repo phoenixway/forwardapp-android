@@ -1,4 +1,3 @@
-// file: ListTitleBar.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
 import androidx.compose.animation.AnimatedVisibility
@@ -37,8 +36,8 @@ import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 
 @Composable
-private fun getStatusVisuals(status: ProjectStatus): StatusVisuals {
-    return when (status) {
+private fun getStatusVisuals(status: ProjectStatus): StatusVisuals =
+    when (status) {
         ProjectStatus.NO_PLAN -> StatusVisuals("⚠", Color(0xFFFF9800).copy(alpha = 0.3f))
         ProjectStatus.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
         ProjectStatus.IN_PROGRESS -> StatusVisuals("▶", Color(0xFF2196F3).copy(alpha = 0.3f))
@@ -46,27 +45,28 @@ private fun getStatusVisuals(status: ProjectStatus): StatusVisuals {
         ProjectStatus.ON_HOLD -> StatusVisuals("⏸", Color(0xFFFF9800).copy(alpha = 0.3f))
         ProjectStatus.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
     }
-}
 
-// --- NEW ---
-// Компактний індикатор, що відображає лише емодзі статусу.
 @Composable
-private fun BriefStatusIndicator(status: ProjectStatus, modifier: Modifier = Modifier) {
+private fun BriefStatusIndicator(
+    status: ProjectStatus,
+    modifier: Modifier = Modifier,
+) {
     val visuals = getStatusVisuals(status = status)
 
     Box(
-        modifier = modifier
-            .size(20.dp)
-            .background(
-                color = visuals.color.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(6.dp)
-            ),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .size(20.dp)
+                .background(
+                    color = visuals.color.copy(alpha = 0.8f),
+                    shape = RoundedCornerShape(6.dp),
+                ),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = visuals.emoji,
             fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
         )
     }
 }
@@ -74,77 +74,68 @@ private fun BriefStatusIndicator(status: ProjectStatus, modifier: Modifier = Mod
 @Composable
 fun ListTitleBar(
     goalList: GoalList?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    // --- MODIFIED ---
-    // Стан для керування видимістю детального індикатора статусу.
     var isStatusExpanded by remember { mutableStateOf(false) }
 
-    // Умова для перевірки, чи потрібно відображати інформацію про статус.
     val isProjectManagementActive = goalList?.isProjectManagementEnabled == true && goalList.projectStatus != null
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = Color.Transparent
+        color = Color.Transparent,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // --- MODIFIED ---
-            // Заголовок і короткий індикатор тепер знаходяться в клікабельному Row.
-            Row(
-                modifier = Modifier
+            modifier =
+                Modifier
                     .fillMaxWidth()
-                    // Рядок стає клікабельним для перемикання детального перегляду,
-                    // тільки якщо управління проєктом активне.
-                    .then(
-                        if (isProjectManagementActive) {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null // Без ефекту хвилі для чистого вигляду.
-                            ) {
-                                isStatusExpanded = !isStatusExpanded
-                            }
-                        } else Modifier
-                    )
-                    .padding(horizontal = 28.dp),
+                    .padding(vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isProjectManagementActive) {
+                                Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                ) {
+                                    isStatusExpanded = !isStatusExpanded
+                                }
+                            } else {
+                                Modifier
+                            },
+                        ).padding(horizontal = 28.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.Center,
             ) {
                 Text(
                     text = goalList?.name ?: stringResource(id = R.string.loading),
-                    // Використовуємо вагу, щоб текст міг стискатися, якщо заголовок довгий,
-                    // не виштовхуючи індикатор.
                     modifier = Modifier.weight(1f, fill = false),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.5.sp
-                    ),
+                    style =
+                        MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp,
+                        ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
 
-                // Показуємо короткий індикатор статусу поруч із заголовком, якщо управління проєктом активне.
                 if (isProjectManagementActive) {
                     Spacer(Modifier.width(8.dp))
                     BriefStatusIndicator(status = goalList!!.projectStatus!!)
                 }
             }
 
-            // --- MODIFIED ---
-            // Видимість детального індикатора тепер контролюється станом `isStatusExpanded`.
             AnimatedVisibility(visible = isStatusExpanded) {
-                // Все ще перевіряємо статус на null як запобіжний захід.
                 if (goalList?.projectStatus != null) {
                     ProjectStatusIndicator(
                         status = goalList.projectStatus,
-                        statusText = goalList.projectStatusText
+                        statusText = goalList.projectStatusText,
                     )
                 }
             }

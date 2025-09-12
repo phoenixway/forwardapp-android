@@ -1,4 +1,3 @@
-// File: ui/screens/backlogs/components/GoalListBottomNav.kt
 package com.romankozak.forwardappmobile.ui.screens.backlogs.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -38,95 +37,93 @@ internal fun GoalListBottomNav(
     currentMode: PlanningMode,
     onPlanningModeChange: (PlanningMode) -> Unit,
     onContextsClick: () -> Unit,
-    onRecentsClick: () -> Unit
+    onRecentsClick: () -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
 
     Surface(
         tonalElevation = 6.dp,
         shadowElevation = 8.dp,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    MaterialTheme.colorScheme.surface,
-                    RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                )
-                .padding(horizontal = 8.dp, vertical = 8.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surface,
+                        RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                    ).padding(horizontal = 8.dp, vertical = 8.dp),
         ) {
-            // Новий верхній ряд - Режими планування (менші)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                SmallBottomNavButton( // Використовуємо новий компонент для менших кнопок
+                SmallBottomNavButton(
                     text = "All",
                     icon = Icons.AutoMirrored.Outlined.List,
                     isSelected = currentMode is PlanningMode.All,
-                    onClick = { onPlanningModeChange(PlanningMode.All) }
+                    onClick = { onPlanningModeChange(PlanningMode.All) },
                 )
 
                 SmallBottomNavButton(
                     text = "Daily",
                     icon = Icons.Outlined.Today,
                     isSelected = currentMode is PlanningMode.Daily,
-                    onClick = { onPlanningModeChange(PlanningMode.Daily) }
+                    onClick = { onPlanningModeChange(PlanningMode.Daily) },
                 )
 
                 SmallBottomNavButton(
                     text = "Medium",
                     icon = Icons.Outlined.QueryStats,
                     isSelected = currentMode is PlanningMode.Medium,
-                    onClick = { onPlanningModeChange(PlanningMode.Medium) }
+                    onClick = { onPlanningModeChange(PlanningMode.Medium) },
                 )
 
                 SmallBottomNavButton(
                     text = "Long",
                     icon = Icons.Outlined.TrackChanges,
                     isSelected = currentMode is PlanningMode.Long,
-                    onClick = { onPlanningModeChange(PlanningMode.Long) }
+                    onClick = { onPlanningModeChange(PlanningMode.Long) },
                 )
 
-                // More меню
                 Box {
-                    SmallBottomNavButton( // Також менша кнопка для "More"
+                    SmallBottomNavButton(
                         text = "More",
                         icon = Icons.Outlined.MoreHoriz,
                         onClick = { showMoreMenu = !showMoreMenu },
-                        isSelected = showMoreMenu
+                        isSelected = showMoreMenu,
                     )
 
-                    // Dropdown menu (залишається без змін)
                     DropdownMenu(
                         expanded = showMoreMenu,
                         onDismissRequest = { showMoreMenu = false },
                         offset = DpOffset((-16).dp, (-8).dp),
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.surfaceContainer,
-                                RoundedCornerShape(16.dp)
-                            )
-                            .clip(RoundedCornerShape(16.dp))
+                        modifier =
+                            Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceContainer,
+                                    RoundedCornerShape(16.dp),
+                                ).clip(RoundedCornerShape(16.dp)),
                     ) {
                         DropdownMenuItem(
                             text = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Icon(
                                         Icons.Outlined.Search,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                     Text(
                                         "Global Search",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        )
+                                        style =
+                                            MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = FontWeight.Medium,
+                                            ),
                                     )
                                 }
                             },
@@ -134,158 +131,158 @@ internal fun GoalListBottomNav(
                                 onGlobalSearchClick()
                                 showMoreMenu = false
                             },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp),
                         )
 
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                         )
 
                         DropdownMenuItem(
                             text = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Icon(
                                         Icons.Outlined.Lightbulb,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary
+                                        tint = MaterialTheme.colorScheme.secondary,
                                     )
                                     Column {
                                         Text(
                                             "AI Insights",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontWeight = FontWeight.Medium
-                                            )
+                                            style =
+                                                MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Medium,
+                                                ),
                                         )
                                         Text(
                                             "Smart recommendations",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                         )
                                     }
                                 }
                             },
                             onClick = {
-                                // TODO: Navigate to AI Insights
                                 showMoreMenu = false
                             },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp),
                         )
 
                         DropdownMenuItem(
                             text = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Icon(
                                         Icons.Outlined.AccountBox,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.tertiary
+                                        tint = MaterialTheme.colorScheme.tertiary,
                                     )
                                     Column {
                                         Text(
                                             "AI Inbox",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontWeight = FontWeight.Medium
-                                            )
+                                            style =
+                                                MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Medium,
+                                                ),
                                         )
                                         Text(
                                             "Messages from AI",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                         )
                                     }
                                 }
                             },
                             onClick = {
-                                // TODO: Navigate to AI Inbox
                                 showMoreMenu = false
                             },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp),
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp)) // Збільшений відступ між ярусами
-
-            // Новий нижній ряд - Основні дії (більші, як раніше)
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                ModernBottomNavButton( // Використовуємо існуючий компонент
+                ModernBottomNavButton(
                     text = "Track",
                     icon = Icons.Outlined.Timeline,
-                    onClick = { navController.navigate("activity_tracker_screen") }
+                    onClick = { navController.navigate("activity_tracker_screen") },
                 )
 
                 ModernBottomNavButton(
                     text = "Filter",
                     icon = Icons.Outlined.FilterList,
                     isSelected = isSearchActive,
-                    onClick = { onToggleSearch(true) }
+                    onClick = { onToggleSearch(true) },
                 )
 
                 ModernBottomNavButton(
                     text = "Contexts",
                     icon = Icons.Outlined.Style,
-                    onClick = onContextsClick
+                    onClick = onContextsClick,
                 )
 
                 ModernBottomNavButton(
                     text = "Recent",
                     icon = Icons.Outlined.History,
-                    onClick = onRecentsClick
+                    onClick = onRecentsClick,
                 )
 
                 ModernBottomNavButton(
                     text = "AI Chat",
                     icon = Icons.Outlined.Chat,
-                    onClick = { navController.navigate("chat_screen") }
+                    onClick = { navController.navigate("chat_screen") },
                 )
             }
         }
     }
 }
 
-// Компонент для більших кнопок (залишається без змін)
 @Composable
 private fun ModernBottomNavButton(
     text: String,
     icon: ImageVector,
     isSelected: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
-    val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-        else -> Color.Transparent
-    }
+    val backgroundColor =
+        when {
+            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+            else -> Color.Transparent
+        }
 
-    val contentColor = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-    }
+    val contentColor =
+        when {
+            isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        }
 
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-            .widthIn(min = 60.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(backgroundColor)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .widthIn(min = 60.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = text,
             tint = contentColor,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
         )
 
         Spacer(modifier = Modifier.height(3.dp))
@@ -296,54 +293,55 @@ private fun ModernBottomNavButton(
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = contentColor
+            color = contentColor,
         )
     }
 }
 
-// НОВИЙ Компонент для менших кнопок
 @Composable
 private fun SmallBottomNavButton(
     text: String,
     icon: ImageVector,
     isSelected: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
-    val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-        else -> Color.Transparent
-    }
+    val backgroundColor =
+        when {
+            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+            else -> Color.Transparent
+        }
 
-    val contentColor = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-    }
+    val contentColor =
+        when {
+            isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        }
 
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp)) // Трохи менші заокруглення
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 4.dp) // Менші внутрішні відступи
-            .widthIn(min = 50.dp), // Менша мінімальна ширина
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(backgroundColor)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 6.dp, vertical = 4.dp)
+                .widthIn(min = 50.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = text,
             tint = contentColor,
-            modifier = Modifier.size(18.dp) // Менші іконки
+            modifier = Modifier.size(18.dp),
         )
 
-        Spacer(modifier = Modifier.height(2.dp)) // Менший відступ
-
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = text,
-            fontSize = 9.sp, // Менший розмір шрифту
+            fontSize = 9.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = contentColor
+            color = contentColor,
         )
     }
 }

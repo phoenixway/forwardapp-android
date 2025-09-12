@@ -22,7 +22,7 @@ import androidx.compose.ui.focus.focusRequester
 fun AddListDialog(
     title: String,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -36,22 +36,22 @@ fun AddListDialog(
                 onValueChange = { text = it },
                 label = { Text("Введіть назву") },
                 singleLine = true,
-                modifier = Modifier
-                    .focusRequester(focusRequester)
-                    .fillMaxWidth()
+                modifier =
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .fillMaxWidth(),
             )
         },
         confirmButton = {
             Button(
-                onClick = { if (text.isNotBlank()) onConfirm(text) }
+                onClick = { if (text.isNotBlank()) onConfirm(text) },
             ) { Text("Створити") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Скасувати") }
-        }
+        },
     )
 
-    // Автоматично показує клавіатуру при відкритті діалогу
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }

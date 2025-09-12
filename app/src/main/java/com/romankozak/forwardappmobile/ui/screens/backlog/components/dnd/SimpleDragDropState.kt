@@ -17,14 +17,17 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "DND_DEBUG"
 
-// --- Утиліти для індикатора скидання (з великого файлу) ---
 enum class DropPosition { Top, Bottom }
-data class DropIndicatorState(val show: Boolean, val position: DropPosition = DropPosition.Bottom)
+
+data class DropIndicatorState(
+    val show: Boolean,
+    val position: DropPosition = DropPosition.Bottom,
+)
 
 fun shouldShowDropIndicator(
     currentIndex: Int,
     draggedIndex: Int,
-    targetIndex: Int
+    targetIndex: Int,
 ): DropIndicatorState {
     if (draggedIndex == -1 || targetIndex == -1 || draggedIndex == targetIndex) {
         return DropIndicatorState(show = false)
@@ -36,7 +39,6 @@ fun shouldShowDropIndicator(
         else -> DropIndicatorState(show = false)
     }
 }
-
 
 @Stable
 class SimpleDragDropState(
@@ -92,22 +94,20 @@ class SimpleDragDropState(
         val startOffset = draggedItem.offset + draggedDistance
         val endOffset = startOffset + draggedItem.size
 
-        val hoveredItem = state.layoutInfo.visibleItemsInfo.find { item ->
-            if (item.index == initialIndexOfDraggedItem) return@find false
+        val hoveredItem =
+            state.layoutInfo.visibleItemsInfo.find { item ->
+                if (item.index == initialIndexOfDraggedItem) return@find false
 
-            val delta = (startOffset + endOffset) / 2f
-            val itemStart = item.offset
-            val itemEnd = item.offset + item.size
-            delta.toInt() in itemStart..itemEnd
-        }
+                val delta = (startOffset + endOffset) / 2f
+                val itemStart = item.offset
+                val itemEnd = item.offset + item.size
+                delta.toInt() in itemStart..itemEnd
+            }
 
         if (hoveredItem != null && hoveredItem.index != targetIndexOfDraggedItem) {
             targetIndexOfDraggedItem = hoveredItem.index
             Log.d(TAG, "[onDrag] New target index: ${hoveredItem.index}")
         }
-
-        // Тут можна викликати handleAutoScroll() з великого файлу, якщо він вам потрібен
-        // handleAutoScroll()
     }
 
     fun onDragEnd() {
@@ -119,7 +119,6 @@ class SimpleDragDropState(
             Log.i(TAG, "[onDragEnd] Executing move: $fromIndex -> $toIndex")
             onMove(fromIndex, toIndex)
 
-            // *** Оновлена і виправлена логіка пост-скролу ***
             scope.launch {
                 delay(100)
                 val isTargetVisible = state.layoutInfo.visibleItemsInfo.any { it.index == toIndex }
@@ -162,15 +161,14 @@ class SimpleDragDropState(
 
         val draggedItemSize = (draggedItemLayoutInfo?.size ?: 0).toFloat()
 
-        val offset = when {
-            itemIndex == draggedIndex -> draggedDistance
-            draggedIndex < targetIndex && itemIndex in (draggedIndex + 1)..targetIndex -> -draggedItemSize
-            draggedIndex > targetIndex && itemIndex in targetIndex until draggedIndex -> draggedItemSize
-            else -> 0f
-        }
+        val offset =
+            when {
+                itemIndex == draggedIndex -> draggedDistance
+                draggedIndex < targetIndex && itemIndex in (draggedIndex + 1)..targetIndex -> -draggedItemSize
+                draggedIndex > targetIndex && itemIndex in targetIndex until draggedIndex -> draggedItemSize
+                else -> 0f
+            }
 
         return offset
     }
-
-    // Сюди можна повернути функцію handleAutoScroll() та інші з великого файлу, якщо вони вам потрібні
 }

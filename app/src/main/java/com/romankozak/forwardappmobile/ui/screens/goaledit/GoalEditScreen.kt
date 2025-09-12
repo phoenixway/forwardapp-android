@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/goaledit/GoalEditScreen.kt ---
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.goaledit
@@ -44,9 +43,9 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
-import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.utils.formatDate
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -54,7 +53,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
-
 
 private object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
@@ -95,8 +93,10 @@ fun GoalEditScreen(
 
     val navBackStackEntry = navController.currentBackStackEntry
     LaunchedEffect(navBackStackEntry) {
-        val resultFlow = navBackStackEntry?.savedStateHandle
-            ?.getLiveData<String>("list_chooser_result")
+        val resultFlow =
+            navBackStackEntry
+                ?.savedStateHandle
+                ?.getLiveData<String>("list_chooser_result")
 
         resultFlow?.observe(navBackStackEntry) { result ->
             if (result != null) {
@@ -131,10 +131,11 @@ fun GoalEditScreen(
         }
     }
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .navigationBarsPadding()
-            .imePadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text(if (uiState.isNewGoal) "Нова ціль" else "Редагувати ціль") },
@@ -160,12 +161,13 @@ fun GoalEditScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = PaddingValues(bottom = 16.dp),
             ) {
                 item { Spacer(Modifier.height(4.dp)) }
 
@@ -185,11 +187,13 @@ fun GoalEditScreen(
                                 val currentText = uiState.goalText.text
                                 val cursorPosition = uiState.goalText.selection.start
 
-                                val wordStart = currentText.substring(0, cursorPosition)
-                                    .lastIndexOf(' ')
-                                    .let { if (it == -1) 0 else it + 1 }
-                                    .takeIf { currentText.substring(it, cursorPosition).startsWith("@") }
-                                    ?: -1
+                                val wordStart =
+                                    currentText
+                                        .substring(0, cursorPosition)
+                                        .lastIndexOf(' ')
+                                        .let { if (it == -1) 0 else it + 1 }
+                                        .takeIf { currentText.substring(it, cursorPosition).startsWith("@") }
+                                        ?: -1
 
                                 if (wordStart != -1) {
                                     val textBefore = currentText.substring(0, wordStart)
@@ -234,7 +238,7 @@ fun GoalEditScreen(
                     ReminderSection(
                         reminderTime = uiState.reminderTime,
                         onSetReminder = viewModel::onSetReminder,
-                        onClearReminder = viewModel::onClearReminder
+                        onClearReminder = viewModel::onClearReminder,
                     )
                 }
 
@@ -246,9 +250,10 @@ fun GoalEditScreen(
                     val createdAt = uiState.createdAt
                     if (createdAt != null) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
@@ -297,7 +302,7 @@ private fun RelatedLinksSection(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Пов'язані посилання", style = MaterialTheme.typography.titleMedium)
 
@@ -305,13 +310,13 @@ private fun RelatedLinksSection(
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.padding(horizontal = 4.dp)
+                        modifier = Modifier.padding(horizontal = 4.dp),
                     ) {
                         Text(
                             text = relatedLinks.size.toString(),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         )
                     }
                 }
@@ -319,38 +324,40 @@ private fun RelatedLinksSection(
 
             if (relatedLinks.isNotEmpty()) {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 200.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(relatedLinks) { link ->
                         LinkItem(
                             link = link,
                             onRemove = { onRemoveLink(link.target) },
-                            onClick = { /* TODO: Navigate based on link type */ }
+                            onClick = {  },
                         )
                     }
                 }
             } else {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Link,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(32.dp),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Ціль ще не має пов'язаних посилань",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -358,7 +365,7 @@ private fun RelatedLinksSection(
             AddLinksButtons(
                 onAddListLink = onAddLink,
                 onAddWebLink = onAddWebLink,
-                onAddObsidianLink = onAddObsidianLink
+                onAddObsidianLink = onAddObsidianLink,
             )
         }
     }
@@ -368,50 +375,55 @@ private fun RelatedLinksSection(
 private fun LinkItem(
     link: RelatedLink,
     onRemove: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = when (link.type) {
-            LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-            LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-        },
-        border = BorderStroke(
-            1.dp,
+        color =
             when (link.type) {
-                LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-            }
-        )
+                LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+            },
+        border =
+            BorderStroke(
+                1.dp,
+                when (link.type) {
+                    LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                    LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                },
+            ),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Icon(
-                    imageVector = when (link.type) {
-                        LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.List
-                        LinkType.URL -> Icons.Default.Language
-                        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
-                    },
+                    imageVector =
+                        when (link.type) {
+                            LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.List
+                            LinkType.URL -> Icons.Default.Language
+                            LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                        },
                     contentDescription = null,
-                    tint = when (link.type) {
-                        LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
-                        LinkType.URL -> MaterialTheme.colorScheme.secondary
-                        LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
-                    },
-                    modifier = Modifier.size(20.dp)
+                    tint =
+                        when (link.type) {
+                            LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
+                            LinkType.URL -> MaterialTheme.colorScheme.secondary
+                            LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
+                        },
+                    modifier = Modifier.size(20.dp),
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -422,31 +434,32 @@ private fun LinkItem(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
 
                     Text(
-                        text = when (link.type) {
-                            LinkType.GOAL_LIST -> "Список цілей"
-                            LinkType.URL -> "Веб-посилання"
-                            LinkType.OBSIDIAN -> "Obsidian нотатка"
-                        },
+                        text =
+                            when (link.type) {
+                                LinkType.GOAL_LIST -> "Список цілей"
+                                LinkType.URL -> "Веб-посилання"
+                                LinkType.OBSIDIAN -> "Obsidian нотатка"
+                            },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
                     )
                 }
             }
 
             IconButton(
                 onClick = onRemove,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
             ) {
                 Icon(
                     Icons.Default.Close,
                     contentDescription = "Видалити посилання",
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
@@ -457,23 +470,23 @@ private fun LinkItem(
 private fun AddLinksButtons(
     onAddListLink: () -> Unit,
     onAddWebLink: () -> Unit,
-    onAddObsidianLink: () -> Unit
+    onAddObsidianLink: () -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (isExpanded) {
             OutlinedButton(
                 onClick = onAddListLink,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.List,
                     contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                    modifier = Modifier.size(ButtonDefaults.IconSize),
                 )
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                 Text("Додати список цілей")
@@ -481,12 +494,12 @@ private fun AddLinksButtons(
 
             OutlinedButton(
                 onClick = onAddWebLink,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
                     Icons.Default.Language,
                     contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                    modifier = Modifier.size(ButtonDefaults.IconSize),
                 )
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                 Text("Додати веб-посилання")
@@ -494,12 +507,12 @@ private fun AddLinksButtons(
 
             OutlinedButton(
                 onClick = onAddObsidianLink,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Note,
                     contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                    modifier = Modifier.size(ButtonDefaults.IconSize),
                 )
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                 Text("Додати Obsidian нотатку")
@@ -507,7 +520,7 @@ private fun AddLinksButtons(
 
             TextButton(
                 onClick = { isExpanded = false },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(Icons.Default.ExpandLess, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
@@ -516,12 +529,12 @@ private fun AddLinksButtons(
         } else {
             OutlinedButton(
                 onClick = { isExpanded = true },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                    modifier = Modifier.size(ButtonDefaults.IconSize),
                 )
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                 Text("Додати посилання")
@@ -529,25 +542,28 @@ private fun AddLinksButtons(
                 Icon(
                     Icons.Default.ExpandMore,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
     }
 }
 
-
 @Composable
-private fun EvaluationSection(uiState: GoalEditUiState, onViewModelAction: GoalEditViewModel) {
+private fun EvaluationSection(
+    uiState: GoalEditUiState,
+    onViewModelAction: GoalEditViewModel,
+) {
     var isExpanded by remember { mutableStateOf(false) }
 
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { isExpanded = !isExpanded }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -574,11 +590,12 @@ private fun EvaluationSection(uiState: GoalEditUiState, onViewModelAction: GoalE
                         if (uiState.scoringStatus == ScoringStatus.ASSESSED) {
                             val rawScore = uiState.rawScore
                             val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
-                            val balanceColor = when {
-                                rawScore > 0.2 -> Color(0xFF2E7D32) // Strong Green
-                                rawScore > -0.2 -> LocalContentColor.current
-                                else -> Color(0xFFC62828) // Strong Red
-                            }
+                            val balanceColor =
+                                when {
+                                    rawScore > 0.2 -> Color(0xFF2E7D32)
+                                    rawScore > -0.2 -> LocalContentColor.current
+                                    else -> Color(0xFFC62828)
+                                }
                             Text(
                                 text = balanceText,
                                 color = balanceColor,
@@ -607,11 +624,12 @@ private fun ScoringStatusSelector(
     modifier: Modifier = Modifier,
 ) {
     val statuses = ScoringStatus.entries.toTypedArray()
-    val labels = mapOf(
-        ScoringStatus.NOT_ASSESSED to "Unset",
-        ScoringStatus.ASSESSED to "Set",
-        ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible",
-    )
+    val labels =
+        mapOf(
+            ScoringStatus.NOT_ASSESSED to "Unset",
+            ScoringStatus.ASSESSED to "Set",
+            ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible",
+        )
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         statuses.forEachIndexed { index, status ->
             SegmentedButton(
@@ -649,9 +667,10 @@ private fun EvaluationTabs(
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
             userScrollEnabled = isEnabled,
         ) { page ->
             Column(
@@ -659,7 +678,7 @@ private fun EvaluationTabs(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (page) {
-                    0 -> { // Gain
+                    0 -> {
                         ParameterSlider(
                             label = "Value importance",
                             value = uiState.valueImportance,
@@ -675,7 +694,7 @@ private fun EvaluationTabs(
                             enabled = isEnabled,
                         )
                     }
-                    1 -> { // Loss
+                    1 -> {
                         ParameterSlider(
                             label = "Efforts",
                             value = uiState.effort,
@@ -699,7 +718,7 @@ private fun EvaluationTabs(
                             enabled = isEnabled,
                         )
                     }
-                    2 -> { // Weights
+                    2 -> {
                         ParameterSlider(
                             label = "Efforts weight",
                             value = uiState.weightEffort,
@@ -745,11 +764,12 @@ private fun ParameterSlider(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
-            val displayText = when {
-                valueLabels != null -> valueLabels.getOrElse(currentIndex) { value.toString() }
-                scale == Scales.weights -> "x${"%.1f".format(value)}"
-                else -> value.toInt().toString()
-            }
+            val displayText =
+                when {
+                    valueLabels != null -> valueLabels.getOrElse(currentIndex) { value.toString() }
+                    scale == Scales.weights -> "x${"%.1f".format(value)}"
+                    else -> value.toInt().toString()
+                }
             Text(
                 text = displayText,
                 style = MaterialTheme.typography.bodyLarge,
@@ -831,11 +851,14 @@ private fun ReminderSection(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false; showTimePicker = true }) { Text("OK") }
+                TextButton(onClick = {
+                    showDatePicker = false
+                    showTimePicker = true
+                }) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("Скасувати") }
-            }
+            },
         ) {
             DatePicker(state = datePickerState)
         }
@@ -857,12 +880,12 @@ private fun ReminderSection(
                             val day = calendar.get(Calendar.DAY_OF_MONTH)
                             onSetReminder(year, month, day, timePickerState.hour, timePickerState.minute)
                         }
-                    }
+                    },
                 ) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) { Text("Скасувати") }
-            }
+            },
         )
     }
 }

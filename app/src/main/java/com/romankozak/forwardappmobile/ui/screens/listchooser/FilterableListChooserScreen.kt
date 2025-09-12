@@ -1,4 +1,3 @@
-// File: FilterableListChooserScreen.kt
 package com.romankozak.forwardappmobile.ui.screens.listchooser
 
 import androidx.compose.animation.*
@@ -9,7 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.* // Важливо: переконайтесь, що цей імпорт є
+import androidx.compose.foundation.layout.* 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -33,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -41,12 +41,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import kotlinx.coroutines.delay
 import java.util.*
-import com.romankozak.forwardappmobile.R
-
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -87,19 +85,22 @@ fun FilterableListChooserScreen(
             TopAppBar(
                 title = {
                     AnimatedContent(
-                        targetState = if (isCreatingMode) {
-                            parentForNewList?.let { "Новий підсписок: '${it.name}'" }
-                                ?: "Новий список"
-                        } else title,
+                        targetState =
+                            if (isCreatingMode) {
+                                parentForNewList?.let { "Новий підсписок: '${it.name}'" }
+                                    ?: "Новий список"
+                            } else {
+                                title
+                            },
                         transitionSpec = {
                             slideInVertically { -it } + fadeIn() with
-                                    slideOutVertically { it } + fadeOut()
-                        }
+                                slideOutVertically { it } + fadeOut()
+                        },
                     ) { titleText ->
                         Text(
                             text = titleText,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 },
@@ -108,17 +109,20 @@ fun FilterableListChooserScreen(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onNavigateBack()
-                        }
+                        },
                     ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isCreatingMode)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surface
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor =
+                            if (isCreatingMode) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                    ),
             )
         },
         floatingActionButton = {
@@ -126,7 +130,7 @@ fun FilterableListChooserScreen(
                 val fabScale by animateFloatAsState(
                     targetValue = if (listState.isScrollInProgress) 0.8f else 1f,
                     animationSpec = spring(),
-                    label = "fabScaleAnimation"
+                    label = "fabScaleAnimation",
                 )
 
                 FloatingActionButton(
@@ -136,19 +140,21 @@ fun FilterableListChooserScreen(
                         newListName = ""
                         isCreatingMode = true
                     },
-                    modifier = Modifier
-                        .padding(bottom = 16.dp, end = 16.dp)
-                        .scale(fabScale),
+                    modifier =
+                        Modifier
+                            .padding(bottom = 16.dp, end = 16.dp)
+                            .scale(fabScale),
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.primary,
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 12.dp,
-                        pressedElevation = 16.dp
-                    )
+                    elevation =
+                        FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 12.dp,
+                            pressedElevation = 16.dp,
+                        ),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Default.Add, stringResource(R.string.create_button))
                         AnimatedVisibility(visible = !listState.isScrollInProgress) {
@@ -156,27 +162,26 @@ fun FilterableListChooserScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     stringResource(R.string.create_button),
-                                    style = MaterialTheme.typography.labelMedium
+                                    style = MaterialTheme.typography.labelMedium,
                                 )
                             }
                         }
                     }
                 }
             }
-        }
+        },
     ) { innerPadding ->
         AnimatedContent(
             targetState = isCreatingMode,
             transitionSpec = {
                 (slideInVertically { it } + fadeIn(tween(300)) + expandVertically()) with
-                        (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
+                    (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
             },
-            // --- ПОЧАТОК КЛЮЧОВОЇ ЗМІНИ ---
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding) // Відступ від Scaffold (для TopAppBar)
-                .imePadding()         // <-- ОСЬ ЦЕЙ РЯДОК ВСЕ ВИРІШУЄ
-            // --- КІНЕЦЬ КЛЮЧОВОЇ ЗМІНИ ---
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .imePadding(),
         ) { creating ->
             if (creating) {
                 CreateListForm(
@@ -195,7 +200,7 @@ fun FilterableListChooserScreen(
                         keyboardController?.hide()
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     },
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
                 )
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -207,16 +212,20 @@ fun FilterableListChooserScreen(
                         onValueChange = onFilterTextChanged,
                         label = { Text(stringResource(R.string.search_lists)) },
                         placeholder = { Text(stringResource(R.string.search_placeholder)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .focusRequester(searchFocusRequester),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .focusRequester(searchFocusRequester),
                         singleLine = true,
                         leadingIcon = {
                             AnimatedContent(targetState = filterText.isNotEmpty(), label = "searchIconAnimation") { hasText ->
                                 if (hasText) {
-                                    Icon(Icons.Filled.Search, null,
-                                        tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.Filled.Search,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
                                 } else {
                                     Icon(Icons.Outlined.Search, null)
                                 }
@@ -226,81 +235,90 @@ fun FilterableListChooserScreen(
                             AnimatedVisibility(
                                 visible = filterText.isNotEmpty(),
                                 enter = scaleIn() + fadeIn(),
-                                exit = scaleOut() + fadeOut()
+                                exit = scaleOut() + fadeOut(),
                             ) {
                                 IconButton(
                                     onClick = {
                                         onFilterTextChanged("")
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
+                                    },
                                 ) {
                                     Icon(Icons.Default.Close, stringResource(R.string.clear_search))
                                 }
                             }
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = { keyboardController?.hide() }
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary
-                        )
+                        keyboardActions =
+                            KeyboardActions(
+                                onSearch = { keyboardController?.hide() },
+                            ),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            ),
                     )
-
-                    // ... (решта коду Column залишається без змін)
 
                     AnimatedVisibility(
                         visible = filterText.isNotBlank(),
                         enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
+                        exit = shrinkVertically() + fadeOut(),
                     ) {
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    onToggleShowDescendants()
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        onToggleShowDescendants()
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    },
+                            color =
+                                if (showDescendants) {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                 },
-                            color = if (showDescendants)
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
                                     if (showDescendants) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp),
-                                    tint = if (showDescendants)
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint =
+                                        if (showDescendants) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     stringResource(R.string.show_nested_lists),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (showDescendants)
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    color =
+                                        if (showDescendants) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
                                 )
                                 Spacer(modifier = Modifier.weight(1f))
                                 AnimatedContent(targetState = showDescendants, label = "showDescendantsTextAnimation") { isOn ->
                                     Text(
                                         text = stringResource(if (isOn) R.string.enabled else R.string.disabled),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (showDescendants)
-                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        color =
+                                            if (showDescendants) {
+                                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                            },
                                     )
                                 }
                             }
@@ -309,28 +327,31 @@ fun FilterableListChooserScreen(
 
                     if (filterText.isNotBlank()) {
                         val filteredCount = chooserUiState.topLevelLists.size
-                        val listsWord = if (filteredCount == 1)
-                            stringResource(R.string.list_singular)
-                        else
-                            stringResource(R.string.lists_plural)
+                        val listsWord =
+                            if (filteredCount == 1) {
+                                stringResource(R.string.list_singular)
+                            } else {
+                                stringResource(R.string.lists_plural)
+                            }
 
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 Icons.Outlined.FilterList,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 stringResource(R.string.found_lists, filteredCount, listsWord),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -340,11 +361,12 @@ fun FilterableListChooserScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            bottom = 80.dp
-                        ),
+                        contentPadding =
+                            PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 80.dp,
+                            ),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         if (chooserUiState.topLevelLists.isEmpty()) {
@@ -360,7 +382,7 @@ fun FilterableListChooserScreen(
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             onConfirm(null)
-                                        }
+                                        },
                                     )
                                 }
                             }
@@ -395,17 +417,13 @@ fun FilterableListChooserScreen(
     }
 }
 
-
-// ... решта файлу залишається без змін ...
-// CreateListForm, EnhancedEmptyState, RecursiveSelectableListItem, etc.
-// ...
 @Composable
 private fun CreateListForm(
     name: String,
     onNameChange: (String) -> Unit,
     onCancel: () -> Unit,
     onCreate: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var isError by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -417,16 +435,17 @@ private fun CreateListForm(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
             Icon(
                 Icons.Outlined.CreateNewFolder,
                 contentDescription = null,
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.CenterHorizontally),
-                tint = MaterialTheme.colorScheme.primary
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .align(Alignment.CenterHorizontally),
+                tint = MaterialTheme.colorScheme.primary,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -435,7 +454,7 @@ private fun CreateListForm(
                 stringResource(R.string.creating_new_list),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -448,9 +467,10 @@ private fun CreateListForm(
                 },
                 label = { Text(stringResource(R.string.new_list_name_label)) },
                 placeholder = { Text(stringResource(R.string.new_list_name_placeholder)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
                 singleLine = true,
                 isError = isError,
                 supportingText = {
@@ -460,15 +480,16 @@ private fun CreateListForm(
                         Text(stringResource(R.string.character_counter, name.length))
                     }
                 },
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (name.length >= 3) onCreate()
-                    }
-                ),
+                keyboardActions =
+                    KeyboardActions(
+                        onDone = {
+                            if (name.length >= 3) onCreate()
+                        },
+                    ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 leadingIcon = {
                     Icon(Icons.Outlined.Label, contentDescription = null)
-                }
+                },
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -476,7 +497,7 @@ private fun CreateListForm(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = onCancel,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
@@ -485,7 +506,7 @@ private fun CreateListForm(
                 Button(
                     onClick = onCreate,
                     enabled = name.length >= 3,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
@@ -500,40 +521,46 @@ private fun CreateListForm(
 private fun EnhancedEmptyState(hasFilter: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
                 if (hasFilter) Icons.Outlined.SearchOff else Icons.Outlined.FolderOff,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = if (hasFilter)
-                    stringResource(R.string.lists_not_found)
-                else
-                    stringResource(R.string.no_lists),
+                text =
+                    if (hasFilter) {
+                        stringResource(R.string.lists_not_found)
+                    } else {
+                        stringResource(R.string.no_lists)
+                    },
                 style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = if (hasFilter)
-                    stringResource(R.string.try_change_search_criteria)
-                else
-                    stringResource(R.string.create_first_list_hint),
+                text =
+                    if (hasFilter) {
+                        stringResource(R.string.try_change_search_criteria)
+                    } else {
+                        stringResource(R.string.create_first_list_hint)
+                    },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
         }
     }
@@ -550,7 +577,7 @@ private fun RecursiveSelectableListItem(
     disabledIds: Set<String>,
     highlightedListId: String?,
     onAddSublistRequest: (parentList: GoalList) -> Unit,
-    filterText: String
+    filterText: String,
 ) {
     val isExpanded = list.id in expandedIds
     val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
@@ -561,23 +588,24 @@ private fun RecursiveSelectableListItem(
     val cardElevation by animateFloatAsState(
         targetValue = if (isHighlighted) 8f else 2f,
         animationSpec = spring(),
-        label = "cardElevationAnimation"
+        label = "cardElevationAnimation",
     )
 
     val cardColor by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.primaryContainer
-            !isEnabled -> MaterialTheme.colorScheme.surfaceVariant
-            else -> MaterialTheme.colorScheme.surface
-        },
+        targetValue =
+            when {
+                isHighlighted -> MaterialTheme.colorScheme.primaryContainer
+                !isEnabled -> MaterialTheme.colorScheme.surfaceVariant
+                else -> MaterialTheme.colorScheme.surface
+            },
         animationSpec = tween(500),
-        label = "cardColorAnimation"
+        label = "cardColorAnimation",
     )
 
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 90f else 0f,
         animationSpec = spring(dampingRatio = 0.6f),
-        label = "rotationAnimation"
+        label = "rotationAnimation",
     )
 
     Column {
@@ -585,17 +613,17 @@ private fun RecursiveSelectableListItem(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = cardElevation.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = cardColor),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(enabled = isEnabled) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSelect(list.id)
-                    }
-                    .padding(vertical = 12.dp, horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = isEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSelect(list.id)
+                        }.padding(vertical = 12.dp, horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Spacer(modifier = Modifier.width((level * 16).dp))
 
@@ -605,15 +633,16 @@ private fun RecursiveSelectableListItem(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onToggleExpanded(list.id)
                         },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     ) {
                         Icon(
                             Icons.Default.ChevronRight,
                             contentDescription = stringResource(if (isExpanded) R.string.collapse else R.string.expand),
-                            modifier = Modifier
-                                .size(16.dp)
-                                .rotate(rotation),
-                            tint = MaterialTheme.colorScheme.primary
+                            modifier =
+                                Modifier
+                                    .size(16.dp)
+                                    .rotate(rotation),
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 } else {
@@ -624,12 +653,17 @@ private fun RecursiveSelectableListItem(
 
                 Text(
                     text = highlightText(list.name, filterText),
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal
-                    ),
-                    color = if (isEnabled) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    modifier = Modifier.weight(1f)
+                    style =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
+                        ),
+                    color =
+                        if (isEnabled) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        },
+                    modifier = Modifier.weight(1f),
                 )
 
                 if (children.isNotEmpty()) {
@@ -637,12 +671,12 @@ private fun RecursiveSelectableListItem(
                         text = "${children.size}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                        modifier =
+                            Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    RoundedCornerShape(8.dp),
+                                ).padding(horizontal = 6.dp, vertical = 2.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
@@ -653,13 +687,13 @@ private fun RecursiveSelectableListItem(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onAddSublistRequest(list)
                         },
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(32.dp),
                     ) {
                         Icon(
                             Icons.Default.Add,
                             contentDescription = stringResource(R.string.add_sublist),
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -679,7 +713,7 @@ private fun RecursiveSelectableListItem(
                     disabledIds = disabledIds,
                     highlightedListId = highlightedListId,
                     onAddSublistRequest = onAddSublistRequest,
-                    filterText = filterText
+                    filterText = filterText,
                 )
                 if (child != children.last()) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -690,8 +724,14 @@ private fun RecursiveSelectableListItem(
 }
 
 @Composable
-private fun highlightText(text: String, query: String): androidx.compose.ui.text.AnnotatedString {
-    if (query.isBlank()) return androidx.compose.ui.text.AnnotatedString(text)
+private fun highlightText(
+    text: String,
+    query: String,
+): androidx.compose.ui.text.AnnotatedString {
+    if (query.isBlank()) {
+        return androidx.compose.ui.text
+            .AnnotatedString(text)
+    }
     val start = text.indexOf(query, ignoreCase = true)
     return if (start >= 0) {
         buildAnnotatedString {
@@ -700,14 +740,17 @@ private fun highlightText(text: String, query: String): androidx.compose.ui.text
                 SpanStyle(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
+                    background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                ),
             ) {
                 append(text.substring(start, start + query.length))
             }
             append(text.substring(start + query.length))
         }
-    } else androidx.compose.ui.text.AnnotatedString(text)
+    } else {
+        androidx.compose.ui.text
+            .AnnotatedString(text)
+    }
 }
 
 @Composable
@@ -715,43 +758,54 @@ fun RootListItem(
     text: String,
     isEnabled: Boolean = true,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
 ) {
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isEnabled)
-                MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(8.dp)
+        colors =
+            CardDefaults.elevatedCardColors(
+                containerColor =
+                    if (isEnabled) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+            ),
+        shape = RoundedCornerShape(8.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = isEnabled) { onClick() }
-                .padding(vertical = 12.dp, horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = isEnabled) { onClick() }
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 Icons.Outlined.Home,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = if (isEnabled)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else MaterialTheme.colorScheme.onSurfaceVariant
+                tint =
+                    if (isEnabled) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = text,
-                color = if (isEnabled)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+                color =
+                    if (isEnabled) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
     }

@@ -10,26 +10,39 @@ import kotlinx.coroutines.withContext
 class InboxMarkdownHandler(
     private val goalRepository: GoalRepository,
     private val scope: CoroutineScope,
-    private val listener: ResultListener
+    private val listener: ResultListener,
 ) {
     interface ResultListener {
-        fun showSnackbar(message: String, action: String? = null)
-        fun copyToClipboard(text: String, label: String)
+        fun showSnackbar(
+            message: String,
+            action: String? = null,
+        )
+
+        fun copyToClipboard(
+            text: String,
+            label: String,
+        )
+
         fun forceRefresh()
     }
 
-    fun importFromMarkdown(markdownText: String, listId: String) {
+    fun importFromMarkdown(
+        markdownText: String,
+        listId: String,
+    ) {
         if (listId.isEmpty()) {
             listener.showSnackbar("Помилка: не вдалося визначити поточний список.", null)
             return
         }
 
         scope.launch(Dispatchers.IO) {
-            val lines = markdownText.lines()
-                .map { it.trim() }
-                .filter { it.startsWith("- ") || it.startsWith("* ") || it.startsWith("+ ") }
-                .map { it.substring(2).trim() }
-                .filter { it.isNotEmpty() }
+            val lines =
+                markdownText
+                    .lines()
+                    .map { it.trim() }
+                    .filter { it.startsWith("- ") || it.startsWith("* ") || it.startsWith("+ ") }
+                    .map { it.substring(2).trim() }
+                    .filter { it.isNotEmpty() }
 
             if (lines.isEmpty()) {
                 withContext(Dispatchers.Main) {
@@ -55,9 +68,10 @@ class InboxMarkdownHandler(
             return
         }
 
-        val markdownText = records.joinToString("\n") { record ->
-            "- ${record.text}"
-        }
+        val markdownText =
+            records.joinToString("\n") { record ->
+                "- ${record.text}"
+            }
 
         listener.copyToClipboard(markdownText, "Inbox Export")
         listener.showSnackbar("Записи інбоксу скопійовано у буфер обміну.", null)

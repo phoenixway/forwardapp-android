@@ -1,5 +1,3 @@
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/FilterableListChooser.kt
-
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.animation.animateColorAsState
@@ -69,7 +67,7 @@ fun FilterableListChooser(
     }
 
     LaunchedEffect(isCreatingMode) {
-        // Auto-focus logic when creating mode changes
+        
     }
 
     LaunchedEffect(Unit) {
@@ -82,19 +80,22 @@ fun FilterableListChooser(
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = 8.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
         ) {
             Column(
-                modifier = Modifier
-                    .padding(24.dp),
+                modifier =
+                    Modifier
+                        .padding(24.dp),
             ) {
-                val currentTitle = if (isCreatingMode) {
-                    parentForNewList?.let { "Новий підсписок для '${it.name}'" } ?: "Новий список верхнього рівня"
-                } else {
-                    title
-                }
+                val currentTitle =
+                    if (isCreatingMode) {
+                        parentForNewList?.let { "Новий підсписок для '${it.name}'" } ?: "Новий список верхнього рівня"
+                    } else {
+                        title
+                    }
 
                 Text(
                     text = currentTitle,
@@ -113,9 +114,10 @@ fun FilterableListChooser(
                             isError = it.isNotBlank() && it.length < 3
                         },
                         label = { Text("Назва нового списку") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(searchFocusRequester),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(searchFocusRequester),
                         singleLine = true,
                         isError = isError,
                         supportingText = {
@@ -124,24 +126,26 @@ fun FilterableListChooser(
                             }
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                if (newListName.isNotBlank() && newListName.length >= 3) {
-                                    val newId = UUID.randomUUID().toString()
-                                    onAddNewList(newId, parentForNewList?.id, newListName)
-                                    highlightedListId = newId
-                                    isCreatingMode = false
-                                    keyboardController?.hide()
-                                }
-                            },
-                        ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onDone = {
+                                    if (newListName.isNotBlank() && newListName.length >= 3) {
+                                        val newId = UUID.randomUUID().toString()
+                                        onAddNewList(newId, parentForNewList?.id, newListName)
+                                        highlightedListId = newId
+                                        isCreatingMode = false
+                                        keyboardController?.hide()
+                                    }
+                                },
+                            ),
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Row(
-                        modifier = Modifier
-                            .align(Alignment.End),
+                        modifier =
+                            Modifier
+                                .align(Alignment.End),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         TextButton(
@@ -149,9 +153,10 @@ fun FilterableListChooser(
                                 isCreatingMode = false
                                 keyboardController?.hide()
                             },
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
+                            colors =
+                                ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                         ) {
                             Text("Скасувати")
                         }
@@ -174,9 +179,10 @@ fun FilterableListChooser(
                         value = filterText,
                         onValueChange = onFilterTextChanged,
                         label = { Text("Пошук списків") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(searchFocusRequester),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .focusRequester(searchFocusRequester),
                         singleLine = true,
                         leadingIcon = {
                             Icon(
@@ -202,9 +208,10 @@ fun FilterableListChooser(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.5).dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.5).dp),
                     ) {
                         if (filterText.isBlank()) {
                             item {
@@ -231,9 +238,10 @@ fun FilterableListChooser(
                         if (topLevelLists.isEmpty() && filterText.isNotBlank()) {
                             item {
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(24.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
@@ -270,8 +278,9 @@ fun FilterableListChooser(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -281,9 +290,10 @@ fun FilterableListChooser(
                                 isCreatingMode = true
                                 newListName = ""
                             },
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary,
-                            ),
+                            colors =
+                                ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                ),
                         ) {
                             Icon(
                                 Icons.Default.Add,
@@ -312,27 +322,31 @@ private fun SelectableRootItem(
     val interactionSource = remember { MutableInteractionSource() }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.small)
-            .clickable(
-                enabled = isEnabled,
-                onClick = onSelect,
-                interactionSource = interactionSource,
-                indication = null,
-            )
-            .padding(vertical = 12.dp, horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .clickable(
+                    enabled = isEnabled,
+                    onClick = onSelect,
+                    interactionSource = interactionSource,
+                    indication = null,
+                ).padding(vertical = 12.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(24.dp)
-                .border(
-                    1.5.dp,
-                    if (isEnabled) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    RoundedCornerShape(4.dp),
-                ),
+            modifier =
+                Modifier
+                    .size(24.dp)
+                    .border(
+                        1.5.dp,
+                        if (isEnabled) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        },
+                        RoundedCornerShape(4.dp),
+                    ),
         )
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -341,8 +355,12 @@ private fun SelectableRootItem(
             text = "Корінь (верхній рівень)",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
-            color = if (isEnabled) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+            color =
+                if (isEnabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -369,28 +387,29 @@ private fun RecursiveSelectableListItem(
     val interactionSource = remember { MutableInteractionSource() }
 
     val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-            !isEnabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            else -> Color.Transparent
-        },
+        targetValue =
+            when {
+                isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                !isEnabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                else -> Color.Transparent
+            },
         animationSpec = tween(durationMillis = 500),
         label = "highlight-animation",
     )
 
     Column {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .background(backgroundColor)
-                .clickable(
-                    enabled = isEnabled,
-                    onClick = { onSelect(list.id) },
-                    interactionSource = interactionSource,
-                    indication = null,
-                )
-                .padding(vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.small)
+                    .background(backgroundColor)
+                    .clickable(
+                        enabled = isEnabled,
+                        onClick = { onSelect(list.id) },
+                        interactionSource = interactionSource,
+                        indication = null,
+                    ).padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(modifier = Modifier.width((level * 16).dp))
@@ -399,9 +418,10 @@ private fun RecursiveSelectableListItem(
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
                     contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { onToggleExpanded(list.id) },
+                    modifier =
+                        Modifier
+                            .size(24.dp)
+                            .clickable { onToggleExpanded(list.id) },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
@@ -414,8 +434,12 @@ private fun RecursiveSelectableListItem(
                 text = list.name,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (isEnabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                color =
+                    if (isEnabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -436,10 +460,11 @@ private fun RecursiveSelectableListItem(
 
         if (level > 0) {
             Box(
-                modifier = Modifier
-                    .width((level * 16).dp)
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant),
+                modifier =
+                    Modifier
+                        .width((level * 16).dp)
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant),
             )
         }
 

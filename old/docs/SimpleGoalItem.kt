@@ -37,13 +37,13 @@ fun SimpleGoalItem(
     val haptic = LocalHapticFeedback.current
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onItemClick() }
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable { onItemClick() }
+                .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Чекбокс для відмітки виконання
         Checkbox(
             checked = goal.completed,
             onCheckedChange = onToggle,
@@ -51,24 +51,30 @@ fun SimpleGoalItem(
 
         Spacer(Modifier.width(16.dp))
 
-        // Текст цілі
         Text(
             text = goal.text,
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
-            color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface,
+            color =
+                if (goal.completed) {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = 0.6f,
+                    )
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
             textDecoration = if (goal.completed) TextDecoration.LineThrough else TextDecoration.None,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
 
-        // Ручка для перетягування
         Icon(
             imageVector = Icons.Default.DragHandle,
             contentDescription = "Перетягнути",
-            modifier = Modifier
-                .padding(start = 16.dp)
-                .then(dragHandleModifier), // Застосовуємо переданий модифікатор
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier =
+                Modifier
+                    .padding(start = 16.dp)
+                    .then(dragHandleModifier),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

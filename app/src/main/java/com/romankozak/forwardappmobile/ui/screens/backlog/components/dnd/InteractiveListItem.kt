@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.SwipeableListItem
 
-
 @Composable
 fun InteractiveListItem(
     item: ListItemContent,
@@ -32,8 +31,6 @@ fun InteractiveListItem(
     dragDropState: SimpleDragDropState,
     isSelected: Boolean,
     isHighlighted: Boolean,
-
-    // Параметри для SwipeableListItem
     swipeEnabled: Boolean,
     isAnotherItemSwiped: Boolean,
     resetTrigger: Int,
@@ -46,8 +43,6 @@ fun InteractiveListItem(
     onGoalTransportRequest: () -> Unit,
     onCopyContentRequest: () -> Unit,
     onStartTrackingRequest: () -> Unit,
-
-    // Контент
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
@@ -69,54 +64,52 @@ fun InteractiveListItem(
         label = "alpha",
     )
 
-    val isCompleted = when (item) {
-        is ListItemContent.GoalItem -> item.goal.completed
-        is ListItemContent.SublistItem -> item.sublist.isCompleted
-        else -> false
-    }
+    val isCompleted =
+        when (item) {
+            is ListItemContent.GoalItem -> item.goal.completed
+            is ListItemContent.SublistItem -> item.sublist.isCompleted
+            else -> false
+        }
 
     val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
-            isSelected -> MaterialTheme.colorScheme.primaryContainer
-            isCompleted -> MaterialTheme.colorScheme.surfaceVariant
-            else -> MaterialTheme.colorScheme.surface
-        },
-        animationSpec = spring(), label = "interactive_item_background"
+        targetValue =
+            when {
+                isHighlighted -> MaterialTheme.colorScheme.tertiaryContainer
+                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                isCompleted -> MaterialTheme.colorScheme.surfaceVariant
+                else -> MaterialTheme.colorScheme.surface
+            },
+        animationSpec = spring(),
+        label = "interactive_item_background",
     )
 
     val isDraggable = item is ListItemContent.GoalItem || item is ListItemContent.SublistItem
 
-    // Цей модифікатор містить всю логіку DND і він не змінюється.
-    val itemModifier = modifier
-        .pointerInput(dragDropState, item.item.id, isDraggable) {
-            if (isDraggable) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { dragDropState.onDragStart(item) },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragDropState.onDrag(dragAmount.y)
-                    },
-                    onDragEnd = { dragDropState.onDragEnd() },
-                    onDragCancel = { dragDropState.onDragEnd() },
-                )
+    val itemModifier =
+        modifier
+            .pointerInput(dragDropState, item.item.id, isDraggable) {
+                if (isDraggable) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { dragDropState.onDragStart(item) },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            dragDropState.onDrag(dragAmount.y)
+                        },
+                        onDragEnd = { dragDropState.onDragEnd() },
+                        onDragCancel = { dragDropState.onDragEnd() },
+                    )
+                }
+            }.graphicsLayer {
+                val offset = dragDropState.getItemOffset(item)
+                translationY = offset
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+                shadowElevation = elevation
+                clip = false
             }
-        }
-        .graphicsLayer {
-            val offset = dragDropState.getItemOffset(item)
-            translationY = offset
-            scaleX = scale
-            scaleY = scale
-            this.alpha = alpha
-            shadowElevation = elevation
-            clip = false
-        }
 
     Box(modifier = itemModifier) {
-        // --- ПОЧАТОК КЛЮЧОВОГО ВИПРАВЛЕННЯ ---
-        // Обгортаємо SwipeableListItem в `key`. Коли `swipeEnabled` зміниться
-        // з false на true, Compose повністю перестворить цей компонент з нуля,
-        // що гарантує коректну ініціалізацію його внутрішнього стану для свайпів.
         key(swipeEnabled) {
             SwipeableListItem(
                 isDragging = isDragging,
@@ -146,9 +139,8 @@ fun InteractiveListItem(
                 },
             )
         }
-        // --- КІНЕЦЬ КЛЮЧОВОГО ВИПРАВЛЕННЯ ---
-
-        val isTarget = dragDropState.isDragging &&
+        val isTarget =
+            dragDropState.isDragging &&
                 dragDropState.targetIndexOfDraggedItem == index &&
                 dragDropState.initialIndexOfDraggedItem != index
 
@@ -157,19 +149,19 @@ fun InteractiveListItem(
             val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
             Box(modifier = Modifier.align(align)) {
-                //DropIndicator(isValidDrop = true)
+                
             }
         }
     }
 }
 
-
 @Composable
 private fun DragHandleIcon(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .padding(vertical = 4.dp, horizontal = 8.dp),
+        modifier =
+            modifier
+                .fillMaxHeight()
+                .padding(vertical = 4.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

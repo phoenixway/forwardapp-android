@@ -1,14 +1,9 @@
-// Файл: .../ui/screens/backlog/components/AttachmentItemRow.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.SwipeableListItem
-
-// ... імпорти
-
-// File: AttachmentItemRow.kt
 
 @Composable
 fun AttachmentItemRow(
@@ -18,7 +13,7 @@ fun AttachmentItemRow(
     content: @Composable () -> Unit,
 ) {
     SwipeableListItem(
-        modifier = modifier, // ПОПЕРЕДЖЕННЯ ВИПРАВЛЕНО: modifier тепер використовується
+        modifier = modifier,
         isDragging = false,
         isAnyItemDragging = false,
         swipeEnabled = true,
@@ -29,7 +24,7 @@ fun AttachmentItemRow(
         onMoreActionsRequest = { },
         onGoalTransportRequest = { },
         onCopyContentRequest = { },
-        onStartTrackingRequest = { }, // ПОМИЛКА ВИПРАВЛЕНО: Додано відсутній параметр
+        onStartTrackingRequest = { },
         backgroundColor = backgroundColor,
         content = content,
     )

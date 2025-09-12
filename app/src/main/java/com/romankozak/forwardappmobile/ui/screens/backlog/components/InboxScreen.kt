@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components
 
 import android.util.Log
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,7 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color // <-- ДОДАЙТЕ ЦЕЙ ІМПОРТ
+import androidx.compose.ui.graphics.Color 
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,38 +36,40 @@ fun InboxScreen(
     records: List<InboxRecord>,
     onDelete: (String) -> Unit,
     onPromoteToGoal: (InboxRecord) -> Unit,
-    onRecordClick: (InboxRecord) -> Unit, // Ця функція тепер викликатиметься для редагування
+    onRecordClick: (InboxRecord) -> Unit,
     onCopy: (String) -> Unit,
-    listState: LazyListState, // --- ЗМІНЕНО: Видалено значення за замовчуванням
-    highlightedRecordId: String? = null
+    listState: LazyListState,
+    highlightedRecordId: String? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) { padding ->
         if (records.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "Ваш інбокс порожній",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         } else {
             LazyColumn(
-                state = listState, // --- ЗМІНЕНО: Використовується переданий стан
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp)
+                state = listState,
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp),
             ) {
                 items(records, key = { it.id }) { record ->
                     val isHighlighted = record.id == highlightedRecordId
@@ -95,12 +97,12 @@ fun InboxScreen(
                             scope.launch {
                                 snackbarHostState.showSnackbar("Текст скопійовано")
                             }
-                        }
+                        },
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 8.dp),
                         thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                     )
                 }
             }
@@ -115,11 +117,12 @@ fun InboxItemRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onPromoteToGoal: () -> Unit,
-    onCopy: () -> Unit
+    onCopy: () -> Unit,
 ) {
-    val formatter = DateTimeFormatter
-        .ofPattern("dd.MM.yyyy HH:mm")
-        .withZone(ZoneId.systemDefault())
+    val formatter =
+        DateTimeFormatter
+            .ofPattern("dd.MM.yyyy HH:mm")
+            .withZone(ZoneId.systemDefault())
 
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -134,112 +137,106 @@ fun InboxItemRow(
         }
     }
 
-    // --- ПОЧАТОК ЗМІНИ ---
-
-    // Використовуємо дуже помітний колір для тестування. Потім можете повернути свій
-    // MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
     val highlightColor = Color.Yellow.copy(alpha = 0.4f)
 
     val containerColor by animateColorAsState(
         targetValue = if (highlightActive) highlightColor else Color.Transparent,
         animationSpec = tween(durationMillis = 500),
-        label = "highlight_color_animation"
+        label = "highlight_color_animation",
     )
-    // --- КІНЕЦЬ ЗМІНИ ---
-
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                isExpanded = !isExpanded
-            }
-            .animateContentSize()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+                    isExpanded = !isExpanded
+                }.animateContentSize()
+                .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
-        tonalElevation = 2.dp
-        // Ми більше не встановлюємо колір тут
+        tonalElevation = 2.dp,
     ) {
         ListItem(
-            // --- ПОЧАТОК ЗМІНИ: Застосовуємо колір тут ---
-            colors = ListItemDefaults.colors(
-                containerColor = containerColor
-            ),
-            // --- КІНЕЦЬ ЗМІНИ ---
+            colors =
+                ListItemDefaults.colors(
+                    containerColor = containerColor,
+                ),
             headlineContent = {
                 Text(
                     text = record.text,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = if (isExpanded) Int.MAX_VALUE else 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             },
             supportingContent = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     if (record.text.length > 100) {
                         Text(
                             text = if (isExpanded) "Менше" else "Більше",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .clickable { isExpanded = !isExpanded }
-                                .padding(top = 8.dp)
+                            modifier =
+                                Modifier
+                                    .clickable { isExpanded = !isExpanded }
+                                    .padding(top = 8.dp),
                         )
                     }
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             IconButton(
                                 onClick = onEdit,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(36.dp),
                             ) {
                                 Icon(
                                     Icons.Outlined.Edit,
                                     contentDescription = "Редагувати запис",
                                     tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                             IconButton(
                                 onClick = onPromoteToGoal,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(36.dp),
                             ) {
                                 Icon(
                                     Icons.Outlined.MoveUp,
                                     contentDescription = "Перемістити до списку цілей",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                             IconButton(
                                 onClick = onCopy,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(36.dp),
                             ) {
                                 Icon(
                                     Icons.Outlined.ContentCopy,
                                     contentDescription = "Скопіювати текст запису",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                             IconButton(
                                 onClick = onDelete,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(36.dp),
                             ) {
                                 Icon(
                                     Icons.Outlined.Delete,
                                     contentDescription = "Видалити запис",
                                     tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }
@@ -247,12 +244,12 @@ fun InboxItemRow(
                             text = formatter.format(Instant.ofEpochMilli(record.createdAt)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                     }
                 }
             },
-            trailingContent = null
+            trailingContent = null,
         )
     }
 }

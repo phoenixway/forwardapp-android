@@ -4,28 +4,27 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 
 object GoalScoringManager {
-
-    // --- Визначення індивідуальних шкал для кожного параметра ---
     private val effortScale = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
-    private val importanceScale = (1..12).map { it.toFloat() } // Лінійна 1-12
+    private val importanceScale = (1..12).map { it.toFloat() } 
     private val impactScale = listOf(1f, 2f, 3f, 5f, 8f, 13f)
-    private val costScale = (0..5).map { it.toFloat() } // Лінійна 0-5
-    private val riskScale = effortScale // Ризик використовує ту ж шкалу, що й зусилля
+    private val costScale = (0..5).map { it.toFloat() } 
+    private val riskScale = effortScale 
 
-    private fun normalize(value: Float, scale: List<Float>): Float {
+    private fun normalize(
+        value: Float,
+        scale: List<Float>,
+    ): Float {
         val min = scale.firstOrNull() ?: 0f
         val max = scale.lastOrNull() ?: 1f
         if (max <= min) return 0f
         return ((value - min) / (max - min)).coerceIn(0f, 1f)
     }
 
-    // ✨ ВИДАЛЕНО: функція getUpdatedStatus, оскільки її логіка тепер у ViewModel.
-
     fun calculateScores(goal: Goal): Goal {
         if (goal.scoringStatus != ScoringStatus.ASSESSED) {
             return goal.copy(
                 rawScore = 0f,
-                displayScore = 0
+                displayScore = 0,
             )
         }
 
@@ -38,18 +37,19 @@ object GoalScoringManager {
         val normBenefit = normImportance * normImpact
 
         val totalWeight = goal.weightEffort + goal.weightCost + goal.weightRisk
-        val normTotalCost = if (totalWeight > 0f) {
-            (goal.weightEffort * normEffort + goal.weightCost * normCost + goal.weightRisk * normRisk) / totalWeight
-        } else {
-            0f
-        }
+        val normTotalCost =
+            if (totalWeight > 0f) {
+                (goal.weightEffort * normEffort + goal.weightCost * normCost + goal.weightRisk * normRisk) / totalWeight
+            } else {
+                0f
+            }
 
         val calculatedRawScore = normBenefit - normTotalCost
         val calculatedDisplayScore = (((calculatedRawScore + 1) / 2) * 100).toInt().coerceIn(0, 100)
 
         return goal.copy(
             rawScore = calculatedRawScore,
-            displayScore = calculatedDisplayScore
+            displayScore = calculatedDisplayScore,
         )
     }
 }

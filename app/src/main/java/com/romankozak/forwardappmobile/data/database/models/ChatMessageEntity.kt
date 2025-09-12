@@ -10,5 +10,5 @@ data class ChatMessageEntity(
     val isFromUser: Boolean,
     val isError: Boolean = false,
     val timestamp: Long,
-    val isStreaming: Boolean = false
+    val isStreaming: Boolean = false,
 )

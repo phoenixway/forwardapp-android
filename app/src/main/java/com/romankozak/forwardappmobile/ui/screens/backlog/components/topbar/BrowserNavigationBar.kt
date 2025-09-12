@@ -40,48 +40,53 @@ fun BrowserNavigationBar(
     onViewChange: (ProjectViewMode) -> Unit,
     onImportFromMarkdown: () -> Unit,
     onExportToMarkdown: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
-        tonalElevation = 0.dp
+        tonalElevation = 0.dp,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val backButtonAlpha by animateFloatAsState(
                     targetValue = if (canGoBack) 1f else 0.6f,
-                    label = "backButtonAlpha"
+                    label = "backButtonAlpha",
                 )
 
                 IconButton(
                     onClick = onBackClick,
                     enabled = canGoBack,
-                    modifier = Modifier.alpha(backButtonAlpha)
+                    modifier = Modifier.alpha(backButtonAlpha),
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.back),
-                        tint = if (canGoBack) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        tint =
+                            if (canGoBack) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            },
                     )
                 }
 
                 IconButton(
                     onClick = onForwardClick,
                     enabled = false,
-                    modifier = Modifier.alpha(0.38f)
+                    modifier = Modifier.alpha(0.38f),
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = stringResource(R.string.forward),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                     )
                 }
 
@@ -89,12 +94,12 @@ fun BrowserNavigationBar(
 
                 IconButton(
                     onClick = onHomeClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Home,
                         contentDescription = stringResource(R.string.go_to_home_list),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -110,7 +115,7 @@ fun BrowserNavigationBar(
                 currentView = currentView,
                 onViewChange = onViewChange,
                 onImportFromMarkdown = onImportFromMarkdown,
-                onExportToMarkdown = onExportToMarkdown
+                onExportToMarkdown = onExportToMarkdown,
             )
         }
     }
@@ -129,31 +134,33 @@ private fun RightButtons(
     currentView: ProjectViewMode,
     onViewChange: (ProjectViewMode) -> Unit,
     onImportFromMarkdown: () -> Unit,
-    onExportToMarkdown: () -> Unit
+    onExportToMarkdown: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         SingleChoiceSegmentedButtonRow(
-            modifier = Modifier
-                .height(36.dp)
-                .padding(end = 8.dp)
+            modifier =
+                Modifier
+                    .height(36.dp)
+                    .padding(end = 8.dp),
         ) {
             SegmentedButton(
                 selected = currentView == ProjectViewMode.BACKLOG,
                 onClick = { onViewChange(ProjectViewMode.BACKLOG) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                 icon = { },
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary,
-                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                modifier = Modifier.size(36.dp)
+                colors =
+                    SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.List,
                     contentDescription = "Backlog",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
             }
 
@@ -162,48 +169,52 @@ private fun RightButtons(
                 onClick = { onViewChange(ProjectViewMode.INBOX) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                 icon = { },
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary,
-                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                modifier = Modifier.size(36.dp)
+                colors =
+                    SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Inbox,
                     contentDescription = "Inbox",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
 
         val attachmentIconColor by animateColorAsState(
-            targetValue = if (isAttachmentsExpanded)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.onSurfaceVariant,
-            label = "attachmentIconColor"
+            targetValue =
+                if (isAttachmentsExpanded) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            label = "attachmentIconColor",
         )
 
         val attachmentScale by animateFloatAsState(
             targetValue = if (isAttachmentsExpanded) 1.2f else 1f,
-            label = "attachmentScale"
+            label = "attachmentScale",
         )
 
         IconButton(
             onClick = onToggleAttachments,
-            modifier = Modifier
-                .size(40.dp)
-                .graphicsLayer {
-                    scaleX = attachmentScale
-                    scaleY = attachmentScale
-                }
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .graphicsLayer {
+                        scaleX = attachmentScale
+                        scaleY = attachmentScale
+                    },
         ) {
             Icon(
                 imageVector = Icons.Default.Attachment,
                 contentDescription = stringResource(R.string.toggle_attachments),
-                tint = attachmentIconColor
+                tint = attachmentIconColor,
             )
         }
 
@@ -212,20 +223,20 @@ private fun RightButtons(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = stringResource(R.string.more_options),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { onMenuExpandedChange(false) },
-                modifier = Modifier.width(220.dp)
+                modifier = Modifier.width(220.dp),
             ) {
                 DropdownMenuItem(
                     text = {
                         Text(
                             stringResource(R.string.edit_list),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     },
                     onClick = {
@@ -236,16 +247,16 @@ private fun RightButtons(
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
-                    }
+                    },
                 )
 
                 DropdownMenuItem(
                     text = {
                         Text(
                             stringResource(R.string.share_list),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     },
                     onClick = {
@@ -256,15 +267,15 @@ private fun RightButtons(
                         Icon(
                             Icons.Default.Share,
                             contentDescription = "Поділитися списком",
-                            tint = MaterialTheme.colorScheme.tertiary
+                            tint = MaterialTheme.colorScheme.tertiary,
                         )
-                    }
+                    },
                 )
 
                 if (currentView == ProjectViewMode.INBOX) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     DropdownMenuItem(
                         text = { Text("Імпортувати з Markdown", style = MaterialTheme.typography.bodyMedium) },
@@ -274,7 +285,7 @@ private fun RightButtons(
                         },
                         leadingIcon = {
                             Icon(Icons.Default.Upload, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-                        }
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("Експортувати в Markdown", style = MaterialTheme.typography.bodyMedium) },
@@ -284,13 +295,13 @@ private fun RightButtons(
                         },
                         leadingIcon = {
                             Icon(Icons.Default.Download, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-                        }
+                        },
                     )
                 }
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
+                    color = MaterialTheme.colorScheme.outlineVariant,
                 )
 
                 DropdownMenuItem(
@@ -298,7 +309,7 @@ private fun RightButtons(
                         Text(
                             text = stringResource(R.string.delete_list),
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     },
                     onClick = {
@@ -309,9 +320,9 @@ private fun RightButtons(
                         Icon(
                             Icons.Outlined.Delete,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
                         )
-                    }
+                    },
                 )
             }
         }

@@ -32,13 +32,12 @@ fun FullScreenMarkdownEditor(
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
-    // The state for edit mode and the current text now live here
     var isEditMode by remember { mutableStateOf(true) }
     var currentText by remember { mutableStateOf(initialValue) }
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -51,29 +50,27 @@ fun FullScreenMarkdownEditor(
                         }
                     },
                     actions = {
-                        // The mode toggle icon is now here
                         IconButton(onClick = { isEditMode = !isEditMode }) {
                             Icon(
                                 imageVector = if (isEditMode) Icons.Default.Visibility else Icons.Default.Edit,
-                                contentDescription = stringResource(
-                                    if (isEditMode) R.string.toggle_to_preview_mode else R.string.toggle_to_edit_mode
-                                )
+                                contentDescription =
+                                    stringResource(
+                                        if (isEditMode) R.string.toggle_to_preview_mode else R.string.toggle_to_edit_mode,
+                                    ),
                             )
                         }
-                        // The save button ("checkmark")
                         IconButton(onClick = { onSave(currentText.text) }) {
                             Icon(Icons.Default.Check, contentDescription = stringResource(R.string.create))
                         }
-                    }
+                    },
                 )
-            }
+            },
         ) { paddingValues ->
-            // Pass the state down to the simplified MarkdownEditorViewer
             MarkdownEditorViewer(
                 modifier = Modifier.padding(paddingValues),
                 value = currentText,
                 onValueChange = { currentText = it },
-                isEditMode = isEditMode // Pass the state
+                isEditMode = isEditMode,
             )
         }
     }

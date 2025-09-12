@@ -1,5 +1,3 @@
-// File: AdaptiveTopBar.kt
-
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
 import androidx.compose.foundation.layout.Column
@@ -15,7 +13,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 @Composable
 fun AdaptiveTopBar(
     isSelectionModeActive: Boolean,
-    goalList: GoalList?, // Змінено з title: String
+    goalList: GoalList?,
     selectedCount: Int,
     areAllSelected: Boolean,
     onClearSelection: () -> Unit,
@@ -34,7 +32,6 @@ fun AdaptiveTopBar(
     ) {
         if (isSelectionModeActive) {
             Column(modifier = Modifier.statusBarsPadding()) {
-                // У режимі вибору показуємо заголовок без статусу
                 ListTitleBar(goalList = goalList?.copy(isProjectManagementEnabled = false))
                 MultiSelectTopAppBar(
                     selectedCount = selectedCount,
@@ -44,11 +41,10 @@ fun AdaptiveTopBar(
                     onDelete = onDelete,
                     onMoreActions = onMoreActions,
                     onMarkAsComplete = onMarkAsComplete,
-                    onMarkAsIncomplete = onMarkAsIncomplete
+                    onMarkAsIncomplete = onMarkAsIncomplete,
                 )
             }
         } else {
-            // У звичайному режимі показуємо заголовок зі статусом
             ListTitleBar(goalList = goalList)
         }
     }

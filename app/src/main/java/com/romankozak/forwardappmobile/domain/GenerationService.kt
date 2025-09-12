@@ -19,12 +19,11 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 private const val TAG = "GenerationService"
-private const val NOTIFICATION_ID = 11434 // Довільний унікальний ID
+private const val NOTIFICATION_ID = 11434 
 private const val NOTIFICATION_CHANNEL_ID = "generation_channel"
 
 @AndroidEntryPoint
 class GenerationService : Service() {
-
     @Inject
     lateinit var ollamaService: OllamaService
 
@@ -36,7 +35,11 @@ class GenerationService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         startForeground(NOTIFICATION_ID, createNotification())
 
         val assistantMessageId = intent?.getLongExtra("assistantMessageId", -1L) ?: -1L
@@ -49,7 +52,6 @@ class GenerationService : Service() {
 
         serviceScope.launch {
             try {
-                // Отримуємо всі необхідні дані з репозиторіїв
                 val ollamaUrl = settingsRepo.ollamaUrlFlow.first()
                 val smartModel = settingsRepo.ollamaSmartModelFlow.first()
                 val systemPrompt = settingsRepo.systemPromptFlow.first()
@@ -57,39 +59,41 @@ class GenerationService : Service() {
                 val historyEntities = chatRepo.getChatHistory().first()
 
                 val systemMessage = Message(role = "system", content = systemPrompt)
-                val history = listOf(systemMessage) + historyEntities
-                    .filter { !it.isError && it.id != assistantMessageId } // Виключаємо наше повідомлення-заповнювач
-                    .map { msg ->
-                        Message(role = if (msg.isFromUser) "user" else "assistant", content = msg.text)
-                    }
+                val history =
+                    listOf(systemMessage) +
+                        historyEntities
+                            .filter { !it.isError && it.id != assistantMessageId }
+                            .map { msg ->
+                                Message(role = if (msg.isFromUser) "user" else "assistant", content = msg.text)
+                            }
 
                 var fullResponse = ""
-                ollamaService.generateChatResponseStream(ollamaUrl, smartModel, history, temperature)
+                ollamaService
+                    .generateChatResponseStream(ollamaUrl, smartModel, history, temperature)
                     .collect { chunk ->
                         fullResponse += chunk
-                        val currentMessage = chatRepo.getMessageById(assistantMessageId) // Отримуємо останню версію
+                        val currentMessage = chatRepo.getMessageById(assistantMessageId) 
                         currentMessage?.let {
                             chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = true))
                         }
                     }
 
-                // Завершення стрімінгу
                 chatRepo.getMessageById(assistantMessageId)?.let {
                     chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = false))
                 }
-
             } catch (e: Exception) {
                 Log.e(TAG, "Error during streaming generation", e)
                 chatRepo.getMessageById(assistantMessageId)?.let {
-                    chatRepo.updateMessage(it.copy(
-                        text = "Error: ${e.message ?: "Unknown error"}",
-                        isError = true,
-
-                        isStreaming = false
-                    ))
+                    chatRepo.updateMessage(
+                        it.copy(
+                            text = "Error: ${e.message ?: "Unknown error"}",
+                            isError = true,
+                            isStreaming = false,
+                        ),
+                    )
                 }
             } finally {
-                stopSelf() // Важливо: зупиняємо сервіс після завершення роботи
+                stopSelf()
             }
         }
 
@@ -97,21 +101,22 @@ class GenerationService : Service() {
     }
 
     private fun createNotification(): Notification {
-        // Створюємо канал сповіщень, якщо потрібно
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "AI Generation",
-                NotificationManager.IMPORTANCE_LOW
-            )
+            val channel =
+                NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    "AI Generation",
+                    NotificationManager.IMPORTANCE_LOW,
+                )
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
 
-        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+        return NotificationCompat
+            .Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("AI Assistant")
             .setContentText("Generating response...")
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Замініть на вашу іконку
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }

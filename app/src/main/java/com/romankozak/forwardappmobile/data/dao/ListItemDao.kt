@@ -1,4 +1,3 @@
-// --- File: com/romankozak/forwardappmobile/data/dao/ListItemDao.kt ---
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.Dao
@@ -11,8 +10,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ListItemDao {
-// ListItemDao.kt
-
     @Query("SELECT * FROM list_items WHERE listId = :listId ORDER BY item_order ASC, id ASC")
     fun getItemsForListStream(listId: String): Flow<List<ListItem>>
 
@@ -38,13 +35,22 @@ interface ListItemDao {
     suspend fun getAll(): List<ListItem>
 
     @Query("SELECT COUNT(*) FROM list_items WHERE entityId = :entityId AND listId = :listId")
-    suspend fun getLinkCount(entityId: String, listId: String): Int
+    suspend fun getLinkCount(
+        entityId: String,
+        listId: String,
+    ): Int
 
     @Query("DELETE FROM list_items WHERE entityId = :entityId AND listId = :listId")
-    suspend fun deleteLinkByEntityAndList(entityId: String, listId: String)
+    suspend fun deleteLinkByEntityAndList(
+        entityId: String,
+        listId: String,
+    )
 
     @Query("UPDATE list_items SET listId = :targetListId WHERE id IN (:itemIds)")
-    suspend fun updateListItemListIds(itemIds: List<String>, targetListId: String)
+    suspend fun updateListItemListIds(
+        itemIds: List<String>,
+        targetListId: String,
+    )
 
     @Query("SELECT * FROM list_items WHERE listId = :listId ORDER BY item_order ASC, id ASC")
     suspend fun getItemsForListSyncForDebug(listId: String): List<ListItem>
@@ -52,12 +58,6 @@ interface ListItemDao {
     @Query("DELETE FROM list_items")
     suspend fun deleteAll()
 
-    // --- ПОЧАТОК ЗМІНИ: Новий метод для отримання ID завдань у списку ---
-    /**
-     * Повертає список ID сутностей, які є завданнями (GOAL) у вказаному списку.
-     * Це необхідно для пошуку всіх записів активності, пов'язаних із завданнями проекту.
-     */
     @Query("SELECT entityId FROM list_items WHERE listId = :listId AND itemType = 'GOAL'")
     suspend fun getGoalIdsForList(listId: String): List<String>
-    // --- КІНЕЦЬ ЗМІНИ ---
 }

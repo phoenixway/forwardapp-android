@@ -17,42 +17,44 @@ import com.romankozak.forwardappmobile.R
 @Composable
 fun ImportMarkdownDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
 ) {
     var markdownText by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = MaterialTheme.shapes.large,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = stringResource(R.string.import_from_markdown),
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
                 Text(
                     text = stringResource(R.string.import_markdown_description),
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 16.dp),
                 )
 
                 OutlinedTextField(
                     value = markdownText,
                     onValueChange = { markdownText = it },
                     label = { Text(stringResource(R.string.markdown_text_label)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    placeholder = { Text("- Перший запис\n- Другий запис\n- Третій запис") }
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                    placeholder = { Text("- Перший запис\n- Другий запис\n- Третій запис") },
                 )
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.End
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text(stringResource(R.string.cancel))
@@ -63,7 +65,7 @@ fun ImportMarkdownDialog(
                                 onConfirm(markdownText)
                             }
                         },
-                        enabled = markdownText.isNotBlank()
+                        enabled = markdownText.isNotBlank(),
                     ) {
                         Text(stringResource(R.string.import_action))
                     }

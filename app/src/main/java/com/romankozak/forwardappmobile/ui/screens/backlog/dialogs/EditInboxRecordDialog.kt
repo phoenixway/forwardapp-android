@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 fun EditInboxRecordDialog(
     record: InboxRecord,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
 ) {
     var text by remember(record) { mutableStateOf(record.text) }
 
@@ -29,7 +29,7 @@ fun EditInboxRecordDialog(
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
         },
         confirmButton = {
@@ -41,6 +41,6 @@ fun EditInboxRecordDialog(
             TextButton(onClick = onDismiss) {
                 Text("Скасувати")
             }
-        }
+        },
     )
 }

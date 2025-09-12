@@ -1,11 +1,8 @@
-//older
-// Файл: app/src/main/java/com/romankozak/forwardappmobile/ui/components/SwipeableGoalItem.kt
-
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
@@ -41,7 +38,7 @@ import kotlin.math.roundToInt
 enum class SwipeState {
     ActionsRevealedStart,
     Normal,
-    ActionsRevealedEnd
+    ActionsRevealedEnd,
 }
 
 @Composable
@@ -68,8 +65,7 @@ fun SwipeableGoalItem(
     onCopyGoalRequest: () -> Unit,
     contextMarkerToHide: String? = null,
     emojiToHide: String? = null,
-
-    contextMarkerToEmojiMap: Map<String, String>
+    contextMarkerToEmojiMap: Map<String, String>,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -86,55 +82,59 @@ fun SwipeableGoalItem(
 
         val maxSwipeDistance = max(actionsRevealPx, abs(actionsRevealPxNegative))
 
-        val anchors = DraggableAnchors {
-            SwipeState.ActionsRevealedStart at actionsRevealPx
-            SwipeState.Normal at 0f
-            SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
-        }
+        val anchors =
+            DraggableAnchors {
+                SwipeState.ActionsRevealedStart at actionsRevealPx
+                SwipeState.Normal at 0f
+                SwipeState.ActionsRevealedEnd at actionsRevealPxNegative
+            }
 
         var lastConfirmedState by remember { mutableStateOf(SwipeState.Normal) }
         var swipeDirection by remember { mutableStateOf<Int?>(null) }
 
-        val swipeState = remember {
-            AnchoredDraggableState(
-                initialValue = SwipeState.Normal,
-                anchors = anchors,
-                positionalThreshold = { distance: Float -> distance * 0.85f },
-                velocityThreshold = { with(density) { 250.dp.toPx() } },
-                snapAnimationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
-                decayAnimationSpec = exponentialDecay(),
-                confirmValueChange = { newValue ->
-                    when {
-                        newValue == SwipeState.Normal -> {
-                            swipeDirection = null
-                            lastConfirmedState = newValue
-                            true
-                        }
-                        lastConfirmedState == SwipeState.Normal -> {
-                            swipeDirection = when (newValue) {
-                                SwipeState.ActionsRevealedStart -> 1
-                                SwipeState.ActionsRevealedEnd -> -1
-                                else -> null
-                            }
-                            lastConfirmedState = newValue
-                            true
-                        }
-                        else -> {
-                            val newDirection = when (newValue) {
-                                SwipeState.ActionsRevealedStart -> 1
-                                SwipeState.ActionsRevealedEnd -> -1
-                                else -> null
-                            }
-                            val canChange = swipeDirection == null || swipeDirection == newDirection
-                            if (canChange) {
+        val swipeState =
+            remember {
+                AnchoredDraggableState(
+                    initialValue = SwipeState.Normal,
+                    anchors = anchors,
+                    positionalThreshold = { distance: Float -> distance * 0.85f },
+                    velocityThreshold = { with(density) { 250.dp.toPx() } },
+                    snapAnimationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+                    decayAnimationSpec = exponentialDecay(),
+                    confirmValueChange = { newValue ->
+                        when {
+                            newValue == SwipeState.Normal -> {
+                                swipeDirection = null
                                 lastConfirmedState = newValue
+                                true
                             }
-                            canChange
+                            lastConfirmedState == SwipeState.Normal -> {
+                                swipeDirection =
+                                    when (newValue) {
+                                        SwipeState.ActionsRevealedStart -> 1
+                                        SwipeState.ActionsRevealedEnd -> -1
+                                        else -> null
+                                    }
+                                lastConfirmedState = newValue
+                                true
+                            }
+                            else -> {
+                                val newDirection =
+                                    when (newValue) {
+                                        SwipeState.ActionsRevealedStart -> 1
+                                        SwipeState.ActionsRevealedEnd -> -1
+                                        else -> null
+                                    }
+                                val canChange = swipeDirection == null || swipeDirection == newDirection
+                                if (canChange) {
+                                    lastConfirmedState = newValue
+                                }
+                                canChange
+                            }
                         }
-                    }
-                },
-            )
-        }
+                    },
+                )
+            }
 
         LaunchedEffect(swipeState.settledValue) {
             lastConfirmedState = swipeState.settledValue
@@ -157,36 +157,49 @@ fun SwipeableGoalItem(
         }
 
         val offset = swipeState.requireOffset().coerceIn(-maxSwipeDistance, maxSwipeDistance)
-        val actionsAlpha = (abs(offset) /
-                if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative)
-                ).coerceIn(0f, 1f)
+        val actionsAlpha =
+            (
+                abs(offset) /
+                    if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative)
+            ).coerceIn(0f, 1f)
 
-        val dynamicShape = remember(offset) {
-            val cornerRadius = 8.dp
-            when {
-                offset > 0 -> RoundedCornerShape(
-                    topStart = 0.dp, bottomStart = 0.dp,
-                    topEnd = cornerRadius, bottomEnd = cornerRadius
-                )
-                offset < 0 -> RoundedCornerShape(
-                    topStart = cornerRadius, bottomStart = cornerRadius,
-                    topEnd = 0.dp, bottomEnd = 0.dp
-                )
-                else -> RoundedCornerShape(cornerRadius)
+        val dynamicShape =
+            remember(offset) {
+                val cornerRadius = 8.dp
+                when {
+                    offset > 0 ->
+                        RoundedCornerShape(
+                            topStart = 0.dp,
+                            bottomStart = 0.dp,
+                            topEnd = cornerRadius,
+                            bottomEnd = cornerRadius,
+                        )
+                    offset < 0 ->
+                        RoundedCornerShape(
+                            topStart = cornerRadius,
+                            bottomStart = cornerRadius,
+                            topEnd = 0.dp,
+                            bottomEnd = 0.dp,
+                        )
+                    else -> RoundedCornerShape(cornerRadius)
+                }
             }
-        }
 
         Box(modifier = Modifier.fillMaxWidth()) {
             Row(
-                modifier = Modifier
-                    .matchParentSize()
-                    .alpha(actionsAlpha),
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .alpha(actionsAlpha),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val buttonSize = 60.dp
                 Surface(
-                    onClick = { onMoreActionsRequest(); resetSwipe() },
+                    onClick = {
+                        onMoreActionsRequest()
+                        resetSwipe()
+                    },
                     modifier = Modifier.size(buttonSize),
                     color = MaterialTheme.colorScheme.secondary,
                 ) {
@@ -195,27 +208,36 @@ fun SwipeableGoalItem(
                     }
                 }
                 Surface(
-                    onClick = { onCreateInstanceRequest(); resetSwipe() },
+                    onClick = {
+                        onCreateInstanceRequest()
+                        resetSwipe()
+                    },
                     modifier = Modifier.size(buttonSize),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(Icons.Default.AddLink, "Створити зв'язок", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
                 Surface(
-                    onClick = { onMoveInstanceRequest(); resetSwipe() },
+                    onClick = {
+                        onMoveInstanceRequest()
+                        resetSwipe()
+                    },
                     modifier = Modifier.size(buttonSize),
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.tertiary,
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(Icons.AutoMirrored.Filled.Send, "Перемістити", tint = MaterialTheme.colorScheme.onTertiary)
                     }
                 }
                 Surface(
-                    onClick = { onCopyGoalRequest(); resetSwipe() },
+                    onClick = {
+                        onCopyGoalRequest()
+                        resetSwipe()
+                    },
                     modifier = Modifier.size(buttonSize),
-                    color = MaterialTheme.colorScheme.inversePrimary
+                    color = MaterialTheme.colorScheme.inversePrimary,
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(Icons.Default.ContentCopy, "Клонувати ціль", tint = MaterialTheme.colorScheme.primary)
@@ -225,15 +247,19 @@ fun SwipeableGoalItem(
 
             if (offset < 0) {
                 Row(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .alpha(actionsAlpha),
+                    modifier =
+                        Modifier
+                            .matchParentSize()
+                            .alpha(actionsAlpha),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val buttonSize = 60.dp
                     Surface(
-                        onClick = { onDelete(); resetSwipe() },
+                        onClick = {
+                            onDelete()
+                            resetSwipe()
+                        },
                         modifier = Modifier.size(buttonSize),
                         color = MaterialTheme.colorScheme.error,
                     ) {
@@ -242,7 +268,7 @@ fun SwipeableGoalItem(
                         }
                     }
                     Surface(
-                        onClick = { resetSwipe() }, // Placeholder for future action
+                        onClick = { resetSwipe() },
                         modifier = Modifier.size(buttonSize),
                         color = MaterialTheme.colorScheme.tertiary,
                     ) {
@@ -254,13 +280,14 @@ fun SwipeableGoalItem(
             }
 
             Surface(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(offset.roundToInt(), 0) }
-                    .anchoredDraggable(
-                        state = swipeState,
-                        orientation = Orientation.Horizontal,
-                    ),
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .offset { IntOffset(offset.roundToInt(), 0) }
+                        .anchoredDraggable(
+                            state = swipeState,
+                            orientation = Orientation.Horizontal,
+                        ),
                 color = backgroundColor,
                 shape = dynamicShape,
             ) {
@@ -275,10 +302,8 @@ fun SwipeableGoalItem(
                     onAssociatedListClick = onAssociatedListClick,
                     backgroundColor = Color.Transparent,
                     dragHandleModifier = dragHandleModifier,
-                    //contextMarkerToHide = contextMarkerToHide,
                     emojiToHide = emojiToHide,
-
-                    contextMarkerToEmojiMap = contextMarkerToEmojiMap
+                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 )
             }
         }

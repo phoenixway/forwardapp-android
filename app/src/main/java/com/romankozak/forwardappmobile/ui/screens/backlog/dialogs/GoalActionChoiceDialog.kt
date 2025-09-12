@@ -28,7 +28,6 @@ fun GoalActionChoiceDialog(
             shape = MaterialTheme.shapes.large,
         ) {
             Column {
-                // Ця дія доступна для всіх типів ListItem
                 DialogActionItem(
                     text = "Перемістити елемент",
                     icon = Icons.Default.MoveDown,
@@ -38,7 +37,6 @@ fun GoalActionChoiceDialog(
                     },
                 )
 
-                // Ці дії доступні тільки для цілей (GoalItem)
                 if (itemContent is ListItemContent.GoalItem) {
                     HorizontalDivider()
                     DialogActionItem(
@@ -71,11 +69,12 @@ private fun DialogActionItem(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,

@@ -17,37 +17,38 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.ServerInfo
 
 @Composable
-fun WifiServerDialog(address: String?, onDismiss: () -> Unit) {
+fun WifiServerDialog(
+    address: String?,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Wi-Fi Сервер") },
         text = {
             when {
-                // Стан 1: IP ще не отримано (завантаження)
                 address == null -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
                     }
                 }
-                // ЗМІНА: Стан 2: Отримано помилку
                 address.startsWith("Помилка:") -> {
                     Column(
                         modifier = Modifier.fillMaxWidth().height(100.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             text = address,
                             color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
-                // Стан 3: IP успішно отримано
                 else -> {
                     ServerInfo(address = address)
                 }
@@ -57,6 +58,6 @@ fun WifiServerDialog(address: String?, onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss) {
                 Text("Закрити")
             }
-        }
+        },
     )
 }

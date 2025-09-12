@@ -1,4 +1,3 @@
-// File: ui/screens/backlogs/GoalListScreen.kt
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlogs
@@ -81,7 +80,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-
 @Composable
 fun GoalListScreen(
     navController: NavController,
@@ -113,12 +111,12 @@ fun GoalListScreen(
     val recentLists by viewModel.recentLists.collectAsState()
     val areAnyListsExpanded by viewModel.areAnyListsExpanded.collectAsState()
 
-
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(savedStateHandle) {
-        savedStateHandle?.getStateFlow<String?>("list_to_reveal", null)
+        savedStateHandle
+            ?.getStateFlow<String?>("list_to_reveal", null)
             ?.filterNotNull()
             ?.collect { listId ->
                 viewModel.processRevealRequest(listId)
@@ -127,15 +125,16 @@ fun GoalListScreen(
     }
 
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                val result = savedStateHandle?.remove<String?>("list_chooser_result")
-                if (result != null) {
-                    Log.d("MOVE_DEBUG", "[Screen] Resumed and processed result: '$result'")
-                    viewModel.onListChooserResult(result)
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    val result = savedStateHandle?.remove<String?>("list_chooser_result")
+                    if (result != null) {
+                        Log.d("MOVE_DEBUG", "[Screen] Resumed and processed result: '$result'")
+                        viewModel.onListChooserResult(result)
+                    }
                 }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -209,10 +208,11 @@ fun GoalListScreen(
                                         Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
                                     }
                                 },
-                                modifier = Modifier.clickable {
-                                    viewModel.onContextSelected(context.name)
-                                    showContextSheet = false
-                                },
+                                modifier =
+                                    Modifier.clickable {
+                                        viewModel.onContextSelected(context.name)
+                                        showContextSheet = false
+                                    },
                             )
                         }
                     }
@@ -227,21 +227,22 @@ fun GoalListScreen(
         viewModel.collapseAllLists()
     }
 
-    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.onImportFromFileRequested(it) }
-    }
-
+    val importLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { viewModel.onImportFromFileRequested(it) }
+        }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .imePadding(),
         topBar = {
             GoalListTopAppBar(
                 isSearchActive = isSearchActive,
                 onAddNewList = { viewModel.onAddNewListRequest() },
                 viewModel = viewModel,
-                onImportFromFile = { importLauncher.launch("application/json") }
+                onImportFromFile = { importLauncher.launch("application/json") },
             )
         },
         bottomBar = {
@@ -251,7 +252,7 @@ fun GoalListScreen(
                     onQueryChange = viewModel::onSearchQueryChanged,
                     onCloseSearch = { viewModel.onToggleSearch(false) },
                     onPerformGlobalSearch = viewModel::onPerformGlobalSearch,
-                    focusRequester = focusRequester
+                    focusRequester = focusRequester,
                 )
             } else {
                 GoalListBottomNav(
@@ -262,7 +263,7 @@ fun GoalListScreen(
                     currentMode = planningMode,
                     onPlanningModeChange = viewModel::onPlanningModeChange,
                     onContextsClick = { showContextSheet = true },
-                    onRecentsClick = { viewModel.onShowRecentLists() }
+                    onRecentsClick = { viewModel.onShowRecentLists() },
                 )
             }
         },
@@ -271,26 +272,28 @@ fun GoalListScreen(
             val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
             if (isListEmpty) {
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    val emptyText = when {
-                        isSearchActive -> "No projects found for your query."
-                        planningMode is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
-                        planningMode is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
-                        planningMode is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
-                        else -> "Create your first project"
-                    }
+                    val emptyText =
+                        when {
+                            isSearchActive -> "No projects found for your query."
+                            planningMode is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
+                            planningMode is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
+                            planningMode is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
+                            else -> "Create your first project"
+                        }
                     Text(emptyText, style = MaterialTheme.typography.bodyLarge)
                 }
             } else {
                 DragAndDropContainer(
                     state = dragAndDropState,
                     enabled = !isSearchActive,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     LazyColumn(
                         state = listState,
@@ -317,7 +320,7 @@ fun GoalListScreen(
         showSheet = showRecentSheet,
         recentLists = recentLists,
         onDismiss = { viewModel.onDismissRecentLists() },
-        onListClick = { listId -> viewModel.onRecentListSelected(listId) }
+        onListClick = { listId -> viewModel.onRecentListSelected(listId) },
     )
 
     HandleDialogs(
@@ -329,7 +332,6 @@ fun GoalListScreen(
     )
 }
 
-// ... (GoalListTopAppBar and SearchBottomBar remain unchanged)
 @Composable
 private fun GoalListTopAppBar(
     isSearchActive: Boolean,
@@ -394,6 +396,7 @@ private fun GoalListTopAppBar(
         },
     )
 }
+
 @Composable
 private fun SearchBottomBar(
     searchQuery: String,
@@ -402,48 +405,49 @@ private fun SearchBottomBar(
     onPerformGlobalSearch: (String) -> Unit,
     focusRequester: FocusRequester,
 ) {
-    // Auto-focus the text field when the composable is first displayed
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
         Column(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .imePadding()
-            // --- ЗМІНА: Зайвий нижній відступ видалено для симетрії ---
+            modifier =
+                Modifier
+                    .navigationBarsPadding()
+                    .imePadding(),
         ) {
-            // Global search option
             AnimatedVisibility(
                 visible = searchQuery.isNotBlank(),
                 enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
                 exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
             ) {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                        ) { onPerformGlobalSearch(searchQuery) },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                            ) { onPerformGlobalSearch(searchQuery) },
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .fillMaxWidth(),
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 12.dp)
+                                .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -465,25 +469,25 @@ private fun SearchBottomBar(
                 }
             }
 
-            // Search input field
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .height(52.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .height(52.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val focusManager = LocalFocusManager.current
                 val interactionSource = remember { MutableInteractionSource() }
                 val isFocused by interactionSource.collectIsFocusedAsState()
 
-                // Back button
                 IconButton(
                     onClick = onCloseSearch,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .scale(if (isFocused) 1f else 0.95f)
-                        .animateContentSize(),
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .scale(if (isFocused) 1f else 0.95f)
+                            .animateContentSize(),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.ArrowBack,
@@ -495,43 +499,44 @@ private fun SearchBottomBar(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Custom text field
                 BasicTextField(
                     value = searchQuery,
                     onValueChange = onQueryChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Medium,
-                    ),
+                    textStyle =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium,
+                        ),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            if (searchQuery.isNotBlank()) {
-                                onPerformGlobalSearch(searchQuery)
-                            }
-                            focusManager.clearFocus()
-                        },
-                    ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onSearch = {
+                                if (searchQuery.isNotBlank()) {
+                                    onPerformGlobalSearch(searchQuery)
+                                }
+                                focusManager.clearFocus()
+                            },
+                        ),
                     interactionSource = interactionSource,
                     decorationBox = { innerTextField ->
                         Row(
-                            modifier = Modifier
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
-                                    shape = RoundedCornerShape(24.dp),
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                    shape = RoundedCornerShape(24.dp),
-                                )
-                                .padding(horizontal = 12.dp),
+                            modifier =
+                                Modifier
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
+                                        shape = RoundedCornerShape(24.dp),
+                                    ).border(
+                                        width = 1.dp,
+                                        color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        shape = RoundedCornerShape(24.dp),
+                                    ).padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Box(modifier = Modifier.weight(1f)) {
@@ -548,11 +553,11 @@ private fun SearchBottomBar(
                             AnimatedVisibility(
                                 visible = searchQuery.isNotBlank(),
                                 enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
-                                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f)
+                                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
                             ) {
                                 IconButton(
                                     onClick = { onQueryChange("") },
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(28.dp),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Close,
@@ -563,7 +568,7 @@ private fun SearchBottomBar(
                                 }
                             }
                         }
-                    }
+                    },
                 )
             }
         }

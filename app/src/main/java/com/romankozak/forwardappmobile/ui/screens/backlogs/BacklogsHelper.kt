@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/backlogs/BacklogsHelper.kt
-
 package com.romankozak.forwardappmobile.ui.screens.backlogs
 
 import androidx.compose.foundation.layout.Box
@@ -26,14 +24,11 @@ import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddListDialog
-import com.romankozak.forwardappmobile.ui.screens.backlogs.dialogs.ContextMenuDialog
 import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
+import com.romankozak.forwardappmobile.ui.screens.backlogs.dialogs.ContextMenuDialog
 import java.util.UUID
-
-// У BacklogsHelper.kt
-// ПОВНІСТЮ ЗАМІНІТЬ ЦІЄЮ ВЕРСІЄЮ
 
 fun LazyListScope.renderGoalList(
     lists: List<GoalList>,
@@ -50,15 +45,16 @@ fun LazyListScope.renderGoalList(
         item(key = list.id) {
             val draggedItemData = dragAndDropState.draggedItem?.data
 
-            val isDropAllowed = remember(draggedItemData, list) {
-                draggedItemData == null || draggedItemData.parentId == list.parentId
-            }
+            val isDropAllowed =
+                remember(draggedItemData, list) {
+                    draggedItemData == null || draggedItemData.parentId == list.parentId
+                }
 
             DraggableItem(
                 state = dragAndDropState,
                 key = list.id,
                 data = list,
-                dragAfterLongPress = true
+                dragAfterLongPress = true,
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     GoalListRow(
@@ -70,51 +66,56 @@ fun LazyListScope.renderGoalList(
                         onMenuRequested = { viewModel.onMenuRequested(it) },
                         isCurrentlyDragging = isDragging,
                         isHighlighted = list.id == highlightedListId,
-                        isHovered = isDropAllowed && (dragAndDropState.hoveredDropTargetKey == "before-${list.id}" ||
-                                dragAndDropState.hoveredDropTargetKey == "after-${list.id}"),
-                        isDraggingDown = false
+                        isHovered =
+                            isDropAllowed && (
+                                dragAndDropState.hoveredDropTargetKey == "before-${list.id}" ||
+                                    dragAndDropState.hoveredDropTargetKey == "after-${list.id}"
+                            ),
+                        isDraggingDown = false,
                     )
 
                     Column(modifier = Modifier.matchParentSize()) {
-                        val dropModifierBefore = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .then(
-                                if (isDropAllowed) {
-                                    Modifier.dropTarget(
-                                        state = dragAndDropState,
-                                        key = "before-${list.id}"
-                                    ) { draggedItemState ->
-                                        viewModel.onListReorder(
-                                            fromId = draggedItemState.data.id,
-                                            toId = list.id,
-                                            position = DropPosition.BEFORE
-                                        )
-                                    }
-                                } else {
-                                    Modifier
-                                }
-                            )
+                        val dropModifierBefore =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .then(
+                                    if (isDropAllowed) {
+                                        Modifier.dropTarget(
+                                            state = dragAndDropState,
+                                            key = "before-${list.id}",
+                                        ) { draggedItemState ->
+                                            viewModel.onListReorder(
+                                                fromId = draggedItemState.data.id,
+                                                toId = list.id,
+                                                position = DropPosition.BEFORE,
+                                            )
+                                        }
+                                    } else {
+                                        Modifier
+                                    },
+                                )
 
-                        val dropModifierAfter = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .then(
-                                if (isDropAllowed) {
-                                    Modifier.dropTarget(
-                                        state = dragAndDropState,
-                                        key = "after-${list.id}"
-                                    ) { draggedItemState ->
-                                        viewModel.onListReorder(
-                                            fromId = draggedItemState.data.id,
-                                            toId = list.id,
-                                            position = DropPosition.AFTER
-                                        )
-                                    }
-                                } else {
-                                    Modifier
-                                }
-                            )
+                        val dropModifierAfter =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .then(
+                                    if (isDropAllowed) {
+                                        Modifier.dropTarget(
+                                            state = dragAndDropState,
+                                            key = "after-${list.id}",
+                                        ) { draggedItemState ->
+                                            viewModel.onListReorder(
+                                                fromId = draggedItemState.data.id,
+                                                toId = list.id,
+                                                position = DropPosition.AFTER,
+                                            )
+                                        }
+                                    } else {
+                                        Modifier
+                                    },
+                                )
                         Box(modifier = dropModifierBefore)
                         Box(modifier = dropModifierAfter)
                     }
@@ -140,7 +141,10 @@ fun LazyListScope.renderGoalList(
     }
 }
 
-fun getDescendantIds(listId: String, childMap: Map<String, List<GoalList>>): Set<String> {
+fun getDescendantIds(
+    listId: String,
+    childMap: Map<String, List<GoalList>>,
+): Set<String> {
     val descendants = mutableSetOf<String>()
     val queue = ArrayDeque<String>()
     queue.add(listId)
@@ -197,39 +201,46 @@ fun HandleDialogs(
             AlertDialog(
                 onDismissRequest = { viewModel.dismissDialog() },
                 title = { Text("Delete list?") },
-                text = { Text("Are you sure you want to delete '${state.list.name}' and all its sublists and goals? This action cannot be undone.") },
+                text = {
+                    Text(
+                        "Are you sure you want to delete '${state.list.name}' and all its sublists and goals? This action cannot be undone.",
+                    )
+                },
                 confirmButton = { Button(onClick = { viewModel.onDeleteListConfirmed(state.list) }) { Text("Delete") } },
                 dismissButton = { TextButton(onClick = { viewModel.dismissDialog() }) { Text("Cancel") } },
             )
         }
         is DialogState.EditList -> {
-            // ЦЕЙ ДІАЛОГ БІЛЬШЕ НЕ ВИКОРИСТОВУЄТЬСЯ
-            // onEditRequest -> GoalListViewModel -> NavigateToEditListScreen
         }
         is DialogState.AboutApp -> {
             AboutAppDialog(stats) { viewModel.dismissDialog() }
         }
 
-    is DialogState.ConfirmFullImport -> {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissDialog() },
-            title = { Text("Restore from backup?") },
-            text = { Text("WARNING: All current data in the application will be deleted and replaced with data from the backup file. This action cannot be undone.") },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.onFullImportConfirmed(state.uri) },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Delete and Restore")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissDialog() }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }}
+        is DialogState.ConfirmFullImport -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissDialog() },
+                title = { Text("Restore from backup?") },
+                text = {
+                    Text(
+                        "WARNING: All current data in the application will be deleted and replaced with data from the backup file. This action cannot be undone.",
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.onFullImportConfirmed(state.uri) },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Text("Delete and Restore")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dismissDialog() }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
+    }
     if (showWifiServerDialog) {
         WifiServerDialog(wifiServerAddress) { viewModel.onDismissWifiServerDialog() }
     }

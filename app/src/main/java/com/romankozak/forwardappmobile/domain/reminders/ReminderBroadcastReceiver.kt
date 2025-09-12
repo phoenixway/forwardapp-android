@@ -16,7 +16,6 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 
 class ReminderBroadcastReceiver : BroadcastReceiver() {
-
     companion object {
         const val EXTRA_GOAL_ID = "EXTRA_GOAL_ID"
         const val EXTRA_GOAL_TEXT = "EXTRA_GOAL_TEXT"
@@ -30,18 +29,24 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         private const val tag = "ReminderReceiver"
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.i(tag, "onReceive triggered! Action: ${intent.action}")
 
         when (intent.action) {
             ACTION_COMPLETE -> {
-                handleCompleteAction(context, intent); return
+                handleCompleteAction(context, intent)
+                return
             }
             ACTION_SNOOZE -> {
-                handleSnoozeAction(context, intent); return
+                handleSnoozeAction(context, intent)
+                return
             }
             ACTION_DISMISS -> {
-                handleDismissAction(context, intent); return
+                handleDismissAction(context, intent)
+                return
             }
         }
 
@@ -65,22 +70,22 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         createNotificationChannel(notificationManager)
 
         if (!isScreenOn) {
-            // Увімкнути екран
-            val wl = pm.newWakeLock(
-                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-                "ForwardApp:ReminderWakeLock"
-            )
-            wl.acquire(3000) // потримати 3 секунди
-
+            val wl =
+                pm.newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "ForwardApp:ReminderWakeLock",
+                )
+            wl.acquire(3000)
             startLockScreenActivity(context, goalId, goalText, goalDescription, goalEmoji, extraInfo)
         } else {
-            val notificationText = buildString {
-                if (!goalDescription.isNullOrBlank()) append(goalDescription)
-                if (!extraInfo.isNullOrBlank()) {
-                    if (isNotEmpty()) append("\n")
-                    append(extraInfo)
+            val notificationText =
+                buildString {
+                    if (!goalDescription.isNullOrBlank()) append(goalDescription)
+                    if (!extraInfo.isNullOrBlank()) {
+                        if (isNotEmpty()) append("\n")
+                        append(extraInfo)
+                    }
                 }
-            }
             showNotification(context, notificationManager, goalId, goalText, notificationText, goalEmoji)
         }
     }
@@ -91,23 +96,24 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         goalText: String,
         goalDescription: String?,
         goalEmoji: String,
-        extraInfo: String?
+        extraInfo: String?,
     ) {
         try {
-            val lockScreenIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-                putExtra(EXTRA_GOAL_ID, goalId)
-                putExtra(EXTRA_GOAL_TEXT, goalText)
-                putExtra(EXTRA_GOAL_DESCRIPTION, goalDescription)
-                putExtra(EXTRA_GOAL_EMOJI, goalEmoji)
-                putExtra(EXTRA_INFO, extraInfo)
+            val lockScreenIntent =
+                Intent(context, ReminderLockScreenActivity::class.java).apply {
+                    putExtra(EXTRA_GOAL_ID, goalId)
+                    putExtra(EXTRA_GOAL_TEXT, goalText)
+                    putExtra(EXTRA_GOAL_DESCRIPTION, goalDescription)
+                    putExtra(EXTRA_GOAL_EMOJI, goalEmoji)
+                    putExtra(EXTRA_INFO, extraInfo)
 
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)
-                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-                addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-            }
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+                    addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                    addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                }
 
             context.startActivity(lockScreenIntent)
             Log.d(tag, "Lock screen activity started successfully for goal: $goalId")
@@ -119,25 +125,28 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     private fun createNotificationChannel(notificationManager: NotificationManager) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            val audioAttributes = AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .build()
+            val audioAttributes =
+                AudioAttributes
+                    .Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .build()
 
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Goal Reminders",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Critical goal reminders that appear on lock screen"
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 1000)
-                enableLights(true)
-                lightColor = Color.RED
-                setSound(soundUri, audioAttributes)
-                setBypassDnd(true)
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-            }
+            val channel =
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "Goal Reminders",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply {
+                    description = "Critical goal reminders that appear on lock screen"
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 1000)
+                    enableLights(true)
+                    lightColor = Color.RED
+                    setSound(soundUri, audioAttributes)
+                    setBypassDnd(true)
+                    lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                }
             notificationManager.createNotificationChannel(channel)
         }
     }
@@ -148,73 +157,90 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         goalId: String,
         goalText: String,
         goalDescription: String?,
-        goalEmoji: String
+        goalEmoji: String,
     ) {
         val completeIntent = createActionIntent(context, ACTION_COMPLETE, goalId)
         val snoozeIntent = createActionIntent(context, ACTION_SNOOZE, goalId)
         val dismissIntent = createActionIntent(context, ACTION_DISMISS, goalId)
 
-        val expandedText = buildString {
-            append(goalText)
-            if (!goalDescription.isNullOrBlank()) {
-                append("\n\n")
-                append(goalDescription)
+        val expandedText =
+            buildString {
+                append(goalText)
+                if (!goalDescription.isNullOrBlank()) {
+                    append("\n\n")
+                    append(goalDescription)
+                }
             }
-        }
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_dialog_info)
-            .setContentTitle("$goalEmoji $goalText")
-            .setContentText(goalDescription)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(expandedText)
-                    .setSummaryText("Час досягати ваших цілей!")
-            )
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setAutoCancel(false)
-            .setOngoing(true)
-            .addAction(R.drawable.ic_menu_save, "Готово ✅", completeIntent)
-            .addAction(R.drawable.ic_media_pause, "Відкласти ⏰", snoozeIntent)
-            .addAction(R.drawable.ic_menu_close_clear_cancel, "Пропустити ❌", dismissIntent)
-            .setColor(0xFF6366F1.toInt())
-            .setVibrate(longArrayOf(0, 300, 200, 300, 200, 800))
-            .setLights(Color.BLUE, 1000, 500)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
+        val notification =
+            NotificationCompat
+                .Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_dialog_info)
+                .setContentTitle("$goalEmoji $goalText")
+                .setContentText(goalDescription)
+                .setStyle(
+                    NotificationCompat
+                        .BigTextStyle()
+                        .bigText(expandedText)
+                        .setSummaryText("Час досягати ваших цілей!"),
+                ).setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setAutoCancel(false)
+                .setOngoing(true)
+                .addAction(R.drawable.ic_menu_save, "Готово ✅", completeIntent)
+                .addAction(R.drawable.ic_media_pause, "Відкласти ⏰", snoozeIntent)
+                .addAction(R.drawable.ic_menu_close_clear_cancel, "Пропустити ❌", dismissIntent)
+                .setColor(0xFF6366F1.toInt())
+                .setVibrate(longArrayOf(0, 300, 200, 300, 200, 800))
+                .setLights(Color.BLUE, 1000, 500)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .build()
 
         notificationManager.notify(goalId.hashCode(), notification)
     }
 
-    private fun createActionIntent(context: Context, action: String, goalId: String): PendingIntent {
-        val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
-            this.action = action
-            putExtra(EXTRA_GOAL_ID, goalId)
-        }
+    private fun createActionIntent(
+        context: Context,
+        action: String,
+        goalId: String,
+    ): PendingIntent {
+        val intent =
+            Intent(context, ReminderBroadcastReceiver::class.java).apply {
+                this.action = action
+                putExtra(EXTRA_GOAL_ID, goalId)
+            }
         return PendingIntent.getBroadcast(
             context,
             "$action$goalId".hashCode(),
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 
-    private fun handleCompleteAction(context: Context, intent: Intent) {
+    private fun handleCompleteAction(
+        context: Context,
+        intent: Intent,
+    ) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal completed via notification: $goalId")
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(goalId.hashCode())
     }
 
-    private fun handleSnoozeAction(context: Context, intent: Intent) {
+    private fun handleSnoozeAction(
+        context: Context,
+        intent: Intent,
+    ) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal snoozed via notification: $goalId")
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE)  as NotificationManager
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(goalId.hashCode())
     }
 
-    private fun handleDismissAction(context: Context, intent: Intent) {
+    private fun handleDismissAction(
+        context: Context,
+        intent: Intent,
+    ) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal dismissed via notification: $goalId")
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

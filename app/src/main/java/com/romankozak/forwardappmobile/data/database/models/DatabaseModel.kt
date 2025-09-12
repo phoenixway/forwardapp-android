@@ -12,19 +12,21 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
 enum class ProjectViewMode {
-    BACKLOG, INBOX, DASHBOARD
+    BACKLOG,
+    INBOX,
+    DASHBOARD,
 }
 
 enum class ListItemType {
     GOAL,
     SUBLIST,
-    LINK_ITEM
+    LINK_ITEM,
 }
 
 enum class LinkType {
     GOAL_LIST,
     URL,
-    OBSIDIAN
+    OBSIDIAN,
 }
 
 data class RelatedLink(
@@ -36,20 +38,23 @@ data class RelatedLink(
 enum class ScoringStatus {
     NOT_ASSESSED,
     IMPOSSIBLE_TO_ASSESS,
-    ASSESSED
+    ASSESSED,
 }
 
-enum class ProjectStatus(val displayName: String) {
+enum class ProjectStatus(
+    val displayName: String,
+) {
     NO_PLAN("Без плану"),
     PLANNING("Планується"),
     IN_PROGRESS("В реалізації"),
     COMPLETED("Завершено"),
     ON_HOLD("Відкладено"),
-    PAUSED("На паузі")
+    PAUSED("На паузі"),
 }
 
 enum class ProjectLogLevel {
-    DETAILED, NORMAL
+    DETAILED,
+    NORMAL,
 }
 
 enum class ProjectLogEntryType {
@@ -57,7 +62,7 @@ enum class ProjectLogEntryType {
     COMMENT,
     AUTOMATIC,
     INSIGHT,
-    MILESTONE
+    MILESTONE,
 }
 
 @TypeConverters(Converters::class)
@@ -134,7 +139,6 @@ class Converters {
     fun toProjectLogEntryType(value: String?): ProjectLogEntryType? = value?.let { ProjectLogEntryType.valueOf(it) }
 }
 
-
 @Entity(tableName = "link_items")
 data class LinkItemEntity(
     @PrimaryKey val id: String,
@@ -142,7 +146,6 @@ data class LinkItemEntity(
     val linkData: RelatedLink,
     val createdAt: Long,
 )
-
 
 @Entity(tableName = "goals")
 data class Goal(
@@ -207,8 +210,6 @@ data class GoalList(
     val defaultViewModeName: String? = ProjectViewMode.BACKLOG.name,
     @ColumnInfo(name = "is_completed", defaultValue = "0")
     val isCompleted: Boolean = false,
-
-    // Project Management Fields
     @ColumnInfo(name = "is_project_management_enabled")
     val isProjectManagementEnabled: Boolean? = false,
     @ColumnInfo(name = "project_status")
@@ -218,7 +219,7 @@ data class GoalList(
     @ColumnInfo(name = "project_log_level")
     val projectLogLevel: ProjectLogLevel? = ProjectLogLevel.NORMAL,
     @ColumnInfo(name = "total_time_spent_minutes")
-    val totalTimeSpentMinutes: Long? = 0
+    val totalTimeSpentMinutes: Long? = 0,
 )
 
 @Entity(
@@ -240,9 +241,8 @@ data class ProjectExecutionLog(
     @ColumnInfo(name = "type")
     val type: ProjectLogEntryType,
     val description: String,
-    val details: String? = null
+    val details: String? = null,
 )
-
 
 @Entity(
     tableName = "inbox_records",
@@ -286,7 +286,6 @@ data class ListItem(
     val order: Long,
 )
 
-
 @Entity(tableName = "activity_records_fts")
 @Fts4(contentEntity = ActivityRecord::class)
 data class ActivityRecordFts(
@@ -295,9 +294,21 @@ data class ActivityRecordFts(
 
 sealed class ListItemContent {
     abstract val item: ListItem
-    data class GoalItem(val goal: Goal, override val item: ListItem) : ListItemContent()
-    data class SublistItem(val sublist: GoalList, override val item: ListItem) : ListItemContent()
-    data class LinkItem(val link: LinkItemEntity, override val item: ListItem) : ListItemContent()
+
+    data class GoalItem(
+        val goal: Goal,
+        override val item: ListItem,
+    ) : ListItemContent()
+
+    data class SublistItem(
+        val sublist: GoalList,
+        override val item: ListItem,
+    ) : ListItemContent()
+
+    data class LinkItem(
+        val link: LinkItemEntity,
+        override val item: ListItem,
+    ) : ListItemContent()
 }
 
 data class GlobalSearchResult(
@@ -326,34 +337,45 @@ sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
     abstract val uniqueId: String
 
-    data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem() {
+    data class GoalItem(
+        val searchResult: GlobalSearchResult,
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.goal.updatedAt ?: searchResult.goal.createdAt
         override val uniqueId: String get() = "goal_${searchResult.goal.id}_${searchResult.listId}"
     }
 
-    data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
+    data class LinkItem(
+        val searchResult: GlobalLinkSearchResult,
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.link.createdAt
         override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.listId}"
     }
 
-    data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem() {
+    data class SublistItem(
+        val searchResult: GlobalSublistSearchResult,
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.sublist.updatedAt ?: searchResult.sublist.createdAt
         override val uniqueId: String get() = "sublist_${searchResult.sublist.id}_${searchResult.parentListId}"
     }
 
-    data class ListItem(val list: GoalList) : GlobalSearchResultItem() {
+    data class ListItem(
+        val list: GoalList,
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = list.updatedAt ?: list.createdAt
         override val uniqueId: String get() = "list_${list.id}"
     }
 
-    data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
+    data class ActivityItem(
+        val record: ActivityRecord,
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.startTime ?: record.createdAt
         override val uniqueId: String get() = "activity_${record.id}"
     }
 
-    data class InboxItem(val record: InboxRecord) : GlobalSearchResultItem() {
+    data class InboxItem(
+        val record: InboxRecord,
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "inbox_${record.id}"
     }
 }
-

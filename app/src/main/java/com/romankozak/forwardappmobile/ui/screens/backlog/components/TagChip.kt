@@ -25,35 +25,36 @@ fun TagChip(
     isDismissible: Boolean = true,
 ) {
     Row(
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(12.dp),
-            )
-            .border(
-                border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(12.dp)
-            )
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+        modifier =
+            Modifier
+                .background(
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(12.dp),
+                ).border(
+                    border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(12.dp),
+                ).padding(horizontal = 6.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.15.sp,
-                fontSize = 10.sp,
-            ),
-            color = MaterialTheme.colorScheme.secondary
+            style =
+                MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.15.sp,
+                    fontSize = 10.sp,
+                ),
+            color = MaterialTheme.colorScheme.secondary,
         )
         if (isDismissible) {
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Default.Cancel,
                 contentDescription = "Remove tag",
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable(onClick = onDismiss),
+                modifier =
+                    Modifier
+                        .size(16.dp)
+                        .clickable(onClick = onDismiss),
             )
         }
     }

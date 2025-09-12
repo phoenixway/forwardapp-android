@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/SublistSearchResultItem.kt
-
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -28,78 +26,82 @@ import com.romankozak.forwardappmobile.data.database.models.GlobalSublistSearchR
 @Composable
 fun SublistSearchResultItem(
     result: GlobalSublistSearchResult,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(dampingRatio = 0.8f),
-        label = "scale_animation"
+        label = "scale_animation",
     )
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClickLabel = "Перейти до списку",
-                role = Role.Button,
-                onClick = onClick
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClickLabel = "Перейти до списку",
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+        shape = RoundedCornerShape(16.dp),
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Link,
-                    contentDescription = "Link to nested project", // Оновлено
+                    contentDescription = "Link to nested project",
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
                     text = result.sublist.name,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    style =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // --- ЗМІНА ТУТ ---
                 Text(
-                    text = "Link to nested project: ${result.parentListName}", // Оновлено текст
+                    text = "Link to nested project: ${result.parentListName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
@@ -107,7 +109,7 @@ fun SublistSearchResultItem(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Перейти до батьківського списку",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
     }

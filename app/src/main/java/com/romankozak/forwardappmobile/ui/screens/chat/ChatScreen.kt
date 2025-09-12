@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,23 +54,21 @@ import com.romankozak.forwardappmobile.domain.RoleFile
 import com.romankozak.forwardappmobile.domain.RoleFolder
 import com.romankozak.forwardappmobile.domain.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
-import kotlinx.coroutines.flow.collectLatest
-import java.text.SimpleDateFormat
-import java.util.*
-import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 private const val TAG = "AI_CHAT_DEBUG"
-
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(
     navController: NavController,
-    viewModel: ChatViewModel = hiltViewModel()
+    viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val userInput by viewModel.userInput.collectAsStateWithLifecycle()
@@ -85,19 +84,16 @@ fun ChatScreen(
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
 
-
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             coroutineScope.launch {
-                delay(150) // Даємо час на анімацію клавіатури
+                delay(150)
                 Log.d(TAG, "[EFFECT 1] Scrolling to new message, index: ${uiState.messages.size - 1}")
                 listState.animateScrollToItem(uiState.messages.size - 1)
             }
         }
     }
 
-    // ЕФЕКТ №2: Прокрутка під час СТРІМІНГУ (коли змінюється текст останнього повідомлення).
-    // Використовує BringIntoViewRequester, щоб тримати кінець повідомлення у фокусі.
     LaunchedEffect(uiState.messages.lastOrNull()?.text) {
         if (uiState.messages.isNotEmpty()) {
             coroutineScope.launch {
@@ -107,15 +103,14 @@ fun ChatScreen(
         }
     }
 
-
-
-
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.surface,
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+    val backgroundBrush =
+        Brush.verticalGradient(
+            colors =
+                listOf(
+                    MaterialTheme.colorScheme.surface,
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
         )
-    )
 
     if (showRoleSelectorDialog) {
         RoleSelectorDialog(
@@ -124,7 +119,7 @@ fun ChatScreen(
         ) { roleFile ->
             viewModel.updateSystemPromptAndTitle(
                 newPrompt = roleFile.prompt,
-                newTitle = roleFile.name
+                newTitle = roleFile.name,
             )
             showRoleSelectorDialog = false
         }
@@ -147,7 +142,7 @@ fun ChatScreen(
             onModelSelected = { modelName ->
                 viewModel.selectSmartModel(modelName)
                 showModelSelectorDialog = false
-            }
+            },
         )
     }
 
@@ -168,7 +163,7 @@ fun ChatScreen(
                                 Text(
                                     "Typing...",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -186,35 +181,36 @@ fun ChatScreen(
                         }
                         DropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
+                            onDismissRequest = { showMenu = false },
                         ) {
                             DropdownMenuItem(
                                 text = { Text("New Chat") },
                                 onClick = {
                                     viewModel.startNewChat()
                                     showMenu = false
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Change Role") },
                                 onClick = {
                                     showRoleSelectorDialog = true
                                     showMenu = false
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Export Chat") },
                                 onClick = {
                                     val chatText = viewModel.exportChat()
-                                    val sendIntent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, chatText)
-                                        type = "text/plain"
-                                    }
+                                    val sendIntent =
+                                        Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, chatText)
+                                            type = "text/plain"
+                                        }
                                     val shareIntent = Intent.createChooser(sendIntent, null)
                                     context.startActivity(shareIntent)
                                     showMenu = false
-                                }
+                                },
                             )
                             Divider()
                             DropdownMenuItem(
@@ -222,29 +218,32 @@ fun ChatScreen(
                                 onClick = {
                                     navController.navigate("settings_graph")
                                     showMenu = false
-                                }
+                                },
                             )
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
             )
         },
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(backgroundBrush)
-                .padding(paddingValues)
-                .imePadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(backgroundBrush)
+                    .padding(paddingValues)
+                    .imePadding(),
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
             ) {
@@ -254,13 +253,11 @@ fun ChatScreen(
 
                 itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
                     val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
-                    // 3. Визначаємо, чи є це повідомлення останнім у чаті
                     val isLastMessage = index == uiState.messages.lastIndex
 
                     MessageBubble(
                         message = message,
                         isLastAssistantMessage = isLastAssistantMessage,
-                        // 4. Передаємо requester ТІЛЬКИ в останнє повідомлення
                         bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null,
                         onCopyToClipboard = { text ->
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -278,8 +275,6 @@ fun ChatScreen(
                 onValueChange = viewModel::onUserInputChange,
                 onSendClick = {
                     viewModel.sendMessage()
-                    //viewModel.sendMockMessage() // <-- ТИМЧАСОВА ЗАМІНА
-
                     keyboardController?.hide()
                 },
                 isLoading = uiState.messages.any { it.isStreaming },
@@ -306,34 +301,34 @@ fun MessageBubble(
     onCopyToClipboard: (String) -> Unit,
     onRegenerate: () -> Unit,
     onTranslate: () -> Unit,
-    bringIntoViewRequester: BringIntoViewRequester? = null
-
+    bringIntoViewRequester: BringIntoViewRequester? = null,
 ) {
     val isUser = message.isFromUser
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
     ) {
         Row(
             horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
             verticalAlignment = Alignment.Bottom,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             if (!isUser) {
                 Surface(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(bottom = 8.dp),
+                    modifier =
+                        Modifier
+                            .size(32.dp)
+                            .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+                    color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.SmartToy,
                             contentDescription = "AI Avatar",
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
@@ -341,37 +336,40 @@ fun MessageBubble(
             }
 
             Surface(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = if (isUser) 20.dp else 4.dp,
-                            topEnd = if (isUser) 4.dp else 20.dp,
-                            bottomStart = 20.dp,
-                            bottomEnd = 20.dp,
-                        )
-                    ),
-                color = when {
-                    message.isError -> MaterialTheme.colorScheme.errorContainer
-                    isUser -> MaterialTheme.colorScheme.primaryContainer
-                    else -> MaterialTheme.colorScheme.surface
-                },
-                tonalElevation = if (isUser) 0.dp else 1.dp
+                modifier =
+                    Modifier
+                        .widthIn(max = 280.dp)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = if (isUser) 20.dp else 4.dp,
+                                topEnd = if (isUser) 4.dp else 20.dp,
+                                bottomStart = 20.dp,
+                                bottomEnd = 20.dp,
+                            ),
+                        ),
+                color =
+                    when {
+                        message.isError -> MaterialTheme.colorScheme.errorContainer
+                        isUser -> MaterialTheme.colorScheme.primaryContainer
+                        else -> MaterialTheme.colorScheme.surface
+                    },
+                tonalElevation = if (isUser) 0.dp else 1.dp,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
                         Text(
                             text = if (message.text.isBlank() && message.isStreaming) "..." else message.text,
                             modifier = Modifier.weight(1f, fill = false),
-                            color = when {
-                                message.isError -> MaterialTheme.colorScheme.onErrorContainer
-                                isUser -> MaterialTheme.colorScheme.onPrimaryContainer
-                                else -> MaterialTheme.colorScheme.onSurface
-                            },
+                            color =
+                                when {
+                                    message.isError -> MaterialTheme.colorScheme.onErrorContainer
+                                    isUser -> MaterialTheme.colorScheme.onPrimaryContainer
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                },
                             fontSize = 15.sp,
-                            lineHeight = 20.sp
+                            lineHeight = 20.sp,
                         )
                         if (message.isStreaming && !isUser) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -385,7 +383,7 @@ fun MessageBubble(
                             text = it,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 14.sp,
-                            lineHeight = 18.sp
+                            lineHeight = 18.sp,
                         )
                     }
 
@@ -394,7 +392,7 @@ fun MessageBubble(
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = formatTime(message.timestamp),
@@ -403,14 +401,37 @@ fun MessageBubble(
                             )
                             if (!message.isError && !isUser) {
                                 Spacer(modifier = Modifier.width(8.dp))
-                                IconButton(onClick = { onCopyToClipboard(message.text) }, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.ContentCopy, "Copy", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                IconButton(onClick = {
+                                    onCopyToClipboard(message.text)
+                                }, modifier = Modifier.size(28.dp)) {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        "Copy",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                                 if (message.isTranslating) {
                                     CircularProgressIndicator(modifier = Modifier.size(28.dp).padding(6.dp), strokeWidth = 1.5.dp)
                                 } else {
-                                    IconButton(onClick = onTranslate, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Translate, "Translate", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    IconButton(onClick = onTranslate, modifier = Modifier.size(28.dp)) {
+                                        Icon(
+                                            Icons.Default.Translate,
+                                            "Translate",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                                 if (isLastAssistantMessage) {
-                                    IconButton(onClick = onRegenerate, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Refresh, "Regenerate", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    IconButton(onClick = onRegenerate, modifier = Modifier.size(28.dp)) {
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            "Regenerate",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -421,11 +442,12 @@ fun MessageBubble(
             if (isUser) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(bottom = 8.dp),
+                    modifier =
+                        Modifier
+                            .size(32.dp)
+                            .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text("U", color = MaterialTheme.colorScheme.onTertiaryContainer, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -435,13 +457,13 @@ fun MessageBubble(
         }
         bringIntoViewRequester?.let {
             Box(
-                modifier = Modifier
-                    .height(1.dp) // Мінімальна висота, щоб не впливати на UI
-                    .fillMaxWidth()
-                    .bringIntoViewRequester(it)
+                modifier =
+                    Modifier
+                        .height(1.dp)
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(it),
             )
         }
-
     }
 }
 
@@ -449,7 +471,7 @@ fun MessageBubble(
 fun RoleSelectorDialog(
     roles: List<RoleItem>,
     onDismiss: () -> Unit,
-    onRoleSelected: (RoleFile) -> Unit
+    onRoleSelected: (RoleFile) -> Unit,
 ) {
     val backStack = remember { mutableStateListOf<RoleFolder>() }
     val currentItems: List<RoleItem> by remember(backStack.size) {
@@ -461,16 +483,18 @@ fun RoleSelectorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 200.dp, max = 500.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 200.dp, max = 500.dp),
         ) {
             Column {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (backStack.isNotEmpty()) {
                         IconButton(onClick = { backStack.removeAt(backStack.lastIndex) }) {
@@ -480,7 +504,7 @@ fun RoleSelectorDialog(
                     Text(
                         text = backStack.lastOrNull()?.name ?: "Available Roles",
                         style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
@@ -489,25 +513,29 @@ fun RoleSelectorDialog(
                 Divider()
                 if (roles.isEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp), contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             "Folder with roles is not selected in settings.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
                     }
                 } else if (currentItems.isEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp), contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             "No roles found in this folder.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
@@ -520,10 +548,10 @@ fun RoleSelectorDialog(
                                         leadingContent = {
                                             Icon(
                                                 Icons.Default.Folder,
-                                                contentDescription = "Folder"
+                                                contentDescription = "Folder",
                                             )
                                         },
-                                        modifier = Modifier.clickable { backStack.add(item) }
+                                        modifier = Modifier.clickable { backStack.add(item) },
                                     )
                                 }
                                 is RoleFile -> {
@@ -531,22 +559,22 @@ fun RoleSelectorDialog(
                                         headlineContent = {
                                             Text(
                                                 item.name,
-                                                fontWeight = FontWeight.Medium
+                                                fontWeight = FontWeight.Medium,
                                             )
                                         },
                                         supportingContent = {
                                             Text(
                                                 item.prompt.take(100) + if (item.prompt.length > 100) "..." else "",
-                                                maxLines = 2
+                                                maxLines = 2,
                                             )
                                         },
                                         leadingContent = {
                                             Icon(
                                                 Icons.Default.Article,
-                                                contentDescription = "Role file"
+                                                contentDescription = "Role file",
                                             )
                                         },
-                                        modifier = Modifier.clickable { onRoleSelected(item) }
+                                        modifier = Modifier.clickable { onRoleSelected(item) },
                                     )
                                 }
                             }
@@ -562,26 +590,28 @@ fun RoleSelectorDialog(
 fun ModelSelectorDialog(
     modelsState: ModelsState,
     onDismiss: () -> Unit,
-    onModelSelected: (String) -> Unit
+    onModelSelected: (String) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 200.dp, max = 500.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 200.dp, max = 500.dp),
         ) {
             Column {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = "Select a Model",
                         style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
@@ -591,15 +621,16 @@ fun ModelSelectorDialog(
 
                 Box(
                     modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     when (modelsState) {
                         is ModelsState.Loading -> CircularProgressIndicator()
-                        is ModelsState.Error -> Text(
-                            modelsState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(16.dp)
-                        )
+                        is ModelsState.Error ->
+                            Text(
+                                modelsState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(16.dp),
+                            )
                         is ModelsState.Success -> {
                             if (modelsState.models.isEmpty()) {
                                 Text("No models found", modifier = Modifier.padding(16.dp))
@@ -609,7 +640,7 @@ fun ModelSelectorDialog(
                                         val model = modelsState.models[index]
                                         ListItem(
                                             headlineContent = { Text(model) },
-                                            modifier = Modifier.clickable { onModelSelected(model) }
+                                            modifier = Modifier.clickable { onModelSelected(model) },
                                         )
                                     }
                                 }
@@ -622,12 +653,11 @@ fun ModelSelectorDialog(
     }
 }
 
-
 @Composable
 fun TemperatureDialog(
     currentTemperature: Float,
     onDismiss: () -> Unit,
-    onSave: (Float) -> Unit
+    onSave: (Float) -> Unit,
 ) {
     var temp by remember { mutableStateOf(currentTemperature) }
 
@@ -639,7 +669,7 @@ fun TemperatureDialog(
                 Text(
                     "Controls randomness. Lower values make the model more deterministic, higher values make it more creative.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(20.dp))
 
@@ -647,20 +677,20 @@ fun TemperatureDialog(
                     text = String.format("%.2f", temp),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
                 Slider(
                     value = temp,
                     onValueChange = { temp = it },
                     valueRange = 0f..2f,
                     steps = 19,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
@@ -677,19 +707,22 @@ fun StreamingIndicator() {
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse,
-        ), label = "alpha"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1000),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "alpha",
     )
 
     Box(
-        modifier = Modifier
-            .size(8.dp)
-            .background(
-                MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-                RoundedCornerShape(4.dp),
-            ),
+        modifier =
+            Modifier
+                .size(8.dp)
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                    RoundedCornerShape(4.dp),
+                ),
     )
 }
 
@@ -713,19 +746,20 @@ fun ChatInput(
         tonalElevation = 8.dp,
     ) {
         Column(
-            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp)
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 InputChip(
                     onClick = onRoleClick,
                     label = { Text(roleTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     icon = Icons.Default.Person,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false),
                 )
 
                 InputChip(
@@ -734,11 +768,11 @@ fun ChatInput(
                         Text(
                             modelName.split(":")[0],
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     },
                     icon = Icons.Default.Memory,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false),
                 )
 
                 InputChip(
@@ -757,17 +791,19 @@ fun ChatInput(
                     onValueChange = onValueChange,
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Напишіть повідомлення...") },
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Send,
-                    ),
+                    keyboardOptions =
+                        KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Send,
+                        ),
                     keyboardActions = KeyboardActions(onSend = { if (value.isNotBlank()) onSendClick() }),
                     enabled = !isLoading,
                     shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        ),
                     maxLines = 4,
                 )
 
@@ -776,25 +812,27 @@ fun ChatInput(
                     label = "send_button",
                     transitionSpec = {
                         slideInHorizontally { it } + fadeIn() togetherWith
-                                slideOutHorizontally { -it } + fadeOut()
+                            slideOutHorizontally { -it } + fadeOut()
                     },
                 ) { loading ->
                     if (loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .padding(12.dp),
-                            strokeWidth = 2.dp
+                            modifier =
+                                Modifier
+                                    .size(48.dp)
+                                    .padding(12.dp),
+                            strokeWidth = 2.dp,
                         )
                     } else {
                         IconButton(
                             onClick = onSendClick,
                             enabled = value.isNotBlank(),
                             modifier = Modifier.size(48.dp),
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    containerColor = if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Send,
@@ -821,18 +859,18 @@ private fun InputChip(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 1.dp
+        tonalElevation = 1.dp,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
             ProvideTextStyle(value = MaterialTheme.typography.labelMedium) {
                 label()
@@ -844,11 +882,12 @@ private fun InputChip(
 @Composable
 fun EmptyStateMessage() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         Icon(
             Icons.Default.SmartToy,

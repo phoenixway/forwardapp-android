@@ -22,12 +22,12 @@ import kotlinx.coroutines.delay
 
 data class StatusVisuals(
     val emoji: String,
-    val color: Color
+    val color: Color,
 )
 
 @Composable
-private fun getStatusVisuals(status: ProjectStatus): StatusVisuals {
-    return when (status) {
+private fun getStatusVisuals(status: ProjectStatus): StatusVisuals =
+    when (status) {
         ProjectStatus.NO_PLAN -> StatusVisuals("⚠", Color(0xFFFF9800).copy(alpha = 0.3f))
         ProjectStatus.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
         ProjectStatus.IN_PROGRESS -> StatusVisuals("▶", Color(0xFF2196F3).copy(alpha = 0.3f))
@@ -35,120 +35,121 @@ private fun getStatusVisuals(status: ProjectStatus): StatusVisuals {
         ProjectStatus.ON_HOLD -> StatusVisuals("⏸", Color(0xFFFF9800).copy(alpha = 0.3f))
         ProjectStatus.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
     }
-}
 
 @Composable
 fun ProjectStatusIndicator(
     status: ProjectStatus,
     statusText: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val visuals = getStatusVisuals(status = status)
 
-    // Тонка анімація появи
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(status) {
-        delay(300) // Затримка після титулки
+        delay(300)
         isVisible = true
     }
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(
-            animationSpec = tween(400, easing = EaseOut)
-        ) + slideInVertically(
-            animationSpec = tween(400, easing = EaseOut),
-            initialOffsetY = { it / 3 }
-        ),
-        exit = fadeOut() + slideOutVertically()
+        enter =
+            fadeIn(
+                animationSpec = tween(400, easing = EaseOut),
+            ) +
+                slideInVertically(
+                    animationSpec = tween(400, easing = EaseOut),
+                    initialOffsetY = { it / 3 },
+                ),
+        exit = fadeOut() + slideOutVertically(),
     ) {
         Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                )
-                .border(
-                    width = 0.5.dp,
-                    color = visuals.color.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(horizontal = 14.dp, vertical = 8.dp)
-                .alpha(0.85f), // Загальна прозорість для тонкості
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Тонка іконка статусу
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
-                        color = visuals.color,
-                        shape = RoundedCornerShape(6.dp)
-                    ),
-                contentAlignment = Alignment.Center
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                    ).border(
+                        width = 0.5.dp,
+                        color = visuals.color.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(12.dp),
+                    ).padding(horizontal = 14.dp, vertical = 8.dp)
+                    .alpha(0.85f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(24.dp)
+                        .background(
+                            color = visuals.color,
+                            shape = RoundedCornerShape(6.dp),
+                        ),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = visuals.emoji,
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 )
             }
 
-            // Текстовий контент
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(1.dp)
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
                     text = status.displayName,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        letterSpacing = 0.1.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
+                            letterSpacing = 0.1.sp,
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 )
 
-                // Тонкий додатковий текст
                 AnimatedVisibility(
                     visible = !statusText.isNullOrBlank(),
-                    enter = fadeIn(
-                        animationSpec = tween(250, delayMillis = 100)
-                    ) + expandVertically(
-                        animationSpec = tween(250, delayMillis = 100)
-                    ),
-                    exit = fadeOut() + shrinkVertically()
+                    enter =
+                        fadeIn(
+                            animationSpec = tween(250, delayMillis = 100),
+                        ) +
+                            expandVertically(
+                                animationSpec = tween(250, delayMillis = 100),
+                            ),
+                    exit = fadeOut() + shrinkVertically(),
                 ) {
                     Text(
                         text = statusText ?: "",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 11.sp,
-                            lineHeight = 13.sp
-                        ),
+                        style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                lineHeight = 13.sp,
+                            ),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        maxLines = 2
+                        maxLines = 2,
                     )
                 }
             }
 
-            // Тонкий індикатор настрою
             Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(10.dp)
-                    ),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(20.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(10.dp),
+                        ),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "🙂",
                     fontSize = 10.sp,
-                    modifier = Modifier.alpha(0.7f)
+                    modifier = Modifier.alpha(0.7f),
                 )
             }
         }

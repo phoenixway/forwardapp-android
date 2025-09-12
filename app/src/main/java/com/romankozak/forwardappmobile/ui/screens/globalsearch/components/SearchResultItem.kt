@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/GoalSearchResultItem.kt
-
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -27,44 +25,49 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
 
 @Composable
-fun SearchResultItem(result: GlobalSearchResult, onClick: () -> Unit) {
+fun SearchResultItem(
+    result: GlobalSearchResult,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(dampingRatio = 0.8f),
-        label = "scale_animation"
+        label = "scale_animation",
     )
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surface),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = if (result.goal.completed) Icons.Default.CheckCircleOutline else Icons.Default.RadioButtonUnchecked,
                     contentDescription = if (result.goal.completed) "Завершено" else "Не завершено",
                     tint = if (result.goal.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
@@ -76,7 +79,7 @@ fun SearchResultItem(result: GlobalSearchResult, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -84,13 +87,13 @@ fun SearchResultItem(result: GlobalSearchResult, onClick: () -> Unit) {
                         imageVector = Icons.AutoMirrored.Filled.ListAlt,
                         contentDescription = "Список",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(14.dp),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = result.listName,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -99,7 +102,7 @@ fun SearchResultItem(result: GlobalSearchResult, onClick: () -> Unit) {
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Перейти до деталей",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
     }

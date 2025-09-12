@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/LinkSearchResultItem.kt
-
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -39,92 +37,98 @@ fun LinkSearchResultItem(
     onGoToTargetList: () -> Unit,
     onOpenUrl: () -> Unit,
 ) {
-    // --- ОНОВЛЕНО: Модернізована логіка анімації натискання ---
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(dampingRatio = 0.8f),
-        label = "scale_animation"
+        label = "scale_animation",
     )
 
     val linkType = result.link.linkData.type
-    val (icon, colors, actionHandler, actionIcon, actionDescription) = getLinkDisplayData(
-        linkType = linkType,
-        onOpenInObsidian = onOpenInObsidian,
-        onGoToTargetList = onGoToTargetList,
-        onOpenUrl = onOpenUrl
-    )
+    val (icon, colors, actionHandler, actionIcon, actionDescription) =
+        getLinkDisplayData(
+            linkType = linkType,
+            onOpenInObsidian = onOpenInObsidian,
+            onGoToTargetList = onGoToTargetList,
+            onOpenUrl = onOpenUrl,
+        )
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+        shape = RoundedCornerShape(16.dp),
     ) {
         Row(
-            // --- ОНОВЛЕНО: Уніфіковані відступи ---
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                colors.container.copy(alpha = 0.5f),
-                                colors.container.copy(alpha = 0.3f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            brush =
+                                Brush.verticalGradient(
+                                    colors =
+                                        listOf(
+                                            colors.container.copy(alpha = 0.5f),
+                                            colors.container.copy(alpha = 0.3f),
+                                        ),
+                                ),
+                        ),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = "Іконка посилання",
                     tint = colors.onContainer,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
                     text = result.link.linkData.displayName ?: result.link.linkData.target,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    style =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ListAlt,
                         contentDescription = "Список",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(14.dp),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
@@ -132,7 +136,7 @@ fun LinkSearchResultItem(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 
@@ -140,13 +144,13 @@ fun LinkSearchResultItem(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = colors.primary.copy(alpha = 0.1f)
+                    color = colors.primary.copy(alpha = 0.1f),
                 ) {
                     Text(
                         text = getLinkTypeLabel(linkType),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                 }
             }
@@ -156,15 +160,16 @@ fun LinkSearchResultItem(
                 IconButton(
                     onClick = actionHandler,
                     modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = colors.container.copy(alpha = 0.8f),
-                        contentColor = colors.onContainer
-                    )
+                    colors =
+                        IconButtonDefaults.iconButtonColors(
+                            containerColor = colors.container.copy(alpha = 0.8f),
+                            contentColor = colors.onContainer,
+                        ),
                 ) {
                     Icon(
                         imageVector = actionIcon,
                         contentDescription = actionDescription,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
@@ -177,63 +182,67 @@ private fun getLinkDisplayData(
     linkType: LinkType,
     onOpenInObsidian: () -> Unit,
     onGoToTargetList: () -> Unit,
-    onOpenUrl: () -> Unit
-): LinkDisplayData {
-    return when (linkType) {
-        LinkType.URL -> LinkDisplayData(
-            icon = Icons.Default.Language,
-            colors = LinkColors(
-                primary = MaterialTheme.colorScheme.tertiary,
-                container = MaterialTheme.colorScheme.tertiaryContainer,
-                onContainer = MaterialTheme.colorScheme.onTertiaryContainer
-            ),
-            actionHandler = onOpenUrl,
-            actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
-            actionDescription = "Відкрити посилання"
-        )
-        LinkType.OBSIDIAN -> LinkDisplayData(
-            icon = Icons.Default.Link, // Можна замінити на кастомну іконку Obsidian
-            colors = LinkColors(
-                primary = MaterialTheme.colorScheme.secondary,
-                container = MaterialTheme.colorScheme.secondaryContainer,
-                onContainer = MaterialTheme.colorScheme.onSecondaryContainer
-            ),
-            actionHandler = onOpenInObsidian,
-            actionIcon = Icons.AutoMirrored.Filled.Note,
-            actionDescription = "Відкрити в Obsidian"
-        )
-        LinkType.GOAL_LIST -> LinkDisplayData(
-            icon = Icons.AutoMirrored.Filled.ListAlt,
-            colors = LinkColors(
-                primary = MaterialTheme.colorScheme.primary,
-                container = MaterialTheme.colorScheme.primaryContainer,
-                onContainer = MaterialTheme.colorScheme.onPrimaryContainer
-            ),
-            actionHandler = onGoToTargetList,
-            actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
-            actionDescription = "Перейти до списку"
-        )
+    onOpenUrl: () -> Unit,
+): LinkDisplayData =
+    when (linkType) {
+        LinkType.URL ->
+            LinkDisplayData(
+                icon = Icons.Default.Language,
+                colors =
+                    LinkColors(
+                        primary = MaterialTheme.colorScheme.tertiary,
+                        container = MaterialTheme.colorScheme.tertiaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
+                    ),
+                actionHandler = onOpenUrl,
+                actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                actionDescription = "Відкрити посилання",
+            )
+        LinkType.OBSIDIAN ->
+            LinkDisplayData(
+                icon = Icons.Default.Link,
+                colors =
+                    LinkColors(
+                        primary = MaterialTheme.colorScheme.secondary,
+                        container = MaterialTheme.colorScheme.secondaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ),
+                actionHandler = onOpenInObsidian,
+                actionIcon = Icons.AutoMirrored.Filled.Note,
+                actionDescription = "Відкрити в Obsidian",
+            )
+        LinkType.GOAL_LIST ->
+            LinkDisplayData(
+                icon = Icons.AutoMirrored.Filled.ListAlt,
+                colors =
+                    LinkColors(
+                        primary = MaterialTheme.colorScheme.primary,
+                        container = MaterialTheme.colorScheme.primaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                actionHandler = onGoToTargetList,
+                actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                actionDescription = "Перейти до списку",
+            )
     }
-}
 
-private fun getLinkTypeLabel(linkType: LinkType): String {
-    return when (linkType) {
+private fun getLinkTypeLabel(linkType: LinkType): String =
+    when (linkType) {
         LinkType.URL -> "Attachment: web-url"
         LinkType.OBSIDIAN -> "Attachment: Obsidian note"
         LinkType.GOAL_LIST -> "Attachment: link to project"
     }
-}
 
 private data class LinkDisplayData(
     val icon: ImageVector,
     val colors: LinkColors,
     val actionHandler: (() -> Unit)?,
     val actionIcon: ImageVector?,
-    val actionDescription: String?
+    val actionDescription: String?,
 )
 
 private data class LinkColors(
     val primary: Color,
     val container: Color,
-    val onContainer: Color
+    val onContainer: Color,
 )

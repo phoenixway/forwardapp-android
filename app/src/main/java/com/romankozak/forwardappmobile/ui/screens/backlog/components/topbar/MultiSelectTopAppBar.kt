@@ -27,36 +27,33 @@ fun MultiSelectTopAppBar(
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onDelete: () -> Unit,
-    // --- ЗМІНЕНО ---
-    // Видалено onToggleComplete: () -> Unit
-    // Додано дві нові дії
     onMarkAsComplete: () -> Unit,
     onMarkAsIncomplete: () -> Unit,
-    // --- КІНЕЦЬ ЗМІН ---
-    onMoreActions: (GoalActionType) -> Unit
+    onMoreActions: (GoalActionType) -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 3.dp
+        tonalElevation = 3.dp,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .height(64.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .height(64.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onClearSelection,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.close_selection_mode),
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
 
@@ -65,14 +62,14 @@ fun MultiSelectTopAppBar(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 8.dp),
             )
 
             Text(
                 text = stringResource(R.string.selected),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
+                modifier = Modifier.padding(start = 4.dp),
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -80,69 +77,62 @@ fun MultiSelectTopAppBar(
             IconButton(
                 onClick = onSelectAll,
                 enabled = !areAllSelected,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.SelectAll,
                     contentDescription = stringResource(R.string.select_all),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            // --- ЗМІНЕНО ---
-            // Стару кнопку "DoneAll" видалено і замінено на дві нові.
-
-            // Нова кнопка "Зняти позначку виконання"
             IconButton(
                 onClick = onMarkAsIncomplete,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Default.RemoveDone, // Іконка для зняття виконання
-                    contentDescription = stringResource(R.string.mark_as_incomplete), // Новий текстовий ресурс
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    imageVector = Icons.Default.RemoveDone,
+                    contentDescription = stringResource(R.string.mark_as_incomplete),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            // Нова кнопка "Позначити як виконане"
             IconButton(
                 onClick = onMarkAsComplete,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Default.TaskAlt, // Іконка для позначення виконання
-                    contentDescription = stringResource(R.string.mark_as_complete), // Новий текстовий ресурс
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    imageVector = Icons.Default.TaskAlt,
+                    contentDescription = stringResource(R.string.mark_as_complete),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // --- КІНЕЦЬ ЗМІН ---
-
             IconButton(
                 onClick = onDelete,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = stringResource(R.string.delete_selected),
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
                 )
             }
 
             Box {
                 IconButton(
                     onClick = { showMenu = true },
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = stringResource(R.string.more_actions),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
                 DropdownMenu(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+                    onDismissRequest = { showMenu = false },
                 ) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.create_link)) },
@@ -150,7 +140,7 @@ fun MultiSelectTopAppBar(
                             onMoreActions(GoalActionType.CreateInstance)
                             showMenu = false
                         },
-                        leadingIcon = { Icon(Icons.Default.AddLink, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.AddLink, contentDescription = null) },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.move)) },
@@ -158,7 +148,7 @@ fun MultiSelectTopAppBar(
                             onMoreActions(GoalActionType.MoveInstance)
                             showMenu = false
                         },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.copy)) },
@@ -166,7 +156,7 @@ fun MultiSelectTopAppBar(
                             onMoreActions(GoalActionType.CopyGoal)
                             showMenu = false
                         },
-                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
                     )
                 }
             }

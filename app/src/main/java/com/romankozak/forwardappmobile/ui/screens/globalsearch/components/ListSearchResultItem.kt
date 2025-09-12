@@ -1,5 +1,3 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/globalsearch/components/ListSearchResultItem.kt
-
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -25,48 +23,49 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 
 @Composable
-fun ListSearchResultItem(list: GoalList, onClick: () -> Unit) {
-    // --- ОНОВЛЕНО: Додано анімацію натискання, як в елементі цілі ---
+fun ListSearchResultItem(
+    list: GoalList,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(dampingRatio = 0.8f),
-        label = "scale_animation"
+        label = "scale_animation",
     )
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null, // Вимикаємо стандартний ripple для чистоти анімації
-                onClick = onClick
-            ),
-        // --- ОНОВЛЕНО: Стиль картки ---
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Row(
-            // --- ОНОВЛЕНО: Уніфіковані відступи ---
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // --- ОНОВЛЕНО: Іконка тепер у стилізованому Box ---
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ListAlt,
                     contentDescription = "Іконка списку",
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
@@ -75,7 +74,6 @@ fun ListSearchResultItem(list: GoalList, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = list.name,
-                    // --- ОНОВЛЕНО: Стиль тексту ---
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -89,12 +87,11 @@ fun ListSearchResultItem(list: GoalList, onClick: () -> Unit) {
                 )
             }
 
-            // --- ОНОВЛЕНО: Іконка-стрілка для консистентності ---
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Показати у списку",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
     }

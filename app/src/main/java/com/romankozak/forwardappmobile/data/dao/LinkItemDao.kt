@@ -1,4 +1,3 @@
-// --- File: app/src/main/java/com/romankozak/forwardappmobile/data/dao/LinkItemDao.kt ---
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.Dao
@@ -22,14 +21,17 @@ interface LinkItemDao {
     suspend fun getAll(): List<ListItem>
 
     @Transaction
-    @Query("""
+    @Query(
+        """
     SELECT li.*, l.listId as listId, gl.name as listName, l.id as listItemId
     FROM link_items li
     INNER JOIN list_items l ON li.id = l.entityId
     INNER JOIN goal_lists gl ON l.listId = gl.id
     WHERE l.itemType = 'LINK_ITEM' AND li.link_data LIKE :query
-""")
+""",
+    )
     suspend fun searchLinksGlobal(query: String): List<GlobalLinkSearchResult>
+
     @Query("SELECT * FROM link_items")
     suspend fun getAllEntities(): List<LinkItemEntity>
 
@@ -38,5 +40,4 @@ interface LinkItemDao {
 
     @Query("DELETE FROM link_items")
     suspend fun deleteAll()
-
 }

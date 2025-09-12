@@ -47,7 +47,6 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
-// Властивості-розширення, що виправляє помилки 'Unresolved reference'
 private val ActivityRecord.isTimeless: Boolean
     get() = this.startTime == null
 
@@ -57,7 +56,7 @@ private val ActivityRecord.isOngoing: Boolean
 @Composable
 fun ActivityTrackerScreen(
     navController: NavController,
-    viewModel: ActivityTrackerViewModel = hiltViewModel()
+    viewModel: ActivityTrackerViewModel = hiltViewModel(),
 ) {
     val log by viewModel.activityLog.collectAsStateWithLifecycle()
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()
@@ -77,28 +76,29 @@ fun ActivityTrackerScreen(
                 onExportRequest = {
                     val markdown = exportLogToMarkdown(log)
                     copyToClipboard(context, markdown)
-                }
+                },
             )
         },
         bottomBar = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .imePadding()
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .imePadding(),
             ) {
                 InProgressIndicator(
-                    ongoingActivity = lastOngoingActivity
+                    ongoingActivity = lastOngoingActivity,
                 )
                 ActivityInputBar(
                     text = inputText,
                     isActivityOngoing = lastOngoingActivity != null,
                     onTextChange = viewModel::onInputTextChanged,
                     onToggleStartStop = viewModel::onToggleStartStop,
-                    onTimelessClick = viewModel::onTimelessRecordClick
+                    onTimelessClick = viewModel::onTimelessRecordClick,
                 )
             }
-        }
+        },
     ) { paddingValues ->
         ActivityLog(
             log = log,
@@ -106,7 +106,7 @@ fun ActivityTrackerScreen(
             onEdit = viewModel::onEditRequest,
             onRestart = viewModel::onRestartActivity,
             onDelete = viewModel::onDeleteRequest,
-            onSetReminder = viewModel::onSetReminder
+            onSetReminder = viewModel::onSetReminder,
         )
 
         editingRecord?.let { recordToEdit ->
@@ -114,7 +114,7 @@ fun ActivityTrackerScreen(
                 record = recordToEdit,
                 onDismiss = viewModel::onEditDialogDismiss,
                 onConfirm = viewModel::onRecordUpdated,
-                isLastTimedRecord = isEditingLastTimedRecord
+                isLastTimedRecord = isEditingLastTimedRecord,
             )
         }
 
@@ -124,7 +124,7 @@ fun ActivityTrackerScreen(
                 title = { Text("Видалити запис?") },
                 text = { Text("Ви впевнені, що хочете видалити запис: \"${record.text}\"?") },
                 confirmButton = { Button(onClick = viewModel::onDeleteConfirm) { Text("Видалити") } },
-                dismissButton = { TextButton(onClick = viewModel::onDeleteDismiss) { Text("Скасувати") } }
+                dismissButton = { TextButton(onClick = viewModel::onDeleteDismiss) { Text("Скасувати") } },
             )
         }
 
@@ -133,8 +133,13 @@ fun ActivityTrackerScreen(
                 onDismissRequest = { showClearConfirmDialog = false },
                 title = { Text("Очистити лог?") },
                 text = { Text("Ви впевнені, що хочете видалити всі записи? Цю дію неможливо буде скасувати.") },
-                confirmButton = { Button(onClick = { viewModel.onClearLogConfirm(); showClearConfirmDialog = false }) { Text("Видалити") } },
-                dismissButton = { TextButton(onClick = { showClearConfirmDialog = false }) { Text("Скасувати") } }
+                confirmButton = {
+                    Button(onClick = {
+                        viewModel.onClearLogConfirm()
+                        showClearConfirmDialog = false
+                    }) { Text("Видалити") }
+                },
+                dismissButton = { TextButton(onClick = { showClearConfirmDialog = false }) { Text("Скасувати") } },
             )
         }
 
@@ -142,13 +147,15 @@ fun ActivityTrackerScreen(
             ReminderPickerDialog(
                 onDismiss = viewModel::onReminderDialogDismiss,
                 onSetReminder = viewModel::onSetReminder,
-                // --- ВИПРАВЛЕНО: Виклик обернуто в лямбду для відповідності типів ---
-                onClearReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
+                onClearReminder =
+                    if (record.reminderTime != null) {
+                        { viewModel.onClearReminder() }
+                    } else {
+                        null
+                    },
                 currentReminderTime = record.reminderTime,
             )
         }
-
-
     }
 }
 
@@ -156,7 +163,7 @@ fun ActivityTrackerScreen(
 private fun ActivityTrackerTopAppBar(
     onNavigateBack: () -> Unit,
     onClearLogRequest: () -> Unit,
-    onExportRequest: () -> Unit
+    onExportRequest: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
@@ -165,10 +172,16 @@ private fun ActivityTrackerTopAppBar(
         actions = {
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Меню") }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                DropdownMenuItem(text = { Text("Експорт в Markdown") }, onClick = { onExportRequest(); menuExpanded = false })
-                DropdownMenuItem(text = { Text("Очистити лог") }, onClick = { onClearLogRequest(); menuExpanded = false })
+                DropdownMenuItem(text = { Text("Експорт в Markdown") }, onClick = {
+                    onExportRequest()
+                    menuExpanded = false
+                })
+                DropdownMenuItem(text = { Text("Очистити лог") }, onClick = {
+                    onClearLogRequest()
+                    menuExpanded = false
+                })
             }
-        }
+        },
     )
 }
 
@@ -180,7 +193,7 @@ private fun ActivityLog(
     onEdit: (ActivityRecord) -> Unit,
     onRestart: (ActivityRecord) -> Unit,
     onDelete: (ActivityRecord) -> Unit,
-    onSetReminder: (ActivityRecord) -> Unit
+    onSetReminder: (ActivityRecord) -> Unit,
 ) {
     val groupedByDate = remember(log) { log.groupBy { toDateHeader(it.createdAt) } }
     val lazyListState = rememberLazyListState()
@@ -209,7 +222,7 @@ private fun ActivityLog(
                             text = dateHeader,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
                         )
                     }
                 }
@@ -219,7 +232,7 @@ private fun ActivityLog(
                         onEdit = onEdit,
                         onRestart = onRestart,
                         onDelete = onDelete,
-                        onSetReminder = onSetReminder
+                        onSetReminder = onSetReminder,
                     )
                     if (records.last() != record) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -236,41 +249,53 @@ private fun LogEntryItem(
     onEdit: (ActivityRecord) -> Unit,
     onRestart: (ActivityRecord) -> Unit,
     onDelete: (ActivityRecord) -> Unit,
-    onSetReminder: (ActivityRecord) -> Unit
+    onSetReminder: (ActivityRecord) -> Unit,
 ) {
     if (record.isTimeless) {
         OutlinedCard(
             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.AutoMirrored.Filled.Notes, "Нотатка", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+                Icon(
+                    Icons.AutoMirrored.Filled.Notes,
+                    "Нотатка",
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(20.dp),
+                )
                 Spacer(Modifier.width(12.dp))
                 Text(record.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), fontStyle = FontStyle.Italic)
                 Spacer(Modifier.width(8.dp))
-                IconButton(onClick = { onDelete(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
-                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp)) }
+                IconButton(onClick = {
+                    onDelete(record)
+                }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                }
+                IconButton(onClick = {
+                    onEdit(record)
+                }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp)) }
             }
         }
     } else {
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.Top,
         ) {
             val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-            val timeText = when {
-                record.isOngoing -> "${timeFormat.format(Date(record.startTime!!))} - ..."
-                else -> "${timeFormat.format(Date(record.startTime!!))} - ${timeFormat.format(Date(record.endTime!!))}"
-            }
+            val timeText =
+                when {
+                    record.isOngoing -> "${timeFormat.format(Date(record.startTime!!))} - ..."
+                    else -> "${timeFormat.format(Date(record.startTime!!))} - ${timeFormat.format(Date(record.endTime!!))}"
+                }
             Text(
                 text = timeText,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.width(90.dp).padding(top = 2.dp),
                 fontWeight = FontWeight.SemiBold,
-                color = if (record.isOngoing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                color = if (record.isOngoing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
             )
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -283,57 +308,65 @@ private fun LogEntryItem(
                         val duration = record.endTime - record.startTime!!
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
                         ) {
                             Text(
                                 text = formatDuration(duration),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
                             )
                         }
                     }
-                }
+                },
             )
 
             Row {
-                // ========= ЗМІНА ТУТ =========
                 if (record.isOngoing) {
                     val isReminderSet = record.reminderTime != null
                     FilledTonalIconButton(
                         onClick = { onSetReminder(record) },
                         modifier = Modifier.size(32.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = if (isReminderSet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (isReminderSet) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        colors =
+                            IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = if (isReminderSet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (isReminderSet) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                     ) {
                         Icon(
                             imageVector = if (isReminderSet) Icons.Default.NotificationImportant else Icons.Default.Notifications,
                             contentDescription = "Встановити нагадування",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                 }
-                // ========= КІНЕЦЬ ЗМІНИ =========
-                IconButton(onClick = { onRestart(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-                IconButton(onClick = { onDelete(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
-                IconButton(onClick = { onEdit(record) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary) }
+                IconButton(onClick = {
+                    onRestart(record)
+                }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Replay, "Перезапустити", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton(onClick = {
+                    onDelete(record)
+                }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Delete, "Видалити", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                }
+                IconButton(onClick = {
+                    onEdit(record)
+                }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Edit, "Редагувати", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
+                }
             }
         }
     }
 }
-
-
-// --- РЕШТА ФАЙЛУ ЗАЛИШАЄТЬСЯ БЕЗ ЗМІН ---
 
 @Composable
 private fun TextWithBadgeLayout(
     modifier: Modifier = Modifier,
     text: String,
     textStyle: TextStyle,
-    badge: @Composable () -> Unit
+    badge: @Composable () -> Unit,
 ) {
     val textMeasurer = rememberTextMeasurer()
     SubcomposeLayout(modifier = modifier) { constraints ->
@@ -342,46 +375,55 @@ private fun TextWithBadgeLayout(
         val badgeHeight = badgePlaceable?.height ?: 0
         val horizontalGap = if (badgeWidth > 0) 8.dp.roundToPx() else 0
 
-        val textLayoutResult = textMeasurer.measure(
-            text = AnnotatedString(text),
-            style = textStyle,
-            constraints = constraints
-        )
-        val textPlaceable = subcompose("text_multi_or_single") {
-            Text(
-                text,
+        val textLayoutResult =
+            textMeasurer.measure(
+                text = AnnotatedString(text),
                 style = textStyle,
-                maxLines = if (textLayoutResult.lineCount > 1) Int.MAX_VALUE else 1,
-                overflow = if (textLayoutResult.lineCount > 1) androidx.compose.ui.text.style.TextOverflow.Clip else androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                constraints = constraints,
             )
-        }.first().measure(constraints)
+        val textPlaceable =
+            subcompose("text_multi_or_single") {
+                Text(
+                    text,
+                    style = textStyle,
+                    maxLines = if (textLayoutResult.lineCount > 1) Int.MAX_VALUE else 1,
+                    overflow =
+                        if (textLayoutResult.lineCount >
+                            1
+                        ) {
+                            androidx.compose.ui.text.style.TextOverflow.Clip
+                        } else {
+                            androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        },
+                )
+            }.first().measure(constraints)
 
         val isSingleLine = textLayoutResult.lineCount <= 1
 
         if (isSingleLine) {
-            val textPlaceableForSingleLine = subcompose("text_single_line") {
-                Text(
-                    text,
-                    style = textStyle,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            val textPlaceableForSingleLine =
+                subcompose("text_single_line") {
+                    Text(
+                        text,
+                        style = textStyle,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }.first().measure(
+                    Constraints(
+                        maxWidth = (constraints.maxWidth - horizontalGap - badgeWidth).coerceAtLeast(0),
+                    ),
                 )
-            }.first().measure(
-                Constraints(
-                    maxWidth = (constraints.maxWidth - horizontalGap - badgeWidth).coerceAtLeast(0)
-                )
-            )
 
             val totalHeight = max(textPlaceableForSingleLine.height, badgeHeight)
             layout(constraints.maxWidth, totalHeight) {
                 textPlaceableForSingleLine.placeRelative(
                     0,
-                    Alignment.CenterVertically.align(textPlaceableForSingleLine.height, totalHeight)
-
+                    Alignment.CenterVertically.align(textPlaceableForSingleLine.height, totalHeight),
                 )
                 badgePlaceable?.placeRelative(
                     textPlaceableForSingleLine.width + horizontalGap,
-                    Alignment.CenterVertically.align(badgeHeight, totalHeight)
+                    Alignment.CenterVertically.align(badgeHeight, totalHeight),
                 )
             }
         } else {
@@ -400,7 +442,7 @@ private fun InProgressIndicator(ongoingActivity: ActivityRecord?) {
     AnimatedVisibility(
         visible = ongoingActivity != null,
         enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically()
+        exit = fadeOut() + slideOutVertically(),
     ) {
         if (ongoingActivity != null) {
             var elapsedTime by remember { mutableLongStateOf(System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)) }
@@ -415,11 +457,11 @@ private fun InProgressIndicator(ongoingActivity: ActivityRecord?) {
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -427,7 +469,7 @@ private fun InProgressIndicator(ongoingActivity: ActivityRecord?) {
                         text = ongoingActivity.text,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 }
@@ -454,16 +496,16 @@ private fun ActivityInputBar(
     isActivityOngoing: Boolean,
     onTextChange: (String) -> Unit,
     onToggleStartStop: () -> Unit,
-    onTimelessClick: () -> Unit
+    onTimelessClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 3.dp,
-        shadowElevation = 3.dp
+        shadowElevation = 3.dp,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             TextField(
                 value = text,
@@ -471,24 +513,25 @@ private fun ActivityInputBar(
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("Чим ви займаєтесь?") },
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                )
+                colors =
+                    TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                    ),
             )
             Spacer(modifier = Modifier.width(8.dp))
 
             IconButton(
                 onClick = onTimelessClick,
-                enabled = text.isNotBlank()
+                enabled = text.isNotBlank(),
             ) {
                 Icon(Icons.Default.AddComment, "Зробити запис", tint = MaterialTheme.colorScheme.secondary)
             }
 
             IconButton(
                 onClick = onToggleStartStop,
-                enabled = text.isNotBlank() || isActivityOngoing
+                enabled = text.isNotBlank() || isActivityOngoing,
             ) {
                 val icon: ImageVector
                 val tint: Color
@@ -514,7 +557,7 @@ private fun ActivityInputBar(
                     imageVector = icon,
                     contentDescription = description,
                     tint = tint,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(28.dp),
                 )
             }
         }
@@ -537,10 +580,11 @@ private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
                 append("- ${record.text}\n")
             }
             timed.forEach { record ->
-                val timeText = when {
-                    record.isOngoing -> "`${sdfTime.format(Date(record.startTime!!))} - ...`"
-                    else -> "`${sdfTime.format(Date(record.startTime!!))} - ${sdfTime.format(Date(record.endTime!!))}`"
-                }
+                val timeText =
+                    when {
+                        record.isOngoing -> "`${sdfTime.format(Date(record.startTime!!))} - ...`"
+                        else -> "`${sdfTime.format(Date(record.startTime!!))} - ${sdfTime.format(Date(record.endTime!!))}`"
+                    }
                 append("- $timeText ${record.text}\n".trim())
             }
             append("\n")
@@ -548,7 +592,10 @@ private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     }
 }
 
-private fun copyToClipboard(context: Context, text: String) {
+private fun copyToClipboard(
+    context: Context,
+    text: String,
+) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("Activity Log", text)
     clipboard.setPrimaryClip(clip)
@@ -561,7 +608,7 @@ private fun EditRecordDialog(
     record: ActivityRecord,
     onDismiss: () -> Unit,
     onConfirm: (String, Long?, Long?) -> Unit,
-    isLastTimedRecord: Boolean
+    isLastTimedRecord: Boolean,
 ) {
     var text by remember(record) { mutableStateOf(record.text) }
     var startTime by remember(record) { mutableStateOf(record.startTime) }
@@ -582,13 +629,13 @@ private fun EditRecordDialog(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Текст запису") }
+                    label = { Text("Текст запису") },
                 )
                 if (!record.isTimeless) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         OutlinedButton(onClick = { showStartTimePicker = true }, modifier = Modifier.weight(1f)) {
                             Text(startTime?.let { timeFormatter.format(Date(it)) } ?: "Start")
@@ -597,7 +644,7 @@ private fun EditRecordDialog(
                         OutlinedButton(
                             onClick = { showEndTimePicker = true },
                             modifier = Modifier.weight(1f),
-                            enabled = !record.isOngoing
+                            enabled = !record.isOngoing,
                         ) {
                             Text(endTime?.let { timeFormatter.format(Date(it)) } ?: "Зараз")
                         }
@@ -620,12 +667,12 @@ private fun EditRecordDialog(
                         onConfirm(text, startTime, endTime)
                     }
                 },
-                enabled = text.isNotBlank()
+                enabled = text.isNotBlank(),
             ) {
                 Text("Зберегти")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
     )
 
     if (showStartTimePicker) {
@@ -635,7 +682,7 @@ private fun EditRecordDialog(
             onConfirm = { newTime ->
                 startTime = newTime
                 showStartTimePicker = false
-            }
+            },
         )
     }
 
@@ -646,7 +693,7 @@ private fun EditRecordDialog(
             onConfirm = { newTime ->
                 endTime = newTime
                 showEndTimePicker = false
-            }
+            },
         )
     }
 }
