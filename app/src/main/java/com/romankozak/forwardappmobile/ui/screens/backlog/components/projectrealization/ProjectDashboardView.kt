@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.projectrealization.DashboardContent
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.projectrealization.InsightsContent
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.projectrealization.LogContent
@@ -25,6 +26,10 @@ fun ProjectDashboardView(
     projectLogs: List<ProjectExecutionLog>,
     onStatusUpdate: (ProjectStatus, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
+    onRecalculateTime: () -> Unit, // <-- ДОДАНО
+    projectTimeMetrics: ProjectTimeMetrics?, // <-- ДОДАНО
+
+
 ) {
     if (goalList == null) return
 
@@ -46,19 +51,21 @@ fun ProjectDashboardView(
             }
         }
 
-        // Вміст вибраної вкладки
         when (selectedTab) {
             ProjectManagementTab.Dashboard -> DashboardContent(
                 goalList = goalList,
                 onStatusUpdate = onStatusUpdate,
-                onToggleProjectManagement = onToggleProjectManagement
+                onToggleProjectManagement = onToggleProjectManagement,
+                onRecalculateTime = onRecalculateTime,
+                projectTimeMetrics = projectTimeMetrics, // <-- ДОДАНО
+
             )
-            ProjectManagementTab.Log -> LogContent(
-                logs = projectLogs,
-                isManagementEnabled = goalList.isProjectManagementEnabled == true
+            ProjectManagementTab.Log -> LogContent( //
+                logs = projectLogs, //
+                isManagementEnabled = goalList.isProjectManagementEnabled == true //
             )
-            ProjectManagementTab.Insights -> InsightsContent(
-                isManagementEnabled = goalList.isProjectManagementEnabled == true
+            ProjectManagementTab.Insights -> InsightsContent( //
+                isManagementEnabled = goalList.isProjectManagementEnabled == true //
             )
         }
     }

@@ -24,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +39,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -45,6 +48,9 @@ fun DashboardContent(
     goalList: GoalList,
     onStatusUpdate: (ProjectStatus, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
+    onRecalculateTime: () -> Unit, // <-- ДОДАНО
+    projectTimeMetrics: ProjectTimeMetrics?, // <-- ДОДАНО
+
 ) {
     var showStatusDialog by remember { mutableStateOf(false) }
 
@@ -57,25 +63,31 @@ fun DashboardContent(
         AnimatedContent(
             targetState = goalList.isProjectManagementEnabled == true,
             label = "DashboardContentAnimation",
-            transitionSpec = {
-                (slideInVertically { height -> height } + fadeIn() togetherWith
-                        slideOutVertically { height -> -height } + fadeOut())
-                    .using(SizeTransform(clip = false))
-            }
+            // ... (решта AnimatedContent)
         ) { isManagementEnabled ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 if (!isManagementEnabled) {
-                    EnableSupportCard(onEnable = { onToggleProjectManagement(true) })
+                    EnableSupportCard(onEnable = { onToggleProjectManagement(true) }) //
                 } else {
-                    // Відображення поточного статусу, клікабельне для відкриття діалогу
-                    StatusDisplayCard(
-                        status = goalList.projectStatus ?: ProjectStatus.NO_PLAN,
-                        statusText = goalList.projectStatusText,
-                        onClick = { showStatusDialog = true }
+                    // Відображення поточного статусу
+                    StatusDisplayCard( //
+                        status = goalList.projectStatus ?: ProjectStatus.NO_PLAN, //
+                        statusText = goalList.projectStatusText, //
+                        onClick = { showStatusDialog = true } //
                     )
+
+                    projectTimeMetrics?.let { metrics ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        MetricsDisplayCard(metrics = metrics)
+                    }
+
+                    OutlinedButton(onClick = onRecalculateTime) {
+                        Text("Recalculate")
+                    }
+                    // --- КІНЕЦЬ ЗМІНИ ---
 
                     // Заглушка для майбутніх метрик
                     Text(
@@ -89,13 +101,13 @@ fun DashboardContent(
     }
 
     if (showStatusDialog) {
-        UpdateStatusDialog(
-            currentStatus = goalList.projectStatus ?: ProjectStatus.NO_PLAN,
-            currentStatusText = goalList.projectStatusText ?: "",
-            onDismissRequest = { showStatusDialog = false },
-            onSave = { newStatus, newText ->
-                onStatusUpdate(newStatus, newText)
-                showStatusDialog = false
+        UpdateStatusDialog( //
+            currentStatus = goalList.projectStatus ?: ProjectStatus.NO_PLAN, //
+            currentStatusText = goalList.projectStatusText ?: "", //
+            onDismissRequest = { showStatusDialog = false }, //
+            onSave = { newStatus, newText -> //
+                onStatusUpdate(newStatus, newText) //
+                showStatusDialog = false //
             }
         )
     }
@@ -167,3 +179,28 @@ private fun EnableSupportCard(onEnable: () -> Unit) {
     }
 }
 
+@Composable
+private fun MetricsDisplayCard(metrics: ProjectTimeMetrics) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            MetricItem(label = "Час за сьогодні", value = formatDurationForUi(metrics.timeToday))
+            MetricItem(label = "Загальний час", value = formatDurationForUi(metrics.timeTotal))
+        }
+    }
+}
+
+@Composable
+private fun MetricItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    }
+}

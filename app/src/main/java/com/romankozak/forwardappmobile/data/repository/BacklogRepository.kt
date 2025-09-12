@@ -13,7 +13,10 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.Calendar
+import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -444,5 +447,135 @@ class GoalRepository @Inject constructor(
         contextHandler.handleContextsOnCreate(finalGoalState)
         return newGoal
     }
+
+    suspend fun logProjectTimeSummaryForDate(projectId: String, dayToLog: Calendar) {
+        // 1. Визначаємо часові рамки вказаного дня (початок та кінець доби).
+        val calendar = dayToLog.clone() as Calendar
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startTime = calendar.timeInMillis
+
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
+        val endTime = calendar.timeInMillis - 1
+
+        // 2. Отримуємо ID всіх завдань (цілей), що належать до цього проекту.
+        val goalIds = listItemDao.getGoalIdsForList(projectId) //
+
+        // 3. Отримуємо всі завершені записи активності за вказаний день,
+        // що стосуються або самого проекту, або його завдань.
+        val activities = activityRepository.getCompletedActivitiesForProject(
+            listId = projectId,
+            goalIds = goalIds,
+            startTime = startTime,
+            endTime = endTime
+        )
+
+        // Якщо за цей день не було жодної активності, виходимо.
+        if (activities.isEmpty()) {
+            return
+        }
+
+        // 4. Розраховуємо загальну тривалість та готуємо деталізацію.
+        var totalDurationMillis: Long = 0
+        val activitiesByText = activities.groupBy { it.text }
+
+        val detailsBuilder = StringBuilder()
+        detailsBuilder.append("### Деталізація за день:\n\n")
+
+        activitiesByText.forEach { (text, records) ->
+            // Сумуємо тривалість для кожної унікальної активності.
+            val durationForText = records.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
+            if (durationForText > 0) {
+                totalDurationMillis += durationForText
+                val formattedDuration = formatDuration(durationForText) //
+                detailsBuilder.append("- **$text**: $formattedDuration\n")
+            }
+        }
+
+        // Якщо загальна тривалість нульова, не створюємо запис.
+        if (totalDurationMillis <= 0) {
+            return
+        }
+
+        // 5. Форматуємо підсумкові рядки для логу.
+        val totalFormattedDuration = formatDuration(totalDurationMillis) //
+        val description = "Загальний час за день: $totalFormattedDuration." //
+        val details = detailsBuilder.toString()
+
+        // 6. Додаємо один зведений запис у лог проекту.
+        addProjectLogEntry( //
+            projectId = projectId, //
+            type = ProjectLogEntryType.AUTOMATIC, //
+            description = description, //
+            details = details //
+        )
+    }
+
+    private fun formatDuration(millis: Long): String {
+        val hours = TimeUnit.MILLISECONDS.toHours(millis)
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
+
+        return if (hours > 0) {
+            String.format(Locale.ROOT, "%d год %02d хв %02d с", hours, minutes, seconds)
+        } else if (minutes > 0) {
+            String.format(Locale.ROOT, "%d хв %02d с", minutes, seconds)
+        } else {
+            String.format(Locale.ROOT, "%d с", seconds)
+        }
+    }
+
+    private suspend fun logTotalProjectTimeSummary(projectId: String) {
+        val goalIds = listItemDao.getGoalIdsForList(projectId)
+        // Припускаємо, що в ActivityRepository є відповідний метод-проксі
+        val activities = activityRepository.getAllCompletedActivitiesForProject(projectId, goalIds)
+
+        if (activities.isEmpty()) return
+
+        val totalDurationMillis = activities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
+
+        if (totalDurationMillis <= 0) return
+
+        val totalFormattedDuration = formatDuration(totalDurationMillis)
+        val description = "Загальний час по проекту: $totalFormattedDuration."
+
+        addProjectLogEntry(
+            projectId = projectId,
+            type = ProjectLogEntryType.AUTOMATIC,
+            description = description,
+            details = "Розраховано на запит користувача."
+        )
+    }
+
+    // Публічний метод-оркестратор, який буде викликатись з UI
+    suspend fun recalculateAndLogProjectTime(projectId: String) {
+        // 1. Розрахунок за сьогодні (використовуємо існуючий метод)
+        logProjectTimeSummaryForDate(projectId, Calendar.getInstance())
+        // 2. Розрахунок за весь час
+        logTotalProjectTimeSummary(projectId)
+    }
+// У файлі BacklogRepository.kt (клас GoalRepository)
+
+    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics {
+        // --- Розрахунок часу за сьогодні ---
+        val todayCalendar = Calendar.getInstance()
+        todayCalendar.set(Calendar.HOUR_OF_DAY, 0); todayCalendar.set(Calendar.MINUTE, 0); /* ... і т.д. */
+        val startTime = todayCalendar.timeInMillis
+        todayCalendar.add(Calendar.DAY_OF_YEAR, 1)
+        val endTime = todayCalendar.timeInMillis - 1
+
+        val goalIds = listItemDao.getGoalIdsForList(projectId)
+        val todayActivities = activityRepository.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
+        val timeToday = todayActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
+
+        // --- Розрахунок загального часу ---
+        val allActivities = activityRepository.getAllCompletedActivitiesForProject(projectId, goalIds)
+        val timeTotal = allActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
+
+        return ProjectTimeMetrics(timeToday = timeToday, timeTotal = timeTotal)
+    }
 }
+
 

@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 import kotlinx.coroutines.delay
 
-private data class StatusVisuals(
+data class StatusVisuals(
     val emoji: String,
     val color: Color
 )

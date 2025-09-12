@@ -1,19 +1,12 @@
 import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-// Файл: /app/build.gradle.kts
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    // --- ДОДАНО: Плагіни для Hilt та Room ---
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // Додайте цей рядок
-
-    //id("com.google.dagger.hilt.android")
-    //id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
     kotlin("kapt")
 }
 
@@ -31,16 +24,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     }
-
-    /*    buildTypes {
-            release {
-                isMinifyEnabled = false
-                proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
-                )
-            }
-        }*/
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -51,7 +34,6 @@ android {
     buildFeatures {
         compose = true
     }
-    // --- ДОДАНО: Налаштування для KSP (потрібно для Room) ---
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
@@ -101,13 +83,6 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
     }
-
-/*    splits {
-        abi {
-            isEnable = false // один APK для всіх архітектур
-        }
-    }*/
-
     splits {
         abi {
             isEnable = true

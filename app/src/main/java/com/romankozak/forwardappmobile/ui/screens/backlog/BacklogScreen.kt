@@ -671,13 +671,17 @@ fun GoalDetailScreen(
                     )
                 }
             }
+// --- File: BacklogScreen.kt ---
+
             ProjectViewMode.DASHBOARD -> {
                 ProjectDashboardView(
                     modifier = Modifier.padding(paddingValues),
                     goalList = list,
                     projectLogs = projectLogs,
                     onToggleProjectManagement = viewModel::onToggleProjectManagement,
-                    onStatusUpdate = viewModel::onProjectStatusUpdate
+                    onStatusUpdate = viewModel::onProjectStatusUpdate,
+                    projectTimeMetrics = uiState.projectTimeMetrics, // <-- ДОДАНО
+                    onRecalculateTime = viewModel::onRecalculateTime
                 )
             }
 

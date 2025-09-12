@@ -23,9 +23,12 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         mavenLocal()
+        gradlePluginPortal()
+
         maven { url = uri("https://jitpack.io") }
     }
 }
 
 rootProject.name = "ForwardAppMobile"
 include(":app")
+include(":ktlint-rules")
