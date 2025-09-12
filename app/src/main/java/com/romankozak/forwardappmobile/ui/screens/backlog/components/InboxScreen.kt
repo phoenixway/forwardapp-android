@@ -18,7 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -99,11 +99,6 @@ fun InboxScreen(
                             }
                         },
                     )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                    )
                 }
             }
         }
@@ -125,6 +120,7 @@ fun InboxItemRow(
             .withZone(ZoneId.systemDefault())
 
     var isExpanded by remember { mutableStateOf(false) }
+    var hasOverflow by remember { mutableStateOf(false) }
 
     var highlightActive by remember { mutableStateOf(isHighlighted) }
     LaunchedEffect(isHighlighted) {
@@ -149,11 +145,13 @@ fun InboxItemRow(
             Modifier
                 .fillMaxWidth()
                 .clickable {
-                    isExpanded = !isExpanded
+                    if (hasOverflow || isExpanded) {
+                        isExpanded = !isExpanded
+                    }
                 }.animateContentSize()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 6.dp),
         shape = MaterialTheme.shapes.medium,
-        tonalElevation = 2.dp,
+        tonalElevation = 4.dp, // Змінено з 2.dp на 4.dp
     ) {
         ListItem(
             colors =
@@ -165,15 +163,18 @@ fun InboxItemRow(
                     text = record.text,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = if (isExpanded) Int.MAX_VALUE else 2,
+                    maxLines = if (isExpanded) Int.MAX_VALUE else 5,
                     overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { textLayoutResult ->
+                        hasOverflow = textLayoutResult.hasVisualOverflow
+                    },
                 )
             },
             supportingContent = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    if (record.text.length > 100) {
+                    if (hasOverflow || isExpanded) {
                         Text(
                             text = if (isExpanded) "Менше" else "Більше",
                             style = MaterialTheme.typography.bodySmall,
