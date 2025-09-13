@@ -61,7 +61,7 @@ import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.GoalListBottomNav
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
@@ -152,7 +152,6 @@ fun MainScreen(
                 }
                 is GoalListUiEvent.ScrollToIndex -> {
                     coroutineScope.launch {
-                        Log.d("REVEAL_DEBUG", "GoalListScreen: Команда отримана. Скролю до індексу ${event.index}")
                         listState.animateScrollToItem(event.index)
                     }
                 }
@@ -244,11 +243,11 @@ fun MainScreen(
                     searchQuery = searchQuery,
                     onQueryChange = viewModel::onSearchQueryChanged,
                     onCloseSearch = { viewModel.onToggleSearch(false) },
-                    onPerformGlobalSearch = viewModel::onPerformGlobalSearch,
+                    onPerformGlobalSearch = { viewModel.onPerformGlobalSearch(it) },
                     focusRequester = focusRequester,
                 )
             } else {
-                GoalListBottomNav(
+                ExpandingBottomNav(
                     navController = navController,
                     isSearchActive = isSearchActive,
                     onToggleSearch = viewModel::onToggleSearch,
@@ -257,6 +256,7 @@ fun MainScreen(
                     onPlanningModeChange = viewModel::onPlanningModeChange,
                     onContextsClick = { showContextSheet = true },
                     onRecentsClick = { viewModel.onShowRecentLists() },
+                    onDayPlanClick = viewModel::onDayPlanClicked
                 )
             }
         },

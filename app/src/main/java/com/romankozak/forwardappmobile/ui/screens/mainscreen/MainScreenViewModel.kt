@@ -65,11 +65,8 @@ sealed class GoalListUiEvent {
 
 sealed class PlanningMode {
     object All : PlanningMode()
-
     object Daily : PlanningMode()
-
     object Medium : PlanningMode()
-
     object Long : PlanningMode()
 }
 
@@ -80,28 +77,12 @@ data class AppStatistics(
 
 sealed class DialogState {
     object Hidden : DialogState()
-
-    data class AddList(
-        val parentId: String?,
-    ) : DialogState()
-
-    data class ContextMenu(
-        val list: GoalList,
-    ) : DialogState()
-
-    data class ConfirmDelete(
-        val list: GoalList,
-    ) : DialogState()
-
-    data class EditList(
-        val list: GoalList,
-    ) : DialogState()
-
+    data class AddList(val parentId: String?) : DialogState()
+    data class ContextMenu(val list: GoalList) : DialogState()
+    data class ConfirmDelete(val list: GoalList) : DialogState()
+    data class EditList(val list: GoalList) : DialogState()
     object AboutApp : DialogState()
-
-    data class ConfirmFullImport(
-        val uri: Uri,
-    ) : DialogState()
+    data class ConfirmFullImport(val uri: Uri) : DialogState()
 }
 
 data class PlanningSettingsState(
@@ -247,11 +228,6 @@ constructor(
             _expandedInLongMode,
         ) { filterState, expandedSearch, expandedDaily, expandedMedium, expandedLong ->
             try {
-                Log.d(
-                    "FLOW_DEBUG",
-                    "Combine started. Query: '${filterState.query}', SearchActive: ${filterState.searchActive}, Mode: ${filterState.mode}",
-                )
-
                 val (flatList, query, searchActive, mode, settings) = filterState
                 val isFilterActive = (searchActive && query.isNotBlank()) || (mode != PlanningMode.All)
 
@@ -259,12 +235,8 @@ constructor(
                     val topLevel = flatList.filter { it.parentId == null }.sortedBy { it.order }
                     val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
                     val displayLists = flatList.map { list -> list.copy(isExpanded = list.isExpanded) }
-                    val result = ListHierarchyData(allLists = displayLists, topLevelLists = topLevel, childMap = childMap)
-                    Log.d("FLOW_DEBUG", "Combine finished (no filter). Emitting ${result.topLevelLists.size} top-level lists.")
-                    return@combine result
+                    return@combine ListHierarchyData(allLists = displayLists, topLevelLists = topLevel, childMap = childMap)
                 }
-
-                Log.d("FLOW_DEBUG", "Filter is active. flatList size: ${flatList.size}")
 
                 val listLookup = flatList.associateBy { it.id }
                 val fullChildMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
@@ -286,7 +258,6 @@ constructor(
                             }
                         if (targetTag != null) flatList.filter { it.tags?.contains(targetTag) == true } else emptyList()
                     }
-                Log.d("FLOW_DEBUG", "Found ${matchingLists.size} matching lists.")
 
                 val descendantIds = mutableSetOf<String>()
                 val ancestorIds = mutableSetOf<String>()
@@ -304,7 +275,6 @@ constructor(
                         addAll(descendantIds)
                         addAll(matchingLists.map { it.id })
                     }
-                Log.d("FLOW_DEBUG", "Total visible IDs: ${visibleIds.size}")
 
                 val currentExpandedState =
                     when {
@@ -318,7 +288,6 @@ constructor(
                 val currentExpandedIds = if (shouldInitialize) ancestorIds else (currentExpandedState ?: emptySet())
 
                 if (shouldInitialize) {
-                    Log.d("FLOW_DEBUG", "Initializing expanded state for the current filter.")
                     val expandedSetToInitialize = ancestorIds
                     when {
                         searchActive -> _expandedInSearchMode.value = expandedSetToInitialize
@@ -337,12 +306,7 @@ constructor(
                 val topLevel = displayLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
                 val childMap = displayLists.filter { it.parentId != null }.groupBy { it.parentId!! }
 
-                val result = ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
-                Log.d(
-                    "FLOW_DEBUG",
-                    "Combine finished successfully (with filter). Emitting ${result.topLevelLists.size} top-level lists.",
-                )
-                return@combine result
+                return@combine ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
             } catch (e: Exception) {
                 Log.e("FLOW_DEBUG", "!!! Exception in combine block !!!", e)
                 return@combine ListHierarchyData()
@@ -491,6 +455,24 @@ constructor(
         viewModelScope.launch {
             onDismissRecentLists()
             _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId))
+        }
+    }
+
+    fun onDayPlanClicked() {
+        viewModelScope.launch {
+            val dailyTag = planningSettingsState.value.dailyTag
+            if (dailyTag.isBlank()) {
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Daily tag is not set in settings"))
+                return@launch
+            }
+
+            val dayPlanList = _allListsFlat.value.find { it.tags?.contains(dailyTag) == true }
+
+            if (dayPlanList != null) {
+                _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(dayPlanList.id))
+            } else {
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("A list with tag '#$dailyTag' was not found"))
+            }
         }
     }
 
