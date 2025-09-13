@@ -81,4 +81,9 @@ interface GoalListDao {
 
     @Query("DELETE FROM goal_lists")
     suspend fun deleteAll()
+
+    @Query("UPDATE goal_lists SET default_view_mode = :viewModeName WHERE id = :listId")
+    suspend fun updateViewMode(listId: String, viewModeName: String)
+
+
 }
