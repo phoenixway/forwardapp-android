@@ -101,6 +101,15 @@ fun MainScreen(
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    LaunchedEffect(Unit) {
+        // Чекаємо короткий момент (100 мілісекунд), щоб дозволити першому
+        // відмалюванню UI (без фільтрів) завершитись.
+        // Це виносить важку логіку фільтрації за межі критичного шляху запуску.
+        delay(100)
+        viewModel.enableFiltering()
+    }
+
+
     LaunchedEffect(savedStateHandle) {
         savedStateHandle
             ?.getStateFlow<String?>("list_to_reveal", null)

@@ -135,7 +135,10 @@ class GoalListViewModel
             private const val LIST_BEING_MOVED_ID_KEY = "listBeingMovedId"
         }
 
-        private val _highlightedListId = MutableStateFlow<String?>(null)
+    private val _isReadyForFiltering = MutableStateFlow(false)
+
+
+    private val _highlightedListId = MutableStateFlow<String?>(null)
         val highlightedListId: StateFlow<String?> = _highlightedListId.asStateFlow()
         private val _searchQuery = MutableStateFlow("")
         val searchQuery = _searchQuery.asStateFlow()
@@ -186,20 +189,36 @@ class GoalListViewModel
                 AppStatistics(listCount = allLists.size, goalCount = allGoalsCount)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppStatistics())
 
-        private val filterStateFlow: StateFlow<FilterState> =
-            combine(
-                _allListsFlat,
-                debouncedSearchQuery,
-                isSearchActive,
-                planningMode,
-                planningSettingsState,
-            ) { flatList, query, searchActive, mode, settings ->
+// file: ui/screens/mainscreen/MainScreenViewModel.kt
+
+    private val filterStateFlow: StateFlow<FilterState> =
+        combine(
+            _allListsFlat,
+            debouncedSearchQuery,
+            isSearchActive,
+            planningMode,
+            planningSettingsState,
+            _isReadyForFiltering
+        ) { values -> // Лямбда тепер приймає один параметр - масив значень
+            // Витягуємо та приводимо до потрібного типу кожен елемент масиву
+            val flatList = values[0] as List<GoalList>
+            val query = values[1] as String
+            val searchActive = values[2] as Boolean
+            val mode = values[3] as PlanningMode
+            val settings = values[4] as PlanningSettingsState
+            val isReady = values[5] as Boolean
+
+            // Сама логіка залишається незмінною
+            if (!isReady) {
+                FilterState(flatList, "", false, PlanningMode.All, settings)
+            } else {
                 FilterState(flatList, query, searchActive, mode, settings)
-            }.stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5000),
-                FilterState(emptyList(), "", false, PlanningMode.All, PlanningSettingsState()),
-            )
+            }
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            FilterState(emptyList(), "", false, PlanningMode.All, PlanningSettingsState()),
+        )
 
         val listHierarchy: StateFlow<ListHierarchyData> =
             combine(
@@ -274,19 +293,22 @@ class GoalListViewModel
                             else -> null
                         }
                     val shouldInitialize = currentExpandedState == null && matchingLists.isNotEmpty()
-                    val currentExpandedIds = if (shouldInitialize) visibleIds else (currentExpandedState ?: emptySet())
+                    val currentExpandedIds = if (shouldInitialize) ancestorIds else (currentExpandedState ?: emptySet())
 
                     if (shouldInitialize) {
                         Log.d("FLOW_DEBUG", "Initializing expanded state for the current filter.")
+                        // ЗМІНА №2: Ініціалізуйте стан розгорнутих елементів ТІЛЬКИ предками
+                        val expandedSetToInitialize = ancestorIds // Розгортаємо тільки предків
                         when {
-                            searchActive -> _expandedInSearchMode.value = visibleIds
-                            mode is PlanningMode.Daily -> _expandedInDailyMode.value = visibleIds
-                            mode is PlanningMode.Medium -> _expandedInMediumMode.value = visibleIds
-                            mode is PlanningMode.Long -> _expandedInLongMode.value = visibleIds
+                            searchActive -> _expandedInSearchMode.value = expandedSetToInitialize
+                            mode is PlanningMode.Daily -> _expandedInDailyMode.value = expandedSetToInitialize
+                            mode is PlanningMode.Medium -> _expandedInMediumMode.value = expandedSetToInitialize
+                            mode is PlanningMode.Long -> _expandedInLongMode.value = expandedSetToInitialize
                         }
                     }
 
                     val visibleLists = flatList.filter { it.id in visibleIds }
+
                     val displayLists =
                         visibleLists.map { list ->
                             list.copy(isExpanded = currentExpandedIds.contains(list.id))
@@ -1120,4 +1142,9 @@ class GoalListViewModel
                 }
             }
         }
+
+    fun enableFiltering() {
+        _isReadyForFiltering.value = true
     }
+
+}

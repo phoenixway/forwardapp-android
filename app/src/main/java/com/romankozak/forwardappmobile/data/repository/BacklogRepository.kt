@@ -116,14 +116,21 @@ constructor(
         projectManagementDao.insertLog(logEntry)
     }
 
+// file: data/repository/BacklogRepository.kt
+
     suspend fun updateGoalListViewMode(
         listId: String,
         viewMode: ProjectViewMode,
     ) {
+        /* СТАРИЙ КОД, ЩО ВИКЛИКАВ ПРОБЛЕМУ
         val list = getGoalListById(listId)
         if (list != null) {
             updateGoalList(list.copy(defaultViewModeName = viewMode.name))
         }
+        */
+
+        // НОВИЙ, ВИПРАВЛЕНИЙ КОД
+        goalListDao.updateViewMode(listId, viewMode.name)
     }
 
     fun getListContentStream(listId: String): Flow<List<ListItemContent>> =
