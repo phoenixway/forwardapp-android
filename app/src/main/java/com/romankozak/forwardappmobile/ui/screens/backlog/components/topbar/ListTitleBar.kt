@@ -1,8 +1,9 @@
+// File: ListTitleBar.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +38,18 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+
+// --- 👇 ПОЧАТОК ЗМІН: Новий окремий компонент для індикатора ---
+
+// --- 👆 КІНЕЦЬ ЗМІН ---
+
+@Composable
+internal fun getViewModeText(viewMode: ProjectViewMode): String =
+    when (viewMode) {
+        ProjectViewMode.BACKLOG -> "Backlog"
+        ProjectViewMode.INBOX -> "Inbox"
+        ProjectViewMode.DASHBOARD -> "Dashboard"
+    }
 
 @Composable
 private fun getStatusVisuals(status: ProjectStatus): StatusVisuals =
@@ -128,20 +142,17 @@ fun ListTitleBar(
                     overflow = TextOverflow.Ellipsis,
                 )
 
+                if (currentViewMode != null) {
+                    Spacer(Modifier.width(8.dp))
+                    // --- 👇 ПОЧАТОК ЗМІН: Виклик нового компонента ---
+                    ViewModeIndicator(viewMode = currentViewMode)
+                    // --- 👆 КІНЕЦЬ ЗМІН ---
+                }
+
                 if (isProjectManagementActive) {
                     Spacer(Modifier.width(8.dp))
                     BriefStatusIndicator(status = goalList!!.projectStatus!!)
                 }
-            }
-            val TAG = "LISTTITLE_DEBUG"
-            Log.d(TAG, "currentViewMode ==" + currentViewMode.toString())
-            if (currentViewMode != null) {
-                Text(
-                    text = getViewModeText(currentViewMode),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
             }
 
             AnimatedVisibility(visible = isStatusExpanded) {
@@ -149,18 +160,9 @@ fun ListTitleBar(
                     ProjectStatusIndicator(
                         status = goalList.projectStatus,
                         statusText = goalList.projectStatusText,
-                        viewMode = currentViewMode,
                     )
                 }
             }
         }
     }
 }
-
-@Composable
-private fun getViewModeText(viewMode: ProjectViewMode): String =
-    when (viewMode) {
-        ProjectViewMode.BACKLOG -> "Backlog"
-        ProjectViewMode.INBOX -> "Inbox"
-        ProjectViewMode.DASHBOARD -> "Dashboard"
-    }

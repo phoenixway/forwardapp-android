@@ -1,3 +1,4 @@
+// File: ProjectStatusIndicator.kt
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
 import androidx.compose.animation.*
@@ -37,19 +38,11 @@ private fun getStatusVisuals(status: ProjectStatus): StatusVisuals =
         ProjectStatus.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
     }
 
-@Composable
-private fun getViewModeText(viewMode: ProjectViewMode): String =
-    when (viewMode) {
-        ProjectViewMode.BACKLOG -> "Backlog"
-        ProjectViewMode.INBOX -> "Inbox"
-        ProjectViewMode.DASHBOARD -> "Dashboard"
-    }
 
 @Composable
 fun ProjectStatusIndicator(
     status: ProjectStatus,
     statusText: String?,
-    viewMode: ProjectViewMode? = null,
     modifier: Modifier = Modifier,
 ) {
     val visuals = getStatusVisuals(status = status)
@@ -147,18 +140,9 @@ fun ProjectStatusIndicator(
                 }
             }
 
-            // View mode indicator (if available)
-            if (viewMode != null) {
-                Text(
-                    text = getViewModeText(viewMode),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 11.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(end = 4.dp)
-                )
-            }
+            // --- 👇 ПОЧАТОК ЗМІН ---
+            // Блок, що відображав режим виду, видалено
+            // --- 👆 КІНЕЦЬ ЗМІН ---
 
             Box(
                 modifier =
