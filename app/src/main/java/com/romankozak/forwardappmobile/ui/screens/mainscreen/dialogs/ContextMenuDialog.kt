@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.backlogs.dialogs
+package com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

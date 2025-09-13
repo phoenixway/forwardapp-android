@@ -5,11 +5,13 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,22 +23,34 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagChip
 
 @Composable
 private fun SublistIconBadge(modifier: Modifier = Modifier) {
     Box(
-        modifier =
-            modifier
-                .semantics { contentDescription = "Підсписок" },
+        modifier = modifier
+            .semantics { contentDescription = "Підсписок" }
+            .padding(2.dp), // Додаємо невеликий внутрішній відступ
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.List,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(14.dp),
-        )
+        // Круглий фон для виділення
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.SubdirectoryArrowRight, // Більш інтуїтивна іконка!
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer, // Контрастний колір
+                modifier = Modifier.size(12.dp),
+            )
+        }
     }
 }
 
@@ -49,6 +63,7 @@ fun SublistItemRow(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
     onCheckedChange: (Boolean) -> Unit,
+    currentTimeMillis: Long,
 ) {
     val sublist = sublistContent.sublist
 
@@ -95,7 +110,9 @@ fun SublistItemRow(
                 textDecoration = textDecoration,
             )
 
-            val hasExtraContent = true 
+            val hasExtraContent = !sublist.tags.isNullOrEmpty() ||
+                    (sublist.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                    (sublist.reminderTime != null)
 
             AnimatedVisibility(
                 visible = hasExtraContent,
@@ -113,6 +130,18 @@ fun SublistItemRow(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
+
+                        sublist.reminderTime?.let { time ->
+                            EnhancedReminderBadge(
+                                reminderTime = time,
+                                currentTimeMillis = currentTimeMillis,
+                            )
+                        }
+
+                        EnhancedScoreStatusBadge(
+                            scoringStatus = sublist.scoringStatus,
+                            displayScore = sublist.displayScore
+                        )
 
                         if (!sublist.tags.isNullOrEmpty()) {
                             sublist.tags.forEach { tag ->

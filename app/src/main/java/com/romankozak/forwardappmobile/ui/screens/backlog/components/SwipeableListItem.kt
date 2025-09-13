@@ -245,7 +245,7 @@ fun SwipeableListItem(
                     )
                     SwipeActionButton(
                         icon = Icons.Default.Share,
-                        contentDescription = "Транспорт цілі",
+                        contentDescription = "Share",
                         color = MaterialTheme.colorScheme.primary,
                         scale = leftActionsScale,
                         onClick = {

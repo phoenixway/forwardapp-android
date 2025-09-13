@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.backlogs
+package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,14 +20,13 @@ import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.ui.components.FilterableListChooser
 import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddListDialog
 import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
-import com.romankozak.forwardappmobile.ui.screens.backlogs.dialogs.ContextMenuDialog
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
 import java.util.UUID
 
 fun LazyListScope.renderGoalList(

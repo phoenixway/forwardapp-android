@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.backlogs
+package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.app.Application
 import android.net.Uri
@@ -420,13 +420,15 @@ class GoalListViewModel
             }
         }
 
-        init {
-            viewModelScope.launch {
+    init {
+        viewModelScope.launch {
+            // Перемикаємо ВСЮ логіку ініціалізації, що читає з диска, у фоновий потік
+            withContext(Dispatchers.IO) {
                 _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
                 contextHandler.initialize()
             }
         }
-
+    }
         private val _showRecentListsSheet = MutableStateFlow(false)
         val showRecentListsSheet: StateFlow<Boolean> = _showRecentListsSheet.asStateFlow()
         val recentLists: StateFlow<List<GoalList>> =

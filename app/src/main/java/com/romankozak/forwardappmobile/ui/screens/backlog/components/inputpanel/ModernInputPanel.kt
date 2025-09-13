@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -463,247 +464,17 @@ fun ModernInputPanel(
             }
         }
     }
-
     if (showModeMenu) {
-        val menuWidth = 280.dp
-
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .wrapContentSize(Alignment.Center),
-        ) {
-            DropdownMenu(
-                expanded = showModeMenu,
-                onDismissRequest = { showModeMenu = false },
-                offset = DpOffset(x = -menuWidth / 2, y = 0.dp),
-                modifier =
-                    Modifier
-                        .width(menuWidth)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = RoundedCornerShape(16.dp),
-                        ),
-            ) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text =
-                                when (inputMode) {
-                                    InputMode.AddGoal -> stringResource(R.string.menu_add_goal_component)
-                                    InputMode.AddQuickRecord -> stringResource(R.string.menu_add_quick_record)
-                                    InputMode.SearchInList -> stringResource(R.string.menu_search_in_list)
-                                    InputMode.SearchGlobal -> stringResource(R.string.menu_search_everywhere)
-                                    InputMode.AddProjectLog -> "Додавання запису в лог"
-                                },
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = panelColors.accentColor,
-                        )
-                    },
-                    onClick = {  },
-                    modifier = Modifier.background(panelColors.contentColor.copy(alpha = 0.08f)),
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                Text(
-                    text = "ПОШУК",
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_search_in_list), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Search,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint =
-                                if (inputMode ==
-                                    InputMode.SearchInList
-                                ) {
-                                    panelColors.accentColor
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
-                    },
-                    onClick = {
-                        onInputModeSelected(InputMode.SearchInList)
-                        showModeMenu = false
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_search_everywhere), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.TravelExplore,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint =
-                                if (inputMode ==
-                                    InputMode.SearchGlobal
-                                ) {
-                                    panelColors.accentColor
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
-                    },
-                    onClick = {
-                        onInputModeSelected(InputMode.SearchGlobal)
-                        showModeMenu = false
-                    },
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                Text(
-                    text = "ДОДАВАННЯ ПОСИЛАНЬ",
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_add_list_link), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Link,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    onClick = {
-                        showModeMenu = false
-                        onAddListLinkClick()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_add_web_link), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Public,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    onClick = {
-                        showModeMenu = false
-                        onShowAddWebLinkDialog()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_add_obsidian_link), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.DataObject,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    onClick = {
-                        showModeMenu = false
-                        onShowAddObsidianLinkDialog()
-                    },
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                Text(
-                    text = "ДОДАВАННЯ В БЕКЛОГ",
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_add_list_shortcut), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.PlaylistAdd,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    onClick = {
-                        onAddListShortcutClick()
-                        showModeMenu = false
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_add_goal_component), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Add,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint =
-                                if (inputMode ==
-                                    InputMode.AddGoal
-                                ) {
-                                    panelColors.accentColor
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
-                    },
-                    onClick = {
-                        onInputModeSelected(InputMode.AddGoal)
-                        showModeMenu = false
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_add_quick_record), style = MaterialTheme.typography.bodyMedium) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Inbox,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint =
-                                if (inputMode ==
-                                    InputMode.AddQuickRecord
-                                ) {
-                                    panelColors.accentColor
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
-                    },
-                    onClick = {
-                        onInputModeSelected(InputMode.AddQuickRecord)
-                        showModeMenu = false
-                    },
-                )
-                if (isProjectManagementEnabled) {
-                    DropdownMenuItem(
-                        text = { Text("Додати запис в лог проекту", style = MaterialTheme.typography.bodyMedium) },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.PostAdd,
-                                null,
-                                modifier = Modifier.size(20.dp),
-                                tint =
-                                    if (inputMode ==
-                                        InputMode.AddProjectLog
-                                    ) {
-                                        panelColors.accentColor
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                            )
-                        },
-                        onClick = {
-                            onInputModeSelected(InputMode.AddProjectLog)
-                            showModeMenu = false
-                        },
-                    )
-                }
-            }
-        }
+        InputModeSelectionDialog(
+            currentInputMode = inputMode,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            onDismiss = { showModeMenu = false },
+            onInputModeSelected = onInputModeSelected,
+            onAddListLinkClick = onAddListLinkClick,
+            onShowAddWebLinkDialog = onShowAddWebLinkDialog,
+            onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
+            onAddListShortcutClick = onAddListShortcutClick
+        )
     }
 }
 
@@ -978,11 +749,35 @@ private fun NavigationBar(
             )
             IconButton(
                 onClick = {
-                    if (currentView == ProjectViewMode.INBOX) {
+                    // --- Початок логування ---
+                    Log.d("ATTACHMENT_DEBUG", "--- Attachment Button Clicked ---")
+                    Log.d("ATTACHMENT_DEBUG", "Initial state: currentView = $currentView, isAttachmentsExpanded = $isAttachmentsExpanded")
+
+                    val comingFromAnotherView = currentView == ProjectViewMode.INBOX || currentView == ProjectViewMode.DASHBOARD
+                    Log.d("ATTACHMENT_DEBUG", "comingFromAnotherView = $comingFromAnotherView")
+                    // --- Кінець логування ---
+
+                    // Крок 1: Якщо ми не в беклозі, перемкнутися на нього.
+                    if (comingFromAnotherView) {
+                        Log.d("ATTACHMENT_DEBUG", "ACTION: Calling onViewChange(BACKLOG).") // Лог
                         onViewChange(ProjectViewMode.BACKLOG)
                         onInputModeSelected(InputMode.AddGoal)
                     }
-                    onToggleAttachments()
+
+                    // Крок 2: Вирішити, чи потрібно показувати вкладення.
+                    if (comingFromAnotherView) {
+                        Log.d("ATTACHMENT_DEBUG", "DECISION: Switched view. Goal is to SHOW attachments.") // Лог
+                        if (!isAttachmentsExpanded) {
+                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are hidden, calling onToggleAttachments() to SHOW them.") // Лог
+                            onToggleAttachments()
+                        } else {
+                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are already expanded, DOING NOTHING.") // Лог
+                        }
+                    } else {
+                        Log.d("ATTACHMENT_DEBUG", "DECISION: Already in backlog. Calling onToggleAttachments() to TOGGLE.") // Лог
+                        onToggleAttachments()
+                    }
+                    Log.d("ATTACHMENT_DEBUG", "--- Click Handler Finished ---") // Лог
                 },
                 modifier = Modifier.size(40.dp),
             ) {
@@ -996,6 +791,7 @@ private fun NavigationBar(
                             .scale(attachmentIconScale),
                 )
             }
+
             Box {
                 IconButton(
                     onClick = { onMenuExpandedChange(true) },

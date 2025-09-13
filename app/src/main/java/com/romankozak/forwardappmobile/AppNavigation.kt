@@ -15,9 +15,9 @@ import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.ui.navigation.chatScreen
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.ui.screens.backlog.GoalDetailScreen
-import com.romankozak.forwardappmobile.ui.screens.backlogs.GoalListScreen
-import com.romankozak.forwardappmobile.ui.screens.backlogs.GoalListViewModel
+import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectsScreen
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.GoalListViewModel
 import com.romankozak.forwardappmobile.ui.screens.editlist.EditListScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
@@ -38,7 +38,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
     ) {
         composable("goal_lists_screen") {
             val viewModel: GoalListViewModel = hiltViewModel()
-            GoalListScreen(
+            MainScreen(
                 navController = navController,
                 syncDataViewModel = syncDataViewModel,
                 viewModel = viewModel,
@@ -143,7 +143,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                     },
                 ),
         ) {
-            GoalDetailScreen(navController = navController)
+            ProjectsScreen(navController = navController)
         }
 
         composable(
@@ -154,8 +154,8 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                 ),
         ) { backStackEntry ->
             EditListScreen(
-                navController = navController,
-                listId = backStackEntry.arguments?.getString("listId") ?: "",
+                navController = navController
+                // Параметр listId більше не потрібен, оскільки ViewModel отримує його самостійно
             )
         }
 

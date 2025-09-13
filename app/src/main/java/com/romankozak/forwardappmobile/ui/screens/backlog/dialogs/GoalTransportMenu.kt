@@ -1,3 +1,5 @@
+// file: ui/screens/backlog/dialogs/GoalTransportMenu.kt
+
 package com.romankozak.forwardappmobile.ui.screens.backlog.dialogs
 
 import androidx.compose.animation.AnimatedVisibility
@@ -35,6 +37,7 @@ fun GoalTransportMenu(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
+    isGoalItem: Boolean
 ) {
     AnimatedVisibility(
         visible = isVisible,
@@ -77,7 +80,7 @@ fun GoalTransportMenu(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Транспорт цілі",
+                            text = "Share",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -104,7 +107,7 @@ fun GoalTransportMenu(
                         TransportMenuItem(
                             icon = Icons.Default.AddLink,
                             title = "Створити зв'язок",
-                            description = "Створити новий екземпляр цілі",
+                            description = "Створити новий екземпляр у іншому проекті",
                             onClick = {
                                 onCreateInstanceRequest()
                                 onDismiss()
@@ -116,24 +119,26 @@ fun GoalTransportMenu(
                         TransportMenuItem(
                             icon = Icons.AutoMirrored.Filled.Send,
                             title = "Перемістити",
-                            description = "Перемістити ціль в інший проект",
+                            description = "Перемістити елемент в інший проект",
                             onClick = {
                                 onMoveInstanceRequest()
                                 onDismiss()
                             },
                         )
 
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        if (isGoalItem) {
+                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                        TransportMenuItem(
-                            icon = Icons.Default.ContentCopy,
-                            title = "Клонувати ціль",
-                            description = "Створити копію цієї цілі",
-                            onClick = {
-                                onCopyGoalRequest()
-                                onDismiss()
-                            },
-                        )
+                            TransportMenuItem(
+                                icon = Icons.Default.ContentCopy,
+                                title = "Клонувати ціль",
+                                description = "Створити копію цієї цілі",
+                                onClick = {
+                                    onCopyGoalRequest()
+                                    onDismiss()
+                                },
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -142,7 +147,7 @@ fun GoalTransportMenu(
         }
     }
 }
-
+// TransportMenuItem залишається без змін
 @Composable
 private fun TransportMenuItem(
     icon: ImageVector,

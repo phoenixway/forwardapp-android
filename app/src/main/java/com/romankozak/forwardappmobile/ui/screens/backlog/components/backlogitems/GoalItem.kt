@@ -42,7 +42,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-private object ReminderTextUtil {
+internal object ReminderTextUtil {
     private const val ONE_MINUTE_MILLIS = 60 * 1000L
     private const val ONE_HOUR_MILLIS = 60 * ONE_MINUTE_MILLIS
 
@@ -96,12 +96,12 @@ private object ReminderTextUtil {
         target.timeInMillis = time
 
         return tomorrow.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
-            tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
+                tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
     }
 }
 
 @Composable
-private fun EnhancedReminderBadge(
+internal fun EnhancedReminderBadge(
     reminderTime: Long,
     currentTimeMillis: Long,
 ) {
@@ -254,13 +254,15 @@ fun EnhancedCustomCheckbox(
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
-                }.clip(RoundedCornerShape(4.dp))
+                }
+                .clip(RoundedCornerShape(4.dp))
                 .background(animatedColor)
                 .border(1.dp, animatedBorderColor, RoundedCornerShape(4.dp))
                 .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onCheckedChange(!checked)
-                }.semantics {
+                }
+                .semantics {
                     role = Role.Checkbox
                     this.stateDescription = if (checked) "Виконано" else "Не виконано"
                 },
@@ -288,97 +290,6 @@ fun EnhancedCustomCheckbox(
 }
 
 @Composable
-fun EnhancedScoreStatusBadge(goal: Goal) {
-    when (goal.scoringStatus) {
-        ScoringStatus.ASSESSED -> {
-            if (goal.displayScore > 0) {
-                val animatedColor by animateColorAsState(
-                    targetValue =
-                        when {
-                            goal.displayScore >= 80 -> Color(0xFF4CAF50)
-                            goal.displayScore >= 60 -> Color(0xFFFF9800)
-                            goal.displayScore >= 40 -> Color(0xFFFFEB3B)
-                            else -> Color(0xFFE91E63)
-                        },
-                    label = "score_color",
-                )
-
-                var isVisible by remember { mutableStateOf(value = false) }
-
-                LaunchedEffect(Unit) {
-                    isVisible = true
-                }
-
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter =
-                        slideInHorizontally(
-                            initialOffsetX = { fullWidth -> -fullWidth },
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        ) + fadeIn(),
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = animatedColor.copy(alpha = 0.15f),
-                        border = BorderStroke(0.6.dp, animatedColor.copy(alpha = 0.3f)),
-                        modifier =
-                            Modifier.semantics {
-                                contentDescription = "Оцінка: ${goal.displayScore} з 100"
-                            },
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ElectricBolt,
-                                contentDescription = null,
-                                tint = animatedColor,
-                                modifier = Modifier.size(10.dp),
-                            )
-                            Text(
-                                text = "${goal.displayScore}/100",
-                                style =
-                                    MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.2.sp,
-                                        fontSize = 10.sp,
-                                    ),
-                                color = animatedColor,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        ScoringStatus.IMPOSSIBLE_TO_ASSESS -> {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                modifier =
-                    Modifier
-                        .semantics {
-                            contentDescription = "Неможливо оцінити"
-                        },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FlashOff,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier =
-                        Modifier
-                            .size(16.dp)
-                            .padding(3.dp),
-                )
-            }
-        }
-        ScoringStatus.NOT_ASSESSED -> {
-        }
-    }
-}
-
-@Composable
 fun EnhancedRelatedLinkChip(
     link: RelatedLink,
     onClick: () -> Unit,
@@ -400,7 +311,8 @@ fun EnhancedRelatedLinkChip(
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
-                }.pointerInput(Unit) {
+                }
+                .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
                             isPressed = true
@@ -409,7 +321,8 @@ fun EnhancedRelatedLinkChip(
                         },
                         onTap = { onClick() },
                     )
-                }.semantics {
+                }
+                .semantics {
                     contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"
                     role = Role.Button
                 },
@@ -479,7 +392,8 @@ fun AnimatedContextEmoji(
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
                         shape = CircleShape,
-                    ).padding(4.dp)
+                    )
+                    .padding(4.dp)
                     .semantics {
                         contentDescription = "Контекст: $emoji"
                     },
@@ -501,7 +415,8 @@ private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
                 .background(
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
                     shape = CircleShape,
-                ).padding(4.dp)
+                )
+                .padding(4.dp)
                 .semantics {
                     contentDescription = "Містить нотатку"
                 },
@@ -578,10 +493,10 @@ fun GoalItem(
 
             val hasStatusContent =
                 (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                    (goal.reminderTime != null) ||
-                    (parsedData.icons.isNotEmpty()) ||
-                    (!goal.description.isNullOrBlank()) ||
-                    (!goal.relatedLinks.isNullOrEmpty())
+                        (goal.reminderTime != null) ||
+                        (parsedData.icons.isNotEmpty()) ||
+                        (!goal.description.isNullOrBlank()) ||
+                        (!goal.relatedLinks.isNullOrEmpty())
 
             AnimatedVisibility(
                 visible = hasStatusContent,
@@ -605,13 +520,16 @@ fun GoalItem(
                             )
                         }
 
-                        EnhancedScoreStatusBadge(goal = goal)
+                        EnhancedScoreStatusBadge(
+                            scoringStatus = goal.scoringStatus,
+                            displayScore = goal.displayScore
+                        )
 
                         parsedData.icons
                             .filterNot { icon -> icon == emojiToHide }
                             .forEachIndexed { index, icon ->
                                 key(icon) {
-                                    var delayedVisible by remember { mutableStateOf(value = false) }
+                                    var delayedVisible by remember { mutableStateOf(false) }
                                     LaunchedEffect(Unit) {
                                         delay(index * 50L)
                                         delayedVisible = true
@@ -637,7 +555,7 @@ fun GoalItem(
 
                         goal.relatedLinks?.forEachIndexed { index, link ->
                             key(link.target + link.type.name) {
-                                var delayedVisible by remember { mutableStateOf(value = false) }
+                                var delayedVisible by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) {
                                     delay((parsedData.icons.size + index) * 50L)
                                     delayedVisible = true
@@ -707,7 +625,8 @@ fun GoalItem(
                             onLongPress = { onLongClick() },
                             onTap = { onClick() },
                         )
-                    }.padding(vertical = 6.dp),
+                    }
+                    .padding(vertical = 6.dp),
         ) {
             Text(
                 text = parsedData.mainText,
@@ -720,10 +639,10 @@ fun GoalItem(
 
             val hasStatusContent =
                 (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                    (goal.reminderTime != null) ||
-                    (parsedData.icons.isNotEmpty()) ||
-                    (!goal.description.isNullOrBlank()) ||
-                    (!goal.relatedLinks.isNullOrEmpty())
+                        (goal.reminderTime != null) ||
+                        (parsedData.icons.isNotEmpty()) ||
+                        (!goal.description.isNullOrBlank()) ||
+                        (!goal.relatedLinks.isNullOrEmpty())
 
             AnimatedVisibility(
                 visible = hasStatusContent,
@@ -747,7 +666,10 @@ fun GoalItem(
                             )
                         }
 
-                        EnhancedScoreStatusBadge(goal = goal)
+                        EnhancedScoreStatusBadge(
+                            scoringStatus = goal.scoringStatus,
+                            displayScore = goal.displayScore,
+                        )
 
                         parsedData.icons.forEachIndexed { index, icon ->
                             key(icon) {
@@ -792,7 +714,7 @@ fun GoalItem(
                                 ) {
                                     EnhancedRelatedLinkChip(
                                         link = link,
-                                        onClick = {  },
+                                        onClick = { },
                                     )
                                 }
                             }
