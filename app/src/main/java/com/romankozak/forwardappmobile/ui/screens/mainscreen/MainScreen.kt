@@ -8,7 +8,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -32,14 +31,14 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -49,6 +48,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,9 +102,6 @@ fun MainScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(Unit) {
-        // Чекаємо короткий момент (100 мілісекунд), щоб дозволити першому
-        // відмалюванню UI (без фільтрів) завершитись.
-        // Це виносить важку логіку фільтрації за межі критичного шляху запуску.
         delay(100)
         viewModel.enableFiltering()
     }
@@ -305,6 +302,7 @@ fun MainScreen(
                             isSearchActive = isSearchActive,
                             planningMode = planningMode,
                             highlightedListId = highlightedListId,
+                            searchQuery = searchQuery.text,
                         )
                     }
                 }
@@ -394,17 +392,147 @@ private fun GoalListTopAppBar(
 }
 
 @Composable
-private fun SearchBottomBar(
+private fun SearchEverywhereButton(
     searchQuery: String,
-    onQueryChange: (String) -> Unit,
+    onPerformGlobalSearch: (String) -> Unit,
+) {
+    AnimatedVisibility(
+        visible = searchQuery.isNotBlank(),
+        enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
+        exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
+    ) {
+        Surface(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onPerformGlobalSearch(searchQuery) },
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .padding(horizontal = 12.dp)
+                        .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = "Perform global search",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Search everywhere for \"$searchQuery\"",
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.SearchTextField(
+    textFieldValue: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    onPerformGlobalSearch: (String) -> Unit,
+    focusRequester: FocusRequester,
+) {
+    val focusManager = LocalFocusManager.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    BasicTextField(
+        value = textFieldValue,
+        onValueChange = onValueChange,
+        modifier =
+            Modifier
+                .weight(1f)
+                .focusRequester(focusRequester),
+        singleLine = true,
+        textStyle =
+            MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
+            ),
+        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+        keyboardActions =
+            KeyboardActions(
+                onSearch = {
+                    if (textFieldValue.text.isNotBlank()) {
+                        onPerformGlobalSearch(textFieldValue.text)
+                    }
+                    focusManager.clearFocus()
+                },
+            ),
+        interactionSource = interactionSource,
+        decorationBox = { innerTextField ->
+            Row(
+                modifier =
+                    Modifier
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
+                            shape = RoundedCornerShape(24.dp),
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = RoundedCornerShape(24.dp),
+                        )
+                        .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    if (textFieldValue.text.isEmpty()) {
+                        Text(
+                            text = "Search projects...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.semantics { contentDescription = "Search placeholder" },
+                        )
+                    }
+                    innerTextField()
+                }
+                AnimatedVisibility(
+                    visible = textFieldValue.text.isNotBlank(),
+                    enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
+                    exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
+                ) {
+                    IconButton(
+                        onClick = { onValueChange(TextFieldValue("")) },
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "Clear search input",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun SearchBottomBar(
+    searchQuery: TextFieldValue,
+    onQueryChange: (TextFieldValue) -> Unit,
     onCloseSearch: () -> Unit,
     onPerformGlobalSearch: (String) -> Unit,
     focusRequester: FocusRequester,
 ) {
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-
     Surface(
         modifier =
             Modifier
@@ -420,50 +548,10 @@ private fun SearchBottomBar(
                     .navigationBarsPadding()
                     .imePadding(),
         ) {
-            AnimatedVisibility(
-                visible = searchQuery.isNotBlank(),
-                enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
-                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                            ) { onPerformGlobalSearch(searchQuery) },
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 12.dp)
-                                .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Search,
-                            contentDescription = "Perform global search",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Search everywhere for \"$searchQuery\"",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
+            SearchEverywhereButton(
+                searchQuery = searchQuery.text,
+                onPerformGlobalSearch = onPerformGlobalSearch
+            )
 
             Row(
                 modifier =
@@ -473,98 +561,20 @@ private fun SearchBottomBar(
                         .height(52.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val focusManager = LocalFocusManager.current
-                val interactionSource = remember { MutableInteractionSource() }
-                val isFocused by interactionSource.collectIsFocusedAsState()
-
-                IconButton(
-                    onClick = onCloseSearch,
-                    modifier =
-                        Modifier
-                            .size(44.dp)
-                            .scale(if (isFocused) 1f else 0.95f)
-                            .animateContentSize(),
-                ) {
+                IconButton(onClick = onCloseSearch) {
                     Icon(
                         imageVector = Icons.Outlined.ArrowBack,
                         contentDescription = "Close search",
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                BasicTextField(
-                    value = searchQuery,
+                SearchTextField(
+                    textFieldValue = searchQuery,
                     onValueChange = onQueryChange,
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .focusRequester(focusRequester),
-                    singleLine = true,
-                    textStyle =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                        ),
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-                    keyboardActions =
-                        KeyboardActions(
-                            onSearch = {
-                                if (searchQuery.isNotBlank()) {
-                                    onPerformGlobalSearch(searchQuery)
-                                }
-                                focusManager.clearFocus()
-                            },
-                        ),
-                    interactionSource = interactionSource,
-                    decorationBox = { innerTextField ->
-                        Row(
-                            modifier =
-                                Modifier
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
-                                        shape = RoundedCornerShape(24.dp),
-                                    ).border(
-                                        width = 1.dp,
-                                        color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                        shape = RoundedCornerShape(24.dp),
-                                    ).padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                if (searchQuery.isEmpty()) {
-                                    Text(
-                                        text = "Search projects...",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.semantics { contentDescription = "Search placeholder" },
-                                    )
-                                }
-                                innerTextField()
-                            }
-                            AnimatedVisibility(
-                                visible = searchQuery.isNotBlank(),
-                                enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
-                                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
-                            ) {
-                                IconButton(
-                                    onClick = { onQueryChange("") },
-                                    modifier = Modifier.size(28.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Close,
-                                        contentDescription = "Clear search input",
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    },
+                    onPerformGlobalSearch = onPerformGlobalSearch,
+                    focusRequester = focusRequester
                 )
             }
         }

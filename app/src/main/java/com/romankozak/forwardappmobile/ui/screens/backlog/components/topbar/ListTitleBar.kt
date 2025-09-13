@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,15 +35,16 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 
 @Composable
 private fun getStatusVisuals(status: ProjectStatus): StatusVisuals =
     when (status) {
-        ProjectStatus.NO_PLAN -> StatusVisuals("⚠", Color(0xFFFF9800).copy(alpha = 0.3f))
+        ProjectStatus.NO_PLAN -> StatusVisuals("⚠️", Color(0xFFFF9800).copy(alpha = 0.3f))
         ProjectStatus.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
-        ProjectStatus.IN_PROGRESS -> StatusVisuals("▶", Color(0xFF2196F3).copy(alpha = 0.3f))
-        ProjectStatus.COMPLETED -> StatusVisuals("✓", Color(0xFF4CAF50).copy(alpha = 0.3f))
-        ProjectStatus.ON_HOLD -> StatusVisuals("⏸", Color(0xFFFF9800).copy(alpha = 0.3f))
+        ProjectStatus.IN_PROGRESS -> StatusVisuals("▶️", Color(0xFF2196F3).copy(alpha = 0.3f))
+        ProjectStatus.COMPLETED -> StatusVisuals("✅", Color(0xFF4CAF50).copy(alpha = 0.3f))
+        ProjectStatus.ON_HOLD -> StatusVisuals("⏸️", Color(0xFFFF9800).copy(alpha = 0.3f))
         ProjectStatus.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
     }
 
@@ -74,6 +76,7 @@ private fun BriefStatusIndicator(
 @Composable
 fun ListTitleBar(
     goalList: GoalList?,
+    currentViewMode: ProjectViewMode? = null,
     modifier: Modifier = Modifier,
 ) {
     var isStatusExpanded by remember { mutableStateOf(false) }
@@ -130,15 +133,34 @@ fun ListTitleBar(
                     BriefStatusIndicator(status = goalList!!.projectStatus!!)
                 }
             }
+            val TAG = "LISTTITLE_DEBUG"
+            Log.d(TAG, "currentViewMode ==" + currentViewMode.toString())
+            if (currentViewMode != null) {
+                Text(
+                    text = getViewModeText(currentViewMode),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
             AnimatedVisibility(visible = isStatusExpanded) {
                 if (goalList?.projectStatus != null) {
                     ProjectStatusIndicator(
                         status = goalList.projectStatus,
                         statusText = goalList.projectStatusText,
+                        viewMode = currentViewMode,
                     )
                 }
             }
         }
     }
 }
+
+@Composable
+private fun getViewModeText(viewMode: ProjectViewMode): String =
+    when (viewMode) {
+        ProjectViewMode.BACKLOG -> "Backlog"
+        ProjectViewMode.INBOX -> "Inbox"
+        ProjectViewMode.DASHBOARD -> "Dashboard"
+    }

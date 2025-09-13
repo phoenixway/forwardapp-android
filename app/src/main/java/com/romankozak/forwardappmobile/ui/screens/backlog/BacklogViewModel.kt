@@ -945,7 +945,7 @@ constructor(
             val updatedRecord = record.copy(reminderTime = timestamp)
             activityRepository.updateRecord(updatedRecord)
             alarmScheduler.scheduleForActivityRecord(updatedRecord)
-            onReminderDialogDismiss() // ВИПРАВЛЕНО: прибрано дублювання "Dialog"
+            onReminderDialogDismiss()
             showSnackbar(
                 "Нагадування встановлено на ${
                     SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(

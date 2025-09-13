@@ -149,11 +149,20 @@ fun ModernInputPanel(
                 )
             InputMode.AddProjectLog ->
                 PanelColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     accentColor = MaterialTheme.colorScheme.secondary,
-                    inputFieldColor = MaterialTheme.colorScheme.surfaceVariant,
+                    inputFieldColor = MaterialTheme.colorScheme.primaryContainer,
                 )
+
+
+
+
+
+
+
+
+
         }
 
     val animatedContainerColor by animateColorAsState(
@@ -358,10 +367,14 @@ fun ModernInputPanel(
                                 .focusRequester(focusRequester),
                         textStyle =
                             MaterialTheme.typography.bodyLarge.copy(
-                                color = panelColors.contentColor,
+                                // --- ПОЧАТОК ЗМІН (Крок 2) ---
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                // --- КІНЕЦЬ ЗМІН (Крок 2) ---
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
                             ),
+
+
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
                         singleLine = false,
@@ -388,12 +401,15 @@ fun ModernInputPanel(
                                                     InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
                                                     InputMode.AddProjectLog -> "Додати коментар до проекту..."
                                                 },
-                                            style =
-                                                MaterialTheme.typography.bodyLarge.copy(
-                                                    color = panelColors.contentColor.copy(alpha = 0.7f),
-                                                    fontSize = 16.sp,
-                                                ),
-                                        )
+                                            style =                                                 MaterialTheme.typography.bodyLarge.copy(
+                                                // --- ПОЧАТОК ЗМІН (Крок 2) ---
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                                // --- КІНЕЦЬ ЗМІН (Крок 2) ---
+                                                fontSize = 16.sp,
+                                            ),
+
+
+                                            )
                                     }
                                     innerTextField()
                                 }
@@ -437,12 +453,19 @@ fun ModernInputPanel(
                     enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
                     exit = fadeOut() + scaleOut(targetScale = 0.8f),
                 ) {
+                    // --- ПОЧАТОК ЗМІН ---
+                    // Визначаємо колір фону кнопки в залежності від режиму
+                    val sendButtonBackgroundColor = when (inputMode) {
+                        InputMode.AddProjectLog -> MaterialTheme.colorScheme.onSecondary
+                        else -> panelColors.accentColor
+                    }
+
                     IconButton(
                         onClick = onSubmit,
                         modifier =
                             Modifier
                                 .size(44.dp)
-                                .background(color = panelColors.accentColor, shape = CircleShape),
+                                .background(color = sendButtonBackgroundColor, shape = CircleShape),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor =
@@ -450,10 +473,12 @@ fun ModernInputPanel(
                                         InputMode.AddGoal, InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
                                         InputMode.SearchInList -> MaterialTheme.colorScheme.onPrimary
                                         InputMode.SearchGlobal -> MaterialTheme.colorScheme.onTertiary
-                                        InputMode.AddProjectLog -> MaterialTheme.colorScheme.onSecondary
+                                        // Міняємо колір іконки на 'secondary'
+                                        InputMode.AddProjectLog -> MaterialTheme.colorScheme.primary
                                     },
                             ),
                     ) {
+                        // --- КІНЕЦЬ ЗМІН ---
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = stringResource(R.string.send),
@@ -461,8 +486,11 @@ fun ModernInputPanel(
                         )
                     }
                 }
+
             }
         }
+
+
     }
     if (showModeMenu) {
         InputModeSelectionDialog(

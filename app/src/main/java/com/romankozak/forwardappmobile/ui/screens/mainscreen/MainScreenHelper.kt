@@ -4,17 +4,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
@@ -27,7 +27,88 @@ import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
-import java.util.UUID
+import java.util.*
+
+private fun fuzzyMatchAndGetIndices(query: String, text: String): List<Int>? {
+    if (query.isBlank()) return emptyList()
+    if (text.isBlank()) return null
+
+    val lowerQuery = query.lowercase()
+    val lowerText = text.lowercase()
+
+    val matchedIndices = mutableListOf<Int>()
+    var queryIndex = 0
+    var textIndex = 0
+
+    while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
+        if (lowerQuery[queryIndex] == lowerText[textIndex]) {
+            matchedIndices.add(textIndex)
+            queryIndex++
+        }
+        textIndex++
+    }
+
+    return if (queryIndex == lowerQuery.length) matchedIndices else null
+}
+
+@Composable
+internal fun highlightFuzzy(
+    text: String,
+    query: String,
+): AnnotatedString {
+    if (query.isBlank()) {
+        return AnnotatedString(text)
+    }
+    val matchedIndices = remember(query, text) { fuzzyMatchAndGetIndices(query, text) }
+    if (matchedIndices == null) {
+        return AnnotatedString(text)
+    }
+    return buildAnnotatedString {
+        val indicesSet = matchedIndices.toSet()
+        text.forEachIndexed { index, char ->
+            if (index in indicesSet) {
+                withStyle(
+                    style = SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    ),
+                ) {
+                    append(char)
+                }
+            } else {
+                append(char)
+            }
+        }
+    }
+}
+
+@Composable
+internal fun highlightSubstring(
+    text: String,
+    query: String,
+): AnnotatedString {
+    if (query.isBlank()) {
+        return AnnotatedString(text)
+    }
+    val startIdx = text.indexOf(query, ignoreCase = true)
+    if (startIdx == -1) {
+        return AnnotatedString(text)
+    }
+    return buildAnnotatedString {
+        append(text.substring(0, startIdx))
+        withStyle(
+            style = SpanStyle(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            )
+        ) {
+            append(text.substring(startIdx, startIdx + query.length))
+        }
+        append(text.substring(startIdx + query.length))
+    }
+}
 
 fun LazyListScope.renderGoalList(
     lists: List<GoalList>,
@@ -39,6 +120,7 @@ fun LazyListScope.renderGoalList(
     isSearchActive: Boolean,
     planningMode: PlanningMode,
     highlightedListId: String?,
+    searchQuery: String,
 ) {
     lists.forEach { list ->
         item(key = list.id) {
@@ -48,6 +130,16 @@ fun LazyListScope.renderGoalList(
                 remember(draggedItemData, list) {
                     draggedItemData == null || draggedItemData.parentId == list.parentId
                 }
+
+            val displayName = if (isSearchActive && searchQuery.isNotEmpty()) {
+                if (searchQuery.length > 3) {
+                    highlightFuzzy(text = list.name, query = searchQuery)
+                } else {
+                    highlightSubstring(text = list.name, query = searchQuery)
+                }
+            } else {
+                AnnotatedString(list.name)
+            }
 
             DraggableItem(
                 state = dragAndDropState,
@@ -64,13 +156,14 @@ fun LazyListScope.renderGoalList(
                         onToggleExpanded = { viewModel.onToggleExpanded(it) },
                         onMenuRequested = { viewModel.onMenuRequested(it) },
                         isCurrentlyDragging = isDragging,
-                        isHighlighted = list.id == highlightedListId,
                         isHovered =
                             isDropAllowed && (
-                                dragAndDropState.hoveredDropTargetKey == "before-${list.id}" ||
-                                    dragAndDropState.hoveredDropTargetKey == "after-${list.id}"
-                            ),
+                                    dragAndDropState.hoveredDropTargetKey == "before-${list.id}" ||
+                                            dragAndDropState.hoveredDropTargetKey == "after-${list.id}"
+                                    ),
                         isDraggingDown = false,
+                        isHighlighted = list.id == highlightedListId,
+                        displayName = displayName,
                     )
 
                     Column(modifier = Modifier.matchParentSize()) {
@@ -134,6 +227,7 @@ fun LazyListScope.renderGoalList(
                     isSearchActive = isSearchActive,
                     planningMode = planningMode,
                     highlightedListId = highlightedListId,
+                    searchQuery = searchQuery,
                 )
             }
         }
