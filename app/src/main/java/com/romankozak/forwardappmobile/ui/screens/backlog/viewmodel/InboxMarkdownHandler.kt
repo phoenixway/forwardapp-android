@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
+import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,38 +26,66 @@ class InboxMarkdownHandler(
 
         fun forceRefresh()
     }
-
     fun importFromMarkdown(
         markdownText: String,
         listId: String,
     ) {
-        if (listId.isEmpty()) {
-            listener.showSnackbar("Помилка: не вдалося визначити поточний список.", null)
+        if (markdownText.isBlank()) {
+            listener.showSnackbar("Нічого імпортувати.", null)
             return
         }
-
         scope.launch(Dispatchers.IO) {
-            val lines =
-                markdownText
-                    .lines()
-                    .map { it.trim() }
-                    .filter { it.startsWith("- ") || it.startsWith("* ") || it.startsWith("+ ") }
-                    .map { it.substring(2).trim() }
-                    .filter { it.isNotEmpty() }
-
-            if (lines.isEmpty()) {
-                withContext(Dispatchers.Main) {
-                    listener.showSnackbar("Не знайдено жодного запису для імпорту.", null)
+            val lines = markdownText.lines().filter { it.isNotBlank() }
+            var importedCount = 0
+            for (line in lines) {
+                try {
+                    val trimmedLine = line.trim()
+                    when {
+                        // Існуюча логіка для виконаних завдань
+                        trimmedLine.startsWith("- [x]") -> {
+                            val goalText = trimmedLine.removePrefix("- [x]").trim()
+                            if (goalText.isNotEmpty()) {
+                                goalRepository.addGoalToList(goalText, listId, completed = true)
+                                importedCount++
+                            }
+                        }
+                        // Існуюча логіка для невиконаних завдань
+                        trimmedLine.startsWith("- [ ]") -> {
+                            val goalText = trimmedLine.removePrefix("- [ ]").trim()
+                            if (goalText.isNotEmpty()) {
+                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                importedCount++
+                            }
+                        }
+                        // --- ДОДАНО: підтримка звичайних списків ---
+                        trimmedLine.startsWith("- ") -> {
+                            val goalText = trimmedLine.removePrefix("- ").trim()
+                            if (goalText.isNotEmpty()) {
+                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                importedCount++
+                            }
+                        }
+                        trimmedLine.startsWith("* ") -> {
+                            val goalText = trimmedLine.removePrefix("* ").trim()
+                            if (goalText.isNotEmpty()) {
+                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                importedCount++
+                            }
+                        }
+                        trimmedLine.startsWith("+ ") -> {
+                            val goalText = trimmedLine.removePrefix("+ ").trim()
+                            if (goalText.isNotEmpty()) {
+                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                importedCount++
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("BacklogMarkdownHandler", "Failed to import line: $line", e)
                 }
-                return@launch
             }
-
-            lines.forEach { text ->
-                goalRepository.addInboxRecord(text, listId)
-            }
-
             withContext(Dispatchers.Main) {
-                listener.showSnackbar("Імпортовано ${lines.size} записів.", null)
+                listener.showSnackbar("Імпортовано $importedCount елементів.", null)
                 listener.forceRefresh()
             }
         }

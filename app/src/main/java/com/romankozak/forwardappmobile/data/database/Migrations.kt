@@ -322,3 +322,21 @@ val MIGRATION_27_28 =
             db.execSQL("ALTER TABLE chat_messages_new RENAME TO chat_messages")
         }
     }
+
+val MIGRATION_28_29 =
+    object : Migration(28, 29) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN reminder_time INTEGER")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN valueImportance REAL NOT NULL DEFAULT 0.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN valueImpact REAL NOT NULL DEFAULT 0.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN effort REAL NOT NULL DEFAULT 0.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN cost REAL NOT NULL DEFAULT 0.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN risk REAL NOT NULL DEFAULT 0.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN weightEffort REAL NOT NULL DEFAULT 1.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN weightCost REAL NOT NULL DEFAULT 1.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN weightRisk REAL NOT NULL DEFAULT 1.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN rawScore REAL NOT NULL DEFAULT 0.0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN displayScore INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE goal_lists ADD COLUMN scoring_status TEXT NOT NULL DEFAULT 'NOT_ASSESSED'")
+        }
+    }

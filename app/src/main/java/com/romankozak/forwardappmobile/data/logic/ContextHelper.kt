@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.logic
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -39,9 +41,13 @@ class ContextHandler
 
         fun getContextTag(contextName: String): String? = contextTagMap[contextName.lowercase()]
 
-        suspend fun initialize() {
-            loadContextSettings()
-        }
+// file: data/logic/ContextHelper.kt
+
+    suspend fun initialize() {
+        // Прибираємо withContext(Dispatchers.IO) звідси,
+        // оскільки тепер за це відповідає той, хто викликає функцію (ViewModel)
+        loadContextSettings()
+    }
 
         private suspend fun loadContextSettings() {
             val localContextTagMap = mutableMapOf<String, String>()

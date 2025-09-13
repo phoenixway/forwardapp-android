@@ -1,14 +1,16 @@
 package com.romankozak.forwardappmobile.data.logic
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import kotlin.math.roundToInt
 
 object GoalScoringManager {
     private val effortScale = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
-    private val importanceScale = (1..12).map { it.toFloat() } 
+    private val importanceScale = (1..12).map { it.toFloat() }
     private val impactScale = listOf(1f, 2f, 3f, 5f, 8f, 13f)
-    private val costScale = (0..5).map { it.toFloat() } 
-    private val riskScale = effortScale 
+    private val costScale = (0..5).map { it.toFloat() }
+    private val riskScale = effortScale
 
     private fun normalize(
         value: Float,
@@ -48,6 +50,39 @@ object GoalScoringManager {
         val calculatedDisplayScore = (((calculatedRawScore + 1) / 2) * 100).toInt().coerceIn(0, 100)
 
         return goal.copy(
+            rawScore = calculatedRawScore,
+            displayScore = calculatedDisplayScore,
+        )
+    }
+
+    fun calculateScoresForList(list: GoalList): GoalList {
+        if (list.scoringStatus != ScoringStatus.ASSESSED) {
+            return list.copy(
+                rawScore = 0f,
+                displayScore = 0,
+            )
+        }
+
+        val normImportance = normalize(list.valueImportance, importanceScale)
+        val normImpact = normalize(list.valueImpact, impactScale)
+        val normEffort = normalize(list.effort, effortScale)
+        val normCost = normalize(list.cost, costScale)
+        val normRisk = normalize(list.risk, riskScale)
+
+        val normBenefit = normImportance * normImpact
+
+        val totalWeight = list.weightEffort + list.weightCost + list.weightRisk
+        val normTotalCost =
+            if (totalWeight > 0f) {
+                (list.weightEffort * normEffort + list.weightCost * normCost + list.weightRisk * normRisk) / totalWeight
+            } else {
+                0f
+            }
+
+        val calculatedRawScore = normBenefit - normTotalCost
+        val calculatedDisplayScore = (((calculatedRawScore + 1) / 2) * 100).toInt().coerceIn(0, 100)
+
+        return list.copy(
             rawScore = calculatedRawScore,
             displayScore = calculatedDisplayScore,
         )

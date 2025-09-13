@@ -1,0 +1,216 @@
+// file: ui/screens/backlog/GoalDetailEffects.kt
+
+package com.romankozak.forwardappmobile.ui.screens.backlog
+
+import android.util.Log
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handleRelatedLinkClick
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+private const val TAG = "BACKLOG_UI_DEBUG"
+
+@Composable
+fun GoalDetailEffects(
+    navController: NavController,
+    viewModel: GoalDetailViewModel,
+    snackbarHostState: SnackbarHostState,
+    listState: LazyListState,
+    inboxListState: LazyListState,
+    dragDropState: SimpleDragDropState,
+    coroutineScope: CoroutineScope
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+    val list by viewModel.goalList.collectAsStateWithLifecycle()
+
+    // ВИПРАВЛЕНО: Звертаємось до inboxRecords через viewModel.inboxHandler
+    val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
+
+    val localContext = LocalContext.current
+    val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+
+    val displayList = remember(listContent, list?.isAttachmentsExpanded) {
+        val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
+        val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem }
+        if (list?.isAttachmentsExpanded == true) attachmentItems + draggableItems else draggableItems
+    }
+
+    // Обробка навігації, снек-барів та інших UI-подій
+    LaunchedEffect(Unit) {
+        viewModel.uiEventFlow.collect { event ->
+            when (event) {
+                is UiEvent.Navigate -> navController.navigate(event.route)
+                is UiEvent.ShowSnackbar -> {
+                    coroutineScope.launch {
+                        val result =
+                            snackbarHostState.showSnackbar(
+                                message = event.message,
+                                actionLabel = event.action,
+                                duration = SnackbarDuration.Short,
+                            )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            when (event.action) {
+                                "Обмежити в часі" -> viewModel.onLimitLastActivityRequested()
+                                else -> viewModel.itemActionHandler.undoDelete()
+                            }
+                        }
+                    }
+                }
+                is UiEvent.NavigateBackAndReveal -> {
+                    navController
+                        .getBackStackEntry("goal_lists_screen")
+                        .savedStateHandle["list_to_reveal"] = event.listId
+                    navController.popBackStack("goal_lists_screen", inclusive = false)
+                }
+                is UiEvent.HandleLinkClick -> {
+                    handleRelatedLinkClick(event.link, obsidianVaultName, localContext, navController)
+                }
+                is UiEvent.ResetSwipeState -> viewModel.onSwipeStateReset(event.itemId)
+                is UiEvent.ScrollTo -> listState.animateScrollToItem(event.index)
+                is UiEvent.ScrollToLatestInboxRecord -> {
+                    coroutineScope.launch {
+                        if (inboxRecords.isNotEmpty()) {
+                            inboxListState.animateScrollToItem(inboxRecords.lastIndex)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Авто-скрол до нового елемента
+    val newItemInList = uiState.newlyAddedItemId?.let { id -> displayList.find { it.item.id == id } }
+    LaunchedEffect(newItemInList) {
+        if (newItemInList != null) {
+            listState.animateScrollToItem(0)
+            viewModel.onScrolledToNewItem()
+        }
+    }
+
+    // Обробка результату з екрана вибору списку
+    DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (savedStateHandle?.contains("list_chooser_result") == true) {
+                    val result = savedStateHandle.get<String>("list_chooser_result")
+                    if (result != null) {
+                        Log.d("AddSublistDebug", "BacklogScreen: Received result from chooser: '$result'")
+                        viewModel.onListChooserResult(result)
+                    }
+                    savedStateHandle.remove<String>("list_chooser_result")
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Примусове оновлення при поверненні на екран
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.forceRefresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Скидання стану drag-and-drop при потребі
+    LaunchedEffect(uiState.needsStateRefresh) {
+        if (uiState.needsStateRefresh) {
+            dragDropState.reset()
+            viewModel.onStateRefreshed()
+        }
+    }
+
+
+
+    // Підсвічування цілі або елемента
+    LaunchedEffect(uiState.goalToHighlight, uiState.itemToHighlight, displayList, list?.isAttachmentsExpanded) {
+        val goalId = uiState.goalToHighlight
+        val itemId = uiState.itemToHighlight
+        if ((goalId == null && itemId == null) || displayList.isEmpty()) return@LaunchedEffect
+
+        val indexToScroll = when {
+            goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
+            itemId != null -> displayList.indexOfFirst { it.item.id == itemId }.takeIf { it != -1 }
+            else -> null
+        }
+
+        if (indexToScroll != null) {
+            listState.animateScrollToItem(indexToScroll)
+            delay(2500L)
+        }
+        viewModel.onHighlightShown()
+    }
+
+    // Переключення на INBOX для підсвічування запису
+    LaunchedEffect(uiState.inboxRecordToHighlight, inboxRecords.isNotEmpty()) {
+        val recordId = uiState.inboxRecordToHighlight
+        val recordsAreLoaded = inboxRecords.isNotEmpty()
+        if (recordId != null && recordsAreLoaded && uiState.currentView != ProjectViewMode.INBOX) {
+            if (inboxRecords.any { it.id == recordId }) {
+                Log.d(TAG, "Highlight requested. Switching to INBOX view.")
+                viewModel.onProjectViewChange(ProjectViewMode.INBOX)
+            }
+        }
+    }
+
+    // Скрол та підсвічування запису в INBOX
+    LaunchedEffect(uiState.inboxRecordToHighlight, uiState.currentView, inboxRecords) {
+        val recordId = uiState.inboxRecordToHighlight
+        if (recordId != null && uiState.currentView == ProjectViewMode.INBOX && inboxRecords.isNotEmpty()) {
+            val indexToScroll = inboxRecords.indexOfFirst { it.id == recordId }
+            Log.d(TAG, "INBOX view is active. Searching for record. Found index: $indexToScroll")
+            if (indexToScroll != -1) {
+                Log.d(TAG, "Scrolling to index: $indexToScroll")
+                inboxListState.animateScrollToItem(indexToScroll)
+                Log.d(TAG, "Waiting for highlight to finish...")
+                delay(2500L)
+                Log.d(TAG, "Highlight duration passed. Resetting state.")
+                viewModel.onInboxHighlightShown()
+            } else {
+                Log.w(TAG, "Record ID $recordId not found. Clearing highlight state.")
+                viewModel.onInboxHighlightShown()
+            }
+        }
+    }
+
+    // Скрол до новоствореного елемента
+    LaunchedEffect(uiState.newlyAddedItemId, displayList) {
+        val itemId = uiState.newlyAddedItemId
+        Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
+        if (itemId != null) {
+            var index = displayList.indexOfFirst { it.item.id == itemId }
+            if (index == -1) {
+                index = displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == itemId }
+                Log.d("AutoScrollDebug", "Trying goal.id search, found index: $index")
+            }
+            Log.d("AutoScrollDebug", "Final index: $index for itemId: $itemId")
+            if (index != -1) {
+                listState.animateScrollToItem(index)
+                viewModel.onScrolledToNewItem()
+            } else {
+                Log.w("AutoScrollDebug", "Item not found in displayList by any ID!")
+            }
+        }
+    }
+}

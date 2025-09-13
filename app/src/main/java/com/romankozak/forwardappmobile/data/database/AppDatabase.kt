@@ -20,7 +20,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         ChatMessageEntity::class,
         ProjectExecutionLog::class,
     ],
-    version = 28,
+    version = 29,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),

@@ -220,7 +220,34 @@ data class GoalList(
     val projectLogLevel: ProjectLogLevel? = ProjectLogLevel.NORMAL,
     @ColumnInfo(name = "total_time_spent_minutes")
     val totalTimeSpentMinutes: Long? = 0,
+
+    // Нові поля
+    @ColumnInfo(name = "reminder_time")
+    val reminderTime: Long? = null,
+    @ColumnInfo(defaultValue = "0.0")
+    val valueImportance: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0")
+    val valueImpact: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0")
+    val effort: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0")
+    val cost: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0")
+    val risk: Float = 0f,
+    @ColumnInfo(defaultValue = "1.0")
+    val weightEffort: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0")
+    val weightCost: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0")
+    val weightRisk: Float = 1f,
+    @ColumnInfo(defaultValue = "0.0")
+    val rawScore: Float = 0f,
+    @ColumnInfo(defaultValue = "0")
+    val displayScore: Int = 0,
+    @ColumnInfo(name = "scoring_status", defaultValue = "'NOT_ASSESSED'")
+    val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
 )
+
 
 @Entity(
     tableName = "project_execution_logs",

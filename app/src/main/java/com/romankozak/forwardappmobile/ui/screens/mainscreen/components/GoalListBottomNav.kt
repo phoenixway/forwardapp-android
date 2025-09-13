@@ -1,11 +1,5 @@
-package com.romankozak.forwardappmobile.ui.screens.backlogs.components
+package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,7 +20,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.backlogs.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.PlanningMode
 
 @Composable
 internal fun GoalListBottomNav(
