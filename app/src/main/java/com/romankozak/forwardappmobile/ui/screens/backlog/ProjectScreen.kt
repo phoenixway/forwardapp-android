@@ -121,6 +121,8 @@ fun ProjectsScreen(
                 onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
                 onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
                 onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
+                // 👇 ДОДАНО РЯДОК
+                currentViewMode = uiState.currentView
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
