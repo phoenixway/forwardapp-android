@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.GoalList
@@ -34,6 +35,7 @@ fun GoalListRow(
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
     modifier: Modifier = Modifier,
+    displayName: AnnotatedString? = null,
 ) {
     val backgroundColor by animateColorAsState(
         targetValue =
@@ -79,7 +81,7 @@ fun GoalListRow(
             }
 
             Text(
-                text = list.name,
+                text = displayName ?: AnnotatedString(list.name),
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
