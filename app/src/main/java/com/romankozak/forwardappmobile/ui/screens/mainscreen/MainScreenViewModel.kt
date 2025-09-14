@@ -15,9 +15,11 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
+import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -28,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import javax.inject.Inject
+import javax.inject.Qualifier
 
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(
@@ -132,6 +135,8 @@ constructor(
     private val syncRepo: SyncRepository,
     private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher // 1. Просимо диспечер у Hilt
+
 ) : ViewModel() {
     companion object {
         private const val TAG = "GoalListViewModel_DEBUG"
@@ -427,14 +432,28 @@ constructor(
         }
     }
 
+    private val _isBottomNavExpanded = MutableStateFlow(false)
+    val isBottomNavExpanded: StateFlow<Boolean> = _isBottomNavExpanded.asStateFlow()
+
+
     init {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
+            // Щоб увімкнути персистентність стану панелі, додайте у ваш SettingsRepository:
+            // val isBottomNavExpandedFlow: Flow<Boolean>
+
+            settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
+                _isBottomNavExpanded.value = savedState
+            }
+
+
+            withContext(ioDispatcher) { // 2. Використовуємо диспечер
                 _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
                 contextHandler.initialize()
             }
         }
     }
+
+
 
     private val _showRecentListsSheet = MutableStateFlow(false)
     val showRecentListsSheet: StateFlow<Boolean> = _showRecentListsSheet.asStateFlow()
@@ -1151,4 +1170,29 @@ constructor(
     fun enableFiltering() {
         _isReadyForFiltering.value = true
     }
+
+    fun onToggleBottomNavExpanded() {
+        val newState = !_isBottomNavExpanded.value
+        _isBottomNavExpanded.value = newState
+        // Щоб увімкнути персистентність стану панелі, додайте у ваш SettingsRepository:
+        // suspend fun saveBottomNavExpanded(isExpanded: Boolean)
+
+        viewModelScope.launch {
+            settingsRepo.saveBottomNavExpanded(newState)
+        }
+
+    }
+
+    fun onBottomNavExpandedChange(expanded: Boolean) {
+        if (_isBottomNavExpanded.value == expanded) return // Уникаємо зайвих операцій
+        _isBottomNavExpanded.value = expanded
+        // Щоб увімкнути персистентність, розкоментуйте та реалізуйте у вашому SettingsRepository:
+        // suspend fun saveBottomNavExpanded(isExpanded: Boolean)
+
+        viewModelScope.launch {
+            settingsRepo.saveBottomNavExpanded(expanded)
+        }
+
+    }
+
 }
