@@ -433,3 +433,10 @@ val MIGRATION_29_30 = object : Migration(29, 30) {
         """)
     }
 }
+val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Додаємо нову колонку 'dueTime' до таблиці 'day_tasks'
+        // Room зберігає Long? як INTEGER
+        database.execSQL("ALTER TABLE day_tasks ADD COLUMN dueTime INTEGER")
+    }
+}

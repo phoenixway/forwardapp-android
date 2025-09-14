@@ -14,12 +14,8 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Репозиторій для управління всіма аспектами щоденного планування,
- * завдань, метрик та аналітики.
- */
 @Singleton
-class DayManagementRepository @Inject constructor( // <-- @Inject constructor - це ключова інструкція для Hilt
+class DayManagementRepository @Inject constructor(
     private val dayPlanDao: DayPlanDao,
     private val dayTaskDao: DayTaskDao,
     private val dailyMetricDao: DailyMetricDao,
@@ -31,15 +27,12 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
 
     // === Day Plan Operations ===
 
-    /** Отримує план за ID для реактивного оновлення в UI. */
     fun getPlanByIdStream(planId: String): Flow<DayPlan?> =
         dayPlanDao.getPlanByIdStream(planId).flowOn(ioDispatcher)
 
-    /** Отримує план на конкретну дату. */
     fun getPlanForDate(date: Long): Flow<DayPlan?> =
         dayPlanDao.getPlanForDate(getDayStart(date)).flowOn(ioDispatcher)
 
-    /** Створює новий план, якщо не існує, або оновлює існуючий. */
     suspend fun createOrUpdateDayPlan(date: Long, name: String? = null): DayPlan = withContext(ioDispatcher) {
         val dayStart = getDayStart(date)
         val existingPlan = dayPlanDao.getPlanForDateSync(dayStart)
@@ -62,12 +55,10 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
         }
     }
 
-    /** Оновлює статус плану дня. */
     suspend fun updatePlanStatus(planId: String, status: DayStatus) = withContext(ioDispatcher) {
         dayPlanDao.updatePlanStatus(planId, status, System.currentTimeMillis())
     }
 
-    /** Оновлює рефлексію для плану дня. */
     suspend fun updatePlanReflection(planId: String, reflection: String) = withContext(ioDispatcher) {
         val plan = dayPlanDao.getPlanById(planId) ?: return@withContext
         dayPlanDao.update(
@@ -80,10 +71,6 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
 
     // === Task Operations ===
 
-    /**
-     * Додає нове завдання до плану дня, використовуючи об'єкт параметрів.
-     * Це вирішує попередження про велику кількість параметрів.
-     */
     suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask = withContext(ioDispatcher) {
         val task = DayTask(
             dayPlanId = params.dayPlanId,
@@ -94,13 +81,12 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
             priority = params.priority,
             scheduledTime = params.scheduledTime,
             estimatedDurationMinutes = params.estimatedDurationMinutes,
-            order = System.currentTimeMillis() // Використовуємо час для початкового сортування
+            order = System.currentTimeMillis()
         )
         dayTaskDao.insert(task)
         task
     }
 
-    /** Додає існуючу ціль як завдання на день. Викидає виняток, якщо ціль не знайдена. */
     @Transaction
     suspend fun addGoalToDayPlan(dayPlanId: String, goalId: String, scheduledTime: Long? = null): DayTask = withContext(ioDispatcher) {
         val goal = goalDao.getGoalById(goalId)
@@ -117,7 +103,6 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
         addTaskToDayPlan(taskParams)
     }
 
-    /** Додає існуючий проєкт як завдання на день. Викидає виняток, якщо проєкт не знайдений. */
     @Transaction
     suspend fun addProjectToDayPlan(dayPlanId: String, projectId: String, scheduledTime: Long? = null): DayTask = withContext(ioDispatcher) {
         val project = goalListDao.getGoalListById(projectId)
@@ -140,7 +125,6 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
     fun getTasksForGoal(goalId: String): Flow<List<DayTask>> =
         dayTaskDao.getTasksForGoal(goalId).flowOn(ioDispatcher)
 
-    /** Позначає завдання як виконане та перераховує прогрес дня. */
     suspend fun completeTask(taskId: String) = withContext(ioDispatcher) {
         val now = System.currentTimeMillis()
         dayTaskDao.updateTaskCompletion(
@@ -153,7 +137,25 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
         recalculateDayProgress(taskId)
     }
 
-    /** Запускає відстеження часу для завдання, створюючи відповідний ActivityRecord. */
+    suspend fun deleteTask(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId)
+        if (task != null) {
+            dayTaskDao.deleteById(taskId)
+            calculateAndSaveDailyMetrics(task.dayPlanId)
+        }
+    }
+
+    suspend fun updateTask(taskId: String, title: String, description: String?, priority: TaskPriority) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
+        val updatedTask = task.copy(
+            title = title,
+            description = description,
+            priority = priority,
+            updatedAt = System.currentTimeMillis()
+        )
+        dayTaskDao.update(updatedTask)
+    }
+
     suspend fun startTaskWithTimeTracking(taskId: String): ActivityRecord? = withContext(ioDispatcher) {
         val task = dayTaskDao.getTaskById(taskId) ?: return@withContext null
         val now = System.currentTimeMillis()
@@ -171,26 +173,22 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
         activityRecord
     }
 
-    /** Зупиняє відстеження часу для завдання. */
     suspend fun stopTaskTimeTracking(taskId: String) = withContext(ioDispatcher) {
         val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
         val now = System.currentTimeMillis()
 
         activityRepository.endLastActivity(now)
 
-        // Оновлюємо тривалість задачі, отримуючи дані через ActivityRepository
         task.activityRecordId?.let { recordId ->
-            // Примітка: в ActivityRepository має бути метод для отримання запису за ID
             val record = activityRepository.getActivityRecordById(recordId)
             record?.durationInMillis?.let { duration ->
-                dayTaskDao.updateTaskDuration(taskId, duration / 60000, now) // конвертуємо в хвилини
+                dayTaskDao.updateTaskDuration(taskId, duration / 60000, now)
             }
         }
     }
 
     // === Analytics and Insights ===
 
-    /** Отримує метрики за ID для реактивного оновлення в UI. */
     fun getMetricForDayStream(dayPlanId: String): Flow<DailyMetric?> =
         dailyMetricDao.getMetricForDayStream(dayPlanId).flowOn(ioDispatcher)
 
@@ -211,7 +209,6 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
         }.flowOn(ioDispatcher)
     }
 
-    /** Обчислює та зберігає зведені метрики за день. */
     suspend fun calculateAndSaveDailyMetrics(dayPlanId: String) = withContext(ioDispatcher) {
         val tasks = dayTaskDao.getTasksForDaySync(dayPlanId)
         val plan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
@@ -244,16 +241,29 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
     }
 
     fun getWeeklyInsights(startOfWeek: Long): Flow<WeeklyInsights> {
-        val endOfWeek = startOfWeek + (7 * 24 * 60 * 60 * 1000L) // Додано дужки для ясності
+        val endOfWeek = startOfWeek + (7 * 24 * 60 * 60 * 1000L)
         return dailyMetricDao.getMetricsForDateRange(startOfWeek, endOfWeek).map { metrics ->
-            WeeklyInsights(
-                totalDays = metrics.size,
-                averageCompletionRate = metrics.map { it.completionRate }.average().toFloat(),
-                totalActiveTime = metrics.sumOf { it.totalActiveTime },
-                averageTasksPerDay = metrics.map { it.tasksPlanned }.average().toFloat(),
-                bestDay = metrics.maxByOrNull { it.completionRate },
-                worstDay = metrics.minByOrNull { it.completionRate }
-            )
+            if (metrics.isEmpty()) {
+                // ВИПРАВЛЕНО: Додано всі обов'язкові параметри з нульовими значеннями
+                WeeklyInsights(
+                    totalDays = 0,
+                    averageCompletionRate = 0f,
+                    totalActiveTime = 0,
+                    averageTasksPerDay = 0f,
+                    bestDay = null,
+                    worstDay = null
+                )
+            } else {
+                // Спрощено: внутрішні перевірки на порожню колекцію видалено, бо вони більше не потрібні
+                WeeklyInsights(
+                    totalDays = metrics.size,
+                    averageCompletionRate = metrics.map { it.completionRate }.average().toFloat(),
+                    totalActiveTime = metrics.sumOf { it.totalActiveTime },
+                    averageTasksPerDay = metrics.map { it.tasksPlanned }.average().toFloat(),
+                    bestDay = metrics.maxByOrNull { it.completionRate },
+                    worstDay = metrics.minByOrNull { it.completionRate }
+                )
+            }
         }.flowOn(ioDispatcher)
     }
 
@@ -275,7 +285,6 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
         return calendar.timeInMillis
     }
 
-    /** Єдина функція для мапінгу важливості на пріоритет. */
     private fun mapImportanceToPriority(importance: Float): TaskPriority {
         return when {
             importance >= 8f -> TaskPriority.CRITICAL
@@ -284,7 +293,7 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
             else -> TaskPriority.LOW
         }
     }
-    /** Перемикає статус виконання завдання. */
+
     suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
         val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
         val now = System.currentTimeMillis()
@@ -299,5 +308,4 @@ class DayManagementRepository @Inject constructor( // <-- @Inject constructor - 
         )
         recalculateDayProgress(taskId)
     }
-
 }

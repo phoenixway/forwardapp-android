@@ -24,6 +24,9 @@ interface DayTaskDao {
     @Delete
     suspend fun delete(task: DayTask)
 
+    @Query("DELETE FROM day_tasks WHERE id = :taskId") // <-- ДОДАНО НОВУ ФУНКЦІЮ
+    suspend fun deleteById(taskId: String)
+
     @Query("DELETE FROM day_tasks WHERE id IN (:taskIds)")
     suspend fun deleteByIds(taskIds: List<String>)
 
