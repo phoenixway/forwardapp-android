@@ -19,7 +19,9 @@ data class NewTaskParameters(
     val projectId: String? = null,
     val priority: TaskPriority = TaskPriority.MEDIUM,
     val scheduledTime: Long? = null,
-    val estimatedDurationMinutes: Long? = null
+    val estimatedDurationMinutes: Long? = null,
+    val order: Long? = null // ✅ Added this field for drag-and-drop ordering
+
 )
 
 

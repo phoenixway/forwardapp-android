@@ -1,4 +1,4 @@
-// DayPlanViewModel.kt
+// DayPlanViewModel.kt - Updated with reordering support
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
 import androidx.lifecycle.ViewModel
@@ -21,7 +21,7 @@ data class DayPlanUiState(
     val error: String? = null,
     val isRefreshing: Boolean = false,
     val lastUpdated: Long? = null,
-
+    val isReordering: Boolean = false
 )
 
 @HiltViewModel
@@ -61,6 +61,34 @@ class DayPlanViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 
+    fun updateTasksOrder(dayPlanId: String, reorderedTasks: List<DayTask>) {
+        // 1. Спочатку оновлюємо локальний стан UI негайно.
+        val tasksWithNewOrder = reorderedTasks.mapIndexed { index, task ->
+            task.copy(order = index.toLong())
+        }
+
+        _uiState.update { currentState ->
+            currentState.copy(
+                tasks = tasksWithNewOrder,
+                isReordering = true
+            )
+        }
+
+        // 2. Тепер запускаємо асинхронну операцію збереження.
+        // Це робить ViewModel єдиним джерелом правди.
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                dayManagementRepository.updateTasksOrder(dayPlanId, tasksWithNewOrder)
+                // При успіху оновлюємо стан, щоб вимкнути індикатор, якщо потрібно
+                _uiState.update { it.copy(isReordering = false) }
+            } catch (e: Exception) {
+                // При помилці - завантажуємо актуальні дані з репозиторію
+                // для повернення до останнього робочого стану.
+                _uiState.update { it.copy(error = "Помилка при зміні порядку завдань") }
+                loadDataForPlan(dayPlanId) // Завантажуємо свіжі дані
+            }
+        }
+    }
     fun addTask(
         dayPlanId: String,
         title: String,
@@ -81,12 +109,17 @@ class DayPlanViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Отримуємо максимальний порядковий номер для нового завдання
+                val currentTasks = _uiState.value.tasks
+                val maxOrder = currentTasks.maxOfOrNull { it.order } ?: 0L
+
                 val taskParams = NewTaskParameters(
                     dayPlanId = dayPlanId,
                     title = trimmedTitle,
                     description = trimmedDescription,
                     estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
-                    priority = priority
+                    priority = priority,
+                    order = maxOrder + 1
                 )
 
                 // Додаємо завдання
@@ -99,7 +132,7 @@ class DayPlanViewModel @Inject constructor(
                 _isAddTaskDialogOpen.value = false
                 _uiState.update {
                     it.copy(
-                        tasks = sortTasks(updatedTasks),
+                        tasks = sortTasksWithOrder(updatedTasks),
                         lastUpdated = System.currentTimeMillis(),
                         isLoading = false,
                         error = null
@@ -117,7 +150,6 @@ class DayPlanViewModel @Inject constructor(
             }
         }
     }
-
 
     /**
      * Видаляє завдання з плану
@@ -159,7 +191,7 @@ class DayPlanViewModel @Inject constructor(
                         }
                     }
                     currentState.copy(
-                        tasks = sortTasks(updatedTasks),
+                        tasks = sortTasksWithOrder(updatedTasks),
                         lastUpdated = System.currentTimeMillis()
                     )
                 }
@@ -199,7 +231,9 @@ class DayPlanViewModel @Inject constructor(
                         }
                         .collect { dayPlan ->
                             dayPlan?.let {
-                                _uiState.update { it.copy(dayPlan = it.dayPlan) }
+                                _uiState.update { currentState ->
+                                    currentState.copy(dayPlan = dayPlan)
+                                }
                             }
                         }
                 }
@@ -221,7 +255,7 @@ class DayPlanViewModel @Inject constructor(
                                 currentState.copy(
                                     isLoading = false,
                                     isRefreshing = false,
-                                    tasks = sortTasks(tasks),
+                                    tasks = sortTasksWithOrder(tasks),
                                     lastUpdated = System.currentTimeMillis(),
                                     error = null
                                 )
@@ -241,7 +275,6 @@ class DayPlanViewModel @Inject constructor(
         }
     }
 
-
     /**
      * Оновлює дані плану
      */
@@ -252,7 +285,20 @@ class DayPlanViewModel @Inject constructor(
     }
 
     /**
+     * Сортує завдання з урахуванням порядку, встановленого користувачем
+     * Незавершені завдання сортуються за порядком, потім завершені
+     */
+    private fun sortTasksWithOrder(tasks: List<DayTask>): List<DayTask> {
+        return tasks.sortedWith(
+            compareBy<DayTask> { it.completed }  // Спочатку незавершені
+                .thenBy { it.order }             // Потім за порядком
+                .thenBy { it.title.lowercase() } // І за назвою як fallback
+        )
+    }
+
+    /**
      * Сортує завдання: спочатку невиконані за пріоритетом і терміном, потім виконані
+     * Використовується коли потрібно застосувати стандартне сортування без врахування order
      */
     private fun sortTasks(tasks: List<DayTask>): List<DayTask> {
         return tasks.sortedWith(
@@ -291,5 +337,37 @@ class DayPlanViewModel @Inject constructor(
         val total = tasks.size
         val percentage = if (total > 0) completed.toFloat() / total else 0f
         return Triple(completed, total, percentage)
+    }
+
+    /**
+     * Автоматично сортує завдання за пріоритетом (скидає користувацький порядок)
+     */
+    fun sortTasksByPriority(dayPlanId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val currentTasks = _uiState.value.tasks
+                val sortedTasks = sortTasks(currentTasks)
+
+                // Присвоюємо нові порядкові номери після сортування
+                val tasksWithNewOrder = sortedTasks.mapIndexed { index, task ->
+                    task.copy(order = index.toLong())
+                }
+
+                dayManagementRepository.updateTasksOrder(dayPlanId, tasksWithNewOrder)
+
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        tasks = tasksWithNewOrder,
+                        lastUpdated = System.currentTimeMillis()
+                    )
+                }
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(error = "Помилка при сортуванні завдань: ${e.localizedMessage}")
+                }
+                e.printStackTrace()
+            }
+        }
     }
 }
