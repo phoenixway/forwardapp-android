@@ -7,7 +7,10 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
-    kotlin("kapt")
+    //kotlin("kapt")
+    //id("com.google.devtools.ksp")
+
+
     id("io.gitlab.arturbosch.detekt")
 
 }
@@ -137,7 +140,9 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
-    kapt(libs.hilt.compiler)
+    //kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
+
 
     // Ktor (Server & Client)
     implementation(libs.ktor.server.core)

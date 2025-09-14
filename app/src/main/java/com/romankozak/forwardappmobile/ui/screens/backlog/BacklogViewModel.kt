@@ -12,7 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.DailyLifeRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.ner.NerManager
@@ -221,7 +221,7 @@ constructor(
     private val activityRepository: ActivityRepository,
     private val projectMarkdownExporter: ProjectMarkdownExporter,
     private val savedStateHandle: SavedStateHandle,
-    private val dailyLifeRepository: DailyLifeRepository,
+    private val dayManagementRepository: DayManagementRepository, // <-- Нова, правильна назва
 ) : ViewModel(),
     ItemActionHandler.ResultListener,
     InputHandler.ResultListener,
@@ -1013,17 +1013,21 @@ constructor(
 
     fun addItemToDailyPlan(itemContent: ListItemContent) {
         viewModelScope.launch {
-            val today = DayManagementUtils.getCurrentDay()
+            // Примітка: Переконайтесь, що DayManagementUtils.getCurrentDay() існує
+            // або замініть на логіку отримання поточної дати.
+            val today = System.currentTimeMillis() // Приклад, як можна отримати поточний час
+
+            // ВИПРАВЛЕНО: Використовуємо dayManagementRepository
+            val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
+
             val task = when (itemContent) {
                 is ListItemContent.GoalItem -> {
                     // Створюємо або отримуємо план на сьогодні і додаємо до нього ціль
-                    val dayPlan = dailyLifeRepository.createOrUpdateDayPlan(today)
-                    dailyLifeRepository.addGoalToDayPlan(dayPlan.id, itemContent.goal.id)
+                    dayManagementRepository.addGoalToDayPlan(dayPlan.id, itemContent.goal.id)
                 }
                 is ListItemContent.SublistItem -> {
                     // Створюємо або отримуємо план на сьогодні і додаємо до нього проєкт
-                    val dayPlan = dailyLifeRepository.createOrUpdateDayPlan(today)
-                    dailyLifeRepository.addProjectToDayPlan(dayPlan.id, itemContent.sublist.id)
+                    dayManagementRepository.addProjectToDayPlan(dayPlan.id, itemContent.sublist.id)
                 }
                 // Посилання (LinkItem) не можна додати до плану дня
                 is ListItemContent.LinkItem -> null

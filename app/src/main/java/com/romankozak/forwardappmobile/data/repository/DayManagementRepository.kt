@@ -19,7 +19,7 @@ import javax.inject.Singleton
  * завдань, метрик та аналітики.
  */
 @Singleton
-class DayManagementRepository @Inject constructor(
+class DayManagementRepository @Inject constructor( // <-- @Inject constructor - це ключова інструкція для Hilt
     private val dayPlanDao: DayPlanDao,
     private val dayTaskDao: DayTaskDao,
     private val dailyMetricDao: DailyMetricDao,
@@ -284,4 +284,20 @@ class DayManagementRepository @Inject constructor(
             else -> TaskPriority.LOW
         }
     }
+    /** Перемикає статус виконання завдання. */
+    suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
+        val now = System.currentTimeMillis()
+        val newStatus = !task.completed
+
+        dayTaskDao.updateTaskCompletion(
+            taskId = taskId,
+            completed = newStatus,
+            status = if (newStatus) TaskStatus.COMPLETED else TaskStatus.NOT_STARTED,
+            completedAt = if (newStatus) now else null,
+            updatedAt = now
+        )
+        recalculateDayProgress(taskId)
+    }
+
 }
