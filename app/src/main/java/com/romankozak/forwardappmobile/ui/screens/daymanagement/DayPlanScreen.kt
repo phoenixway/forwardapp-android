@@ -89,7 +89,7 @@ private fun ErrorState(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskList(
-    tasks: List<DayTask>, // Це початковий список з ViewModel
+    tasks: List<DayTask>,
     dayPlan: DayPlan?,
     onToggleTask: (String) -> Unit,
     onTaskLongPress: (DayTask) -> Unit,
@@ -97,44 +97,32 @@ fun TaskList(
     modifier: Modifier = Modifier
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-
-    // Єдиний локальний стан, який змінюється лише тут
     var internalTasks by remember { mutableStateOf(tasks) }
 
     val lazyListState = rememberLazyListState()
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        // Миттєво оновлюємо локальний стан
         internalTasks = internalTasks.toMutableList().apply {
             add(to.index, removeAt(from.index))
         }
-
-        // Надсилаємо оновлений список у ViewModel
         onTasksReordered(internalTasks)
-
         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
     }
 
-    LazyColumn(
-        state = lazyListState,
-
-        ) {
-        items(
-            items = internalTasks,
-            key = { task -> task.id }
-        ) { task ->
-            ReorderableItem(
-                reorderableLazyListState,
-                key = task.id
-            ) { isDragging ->
-
+    LazyColumn(state = lazyListState) {
+        items(items = internalTasks, key = { task -> task.id }) { task ->
+            ReorderableItem(reorderableLazyListState, key = task.id) { isDragging ->
                 val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp)
-
                 Surface(shadowElevation = elevation) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Checkbox(
+                            checked = task.completed,
+                            onCheckedChange = { onToggleTask(task.id) }, // Додано виклик функції
+                            modifier = Modifier.padding(end = 2.dp)
+                        )
                         Text(
                             text = task.title,
                             modifier = Modifier
@@ -441,18 +429,18 @@ fun DayPlanScreen(
                         dayPlan = uiState.dayPlan,
                         onToggleTask = { taskId ->
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.toggleTaskCompletion(taskId)
+                            viewModel.toggleTaskCompletion(taskId) // Це тепер буде працювати
                         },
                         onTaskLongPress = { task ->
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.selectTask(task)
                         },
                         onTasksReordered = { reorderedList ->
-                            // Переконайтесь, що у вас є dayPlanId для цього виклику
                             uiState.dayPlan?.let { dayPlan ->
                                 viewModel.updateTasksOrder(dayPlan.id, reorderedList)
                             }
                         },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
