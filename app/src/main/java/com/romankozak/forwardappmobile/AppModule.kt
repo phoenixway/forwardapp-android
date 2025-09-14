@@ -44,8 +44,8 @@ object DatabaseModule {
                 MIGRATION_25_26,
                 MIGRATION_26_27,
                 MIGRATION_27_28,
-                MIGRATION_28_29, // <-- Додати нову міграцію
-
+                MIGRATION_28_29,
+                MIGRATION_29_30,
             ).build()
 
     @Provides
@@ -74,4 +74,13 @@ object DatabaseModule {
 
     @Provides
     fun provideProjectManagementDao(db: AppDatabase): ProjectManagementDao = db.projectManagementDao()
+    @Provides
+    fun provideDayPlanDao(db: AppDatabase): DayPlanDao = db.dayPlanDao()
+
+    @Provides
+    fun provideDayTaskDao(db: AppDatabase): DayTaskDao = db.dayTaskDao()
+
+    @Provides
+    fun provideDailyMetricDao(db: AppDatabase): DailyMetricDao = db.dailyMetricDao()
+
 }

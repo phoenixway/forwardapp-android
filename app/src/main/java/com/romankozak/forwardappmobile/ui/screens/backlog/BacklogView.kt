@@ -91,6 +91,8 @@ fun BacklogView(
                     onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
                     onDelete = { viewModel.itemActionHandler.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                    onAddToDayPlanRequest = { viewModel.addItemToDailyPlan(content) },
+
                     onCreateInstanceRequest = {
                         viewModel.itemActionHandler.onGoalActionSelected(
                             GoalActionType.CreateInstance,

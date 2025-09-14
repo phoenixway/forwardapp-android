@@ -32,6 +32,7 @@ import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Qualifier
 
+
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(
         val json: String,
@@ -64,6 +65,11 @@ sealed class GoalListUiEvent {
     data class Navigate(
         val route: String,
     ) : GoalListUiEvent()
+
+    data class NavigateToDayPlan(
+        val date: Long
+    ) : GoalListUiEvent()
+
 }
 
 sealed class PlanningMode {
@@ -476,25 +482,13 @@ constructor(
             _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId))
         }
     }
-
     fun onDayPlanClicked() {
         viewModelScope.launch {
-            val dailyTag = planningSettingsState.value.dailyTag
-            if (dailyTag.isBlank()) {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Daily tag is not set in settings"))
-                return@launch
-            }
-
-            val dayPlanList = _allListsFlat.value.find { it.tags?.contains(dailyTag) == true }
-
-            if (dayPlanList != null) {
-                _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(dayPlanList.id))
-            } else {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("A list with tag '#$dailyTag' was not found"))
-            }
+            val today = System.currentTimeMillis()
+            // Надсилаємо нову, типізовану подію до UI
+            _uiEventChannel.send(GoalListUiEvent.NavigateToDayPlan(today))
         }
     }
-
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
             Log.d("REVEAL_DEBUG", "ViewModel: processRevealRequest розпочато")

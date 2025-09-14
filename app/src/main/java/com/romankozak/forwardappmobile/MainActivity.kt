@@ -35,6 +35,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.ui.navigation.dayManagementGraph
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
