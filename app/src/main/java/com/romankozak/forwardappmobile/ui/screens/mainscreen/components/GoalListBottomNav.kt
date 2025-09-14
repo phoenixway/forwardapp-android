@@ -1,8 +1,13 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,9 +23,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
@@ -41,70 +49,53 @@ internal fun ExpandingBottomNav(
     onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
+    isExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
+    val arrowRotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "arrowAnimation")
 
     Surface(
-        tonalElevation = 6.dp,
-        shadowElevation = 8.dp,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        tonalElevation = 8.dp,
+        shadowElevation = 12.dp,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // Обробник свайпу тепер на всій панелі
                 .pointerInput(Unit) {
                     detectVerticalDragGestures { _, dragAmount ->
-                        coroutineScope.launch {
-                            if (dragAmount < -20) { // Swipe Up
-                                isExpanded = true
-                            }
-                            if (dragAmount > 20) { // Swipe Down
-                                isExpanded = false
-                            }
+                        // Визначаємо напрямок свайпу і змінюємо стан, якщо потрібно
+                        if (dragAmount < -20 && !isExpanded) { // Swipe Up
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onExpandedChange(true)
+                        } else if (dragAmount > 20 && isExpanded) { // Swipe Down
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onExpandedChange(false)
                         }
                     }
                 },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Другий поверх кнопок
+            // Верхній ряд (Command Center)
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(animationSpec = tween(250)),
-                exit = shrinkVertically(animationSpec = tween(250))
+                enter = expandVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(150)),
+                exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)) + fadeOut(tween(150))
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    SmallBottomNavButton(
-                        text = "All",
-                        icon = Icons.AutoMirrored.Outlined.List,
-                        isSelected = currentMode is PlanningMode.All,
-                        onClick = { onPlanningModeChange(PlanningMode.All) },
-                    )
-                    SmallBottomNavButton(
-                        text = "Daily",
-                        icon = Icons.Outlined.Today,
-                        isSelected = currentMode is PlanningMode.Daily,
-                        onClick = { onPlanningModeChange(PlanningMode.Daily) },
-                    )
-                    SmallBottomNavButton(
-                        text = "Medium",
-                        icon = Icons.Outlined.QueryStats,
-                        isSelected = currentMode is PlanningMode.Medium,
-                        onClick = { onPlanningModeChange(PlanningMode.Medium) },
-                    )
-                    SmallBottomNavButton(
-                        text = "Long",
-                        icon = Icons.Outlined.TrackChanges,
-                        isSelected = currentMode is PlanningMode.Long,
-                        onClick = { onPlanningModeChange(PlanningMode.Long) },
-                    )
+                    SmallBottomNavButton(text = "All", icon = Icons.AutoMirrored.Outlined.List, isSelected = currentMode is PlanningMode.All, onClick = { onPlanningModeChange(PlanningMode.All) })
+                    SmallBottomNavButton(text = "Daily", icon = Icons.Outlined.Today, isSelected = currentMode is PlanningMode.Daily, onClick = { onPlanningModeChange(PlanningMode.Daily) })
+                    SmallBottomNavButton(text = "Medium", icon = Icons.Outlined.QueryStats, isSelected = currentMode is PlanningMode.Medium, onClick = { onPlanningModeChange(PlanningMode.Medium) })
+                    SmallBottomNavButton(text = "Long", icon = Icons.Outlined.TrackChanges, isSelected = currentMode is PlanningMode.Long, onClick = { onPlanningModeChange(PlanningMode.Long) })
                     Box {
                         SmallBottomNavButton(
                             text = "More",
@@ -181,67 +172,85 @@ internal fun ExpandingBottomNav(
                                 onClick = { showMoreMenu = false },
                                 modifier = Modifier.padding(horizontal = 4.dp),
                             )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.AccountBox,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.tertiary,
+                                        )
+                                        Column {
+                                            Text(
+                                                "AI Inbox",
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Medium,
+                                                ),
+                                            )
+                                            Text(
+                                                "Messages from AI",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = { showMoreMenu = false },
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
                         }
                     }
                 }
             }
 
-            // Хендл ("ручка") для ручного відкриття/закриття
+            // "Ручка" з анімованою стрілкою
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(24.dp)
-                    .clickable { isExpanded = !isExpanded },
+                    .height(32.dp)
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onExpandedChange(!isExpanded)
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    modifier = Modifier
-                        .width(32.dp)
-                        .height(4.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    shape = CircleShape
-                ) {}
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.width(32.dp).height(4.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ) {}
+                    Icon(
+                        imageVector = Icons.Outlined.KeyboardArrowUp,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp).rotate(arrowRotation)
+                    )
+                }
             }
 
-            // Основний ряд кнопок
+            // Нижній, основний ряд кнопок
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                ModernBottomNavButton(
-                    text = "Recent",
-                    icon = Icons.Outlined.History,
-                    onClick = onRecentsClick,
-                )
-                ModernBottomNavButton(
-                    text = "Contexts",
-                    icon = Icons.Outlined.Style,
-                    onClick = onContextsClick,
-                )
-                ModernBottomNavButton(
-                    text = "Пошук",
-                    icon = Icons.Outlined.Search,
-                    isSelected = isSearchActive,
-                    onClick = { onToggleSearch(true) },
-                )
-                ModernBottomNavButton(
-                    text = "Day",
-                    icon = Icons.Outlined.CalendarViewDay,
-                    onClick = onDayPlanClick,
-                )
-                ModernBottomNavButton(
-                    text = "Track",
-                    icon = Icons.Outlined.Timeline,
-                    onClick = { navController.navigate("activity_tracker_screen") },
-                )
+                ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
+                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
+                ModernBottomNavButton(text = "Пошук", icon = Icons.Outlined.Search, isSelected = isSearchActive, onClick = { onToggleSearch(true) })
+                ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
+                ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = { navController.navigate("activity_tracker_screen") })
             }
+
         }
     }
 }
-
 @Composable
 private fun ModernBottomNavButton(
     text: String,

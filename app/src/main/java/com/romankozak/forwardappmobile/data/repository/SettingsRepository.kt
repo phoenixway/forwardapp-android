@@ -348,4 +348,18 @@ class SettingsRepository
         suspend fun saveRolesFolderUri(uri: String) {
             context.dataStore.edit { settings -> settings[ROLES_FOLDER_URI_KEY] = uri }
         }
+
+    private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
+
+    // Усередині класу SettingsRepository, після інших Flow
+    val isBottomNavExpandedFlow: Flow<Boolean> =
+        context.dataStore.data
+            .map { preferences -> preferences[isBottomNavExpandedKey] ?: false }
+
+    suspend fun saveBottomNavExpanded(isExpanded: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[isBottomNavExpandedKey] = isExpanded
+        }
     }
+
+}

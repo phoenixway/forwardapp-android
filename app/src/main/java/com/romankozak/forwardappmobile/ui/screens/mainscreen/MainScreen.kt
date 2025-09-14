@@ -82,6 +82,8 @@ fun MainScreen(
     val dragAndDropState = rememberDragAndDropState<GoalList>()
     val highlightedListId by viewModel.highlightedListId.collectAsState()
 
+    val isBottomNavExpanded by viewModel.isBottomNavExpanded.collectAsState()
+
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
     val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
@@ -256,8 +258,12 @@ fun MainScreen(
                     onPlanningModeChange = viewModel::onPlanningModeChange,
                     onContextsClick = { showContextSheet = true },
                     onRecentsClick = { viewModel.onShowRecentLists() },
-                    onDayPlanClick = viewModel::onDayPlanClicked
+                    onDayPlanClick = viewModel::onDayPlanClicked,
+                    // Передаємо оновлений стан та подію
+                    isExpanded = isBottomNavExpanded,
+                    onExpandedChange = viewModel::onBottomNavExpandedChange
                 )
+
             }
         },
     ) { paddingValues ->
