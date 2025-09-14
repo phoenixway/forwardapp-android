@@ -240,32 +240,41 @@ class DayManagementRepository @Inject constructor(
         )
     }
 
+// ... (інший код)
+
     fun getWeeklyInsights(startOfWeek: Long): Flow<WeeklyInsights> {
         val endOfWeek = startOfWeek + (7 * 24 * 60 * 60 * 1000L)
         return dailyMetricDao.getMetricsForDateRange(startOfWeek, endOfWeek).map { metrics ->
             if (metrics.isEmpty()) {
-                // ВИПРАВЛЕНО: Додано всі обов'язкові параметри з нульовими значеннями
                 WeeklyInsights(
                     totalDays = 0,
                     averageCompletionRate = 0f,
                     totalActiveTime = 0,
                     averageTasksPerDay = 0f,
                     bestDay = null,
-                    worstDay = null
+                    worstDay = null,
+                    totalTasks = 0,
+                    completedTasks = 0
                 )
             } else {
-                // Спрощено: внутрішні перевірки на порожню колекцію видалено, бо вони більше не потрібні
+                val totalTasks = metrics.sumOf { it.tasksPlanned }
+                val completedTasks = metrics.sumOf { it.tasksCompleted }
+
                 WeeklyInsights(
                     totalDays = metrics.size,
                     averageCompletionRate = metrics.map { it.completionRate }.average().toFloat(),
                     totalActiveTime = metrics.sumOf { it.totalActiveTime },
                     averageTasksPerDay = metrics.map { it.tasksPlanned }.average().toFloat(),
                     bestDay = metrics.maxByOrNull { it.completionRate },
-                    worstDay = metrics.minByOrNull { it.completionRate }
+                    worstDay = metrics.minByOrNull { it.completionRate },
+                    totalTasks = totalTasks,
+                    completedTasks = completedTasks
                 )
             }
         }.flowOn(ioDispatcher)
     }
+
+// ... (інший код)
 
     // === Helper Functions ===
 
@@ -308,4 +317,9 @@ class DayManagementRepository @Inject constructor(
         )
         recalculateDayProgress(taskId)
     }
+
+    suspend fun getTasksForDayOnce(dayPlanId: String): List<DayTask> = withContext(ioDispatcher) {
+        dayTaskDao.getTasksForDaySync(dayPlanId)
+    }
+
 }

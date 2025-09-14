@@ -14,5 +14,8 @@ data class WeeklyInsights(
     val totalActiveTime: Long,
     val averageTasksPerDay: Float,
     val bestDay: DailyMetric?,
-    val worstDay: DailyMetric?
+    val worstDay: DailyMetric?,
+    val totalTasks: Int,
+    val completedTasks: Int
+
 )
