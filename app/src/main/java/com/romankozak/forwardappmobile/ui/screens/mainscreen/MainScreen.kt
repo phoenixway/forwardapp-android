@@ -66,6 +66,8 @@ import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.ui.navigation.navigateToDayManagement // <-- ДОДАНО ІМПОРТ
+
 
 @Composable
 fun MainScreen(
@@ -172,6 +174,13 @@ fun MainScreen(
                 is GoalListUiEvent.Navigate -> {
                     navController.navigate(event.route)
                 }
+
+                is GoalListUiEvent.NavigateToDayPlan -> {
+                    // Тепер цей виклик буде працювати
+                    navController.navigateToDayManagement(event.date)
+                }
+
+
             }
         }
     }

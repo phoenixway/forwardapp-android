@@ -13,16 +13,12 @@ import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Moving
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayCircleOutline
-import androidx.compose.material.icons.filled.Share 
-import androidx.compose.material.icons.filled.Start
-import androidx.compose.material.icons.filled.Transform
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -69,8 +65,9 @@ fun SwipeableListItem(
     onDelete: () -> Unit,
     onMoreActionsRequest: () -> Unit,
     onGoalTransportRequest: () -> Unit,
-    onCopyContentRequest: () -> Unit,
     onStartTrackingRequest: () -> Unit,
+    onAddToDayPlanRequest: () -> Unit,
+    // onCopyContentRequest: () -> Unit, // <-- ВИДАЛЕНО ПАРАМЕТР
     content: @Composable () -> Unit,
     swipeEnabled: Boolean = true,
 ) {
@@ -163,60 +160,29 @@ fun SwipeableListItem(
         val offset = swipeState.requireOffset()
         val actionsAlpha = (abs(offset) / (if (offset > 0) actionsRevealPx else abs(actionsRevealPxNegative))).coerceIn(0f, 1f)
         val leftActionsScale by animateFloatAsState(
-            targetValue =
-                if (offset >
-                    0
-                ) {
-                    (0.8f + 0.2f * actionsAlpha)
-                } else {
-                    0.8f
-                },
+            targetValue = if (offset > 0) (0.8f + 0.2f * actionsAlpha) else 0.8f,
             animationSpec = tween(200),
             label = "leftActionsScale",
         )
         val rightActionsScale by animateFloatAsState(
-            targetValue =
-                if (offset <
-                    0
-                ) {
-                    (0.8f + 0.2f * actionsAlpha)
-                } else {
-                    0.8f
-                },
+            targetValue = if (offset < 0) (0.8f + 0.2f * actionsAlpha) else 0.8f,
             animationSpec = tween(200),
             label = "rightActionsScale",
         )
 
         val dynamicShape =
-            remember(offset > 0, offset < 0) {
+            remember(offset) {
                 when {
                     offset > 0 ->
-                        RoundedCornerShape(
-                            topStart = 0.dp,
-                            bottomStart = 0.dp,
-                            topEnd = SwipeConstants.CORNER_RADIUS,
-                            bottomEnd = SwipeConstants.CORNER_RADIUS,
-                        )
+                        RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = SwipeConstants.CORNER_RADIUS, bottomEnd = SwipeConstants.CORNER_RADIUS)
                     offset < 0 ->
-                        RoundedCornerShape(
-                            topStart = SwipeConstants.CORNER_RADIUS,
-                            bottomStart = SwipeConstants.CORNER_RADIUS,
-                            topEnd = 0.dp,
-                            bottomEnd = 0.dp,
-                        )
+                        RoundedCornerShape(topStart = SwipeConstants.CORNER_RADIUS, bottomStart = SwipeConstants.CORNER_RADIUS, topEnd = 0.dp, bottomEnd = 0.dp)
                     else -> RoundedCornerShape(SwipeConstants.CORNER_RADIUS)
                 }
             }
 
         val shadowElevation by animateFloatAsState(
-            targetValue =
-                if (abs(offset) >
-                    10f
-                ) {
-                    SwipeConstants.SHADOW_ELEVATION.value
-                } else {
-                    0f
-                },
+            targetValue = if (abs(offset) > 10f) SwipeConstants.SHADOW_ELEVATION.value else 0f,
             animationSpec = tween(200),
             label = "shadowElevation",
         )
@@ -227,6 +193,7 @@ fun SwipeableListItem(
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
+            // Ліва панель дій
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset > 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(start = 8.dp),
@@ -238,44 +205,34 @@ fun SwipeableListItem(
                         contentDescription = "Більше дій",
                         color = MaterialTheme.colorScheme.secondary,
                         scale = leftActionsScale,
-                        onClick = {
-                            onMoreActionsRequest()
-                            resetSwipe()
-                        },
+                        onClick = { onMoreActionsRequest(); resetSwipe() },
+                    )
+                    SwipeActionButton(
+                        icon = Icons.Default.Today,
+                        contentDescription = "Додати в план дня",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        scale = leftActionsScale,
+                        onClick = { onAddToDayPlanRequest(); resetSwipe() },
                     )
                     SwipeActionButton(
                         icon = Icons.Default.Share,
                         contentDescription = "Share",
                         color = MaterialTheme.colorScheme.primary,
                         scale = leftActionsScale,
-                        onClick = {
-                            onGoalTransportRequest()
-                            resetSwipe()
-                        },
+                        onClick = { onGoalTransportRequest(); resetSwipe() },
                     )
-                    SwipeActionButton(
-                        icon = Icons.Default.ContentCopy,
-                        contentDescription = "Копіювати контент",
-                        color = MaterialTheme.colorScheme.tertiary,
-                        scale = leftActionsScale,
-                        onClick = {
-                            onCopyContentRequest()
-                            resetSwipe()
-                        },
-                    )
+                    // <-- ВИДАЛЕНО КНОПКУ КОПІЮВАННЯ
                     SwipeActionButton(
                         icon = Icons.Default.PlayCircleOutline,
                         contentDescription = "Почати трекінг",
                         color = MaterialTheme.colorScheme.inversePrimary,
                         scale = leftActionsScale,
-                        onClick = {
-                            onStartTrackingRequest()
-                            resetSwipe()
-                        },
+                        onClick = { onStartTrackingRequest(); resetSwipe() },
                     )
                 }
             }
 
+            // Права панель дій
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset < 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(end = 1.dp),
@@ -287,10 +244,7 @@ fun SwipeableListItem(
                         contentDescription = "Видалити",
                         color = MaterialTheme.colorScheme.error,
                         scale = rightActionsScale,
-                        onClick = {
-                            onDelete()
-                            resetSwipe()
-                        },
+                        onClick = { onDelete(); resetSwipe() },
                     )
                     SwipeActionButton(
                         icon = Icons.Default.DeleteForever,
@@ -302,6 +256,7 @@ fun SwipeableListItem(
                 }
             }
 
+            // Основний контент
             Surface(
                 modifier =
                     Modifier

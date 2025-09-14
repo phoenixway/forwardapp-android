@@ -126,4 +126,11 @@ class ActivityRepository
             projectId: String,
             goalIds: List<String>,
         ): List<ActivityRecord> = activityRecordDao.getAllCompletedActivitiesForProject(projectId, goalIds)
+
+    // Цей метод потрібен для DayManagementRepository
+    suspend fun getActivityRecordById(recordId: String): ActivityRecord? {
+        // Припускається, що у вас є activityRecordDao в цьому репозиторії
+        return activityRecordDao.findById(recordId) // Назва методу в DAO може відрізнятись
     }
+
+}
