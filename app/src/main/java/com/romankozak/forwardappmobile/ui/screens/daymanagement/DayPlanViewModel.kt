@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.NewTaskParameters
+import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -21,61 +21,60 @@ data class DayPlanUiState(
 
 @HiltViewModel
 class DayPlanViewModel @Inject constructor(
-    private val dayManagementRepository: DayManagementRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val dayManagementRepository: DayManagementRepository
 ) : ViewModel() {
 
-    private val dayPlanId: StateFlow<String?> = savedStateHandle.getStateFlow("dayPlanId", null)
+    // ВИДАЛЕНО: Внутрішній стан для ID більше не потрібен, оскільки ID буде передаватися напряму.
+    // private val _currentPlanId = MutableStateFlow<String?>(null)
 
     private val _uiState = MutableStateFlow(DayPlanUiState())
     val uiState: StateFlow<DayPlanUiState> = _uiState.asStateFlow()
 
-    // UX ОНОВЛЕННЯ: StateFlow для керування видимістю діалогового вікна.
     private val _isAddTaskDialogOpen = MutableStateFlow(false)
     val isAddTaskDialogOpen: StateFlow<Boolean> = _isAddTaskDialogOpen.asStateFlow()
 
-    // --- Методи для керування діалогом ---
-    fun openAddTaskDialog() {
-        _isAddTaskDialogOpen.value = true
-    }
+    private val _selectedTask = MutableStateFlow<DayTask?>(null)
+    val selectedTask: StateFlow<DayTask?> = _selectedTask.asStateFlow()
 
-    fun dismissAddTaskDialog() {
-        _isAddTaskDialogOpen.value = false
-    }
-    // ------------------------------------
+    fun openAddTaskDialog() { _isAddTaskDialogOpen.value = true }
+    fun dismissAddTaskDialog() { _isAddTaskDialogOpen.value = false }
+    fun selectTask(task: DayTask) { _selectedTask.value = task }
+    fun clearSelectedTask() { _selectedTask.value = null }
+    fun dismissError() { _uiState.update { it.copy(error = null) } }
 
-    init {
+    /**
+     * ВИПРАВЛЕНО: Функція тепер приймає dayPlanId як параметр.
+     */
+    fun addTask(dayPlanId: String, title: String, description: String, duration: Long?, priority: TaskPriority) {
         viewModelScope.launch {
-            dayPlanId.filterNotNull().flatMapLatest { id ->
-                _uiState.update { it.copy(isLoading = true) }
-                combine(
-                    dayManagementRepository.getPlanByIdStream(id),
-                    dayManagementRepository.getTasksForDay(id)
-                ) { plan, tasks ->
-                    DayPlanUiState(
-                        dayPlan = plan,
-                        tasks = tasks,
-                        isLoading = false
-                    )
-                }.catch { e ->
-                    emit(DayPlanUiState(isLoading = false, error = e.message))
-                }
-            }.collect { state ->
-                _uiState.value = state
+            try {
+                val taskParams = NewTaskParameters(
+                    dayPlanId = dayPlanId,
+                    title = title,
+                    description = description.takeIf { it.isNotBlank() },
+                    estimatedDurationMinutes = duration,
+                    priority = priority
+                )
+                dayManagementRepository.addTaskToDayPlan(taskParams)
+                dismissAddTaskDialog()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Помилка при додаванні: ${e.localizedMessage}") }
+                e.printStackTrace()
             }
         }
     }
 
-    fun addTask(title: String) {
+    /**
+     * ВИПРАВЛЕНО: Функція тепер приймає dayPlanId як параметр.
+     */
+    fun deleteTask(dayPlanId: String, taskId: String) {
         viewModelScope.launch {
-            val currentPlanId = dayPlanId.value ?: return@launch
-            val taskParams = NewTaskParameters(
-                dayPlanId = currentPlanId,
-                title = title
-            )
-            dayManagementRepository.addTaskToDayPlan(taskParams)
-            // Автоматично закриваємо діалог після додавання
-            dismissAddTaskDialog()
+            try {
+                dayManagementRepository.deleteTask(taskId) // Репозиторій сам знайде planId з завдання
+                clearSelectedTask()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Помилка при видаленні: ${e.localizedMessage}") }
+            }
         }
     }
 
@@ -84,24 +83,22 @@ class DayPlanViewModel @Inject constructor(
             dayManagementRepository.toggleTaskCompletion(taskId)
         }
     }
+
     fun loadDataForPlan(dayPlanId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            combine(
-                dayManagementRepository.getPlanByIdStream(dayPlanId),
-                dayManagementRepository.getTasksForDay(dayPlanId)
-            ) { plan, tasks ->
-                DayPlanUiState(
-                    dayPlan = plan,
-                    tasks = tasks,
-                    isLoading = false
-                )
-            }.catch { e ->
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
-            }.collect { state ->
-                _uiState.value = state
-            }
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            dayManagementRepository.getTasksForDay(dayPlanId)
+                .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) } }
+                .collect { tasks ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            tasks = tasks.sortedWith(
+                                compareBy({ t -> t.completed }, { t -> t.dueTime ?: Long.MAX_VALUE })
+                            )
+                        )
+                    }
+                }
         }
     }
 }

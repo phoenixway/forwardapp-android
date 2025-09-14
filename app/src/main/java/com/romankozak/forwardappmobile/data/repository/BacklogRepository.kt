@@ -471,10 +471,11 @@ constructor(
             }
         Log.d("DND_DEBUG", "[DEBUG_QUERY] СИРИЙ ПОРЯДОК З БАЗИ ДАНИХ:\n$orderLog")
     }
-
     suspend fun deleteGoalList(listId: String) {
-        goalDao.deleteGoalListById(listId)
+        // goalDao.deleteGoalListById(listId) // <- НЕПРАВИЛЬНО
+        goalListDao.deleteListById(listId) // <- ПРАВИЛЬНО
     }
+
 
     fun getInboxRecordsStream(projectId: String): Flow<List<InboxRecord>> = inboxRecordDao.getRecordsForProjectStream(projectId)
 

@@ -35,7 +35,8 @@ enum class TaskPriority {
     LOW,
     MEDIUM,
     HIGH,
-    CRITICAL
+    CRITICAL,
+    NONE
 }
 
 enum class TaskStatus {
@@ -125,6 +126,9 @@ data class DayTask(
     val estimatedDurationMinutes: Long? = null,
     val actualDurationMinutes: Long? = null,
     val reminderTime: Long? = null,
+
+    val dueTime: Long? = null, // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
+
 
     // Оцінювання (наслідування з Goal)
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,

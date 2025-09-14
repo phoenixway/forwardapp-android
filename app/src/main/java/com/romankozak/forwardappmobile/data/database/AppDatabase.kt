@@ -26,7 +26,7 @@ import com.romankozak.forwardappmobile.data.database.models.DailyPlanConverters
         DayTask::class,
         DailyMetric::class
     ],
-    version = 30,
+    version = 31,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),

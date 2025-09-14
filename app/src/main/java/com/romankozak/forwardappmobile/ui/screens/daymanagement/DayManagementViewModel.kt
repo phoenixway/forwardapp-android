@@ -1,3 +1,4 @@
+// DayManagementViewModel.kt
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
 import androidx.lifecycle.SavedStateHandle
@@ -13,7 +14,8 @@ import com.romankozak.forwardappmobile.ui.navigation.DAY_PLAN_DATE_ARG
 data class DayManagementState(
     val dayPlanId: String? = null,
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val selectedDate: Long = System.currentTimeMillis()
 )
 
 @HiltViewModel
@@ -26,21 +28,38 @@ class DayManagementViewModel @Inject constructor(
     val uiState: StateFlow<DayManagementState> = _uiState.asStateFlow()
 
     init {
-        // Отримуємо дату з аргументів навігації
         val dateMillis: Long = savedStateHandle.get<Long>(DAY_PLAN_DATE_ARG) ?: System.currentTimeMillis()
         loadOrCreatePlan(dateMillis)
     }
 
     private fun loadOrCreatePlan(date: Long) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                // Використовуємо метод з репозиторію, щоб знайти або створити план
                 val plan = dayManagementRepository.createOrUpdateDayPlan(date)
-                _uiState.update { it.copy(isLoading = false, dayPlanId = plan.id) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        dayPlanId = plan.id,
+                        selectedDate = date
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Невідома помилка"
+                    )
+                }
             }
         }
+    }
+
+    fun retryLoading() {
+        loadOrCreatePlan(_uiState.value.selectedDate)
+    }
+
+    fun navigateToDate(newDate: Long) {
+        loadOrCreatePlan(newDate)
     }
 }
