@@ -49,6 +49,9 @@ interface ActivityRecordDao {
     @Delete
     suspend fun delete(record: ActivityRecord)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(records: List<ActivityRecord>)
+
     @Query(
         """
         SELECT ar.* FROM activity_records AS ar
@@ -74,7 +77,7 @@ interface ActivityRecordDao {
     @Query("SELECT * FROM activity_records WHERE id = :recordId")
     suspend fun findById(recordId: String): ActivityRecord?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(records: List<ActivityRecord>)
+/*    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(records: List<ActivityRecord>)*/
 
 }

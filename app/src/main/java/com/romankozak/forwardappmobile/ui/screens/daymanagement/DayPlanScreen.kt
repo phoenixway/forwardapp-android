@@ -1,247 +1,200 @@
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.outlined.ChevronLeft
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.ui.navigation.DAY_ANALYTICS_ROUTE
-import com.romankozak.forwardappmobile.ui.navigation.DAY_DASHBOARD_ROUTE
-import com.romankozak.forwardappmobile.ui.navigation.DAY_PLAN_LIST_ROUTE
-import com.romankozak.forwardappmobile.utils.DayManagementUtils
-import java.util.concurrent.TimeUnit
+import java.text.SimpleDateFormat
+import java.util.*
 
-// Головний екран-контейнер для секції управління добою
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DayManagementScreen(
-    mainNavController: NavController,
+fun DayPlanScreen(
+    dayPlanId: String,
     viewModel: DayPlanViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val dayManagementNavController = rememberNavController()
+    val uiState by viewModel.uiState.collectAsState()
+    val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
 
+    LaunchedEffect(key1 = dayPlanId) {
+        viewModel.loadDataForPlan(dayPlanId)
+    }
+
+    // UI ОНОВЛЕННЯ: Додано Scaffold з TopAppBar та FAB.
     Scaffold(
         topBar = {
-            DayPlanTopAppBar(
-                currentDate = uiState.selectedDate,
-                onNavigateBack = { mainNavController.popBackStack() }, // Використовуємо головний NavController для виходу
-                onDateChange = { newDate ->
-                    // Перезавантажуємо всю секцію з новою датою
-                    mainNavController.navigate("day_management_screen/$newDate") {
-                        popUpTo("day_management_screen/${uiState.selectedDate}") { inclusive = true }
-                    }
+            TopAppBar(
+                title = {
+                    val date = uiState.dayPlan?.date?.let { Date(it) }
+                    val formattedDate = date?.let {
+                        SimpleDateFormat("EEEE, d MMMM", Locale("uk", "UA")).format(it)
+                    } ?: "План дня"
+                    Text(text = formattedDate.replaceFirstChar { it.uppercaseChar() })
                 }
             )
         },
-        bottomBar = {
-            DayManagementBottomBar(navController = dayManagementNavController)
+        // UX ОНОВЛЕННЯ: FAB для інтуїтивного додавання нових завдань.
+        floatingActionButton = {
+            FloatingActionButton(onClick = { viewModel.openAddTaskDialog() }) {
+                Icon(Icons.Default.Add, contentDescription = "Додати завдання")
+            }
         }
-    ) { padding ->
-        // Вкладений NavHost для внутрішньої навігації
-        NavHost(
-            navController = dayManagementNavController,
-            startDestination = DAY_PLAN_LIST_ROUTE,
-            modifier = Modifier.padding(padding)
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
-            composable(DAY_PLAN_LIST_ROUTE) {
-                DayPlanContent(viewModel = viewModel)
-            }
-            composable(DAY_DASHBOARD_ROUTE) {
-                DayDashboardScreen(navController = dayManagementNavController)
-            }
-            composable(DAY_ANALYTICS_ROUTE) {
-                DayAnalyticsScreen(navController = dayManagementNavController)
-            }
-        }
-    }
-}
-
-// Контент для вкладки "План" (раніше це був весь DayPlanScreen)
-@Composable
-private fun DayPlanContent(viewModel: DayPlanViewModel) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showAddTaskDialog by remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (uiState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (uiState.tasks.isEmpty()) {
-                    item {
-                        Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Завдань на сьогодні ще немає. Додайте перше!")
-                        }
-                    }
-                } else {
-                    items(uiState.tasks, key = { it.id }) { task ->
-                        TaskRow(
-                            task = task,
-                            onToggle = { viewModel.toggleTaskCompletion(task) }
-                        )
-                    }
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                uiState.error != null -> {
+                    Text(
+                        text = "Помилка: ${uiState.error}",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                else -> {
+                    TaskList(
+                        tasks = uiState.tasks,
+                        onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                    )
                 }
             }
         }
-
-        FloatingActionButton(
-            onClick = { showAddTaskDialog = true },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Додати завдання")
-        }
     }
 
-    if (showAddTaskDialog) {
+    // UX ОНОВЛЕННЯ: Діалогове вікно для створення нового завдання.
+    if (isAddTaskDialogOpen) {
         AddTaskDialog(
-            onDismiss = { showAddTaskDialog = false },
+            onDismissRequest = { viewModel.dismissAddTaskDialog() },
             onConfirm = { title ->
                 viewModel.addTask(title)
-                showAddTaskDialog = false
+                viewModel.dismissAddTaskDialog()
             }
         )
     }
 }
 
-
 @Composable
-private fun DayManagementBottomBar(navController: NavHostController) {
-    val items = listOf(
-        DayManagementScreenRoute.Plan,
-        DayManagementScreenRoute.Dashboard,
-        DayManagementScreenRoute.Analytics
-    )
-    NavigationBar {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-
-        items.forEach { screen ->
-            NavigationBarItem(
-                icon = { Icon(screen.icon, contentDescription = screen.title) },
-                label = { Text(screen.title) },
-                selected = currentRoute == screen.route,
-                onClick = {
-                    navController.navigate(screen.route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
+fun TaskList(tasks: List<DayTask>, onToggleTask: (String) -> Unit) {
+    if (tasks.isEmpty()) {
+        // UI ОНОВЛЕННЯ: Покращений вигляд "пустого стану" з іконкою та текстом.
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Icon(
+                    imageVector = Icons.Outlined.Checklist,
+                    contentDescription = "Немає завдань",
+                    modifier = Modifier.size(80.dp),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                Text(
+                    "Завдань на сьогодні ще немає.",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Text(
+                    "Натисніть '+' щоб додати перше.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(tasks, key = { it.id }) { task ->
+                TaskItem(task = task, onToggle = { onToggleTask(task.id) })
+            }
         }
     }
 }
 
-// Допоміжні класи для навігації
-sealed class DayManagementScreenRoute(val route: String, val title: String, val icon: ImageVector) {
-    object Plan : DayManagementScreenRoute(DAY_PLAN_LIST_ROUTE, "План", Icons.Default.ListAlt)
-    object Dashboard : DayManagementScreenRoute(DAY_DASHBOARD_ROUTE, "Дашборд", Icons.Default.Dashboard)
-    object Analytics : DayManagementScreenRoute(DAY_ANALYTICS_ROUTE, "Аналітика", Icons.Default.Analytics)
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DayPlanTopAppBar(
-    currentDate: Long,
-    onNavigateBack: () -> Unit,
-    onDateChange: (newDate: Long) -> Unit
-) {
-    TopAppBar(
-        title = { Text(DayManagementUtils.getDateDescription(currentDate)) },
-        navigationIcon = {
-            IconButton(onClick = { onDateChange(currentDate - TimeUnit.DAYS.toMillis(1)) }) {
-                Icon(Icons.Outlined.ChevronLeft, contentDescription = "Попередній день")
-            }
-        },
-        actions = {
-            IconButton(onClick = { onDateChange(currentDate + TimeUnit.DAYS.toMillis(1)) }) {
-                Icon(Icons.Outlined.ChevronRight, contentDescription = "Наступний день")
-            }
-        }
-    )
-}
-
-@Composable
-private fun TaskRow(task: DayTask, onToggle: () -> Unit) {
+fun TaskItem(task: DayTask, onToggle: () -> Unit) {
+    // UI ОНОВЛЕННЯ: Картка завдання з покращеним візуальним стилем.
     Card(
-        onClick = onToggle,
         modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (task.completed) 1.dp else 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (task.completed) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+            containerColor = if (task.completed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .clickable(onClick = onToggle)
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = if (task.completed) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                contentDescription = "Статус",
-                tint = if (task.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            Checkbox(
+                checked = task.completed,
+                onCheckedChange = { onToggle() }
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = task.title,
-                style = MaterialTheme.typography.bodyLarge,
-                textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None,
-                color = if (task.completed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                style = if (task.completed) {
+                    MaterialTheme.typography.bodyLarge.copy(
+                        textDecoration = TextDecoration.LineThrough,
+                        color = Color.Gray
+                    )
+                } else {
+                    MaterialTheme.typography.bodyLarge
+                },
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddTaskDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+fun AddTaskDialog(
+    onDismissRequest: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    val isTitleValid = title.isNotBlank()
+
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = onDismissRequest,
         title = { Text("Нове завдання") },
         text = {
             OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Що потрібно зробити?") },
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Назва завдання") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
-            Button(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) {
-                Text("Додати")
+            Button(
+                onClick = { onConfirm(title) },
+                enabled = isTitleValid
+            ) {
+                Text("Створити")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismissRequest) {
                 Text("Скасувати")
             }
         }
