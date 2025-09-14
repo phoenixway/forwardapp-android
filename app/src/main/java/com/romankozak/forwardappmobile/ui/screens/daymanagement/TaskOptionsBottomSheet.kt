@@ -1,6 +1,7 @@
 // TaskOptionsBottomSheet.kt
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,177 +17,113 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+// TaskOptionsBottomSheet.kt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskOptionsBottomSheet(
-    task: DayTask,
+    task: com.romankozak.forwardappmobile.data.database.models.DayTask,
     onDismiss: () -> Unit,
-    onEdit: (DayTask) -> Unit,
-    onDelete: (DayTask) -> Unit,
-    onSetReminder: (DayTask) -> Unit,
-    modifier: Modifier = Modifier
+    onEdit: (com.romankozak.forwardappmobile.data.database.models.DayTask) -> Unit,
+    onDelete: (com.romankozak.forwardappmobile.data.database.models.DayTask) -> Unit,
+    onSetReminder: (com.romankozak.forwardappmobile.data.database.models.DayTask) -> Unit
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        dragHandle = {
-            Surface(
-                modifier = Modifier
-                    .width(32.dp)
-                    .height(4.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(2.dp)
-            ) {}
-        }
+        onDismissRequest = onDismiss
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
+                .padding(16.dp)
         ) {
-            // Заголовок з інформацією про завдання
-            TaskInfoHeader(
-                task = task,
-                modifier = Modifier.padding(bottom = 24.dp)
+            Text(
+                text = task.title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Список опцій
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Опція редагування
-                OptionItem(
-                    icon = Icons.Default.Edit,
-                    text = "Редагувати завдання",
-                    description = "Змінити назву, опис та інші параметри",
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onEdit(task)
-                        onDismiss()
-                    }
-                )
+            ListItem(
+                headlineContent = { Text("Редагувати") },
+                leadingContent = {
+                    Icon(
+                        androidx.compose.material.icons.Icons.Default.Edit,
+                        contentDescription = null
+                    )
+                },
+                modifier = Modifier.clickable {
+                    onEdit(task)
+                    onDismiss()
+                }
+            )
 
-                // Опція нагадування
-                OptionItem(
-                    icon = Icons.Default.Notifications,
-                    text = "Встановити нагадування",
-                    description = "Додати сповіщення для цього завдання",
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onSetReminder(task)
-                        onDismiss()
-                    },
-                    enabled = !task.completed
-                )
+            ListItem(
+                headlineContent = { Text("Встановити нагадування") },
+                leadingContent = {
+                    Icon(
+                        androidx.compose.material.icons.Icons.Default.Alarm,
+                        contentDescription = null
+                    )
+                },
+                modifier = Modifier.clickable {
+                    onSetReminder(task)
+                    onDismiss()
+                }
+            )
 
-                // Опція дублювання завдання
-                OptionItem(
-                    icon = Icons.Default.ContentCopy,
-                    text = "Дублювати завдання",
-                    description = "Створити копію цього завдання",
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        // TODO: Implement duplicate functionality
-                        onDismiss()
-                    }
-                )
+            ListItem(
+                headlineContent = { Text("Видалити") },
+                leadingContent = {
+                    Icon(
+                        androidx.compose.material.icons.Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                modifier = Modifier.clickable {
+                    onDelete(task)
+                    onDismiss()
+                }
+            )
 
-                // Розділювач
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                // Небезпечна опція - видалення
-                OptionItem(
-                    icon = Icons.Default.Delete,
-                    text = "Видалити завдання",
-                    description = "Остаточно видалити це завдання",
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showDeleteConfirmation = true
-                    },
-                    contentColor = MaterialTheme.colorScheme.error,
-                    isDangerous = true
-                )
-            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
 
-    // Діалог підтвердження видалення
-    if (showDeleteConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = {
-                Text(
-                    text = "Видалити завдання?",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        text = "Ви впевнені, що хочете видалити це завдання?",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "\"${task.title}\"",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Цю дію неможливо скасувати.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onDelete(task)
-                        showDeleteConfirmation = false
-                        onDismiss()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
-                ) {
-                    Text("Видалити")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showDeleteConfirmation = false }
-                ) {
-                    Text("Скасувати")
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            textContentColor = MaterialTheme.colorScheme.onSurface
-        )
+// Extension function for TaskPriority
+fun TaskPriority.getDisplayName(): String = when (this) {
+    TaskPriority.CRITICAL -> "Критичний"
+    TaskPriority.HIGH -> "Високий"
+    TaskPriority.MEDIUM -> "Середній"
+    TaskPriority.LOW -> "Низький"
+    TaskPriority.NONE -> "Без пріоритету"
+}
+
+// Extension function needed for Goal conversion
+@Composable
+fun EnhancedScoreStatusBadge(
+    scoringStatus: com.romankozak.forwardappmobile.data.database.models.ScoringStatus,
+    displayScore: Double?
+) {
+    // Implementation depends on your ScoringStatus enum
+    // This is a placeholder - adjust based on your actual implementation
+    if (scoringStatus != com.romankozak.forwardappmobile.data.database.models.ScoringStatus.NOT_ASSESSED) {
+        Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Text(
+                text = displayScore?.toString() ?: scoringStatus.name,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
     }
 }
 

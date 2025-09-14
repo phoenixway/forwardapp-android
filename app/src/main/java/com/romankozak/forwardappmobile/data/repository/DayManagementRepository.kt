@@ -1,3 +1,4 @@
+// DayManagementRepository.kt - Updated with reordering support
 package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.Transaction
@@ -72,6 +73,12 @@ class DayManagementRepository @Inject constructor(
     // === Task Operations ===
 
     suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask = withContext(ioDispatcher) {
+        // Якщо порядок не вказано, встановлюємо його як найбільший + 1
+        val order = params.order ?: run {
+            val maxOrder = dayTaskDao.getMaxOrderForDayPlan(params.dayPlanId) ?: 0L
+            maxOrder + 1
+        }
+
         val task = DayTask(
             dayPlanId = params.dayPlanId,
             title = params.title,
@@ -81,7 +88,7 @@ class DayManagementRepository @Inject constructor(
             priority = params.priority,
             scheduledTime = params.scheduledTime,
             estimatedDurationMinutes = params.estimatedDurationMinutes,
-            order = System.currentTimeMillis()
+            order = order
         )
         dayTaskDao.insert(task)
         task
@@ -120,10 +127,45 @@ class DayManagementRepository @Inject constructor(
     }
 
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>> =
-        dayTaskDao.getTasksForDay(dayPlanId).flowOn(ioDispatcher)
+        dayTaskDao.getTasksForDay(dayPlanId)
+            .map { tasks ->
+                // Сортуємо за порядком, встановленим користувачем
+                tasks.sortedWith(
+                    compareBy<DayTask> { it.completed }
+                        .thenBy { it.order }
+                        .thenBy { it.title.lowercase() }
+                )
+            }
+            .flowOn(ioDispatcher)
 
     fun getTasksForGoal(goalId: String): Flow<List<DayTask>> =
         dayTaskDao.getTasksForGoal(goalId).flowOn(ioDispatcher)
+
+    suspend fun getTasksForDayOnce(dayPlanId: String): List<DayTask> = withContext(ioDispatcher) {
+        dayTaskDao.getTasksForDaySync(dayPlanId).sortedWith(
+            compareBy<DayTask> { it.completed }
+                .thenBy { it.order }
+                .thenBy { it.title.lowercase() }
+        )
+    }
+
+    /**
+     * Оновлює порядок завдань після drag-and-drop
+     */
+    @Transaction
+    suspend fun updateTasksOrder(dayPlanId: String, reorderedTasks: List<DayTask>) = withContext(ioDispatcher) {
+        reorderedTasks.forEach { task ->
+            dayTaskDao.updateTaskOrder(task.id, task.order, System.currentTimeMillis())
+        }
+        calculateAndSaveDailyMetrics(dayPlanId)
+    }
+
+    /**
+     * Оновлює порядок окремого завдання
+     */
+    suspend fun updateTaskOrder(taskId: String, newOrder: Long) = withContext(ioDispatcher) {
+        dayTaskDao.updateTaskOrder(taskId, newOrder, System.currentTimeMillis())
+    }
 
     suspend fun completeTask(taskId: String) = withContext(ioDispatcher) {
         val now = System.currentTimeMillis()
@@ -154,6 +196,21 @@ class DayManagementRepository @Inject constructor(
             updatedAt = System.currentTimeMillis()
         )
         dayTaskDao.update(updatedTask)
+    }
+
+    suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
+        val now = System.currentTimeMillis()
+        val newStatus = !task.completed
+
+        dayTaskDao.updateTaskCompletion(
+            taskId = taskId,
+            completed = newStatus,
+            status = if (newStatus) TaskStatus.COMPLETED else TaskStatus.NOT_STARTED,
+            completedAt = if (newStatus) now else null,
+            updatedAt = now
+        )
+        recalculateDayProgress(taskId)
     }
 
     suspend fun startTaskWithTimeTracking(taskId: String): ActivityRecord? = withContext(ioDispatcher) {
@@ -240,8 +297,6 @@ class DayManagementRepository @Inject constructor(
         )
     }
 
-// ... (інший код)
-
     fun getWeeklyInsights(startOfWeek: Long): Flow<WeeklyInsights> {
         val endOfWeek = startOfWeek + (7 * 24 * 60 * 60 * 1000L)
         return dailyMetricDao.getMetricsForDateRange(startOfWeek, endOfWeek).map { metrics ->
@@ -274,8 +329,6 @@ class DayManagementRepository @Inject constructor(
         }.flowOn(ioDispatcher)
     }
 
-// ... (інший код)
-
     // === Helper Functions ===
 
     private suspend fun recalculateDayProgress(taskId: String) {
@@ -302,24 +355,4 @@ class DayManagementRepository @Inject constructor(
             else -> TaskPriority.LOW
         }
     }
-
-    suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
-        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
-        val now = System.currentTimeMillis()
-        val newStatus = !task.completed
-
-        dayTaskDao.updateTaskCompletion(
-            taskId = taskId,
-            completed = newStatus,
-            status = if (newStatus) TaskStatus.COMPLETED else TaskStatus.NOT_STARTED,
-            completedAt = if (newStatus) now else null,
-            updatedAt = now
-        )
-        recalculateDayProgress(taskId)
-    }
-
-    suspend fun getTasksForDayOnce(dayPlanId: String): List<DayTask> = withContext(ioDispatcher) {
-        dayTaskDao.getTasksForDaySync(dayPlanId)
-    }
-
 }

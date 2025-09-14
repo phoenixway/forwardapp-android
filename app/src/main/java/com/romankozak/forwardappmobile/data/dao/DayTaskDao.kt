@@ -33,11 +33,8 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE id = :taskId LIMIT 1")
     suspend fun getTaskById(taskId: String): DayTask?
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY `order` ASC, priority DESC, scheduledTime ASC")
-    fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>>
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY `order` ASC, priority DESC, scheduledTime ASC")
-    suspend fun getTasksForDaySync(dayPlanId: String): List<DayTask>
+
 
     @Query("SELECT * FROM day_tasks WHERE goalId = :goalId ORDER BY createdAt DESC")
     fun getTasksForGoal(goalId: String): Flow<List<DayTask>>
@@ -60,15 +57,6 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE scheduledTime IS NOT NULL AND scheduledTime BETWEEN :startTime AND :endTime ORDER BY scheduledTime ASC")
     fun getScheduledTasksInRange(startTime: Long, endTime: Long): Flow<List<DayTask>>
 
-    @Query("UPDATE day_tasks SET completed = :completed, status = :status, completedAt = :completedAt, updatedAt = :updatedAt WHERE id = :taskId")
-    suspend fun updateTaskCompletion(taskId: String, completed: Boolean, status: TaskStatus, completedAt: Long?, updatedAt: Long)
-
-    @Query("UPDATE day_tasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt WHERE id = :taskId")
-    suspend fun linkTaskWithActivity(taskId: String, activityRecordId: String, updatedAt: Long)
-
-    @Query("UPDATE day_tasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt WHERE id = :taskId")
-    suspend fun updateTaskDuration(taskId: String, durationMinutes: Long, updatedAt: Long)
-
     @Query("DELETE FROM day_tasks WHERE dayPlanId = :dayPlanId")
     suspend fun clearTasksForDay(dayPlanId: String)
 
@@ -87,4 +75,39 @@ interface DayTaskDao {
         ORDER BY createdAt DESC
     """)
     suspend fun searchTasks(query: String): List<DayTask>
+
+    @Query("SELECT MAX(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId")
+    suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long?
+
+    @Query("UPDATE day_tasks SET `order` = :newOrder, updatedAt = :updatedAt WHERE id = :taskId")
+    suspend fun updateTaskOrder(taskId: String, newOrder: Long, updatedAt: Long)
+
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY completed ASC, `order` ASC, title ASC")
+    suspend fun getTasksForDaySync(dayPlanId: String): List<DayTask>
+
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY completed ASC, `order` ASC, title ASC")
+    fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>>
+
+    @Query("UPDATE day_tasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt WHERE id = :taskId")
+    suspend fun linkTaskWithActivity(taskId: String, activityRecordId: String, updatedAt: Long)
+
+    @Query("UPDATE day_tasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt WHERE id = :taskId")
+    suspend fun updateTaskDuration(taskId: String, durationMinutes: Long, updatedAt: Long)
+
+    @Query("""
+        UPDATE day_tasks SET 
+        completed = :completed, 
+        status = :status, 
+        completedAt = :completedAt, 
+        updatedAt = :updatedAt 
+        WHERE id = :taskId
+    """)
+    suspend fun updateTaskCompletion(
+        taskId: String,
+        completed: Boolean,
+        status: TaskStatus,
+        completedAt: Long?,
+        updatedAt: Long
+    )
 }
+

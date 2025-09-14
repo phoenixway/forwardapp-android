@@ -1,36 +1,42 @@
-// DayPlanScreen.kt
+// DayPlanScreen.kt - Updated with Drag-and-Drop functionality
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.GoalItem
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.data.database.models.ListItemType
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyListState
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -83,51 +89,74 @@ private fun ErrorState(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskList(
-    tasks: List<DayTask>,
+    tasks: List<DayTask>, // Це початковий список з ViewModel
     dayPlan: DayPlan?,
     onToggleTask: (String) -> Unit,
     onTaskLongPress: (DayTask) -> Unit,
+    onTasksReordered: (List<DayTask>) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        item {
-            DayPlanHeader(
-                dayPlan = dayPlan,
-                completedTasks = tasks.count { it.completed },
-                totalTasks = tasks.size
-            )
+    val hapticFeedback = LocalHapticFeedback.current
+
+    // Єдиний локальний стан, який змінюється лише тут
+    var internalTasks by remember { mutableStateOf(tasks) }
+
+    val lazyListState = rememberLazyListState()
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        // Миттєво оновлюємо локальний стан
+        internalTasks = internalTasks.toMutableList().apply {
+            add(to.index, removeAt(from.index))
         }
 
-        if (tasks.isEmpty()) {
-            item {
-                EmptyTasksState(
-                    modifier = Modifier
-                        .fillParentMaxHeight(0.6f)
-                        .fillParentMaxWidth()
-                        .padding(16.dp)
-                )
-            }
-        } else {
-            items(
-                items = tasks,
-                key = { task -> task.id }
-            ) { task ->
-                TaskItem(
-                    task = task,
-                    onToggle = { onToggleTask(task.id) },
-                    onLongPress = { onTaskLongPress(task) },
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                 //       .animateItemPlacement()
-                )
+        // Надсилаємо оновлений список у ViewModel
+        onTasksReordered(internalTasks)
+
+        hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+    }
+
+    LazyColumn(
+        state = lazyListState,
+
+        ) {
+        items(
+            items = internalTasks,
+            key = { task -> task.id }
+        ) { task ->
+            ReorderableItem(
+                reorderableLazyListState,
+                key = task.id
+            ) { isDragging ->
+
+                val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp)
+
+                Surface(shadowElevation = elevation) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = task.title,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                        )
+                        IconButton(
+                            modifier = Modifier.draggableHandle(
+                                onDragStarted = { hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate) },
+                                onDragStopped = { hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd) },
+                            ),
+                            onClick = {},
+                        ) {
+                            Icon(Icons.Rounded.DragHandle, contentDescription = "Reorder")
+                        }
+                    }
+                }
             }
         }
     }
 }
+
 
 @Composable
 private fun EmptyTasksState(modifier: Modifier = Modifier) {
@@ -161,18 +190,13 @@ private fun EmptyTasksState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun DayPlanHeader(
+fun CompactDayPlanHeader(
     dayPlan: DayPlan?,
     completedTasks: Int,
     totalTasks: Int,
     modifier: Modifier = Modifier
 ) {
     val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 1000),
-        label = "progress"
-    )
 
     val formattedDate = remember(dayPlan?.date) {
         dayPlan?.date?.let { dateMillis ->
@@ -183,283 +207,153 @@ fun DayPlanHeader(
         } ?: "План дня"
     }
 
-    Card(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
+        Text(
+            text = formattedDate.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
+            },
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = formattedDate.replaceFirstChar {
-                    if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
-                },
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface
+                text = "$completedTasks з $totalTasks виконано",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LinearProgressIndicator(
-                progress = { animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = when {
-                    progress >= 1.0f -> MaterialTheme.colorScheme.tertiary
-                    progress >= 0.7f -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.secondary
-                },
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                gapSize = 0.dp,
-                drawStopIndicator = {}
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            if (totalTasks > 0) {
                 Text(
-                    text = "$completedTasks з $totalTasks виконано",
+                    text = "${(progress * 100).toInt()}%",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-
-                if (totalTasks > 0) {
-                    Text(
-                        text = "${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
             }
+        }
 
-            AnimatedVisibility(
-                visible = completedTasks == totalTasks && totalTasks > 0,
-                modifier = Modifier.padding(top = 12.dp)
+        if (completedTasks == totalTasks && totalTasks > 0) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.tertiary
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = "Вітаємо! Всі завдання виконані!",
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Вітаємо! Всі завдання виконані!",
+                    color = MaterialTheme.colorScheme.tertiary,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
 }
+
+// Convert DayTask to Goal-like structure for reusing GoalItem component
+private fun DayTask.toGoal(): Goal {
+    return Goal(
+        id = this.id,
+        text = this.title,
+        description = this.description,
+        completed = this.completed,
+        scoringStatus = ScoringStatus.NOT_ASSESSED,
+        displayScore = 0,
+        reminderTime = this.dueTime,
+        relatedLinks = null,
+        createdAt = this.createdAt,
+        updatedAt = this.createdAt
+    )
+}
+
+fun DayTask.toListItem(): ListItem {
+    return ListItem(
+        id = this.id,
+        listId = this.projectId ?: this.dayPlanId,
+        itemType = this.taskType ?: ListItemType.GOAL,
+        entityId = this.entityId ?: this.goalId ?: this.id,
+        order = this.order
+    )
+}
+/*
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TaskItem(
+fun TaskGoalItem(
     task: DayTask,
     onToggle: () -> Unit,
     onLongPress: () -> Unit,
+    isDragging: Boolean = false,
+    reorderableState: ReorderableLazyListState? = null,
     modifier: Modifier = Modifier
 ) {
-    val alpha by animateFloatAsState(
-        targetValue = if (task.completed) 0.7f else 1f,
-        animationSpec = tween(durationMillis = 300),
-        label = "alpha"
+    val goalContent = ListItemContent.GoalItem(
+        goal = task.toGoal(),
+        item = task.toListItem()
     )
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .alpha(alpha)
-            .combinedClickable(
-                onClick = onToggle,
-                onLongClick = onLongPress
-            ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (task.completed) 1.dp else 4.dp
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (task.completed) {
-                MaterialTheme.colorScheme.surfaceVariant
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
-        shape = RoundedCornerShape(12.dp)
+        modifier = modifier.fillMaxWidth()
     ) {
+        // Your existing card content
+
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
-                checked = task.completed,
-                onCheckedChange = { onToggle() },
-                colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colorScheme.primary,
-                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    textDecoration = if (task.completed) TextDecoration.LineThrough else null,
-                    color = if (task.completed) {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                task.description?.takeIf { it.isNotBlank() }?.let { description ->
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                            alpha = if (task.completed) 0.5f else 0.8f
-                        ),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                TaskMetaInfo(
-                    task = task,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            PriorityIndicator(priority = task.priority)
-        }
-    }
-}
-
-@Composable
-fun TaskMetaInfo(
-    task: DayTask,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { duration ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
+            // Drag handle
+            if (reorderableState != null) {
                 Icon(
-                    Icons.Outlined.Schedule,
-                    contentDescription = "Тривалість",
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${duration} хв",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Icons.Outlined.DragHandle,
+                    contentDescription = "Перетягнути для зміни порядку",
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(20.dp),
+                    tint = MaterialTheme.colorScheme.outline
                 )
             }
-        }
 
-        task.dueTime?.let { dueTimestamp ->
-            val isOverdue = dueTimestamp < System.currentTimeMillis() && !task.completed
-            val color = if (isOverdue) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
 
-            val formattedTime = remember(dueTimestamp) {
-                val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
-                Instant.ofEpochMilli(dueTimestamp)
-                    .atZone(ZoneId.systemDefault())
-                    .format(formatter)
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    if (isOverdue) Icons.Outlined.Warning else Icons.Outlined.Alarm,
-                    contentDescription = if (isOverdue) "Прострочено" else "Термін",
-                    modifier = Modifier.size(14.dp),
-                    tint = color
-                )
-                Text(
-                    text = if (isOverdue) "до $formattedTime" else "до $formattedTime",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = color,
-                    fontWeight = if (isOverdue) FontWeight.Medium else FontWeight.Normal
+            // Goal item content
+            Box(modifier = Modifier.weight(1f)) {
+                GoalItem(
+                    goalContent = goalContent,
+                    onCheckedChange = { onToggle() },
+                    onClick = { */
+/* Handle click if needed *//*
+ },
+                    onLongClick = onLongPress,
+                    isSelected = false,
+                    modifier = Modifier.fillMaxWidth(),
+                    currentTimeMillis = System.currentTimeMillis()
                 )
             }
         }
     }
 }
+*/
 
-@Composable
-fun PriorityIndicator(
-    priority: TaskPriority,
-    modifier: Modifier = Modifier
-) {
-    val (color, icon) = when (priority) {
-        TaskPriority.CRITICAL -> Pair(
-            MaterialTheme.colorScheme.error,
-            Icons.Outlined.PriorityHigh
-        )
-        TaskPriority.HIGH -> Pair(
-            MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
-            Icons.Outlined.Flag
-        )
-        TaskPriority.MEDIUM -> Pair(
-            MaterialTheme.colorScheme.primary,
-            Icons.Outlined.Flag
-        )
-        TaskPriority.LOW -> Pair(
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            Icons.Outlined.Flag
-        )
-        TaskPriority.NONE -> return
-    }
-
-    Icon(
-        icon,
-        contentDescription = "Пріоритет: ${priority.getDisplayName()}",
-        tint = color,
-        modifier = modifier.size(20.dp)
-    )
-}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayPlanScreen(
@@ -469,34 +363,6 @@ fun DayPlanScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-   /* when {
-        uiState.isLoading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        uiState.tasks.isEmpty() -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Немає задач")
-            }
-        }
-        else -> {
-            LazyColumn {
-                items(uiState.tasks) { task ->
-                    Text(task.title)
-                }
-            }
-        }
-    }*/
-
-
     val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
     val selectedTask by viewModel.selectedTask.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -528,52 +394,6 @@ fun DayPlanScreen(
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
-            )
-        },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "План дня",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Назад"
-                        )
-                    }
-                },
-                actions = {
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = {
-                            PlainTooltip {
-                                Text("Оновити дані")
-                            }
-                        },
-                        state = rememberTooltipState()
-                    ) {
-                        IconButton(
-                            onClick = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.loadDataForPlan(dayPlanId)
-                            }
-                        ) {
-                            Icon(
-                                Icons.Outlined.Refresh,
-                                contentDescription = "Оновити",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
             )
         },
         floatingActionButton = {
@@ -612,8 +432,12 @@ fun DayPlanScreen(
                 }
 
                 else -> {
+                    val uiState by viewModel.uiState.collectAsState()
+
+                    // 2. Отримуємо список завдань з об'єкта uiState
+                    val tasks = uiState.tasks
                     TaskList(
-                        tasks = uiState.tasks,
+                        tasks = tasks,
                         dayPlan = uiState.dayPlan,
                         onToggleTask = { taskId ->
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -622,7 +446,13 @@ fun DayPlanScreen(
                         onTaskLongPress = { task ->
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.selectTask(task)
-                        }
+                        },
+                        onTasksReordered = { reorderedList ->
+                            // Переконайтесь, що у вас є dayPlanId для цього виклику
+                            uiState.dayPlan?.let { dayPlan ->
+                                viewModel.updateTasksOrder(dayPlan.id, reorderedList)
+                            }
+                        },
                     )
                 }
             }
@@ -673,6 +503,89 @@ private fun LoadingState(modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+// DayPlanScreen.kt - TaskGoalItem
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TaskGoalItem(
+    task: DayTask,
+    onToggle: () -> Unit,
+    onLongPress: () -> Unit,
+    isDragging: Boolean = false,
+    reorderableState: ReorderableLazyListState? = null,
+    modifier: Modifier = Modifier
+) {
+    val goalContent = ListItemContent.GoalItem(
+        goal = task.toGoal(),
+        item = task.toListItem()
+    )
+
+    Card(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Контейнер для чекбокса і GoalItem
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Мануально доданий чекбокс
+                Checkbox(
+                    checked = task.completed,
+                    onCheckedChange = { onToggle() },
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+
+                // Goal item content
+                Box(modifier = Modifier.weight(1f)) {
+                    GoalItem(
+                        goalContent = goalContent,
+                        onCheckedChange = {}, // Залишаємо порожнім, бо чекбокс вже є
+                        onClick = { /* Handle click if needed */ },
+                        onLongClick = onLongPress,
+                        isSelected = false,
+                        modifier = Modifier.fillMaxWidth(),
+                        currentTimeMillis = System.currentTimeMillis()
+                    )
+                }
+            }
+
+            // Ручка перетягування та меню опцій
+            if (reorderableState != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Outlined.DragHandle,
+                        contentDescription = "Перетягнути для зміни порядку",
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(24.dp)
+                        ,                        tint = MaterialTheme.colorScheme.outline
+                    )
+
+                    IconButton(
+                        onClick = onLongPress,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "Більше опцій",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
     }
 }
