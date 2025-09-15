@@ -31,6 +31,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -105,6 +106,17 @@ private fun PlanningModeSelector(
             expanded = isMenuExpanded,
             onDismissRequest = { isMenuExpanded = false },
         ) {
+            Column {
+                Text(
+                    text = "Режим планування",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+                HorizontalDivider()
+            }
             planningModes.forEach { (text, data) ->
                 val (icon, mode) = data
                 DropdownMenuItem(
@@ -179,11 +191,13 @@ internal fun ExpandingBottomNav(
                         onPlanningModeChange = onPlanningModeChange,
                     )
 
+                    // --- ОСЬ ЗМІНА ---
                     SmallBottomNavButton(
-                        text = "Search Everywhere",
+                        text = "Search",
                         icon = Icons.Outlined.Search,
                         onClick = onGlobalSearchClick,
                     )
+
                     SmallBottomNavButton(
                         text = "Insights",
                         icon = Icons.Outlined.Lightbulb,
