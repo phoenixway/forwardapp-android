@@ -41,6 +41,10 @@ class DayPlanViewModel @Inject constructor(
     // Кешуємо останній завантажений план для швидкого доступу
     private var currentPlanId: String? = null
 
+    private val _tasksUpdated = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val tasksUpdated: SharedFlow<Unit> = _tasksUpdated.asSharedFlow()
+
+
     fun openAddTaskDialog() {
         _isAddTaskDialogOpen.value = true
     }
@@ -101,7 +105,6 @@ class DayPlanViewModel @Inject constructor(
                 val trimmedTitle = title.trim()
                 val trimmedDescription = description.trim().takeIf { it.isNotEmpty() }
 
-                // Валідація
                 if (trimmedTitle.isEmpty() || trimmedTitle.length > 100) {
                     _uiState.update {
                         it.copy(error = "Назва завдання повинна містити від 1 до 100 символів")
@@ -109,35 +112,43 @@ class DayPlanViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Отримуємо максимальний порядковий номер для нового завдання
                 val currentTasks = _uiState.value.tasks
                 val maxOrder = currentTasks.maxOfOrNull { it.order } ?: 0L
 
-                val taskParams = NewTaskParameters(
+                // 1. Створюємо новий об'єкт завдання
+                val newTask = DayTask(
+                    id = java.util.UUID.randomUUID().toString(), // Генеруємо унікальний ID
                     dayPlanId = dayPlanId,
                     title = trimmedTitle,
                     description = trimmedDescription,
-                    estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
                     priority = priority,
-                    order = maxOrder + 1
+                    order = maxOrder + 1,
+                    completed = false,
+                    createdAt = System.currentTimeMillis()
                 )
 
-                // Додаємо завдання
-                dayManagementRepository.addTaskToDayPlan(taskParams)
-
-                // Завантажуємо оновлений список завдань
-                val updatedTasks = dayManagementRepository.getTasksForDayOnce(dayPlanId)
-
-                // Закриваємо діалог і оновлюємо стан
-                _isAddTaskDialogOpen.value = false
-                _uiState.update {
-                    it.copy(
-                        tasks = sortTasksWithOrder(updatedTasks),
-                        lastUpdated = System.currentTimeMillis(),
-                        isLoading = false,
-                        error = null
+                // 2. Оновлюємо локальний стан UI, додаючи нове завдання
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        tasks = sortTasksWithOrder(currentState.tasks + newTask)
                     )
                 }
+
+                // 3. Зберігаємо завдання в репозиторії
+                // Цей виклик тепер асинхронний і не блокує UI
+                dayManagementRepository.addTaskToDayPlan(
+                    NewTaskParameters(
+                        dayPlanId = dayPlanId,
+                        title = trimmedTitle,
+                        description = trimmedDescription,
+                        estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
+                        priority = priority,
+                        order = newTask.order
+                    )
+                )
+
+                // 4. Закриваємо діалог
+                dismissAddTaskDialog()
 
             } catch (e: Exception) {
                 _uiState.update {
@@ -146,14 +157,10 @@ class DayPlanViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
-                e.printStackTrace()
             }
         }
     }
 
-    /**
-     * Видаляє завдання з плану
-     */
     fun deleteTask(dayPlanId: String, taskId: String) {
         viewModelScope.launch {
             try {

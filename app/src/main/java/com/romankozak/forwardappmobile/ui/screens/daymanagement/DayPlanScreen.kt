@@ -86,6 +86,7 @@ private fun ErrorState(
         }
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskList(
@@ -97,9 +98,14 @@ fun TaskList(
     modifier: Modifier = Modifier
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+
+    // Локальний стан, необхідний для Drag-and-Drop
     var internalTasks by remember { mutableStateOf(tasks) }
 
+    // Основний стан LazyColumn
     val lazyListState = rememberLazyListState()
+
+    // Стан для перетягування
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         internalTasks = internalTasks.toMutableList().apply {
             add(to.index, removeAt(from.index))
@@ -108,6 +114,13 @@ fun TaskList(
         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
     }
 
+    // Синхронізація локального стану з даними ViewModel
+    // Цей блок виконується щоразу, коли список `tasks` (з ViewModel) змінюється.
+    LaunchedEffect(tasks) {
+        internalTasks = tasks
+    }
+
+    // Правильна ініціалізація LazyColumn: використовуємо основний стан `lazyListState`
     LazyColumn(state = lazyListState) {
         items(items = internalTasks, key = { task -> task.id }) { task ->
             ReorderableItem(reorderableLazyListState, key = task.id) { isDragging ->
@@ -120,7 +133,7 @@ fun TaskList(
                     ) {
                         Checkbox(
                             checked = task.completed,
-                            onCheckedChange = { onToggleTask(task.id) }, // Додано виклик функції
+                            onCheckedChange = { onToggleTask(task.id) },
                             modifier = Modifier.padding(end = 2.dp)
                         )
                         Text(
@@ -129,6 +142,13 @@ fun TaskList(
                                 .weight(1f)
                                 .padding(horizontal = 8.dp)
                         )
+                        // Меню "Більше опцій"
+                        IconButton(
+                            onClick = { onTaskLongPress(task) },
+                        ) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Більше опцій")
+                        }
+                        // Ручка перетягування
                         IconButton(
                             modifier = Modifier.draggableHandle(
                                 onDragStarted = { hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate) },
@@ -136,7 +156,7 @@ fun TaskList(
                             ),
                             onClick = {},
                         ) {
-                            Icon(Icons.Rounded.DragHandle, contentDescription = "Reorder")
+                            Icon(Icons.Rounded.DragHandle, contentDescription = "Перетягнути для зміни порядку")
                         }
                     }
                 }
@@ -144,7 +164,6 @@ fun TaskList(
         }
     }
 }
-
 
 @Composable
 private fun EmptyTasksState(modifier: Modifier = Modifier) {
@@ -342,7 +361,6 @@ fun TaskGoalItem(
 }
 */
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayPlanScreen(
     dayPlanId: String,
@@ -355,6 +373,14 @@ fun DayPlanScreen(
     val selectedTask by viewModel.selectedTask.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val hapticFeedback = LocalHapticFeedback.current
+
+    // Це важливо: новий ефект для прослуховування оновлень
+    LaunchedEffect(Unit) {
+        viewModel.tasksUpdated.collect {
+            // Коли отримаємо сигнал, завантажуємо дані заново
+            viewModel.loadDataForPlan(dayPlanId)
+        }
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
