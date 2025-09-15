@@ -1,5 +1,5 @@
 // TaskOptionsBottomSheet.kt
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,14 +10,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
+// EnhancedScoreStatusBadge тепер імпортується з нового файлу, хоча в цьому компоненті він не використовувався.
+// Якщо він знадобиться тут у майбутньому, достатньо буде просто його викликати.
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -27,11 +28,11 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskOptionsBottomSheet(
-    task: com.romankozak.forwardappmobile.data.database.models.DayTask,
+    task: DayTask,
     onDismiss: () -> Unit,
-    onEdit: (com.romankozak.forwardappmobile.data.database.models.DayTask) -> Unit,
-    onDelete: (com.romankozak.forwardappmobile.data.database.models.DayTask) -> Unit,
-    onSetReminder: (com.romankozak.forwardappmobile.data.database.models.DayTask) -> Unit
+    onEdit: (DayTask) -> Unit,
+    onDelete: (DayTask) -> Unit,
+    onSetReminder: (DayTask) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss
@@ -51,13 +52,13 @@ fun TaskOptionsBottomSheet(
                 headlineContent = { Text("Редагувати") },
                 leadingContent = {
                     Icon(
-                        androidx.compose.material.icons.Icons.Default.Edit,
+                        Icons.Default.Edit,
                         contentDescription = null
                     )
                 },
                 modifier = Modifier.clickable {
                     onEdit(task)
-                    onDismiss()
+                   // onDismiss()
                 }
             )
 
@@ -65,7 +66,7 @@ fun TaskOptionsBottomSheet(
                 headlineContent = { Text("Встановити нагадування") },
                 leadingContent = {
                     Icon(
-                        androidx.compose.material.icons.Icons.Default.Alarm,
+                        Icons.Default.Alarm,
                         contentDescription = null
                     )
                 },
@@ -79,7 +80,7 @@ fun TaskOptionsBottomSheet(
                 headlineContent = { Text("Видалити") },
                 leadingContent = {
                     Icon(
-                        androidx.compose.material.icons.Icons.Default.Delete,
+                        Icons.Default.Delete,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error
                     )
@@ -104,28 +105,7 @@ fun TaskPriority.getDisplayName(): String = when (this) {
     TaskPriority.NONE -> "Без пріоритету"
 }
 
-// Extension function needed for Goal conversion
-@Composable
-fun EnhancedScoreStatusBadge(
-    scoringStatus: com.romankozak.forwardappmobile.data.database.models.ScoringStatus,
-    displayScore: Double?
-) {
-    // Implementation depends on your ScoringStatus enum
-    // This is a placeholder - adjust based on your actual implementation
-    if (scoringStatus != com.romankozak.forwardappmobile.data.database.models.ScoringStatus.NOT_ASSESSED) {
-        Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Text(
-                text = displayScore?.toString() ?: scoringStatus.name,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
-}
+// EnhancedScoreStatusBadge було ВИДАЛЕНО звідси і перенесено до GoalComponent.kt
 
 @Composable
 private fun TaskInfoHeader(
@@ -257,7 +237,7 @@ private fun OptionItem(
     description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     enabled: Boolean = true,
     isDangerous: Boolean = false
 ) {
@@ -309,11 +289,11 @@ private fun OptionItem(
 }
 
 @Composable
-private fun getPriorityColor(priority: com.romankozak.forwardappmobile.data.database.models.TaskPriority): androidx.compose.ui.graphics.Color {
+private fun getPriorityColor(priority: TaskPriority): Color {
     return when (priority) {
-        com.romankozak.forwardappmobile.data.database.models.TaskPriority.CRITICAL -> MaterialTheme.colorScheme.error
-        com.romankozak.forwardappmobile.data.database.models.TaskPriority.HIGH -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-        com.romankozak.forwardappmobile.data.database.models.TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary
-        com.romankozak.forwardappmobile.data.database.models.TaskPriority.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
-        com.romankozak.forwardappmobile.data.database.models.TaskPriority.NONE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        TaskPriority.CRITICAL -> MaterialTheme.colorScheme.error
+        TaskPriority.HIGH -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+        TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary
+        TaskPriority.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
+        TaskPriority.NONE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     }}
