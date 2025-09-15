@@ -16,7 +16,9 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -132,19 +134,26 @@ fun DayManagementScreen(
                             selectedTabIndex = pagerState.currentPage,
                             containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = MaterialTheme.colorScheme.primary,
+                            divider = @Composable {
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                )
+                            },
                             indicator = { tabPositions ->
                                 TabRowDefaults.PrimaryIndicator(
-                                    modifier = Modifier.tabIndicatorOffset(
-                                        tabPositions[pagerState.currentPage]
-                                    ),
+                                    modifier = Modifier
+                                        .tabIndicatorOffset(tabPositions[pagerState.currentPage])
+                                        .padding(horizontal = 16.dp),
                                     height = 3.dp,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         ) {
                             tabs.forEachIndexed { index, tab ->
+                                val selected = pagerState.currentPage == index
                                 Tab(
-                                    selected = pagerState.currentPage == index,
+                                    selected = selected,
                                     onClick = {
                                         coroutineScope.launch {
                                             pagerState.animateScrollToPage(index)
@@ -155,30 +164,37 @@ fun DayManagementScreen(
                                             text = tab.title,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelLarge
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                            ),
+                                            color = if (selected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
                                         )
                                     },
                                     icon = {
                                         Icon(
                                             tab.icon,
                                             contentDescription = tab.description,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (selected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
                                         )
                                     },
                                     selectedContentColor = MaterialTheme.colorScheme.primary,
                                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(vertical = 8.dp)
+                                    modifier = Modifier
+                                        .padding(vertical = 8.dp)
+                                        .clip(MaterialTheme.shapes.small)
                                 )
                             }
                         }
 
-// File: DayManagementScreen.kt
-
-                        // File: DayManagementScreen.kt
-
-                        // File: DayManagementScreen.kt
-
-                        // ...
                         HorizontalPager(
                             state = pagerState,
                             modifier = Modifier.fillMaxSize()
@@ -187,9 +203,7 @@ fun DayManagementScreen(
                                 DayManagementTab.PLAN -> DayPlanScreen(
                                     dayPlanId = planId,
                                     onNavigateBack = { mainNavController.navigateUp() },
-                                    // ВИПРАВЛЕННЯ: Додаємо реалізацію для навігації на екран проєкту
                                     onNavigateToProject = { projectId ->
-                                        // Використовуємо NavController для переходу на екран беклогу/проєкту
                                         mainNavController.navigate("goal_detail_screen/$projectId")
                                     }
                                 )
