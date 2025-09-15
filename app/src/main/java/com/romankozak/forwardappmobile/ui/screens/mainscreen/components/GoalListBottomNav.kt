@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,8 +36,90 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.ui.navigation.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.PlanningMode
 import kotlinx.coroutines.launch
+
+@Composable
+private fun PlanningModeSelector(
+    currentMode: PlanningMode,
+    onPlanningModeChange: (PlanningMode) -> Unit,
+) {
+    var isMenuExpanded by remember { mutableStateOf(false) }
+
+    val planningModes = remember {
+        listOf(
+            "All" to (Icons.AutoMirrored.Outlined.List to PlanningMode.All),
+            "Daily" to (Icons.Outlined.Today to PlanningMode.Daily),
+            "Medium" to (Icons.Outlined.QueryStats to PlanningMode.Medium),
+            "Long" to (Icons.Outlined.TrackChanges to PlanningMode.Long),
+        )
+    }
+
+    val (currentText, currentData) = planningModes.first { it.second.second::class == currentMode::class }
+    val (currentIcon, _) = currentData
+
+    Box {
+        val backgroundColor = if (isMenuExpanded) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f) else Color.Transparent
+        val contentColor = if (isMenuExpanded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(backgroundColor)
+                .clickable { isMenuExpanded = true }
+                .padding(horizontal = 6.dp, vertical = 4.dp)
+                .widthIn(min = 50.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = currentIcon,
+                    contentDescription = currentText,
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp),
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Expand",
+                    tint = contentColor.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = currentText,
+                fontSize = 9.sp,
+                fontWeight = if (isMenuExpanded) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = contentColor,
+            )
+        }
+
+        DropdownMenu(
+            expanded = isMenuExpanded,
+            onDismissRequest = { isMenuExpanded = false },
+        ) {
+            planningModes.forEach { (text, data) ->
+                val (icon, mode) = data
+                DropdownMenuItem(
+                    text = { Text(text) },
+                    leadingIcon = { Icon(icon, contentDescription = text) },
+                    onClick = {
+                        onPlanningModeChange(mode)
+                        isMenuExpanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 internal fun ExpandingBottomNav(
@@ -53,7 +136,6 @@ internal fun ExpandingBottomNav(
     onExpandedChange: (Boolean) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val arrowRotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "arrowAnimation")
 
@@ -61,15 +143,13 @@ internal fun ExpandingBottomNav(
         tonalElevation = 8.dp,
         shadowElevation = 12.dp,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // Обробник свайпу тепер на всій панелі
                 .pointerInput(Unit) {
                     detectVerticalDragGestures { _, dragAmount ->
-                        // Визначаємо напрямок свайпу і змінюємо стан, якщо потрібно
                         if (dragAmount < -20 && !isExpanded) { // Swipe Up
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onExpandedChange(true)
@@ -79,23 +159,42 @@ internal fun ExpandingBottomNav(
                         }
                     }
                 },
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Верхній ряд (Command Center)
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(150)),
-                exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)) + fadeOut(tween(150))
+                exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)) + fadeOut(tween(150)),
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    SmallBottomNavButton(text = "All", icon = Icons.AutoMirrored.Outlined.List, isSelected = currentMode is PlanningMode.All, onClick = { onPlanningModeChange(PlanningMode.All) })
-                    SmallBottomNavButton(text = "Daily", icon = Icons.Outlined.Today, isSelected = currentMode is PlanningMode.Daily, onClick = { onPlanningModeChange(PlanningMode.Daily) })
-                    SmallBottomNavButton(text = "Medium", icon = Icons.Outlined.QueryStats, isSelected = currentMode is PlanningMode.Medium, onClick = { onPlanningModeChange(PlanningMode.Medium) })
-                    SmallBottomNavButton(text = "Long", icon = Icons.Outlined.TrackChanges, isSelected = currentMode is PlanningMode.Long, onClick = { onPlanningModeChange(PlanningMode.Long) })
+                    PlanningModeSelector(
+                        currentMode = currentMode,
+                        onPlanningModeChange = onPlanningModeChange,
+                    )
+
+                    SmallBottomNavButton(
+                        text = "Search Everywhere",
+                        icon = Icons.Outlined.Search,
+                        onClick = onGlobalSearchClick,
+                    )
+                    SmallBottomNavButton(
+                        text = "Insights",
+                        icon = Icons.Outlined.Lightbulb,
+                        onClick = { /* TODO: Handle Insights Click */ },
+                    )
+                    SmallBottomNavButton(
+                        text = "AI-Chat",
+                        icon = Icons.Outlined.AutoAwesome,
+                        onClick = { navController.navigate(CHAT_ROUTE) },
+                    )
+
                     Box {
                         SmallBottomNavButton(
                             text = "More",
@@ -114,64 +213,6 @@ internal fun ExpandingBottomNav(
                                 )
                                 .clip(RoundedCornerShape(16.dp)),
                         ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.Search,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
-                                        Text(
-                                            "Global Search",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontWeight = FontWeight.Medium,
-                                            ),
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    onGlobalSearchClick()
-                                    showMoreMenu = false
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.Lightbulb,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.secondary,
-                                        )
-                                        Column {
-                                            Text(
-                                                "AI Insights",
-                                                style = MaterialTheme.typography.bodyMedium.copy(
-                                                    fontWeight = FontWeight.Medium,
-                                                ),
-                                            )
-                                            Text(
-                                                "Smart recommendations",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = { showMoreMenu = false },
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
                             DropdownMenuItem(
                                 text = {
                                     Row(
@@ -215,39 +256,44 @@ internal fun ExpandingBottomNav(
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onExpandedChange(!isExpanded)
                     },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Surface(
-                        modifier = Modifier.width(32.dp).height(4.dp),
+                        modifier = Modifier
+                            .width(32.dp)
+                            .height(4.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        shape = CircleShape
+                        shape = CircleShape,
                     ) {}
                     Icon(
                         imageVector = Icons.Outlined.KeyboardArrowUp,
                         contentDescription = if (isExpanded) "Collapse" else "Expand",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(20.dp).rotate(arrowRotation)
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(arrowRotation),
                     )
                 }
             }
 
             // Нижній, основний ряд кнопок
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
+                ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = { navController.navigate("activity_tracker_screen") })
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
                 ModernBottomNavButton(text = "Пошук", icon = Icons.Outlined.Search, isSelected = isSearchActive, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
-                ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = { navController.navigate("activity_tracker_screen") })
+                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
             }
-
         }
     }
 }
