@@ -180,15 +180,10 @@ class DayPlanViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Перемикає статус виконання завдання
-     */
     fun toggleTaskCompletion(taskId: String) {
         viewModelScope.launch {
             try {
-                dayManagementRepository.toggleTaskCompletion(taskId)
-
-                // Оновлюємо локальний стан для миттєвого відгуку UI
+                // 1. Оптимістично оновлюємо локальний стан UI
                 _uiState.update { currentState ->
                     val updatedTasks = currentState.tasks.map { task ->
                         if (task.id == taskId) {
@@ -203,7 +198,12 @@ class DayPlanViewModel @Inject constructor(
                     )
                 }
 
+                // 2. Тепер викликаємо репозиторій для оновлення в базі даних.
+                // UI вже оновився, тож користувач побачить миттєву реакцію.
+                dayManagementRepository.toggleTaskCompletion(taskId)
+
             } catch (e: Exception) {
+                // У разі помилки можна відкотити зміни та показати повідомлення
                 _uiState.update {
                     it.copy(error = "Помилка при оновленні статусу завдання: ${e.localizedMessage}")
                 }
@@ -211,7 +211,6 @@ class DayPlanViewModel @Inject constructor(
             }
         }
     }
-
     /**
      * Завантажує дані для конкретного плану дня
      */

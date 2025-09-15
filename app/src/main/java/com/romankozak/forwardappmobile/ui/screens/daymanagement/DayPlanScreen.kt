@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -125,7 +126,16 @@ fun TaskList(
         items(items = internalTasks, key = { task -> task.id }) { task ->
             ReorderableItem(reorderableLazyListState, key = task.id) { isDragging ->
                 val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp)
-                Surface(shadowElevation = elevation) {
+
+                // Додаємо контекстне меню
+                Surface(
+                    shadowElevation = elevation,
+                    modifier = Modifier
+                        .combinedClickable(
+                            onClick = { /* обробка кліку */ },
+                            onLongClick = { onTaskLongPress(task) }
+                        )
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -142,30 +152,31 @@ fun TaskList(
                                 .weight(1f)
                                 .padding(horizontal = 8.dp)
                         )
-                        // Меню "Більше опцій"
-                        IconButton(
-                            onClick = { onTaskLongPress(task) },
-                        ) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Більше опцій")
-                        }
                         // Ручка перетягування
                         IconButton(
                             modifier = Modifier.draggableHandle(
-                                onDragStarted = { hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate) },
-                                onDragStopped = { hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd) },
+                                onDragStarted = {
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.GestureThresholdActivate
+                                    )
+                                },
+                                onDragStopped = {
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.GestureEnd
+                                    )
+                                },
                             ),
                             onClick = {},
                         ) {
-                            Icon(Icons.Rounded.DragHandle, contentDescription = "Перетягнути для зміни порядку")
+                            Icon(Icons.Rounded.DragHandle, contentDescription = "Перетягнути")
                         }
                     }
                 }
             }
         }
-    }
-}
+    }}
 
-@Composable
+        @Composable
 private fun EmptyTasksState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
