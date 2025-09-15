@@ -908,4 +908,34 @@ class GoalListViewModel @Inject constructor(
             settingsRepo.saveObsidianVaultName(vaultName.trim())
         }
     }
+
+    fun hasDescendantsWithLongNames(
+        listId: String,
+        childMap: Map<String, List<GoalList>>,
+        characterLimit: Int = 35
+    ): Boolean {
+        // Використовуємо чергу для обходу в ширину (BFS), щоб уникнути глибокої рекурсії
+        val queue = ArrayDeque<String>()
+
+        // Починаємо з прямих нащадків
+        childMap[listId]?.forEach { queue.add(it.id) }
+
+        while (queue.isNotEmpty()) {
+            val currentId = queue.removeFirst()
+            val list = _allListsFlat.value.find { it.id == currentId }
+
+            if (list != null) {
+                // Перевіряємо довжину імені
+                if (list.name.length > characterLimit) {
+                    return true // Знайшли! Негайно повертаємо результат.
+                }
+
+                // Додаємо дочірні елементи цього нащадка в чергу для подальшої перевірки
+                childMap[currentId]?.forEach { queue.add(it.id) }
+            }
+        }
+
+        return false // Не знайшли жодного нащадка з довгим іменем
+    }
+
 }

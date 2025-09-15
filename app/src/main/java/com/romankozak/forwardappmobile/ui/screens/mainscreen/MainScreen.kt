@@ -334,8 +334,8 @@ fun MainScreen(
                                     highlightedListId = highlightedListId,
                                     settings = hierarchySettings,
                                     searchQuery = searchQuery.text,
-                                    onNavigateToList = { listId -> viewModel.navigateToList(listId) }
-                                )
+                                    onNavigateToList = { listId -> viewModel.navigateToList(listId) },
+                                    focusedListId = currentFocusedId,                                )
                             }
                         }
 
