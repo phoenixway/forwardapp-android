@@ -1,4 +1,3 @@
-// AddTaskDialog.kt
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
 import androidx.compose.foundation.BorderStroke
@@ -13,19 +12,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskDialog(
+fun EditTaskDialog(
+    task: DayTask,
     onDismissRequest: () -> Unit,
-    onConfirm: (title: String, description: String, duration: Long?, priority: TaskPriority) -> Unit,
-    initialPriority: TaskPriority = TaskPriority.MEDIUM
+    onConfirm: (
+        title: String,
+        description: String,
+        duration: Long?,
+        priority: TaskPriority
+    ) -> Unit,
+    onDelete: () -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var durationText by remember { mutableStateOf("") }
-    var priority by remember { mutableStateOf(initialPriority) }
+    var title by remember { mutableStateOf(task.title) }
+    var description by remember { mutableStateOf(task.description ?: "") }
+    var durationText by remember {
+        mutableStateOf(task.estimatedDurationMinutes?.toString() ?: "")
+    }
+    var priority by remember { mutableStateOf(task.priority) }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -33,7 +41,7 @@ fun AddTaskDialog(
         modifier = Modifier.padding(16.dp),
         title = {
             Text(
-                text = "Додати завдання",
+                text = "Редагувати завдання",
                 style = MaterialTheme.typography.headlineSmall
             )
         },
@@ -114,7 +122,6 @@ fun AddTaskDialog(
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    // Переносимо кнопки на новий рядок, якщо не поміщаються
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -156,19 +163,29 @@ fun AddTaskDialog(
                     val duration = durationText.toLongOrNull()
                     onConfirm(title, description, duration, priority)
                 },
-                enabled = title.isNotBlank(),
-                modifier = Modifier.padding(end = 8.dp)
+                enabled = title.isNotBlank()
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Done, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
-                Text("Додати")
+                Text("Зберегти")
             }
         },
         dismissButton = {
-            OutlinedButton(
-                onClick = onDismissRequest
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Скасувати")
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Видалити")
+                }
+                OutlinedButton(onClick = onDismissRequest) {
+                    Text("Скасувати")
+                }
             }
         }
     )
