@@ -7,14 +7,8 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -82,24 +76,22 @@ fun MainScreen(
     val dragAndDropState = rememberDragAndDropState<GoalList>()
     val highlightedListId by viewModel.highlightedListId.collectAsState()
 
+    // Нові стани для ієрархії
+    val currentBreadcrumbs by viewModel.currentBreadcrumbs.collectAsState()
+    val focusedListId by viewModel.focusedListId.collectAsState()
+    val hierarchySettings by viewModel.hierarchySettings.collectAsState()
+
     val isBottomNavExpanded by viewModel.isBottomNavExpanded.collectAsState()
-
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
-    val listChooserFilterText by viewModel.listChooserFilterText.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
-
     var showContextSheet by remember { mutableStateOf(value = false) }
-
     val allContexts by viewModel.allContextsForDialog.collectAsState()
-
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
-
     val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
     val recentLists by viewModel.recentLists.collectAsState()
     val areAnyListsExpanded by viewModel.areAnyListsExpanded.collectAsState()
-
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -107,7 +99,6 @@ fun MainScreen(
         delay(100)
         viewModel.enableFiltering()
     }
-
 
     LaunchedEffect(savedStateHandle) {
         savedStateHandle
@@ -215,9 +206,9 @@ fun MainScreen(
         }
     }
 
+    BackHandler(enabled = focusedListId != null) { viewModel.clearNavigation() }
     BackHandler(enabled = isSearchActive) { viewModel.onToggleSearch(isActive = false) }
-
-    BackHandler(enabled = !isSearchActive && areAnyListsExpanded) {
+    BackHandler(enabled = !isSearchActive && areAnyListsExpanded && focusedListId == null) {
         viewModel.collapseAllLists()
     }
 
@@ -227,10 +218,7 @@ fun MainScreen(
         }
 
     Scaffold(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .imePadding(),
+        modifier = Modifier.fillMaxSize().imePadding(),
         topBar = {
             GoalListTopAppBar(
                 isSearchActive = isSearchActive,
@@ -259,23 +247,30 @@ fun MainScreen(
                     onContextsClick = { showContextSheet = true },
                     onRecentsClick = { viewModel.onShowRecentLists() },
                     onDayPlanClick = viewModel::onDayPlanClicked,
-                    // Передаємо оновлений стан та подію
                     isExpanded = isBottomNavExpanded,
                     onExpandedChange = viewModel::onBottomNavExpandedChange
                 )
-
             }
         },
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+
+            AnimatedVisibility(
+                visible = currentBreadcrumbs.isNotEmpty(),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                BreadcrumbNavigation(
+                    breadcrumbs = currentBreadcrumbs,
+                    onNavigate = { viewModel.navigateToBreadcrumb(it) },
+                    onClearNavigation = { viewModel.clearNavigation() }
+                )
+            }
+
             val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
             if (isListEmpty) {
                 Box(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     val emptyText =
@@ -294,23 +289,46 @@ fun MainScreen(
                     enabled = !isSearchActive,
                     modifier = Modifier.weight(1f),
                 ) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        renderGoalList(
-                            lists = hierarchy.topLevelLists,
-                            childMap = hierarchy.childMap,
-                            level = 0,
+                    val currentFocusedId = focusedListId
+
+                    if (currentFocusedId != null) {
+                        // Тепер використовуємо локальну змінну, для якої smart cast працює
+                        FocusedListView(
+                            focusedListId = currentFocusedId, // <-- ВИРІШЕНО
+                            hierarchy = hierarchy,
                             dragAndDropState = dragAndDropState,
                             viewModel = viewModel,
-                            allListsFlat = hierarchy.allLists,
                             isSearchActive = isSearchActive,
                             planningMode = planningMode,
                             highlightedListId = highlightedListId,
+                            settings = hierarchySettings,
                             searchQuery = searchQuery.text,
+                            onNavigateToList = { listId -> viewModel.navigateToList(listId) }
                         )
-                    }
+                    } else {
+                        // Показуємо стандартний ієрархічний вигляд
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            items(hierarchy.topLevelLists, key = { it.id }) { topLevelList ->
+                                SmartHierarchyView(
+                                    list = topLevelList,
+                                    childMap = hierarchy.childMap,
+                                    level = 0,
+                                    dragAndDropState = dragAndDropState,
+                                    viewModel = viewModel,
+                                    isSearchActive = isSearchActive,
+                                    planningMode = planningMode,
+                                    highlightedListId = highlightedListId,
+                                    settings = hierarchySettings,
+                                    searchQuery = searchQuery.text,
+                                    onNavigateToList = { listId -> viewModel.navigateToList(listId) }
+                                )
+                            }
+                        }
+
+                }
                 }
             }
         }
@@ -326,7 +344,7 @@ fun MainScreen(
     HandleDialogs(
         dialogState = dialogState,
         viewModel = viewModel,
-        listChooserFilterText = listChooserFilterText,
+        listChooserFilterText = "",
         listChooserExpandedIds = listChooserFinalExpandedIds,
         filteredListHierarchyForDialog = filteredListHierarchyForDialog,
     )
@@ -344,7 +362,7 @@ private fun GoalListTopAppBar(
         actions = {
             if (!isSearchActive) {
                 IconButton(onClick = onAddNewList) { Icon(Icons.Default.Add, "Add new project") }
-                var menuExpanded by remember { mutableStateOf(value = false) }
+                var menuExpanded by remember { mutableStateOf(false) }
                 IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                     DropdownMenuItem(
@@ -398,140 +416,6 @@ private fun GoalListTopAppBar(
 }
 
 @Composable
-private fun SearchEverywhereButton(
-    searchQuery: String,
-    onPerformGlobalSearch: (String) -> Unit,
-) {
-    AnimatedVisibility(
-        visible = searchQuery.isNotBlank(),
-        enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
-        exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
-    ) {
-        Surface(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onPerformGlobalSearch(searchQuery) },
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .padding(horizontal = 12.dp)
-                        .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = "Perform global search",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Search everywhere for \"$searchQuery\"",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowScope.SearchTextField(
-    textFieldValue: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit,
-    onPerformGlobalSearch: (String) -> Unit,
-    focusRequester: FocusRequester,
-) {
-    val focusManager = LocalFocusManager.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
-
-    BasicTextField(
-        value = textFieldValue,
-        onValueChange = onValueChange,
-        modifier =
-            Modifier
-                .weight(1f)
-                .focusRequester(focusRequester),
-        singleLine = true,
-        textStyle =
-            MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Medium,
-            ),
-        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-        keyboardActions =
-            KeyboardActions(
-                onSearch = {
-                    if (textFieldValue.text.isNotBlank()) {
-                        onPerformGlobalSearch(textFieldValue.text)
-                    }
-                    focusManager.clearFocus()
-                },
-            ),
-        interactionSource = interactionSource,
-        decorationBox = { innerTextField ->
-            Row(
-                modifier =
-                    Modifier
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
-                            shape = RoundedCornerShape(24.dp),
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            shape = RoundedCornerShape(24.dp),
-                        )
-                        .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    if (textFieldValue.text.isEmpty()) {
-                        Text(
-                            text = "Search projects...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.semantics { contentDescription = "Search placeholder" },
-                        )
-                    }
-                    innerTextField()
-                }
-                AnimatedVisibility(
-                    visible = textFieldValue.text.isNotBlank(),
-                    enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
-                    exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
-                ) {
-                    IconButton(
-                        onClick = { onValueChange(TextFieldValue("")) },
-                        modifier = Modifier.size(28.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = "Clear search input",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        },
-    )
-}
-
-@Composable
 private fun SearchBottomBar(
     searchQuery: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
@@ -554,11 +438,50 @@ private fun SearchBottomBar(
                     .navigationBarsPadding()
                     .imePadding(),
         ) {
-            SearchEverywhereButton(
-                searchQuery = searchQuery.text,
-                onPerformGlobalSearch = onPerformGlobalSearch
-            )
+            // SearchEverywhereButton
+            AnimatedVisibility(
+                visible = searchQuery.text.isNotBlank(),
+                enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
+                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
+            ) {
+                Surface(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onPerformGlobalSearch(searchQuery.text) },
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 12.dp)
+                                .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Search,
+                            contentDescription = "Perform global search",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Search everywhere for \"${searchQuery.text}\"",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
 
+            // Search input field row
             Row(
                 modifier =
                     Modifier
@@ -576,11 +499,83 @@ private fun SearchBottomBar(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                SearchTextField(
-                    textFieldValue = searchQuery,
+                // SearchTextField
+                val focusManager = LocalFocusManager.current
+                val interactionSource = remember { MutableInteractionSource() }
+                val isFocused by interactionSource.collectIsFocusedAsState()
+
+                BasicTextField(
+                    value = searchQuery,
                     onValueChange = onQueryChange,
-                    onPerformGlobalSearch = onPerformGlobalSearch,
-                    focusRequester = focusRequester
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
+                    singleLine = true,
+                    textStyle =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+                    keyboardActions =
+                        KeyboardActions(
+                            onSearch = {
+                                if (searchQuery.text.isNotBlank()) {
+                                    onPerformGlobalSearch(searchQuery.text)
+                                }
+                                focusManager.clearFocus()
+                            },
+                        ),
+                    interactionSource = interactionSource,
+                    decorationBox = { innerTextField ->
+                        Row(
+                            modifier =
+                                Modifier
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
+                                        shape = RoundedCornerShape(24.dp),
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        shape = RoundedCornerShape(24.dp),
+                                    )
+                                    .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (searchQuery.text.isEmpty()) {
+                                    Text(
+                                        text = "Search projects...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.semantics { contentDescription = "Search placeholder" },
+                                    )
+                                }
+                                innerTextField()
+                            }
+                            AnimatedVisibility(
+                                visible = searchQuery.text.isNotBlank(),
+                                enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
+                                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
+                            ) {
+                                IconButton(
+                                    onClick = { onQueryChange(TextFieldValue("")) },
+                                    modifier = Modifier.size(28.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = "Clear search input",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    },
                 )
             }
         }
