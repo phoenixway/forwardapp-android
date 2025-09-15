@@ -272,7 +272,14 @@ fun MainScreen(
                 BreadcrumbNavigation(
                     breadcrumbs = currentBreadcrumbs,
                     onNavigate = { viewModel.navigateToBreadcrumb(it) },
-                    onClearNavigation = { viewModel.clearNavigation() }
+                    onClearNavigation = { viewModel.clearNavigation() },
+                    // --- НОВИЙ ВИКЛИК ---
+                    onFocusedListMenuClick = { listId ->
+                        // Знаходимо об'єкт списку за ID і передаємо в ViewModel
+                        hierarchy.allLists.find { it.id == listId }?.let {
+                            viewModel.onMenuRequested(it)
+                        }
+                    }
                 )
             }
 
@@ -314,7 +321,6 @@ fun MainScreen(
                             searchQuery = searchQuery.text,
                             onNavigateToList = { listId -> viewModel.navigateToList(listId) },
                             // <-- ЗМІНА: Передаємо дію для кліку на заголовок
-                            onFocusedHeaderClick = { listId -> viewModel.onListClicked(listId) }
                         )
                     } else {
                         // Показуємо стандартний ієрархічний вигляд

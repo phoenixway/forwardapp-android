@@ -391,6 +391,8 @@ class GoalListViewModel @Inject constructor(
                 combine(reservedFlows + customFlows) { it.toList().sortedBy { c -> c.name } }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _collapsedAncestorsOnFocus = MutableStateFlow<Set<String>>(emptySet())
+
     fun saveAllContexts(updatedContexts: List<UiContext>) {
         viewModelScope.launch {
             updatedContexts.filter { it.isReserved }.forEach { context ->
@@ -839,10 +841,28 @@ class GoalListViewModel @Inject constructor(
     private val _hierarchySettings = MutableStateFlow(HierarchyDisplaySettings())
     val hierarchySettings = _hierarchySettings.asStateFlow()
 
+// File: MainScreenViewModel.kt
+
     fun navigateToList(listId: String) {
         viewModelScope.launch(Dispatchers.Default) {
             val hierarchy = listHierarchy.value
             val path = buildPathToList(listId, hierarchy)
+
+            // --- НОВА ЛОГІКА ---
+            // Знаходимо всіх предків у шляху, які наразі згорнуті.
+            val collapsedIds = path
+                .mapNotNull { breadcrumbItem ->
+                    // Шукаємо повний об'єкт GoalList за його ID
+                    hierarchy.allLists.find { it.id == breadcrumbItem.id }
+                }
+                .filter { !it.isExpanded } // Відбираємо тільки згорнуті
+                .map { it.id } // Зберігаємо їх ID
+                .toSet()
+
+            // Зберігаємо цей набір ID у нашому новому StateFlow.
+            _collapsedAncestorsOnFocus.value = collapsedIds
+            // --- КІНЕЦЬ НОВОЇ ЛОГІКИ ---
+
             _currentBreadcrumbs.value = path
             _focusedListId.value = listId
         }
@@ -855,9 +875,32 @@ class GoalListViewModel @Inject constructor(
         _focusedListId.value = breadcrumbItem.id
     }
 
+// File: MainScreenViewModel.kt
+
     fun clearNavigation() {
-        _currentBreadcrumbs.value = emptyList()
-        _focusedListId.value = null
+        viewModelScope.launch {
+            // 1. Отримуємо ID списків, які ми раніше "запам'ятали" як згорнуті.
+            val listsToCollapseIds = _collapsedAncestorsOnFocus.value
+
+            if (listsToCollapseIds.isNotEmpty()) {
+                // 2. Знаходимо ці списки у загальному списку даних.
+                val listsToUpdate = _allListsFlat.value
+                    .filter { it.id in listsToCollapseIds }
+                    // 3. Створюємо їх копії, гарантовано встановлюючи isExpanded = false.
+                    .map { it.copy(isExpanded = false) }
+
+                if (listsToUpdate.isNotEmpty()) {
+                    goalRepository.updateGoalLists(listsToUpdate)
+                }
+            }
+
+            // 4. Очищуємо "пам'ять" про згорнуті списки.
+            _collapsedAncestorsOnFocus.value = emptySet()
+
+            // 5. Очищуємо стан навігації для повернення до ієрархії.
+            _currentBreadcrumbs.value = emptyList()
+            _focusedListId.value = null
+        }
     }
 
     private fun buildPathToList(targetId: String, hierarchy: ListHierarchyData): List<BreadcrumbItem> {

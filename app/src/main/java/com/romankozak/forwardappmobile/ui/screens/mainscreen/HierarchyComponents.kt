@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -246,9 +248,22 @@ fun BreadcrumbNavigation(
     breadcrumbs: List<BreadcrumbItem>,
     onNavigate: (BreadcrumbItem) -> Unit,
     onClearNavigation: () -> Unit,
+    onFocusedListMenuClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (breadcrumbs.isEmpty()) return
+
+    // Створюємо та запам'ятовуємо стан для керування LazyRow.
+    val lazyRowState = rememberLazyListState()
+
+    // Додаємо ефект, який буде спрацьовувати при зміні списку breadcrumbs.
+    LaunchedEffect(breadcrumbs) {
+        // Переконуємося, що список не порожній, щоб уникнути помилок.
+        if (breadcrumbs.isNotEmpty()) {
+            // Анімовано прокручуємо до останнього елемента (розмір - 1).
+            lazyRowState.animateScrollToItem(breadcrumbs.size - 1)
+        }
+    }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -256,6 +271,8 @@ fun BreadcrumbNavigation(
         tonalElevation = 1.dp
     ) {
         LazyRow(
+            // Передаємо створений стан у LazyRow.
+            state = lazyRowState,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -293,14 +310,36 @@ fun BreadcrumbNavigation(
                     shape = RoundedCornerShape(16.dp),
                     color = if (isLast) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
                 ) {
-                    Text(
-                        text = item.name,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isLast) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(
+                            start = 12.dp,
+                            end = if (isLast) 4.dp else 12.dp,
+                            top = 4.dp,
+                            bottom = 4.dp
+                        )
+                    ) {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isLast) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (isLast) {
+                            IconButton(
+                                onClick = { onFocusedListMenuClick(item.id) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Menu for ${item.name}",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
                 }
                 if (!isLast) {
                     Icon(
@@ -314,6 +353,8 @@ fun BreadcrumbNavigation(
         }
     }
 }
+
+
 
 @Composable
 fun SmartHierarchyView(
@@ -462,41 +503,17 @@ fun FocusedListView(
     highlightedListId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
-    onNavigateToList: (String) -> Unit,
-    onFocusedHeaderClick: (String) -> Unit
+    onNavigateToList: (String) -> Unit
 ) {
-    val focusedList = hierarchy.allLists.find { it.id == focusedListId }
     val children = (hierarchy.childMap[focusedListId] ?: emptyList()).sortedBy { it.order }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        focusedList?.let { list ->
-            item(key = "focused_header") {
-                GoalListRow(
-                    list = list,
-                    level = 0,
-                    hasChildren = children.isNotEmpty(),
-                    onListClick = { onFocusedHeaderClick(list.id) },
-                    onToggleExpanded = { viewModel.onToggleExpanded(it) },
-                    onMenuRequested = { viewModel.onMenuRequested(it) },
-                    isCurrentlyDragging = false,
-                    isHovered = false,
-                    isDraggingDown = false,
-                    isHighlighted = list.id == highlightedListId,
-                    showFocusButton = true,
-                    onFocusRequested = { onNavigateToList(it.id) },
-                    displayName = AnnotatedString(list.name),
-                    isFocused = true
-                )
-                HorizontalDivider()
-            }
-        }
-
         if (children.isNotEmpty()) {
             items(children, key = { it.id }) { child ->
                 SmartHierarchyView(
                     list = child,
                     childMap = hierarchy.childMap,
-                    level = 0,
+                    level = 0, // В режимі фокусування дочірні елементи починаються з 0-го рівня
                     dragAndDropState = dragAndDropState,
                     viewModel = viewModel,
                     isSearchActive = isSearchActive,
