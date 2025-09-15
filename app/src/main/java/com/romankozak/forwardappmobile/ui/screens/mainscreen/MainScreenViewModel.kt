@@ -486,51 +486,73 @@ class GoalListViewModel @Inject constructor(
 
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
+            // Вимикаємо пошук і скидаємо фільтри
             _isSearchActive.value = false
             _planningMode.value = PlanningMode.All
+
+            // Отримуємо поточний стан списків
             val allLists = _allListsFlat.first { it.isNotEmpty() }
             val listLookup = allLists.associateBy { it.id }
-            val targetList = listLookup[listId]
-            if (targetList == null) {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Could not find list. Data might be corrupted."))
+
+            if (!listLookup.containsKey(listId)) {
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Could not find list."))
                 return@launch
             }
+
+            // 1. Знаходимо всіх предків і відбираємо з них тих, які наразі згорнуті.
             val ancestorIds = mutableSetOf<String>()
-            val visitedAncestors = mutableSetOf<String>()
-            findAncestorsRecursive(listId, listLookup, ancestorIds, visitedAncestors)
-            ancestorIds.filter { it != listId }.forEach { ancestorId ->
-                val ancestor = listLookup[ancestorId]
-                if (ancestor != null && !ancestor.isExpanded) {
-                    goalRepository.updateGoalList(ancestor.copy(isExpanded = true))
+            findAncestorsRecursive(listId, listLookup, ancestorIds, mutableSetOf())
+
+            val listsToExpand = ancestorIds
+                .mapNotNull { listLookup[it] }
+                .filter { !it.isExpanded && it.id != listId }
+
+            // 2. Якщо є що розгортати, оновлюємо їх у базі даних одним запитом.
+            if (listsToExpand.isNotEmpty()) {
+                goalRepository.updateGoalLists(listsToExpand.map { it.copy(isExpanded = true) })
+
+                // 3. АКТИВНО ЧЕКАЄМО, поки оновлення з бази даних не прийдуть у наш UI-стейт.
+                _allListsFlat.first { updatedListState ->
+                    listsToExpand.all { listToExpand ->
+                        updatedListState.find { it.id == listToExpand.id }?.isExpanded == true
+                    }
                 }
             }
-            delay(100)
-            val updatedLists = _allListsFlat.first()
-            val topLevel = updatedLists.filter { it.parentId == null }.sortedBy { it.order }
-            fun flattenHierarchy(currentLists: List<GoalList>): List<GoalList> {
+
+            // 4. Тепер, коли UI гарантовано оновлено, обчислюємо індекс і скролимо.
+            val finalListState = _allListsFlat.value
+            val topLevel = finalListState.filter { it.parentId == null }.sortedBy { it.order }
+
+            fun flattenHierarchy(currentLists: List<GoalList>, listMap: Map<String, List<GoalList>>): List<GoalList> {
                 val result = mutableListOf<GoalList>()
-                val updatedListLookup = updatedLists.associateBy { it.id }
-                currentLists.forEach { list ->
+                for (list in currentLists) {
                     result.add(list)
                     if (list.isExpanded) {
-                        val children =
-                            updatedListLookup.values
-                                .filter { it.parentId == list.id }
-                                .sortedBy { it.order }
+                        val children = listMap[list.id]?.sortedBy { it.order } ?: emptyList()
                         if (children.isNotEmpty()) {
-                            result.addAll(flattenHierarchy(children))
+                            result.addAll(flattenHierarchy(children, listMap))
                         }
                     }
                 }
                 return result
             }
-            val displayedLists = flattenHierarchy(topLevel)
+
+            // --- ВИПРАВЛЕННЯ ТУТ ---
+            // Спочатку відфільтровуємо списки, які мають батьків (не є верхньорівневими).
+            val childrenOnly = finalListState.filter { it.parentId != null }
+            // Тепер групуємо їх, використовуючи non-null parentId (it.parentId!!).
+            // Це створює мапу правильного типу Map<String, List<GoalList>>.
+            val childMap = childrenOnly.groupBy { it.parentId!! }
+            val displayedLists = flattenHierarchy(topLevel, childMap)
+            // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
+
             val index = displayedLists.indexOfFirst { it.id == listId }
+
             if (index != -1) {
                 _uiEventChannel.send(GoalListUiEvent.ScrollToIndex(index))
-            } else {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Could not find list after expanding ancestors."))
             }
+
+            // Логіка підсвічування залишається без змін
             _highlightedListId.value = listId
             delay(1500)
             if (_highlightedListId.value == listId) {
@@ -907,14 +929,29 @@ class GoalListViewModel @Inject constructor(
 
     fun clearNavigation() {
         viewModelScope.launch {
-            // 1. Отримуємо ID списків, які ми раніше "запам'ятали" як згорнуті.
-            val listsToCollapseIds = _collapsedAncestorsOnFocus.value
+            // --- НОВА ЛОГІКА: Розгортаємо предка верхнього рівня ---
+            val breadcrumbs = _currentBreadcrumbs.value
+            if (breadcrumbs.isNotEmpty()) {
+                val topLevelAncestorId = breadcrumbs.first().id
+                val ancestorList = _allListsFlat.value.find { it.id == topLevelAncestorId }
 
+                // Якщо предок існує і він згорнутий, розгортаємо його.
+                if (ancestorList != null && !ancestorList.isExpanded) {
+                    goalRepository.updateGoalList(ancestorList.copy(isExpanded = true))
+
+                    // Зачекаємо, поки оновлення з'явиться у нашому стані
+                    _allListsFlat.first { updatedLists ->
+                        updatedLists.find { it.id == topLevelAncestorId }?.isExpanded == true
+                    }
+                }
+            }
+            // --- КІНЕЦЬ НОВОЇ ЛОГІКИ ---
+
+            // Існуюча логіка для відновлення стану інших елементів шляху
+            val listsToCollapseIds = _collapsedAncestorsOnFocus.value
             if (listsToCollapseIds.isNotEmpty()) {
-                // 2. Знаходимо ці списки у загальному списку даних.
                 val listsToUpdate = _allListsFlat.value
                     .filter { it.id in listsToCollapseIds }
-                    // 3. Створюємо їх копії, гарантовано встановлюючи isExpanded = false.
                     .map { it.copy(isExpanded = false) }
 
                 if (listsToUpdate.isNotEmpty()) {
@@ -922,10 +959,8 @@ class GoalListViewModel @Inject constructor(
                 }
             }
 
-            // 4. Очищуємо "пам'ять" про згорнуті списки.
+            // Очищуємо "пам'ять" та стан навігації
             _collapsedAncestorsOnFocus.value = emptySet()
-
-            // 5. Очищуємо стан навігації для повернення до ієрархії.
             _currentBreadcrumbs.value = emptyList()
             _focusedListId.value = null
         }
