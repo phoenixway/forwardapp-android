@@ -43,6 +43,7 @@ fun InteractiveListItem(
     onGoalTransportRequest: () -> Unit,
     onCopyContentRequest: () -> Unit,
     onStartTrackingRequest: () -> Unit,
+    onAddToDayPlanRequest: () -> Unit, // <-- ДОДАНО НОВИЙ ПАРАМЕТР
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
@@ -121,8 +122,9 @@ fun InteractiveListItem(
                 onDelete = onDelete,
                 onMoreActionsRequest = onMoreActionsRequest,
                 onGoalTransportRequest = onGoalTransportRequest,
-                onCopyContentRequest = onCopyContentRequest,
+               // onCopyContentRequest = onCopyContentRequest,
                 onStartTrackingRequest = onStartTrackingRequest,
+                onAddToDayPlanRequest = onAddToDayPlanRequest, // <-- ПЕРЕДАЄМО ПАРАМЕТР ДАЛІ
                 backgroundColor = backgroundColor,
                 content = {
                     Row(
@@ -141,15 +143,15 @@ fun InteractiveListItem(
         }
         val isTarget =
             dragDropState.isDragging &&
-                dragDropState.targetIndexOfDraggedItem == index &&
-                dragDropState.initialIndexOfDraggedItem != index
+                    dragDropState.targetIndexOfDraggedItem == index &&
+                    dragDropState.initialIndexOfDraggedItem != index
 
         if (isTarget) {
             val isDraggingDown = dragDropState.initialIndexOfDraggedItem < dragDropState.targetIndexOfDraggedItem
             val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
             Box(modifier = Modifier.align(align)) {
-                
+
             }
         }
     }

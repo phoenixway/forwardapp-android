@@ -33,7 +33,6 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import javax.inject.Inject
 
-// --- Sealed classes, data classes, etc. ---
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
     data class NavigateToDetails(val listId: String) : GoalListUiEvent()
@@ -44,6 +43,8 @@ sealed class GoalListUiEvent {
     object FocusSearchField : GoalListUiEvent()
     data class NavigateToEditListScreen(val listId: String) : GoalListUiEvent()
     data class Navigate(val route: String) : GoalListUiEvent()
+    // Додано з гілки main
+    data class NavigateToDayPlan(val date: Long) : GoalListUiEvent()
 }
 
 sealed class PlanningMode {
@@ -98,7 +99,6 @@ private fun fuzzyMatch(query: String, text: String): Boolean {
     return queryIndex == lowerQuery.length
 }
 
-// ===== НОВІ КЛАСИ ДАНИХ ДЛЯ ІЄРАРХІЇ =====
 data class BreadcrumbItem(
     val id: String,
     val name: String,
@@ -453,17 +453,9 @@ class GoalListViewModel @Inject constructor(
 
     fun onDayPlanClicked() {
         viewModelScope.launch {
-            val dailyTag = planningSettingsState.value.dailyTag
-            if (dailyTag.isBlank()) {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Daily tag is not set in settings"))
-                return@launch
-            }
-            val dayPlanList = _allListsFlat.value.find { it.tags?.contains(dailyTag) == true }
-            if (dayPlanList != null) {
-                _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(dayPlanList.id))
-            } else {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("A list with tag '#$dailyTag' was not found"))
-            }
+            // Використовуємо реалізацію з гілки main
+            val today = System.currentTimeMillis()
+            _uiEventChannel.send(GoalListUiEvent.NavigateToDayPlan(today))
         }
     }
 
@@ -840,7 +832,6 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    // ===== НОВІ ФУНКЦІЇ ДЛЯ ІЄРАРХІЇ =====
     private val _currentBreadcrumbs = MutableStateFlow<List<BreadcrumbItem>>(emptyList())
     val currentBreadcrumbs = _currentBreadcrumbs.asStateFlow()
     private val _focusedListId = MutableStateFlow<String?>(null)
@@ -917,5 +908,4 @@ class GoalListViewModel @Inject constructor(
             settingsRepo.saveObsidianVaultName(vaultName.trim())
         }
     }
-
 }
