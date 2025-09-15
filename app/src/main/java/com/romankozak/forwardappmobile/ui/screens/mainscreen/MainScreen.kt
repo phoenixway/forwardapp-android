@@ -303,7 +303,7 @@ fun MainScreen(
                     if (currentFocusedId != null) {
                         // Тепер використовуємо локальну змінну, для якої smart cast працює
                         FocusedListView(
-                            focusedListId = currentFocusedId, // <-- ВИРІШЕНО
+                            focusedListId = currentFocusedId,
                             hierarchy = hierarchy,
                             dragAndDropState = dragAndDropState,
                             viewModel = viewModel,
@@ -312,7 +312,9 @@ fun MainScreen(
                             highlightedListId = highlightedListId,
                             settings = hierarchySettings,
                             searchQuery = searchQuery.text,
-                            onNavigateToList = { listId -> viewModel.navigateToList(listId) }
+                            onNavigateToList = { listId -> viewModel.navigateToList(listId) },
+                            // <-- ЗМІНА: Передаємо дію для кліку на заголовок
+                            onFocusedHeaderClick = { listId -> viewModel.onListClicked(listId) }
                         )
                     } else {
                         // Показуємо стандартний ієрархічний вигляд
