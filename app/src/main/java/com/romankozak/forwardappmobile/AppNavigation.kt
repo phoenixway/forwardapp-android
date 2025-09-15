@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.ui.navigation.chatScreen
 import com.romankozak.forwardappmobile.ui.navigation.dayManagementGraph
+import com.romankozak.forwardappmobile.ui.navigation.dayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectsScreen
@@ -254,5 +255,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         chatScreen(navController)
 //        dayPlanScreen(navController)
         dayManagementGraph(navController)
+        dayPlanScreen(navController)
     }
 }

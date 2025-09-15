@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*

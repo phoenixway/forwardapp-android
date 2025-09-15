@@ -1,20 +1,14 @@
 // DayPlanScreen.kt - Updated with Drag-and-Drop functionality
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
-import androidx.compose.animation.core.animateDpAsState
+import TaskList
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -35,9 +29,10 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
-import sh.calvin.reorderable.ReorderableItem
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.AddTaskDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.EditTaskDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.TaskOptionsBottomSheet
 import sh.calvin.reorderable.ReorderableLazyListState
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -87,94 +82,6 @@ private fun ErrorState(
         }
     }
 }
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun TaskList(
-    tasks: List<DayTask>,
-    dayPlan: DayPlan?,
-    onToggleTask: (String) -> Unit,
-    onTaskLongPress: (DayTask) -> Unit,
-    onTasksReordered: (List<DayTask>) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val hapticFeedback = LocalHapticFeedback.current
-
-    // Локальний стан, необхідний для Drag-and-Drop
-    var internalTasks by remember { mutableStateOf(tasks) }
-
-    // Основний стан LazyColumn
-    val lazyListState = rememberLazyListState()
-
-    // Стан для перетягування
-    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        internalTasks = internalTasks.toMutableList().apply {
-            add(to.index, removeAt(from.index))
-        }
-        onTasksReordered(internalTasks)
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-    }
-
-    // Синхронізація локального стану з даними ViewModel
-    // Цей блок виконується щоразу, коли список `tasks` (з ViewModel) змінюється.
-    LaunchedEffect(tasks) {
-        internalTasks = tasks
-    }
-
-    // Правильна ініціалізація LazyColumn: використовуємо основний стан `lazyListState`
-    LazyColumn(state = lazyListState) {
-        items(items = internalTasks, key = { task -> task.id }) { task ->
-            ReorderableItem(reorderableLazyListState, key = task.id) { isDragging ->
-                val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp)
-
-                // Додаємо контекстне меню
-                Surface(
-                    shadowElevation = elevation,
-                    modifier = Modifier
-                        .combinedClickable(
-                            onClick = { /* обробка кліку */ },
-                            onLongClick = { onTaskLongPress(task) }
-                        )
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = task.completed,
-                            onCheckedChange = { onToggleTask(task.id) },
-                            modifier = Modifier.padding(end = 2.dp)
-                        )
-                        Text(
-                            text = task.title,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp)
-                        )
-                        // Ручка перетягування
-                        IconButton(
-                            modifier = Modifier.draggableHandle(
-                                onDragStarted = {
-                                    hapticFeedback.performHapticFeedback(
-                                        HapticFeedbackType.GestureThresholdActivate
-                                    )
-                                },
-                                onDragStopped = {
-                                    hapticFeedback.performHapticFeedback(
-                                        HapticFeedbackType.GestureEnd
-                                    )
-                                },
-                            ),
-                            onClick = {},
-                        ) {
-                            Icon(Icons.Rounded.DragHandle, contentDescription = "Перетягнути")
-                        }
-                    }
-                }
-            }
-        }
-    }}
 
         @Composable
 private fun EmptyTasksState(modifier: Modifier = Modifier) {
@@ -377,13 +284,15 @@ fun DayPlanScreen(
     dayPlanId: String,
     modifier: Modifier = Modifier,
     viewModel: DayPlanViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToProject: (projectId: String) -> Unit // <-- ОНОВЛЕНА СИГНАТУРА
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
     val selectedTask by viewModel.selectedTask.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val hapticFeedback = LocalHapticFeedback.current
+    val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState() // <-- ДОДАНО
 
     // Це важливо: новий ефект для прослуховування оновлень
     LaunchedEffect(Unit) {
@@ -466,7 +375,7 @@ fun DayPlanScreen(
                         dayPlan = uiState.dayPlan,
                         onToggleTask = { taskId ->
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.toggleTaskCompletion(taskId) // Це тепер буде працювати
+                            viewModel.toggleTaskCompletion(taskId)
                         },
                         onTaskLongPress = { task ->
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -477,6 +386,8 @@ fun DayPlanScreen(
                                 viewModel.updateTasksOrder(dayPlan.id, reorderedList)
                             }
                         },
+                        // ВИПРАВЛЕНО: Передаємо отриманий колбек для навігації
+                        onSublistClick = onNavigateToProject,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -498,12 +409,36 @@ fun DayPlanScreen(
         TaskOptionsBottomSheet(
             task = task,
             onDismiss = viewModel::clearSelectedTask,
-            onEdit = { /* TODO: viewModel.openEditTaskDialog(it) */ },
+            onEdit = {
+                // <--- БРЕКПОІНТ 1: Чи викликається цей блок?
+                viewModel.openEditTaskDialog()
+            },
             onDelete = { taskToDelete ->
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.deleteTask(dayPlanId, taskToDelete.id)
             },
             onSetReminder = { /* TODO: viewModel.setTaskReminder(it) */ }
+        )
+    }
+
+    if (isEditTaskDialogOpen && selectedTask != null) {
+        EditTaskDialog(
+            task = selectedTask!!,
+            onDismissRequest = viewModel::dismissEditTaskDialog,
+            onConfirm = { title, description, duration, priority ->
+                viewModel.updateTask(
+                    taskId = selectedTask!!.id,
+                    title = title,
+                    description = description,
+                    duration = duration,
+                    priority = priority
+                )
+            },
+            onDelete = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                viewModel.deleteTask(dayPlanId, selectedTask!!.id)
+                viewModel.dismissEditTaskDialog() // Закриваємо діалог після видалення
+            }
         )
     }
 }

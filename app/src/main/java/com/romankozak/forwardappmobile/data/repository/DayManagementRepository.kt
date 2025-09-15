@@ -56,6 +56,7 @@ class DayManagementRepository @Inject constructor(
         }
     }
 
+
     suspend fun updatePlanStatus(planId: String, status: DayStatus) = withContext(ioDispatcher) {
         dayPlanDao.updatePlanStatus(planId, status, System.currentTimeMillis())
     }
@@ -72,8 +73,8 @@ class DayManagementRepository @Inject constructor(
 
     // === Task Operations ===
 
+
     suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask = withContext(ioDispatcher) {
-        // Якщо порядок не вказано, встановлюємо його як найбільший + 1
         val order = params.order ?: run {
             val maxOrder = dayTaskDao.getMaxOrderForDayPlan(params.dayPlanId) ?: 0L
             maxOrder + 1
@@ -88,11 +89,14 @@ class DayManagementRepository @Inject constructor(
             priority = params.priority,
             scheduledTime = params.scheduledTime,
             estimatedDurationMinutes = params.estimatedDurationMinutes,
-            order = order
+            order = order,
+            // <-- ВИПРАВЛЕНО: Встановлюємо taskType, з GOAL як значення за замовчуванням
+            taskType = params.taskType ?: ListItemType.GOAL
         )
         dayTaskDao.insert(task)
         task
     }
+
 
     @Transaction
     suspend fun addGoalToDayPlan(dayPlanId: String, goalId: String, scheduledTime: Long? = null): DayTask = withContext(ioDispatcher) {
@@ -105,7 +109,8 @@ class DayManagementRepository @Inject constructor(
             description = goal.description,
             goalId = goalId,
             scheduledTime = scheduledTime,
-            priority = mapImportanceToPriority(goal.valueImportance)
+            priority = mapImportanceToPriority(goal.valueImportance),
+            taskType = ListItemType.GOAL // <-- ВИПРАВЛЕНО: Явно вказуємо тип
         )
         addTaskToDayPlan(taskParams)
     }
@@ -121,7 +126,8 @@ class DayManagementRepository @Inject constructor(
             description = project.description,
             projectId = projectId,
             scheduledTime = scheduledTime,
-            priority = mapImportanceToPriority(project.valueImportance)
+            priority = mapImportanceToPriority(project.valueImportance),
+            taskType = ListItemType.SUBLIST // <-- ВИПРАВЛЕНО: Явно вказуємо тип
         )
         addTaskToDayPlan(taskParams)
     }
@@ -187,12 +193,19 @@ class DayManagementRepository @Inject constructor(
         }
     }
 
-    suspend fun updateTask(taskId: String, title: String, description: String?, priority: TaskPriority) = withContext(ioDispatcher) {
+    suspend fun updateTask(
+        taskId: String,
+        title: String,
+        description: String?,
+        priority: TaskPriority,
+        duration: Long? // <-- Додано новий параметр
+    ) = withContext(ioDispatcher) {
         val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
         val updatedTask = task.copy(
             title = title,
             description = description,
             priority = priority,
+            estimatedDurationMinutes = duration, // <-- Додано оновлення поля
             updatedAt = System.currentTimeMillis()
         )
         dayTaskDao.update(updatedTask)

@@ -376,4 +376,30 @@ class DayPlanViewModel @Inject constructor(
             }
         }
     }
+
+    private val _isEditTaskDialogOpen = MutableStateFlow(false)
+    val isEditTaskDialogOpen: StateFlow<Boolean> = _isEditTaskDialogOpen.asStateFlow()
+
+    fun openEditTaskDialog() {
+        _isEditTaskDialogOpen.value = true
+    }
+
+    fun dismissEditTaskDialog() {
+        _isEditTaskDialogOpen.value = false
+    }
+
+    fun updateTask(
+        taskId: String,
+        title: String,
+        description: String,
+        duration: Long?,
+        priority: TaskPriority
+    ) {
+        viewModelScope.launch {
+            dayManagementRepository.updateTask(taskId, title, description, priority, duration)
+            dismissEditTaskDialog()
+            clearSelectedTask() // Ховаємо bottom sheet після редагування
+            // Оновлення списку відбудеться автоматично завдяки Flow
+        }
+    }
 }

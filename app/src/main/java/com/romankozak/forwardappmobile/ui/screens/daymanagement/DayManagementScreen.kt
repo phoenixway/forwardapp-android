@@ -176,6 +176,9 @@ fun DayManagementScreen(
 
                         // File: DayManagementScreen.kt
 
+                        // File: DayManagementScreen.kt
+
+                        // ...
                         HorizontalPager(
                             state = pagerState,
                             modifier = Modifier.fillMaxSize()
@@ -183,7 +186,12 @@ fun DayManagementScreen(
                             when (tabs[page]) {
                                 DayManagementTab.PLAN -> DayPlanScreen(
                                     dayPlanId = planId,
-                                    onNavigateBack = { mainNavController.navigateUp() }
+                                    onNavigateBack = { mainNavController.navigateUp() },
+                                    // ВИПРАВЛЕННЯ: Додаємо реалізацію для навігації на екран проєкту
+                                    onNavigateToProject = { projectId ->
+                                        // Використовуємо NavController для переходу на екран беклогу/проєкту
+                                        mainNavController.navigate("goal_detail_screen/$projectId")
+                                    }
                                 )
                                 DayManagementTab.DASHBOARD -> DayDashboardScreen(
                                     dayPlanId = planId
