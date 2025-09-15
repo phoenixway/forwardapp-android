@@ -340,3 +340,103 @@ val MIGRATION_28_29 =
             db.execSQL("ALTER TABLE goal_lists ADD COLUMN scoring_status TEXT NOT NULL DEFAULT 'NOT_ASSESSED'")
         }
     }
+
+val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Create day_plans table
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `day_plans` (
+                `id` TEXT NOT NULL, 
+                `date` INTEGER NOT NULL, 
+                `name` TEXT, 
+                `status` TEXT NOT NULL DEFAULT 'PLANNED', 
+                `reflection` TEXT, 
+                `energyLevel` INTEGER, 
+                `mood` TEXT, 
+                `weatherConditions` TEXT, 
+                `totalPlannedMinutes` INTEGER NOT NULL DEFAULT 0, 
+                `totalCompletedMinutes` INTEGER NOT NULL DEFAULT 0, 
+                `completionPercentage` REAL NOT NULL DEFAULT 0.0, 
+                `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER, 
+                PRIMARY KEY(`id`)
+            )
+        """)
+
+        // Create day_tasks table
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `day_tasks` (
+                `id` TEXT NOT NULL, 
+                `dayPlanId` TEXT NOT NULL, 
+                `title` TEXT NOT NULL, 
+                `description` TEXT, 
+                `goalId` TEXT, 
+                `projectId` TEXT, 
+                `activityRecordId` TEXT, 
+                `taskType` TEXT, 
+                `entityId` TEXT, 
+                `order` INTEGER NOT NULL DEFAULT 0, 
+                `priority` TEXT NOT NULL DEFAULT 'MEDIUM', 
+                `status` TEXT NOT NULL DEFAULT 'NOT_STARTED', 
+                `completed` INTEGER NOT NULL DEFAULT 0, 
+                `scheduledTime` INTEGER, 
+                `estimatedDurationMinutes` INTEGER, 
+                `actualDurationMinutes` INTEGER, 
+                `reminderTime` INTEGER, 
+                `valueImportance` REAL NOT NULL DEFAULT 0.0, 
+                `valueImpact` REAL NOT NULL DEFAULT 0.0, 
+                `effort` REAL NOT NULL DEFAULT 0.0, 
+                `cost` REAL NOT NULL DEFAULT 0.0, 
+                `risk` REAL NOT NULL DEFAULT 0.0, 
+                `location` TEXT, 
+                `tags` TEXT, 
+                `notes` TEXT, 
+                `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER, 
+                `completedAt` INTEGER, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+                FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, 
+                FOREIGN KEY(`projectId`) REFERENCES `goal_lists`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, 
+                FOREIGN KEY(`activityRecordId`) REFERENCES `activity_records`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+        """)
+
+        // Create indices for day_tasks
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_dayPlanId` ON `day_tasks` (`dayPlanId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_goalId` ON `day_tasks` (`goalId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_projectId` ON `day_tasks` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_activityRecordId` ON `day_tasks` (`activityRecordId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_scheduledTime` ON `day_tasks` (`scheduledTime`)")
+
+        // Create daily_metrics table
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `daily_metrics` (
+                `id` TEXT NOT NULL, 
+                `dayPlanId` TEXT NOT NULL, 
+                `date` INTEGER NOT NULL, 
+                `tasksPlanned` INTEGER NOT NULL DEFAULT 0, 
+                `tasksCompleted` INTEGER NOT NULL DEFAULT 0, 
+                `completionRate` REAL NOT NULL DEFAULT 0.0, 
+                `totalPlannedTime` INTEGER NOT NULL DEFAULT 0, 
+                `totalActiveTime` INTEGER NOT NULL DEFAULT 0, 
+                `totalBreakTime` INTEGER NOT NULL DEFAULT 0, 
+                `morningEnergyLevel` INTEGER, 
+                `eveningEnergyLevel` INTEGER, 
+                `overallMood` TEXT, 
+                `stressLevel` INTEGER, 
+                `customMetrics` TEXT, 
+                `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER, 
+                PRIMARY KEY(`id`)
+            )
+        """)
+    }
+}
+val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Додаємо нову колонку 'dueTime' до таблиці 'day_tasks'
+        // Room зберігає Long? як INTEGER
+        database.execSQL("ALTER TABLE day_tasks ADD COLUMN dueTime INTEGER")
+    }
+}

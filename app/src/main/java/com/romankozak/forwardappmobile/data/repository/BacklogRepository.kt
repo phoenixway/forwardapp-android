@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 
 internal enum class ContextTextAction { ADD, REMOVE }
 
@@ -470,10 +471,11 @@ constructor(
             }
         Log.d("DND_DEBUG", "[DEBUG_QUERY] СИРИЙ ПОРЯДОК З БАЗИ ДАНИХ:\n$orderLog")
     }
-
     suspend fun deleteGoalList(listId: String) {
-        goalDao.deleteGoalListById(listId)
+        // goalDao.deleteGoalListById(listId) // <- НЕПРАВИЛЬНО
+        goalListDao.deleteListById(listId) // <- ПРАВИЛЬНО
     }
+
 
     fun getInboxRecordsStream(projectId: String): Flow<List<InboxRecord>> = inboxRecordDao.getRecordsForProjectStream(projectId)
 
@@ -643,7 +645,7 @@ constructor(
         logTotalProjectTimeSummary(projectId)
     }
 
-    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics {
+    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics { // Тепер ця функція повертатиме правильний тип
         val todayCalendar = Calendar.getInstance()
         todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
         todayCalendar.set(Calendar.MINUTE, 0)

@@ -53,7 +53,7 @@ fun LinkItemRow(
         onDelete = onDelete,
         onMoreActionsRequest = {},
         onGoalTransportRequest = {},
-        onCopyContentRequest = {},
+        //onCopyContentRequest = {},
         onStartTrackingRequest = {},
         backgroundColor = backgroundColor,
         content = {
@@ -104,5 +104,6 @@ fun LinkItemRow(
                 endAction()
             }
         },
+        onAddToDayPlanRequest = {},
     )
 }

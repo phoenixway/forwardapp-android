@@ -23,9 +23,10 @@ fun AttachmentItemRow(
         onDelete = onDelete,
         onMoreActionsRequest = { },
         onGoalTransportRequest = { },
-        onCopyContentRequest = { },
+        //onCopyContentRequest = { },
         onStartTrackingRequest = { },
         backgroundColor = backgroundColor,
         content = content,
+        onAddToDayPlanRequest = {},
     )
 }
