@@ -61,7 +61,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.ui.navigation.navigateToDayManagement // <-- ДОДАНО ІМПОРТ
-
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
+import androidx.compose.runtime.getValue
 
 @Composable
 fun MainScreen(
@@ -96,6 +97,8 @@ fun MainScreen(
     val areAnyListsExpanded by viewModel.areAnyListsExpanded.collectAsState()
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    val searchQueryText by remember { derivedStateOf { searchQuery.text } }
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -263,89 +266,102 @@ fun MainScreen(
         },
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-
-            AnimatedVisibility(
-                visible = currentBreadcrumbs.isNotEmpty(),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                BreadcrumbNavigation(
-                    breadcrumbs = currentBreadcrumbs,
-                    onNavigate = { viewModel.navigateToBreadcrumb(it) },
-                    onClearNavigation = { viewModel.clearNavigation() },
-                    // --- НОВИЙ ВИКЛИК ---
-                    onFocusedListMenuClick = { listId ->
-                        // Знаходимо об'єкт списку за ID і передаємо в ViewModel
-                        hierarchy.allLists.find { it.id == listId }?.let {
-                            viewModel.onMenuRequested(it)
-                        }
-                    }
+            if (isSearchActive && searchQueryText.isNotBlank()) {
+                // ЯКЩО ПОШУК АКТИВНИЙ - ПОКАЗУЄМО НОВИЙ КОМПОНЕНТ
+                val results by viewModel.searchResults.collectAsState()
+                SearchResultsView(
+                    results = results,
+                    onResultClick = viewModel::onSearchResultClick
                 )
-            }
-
-            val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
-            if (isListEmpty) {
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val emptyText =
-                        when {
-                            isSearchActive -> "No projects found for your query."
-                            planningMode is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
-                            planningMode is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
-                            planningMode is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
-                            else -> "Create your first project"
-                        }
-                    Text(emptyText, style = MaterialTheme.typography.bodyLarge)
-                }
             } else {
-                DragAndDropContainer(
-                    state = dragAndDropState,
-                    enabled = !isSearchActive,
-                    modifier = Modifier.weight(1f),
+                AnimatedVisibility(
+                    visible = currentBreadcrumbs.isNotEmpty(),
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
                 ) {
-                    val currentFocusedId = focusedListId
-
-                    if (currentFocusedId != null) {
-                        // Тепер використовуємо локальну змінну, для якої smart cast працює
-                        FocusedListView(
-                            focusedListId = currentFocusedId,
-                            hierarchy = hierarchy,
-                            dragAndDropState = dragAndDropState,
-                            viewModel = viewModel,
-                            isSearchActive = isSearchActive,
-                            planningMode = planningMode,
-                            highlightedListId = highlightedListId,
-                            settings = hierarchySettings,
-                            searchQuery = searchQuery.text,
-                            onNavigateToList = { listId -> viewModel.navigateToList(listId) },
-                            // <-- ЗМІНА: Передаємо дію для кліку на заголовок
-                        )
-                    } else {
-                        // Показуємо стандартний ієрархічний вигляд
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            items(hierarchy.topLevelLists, key = { it.id }) { topLevelList ->
-                                SmartHierarchyView(
-                                    list = topLevelList,
-                                    childMap = hierarchy.childMap,
-                                    level = 0,
-                                    dragAndDropState = dragAndDropState,
-                                    viewModel = viewModel,
-                                    isSearchActive = isSearchActive,
-                                    planningMode = planningMode,
-                                    highlightedListId = highlightedListId,
-                                    settings = hierarchySettings,
-                                    searchQuery = searchQuery.text,
-                                    onNavigateToList = { listId -> viewModel.navigateToList(listId) },
-                                    focusedListId = currentFocusedId,                                )
+                    BreadcrumbNavigation(
+                        breadcrumbs = currentBreadcrumbs,
+                        onNavigate = { viewModel.navigateToBreadcrumb(it) },
+                        onClearNavigation = { viewModel.clearNavigation() },
+                        // --- НОВИЙ ВИКЛИК ---
+                        onFocusedListMenuClick = { listId ->
+                            // Знаходимо об'єкт списку за ID і передаємо в ViewModel
+                            hierarchy.allLists.find { it.id == listId }?.let {
+                                viewModel.onMenuRequested(it)
                             }
                         }
-
+                    )
                 }
+
+                val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
+                if (isListEmpty) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        val emptyText =
+                            when {
+                                isSearchActive -> "No projects found for your query."
+                                planningMode is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
+                                planningMode is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
+                                planningMode is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
+                                else -> "Create your first project"
+                            }
+                        Text(emptyText, style = MaterialTheme.typography.bodyLarge)
+                    }
+                } else {
+                    DragAndDropContainer(
+                        state = dragAndDropState,
+                        enabled = !isSearchActive,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        val currentFocusedId = focusedListId
+
+                        if (currentFocusedId != null) {
+                            // Тепер використовуємо локальну змінну, для якої smart cast працює
+                            FocusedListView(
+                                focusedListId = currentFocusedId,
+                                hierarchy = hierarchy,
+                                dragAndDropState = dragAndDropState,
+                                viewModel = viewModel,
+                                isSearchActive = isSearchActive,
+                                planningMode = planningMode,
+                                highlightedListId = highlightedListId,
+                                settings = hierarchySettings,
+                                searchQuery = searchQuery.text,
+                                onNavigateToList = { listId -> viewModel.navigateToList(listId) },
+                                // <-- ЗМІНА: Передаємо дію для кліку на заголовок
+                            )
+                        } else {
+                            // Показуємо стандартний ієрархічний вигляд
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                items(hierarchy.topLevelLists, key = { it.id }) { topLevelList ->
+                                    SmartHierarchyView(
+                                        list = topLevelList,
+                                        childMap = hierarchy.childMap,
+                                        level = 0,
+                                        dragAndDropState = dragAndDropState,
+                                        viewModel = viewModel,
+                                        isSearchActive = isSearchActive,
+                                        planningMode = planningMode,
+                                        highlightedListId = highlightedListId,
+                                        settings = hierarchySettings,
+                                        searchQuery = searchQuery.text,
+                                        onNavigateToList = { listId ->
+                                            viewModel.navigateToList(
+                                                listId
+                                            )
+                                        },
+                                        focusedListId = currentFocusedId,
+                                    )
+                                }
+                            }
+
+                        }
+                    }
                 }
             }
         }

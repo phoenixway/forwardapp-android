@@ -32,6 +32,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import javax.inject.Inject
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+// --- DATA КЛАСИ, ВИНЕСЕНІ ЗА МЕЖІ VIEWMODEL ДЛЯ ЧИСТОТИ ---
 
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
@@ -43,9 +47,13 @@ sealed class GoalListUiEvent {
     object FocusSearchField : GoalListUiEvent()
     data class NavigateToEditListScreen(val listId: String) : GoalListUiEvent()
     data class Navigate(val route: String) : GoalListUiEvent()
-    // Додано з гілки main
     data class NavigateToDayPlan(val date: Long) : GoalListUiEvent()
 }
+
+data class SearchResult(
+    val list: GoalList,
+    val path: List<BreadcrumbItem>
+)
 
 sealed class PlanningMode {
     object All : PlanningMode()
@@ -122,9 +130,44 @@ class GoalListViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
     companion object {
-        private const val TAG = "GoalListViewModel_DEBUG"
         private const val LIST_BEING_MOVED_ID_KEY = "listBeingMovedId"
     }
+
+    // --- ВІДНОВЛЕНІ ЗМІННІ ---
+    private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
+    val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
+
+    private val _uiEventChannel = Channel<GoalListUiEvent>()
+    val uiEventFlow = _uiEventChannel.receiveAsFlow()
+
+    private val _isBottomNavExpanded = MutableStateFlow(false)
+    val isBottomNavExpanded: StateFlow<Boolean> = _isBottomNavExpanded.asStateFlow()
+
+    private val _desktopAddress = MutableStateFlow("")
+    val desktopAddress: StateFlow<String> = _desktopAddress.asStateFlow()
+
+    private val _showWifiServerDialog = MutableStateFlow(false)
+    val showWifiServerDialog: StateFlow<Boolean> = _showWifiServerDialog.asStateFlow()
+
+    private val _showWifiImportDialog = MutableStateFlow(false)
+    val showWifiImportDialog: StateFlow<Boolean> = _showWifiImportDialog.asStateFlow()
+
+    private val _wifiServerAddress = MutableStateFlow<String?>(null)
+    val wifiServerAddress: StateFlow<String?> = _wifiServerAddress.asStateFlow()
+
+    private val wifiSyncServer = WifiSyncServer(syncRepo, application)
+
+    private val listBeingMovedId = savedStateHandle.getStateFlow<String?>(LIST_BEING_MOVED_ID_KEY, null)
+
+    private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
+    private val _listChooserFilterText = MutableStateFlow("")
+
+    private val _showSearchDialog = MutableStateFlow(false)
+    val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
+    // --- КІНЕЦЬ ВІДНОВЛЕНИХ ЗМІННИХ ---
+
+    private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
+    val searchResults = _searchResults.asStateFlow()
 
     private val _isReadyForFiltering = MutableStateFlow(false)
     private val _highlightedListId = MutableStateFlow<String?>(null)
@@ -135,13 +178,15 @@ class GoalListViewModel @Inject constructor(
     val isSearchActive = _isSearchActive.asStateFlow()
     private val _planningMode = MutableStateFlow<PlanningMode>(PlanningMode.All)
     val planningMode = _planningMode.asStateFlow()
-    private val _expandedInSearchMode = MutableStateFlow<Set<String>?>(null)
+
     private val _expandedInDailyMode = MutableStateFlow<Set<String>?>(null)
     private val _expandedInMediumMode = MutableStateFlow<Set<String>?>(null)
     private val _expandedInLongMode = MutableStateFlow<Set<String>?>(null)
+
     val obsidianVaultName: StateFlow<String> =
         settingsRepo.obsidianVaultNameFlow
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     val planningSettingsState: StateFlow<PlanningSettingsState> =
         combine(
             settingsRepo.showPlanningModesFlow,
@@ -188,6 +233,7 @@ class GoalListViewModel @Inject constructor(
             planningSettingsState,
             _isReadyForFiltering
         ) { values ->
+            @Suppress("UNCHECKED_CAST")
             val flatList = values[0] as List<GoalList>
             val query = values[1] as String
             val searchActive = values[2] as Boolean
@@ -209,217 +255,159 @@ class GoalListViewModel @Inject constructor(
     val listHierarchy: StateFlow<ListHierarchyData> =
         combine(
             filterStateFlow,
-            _expandedInSearchMode,
             _expandedInDailyMode,
             _expandedInMediumMode,
             _expandedInLongMode,
-        ) { filterState, expandedSearch, expandedDaily, expandedMedium, expandedLong ->
+        ) { filterState, expandedDaily, expandedMedium, expandedLong ->
             try {
-                val (flatList, query, searchActive, mode, settings) = filterState
-                val isFilterActive = (searchActive && query.isNotBlank()) || (mode != PlanningMode.All)
+                val (flatList, _, _, mode, settings) = filterState
+                val isPlanningModeActive = mode != PlanningMode.All
 
-                if (!isFilterActive) {
+                if (!isPlanningModeActive) {
                     val topLevel = flatList.filter { it.parentId == null }.sortedBy { it.order }
                     val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
-                    val displayLists = flatList.map { list -> list.copy(isExpanded = list.isExpanded) }
-                    return@combine ListHierarchyData(allLists = displayLists, topLevelLists = topLevel, childMap = childMap)
+                    return@combine ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
                 }
 
                 val listLookup = flatList.associateBy { it.id }
-                val fullChildMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
 
-                val matchingLists =
-                    if (searchActive && query.isNotBlank()) {
-                        if (query.length > 3) {
-                            flatList.filter { fuzzyMatch(query, it.name) }
-                        } else {
-                            flatList.filter { it.name.contains(query, ignoreCase = true) }
-                        }
-                    } else {
-                        val targetTag =
-                            when (mode) {
-                                PlanningMode.Daily -> settings.dailyTag
-                                PlanningMode.Medium -> settings.mediumTag
-                                PlanningMode.Long -> settings.longTag
-                                else -> null
-                            }
-                        if (targetTag != null) flatList.filter { it.tags?.contains(targetTag) == true } else emptyList()
-                    }
-
-                val descendantIds = mutableSetOf<String>()
-                val ancestorIds = mutableSetOf<String>()
-                val visitedAncestors = mutableSetOf<String>()
-                val visitedDescendants = mutableSetOf<String>()
-
-                matchingLists.forEach { list ->
-                    findAncestorsRecursive(list.id, listLookup, ancestorIds, visitedAncestors)
-                    findDescendantsRecursive(list.id, fullChildMap, descendantIds, visitedDescendants)
-                }
-
-                val visibleIds =
-                    mutableSetOf<String>().apply {
-                        addAll(ancestorIds)
-                        addAll(descendantIds)
-                        addAll(matchingLists.map { it.id })
-                    }
-
-                val currentExpandedState =
-                    when {
-                        searchActive -> expandedSearch
-                        mode is PlanningMode.Daily -> expandedDaily
-                        mode is PlanningMode.Medium -> expandedMedium
-                        mode is PlanningMode.Long -> expandedLong
+                val targetTag =
+                    when (mode) {
+                        PlanningMode.Daily -> settings.dailyTag
+                        PlanningMode.Medium -> settings.mediumTag
+                        PlanningMode.Long -> settings.longTag
                         else -> null
                     }
+                val matchingLists = if (targetTag != null) flatList.filter { it.tags?.contains(targetTag) == true } else emptyList()
+
+                val ancestorIds = mutableSetOf<String>()
+                val visitedAncestors = mutableSetOf<String>()
+                matchingLists.forEach { list ->
+                    findAncestorsRecursive(list.id, listLookup, ancestorIds, visitedAncestors)
+                }
+
+                val visibleIds = ancestorIds + matchingLists.map { it.id }
+
+                val currentExpandedState = when (mode) {
+                    is PlanningMode.Daily -> expandedDaily
+                    is PlanningMode.Medium -> expandedMedium
+                    is PlanningMode.Long -> expandedLong
+                    else -> null
+                }
+
                 val shouldInitialize = currentExpandedState == null && matchingLists.isNotEmpty()
                 val currentExpandedIds = if (shouldInitialize) ancestorIds else (currentExpandedState ?: emptySet())
 
                 if (shouldInitialize) {
-                    val expandedSetToInitialize = ancestorIds
-                    when {
-                        searchActive -> _expandedInSearchMode.value = expandedSetToInitialize
-                        mode is PlanningMode.Daily -> _expandedInDailyMode.value = expandedSetToInitialize
-                        mode is PlanningMode.Medium -> _expandedInMediumMode.value = expandedSetToInitialize
-                        mode is PlanningMode.Long -> _expandedInLongMode.value = expandedSetToInitialize
+                    when (mode) {
+                        is PlanningMode.Daily -> _expandedInDailyMode.value = ancestorIds
+                        is PlanningMode.Medium -> _expandedInMediumMode.value = ancestorIds
+                        is PlanningMode.Long -> _expandedInLongMode.value = ancestorIds
+                        else -> Unit
                     }
                 }
 
                 val visibleLists = flatList.filter { it.id in visibleIds }
-
-                val displayLists =
-                    visibleLists.map { list ->
-                        list.copy(isExpanded = currentExpandedIds.contains(list.id))
-                    }
+                val displayLists = visibleLists.map { list -> list.copy(isExpanded = currentExpandedIds.contains(list.id)) }
                 val topLevel = displayLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
                 val childMap = displayLists.filter { it.parentId != null }.groupBy { it.parentId!! }
 
                 return@combine ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
             } catch (e: Exception) {
-                Log.e("FLOW_DEBUG", "!!! Exception in combine block !!!", e)
+                Log.e("GoalListViewModel_DEBUG", "Exception in listHierarchy combine block", e)
                 return@combine ListHierarchyData()
             }
         }.flowOn(Dispatchers.Default)
             .catch { e ->
-                Log.e("FLOW_DEBUG", "!!! Exception in upstream flow or dispatcher !!!", e)
+                Log.e("GoalListViewModel_DEBUG", "Exception in listHierarchy flow", e)
                 emit(ListHierarchyData())
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
-    private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
-    val listChooserUserExpandedIds = _listChooserUserExpandedIds.asStateFlow()
-    private val _listChooserFilterText = MutableStateFlow("")
-    val listChooserFilterText = _listChooserFilterText.asStateFlow()
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val debouncedListChooserFilterText =
-        listChooserFilterText
-            .debounce(300L)
-            .distinctUntilChanged()
-
-    val fullHierarchyForDialog: StateFlow<ListHierarchyData> =
-        listHierarchy
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
-
-    val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
-        combine(debouncedListChooserFilterText, fullHierarchyForDialog) { filter, originalHierarchy ->
-            HierarchyFilter.filter(originalHierarchy, filter)
-        }.flowOn(Dispatchers.Default)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+    private val _collapsedAncestorsOnFocus = MutableStateFlow<Set<String>>(emptySet())
 
     val listChooserFinalExpandedIds: StateFlow<Set<String>> =
         combine(
-            debouncedListChooserFilterText,
-            filteredListHierarchyForDialog,
-            listChooserUserExpandedIds,
-        ) { filter, filteredHierarchy, userExpanded ->
-            if (filter.isBlank()) {
-                userExpanded
-            } else {
-                val forcedExpansion = filteredHierarchy.childMap.keys
-                userExpanded + forcedExpansion
+            _listChooserUserExpandedIds,
+            _allListsFlat,
+            listBeingMovedId
+        ) { userExpanded, allLists, movingId ->
+            if (movingId == null) return@combine emptySet<String>()
+
+            val listLookup = allLists.associateBy { it.id }
+            val ancestorIds = mutableSetOf<String>()
+            val visitedAncestors = mutableSetOf<String>()
+            findAncestorsRecursive(movingId, listLookup, ancestorIds, visitedAncestors)
+
+            // Combine user expanded IDs with auto-expanded ancestor IDs
+            userExpanded + ancestorIds
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
+        combine(
+            _allListsFlat,
+            _listChooserFilterText,
+            listBeingMovedId
+        ) { allLists, filterText, movingId ->
+            if (movingId == null) {
+                return@combine ListHierarchyData()
             }
-        }.flowOn(Dispatchers.Default)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
-    val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
-    private val _showWifiServerDialog = MutableStateFlow(false)
-    val showWifiServerDialog: StateFlow<Boolean> = _showWifiServerDialog.asStateFlow()
-    private val _showWifiImportDialog = MutableStateFlow(false)
-    val showWifiImportDialog: StateFlow<Boolean> = _showWifiImportDialog.asStateFlow()
-    private val _wifiServerAddress = MutableStateFlow<String?>(null)
-    val wifiServerAddress: StateFlow<String?> = _wifiServerAddress.asStateFlow()
-    private val _desktopAddress = MutableStateFlow("")
-    val desktopAddress: StateFlow<String> = _desktopAddress.asStateFlow()
-
-    private val _uiEventChannel = Channel<GoalListUiEvent>()
-    val uiEventFlow = _uiEventChannel.receiveAsFlow()
-    private val wifiSyncServer = WifiSyncServer(syncRepo, application)
-
-    private val listBeingMovedId = savedStateHandle.getStateFlow<String?>(LIST_BEING_MOVED_ID_KEY, null)
-
-    private val reservedContextKeyMap =
-        mapOf(
-            "buy" to (SettingsRepository.ContextKeys.BUY to SettingsRepository.ContextKeys.EMOJI_BUY),
-            "pm" to (SettingsRepository.ContextKeys.PM to SettingsRepository.ContextKeys.EMOJI_PM),
-            "paper" to (SettingsRepository.ContextKeys.PAPER to SettingsRepository.ContextKeys.EMOJI_PAPER),
-            "mental" to (SettingsRepository.ContextKeys.MENTAL to SettingsRepository.ContextKeys.EMOJI_MENTAL),
-            "providence" to (SettingsRepository.ContextKeys.PROVIDENCE to SettingsRepository.ContextKeys.EMOJI_PROVIDENCE),
-            "manual" to (SettingsRepository.ContextKeys.MANUAL to SettingsRepository.ContextKeys.EMOJI_MANUAL),
-            "research" to (SettingsRepository.ContextKeys.RESEARCH to SettingsRepository.ContextKeys.EMOJI_RESEARCH),
-            "device" to (SettingsRepository.ContextKeys.DEVICE to SettingsRepository.ContextKeys.EMOJI_DEVICE),
-            "middle" to (SettingsRepository.ContextKeys.MIDDLE to SettingsRepository.ContextKeys.EMOJI_MIDDLE),
-            "long" to (SettingsRepository.ContextKeys.LONG to SettingsRepository.ContextKeys.EMOJI_LONG),
-        )
-
-    val allContextsForDialog: StateFlow<List<UiContext>> =
-        settingsRepo.customContextNamesFlow
-            .flatMapLatest { customNames ->
-                val reservedFlows =
-                    reservedContextKeyMap.map { (name, keys) ->
-                        combine(
-                            settingsRepo.getContextTagFlow(keys.first),
-                            settingsRepo.getContextEmojiFlow(keys.second),
-                        ) { tag, emoji -> UiContext(name = name, tag = tag, emoji = emoji, isReserved = true) }
-                    }
-                val customFlows =
-                    customNames.map { name ->
-                        combine(
-                            settingsRepo.getCustomContextTagFlow(name),
-                            settingsRepo.getCustomContextEmojiFlow(name),
-                        ) { tag, emoji -> UiContext(name = name, tag = tag, emoji = emoji, isReserved = false) }
-                    }
-                combine(reservedFlows + customFlows) { it.toList().sortedBy { c -> c.name } }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private val _collapsedAncestorsOnFocus = MutableStateFlow<Set<String>>(emptySet())
-
-    fun saveAllContexts(updatedContexts: List<UiContext>) {
-        viewModelScope.launch {
-            updatedContexts.filter { it.isReserved }.forEach { context ->
-                reservedContextKeyMap[context.name]?.let { (tagKey, emojiKey) ->
-                    async { settingsRepo.saveContextTag(tagKey, context.tag.trim()) }
-                    async { settingsRepo.saveContextEmoji(emojiKey, context.emoji.trim()) }
+            val filteredLists = if (filterText.isBlank()) {
+                allLists
+            } else {
+                allLists.filter {
+                    it.name.contains(filterText, ignoreCase = true) ||
+                            fuzzyMatch(filterText, it.name)
                 }
             }
-            val initialCustomNames = settingsRepo.customContextNamesFlow.first()
-            val finalCustomNames = updatedContexts.filter { !it.isReserved }.map { it.name }.toSet()
-            val deletedNames = initialCustomNames - finalCustomNames
-            deletedNames.forEach { name ->
-                async { settingsRepo.deleteCustomContext(name) }
-            }
-            updatedContexts.filter { !it.isReserved }.forEach { context ->
-                async { settingsRepo.saveCustomContextTag(context.name, context.tag.trim()) }
-                async { settingsRepo.saveCustomContextEmoji(context.name, context.emoji.trim()) }
-            }
-            settingsRepo.saveCustomContextNames(finalCustomNames)
-            contextHandler.initialize()
-        }
-    }
 
-    private val _isBottomNavExpanded = MutableStateFlow(false)
-    val isBottomNavExpanded: StateFlow<Boolean> = _isBottomNavExpanded.asStateFlow()
+            val topLevel = filteredLists.filter { it.parentId == null }.sortedBy { it.order }
+            val childMap = filteredLists.filter { it.parentId != null }.groupBy { it.parentId!! }
 
+            ListHierarchyData(
+                allLists = filteredLists,
+                topLevelLists = topLevel,
+                childMap = childMap
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+    val allContextsForDialog: StateFlow<List<UiContext>> =
+        contextHandler.allContextsFlow
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // --- БЛОК INIT ВИПРАВЛЕНО ---
     init {
+        // Запускає довготривалу операцію збору даних для пошуку
+        viewModelScope.launch {
+            filterStateFlow.collect { state ->
+                if (state.searchActive && state.query.isNotBlank()) {
+                    val allLists = _allListsFlat.first()
+                    val fullHierarchy = ListHierarchyData(
+                        allLists = allLists,
+                        topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order },
+                        childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+                    )
+
+                    val matchingLists = if (state.query.length > 3) {
+                        allLists.filter { fuzzyMatch(state.query, it.name) }
+                    } else {
+                        allLists.filter { it.name.contains(state.query, ignoreCase = true) }
+                    }
+
+                    val results = matchingLists.map { list ->
+                        SearchResult(
+                            list = list,
+                            path = buildPathToList(list.id, fullHierarchy)
+                        )
+                    }
+                    _searchResults.value = results.sortedBy { it.list.name }
+                } else {
+                    _searchResults.value = emptyList()
+                }
+            }
+        }
+
+        // Виконує решту початкових налаштувань
         viewModelScope.launch {
             settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
                 _isBottomNavExpanded.value = savedState
@@ -427,6 +415,41 @@ class GoalListViewModel @Inject constructor(
             withContext(ioDispatcher) {
                 _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
                 contextHandler.initialize()
+            }
+        }
+    }
+
+    // ... всередині класу GoalListViewModel
+
+    fun onSearchResultClick(listId: String) {
+        viewModelScope.launch {
+            // 1. Вимикаємо режим пошуку, щоб повернутися до основного екрана.
+            onToggleSearch(false)
+
+            // 2. Будуємо повну ієрархію з актуальних даних, щоб уникнути затримок.
+            val allLists = _allListsFlat.first()
+            val fullHierarchy = ListHierarchyData(
+                allLists = allLists,
+                topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order },
+                childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+            )
+
+            // 3. Знаходимо шлях до елемента і визначаємо його рівень вкладеності.
+            val path = buildPathToList(listId, fullHierarchy)
+            val level = if (path.isEmpty()) 0 else path.last().level
+
+            // Отримуємо поточні налаштування відображення ієрархії.
+            val settings = hierarchySettings.value
+
+            // 4. Приймаємо рішення, як саме відкрити список.
+            if (level >= settings.useBreadcrumbsAfter) {
+                // ІНТЕЛЕКТУАЛЬНИЙ ВИБІР: Рівень занадто глибокий - використовуємо "хлібні крихти".
+                // Ця функція активує режим фокусування.
+                navigateToList(listId)
+            } else {
+                // ІНТЕЛЕКТУАЛЬНИЙ ВИБІР: Елемент неглибоко - розгортаємо ієрархію.
+                // Ця функція розгортає дерево і прокручує до елемента.
+                processRevealRequest(listId)
             }
         }
     }
@@ -549,16 +572,21 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
+    // File: MainScreenViewModel.kt
+
     fun onToggleExpanded(list: GoalList) {
-        if (isSearchActive.value || planningMode.value != PlanningMode.All) {
+        // Логіка тепер розділена на два випадки: або активний режим планування, або звичайний режим.
+        // Режим пошуку тут більше не враховується.
+        if (planningMode.value != PlanningMode.All) {
             val currentStateFlow =
-                when {
-                    isSearchActive.value -> _expandedInSearchMode
-                    planningMode.value is PlanningMode.Daily -> _expandedInDailyMode
-                    planningMode.value is PlanningMode.Medium -> _expandedInMediumMode
-                    planningMode.value is PlanningMode.Long -> _expandedInLongMode
-                    else -> return
+                // 'when' тепер перевіряє безпосередньо значення planningMode.value
+                when (planningMode.value) {
+                    is PlanningMode.Daily -> _expandedInDailyMode
+                    is PlanningMode.Medium -> _expandedInMediumMode
+                    is PlanningMode.Long -> _expandedInLongMode
+                    else -> return // Для PlanningMode.All цей блок не виконується
                 }
+
             val currentExpanded = (currentStateFlow.value ?: emptySet()).toMutableSet()
             if (list.isExpanded) {
                 currentExpanded.remove(list.id)
@@ -566,20 +594,21 @@ class GoalListViewModel @Inject constructor(
                 currentExpanded.add(list.id)
             }
             currentStateFlow.value = currentExpanded
+
         } else {
+            // Логіка для звичайного режиму (PlanningMode.All), яка напряму оновлює базу даних
             viewModelScope.launch {
                 goalRepository.updateGoalList(list.copy(isExpanded = !list.isExpanded))
             }
         }
     }
+// File: MainScreenViewModel.kt
 
     fun onSearchQueryChanged(query: TextFieldValue) {
         _searchQuery.value = query
-        if (query.text.isBlank() && _expandedInSearchMode.value != null) {
-            _expandedInSearchMode.value = null
-        }
+        // Блок if, що посилався на _expandedInSearchMode, повністю видалено,
+        // оскільки він більше не потрібен у новій архітектурі пошуку.
     }
-
     fun onShowWifiServerDialog() {
         _wifiServerAddress.value = null
         _showWifiServerDialog.value = true
@@ -726,8 +755,7 @@ class GoalListViewModel @Inject constructor(
     fun onDismissWifiServerDialog() { _showWifiServerDialog.value = false; stopWifiServer() }
     fun onShowWifiImportDialog() { _showWifiImportDialog.value = true }
     fun onDismissWifiImportDialog() { _showWifiImportDialog.value = false }
-    private val _showSearchDialog = MutableStateFlow(false)
-    val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
+
     fun onShowSearchDialog() { _showSearchDialog.value = true }
     fun onDismissSearchDialog() { _showSearchDialog.value = false }
     fun onPerformGlobalSearch(query: String) {
@@ -980,5 +1008,21 @@ class GoalListViewModel @Inject constructor(
 
         return false // Не знайшли жодного нащадка з довгим іменем
     }
+// File: ui/screens/mainscreen/GoalListViewModel.kt
 
+// ... всередині класу GoalListViewModel
+
+    fun saveAllContexts(updatedContexts: List<UiContext>) {
+        viewModelScope.launch {
+            // 1. Відфільтровуємо лише кастомні контексти, оскільки зарезервовані незмінні
+            val customContextsToSave = updatedContexts.filter { !it.isReserved }
+
+            // 2. Делегуємо збереження репозиторію налаштувань
+            settingsRepo.saveCustomContexts(customContextsToSave)
+
+            // 3. Після збереження, повторно ініціалізуємо ContextHandler,
+            // щоб він завантажив оновлені дані і UI оновився.
+            contextHandler.initialize()
+        }
+    }
 }
