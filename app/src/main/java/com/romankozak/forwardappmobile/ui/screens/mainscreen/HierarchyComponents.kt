@@ -202,15 +202,18 @@ fun SmartHierarchyView(
         AnnotatedString(list.name)
     }
 
+    // --- ЗМІНА: Логіка перенесена сюди ---
+    // Вирішуємо, чи показувати кнопку фокусування.
+    // Показуємо, якщо є дочірні елементи і рівень досяг або перевищив поріг.
+    val shouldShowFocusButton = hasChildren && level >= settings.useBreadcrumbsAfter
+
     Column {
         DraggableItem(
             state = dragAndDropState,
             key = list.id,
             data = list,
             dragAfterLongPress = true
-        ) { // ВИПРАВЛЕНО: Лямбда БЕЗ параметра isDragging
-            // isDragging тепер доступний напряму з DraggableItemScope
-
+        ) {
             val draggedItemData = dragAndDropState.draggedItem?.data
             val isDropAllowed = remember(draggedItemData, list) {
                 draggedItemData == null || (draggedItemData.parentId == list.parentId)
@@ -225,28 +228,23 @@ fun SmartHierarchyView(
             }
 
             Box(modifier = Modifier.fillMaxWidth()) {
-                // GoalListRow тепер знаходиться всередині Box, щоб накласти на нього drop targets
                 GoalListRow(
                     list = list,
                     level = level,
                     hasChildren = hasChildren,
-                    onListClick = { listId ->
-                        if (hasChildren && (level >= settings.maxCollapsibleLevels)) {
-                            onNavigateToList(listId)
-                        } else {
-                            viewModel.onListClicked(listId)
-                        }
-                    },
+                    // --- ЗМІНИ ---
+                    onListClick = { listId -> viewModel.onListClicked(listId) }, // Клік завжди відкриває деталі
                     onToggleExpanded = { goalList -> viewModel.onToggleExpanded(goalList) },
                     onMenuRequested = { goalList -> viewModel.onMenuRequested(goalList) },
-                    isCurrentlyDragging = isDragging, // ВИПРАВЛЕНО: isDragging тепер доступний напряму
+                    isCurrentlyDragging = isDragging,
                     isHovered = isHovered,
                     isDraggingDown = isDraggingDown,
                     isHighlighted = list.id == highlightedListId,
-                    displayName = displayName
+                    displayName = displayName,
+                    showFocusButton = shouldShowFocusButton, // Передаємо видимість кнопки
+                    onFocusRequested = { onNavigateToList(it.id) } // Передаємо дію для кнопки
                 )
 
-                // Drop targets для переміщення
                 if (!isDragging) {
                     Column(modifier = Modifier.matchParentSize()) {
                         val dropModifier = { position: DropPosition ->
@@ -255,15 +253,8 @@ fun SmartHierarchyView(
                                 .weight(1f)
                                 .then(
                                     if (isDropAllowed) {
-                                        Modifier.dropTarget(
-                                            state = dragAndDropState,
-                                            key = "$position-${list.id}"
-                                        ) { draggedItemState ->
-                                            viewModel.onListReorder(
-                                                fromId = draggedItemState.data.id,
-                                                toId = list.id,
-                                                position = position
-                                            )
+                                        Modifier.dropTarget(state = dragAndDropState, key = "$position-${list.id}") {
+                                            viewModel.onListReorder(it.data.id, list.id, position)
                                         }
                                     } else Modifier
                                 )
@@ -275,9 +266,8 @@ fun SmartHierarchyView(
             }
         }
 
-        // Рекурсивно показуємо дочірні елементи
-        if (list.isExpanded && level < settings.maxCollapsibleLevels) {
-            // Додаємо відступ для дочірніх елементів
+        if (list.isExpanded) {
+            // Залишаємо відступ для дочірніх елементів, щоб зберегти візуальну ієрархію
             Column(modifier = Modifier.padding(start = 24.dp)) {
                 children.forEach { child ->
                     SmartHierarchyView(
@@ -310,16 +300,21 @@ fun FocusedListView(
     highlightedListId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
-    onNavigateToList: (String) -> Unit
+    onNavigateToList: (String) -> Unit,
+    onFocusedHeaderClick: (String) -> Unit // <-- ЗМІНА: Додано новий параметр
 ) {
     val focusedList = hierarchy.allLists.find { it.id == focusedListId }
     val children = (hierarchy.childMap[focusedListId] ?: emptyList()).sortedBy { it.order }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
+        // Заголовок сфокусованого списку
         focusedList?.let { list ->
             item(key = "focused_header") {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // <-- ЗМІНА: Додано .clickable
+                        .clickable { onFocusedHeaderClick(list.id) },
                     color = MaterialTheme.colorScheme.surfaceContainerHigh
                 ) {
                     Row(
@@ -343,13 +338,13 @@ fun FocusedListView(
             }
         }
 
+        // Список дочірніх елементів (без змін)
         if (children.isNotEmpty()) {
             items(children, key = { it.id }) { child ->
-                // У сфокусованому режимі кожен елемент також є Draggable
                 SmartHierarchyView(
                     list = child,
                     childMap = hierarchy.childMap,
-                    level = 0, // Починаємо з 0 у фокусованому виді
+                    level = 0,
                     dragAndDropState = dragAndDropState,
                     viewModel = viewModel,
                     isSearchActive = isSearchActive,
