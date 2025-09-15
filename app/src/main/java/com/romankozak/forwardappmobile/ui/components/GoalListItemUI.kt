@@ -12,16 +12,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.FilterCenterFocus
-import androidx.compose.material.icons.outlined.ZoomInMap
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -44,10 +41,8 @@ fun GoalListRow(
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
-    // --- ЗМІНИ ---
-    showFocusButton: Boolean, // Новий параметр для контролю видимості кнопки
-    onFocusRequested: (list: GoalList) -> Unit, // Нова дія для кнопки
-    // ---
+    showFocusButton: Boolean,
+    onFocusRequested: (list: GoalList) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
 ) {
@@ -57,7 +52,6 @@ fun GoalListRow(
         label = "Highlight Animation",
     )
 
-    // Відступ тепер застосовується до самого Row, а не до Column
     val indentation = (level * 24).dp
 
     Column(
@@ -75,7 +69,7 @@ fun GoalListRow(
                 .fillMaxWidth()
                 .clickable { onListClick(list.id) }
                 .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                .padding(start = indentation) // Відступ тут
+                .padding(start = indentation)
                 .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -91,27 +85,45 @@ fun GoalListRow(
                 }
             }
 
-            Text(
-                text = displayName ?: AnnotatedString(list.name),
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge,
-            )
+            // --- ЗМІНА: Логіка відображення тексту/іконки ---
+            Box(modifier = Modifier.weight(1f)) {
+                var textDidOverflow by remember(displayName) { mutableStateOf(false) }
 
-            // --- ЗМІНА: Нова іконка для фокусування ---
+                if (textDidOverflow) {
+                    // Якщо текст не вміщується, показуємо іконку "..."
+                    Icon(
+                        imageVector = Icons.Default.MoreHoriz,
+                        contentDescription = "Назва задовга: ${displayName?.text ?: list.name}",
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                } else {
+                    // Інакше показуємо текст і перевіряємо, чи він вміщується
+                    Text(
+                        text = displayName ?: AnnotatedString(list.name),
+                        maxLines = 1,
+                        softWrap = false, // Важливо: забороняємо перенос на новий рядок
+                        overflow = TextOverflow.Clip, // Можна Clip або Visible, головне - не Ellipsis
+                        style = MaterialTheme.typography.bodyLarge,
+                        onTextLayout = { textLayoutResult ->
+                            // Оновлюємо стан, якщо текст "виліз" за межі
+                            textDidOverflow = textLayoutResult.didOverflowWidth
+                        }
+                    )
+                }
+            }
+            // --- Кінець змін ---
+
+
             AnimatedVisibility(visible = showFocusButton, enter = fadeIn(), exit = fadeOut()) {
                 IconButton(onClick = { onFocusRequested(list) }) {
                     Icon(
-                        imageVector = Icons.Default.ChevronRight,
+                        imageVector = Icons.Outlined.OpenInNew,
                         contentDescription = "Сфокусуватися",
-                        tint = MaterialTheme.colorScheme.secondary // <-- ЗАМІНІТЬ ЦЕ ЗНАЧЕННЯ
-                 )
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
-            // ---
 
-            // Іконка "Більше"
             IconButton(onClick = { onMenuRequested(list) }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Дії зі списком")
             }
