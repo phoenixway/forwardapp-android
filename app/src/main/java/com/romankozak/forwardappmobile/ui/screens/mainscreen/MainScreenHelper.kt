@@ -1,26 +1,17 @@
+// File: com/romankozak/forwardappmobile/ui/screens/mainscreen/MainScreenHelper.kt
+// ВИДАЛІТЬ З ЦЬОГО ФАЙЛУ ФУНКЦІЇ:
+// - highlightFuzzy
+// - highlightSubstring
+// - renderGoalList
+
+// Залишитися має лише функція HandleDialogs та її залежності.
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
-import com.mohamedrejeb.compose.dnd.DragAndDropState
-import com.mohamedrejeb.compose.dnd.drag.DraggableItem
-import com.mohamedrejeb.compose.dnd.drop.dropTarget
-import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.ui.components.GoalListRow
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
 import com.romankozak.forwardappmobile.ui.dialogs.AddListDialog
 import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
@@ -29,227 +20,7 @@ import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
 import java.util.*
 
-private fun fuzzyMatchAndGetIndices(query: String, text: String): List<Int>? {
-    if (query.isBlank()) return emptyList()
-    if (text.isBlank()) return null
-
-    val lowerQuery = query.lowercase()
-    val lowerText = text.lowercase()
-
-    val matchedIndices = mutableListOf<Int>()
-    var queryIndex = 0
-    var textIndex = 0
-
-    while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
-        if (lowerQuery[queryIndex] == lowerText[textIndex]) {
-            matchedIndices.add(textIndex)
-            queryIndex++
-        }
-        textIndex++
-    }
-
-    return if (queryIndex == lowerQuery.length) matchedIndices else null
-}
-
-@Composable
-internal fun highlightFuzzy(
-    text: String,
-    query: String,
-): AnnotatedString {
-    if (query.isBlank()) {
-        return AnnotatedString(text)
-    }
-    val matchedIndices = remember(query, text) { fuzzyMatchAndGetIndices(query, text) }
-    if (matchedIndices == null) {
-        return AnnotatedString(text)
-    }
-    return buildAnnotatedString {
-        val indicesSet = matchedIndices.toSet()
-        text.forEachIndexed { index, char ->
-            if (index in indicesSet) {
-                withStyle(
-                    style = SpanStyle(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                    ),
-                ) {
-                    append(char)
-                }
-            } else {
-                append(char)
-            }
-        }
-    }
-}
-
-@Composable
-internal fun highlightSubstring(
-    text: String,
-    query: String,
-): AnnotatedString {
-    if (query.isBlank()) {
-        return AnnotatedString(text)
-    }
-    val startIdx = text.indexOf(query, ignoreCase = true)
-    if (startIdx == -1) {
-        return AnnotatedString(text)
-    }
-    return buildAnnotatedString {
-        append(text.substring(0, startIdx))
-        withStyle(
-            style = SpanStyle(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            )
-        ) {
-            append(text.substring(startIdx, startIdx + query.length))
-        }
-        append(text.substring(startIdx + query.length))
-    }
-}
-
-fun LazyListScope.renderGoalList(
-    lists: List<GoalList>,
-    childMap: Map<String, List<GoalList>>,
-    level: Int,
-    dragAndDropState: DragAndDropState<GoalList>,
-    viewModel: GoalListViewModel,
-    allListsFlat: List<GoalList>,
-    isSearchActive: Boolean,
-    planningMode: PlanningMode,
-    highlightedListId: String?,
-    searchQuery: String,
-) {
-    lists.forEach { list ->
-        item(key = list.id) {
-            val draggedItemData = dragAndDropState.draggedItem?.data
-
-            val isDropAllowed =
-                remember(draggedItemData, list) {
-                    draggedItemData == null || draggedItemData.parentId == list.parentId
-                }
-
-            val displayName = if (isSearchActive && searchQuery.isNotEmpty()) {
-                if (searchQuery.length > 3) {
-                    highlightFuzzy(text = list.name, query = searchQuery)
-                } else {
-                    highlightSubstring(text = list.name, query = searchQuery)
-                }
-            } else {
-                AnnotatedString(list.name)
-            }
-
-            DraggableItem(
-                state = dragAndDropState,
-                key = list.id,
-                data = list,
-                dragAfterLongPress = true,
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    GoalListRow(
-                        list = list,
-                        level = level,
-                        hasChildren = childMap.containsKey(list.id),
-                        onListClick = { viewModel.onListClicked(it) },
-                        onToggleExpanded = { viewModel.onToggleExpanded(it) },
-                        onMenuRequested = { viewModel.onMenuRequested(it) },
-                        isCurrentlyDragging = isDragging,
-                        isHovered =
-                            isDropAllowed && (
-                                    dragAndDropState.hoveredDropTargetKey == "before-${list.id}" ||
-                                            dragAndDropState.hoveredDropTargetKey == "after-${list.id}"
-                                    ),
-                        isDraggingDown = false,
-                        isHighlighted = list.id == highlightedListId,
-                        displayName = displayName,
-                    )
-
-                    Column(modifier = Modifier.matchParentSize()) {
-                        val dropModifierBefore =
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .then(
-                                    if (isDropAllowed) {
-                                        Modifier.dropTarget(
-                                            state = dragAndDropState,
-                                            key = "before-${list.id}",
-                                        ) { draggedItemState ->
-                                            viewModel.onListReorder(
-                                                fromId = draggedItemState.data.id,
-                                                toId = list.id,
-                                                position = DropPosition.BEFORE,
-                                            )
-                                        }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-
-                        val dropModifierAfter =
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .then(
-                                    if (isDropAllowed) {
-                                        Modifier.dropTarget(
-                                            state = dragAndDropState,
-                                            key = "after-${list.id}",
-                                        ) { draggedItemState ->
-                                            viewModel.onListReorder(
-                                                fromId = draggedItemState.data.id,
-                                                toId = list.id,
-                                                position = DropPosition.AFTER,
-                                            )
-                                        }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-                        Box(modifier = dropModifierBefore)
-                        Box(modifier = dropModifierAfter)
-                    }
-                }
-            }
-        }
-        if (list.isExpanded) {
-            val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
-            if (children.isNotEmpty()) {
-                renderGoalList(
-                    lists = children,
-                    childMap = childMap,
-                    level = level + 1,
-                    dragAndDropState = dragAndDropState,
-                    viewModel = viewModel,
-                    allListsFlat = allListsFlat,
-                    isSearchActive = isSearchActive,
-                    planningMode = planningMode,
-                    highlightedListId = highlightedListId,
-                    searchQuery = searchQuery,
-                )
-            }
-        }
-    }
-}
-
-fun getDescendantIds(
-    listId: String,
-    childMap: Map<String, List<GoalList>>,
-): Set<String> {
-    val descendants = mutableSetOf<String>()
-    val queue = ArrayDeque<String>()
-    queue.add(listId)
-    while (queue.isNotEmpty()) {
-        val currentId = queue.removeFirst()
-        childMap[currentId]?.forEach { child ->
-            descendants.add(child.id)
-            queue.add(child.id)
-        }
-    }
-    return descendants
-}
+// --- renderGoalList, highlightFuzzy, highlightSubstring видалені звідси ---
 
 @Composable
 fun HandleDialogs(
@@ -278,7 +49,6 @@ fun HandleDialogs(
                 },
             )
         }
-
         is DialogState.ContextMenu -> {
             ContextMenuDialog(
                 list = state.list,
@@ -289,48 +59,31 @@ fun HandleDialogs(
                 onEditRequest = { viewModel.onEditRequest(it) },
             )
         }
-
         is DialogState.ConfirmDelete -> {
             AlertDialog(
                 onDismissRequest = { viewModel.dismissDialog() },
                 title = { Text("Delete list?") },
-                text = {
-                    Text(
-                        "Are you sure you want to delete '${state.list.name}' and all its sublists and goals? This action cannot be undone.",
-                    )
-                },
+                text = { Text("Are you sure you want to delete '${state.list.name}' and all its sublists and goals? This action cannot be undone.") },
                 confirmButton = { Button(onClick = { viewModel.onDeleteListConfirmed(state.list) }) { Text("Delete") } },
                 dismissButton = { TextButton(onClick = { viewModel.dismissDialog() }) { Text("Cancel") } },
             )
         }
-        is DialogState.EditList -> {
-        }
+        is DialogState.EditList -> {}
         is DialogState.AboutApp -> {
             AboutAppDialog(stats) { viewModel.dismissDialog() }
         }
-
         is DialogState.ConfirmFullImport -> {
             AlertDialog(
                 onDismissRequest = { viewModel.dismissDialog() },
                 title = { Text("Restore from backup?") },
-                text = {
-                    Text(
-                        "WARNING: All current data in the application will be deleted and replaced with data from the backup file. This action cannot be undone.",
-                    )
-                },
+                text = { Text("WARNING: All current data will be deleted and replaced with data from the backup file. This action cannot be undone.") },
                 confirmButton = {
                     Button(
                         onClick = { viewModel.onFullImportConfirmed(state.uri) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    ) {
-                        Text("Delete and Restore")
-                    }
+                    ) { Text("Delete and Restore") }
                 },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.dismissDialog() }) {
-                        Text("Cancel")
-                    }
-                },
+                dismissButton = { TextButton(onClick = { viewModel.dismissDialog() }) { Text("Cancel") } },
             )
         }
     }

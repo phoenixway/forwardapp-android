@@ -5,6 +5,8 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,40 +32,18 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import javax.inject.Inject
-import javax.inject.Qualifier
 
+// --- Sealed classes, data classes, etc. ---
 sealed class GoalListUiEvent {
-    data class NavigateToSyncScreenWithData(
-        val json: String,
-    ) : GoalListUiEvent()
-
-    data class NavigateToDetails(
-        val listId: String,
-    ) : GoalListUiEvent()
-
-    data class NavigateToGlobalSearch(
-        val query: String,
-    ) : GoalListUiEvent()
-
+    data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
+    data class NavigateToDetails(val listId: String) : GoalListUiEvent()
+    data class NavigateToGlobalSearch(val query: String) : GoalListUiEvent()
     object NavigateToSettings : GoalListUiEvent()
-
-    data class ShowToast(
-        val message: String,
-    ) : GoalListUiEvent()
-
-    data class ScrollToIndex(
-        val index: Int,
-    ) : GoalListUiEvent()
-
+    data class ShowToast(val message: String) : GoalListUiEvent()
+    data class ScrollToIndex(val index: Int) : GoalListUiEvent()
     object FocusSearchField : GoalListUiEvent()
-
-    data class NavigateToEditListScreen(
-        val listId: String,
-    ) : GoalListUiEvent()
-
-    data class Navigate(
-        val route: String,
-    ) : GoalListUiEvent()
+    data class NavigateToEditListScreen(val listId: String) : GoalListUiEvent()
+    data class Navigate(val route: String) : GoalListUiEvent()
 }
 
 sealed class PlanningMode {
@@ -73,10 +53,7 @@ sealed class PlanningMode {
     object Long : PlanningMode()
 }
 
-data class AppStatistics(
-    val listCount: Int = 0,
-    val goalCount: Int = 0,
-)
+data class AppStatistics(val listCount: Int = 0, val goalCount: Int = 0)
 
 sealed class DialogState {
     object Hidden : DialogState()
@@ -108,35 +85,41 @@ enum class DropPosition { BEFORE, AFTER }
 private fun fuzzyMatch(query: String, text: String): Boolean {
     if (query.isBlank()) return true
     if (text.isBlank()) return false
-
     val lowerQuery = query.lowercase()
     val lowerText = text.lowercase()
-
     var queryIndex = 0
     var textIndex = 0
-
     while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
         if (lowerQuery[queryIndex] == lowerText[textIndex]) {
             queryIndex++
         }
         textIndex++
     }
-
     return queryIndex == lowerQuery.length
 }
 
+// ===== НОВІ КЛАСИ ДАНИХ ДЛЯ ІЄРАРХІЇ =====
+data class BreadcrumbItem(
+    val id: String,
+    val name: String,
+    val level: Int
+)
+
+data class HierarchyDisplaySettings(
+    val maxCollapsibleLevels: Int = 3,
+    val useBreadcrumbsAfter: Int = 2,
+    val maxIndentation: Dp = 120.dp
+)
+
 @HiltViewModel
-class GoalListViewModel
-@Inject
-constructor(
+class GoalListViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val settingsRepo: SettingsRepository,
     private val application: Application,
     private val syncRepo: SyncRepository,
     private val contextHandler: ContextHandler,
     private val savedStateHandle: SavedStateHandle,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher // 1. Просимо диспечер у Hilt
-
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
     companion object {
         private const val TAG = "GoalListViewModel_DEBUG"
@@ -144,7 +127,6 @@ constructor(
     }
 
     private val _isReadyForFiltering = MutableStateFlow(false)
-
     private val _highlightedListId = MutableStateFlow<String?>(null)
     val highlightedListId: StateFlow<String?> = _highlightedListId.asStateFlow()
     private val _searchQuery = MutableStateFlow(TextFieldValue(""))
@@ -435,25 +417,17 @@ constructor(
     private val _isBottomNavExpanded = MutableStateFlow(false)
     val isBottomNavExpanded: StateFlow<Boolean> = _isBottomNavExpanded.asStateFlow()
 
-
     init {
         viewModelScope.launch {
-            // Щоб увімкнути персистентність стану панелі, додайте у ваш SettingsRepository:
-            // val isBottomNavExpandedFlow: Flow<Boolean>
-
             settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
                 _isBottomNavExpanded.value = savedState
             }
-
-
-            withContext(ioDispatcher) { // 2. Використовуємо диспечер
+            withContext(ioDispatcher) {
                 _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
                 contextHandler.initialize()
             }
         }
     }
-
-
 
     private val _showRecentListsSheet = MutableStateFlow(false)
     val showRecentListsSheet: StateFlow<Boolean> = _showRecentListsSheet.asStateFlow()
@@ -484,9 +458,7 @@ constructor(
                 _uiEventChannel.send(GoalListUiEvent.ShowToast("Daily tag is not set in settings"))
                 return@launch
             }
-
             val dayPlanList = _allListsFlat.value.find { it.tags?.contains(dailyTag) == true }
-
             if (dayPlanList != null) {
                 _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(dayPlanList.id))
             } else {
@@ -497,46 +469,30 @@ constructor(
 
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
-            Log.d("REVEAL_DEBUG", "ViewModel: processRevealRequest розпочато")
-
             _isSearchActive.value = false
             _planningMode.value = PlanningMode.All
-
             val allLists = _allListsFlat.first { it.isNotEmpty() }
-            Log.d("REVEAL_DEBUG", "ViewModel: Отримано повний список з ${allLists.size} елементів.")
-
             val listLookup = allLists.associateBy { it.id }
             val targetList = listLookup[listId]
-
             if (targetList == null) {
-                Log.e("REVEAL_DEBUG", "ViewModel: Цільовий список з ID $listId не знайдено")
                 _uiEventChannel.send(GoalListUiEvent.ShowToast("Could not find list. Data might be corrupted."))
                 return@launch
             }
-
             val ancestorIds = mutableSetOf<String>()
             val visitedAncestors = mutableSetOf<String>()
             findAncestorsRecursive(listId, listLookup, ancestorIds, visitedAncestors)
-
-            Log.d("REVEAL_DEBUG", "ViewModel: Знайдено ${ancestorIds.size} предків для розгортання: $ancestorIds")
-
             ancestorIds.filter { it != listId }.forEach { ancestorId ->
                 val ancestor = listLookup[ancestorId]
                 if (ancestor != null && !ancestor.isExpanded) {
-                    Log.d("REVEAL_DEBUG", "ViewModel: Розгортаємо предка: ${ancestor.name} (ID: ${ancestor.id})")
                     goalRepository.updateGoalList(ancestor.copy(isExpanded = true))
                 }
             }
-
             delay(100)
-
             val updatedLists = _allListsFlat.first()
             val topLevel = updatedLists.filter { it.parentId == null }.sortedBy { it.order }
-
             fun flattenHierarchy(currentLists: List<GoalList>): List<GoalList> {
                 val result = mutableListOf<GoalList>()
                 val updatedListLookup = updatedLists.associateBy { it.id }
-
                 currentLists.forEach { list ->
                     result.add(list)
                     if (list.isExpanded) {
@@ -551,19 +507,13 @@ constructor(
                 }
                 return result
             }
-
             val displayedLists = flattenHierarchy(topLevel)
             val index = displayedLists.indexOfFirst { it.id == listId }
-            Log.d("REVEAL_DEBUG", "ViewModel: Обчислено індекс: $index на основі ${displayedLists.size} видимих елементів.")
-
             if (index != -1) {
                 _uiEventChannel.send(GoalListUiEvent.ScrollToIndex(index))
-                Log.d("REVEAL_DEBUG", "ViewModel: Команду ScrollToIndex($index) відправлено до UI.")
             } else {
-                Log.e("REVEAL_DEBUG", "ViewModel: Індекс НЕ знайдено після розгортання предків.")
                 _uiEventChannel.send(GoalListUiEvent.ShowToast("Could not find list after expanding ancestors."))
             }
-
             _highlightedListId.value = listId
             delay(1500)
             if (_highlightedListId.value == listId) {
@@ -599,7 +549,6 @@ constructor(
                 _allListsFlat.value
                     .filter { it.isExpanded }
                     .map { it.copy(isExpanded = false) }
-
             if (listsToCollapse.isNotEmpty()) {
                 goalRepository.updateGoalLists(listsToCollapse)
             }
@@ -645,16 +594,12 @@ constructor(
 
     private fun startWifiServer() {
         viewModelScope.launch {
-            val result =
-                withContext(Dispatchers.IO) {
-                    wifiSyncServer.start()
-                }
-            result
-                .onSuccess { address ->
-                    _wifiServerAddress.value = address
-                }.onFailure { exception ->
-                    _wifiServerAddress.value = "Error: ${exception.message}"
-                }
+            val result = withContext(Dispatchers.IO) { wifiSyncServer.start() }
+            result.onSuccess { address ->
+                _wifiServerAddress.value = address
+            }.onFailure { exception ->
+                _wifiServerAddress.value = "Error: ${exception.message}"
+            }
         }
     }
 
@@ -667,38 +612,17 @@ constructor(
         }
     }
 
-    fun addNewList(
-        id: String,
-        parentId: String?,
-        name: String,
-    ) {
+    fun addNewList(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
-        Log.d(TAG, "addNewList for parent: $parentId, name: '$name'")
         viewModelScope.launch {
             goalRepository.createGoalListWithId(id, name, parentId)
-            Log.d(TAG, "New list created in DB with id: $id")
-
             if (parentId != null) {
                 val parentList = _allListsFlat.value.find { it.id == parentId }
                 if (parentList != null && !parentList.isExpanded) {
-                    Log.d(TAG, "Updating parent (${parentList.name}) in DB to be expanded.")
                     goalRepository.updateGoalList(parentList.copy(isExpanded = true))
                 }
             }
         }
-    }
-
-    private fun findAncestorIds(
-        startId: String?,
-        listLookup: Map<String, GoalList>,
-    ): Set<String> {
-        val ancestors = mutableSetOf<String>()
-        var currentId = startId
-        while (currentId != null && listLookup.containsKey(currentId)) {
-            ancestors.add(currentId)
-            currentId = listLookup[currentId]?.parentId
-        }
-        return ancestors
     }
 
     fun onDeleteListConfirmed(list: GoalList) {
@@ -745,52 +669,22 @@ constructor(
         return children + children.flatMap { findDescendantsForDeletion(it.id, childMap, visited) }
     }
 
-    fun onEditListConfirmed(
-        listToEdit: GoalList,
-        newName: String,
-        newTags: List<String>,
-    ) {
-        if (newName.isBlank()) {
-            dismissDialog()
-            return
-        }
-        viewModelScope.launch {
-            goalRepository.updateGoalList(
-                listToEdit.copy(
-                    name = newName,
-                    tags = newTags.filter { it.isNotBlank() }.map { it.trim() },
-                    updatedAt = System.currentTimeMillis(),
-                ),
-            )
-            dismissDialog()
-        }
-    }
-
     fun performWifiImport(address: String) {
         viewModelScope.launch {
             val result = syncRepo.fetchBackupFromWifi(address)
-            result
-                .onSuccess { jsonString ->
-                    _uiEventChannel.send(GoalListUiEvent.NavigateToSyncScreenWithData(jsonString))
-                    onDismissWifiImportDialog()
-                }.onFailure {
-                    _uiEventChannel.send(GoalListUiEvent.ShowToast("Error: ${it.message}"))
-                }
+            result.onSuccess { jsonString ->
+                _uiEventChannel.send(GoalListUiEvent.NavigateToSyncScreenWithData(jsonString))
+                onDismissWifiImportDialog()
+            }.onFailure {
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Error: ${it.message}"))
+            }
         }
     }
 
-    fun onAddNewListRequest() {
-        _dialogState.value = DialogState.AddList(null)
-    }
+    fun onAddNewListRequest() { _dialogState.value = DialogState.AddList(null) }
+    fun onAddSublistRequest(parentList: GoalList) { _dialogState.value = DialogState.AddList(parentList.id) }
 
-    fun onAddSublistRequest(parentList: GoalList) {
-        _dialogState.value = DialogState.AddList(parentList.id)
-    }
-
-    private fun getDescendantIds(
-        listId: String,
-        childMap: Map<String, List<GoalList>>,
-    ): Set<String> {
+    private fun getDescendantIds(listId: String, childMap: Map<String, List<GoalList>>): Set<String> {
         val descendants = mutableSetOf<String>()
         val queue = ArrayDeque<String>()
         queue.add(listId)
@@ -807,80 +701,41 @@ constructor(
     fun onMoveListRequest(list: GoalList) {
         dismissDialog()
         savedStateHandle[LIST_BEING_MOVED_ID_KEY] = list.id
-        Log.d("MOVE_DEBUG", "[ViewModel] onMoveListRequest for list: '${list.name}' (ID: ${list.id})")
         viewModelScope.launch {
             val title = "Перемістити '${list.name}'"
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
-
             val allLists = _allListsFlat.first()
             val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
             val descendantIds = getDescendantIds(list.id, childMap).joinToString(",")
             val currentParentId = list.parentId ?: "root"
             val disabledIds = "${list.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
-
             val route = "list_chooser_screen/$encodedTitle?currentParentId=$currentParentId&disabledIds=$disabledIds"
-            Log.d("MOVE_DEBUG", "[ViewModel] Generated route: $route")
             _uiEventChannel.send(GoalListUiEvent.Navigate(route))
         }
     }
 
-    fun onMenuRequested(list: GoalList) {
-        _dialogState.value = DialogState.ContextMenu(list)
-    }
-
-    fun onDeleteRequest(list: GoalList) {
-        _dialogState.value = DialogState.ConfirmDelete(list)
-    }
-
+    fun onMenuRequested(list: GoalList) { _dialogState.value = DialogState.ContextMenu(list) }
+    fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
     fun onEditRequest(list: GoalList) {
         viewModelScope.launch {
             _uiEventChannel.send(GoalListUiEvent.NavigateToEditListScreen(list.id))
         }
     }
 
-    fun onShowSettingsScreen() {
-        viewModelScope.launch {
-            _uiEventChannel.send(GoalListUiEvent.NavigateToSettings)
-        }
-    }
-
-    fun onShowAboutDialog() {
-        _dialogState.value = DialogState.AboutApp
-    }
-
-    fun onListClicked(listId: String) {
-        viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId)) }
-    }
-
+    fun onShowSettingsScreen() { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToSettings) } }
+    fun onShowAboutDialog() { _dialogState.value = DialogState.AboutApp }
+    fun onListClicked(listId: String) { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId)) } }
     fun onDesktopAddressChange(newAddress: String) {
         _desktopAddress.value = newAddress
         viewModelScope.launch { settingsRepo.saveDesktopAddress(newAddress) }
     }
-
-    fun onDismissWifiServerDialog() {
-        _showWifiServerDialog.value = false
-        stopWifiServer()
-    }
-
-    fun onShowWifiImportDialog() {
-        _showWifiImportDialog.value = true
-    }
-
-    fun onDismissWifiImportDialog() {
-        _showWifiImportDialog.value = false
-    }
-
+    fun onDismissWifiServerDialog() { _showWifiServerDialog.value = false; stopWifiServer() }
+    fun onShowWifiImportDialog() { _showWifiImportDialog.value = true }
+    fun onDismissWifiImportDialog() { _showWifiImportDialog.value = false }
     private val _showSearchDialog = MutableStateFlow(false)
     val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
-
-    fun onShowSearchDialog() {
-        _showSearchDialog.value = true
-    }
-
-    fun onDismissSearchDialog() {
-        _showSearchDialog.value = false
-    }
-
+    fun onShowSearchDialog() { _showSearchDialog.value = true }
+    fun onDismissSearchDialog() { _showSearchDialog.value = false }
     fun onPerformGlobalSearch(query: String) {
         if (query.isNotBlank()) {
             viewModelScope.launch {
@@ -890,100 +745,145 @@ constructor(
         }
     }
 
-    fun onListMoved(
-        fromId: String,
-        toId: String,
-    ) {
-        if (fromId == toId) return
-        if (isSearchActive.value) {
-            viewModelScope.launch {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Moving is not possible in filter mode."))
+    fun exportToFile() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = syncRepo.exportFullBackupToFile()
+            result.onSuccess { message ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
+            }.onFailure { error ->
+                _uiEventChannel.send(GoalListUiEvent.ShowToast("Export error: ${error.message}"))
             }
-            return
         }
+    }
 
-        val allLists = _allListsFlat.value
-        val fromList = allLists.find { it.id == fromId }
-        val toList = allLists.find { it.id == toId }
+    fun onImportFromFileRequested(uri: Uri) { _dialogState.value = DialogState.ConfirmFullImport(uri) }
+    fun onListChooserFilterChanged(text: String) { _listChooserFilterText.value = text }
+    fun onListChooserToggleExpanded(listId: String) {
+        val currentIds = _listChooserUserExpandedIds.value.toMutableSet()
+        if (listId in currentIds) currentIds.remove(listId) else currentIds.add(listId)
+        _listChooserUserExpandedIds.value = currentIds
+    }
 
-        if (fromList == null || toList == null) return
+    fun onListChooserResult(newParentId: String?) {
+        viewModelScope.launch {
+            val listIdToMove = listBeingMovedId.value ?: return@launch
+            val listToMove = _allListsFlat.value.find { it.id == listIdToMove } ?: return@launch
+            val finalNewParentId = if (newParentId == "root") null else newParentId
+            if (listToMove.parentId == finalNewParentId) {
+                savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
+                return@launch
+            }
+            goalRepository.moveGoalList(listToMove, finalNewParentId)
+            if (finalNewParentId != null) {
+                val parentList = _allListsFlat.value.find { it.id == finalNewParentId }
+                if (parentList != null && !parentList.isExpanded) {
+                    goalRepository.updateGoalList(parentList.copy(isExpanded = true))
+                }
+            }
+            savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
+        }
+    }
 
-        val listsToUpdate: List<GoalList>
+    fun dismissDialog() {
+        _dialogState.value = DialogState.Hidden
+        _listChooserFilterText.value = ""
+        _listChooserUserExpandedIds.value = emptySet()
+    }
 
-        if (fromList.parentId == toList.parentId) {
-            val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
+    fun onListReorder(fromId: String, toId: String, position: DropPosition) {
+        if (fromId == toId || isSearchActive.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val allLists = _allListsFlat.first()
+            val fromList = allLists.find { it.id == fromId }
+            val toList = allLists.find { it.id == toId }
+            if (fromList == null || toList == null || fromList.parentId != toList.parentId) return@launch
+            val parentId = fromList.parentId
+            val siblings = allLists.filter { it.parentId == parentId }.sortedBy { it.order }
             val mutableSiblings = siblings.toMutableList()
             val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
             val toIndex = mutableSiblings.indexOfFirst { it.id == toId }
-
-            if (fromIndex != -1 && toIndex != -1) {
-                val movedItem = mutableSiblings.removeAt(fromIndex)
-                mutableSiblings.add(toIndex, movedItem)
-                listsToUpdate =
-                    mutableSiblings.mapIndexed { index, list ->
-                        list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
-                    }
-            } else {
-                return
+            if (fromIndex == -1 || toIndex == -1) return@launch
+            val movedItem = mutableSiblings.removeAt(fromIndex)
+            val insertionIndex = when {
+                fromIndex < toIndex -> if (position == DropPosition.BEFORE) toIndex - 1 else toIndex
+                else -> if (position == DropPosition.BEFORE) toIndex else toIndex + 1
             }
-        } else if (fromList.parentId == toList.id) {
-            val siblings = allLists.filter { it.parentId == fromList.parentId }.sortedBy { it.order }
-            val mutableSiblings = siblings.toMutableList()
-            val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
-
-            if (fromIndex != -1) {
-                val movedItem = mutableSiblings.removeAt(fromIndex)
-                mutableSiblings.add(0, movedItem)
-                listsToUpdate =
-                    mutableSiblings.mapIndexed { index, list ->
-                        list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
-                    }
-            } else {
-                return
+            val finalIndex = insertionIndex.coerceIn(0, mutableSiblings.size)
+            mutableSiblings.add(finalIndex, movedItem)
+            val listsToUpdate = mutableSiblings.mapIndexed { index, list ->
+                list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
             }
-        } else {
-            viewModelScope.launch {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Moving is only possible on the same level."))
-            }
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
             goalRepository.updateGoalLists(listsToUpdate)
         }
     }
 
-    fun exportToFile() {
+    fun onFullImportConfirmed(uri: Uri) {
+        dismissDialog()
         viewModelScope.launch(Dispatchers.IO) {
-            val result = syncRepo.exportFullBackupToFile()
-            result
-                .onSuccess { message ->
+            val result = syncRepo.importFullBackupFromFile(uri)
+            withContext(Dispatchers.Main) {
+                result.onSuccess { message ->
                     _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
                 }.onFailure { error ->
-                    _uiEventChannel.send(GoalListUiEvent.ShowToast("Export error: ${error.message}"))
+                    _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
                 }
+            }
         }
     }
 
-    fun onImportFromFileRequested(uri: Uri) {
-        Log.d(TAG, "IMPORT_DEBUG: Запит на імпорт для URI: $uri")
-        _dialogState.value = DialogState.ConfirmFullImport(uri)
-    }
-
-    fun saveSettings(
-        show: Boolean,
-        daily: String,
-        medium: String,
-        long: String,
-        vaultName: String,
-    ) {
+    fun enableFiltering() { _isReadyForFiltering.value = true }
+    fun onBottomNavExpandedChange(expanded: Boolean) {
+        if (_isBottomNavExpanded.value == expanded) return
+        _isBottomNavExpanded.value = expanded
         viewModelScope.launch {
-            settingsRepo.saveShowPlanningModes(show)
-            settingsRepo.saveDailyTag(daily.trim())
-            settingsRepo.saveMediumTag(medium.trim())
-            settingsRepo.saveLongTag(long.trim())
-            settingsRepo.saveObsidianVaultName(vaultName.trim())
+            settingsRepo.saveBottomNavExpanded(expanded)
         }
+    }
+
+    // ===== НОВІ ФУНКЦІЇ ДЛЯ ІЄРАРХІЇ =====
+    private val _currentBreadcrumbs = MutableStateFlow<List<BreadcrumbItem>>(emptyList())
+    val currentBreadcrumbs = _currentBreadcrumbs.asStateFlow()
+    private val _focusedListId = MutableStateFlow<String?>(null)
+    val focusedListId = _focusedListId.asStateFlow()
+    private val _hierarchySettings = MutableStateFlow(HierarchyDisplaySettings())
+    val hierarchySettings = _hierarchySettings.asStateFlow()
+
+    fun navigateToList(listId: String) {
+        viewModelScope.launch(Dispatchers.Default) {
+            val hierarchy = listHierarchy.value
+            val path = buildPathToList(listId, hierarchy)
+            _currentBreadcrumbs.value = path
+            _focusedListId.value = listId
+        }
+    }
+
+    fun navigateToBreadcrumb(breadcrumbItem: BreadcrumbItem) {
+        val currentPath = _currentBreadcrumbs.value
+        val newPath = currentPath.take(breadcrumbItem.level + 1)
+        _currentBreadcrumbs.value = newPath
+        _focusedListId.value = breadcrumbItem.id
+    }
+
+    fun clearNavigation() {
+        _currentBreadcrumbs.value = emptyList()
+        _focusedListId.value = null
+    }
+
+    private fun buildPathToList(targetId: String, hierarchy: ListHierarchyData): List<BreadcrumbItem> {
+        val path = mutableListOf<BreadcrumbItem>()
+        fun findPath(lists: List<GoalList>, level: Int): Boolean {
+            val sortedLists = lists.sortedBy { it.order }
+            for (list in sortedLists) {
+                path.add(BreadcrumbItem(list.id, list.name, level))
+                if (list.id == targetId) return true
+                val children = hierarchy.childMap[list.id] ?: emptyList()
+                if (findPath(children, level + 1)) return true
+                path.removeLastOrNull()
+            }
+            return false
+        }
+        findPath(hierarchy.topLevelLists, 0)
+        return path.toList()
     }
 
     fun onContextSelected(contextName: String) {
@@ -1002,197 +902,20 @@ constructor(
         }
     }
 
-    fun onListChooserFilterChanged(text: String) {
-        _listChooserFilterText.value = text
-    }
-
-    fun onListChooserToggleExpanded(listId: String) {
-        val currentIds = _listChooserUserExpandedIds.value.toMutableSet()
-        if (listId in currentIds) currentIds.remove(listId) else currentIds.add(listId)
-        _listChooserUserExpandedIds.value = currentIds
-    }
-
-    fun onListChooserResult(newParentId: String?) {
-        Log.d("MOVE_DEBUG", "[ViewModel] onListChooserResult called with newParentId: '$newParentId'")
-        viewModelScope.launch {
-            val listIdToMove = listBeingMovedId.value
-            Log.d("MOVE_DEBUG", "[ViewModel] Retrieved listIdToMove from state: '$listIdToMove'")
-            if (listIdToMove == null) {
-                Log.e("MOVE_DEBUG", "[ViewModel] listIdToMove is null. Aborting.")
-                return@launch
-            }
-
-            val listToMove = _allListsFlat.value.find { it.id == listIdToMove }
-            if (listToMove == null) {
-                Log.e("MOVE_DEBUG", "[ViewModel] Could not find list with ID '$listIdToMove' in allListsFlat. Aborting.")
-                return@launch
-            }
-
-            val finalNewParentId = if (newParentId == "root") null else newParentId
-            Log.d("MOVE_DEBUG", "[ViewModel] Final new parent ID: '$finalNewParentId'")
-
-            if (listToMove.parentId == finalNewParentId) {
-                Log.d("MOVE_DEBUG", "[ViewModel] Parent ID is unchanged. No action needed.")
-                savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
-                return@launch
-            }
-
-            Log.d(
-                "MOVE_DEBUG",
-                "[ViewModel] Calling goalRepository.moveGoalList for list '${listToMove.name}' to parent '$finalNewParentId'",
-            )
-            goalRepository.moveGoalList(listToMove, finalNewParentId)
-
-            if (finalNewParentId != null) {
-                val parentList = _allListsFlat.value.find { it.id == finalNewParentId }
-                if (parentList != null && !parentList.isExpanded) {
-                    Log.d("MOVE_DEBUG", "[ViewModel] Expanding new parent: '${parentList.name}'")
-                    goalRepository.updateGoalList(parentList.copy(isExpanded = true))
-                }
-            }
-            Log.d("MOVE_DEBUG", "[ViewModel] Move operation complete. Clearing state.")
-            savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
-        }
-    }
-
-    fun dismissDialog() {
-        _dialogState.value = DialogState.Hidden
-        _listChooserFilterText.value = ""
-        _listChooserUserExpandedIds.value = emptySet()
-    }
-
-    fun onListMovedToNewParentOrTop(
-        listToMove: GoalList,
-        newParentId: String,
+    fun saveSettings(
+        show: Boolean,
+        daily: String,
+        medium: String,
+        long: String,
+        vaultName: String,
     ) {
-        if (listToMove.id == newParentId) return
-        if (isSearchActive.value) return
-
-        viewModelScope.launch(Dispatchers.IO) {
-            if (listToMove.parentId == newParentId) {
-                val allLists = _allListsFlat.first()
-                val siblings = allLists.filter { it.parentId == newParentId }.sortedBy { it.order }
-
-                if (siblings.firstOrNull()?.id == listToMove.id) return@launch
-
-                val mutableSiblings = siblings.toMutableList()
-                val fromIndex = mutableSiblings.indexOfFirst { it.id == listToMove.id }
-
-                if (fromIndex != -1) {
-                    val movedItem = mutableSiblings.removeAt(fromIndex)
-                    mutableSiblings.add(0, movedItem)
-
-                    val listsToUpdate =
-                        mutableSiblings.mapIndexed { index, list ->
-                            list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
-                        }
-                    goalRepository.updateGoalLists(listsToUpdate)
-                }
-            } else {
-                val updatedList =
-                    listToMove.copy(
-                        parentId = newParentId,
-                        updatedAt = System.currentTimeMillis(),
-                    )
-                goalRepository.moveGoalList(updatedList, newParentId)
-            }
-        }
-    }
-
-    fun onListReorder(
-        fromId: String,
-        toId: String,
-        position: DropPosition,
-    ) {
-        if (fromId == toId) return
-        if (isSearchActive.value) return
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val allLists = _allListsFlat.first()
-            val fromList = allLists.find { it.id == fromId }
-            val toList = allLists.find { it.id == toId }
-
-            if (fromList == null || toList == null || fromList.parentId != toList.parentId) {
-                return@launch
-            }
-
-            val parentId = fromList.parentId
-            val siblings = allLists.filter { it.parentId == parentId }.sortedBy { it.order }
-            val mutableSiblings = siblings.toMutableList()
-
-            val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
-            val toIndex = mutableSiblings.indexOfFirst { it.id == toId }
-
-            if (fromIndex == -1 || toIndex == -1) return@launch
-
-            val movedItem = mutableSiblings.removeAt(fromIndex)
-
-            val insertionIndex =
-                when {
-                    fromIndex < toIndex -> {
-                        if (position == DropPosition.BEFORE) toIndex - 1 else toIndex
-                    }
-                    else -> {
-                        if (position == DropPosition.BEFORE) toIndex else toIndex + 1
-                    }
-                }
-
-            val finalIndex = insertionIndex.coerceIn(0, mutableSiblings.size)
-            mutableSiblings.add(finalIndex, movedItem)
-
-            val listsToUpdate =
-                mutableSiblings.mapIndexed { index, list ->
-                    list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
-                }
-            goalRepository.updateGoalLists(listsToUpdate)
-        }
-    }
-
-    fun onFullImportConfirmed(uri: Uri) {
-        dismissDialog()
-        Log.d(TAG, "IMPORT_DEBUG: Імпорт підтверджено для URI: $uri. Починаємо процес.")
-        viewModelScope.launch(Dispatchers.IO) {
-            Log.d(TAG, "IMPORT_DEBUG: Виклик syncRepo.importFullBackupFromFile...")
-            val result = syncRepo.importFullBackupFromFile(uri)
-            withContext(Dispatchers.Main) {
-                result
-                    .onSuccess { message ->
-                        Log.i(TAG, "IMPORT_DEBUG: Імпорт успішний. Повідомлення: $message")
-                        _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
-                    }.onFailure { error ->
-                        Log.e(TAG, "IMPORT_DEBUG: Помилка імпорту.", error)
-                        _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
-                    }
-            }
-        }
-    }
-
-    fun enableFiltering() {
-        _isReadyForFiltering.value = true
-    }
-
-    fun onToggleBottomNavExpanded() {
-        val newState = !_isBottomNavExpanded.value
-        _isBottomNavExpanded.value = newState
-        // Щоб увімкнути персистентність стану панелі, додайте у ваш SettingsRepository:
-        // suspend fun saveBottomNavExpanded(isExpanded: Boolean)
-
         viewModelScope.launch {
-            settingsRepo.saveBottomNavExpanded(newState)
+            settingsRepo.saveShowPlanningModes(show)
+            settingsRepo.saveDailyTag(daily.trim())
+            settingsRepo.saveMediumTag(medium.trim())
+            settingsRepo.saveLongTag(long.trim())
+            settingsRepo.saveObsidianVaultName(vaultName.trim())
         }
-
-    }
-
-    fun onBottomNavExpandedChange(expanded: Boolean) {
-        if (_isBottomNavExpanded.value == expanded) return // Уникаємо зайвих операцій
-        _isBottomNavExpanded.value = expanded
-        // Щоб увімкнути персистентність, розкоментуйте та реалізуйте у вашому SettingsRepository:
-        // suspend fun saveBottomNavExpanded(isExpanded: Boolean)
-
-        viewModelScope.launch {
-            settingsRepo.saveBottomNavExpanded(expanded)
-        }
-
     }
 
 }
