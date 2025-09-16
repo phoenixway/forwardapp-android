@@ -109,5 +109,8 @@ interface DayTaskDao {
         completedAt: Long?,
         updatedAt: Long
     )
+
+    @Query("UPDATE day_tasks SET reminderTime = :reminderTime, updatedAt = :updatedAt WHERE id = :taskId")
+    suspend fun updateReminderTime(taskId: String, reminderTime: Long?, updatedAt: Long)
 }
 

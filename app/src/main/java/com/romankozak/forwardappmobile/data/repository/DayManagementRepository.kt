@@ -34,6 +34,15 @@ class DayManagementRepository @Inject constructor(
     fun getPlanForDate(date: Long): Flow<DayPlan?> =
         dayPlanDao.getPlanForDate(getDayStart(date)).flowOn(ioDispatcher)
 
+    /**
+     * НОВИЙ МЕТОД: Отримує ID плану для вказаної дати.
+     * Потрібен для навігації між днями у DayPlanViewModel.
+     */
+    suspend fun getPlanIdForDate(date: Long): String? = withContext(ioDispatcher) {
+        val dayStart = getDayStart(date)
+        dayPlanDao.getPlanForDateSync(dayStart)?.id
+    }
+
     suspend fun createOrUpdateDayPlan(date: Long, name: String? = null): DayPlan = withContext(ioDispatcher) {
         val dayStart = getDayStart(date)
         val existingPlan = dayPlanDao.getPlanForDateSync(dayStart)
@@ -130,6 +139,33 @@ class DayManagementRepository @Inject constructor(
             taskType = ListItemType.SUBLIST // <-- ВИПРАВЛЕНО: Явно вказуємо тип
         )
         addTaskToDayPlan(taskParams)
+    }
+
+    /**
+     * НОВИЙ МЕТОД: Копіює завдання у план на сьогодні.
+     * Спочатку знаходить або створює план для сьогоднішнього дня, а потім додає до нього копію завдання.
+     */
+    suspend fun copyTaskToTodaysPlan(taskToCopy: DayTask) = withContext(ioDispatcher) {
+        // 1. Отримати або створити план на сьогодні.
+        val todayTimestamp = getDayStart(System.currentTimeMillis())
+        val todaysPlan = createOrUpdateDayPlan(todayTimestamp)
+
+        // 2. Підготувати параметри для нового завдання на основі існуючого.
+        val newTaskParams = NewTaskParameters(
+            dayPlanId = todaysPlan.id,
+            title = taskToCopy.title,
+            description = taskToCopy.description,
+            goalId = taskToCopy.goalId,
+            projectId = taskToCopy.projectId,
+            priority = taskToCopy.priority,
+            scheduledTime = null, // Не переносимо запланований час, щоб уникнути плутанини
+            estimatedDurationMinutes = taskToCopy.estimatedDurationMinutes,
+            taskType = taskToCopy.taskType,
+            order = null // Дозволяємо addTaskToDayPlan автоматично визначити порядок
+        )
+
+        // 3. Додати нове завдання в сьогоднішній план.
+        addTaskToDayPlan(newTaskParams)
     }
 
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>> =
@@ -367,5 +403,17 @@ class DayManagementRepository @Inject constructor(
             importance >= 4f -> TaskPriority.MEDIUM
             else -> TaskPriority.LOW
         }
+    }
+
+    // --- НОВИЙ МЕТОД: Встановлює час нагадування для завдання ---
+    suspend fun setTaskReminder(taskId: String, reminderTime: Long) = withContext(ioDispatcher) {
+        // Примітка: цей код припускає, що у вашому DayTaskDao є метод updateReminderTime
+        dayTaskDao.updateReminderTime(taskId, reminderTime, System.currentTimeMillis())
+    }
+
+    // --- НОВИЙ МЕТОД: Скасовує нагадування для завдання ---
+    suspend fun clearTaskReminder(taskId: String) = withContext(ioDispatcher) {
+        // Той самий метод DAO використовується для скидання часу на null
+        dayTaskDao.updateReminderTime(taskId, null, System.currentTimeMillis())
     }
 }
