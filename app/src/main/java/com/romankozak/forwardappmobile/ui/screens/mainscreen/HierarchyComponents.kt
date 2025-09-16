@@ -242,6 +242,11 @@ fun GoalListRow(
     }
 }
 
+// ... (ваш код до цього моменту) ...
+
+// ... (ваш код до цього моменту) ...
+
+// ... (ваш код до цього моменту) ...
 
 @Composable
 fun BreadcrumbNavigation(
@@ -249,18 +254,15 @@ fun BreadcrumbNavigation(
     onNavigate: (BreadcrumbItem) -> Unit,
     onClearNavigation: () -> Unit,
     onFocusedListMenuClick: (String) -> Unit,
+    onOpenAsProject: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     if (breadcrumbs.isEmpty()) return
 
-    // Створюємо та запам'ятовуємо стан для керування LazyRow.
     val lazyRowState = rememberLazyListState()
 
-    // Додаємо ефект, який буде спрацьовувати при зміні списку breadcrumbs.
     LaunchedEffect(breadcrumbs) {
-        // Переконуємося, що список не порожній, щоб уникнути помилок.
         if (breadcrumbs.isNotEmpty()) {
-            // Анімовано прокручуємо до останнього елемента (розмір - 1).
             lazyRowState.animateScrollToItem(breadcrumbs.size - 1)
         }
     }
@@ -271,7 +273,6 @@ fun BreadcrumbNavigation(
         tonalElevation = 1.dp
     ) {
         LazyRow(
-            // Передаємо створений стан у LazyRow.
             state = lazyRowState,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -305,6 +306,8 @@ fun BreadcrumbNavigation(
 
             itemsIndexed(breadcrumbs) { index, item ->
                 val isLast = index == breadcrumbs.size - 1
+
+                // Головний елемент списку
                 Surface(
                     modifier = Modifier.clickable { if (!isLast) onNavigate(item) },
                     shape = RoundedCornerShape(16.dp),
@@ -313,10 +316,8 @@ fun BreadcrumbNavigation(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(
-                            start = 12.dp,
-                            end = if (isLast) 4.dp else 12.dp,
-                            top = 4.dp,
-                            bottom = 4.dp
+                            horizontal = 12.dp,
+                            vertical = 4.dp
                         )
                     ) {
                         Text(
@@ -326,21 +327,56 @@ fun BreadcrumbNavigation(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        if (isLast) {
+                    }
+                }
+
+                // Кнопки розміщуються ПІСЛЯ елемента, якщо це останній елемент
+                if (isLast) {
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    if (onOpenAsProject != null) {
+                        Surface(
+                            modifier = Modifier.size(32.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            tonalElevation = 2.dp
+                        ) {
                             IconButton(
-                                onClick = { onFocusedListMenuClick(item.id) },
-                                modifier = Modifier.size(28.dp)
+                                onClick = { onOpenAsProject(item.id) },
+                                modifier = Modifier.fillMaxSize()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "Menu for ${item.name}",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    imageVector = Icons.Outlined.OpenInNew,
+                                    contentDescription = "Open as project",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Surface(
+                        modifier = Modifier.size(32.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 2.dp
+                    ) {
+                        IconButton(
+                            onClick = { onFocusedListMenuClick(item.id) },
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Menu for ${item.name}",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
+
                 if (!isLast) {
                     Icon(
                         imageVector = Icons.Outlined.ChevronRight,
@@ -353,9 +389,6 @@ fun BreadcrumbNavigation(
         }
     }
 }
-
-
-
 @Composable
 fun SmartHierarchyView(
     list: GoalList,

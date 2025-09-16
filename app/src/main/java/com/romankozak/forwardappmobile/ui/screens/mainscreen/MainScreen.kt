@@ -60,7 +60,7 @@ import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.ui.navigation.navigateToDayManagement // <-- ДОДАНО ІМПОРТ
+import com.romankozak.forwardappmobile.ui.navigation.navigateToDayManagement
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
 import androidx.compose.runtime.getValue
 
@@ -79,7 +79,6 @@ fun MainScreen(
     val dragAndDropState = rememberDragAndDropState<GoalList>()
     val highlightedListId by viewModel.highlightedListId.collectAsState()
 
-    // Нові стани для ієрархії
     val currentBreadcrumbs by viewModel.currentBreadcrumbs.collectAsState()
     val focusedListId by viewModel.focusedListId.collectAsState()
     val hierarchySettings by viewModel.hierarchySettings.collectAsState()
@@ -88,7 +87,9 @@ fun MainScreen(
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
     var showContextSheet by remember { mutableStateOf(value = false) }
+    var showSearchHistorySheet by remember { mutableStateOf(value = false) } // <-- ДОДАНО НОВИЙ СТАН
     val allContexts by viewModel.allContextsForDialog.collectAsState()
+    val searchHistory by viewModel.searchHistory.collectAsState() // <-- ДОДАНО СТАН ІСТОРІЇ
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
@@ -170,11 +171,8 @@ fun MainScreen(
                 }
 
                 is GoalListUiEvent.NavigateToDayPlan -> {
-                    // Тепер цей виклик буде працювати
                     navController.navigateToDayManagement(event.date)
                 }
-
-
             }
         }
     }
@@ -218,6 +216,45 @@ fun MainScreen(
         }
     }
 
+    // <-- НОВИЙ MODAL BOTTOM SHEET ДЛЯ ІСТОРІЇ ПОШУКУ
+    if (showSearchHistorySheet) {
+        ModalBottomSheet(onDismissRequest = { showSearchHistorySheet = false }) {
+            Column(Modifier.navigationBarsPadding()) {
+                Text(
+                    text = "Search History",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                if (searchHistory.isEmpty()) {
+                    Text(
+                        text = "No recent searches.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    LazyColumn {
+                        items(searchHistory, key = { it }) { query ->
+                            ListItem(
+                                headlineContent = { Text(query) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Outlined.History,
+                                        contentDescription = "Search history item"
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    viewModel.onSearchQueryFromHistory(query)
+                                    showSearchHistorySheet = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // КІНЕЦЬ НОВОГО MODAL BOTTOM SHEET -->
+
     BackHandler(enabled = focusedListId != null) { viewModel.clearNavigation() }
     BackHandler(enabled = isSearchActive) { viewModel.onToggleSearch(isActive = false) }
     BackHandler(enabled = !isSearchActive && areAnyListsExpanded && focusedListId == null) {
@@ -246,6 +283,7 @@ fun MainScreen(
                     onQueryChange = viewModel::onSearchQueryChanged,
                     onCloseSearch = { viewModel.onToggleSearch(false) },
                     onPerformGlobalSearch = { viewModel.onPerformGlobalSearch(it) },
+                    onShowSearchHistory = { showSearchHistorySheet = true }, // <-- ПЕРЕДАЄМО НОВУ ДІЮ
                     focusRequester = focusRequester,
                 )
             } else {
@@ -267,7 +305,6 @@ fun MainScreen(
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             if (isSearchActive && searchQueryText.isNotBlank()) {
-                // ЯКЩО ПОШУК АКТИВНИЙ - ПОКАЗУЄМО НОВИЙ КОМПОНЕНТ
                 val results by viewModel.searchResults.collectAsState()
                 SearchResultsView(
                     results = results,
@@ -283,12 +320,13 @@ fun MainScreen(
                         breadcrumbs = currentBreadcrumbs,
                         onNavigate = { viewModel.navigateToBreadcrumb(it) },
                         onClearNavigation = { viewModel.clearNavigation() },
-                        // --- НОВИЙ ВИКЛИК ---
                         onFocusedListMenuClick = { listId ->
-                            // Знаходимо об'єкт списку за ID і передаємо в ViewModel
                             hierarchy.allLists.find { it.id == listId }?.let {
                                 viewModel.onMenuRequested(it)
                             }
+                        },
+                        onOpenAsProject = { listId ->
+                            viewModel.onListClicked(listId)
                         }
                     )
                 }
@@ -318,7 +356,6 @@ fun MainScreen(
                         val currentFocusedId = focusedListId
 
                         if (currentFocusedId != null) {
-                            // Тепер використовуємо локальну змінну, для якої smart cast працює
                             FocusedListView(
                                 focusedListId = currentFocusedId,
                                 hierarchy = hierarchy,
@@ -330,10 +367,8 @@ fun MainScreen(
                                 settings = hierarchySettings,
                                 searchQuery = searchQuery.text,
                                 onNavigateToList = { listId -> viewModel.navigateToList(listId) },
-                                // <-- ЗМІНА: Передаємо дію для кліку на заголовок
                             )
                         } else {
-                            // Показуємо стандартний ієрархічний вигляд
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
@@ -359,7 +394,6 @@ fun MainScreen(
                                     )
                                 }
                             }
-
                         }
                     }
                 }
@@ -454,6 +488,7 @@ private fun SearchBottomBar(
     onQueryChange: (TextFieldValue) -> Unit,
     onCloseSearch: () -> Unit,
     onPerformGlobalSearch: (String) -> Unit,
+    onShowSearchHistory: () -> Unit, // <-- ДОДАНО НОВИЙ ПАРАМЕТР
     focusRequester: FocusRequester,
 ) {
     Surface(
@@ -471,7 +506,6 @@ private fun SearchBottomBar(
                     .navigationBarsPadding()
                     .imePadding(),
         ) {
-            // SearchEverywhereButton
             AnimatedVisibility(
                 visible = searchQuery.text.isNotBlank(),
                 enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
@@ -514,7 +548,6 @@ private fun SearchBottomBar(
                 }
             }
 
-            // Search input field row
             Row(
                 modifier =
                     Modifier
@@ -532,7 +565,6 @@ private fun SearchBottomBar(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // SearchTextField
                 val focusManager = LocalFocusManager.current
                 val interactionSource = remember { MutableInteractionSource() }
                 val isFocused by interactionSource.collectIsFocusedAsState()
@@ -610,6 +642,15 @@ private fun SearchBottomBar(
                         }
                     },
                 )
+
+                // <-- НОВА КНОПКА ДЛЯ ІСТОРІЇ ПОШУКУ
+                IconButton(onClick = onShowSearchHistory) {
+                    Icon(
+                        imageVector = Icons.Outlined.History,
+                        contentDescription = "Search history"
+                    )
+                }
+                // КІНЕЦЬ НОВОЇ КНОПКИ -->
             }
         }
     }

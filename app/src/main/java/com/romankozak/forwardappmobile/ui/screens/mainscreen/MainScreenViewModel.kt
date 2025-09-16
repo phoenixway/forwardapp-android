@@ -35,6 +35,8 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.firstOrNull
+
 // --- DATA КЛАСИ, ВИНЕСЕНІ ЗА МЕЖІ VIEWMODEL ДЛЯ ЧИСТОТИ ---
 
 sealed class GoalListUiEvent {
@@ -131,6 +133,8 @@ class GoalListViewModel @Inject constructor(
 ) : ViewModel() {
     companion object {
         private const val LIST_BEING_MOVED_ID_KEY = "listBeingMovedId"
+        private const val SEARCH_HISTORY_KEY = "search_history"
+        private const val MAX_SEARCH_HISTORY = 10
     }
 
     // --- ВІДНОВЛЕНІ ЗМІННІ ---
@@ -182,6 +186,11 @@ class GoalListViewModel @Inject constructor(
     private val _expandedInDailyMode = MutableStateFlow<Set<String>?>(null)
     private val _expandedInMediumMode = MutableStateFlow<Set<String>?>(null)
     private val _expandedInLongMode = MutableStateFlow<Set<String>?>(null)
+
+    // <-- ДОДАНО ЗМІННУ ДЛЯ ІСТОРІЇ ПОШУКУ
+    val searchHistory: StateFlow<List<String>> =
+        savedStateHandle.getStateFlow(SEARCH_HISTORY_KEY, emptyList())
+    // КІНЕЦЬ ДОДАНОЇ ЗМІННОЇ -->
 
     val obsidianVaultName: StateFlow<String> =
         settingsRepo.obsidianVaultNameFlow
@@ -338,7 +347,6 @@ class GoalListViewModel @Inject constructor(
             val visitedAncestors = mutableSetOf<String>()
             findAncestorsRecursive(movingId, listLookup, ancestorIds, visitedAncestors)
 
-            // Combine user expanded IDs with auto-expanded ancestor IDs
             userExpanded + ancestorIds
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
@@ -375,9 +383,7 @@ class GoalListViewModel @Inject constructor(
         contextHandler.allContextsFlow
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // --- БЛОК INIT ВИПРАВЛЕНО ---
     init {
-        // Запускає довготривалу операцію збору даних для пошуку
         viewModelScope.launch {
             filterStateFlow.collect { state ->
                 if (state.searchActive && state.query.isNotBlank()) {
@@ -407,7 +413,6 @@ class GoalListViewModel @Inject constructor(
             }
         }
 
-        // Виконує решту початкових налаштувань
         viewModelScope.launch {
             settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
                 _isBottomNavExpanded.value = savedState
@@ -419,14 +424,10 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    // ... всередині класу GoalListViewModel
-
     fun onSearchResultClick(listId: String) {
         viewModelScope.launch {
-            // 1. Вимикаємо режим пошуку, щоб повернутися до основного екрана.
             onToggleSearch(false)
 
-            // 2. Будуємо повну ієрархію з актуальних даних, щоб уникнути затримок.
             val allLists = _allListsFlat.first()
             val fullHierarchy = ListHierarchyData(
                 allLists = allLists,
@@ -434,21 +435,14 @@ class GoalListViewModel @Inject constructor(
                 childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
             )
 
-            // 3. Знаходимо шлях до елемента і визначаємо його рівень вкладеності.
             val path = buildPathToList(listId, fullHierarchy)
             val level = if (path.isEmpty()) 0 else path.last().level
 
-            // Отримуємо поточні налаштування відображення ієрархії.
             val settings = hierarchySettings.value
 
-            // 4. Приймаємо рішення, як саме відкрити список.
             if (level >= settings.useBreadcrumbsAfter) {
-                // ІНТЕЛЕКТУАЛЬНИЙ ВИБІР: Рівень занадто глибокий - використовуємо "хлібні крихти".
-                // Ця функція активує режим фокусування.
                 navigateToList(listId)
             } else {
-                // ІНТЕЛЕКТУАЛЬНИЙ ВИБІР: Елемент неглибоко - розгортаємо ієрархію.
-                // Ця функція розгортає дерево і прокручує до елемента.
                 processRevealRequest(listId)
             }
         }
@@ -478,7 +472,6 @@ class GoalListViewModel @Inject constructor(
 
     fun onDayPlanClicked() {
         viewModelScope.launch {
-            // Використовуємо реалізацію з гілки main
             val today = System.currentTimeMillis()
             _uiEventChannel.send(GoalListUiEvent.NavigateToDayPlan(today))
         }
@@ -486,11 +479,9 @@ class GoalListViewModel @Inject constructor(
 
     fun processRevealRequest(listId: String) {
         viewModelScope.launch {
-            // Вимикаємо пошук і скидаємо фільтри
             _isSearchActive.value = false
             _planningMode.value = PlanningMode.All
 
-            // Отримуємо поточний стан списків
             val allLists = _allListsFlat.first { it.isNotEmpty() }
             val listLookup = allLists.associateBy { it.id }
 
@@ -499,7 +490,6 @@ class GoalListViewModel @Inject constructor(
                 return@launch
             }
 
-            // 1. Знаходимо всіх предків і відбираємо з них тих, які наразі згорнуті.
             val ancestorIds = mutableSetOf<String>()
             findAncestorsRecursive(listId, listLookup, ancestorIds, mutableSetOf())
 
@@ -507,11 +497,9 @@ class GoalListViewModel @Inject constructor(
                 .mapNotNull { listLookup[it] }
                 .filter { !it.isExpanded && it.id != listId }
 
-            // 2. Якщо є що розгортати, оновлюємо їх у базі даних одним запитом.
             if (listsToExpand.isNotEmpty()) {
                 goalRepository.updateGoalLists(listsToExpand.map { it.copy(isExpanded = true) })
 
-                // 3. АКТИВНО ЧЕКАЄМО, поки оновлення з бази даних не прийдуть у наш UI-стейт.
                 _allListsFlat.first { updatedListState ->
                     listsToExpand.all { listToExpand ->
                         updatedListState.find { it.id == listToExpand.id }?.isExpanded == true
@@ -519,7 +507,6 @@ class GoalListViewModel @Inject constructor(
                 }
             }
 
-            // 4. Тепер, коли UI гарантовано оновлено, обчислюємо індекс і скролимо.
             val finalListState = _allListsFlat.value
             val topLevel = finalListState.filter { it.parentId == null }.sortedBy { it.order }
 
@@ -537,14 +524,9 @@ class GoalListViewModel @Inject constructor(
                 return result
             }
 
-            // --- ВИПРАВЛЕННЯ ТУТ ---
-            // Спочатку відфільтровуємо списки, які мають батьків (не є верхньорівневими).
             val childrenOnly = finalListState.filter { it.parentId != null }
-            // Тепер групуємо їх, використовуючи non-null parentId (it.parentId!!).
-            // Це створює мапу правильного типу Map<String, List<GoalList>>.
             val childMap = childrenOnly.groupBy { it.parentId!! }
             val displayedLists = flattenHierarchy(topLevel, childMap)
-            // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
 
             val index = displayedLists.indexOfFirst { it.id == listId }
 
@@ -552,7 +534,6 @@ class GoalListViewModel @Inject constructor(
                 _uiEventChannel.send(GoalListUiEvent.ScrollToIndex(index))
             }
 
-            // Логіка підсвічування залишається без змін
             _highlightedListId.value = listId
             delay(1500)
             if (_highlightedListId.value == listId) {
@@ -570,6 +551,10 @@ class GoalListViewModel @Inject constructor(
                 _uiEventChannel.send(GoalListUiEvent.FocusSearchField)
             }
         } else {
+            val query = _searchQuery.value.text
+            if (query.isNotBlank()) {
+                addSearchQueryToHistory(query)
+            }
             _searchQuery.value = TextFieldValue("")
         }
     }
@@ -594,19 +579,14 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    // File: MainScreenViewModel.kt
-
     fun onToggleExpanded(list: GoalList) {
-        // Логіка тепер розділена на два випадки: або активний режим планування, або звичайний режим.
-        // Режим пошуку тут більше не враховується.
         if (planningMode.value != PlanningMode.All) {
             val currentStateFlow =
-                // 'when' тепер перевіряє безпосередньо значення planningMode.value
                 when (planningMode.value) {
                     is PlanningMode.Daily -> _expandedInDailyMode
                     is PlanningMode.Medium -> _expandedInMediumMode
                     is PlanningMode.Long -> _expandedInLongMode
-                    else -> return // Для PlanningMode.All цей блок не виконується
+                    else -> return
                 }
 
             val currentExpanded = (currentStateFlow.value ?: emptySet()).toMutableSet()
@@ -618,19 +598,38 @@ class GoalListViewModel @Inject constructor(
             currentStateFlow.value = currentExpanded
 
         } else {
-            // Логіка для звичайного режиму (PlanningMode.All), яка напряму оновлює базу даних
             viewModelScope.launch {
                 goalRepository.updateGoalList(list.copy(isExpanded = !list.isExpanded))
             }
         }
     }
-// File: MainScreenViewModel.kt
 
     fun onSearchQueryChanged(query: TextFieldValue) {
         _searchQuery.value = query
-        // Блок if, що посилався на _expandedInSearchMode, повністю видалено,
-        // оскільки він більше не потрібен у новій архітектурі пошуку.
     }
+
+    // <-- НОВІ МЕТОДИ ДЛЯ ІСТОРІЇ ПОШУКУ
+    fun onSearchQueryFromHistory(query: String) {
+        _searchQuery.value = TextFieldValue(query)
+        onToggleSearch(true)
+    }
+
+    private fun addSearchQueryToHistory(query: String) {
+        val currentHistory = savedStateHandle[SEARCH_HISTORY_KEY] ?: emptyList<String>()
+        val mutableHistory = currentHistory.toMutableList()
+
+        val existingIndex = mutableHistory.indexOfFirst { it.lowercase() == query.lowercase() }
+        if (existingIndex != -1) {
+            mutableHistory.removeAt(existingIndex)
+        }
+
+        mutableHistory.add(0, query)
+
+        val newHistory = mutableHistory.take(MAX_SEARCH_HISTORY)
+        savedStateHandle[SEARCH_HISTORY_KEY] = newHistory
+    }
+    // КІНЕЦЬ НОВИХ МЕТОДІВ -->
+
     fun onShowWifiServerDialog() {
         _wifiServerAddress.value = null
         _showWifiServerDialog.value = true
@@ -782,6 +781,7 @@ class GoalListViewModel @Inject constructor(
     fun onDismissSearchDialog() { _showSearchDialog.value = false }
     fun onPerformGlobalSearch(query: String) {
         if (query.isNotBlank()) {
+            addSearchQueryToHistory(query)
             viewModelScope.launch {
                 _uiEventChannel.send(GoalListUiEvent.NavigateToGlobalSearch(query))
                 onDismissSearchDialog()
@@ -891,27 +891,20 @@ class GoalListViewModel @Inject constructor(
     private val _hierarchySettings = MutableStateFlow(HierarchyDisplaySettings())
     val hierarchySettings = _hierarchySettings.asStateFlow()
 
-// File: MainScreenViewModel.kt
-
     fun navigateToList(listId: String) {
         viewModelScope.launch(Dispatchers.Default) {
             val hierarchy = listHierarchy.value
             val path = buildPathToList(listId, hierarchy)
 
-            // --- НОВА ЛОГІКА ---
-            // Знаходимо всіх предків у шляху, які наразі згорнуті.
             val collapsedIds = path
                 .mapNotNull { breadcrumbItem ->
-                    // Шукаємо повний об'єкт GoalList за його ID
                     hierarchy.allLists.find { it.id == breadcrumbItem.id }
                 }
-                .filter { !it.isExpanded } // Відбираємо тільки згорнуті
-                .map { it.id } // Зберігаємо їх ID
+                .filter { !it.isExpanded }
+                .map { it.id }
                 .toSet()
 
-            // Зберігаємо цей набір ID у нашому новому StateFlow.
             _collapsedAncestorsOnFocus.value = collapsedIds
-            // --- КІНЕЦЬ НОВОЇ ЛОГІКИ ---
 
             _currentBreadcrumbs.value = path
             _focusedListId.value = listId
@@ -925,29 +918,22 @@ class GoalListViewModel @Inject constructor(
         _focusedListId.value = breadcrumbItem.id
     }
 
-// File: MainScreenViewModel.kt
-
     fun clearNavigation() {
         viewModelScope.launch {
-            // --- НОВА ЛОГІКА: Розгортаємо предка верхнього рівня ---
             val breadcrumbs = _currentBreadcrumbs.value
             if (breadcrumbs.isNotEmpty()) {
                 val topLevelAncestorId = breadcrumbs.first().id
                 val ancestorList = _allListsFlat.value.find { it.id == topLevelAncestorId }
 
-                // Якщо предок існує і він згорнутий, розгортаємо його.
                 if (ancestorList != null && !ancestorList.isExpanded) {
                     goalRepository.updateGoalList(ancestorList.copy(isExpanded = true))
 
-                    // Зачекаємо, поки оновлення з'явиться у нашому стані
                     _allListsFlat.first { updatedLists ->
                         updatedLists.find { it.id == topLevelAncestorId }?.isExpanded == true
                     }
                 }
             }
-            // --- КІНЕЦЬ НОВОЇ ЛОГІКИ ---
 
-            // Існуюча логіка для відновлення стану інших елементів шляху
             val listsToCollapseIds = _collapsedAncestorsOnFocus.value
             if (listsToCollapseIds.isNotEmpty()) {
                 val listsToUpdate = _allListsFlat.value
@@ -959,7 +945,6 @@ class GoalListViewModel @Inject constructor(
                 }
             }
 
-            // Очищуємо "пам'ять" та стан навігації
             _collapsedAncestorsOnFocus.value = emptySet()
             _currentBreadcrumbs.value = emptyList()
             _focusedListId.value = null
@@ -1020,10 +1005,8 @@ class GoalListViewModel @Inject constructor(
         childMap: Map<String, List<GoalList>>,
         characterLimit: Int = 35
     ): Boolean {
-        // Використовуємо чергу для обходу в ширину (BFS), щоб уникнути глибокої рекурсії
         val queue = ArrayDeque<String>()
 
-        // Починаємо з прямих нащадків
         childMap[listId]?.forEach { queue.add(it.id) }
 
         while (queue.isNotEmpty()) {
@@ -1031,32 +1014,23 @@ class GoalListViewModel @Inject constructor(
             val list = _allListsFlat.value.find { it.id == currentId }
 
             if (list != null) {
-                // Перевіряємо довжину імені
                 if (list.name.length > characterLimit) {
-                    return true // Знайшли! Негайно повертаємо результат.
+                    return true
                 }
 
-                // Додаємо дочірні елементи цього нащадка в чергу для подальшої перевірки
                 childMap[currentId]?.forEach { queue.add(it.id) }
             }
         }
 
-        return false // Не знайшли жодного нащадка з довгим іменем
+        return false
     }
-// File: ui/screens/mainscreen/GoalListViewModel.kt
-
-// ... всередині класу GoalListViewModel
 
     fun saveAllContexts(updatedContexts: List<UiContext>) {
         viewModelScope.launch {
-            // 1. Відфільтровуємо лише кастомні контексти, оскільки зарезервовані незмінні
             val customContextsToSave = updatedContexts.filter { !it.isReserved }
 
-            // 2. Делегуємо збереження репозиторію налаштувань
             settingsRepo.saveCustomContexts(customContextsToSave)
 
-            // 3. Після збереження, повторно ініціалізуємо ContextHandler,
-            // щоб він завантажив оновлені дані і UI оновився.
             contextHandler.initialize()
         }
     }
