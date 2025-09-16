@@ -256,7 +256,10 @@ class GoalListViewModel @Inject constructor(
         if (level >= hierarchySettings.value.useBreadcrumbsAfter) {
             navigationDelegate.navigateToList(listId, listHierarchy)
         } else {
-            navigationDelegate.processRevealRequest(listId, _allListsFlat, _planningMode, searchDelegate.isSearchActive as MutableStateFlow<Boolean>)
+            // --- CORRECTED CODE ---
+            // ViewModel тепер керує станом делегатів
+            planningDelegate.setPlanningMode(PlanningMode.All)
+            navigationDelegate.processRevealRequest(listId, _allListsFlat)
         }
     }
 
@@ -278,11 +281,14 @@ class GoalListViewModel @Inject constructor(
         navigationDelegate.clearNavigation(_allListsFlat)
     }
 
+
     fun processRevealRequest(listId: String) = viewModelScope.launch {
+        // --- CORRECTED CODE ---
+        // ViewModel тепер керує станом делегатів
+        searchDelegate.onToggleSearch(false)
+        planningDelegate.setPlanningMode(PlanningMode.All)
         navigationDelegate.processRevealRequest(
-            listId, _allListsFlat,
-            planningDelegate.planningMode as MutableStateFlow<PlanningMode>,
-            searchDelegate.isSearchActive as MutableStateFlow<Boolean>
+            listId, _allListsFlat
         )
     }
 
