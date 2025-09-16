@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.GoalListUiEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenUtils
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.PlanningMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -62,8 +63,10 @@ class NavigationDelegate(
 
     suspend fun clearNavigation(allListsFlat: StateFlow<List<GoalList>>) {
         val breadcrumbs = _currentBreadcrumbs.value
+        var topLevelAncestorId: String? = null
+
         if (breadcrumbs.isNotEmpty()) {
-            val topLevelAncestorId = breadcrumbs.first().id
+            topLevelAncestorId = breadcrumbs.first().id
             val ancestorList = allListsFlat.value.find { it.id == topLevelAncestorId }
 
             if (ancestorList != null && !ancestorList.isExpanded) {
@@ -75,10 +78,40 @@ class NavigationDelegate(
             }
         }
 
+        if (topLevelAncestorId != null) {
+            // --- ПОЧАТОК ВИПРАВЛЕНОЇ ЛОГІКИ ---
+
+            // 1. Отримуємо актуальний стан всіх списків
+            val finalListState = allListsFlat.value
+
+            // 2. Створюємо список ТІЛЬКИ верхньорівневих елементів,
+            //    аналогічно до того, як це робить LazyColumn на екрані.
+            val topLevelLists = finalListState
+                .filter { it.parentId == null }
+                .sortedBy { it.order }
+
+            // 3. Шукаємо індекс нашого предка саме в цьому списку.
+            val index = topLevelLists.indexOfFirst { it.id == topLevelAncestorId }
+
+            // --- КІНЕЦЬ ВИПРАВЛЕНОЇ ЛОГІКИ ---
+
+            // 4. Надсилаємо події для прокрутки та підсвічування
+            if (index != -1) {
+                uiEventChannel.send(GoalListUiEvent.ScrollToIndex(index))
+                _highlightedListId.value = topLevelAncestorId
+                delay(1500) // Тривалість підсвічування
+                if (_highlightedListId.value == topLevelAncestorId) {
+                    _highlightedListId.value = null
+                }
+            }
+        }
+
         val listsToCollapseIds = _collapsedAncestorsOnFocus.value
-        if (listsToCollapseIds.isNotEmpty()) {
+        val finalListsToCollapseIds = listsToCollapseIds.filter { it != topLevelAncestorId }
+
+        if (finalListsToCollapseIds.isNotEmpty()) {
             val listsToUpdate = allListsFlat.value
-                .filter { it.id in listsToCollapseIds }
+                .filter { it.id in finalListsToCollapseIds }
                 .map { it.copy(isExpanded = false) }
 
             if (listsToUpdate.isNotEmpty()) {
@@ -90,7 +123,6 @@ class NavigationDelegate(
         _currentBreadcrumbs.value = emptyList()
         _focusedListId.value = null
     }
-
     suspend fun processRevealRequest(
         listId: String,
         allListsFlat: StateFlow<List<GoalList>>,

@@ -241,25 +241,36 @@ class GoalListViewModel @Inject constructor(
     }
 
     fun onSearchResultClick(listId: String) = viewModelScope.launch {
-        searchDelegate.onToggleSearch(false)
-
+        // Спочатку отримуємо всю необхідну інформацію про шлях та рівень вкладеності
         val allLists = _allListsFlat.first()
         val fullHierarchy = ListHierarchyData(
             allLists = allLists,
             topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order },
             childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
         )
-
         val path = buildPathToList(listId, fullHierarchy)
         val level = if (path.isEmpty()) 0 else path.last().level
 
+        // Приймаємо рішення, як відкривати список
         if (level >= hierarchySettings.value.useBreadcrumbsAfter) {
+            // Для режиму "хлібних крихт" порядок не такий важливий,
+            // оскільки це повністю інший стан UI.
+            searchDelegate.onToggleSearch(false)
             navigationDelegate.navigateToList(listId, listHierarchy)
         } else {
-            // --- CORRECTED CODE ---
-            // ViewModel тепер керує станом делегатів
+            // Для режиму ієрархії ПОРЯДОК КРИТИЧНО ВАЖЛИВИЙ.
+
+            // 1. Спочатку переконуємося, що ми у правильному режимі планування.
             planningDelegate.setPlanningMode(PlanningMode.All)
+
+            // 2. Викликаємо функцію, яка розгортає всіх предків і ЧЕКАЄ,
+            // доки ці зміни не будуть відображені в основному потоці даних.
             navigationDelegate.processRevealRequest(listId, _allListsFlat)
+
+            // 3. І тільки ТЕПЕР, коли базовий стан списків оновлено,
+            // ми вимикаємо режим пошуку. UI перебудується на основі
+            // вже правильних, розгорнутих даних, і згортання не відбудеться.
+            searchDelegate.onToggleSearch(false)
         }
     }
 
