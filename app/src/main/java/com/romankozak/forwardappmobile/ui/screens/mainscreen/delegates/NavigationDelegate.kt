@@ -94,12 +94,7 @@ class NavigationDelegate(
     suspend fun processRevealRequest(
         listId: String,
         allListsFlat: StateFlow<List<GoalList>>,
-        planningMode: MutableStateFlow<PlanningMode>,
-        isSearchActive: MutableStateFlow<Boolean>
     ) {
-        isSearchActive.value = false
-        planningMode.value = PlanningMode.All
-
         val allLists = allListsFlat.first { it.isNotEmpty() }
         val listLookup = allLists.associateBy { it.id }
 

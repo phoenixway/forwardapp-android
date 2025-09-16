@@ -89,6 +89,9 @@ class PlanningDelegate(
         }
     }
 
+    fun setPlanningMode(mode: PlanningMode) {
+        _planningMode.value = mode
+    }
     suspend fun onContextSelected(contextName: String, allListsFlat: StateFlow<List<GoalList>>) {
         val targetTag = contextHandler.getContextTag(contextName)
         if (targetTag.isNullOrBlank()) {
