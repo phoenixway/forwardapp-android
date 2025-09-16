@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,8 @@ import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.EnhancedCustomCheckbox
+// Примітка: Переконайтесь, що CompactDayPlanHeader імпортується з правильного місця
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.CompactDayPlanHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.DayTaskAsGoalItem
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.DayTaskAsSublistItem
 import kotlinx.coroutines.delay
@@ -42,7 +45,11 @@ fun TaskList(
     onToggleTask: (String) -> Unit,
     onTaskLongPress: (DayTask) -> Unit,
     onTasksReordered: (List<DayTask>) -> Unit,
-    onSublistClick: (projectId: String) -> Unit, // <-- НОВИЙ ПАРАМЕТР
+    onSublistClick: (projectId: String) -> Unit,
+    // --- НОВІ ПАРАМЕТРИ, ЩО ВИПРАВЛЯЮТЬ ПОМИЛКУ ---
+    onNavigateToPreviousDay: () -> Unit,
+    onNavigateToNextDay: () -> Unit,
+    isNextDayNavigationEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -67,44 +74,62 @@ fun TaskList(
 
     LaunchedEffect(tasks) { internalTasks = tasks }
 
-    LazyColumn(state = lazyListState, modifier = modifier) {
-        items(items = internalTasks, key = { task -> task.id }) { task ->
-            ReorderableItem(reorderableLazyListState, key = task.id) { isDragging ->
-                val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp, label = "")
+    // --- ОНОВЛЕНА СТРУКТУРА: Додано Column для розміщення заголовка і списку ---
+    Column(modifier = modifier) {
+        // Розраховуємо статистику для заголовка
+        val completedTasks = tasks.count { it.completed }
+        val totalTasks = tasks.size
 
-                Surface(
-                    shadowElevation = elevation,
-                    modifier = Modifier.combinedClickable(
-                        onClick = {
-                            // ОБРОБКА КЛІКУ: Якщо це підсписок, викликаємо колбек
-                            if (task.taskType == ListItemType.SUBLIST) {
-                                task.projectId?.let { onSublistClick(it) }
-                            }
-                        },
-                        onLongClick = { onTaskLongPress(task) }
-                    )
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp)
-                    ) {
-                        EnhancedCustomCheckbox(
-                            checked = task.completed,
-                            onCheckedChange = { onToggleTask(task.id) },
+        // Додаємо заголовок з навігацією
+        CompactDayPlanHeader(
+            dayPlan = dayPlan,
+            completedTasks = completedTasks,
+            totalTasks = totalTasks,
+            onNavigateToPreviousDay = onNavigateToPreviousDay,
+            onNavigateToNextDay = onNavigateToNextDay,
+            isNextDayNavigationEnabled = isNextDayNavigationEnabled
+        )
+
+        // Існуючий список завдань
+        LazyColumn(state = lazyListState) {
+            items(items = internalTasks, key = { task -> task.id }) { task ->
+                ReorderableItem(reorderableLazyListState, key = task.id) { isDragging ->
+                    val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp, label = "")
+
+                    Surface(
+                        shadowElevation = elevation,
+                        modifier = Modifier.combinedClickable(
+                            onClick = {
+                                // ОБРОБКА КЛІКУ: Якщо це підсписок, викликаємо колбек
+                                if (task.taskType == ListItemType.SUBLIST) {
+                                    task.projectId?.let { onSublistClick(it) }
+                                }
+                            },
+                            onLongClick = { onTaskLongPress(task) }
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Box(modifier = Modifier.weight(1f)) {
-                            // ВИБІР РЕНДЕРУ ЗАЛЕЖНО ВІД ТИПУ
-                            when (task.taskType) {
-                                ListItemType.SUBLIST -> DayTaskAsSublistItem(task, currentTime)
-                                else -> DayTaskAsGoalItem(task, currentTime) // GOAL або невизначений тип
-                            }
-                        }
-                        IconButton(
-                            modifier = Modifier.draggableHandle(),
-                            onClick = {},
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp)
                         ) {
-                            Icon(Icons.Rounded.DragHandle, contentDescription = "Перетягнути")
+                            EnhancedCustomCheckbox(
+                                checked = task.completed,
+                                onCheckedChange = { onToggleTask(task.id) },
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Box(modifier = Modifier.weight(1f)) {
+                                // ВИБІР РЕНДЕРУ ЗАЛЕЖНО ВІД ТИПУ
+                                when (task.taskType) {
+                                    ListItemType.SUBLIST -> DayTaskAsSublistItem(task, currentTime)
+                                    else -> DayTaskAsGoalItem(task, currentTime) // GOAL або невизначений тип
+                                }
+                            }
+                            IconButton(
+                                modifier = Modifier.draggableHandle(),
+                                onClick = {},
+                            ) {
+                                Icon(Icons.Rounded.DragHandle, contentDescription = "Перетягнути")
+                            }
                         }
                     }
                 }

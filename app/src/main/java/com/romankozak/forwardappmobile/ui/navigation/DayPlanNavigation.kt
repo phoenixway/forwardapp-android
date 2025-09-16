@@ -23,10 +23,21 @@ fun NavGraphBuilder.dayPlanScreen(navController: NavController) {
         DayPlanScreen(
             dayPlanId = dayPlanId,
             onNavigateBack = { navController.popBackStack() },
-            // Ось ключова частина: реалізуємо навігацію на екран проєкту (беклог)
             // Маршрут "goal_detail_screen/{listId}" взято з вашого AppNavigation.kt
             onNavigateToProject = { projectId ->
                 navController.navigate("goal_detail_screen/$projectId")
+            },
+            // --- ВИРІШЕННЯ ПОМИЛКИ: Додано реалізацію onNavigateToBacklog ---
+            onNavigateToBacklog = { task ->
+                // Завдання може бути пов'язане з проєктом (підсписком).
+                // Якщо так, ми використовуємо його ID для навігації на екран беклогу.
+                // Маршрут "goal_detail_screen/" - це екран беклогу для конкретного проєкту.
+                task.projectId?.let { id ->
+                    navController.navigate("goal_detail_screen/$id")
+                }
+                // Якщо у завдання є тільки goalId, але немає projectId, для навігації
+                // може знадобитись додатковий запит до БД для пошуку батьківського проєкту.
+                // Поточна реалізація обробляє прямий зв'язок "завдання-проєкт".
             }
         )
     }

@@ -195,6 +195,8 @@ fun DayManagementScreen(
                             }
                         }
 
+                        // File: DayManagementScreen.kt
+
                         HorizontalPager(
                             state = pagerState,
                             modifier = Modifier.fillMaxSize()
@@ -205,6 +207,14 @@ fun DayManagementScreen(
                                     onNavigateBack = { mainNavController.navigateUp() },
                                     onNavigateToProject = { projectId ->
                                         mainNavController.navigate("goal_detail_screen/$projectId")
+                                    },
+                                    // --- ВИРІШЕННЯ ПОМИЛКИ: Додано відсутній параметр ---
+                                    onNavigateToBacklog = { task ->
+                                        // Якщо у завдання є projectId, здійснюємо навігацію
+                                        // на екран відповідного проєкту (беклогу).
+                                        task.projectId?.let { id ->
+                                            mainNavController.navigate("goal_detail_screen/$id")
+                                        }
                                     }
                                 )
                                 DayManagementTab.DASHBOARD -> DayDashboardScreen(
