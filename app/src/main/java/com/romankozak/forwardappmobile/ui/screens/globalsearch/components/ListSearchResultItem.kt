@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -26,6 +27,7 @@ import com.romankozak.forwardappmobile.data.database.models.GoalList
 fun ListSearchResultItem(
     list: GoalList,
     onClick: () -> Unit,
+    onOpenInNavigation: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -45,9 +47,10 @@ fun ListSearchResultItem(
                     indication = null,
                     onClick = onClick,
                 ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),

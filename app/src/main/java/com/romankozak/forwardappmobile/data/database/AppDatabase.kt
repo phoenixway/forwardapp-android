@@ -22,19 +22,18 @@ import com.romankozak.forwardappmobile.data.database.models.DailyPlanConverters
         InboxRecord::class,
         ChatMessageEntity::class,
         ProjectExecutionLog::class,
-        DayPlan::class,
+        DayPlan::class, // <-- Переконайтесь, що ці сутності тут є
         DayTask::class,
         DailyMetric::class
     ],
-    version = 31,
+    version = 31, // Або ваша актуальна версія
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),
     ],
     exportSchema = true,
 )
-// ОСНОВНА ЗМІНА ТУТ: ДОДАНО DailyPlanConverters::class
-@TypeConverters(Converters::class, DailyPlanConverters::class)
+// АНОТАЦІЮ @TypeConverters ПОВНІСТЮ ВИДАЛЕНО
 abstract class AppDatabase : RoomDatabase() {
     abstract fun goalListDao(): GoalListDao
     abstract fun goalDao(): GoalDao

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
@@ -320,23 +321,32 @@ private fun SearchResultsContent(
                             ),
                         initialOffsetY = { it / 2 },
                     ) +
-                        fadeIn(
-                            animationSpec =
-                                tween(
-                                    durationMillis = 300,
-                                    delayMillis = index * 40,
-                                ),
-                        ),
+                            fadeIn(
+                                animationSpec =
+                                    tween(
+                                        durationMillis = 300,
+                                        delayMillis = index * 40,
+                                    ),
+                            ),
             ) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
                             SearchResultItem(
                                 result = result.searchResult,
-                                onClick = {
+                                onOpenAsProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "goal_detail_screen/${result.searchResult.listId}?goalId=${result.searchResult.goal.id}"
+                                    val route =
+                                        "goal_detail_screen/${result.searchResult.listId}?goalId=${result.searchResult.goal.id}"
                                     navController.navigate(route)
+                                },
+                                onOpenInNavigation = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // Відкрити в навігації - повернутися з виділеним елементом
+                                    navController.previousBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("item_to_reveal", result.searchResult.goal.id)
+                                    navController.popBackStack()
                                 },
                             )
                         }
@@ -381,6 +391,14 @@ private fun SearchResultsContent(
                                     val parentListId = result.searchResult.parentListId
                                     navController.navigate("goal_detail_screen/$parentListId")
                                 },
+                                onOpenInNavigation = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // Відкрити в навігації - повернутися з виділеним підсписком
+                                    navController.previousBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("sublist_to_reveal", result.searchResult.sublist.id)
+                                    navController.popBackStack()
+                                },
                             )
                         }
                         is GlobalSearchResultItem.ListItem -> {
@@ -388,6 +406,14 @@ private fun SearchResultsContent(
                                 list = result.list,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    navController.previousBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("list_to_reveal", result.list.id)
+                                    navController.popBackStack()
+                                },
+                                onOpenInNavigation = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // Відкрити в навігації - повернутися з виділеним списком
                                     navController.previousBackStackEntry
                                         ?.savedStateHandle
                                         ?.set("list_to_reveal", result.list.id)
@@ -442,7 +468,7 @@ private fun ResultsCountBadge(
 }
 
 @Composable
-private fun ActivitySearchResultItem(record: com.romankozak.forwardappmobile.data.database.models.ActivityRecord) {
+private fun ActivitySearchResultItem(record: ActivityRecord) {
     val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
 
     Card(
