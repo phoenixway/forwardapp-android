@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.ui.navigation.dayManagementGraph
 import com.romankozak.forwardappmobile.ui.navigation.dayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.ui.screens.auth.AuthScreen
 import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.GoalListViewModel
@@ -251,18 +250,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                 onAddNewList = viewModel::addNewList,
                 showDescendants = showDescendants,
                 onToggleShowDescendants = viewModel::toggleShowDescendants,
-            )
-        }
-        composable(
-            route = "auth_screen/{url}", // <-- Додаємо аргумент в маршрут
-            arguments = listOf(navArgument("url") { type = NavType.StringType }) // <-- Оголошуємо тип аргументу
-        ) {
-            Log.d("AuthFlowDebug", "Навігація на auth_screen. Спроба викликати AuthScreen Composable.")
-            AuthScreen(
-                onAuthSuccess = {
-                    // Повертаємось на попередній екран після успішного входу
-                    navController.popBackStack()
-                }
             )
         }
         chatScreen(navController)

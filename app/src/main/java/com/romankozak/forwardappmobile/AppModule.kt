@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.*
-import com.romankozak.forwardappmobile.domain.wifirestapi.TokenManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -84,11 +83,4 @@ object DatabaseModule {
     @Provides
     fun provideDailyMetricDao(db: AppDatabase): DailyMetricDao = db.dailyMetricDao()
 
-    @Provides
-    @Singleton
-    fun provideTokenManager(): TokenManager {
-        return TokenManager
     }
-
-
-}

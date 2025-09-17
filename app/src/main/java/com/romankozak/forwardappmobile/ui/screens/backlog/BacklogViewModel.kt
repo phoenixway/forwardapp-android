@@ -1,3 +1,5 @@
+// file: ui/screens/backlog/BacklogViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
 import android.app.Application
@@ -21,8 +23,11 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
+// НОВЕ: Імпортуємо модель для JSON запиту
+import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
-import com.romankozak.forwardappmobile.domain.wifirestapi.TokenManager
+// ВИДАЛЕНО: TokenManager більше не потрібен
+// import com.romankozak.forwardappmobile.domain.wifirestapi.TokenManager
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.TransferStatus
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputHandler
@@ -43,9 +48,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
+// ВИДАЛЕНО: Імпорти для Multipart більше не потрібні
+// import okhttp3.MediaType.Companion.toMediaTypeOrNull
+// import okhttp3.MultipartBody
+// import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -55,7 +61,8 @@ import javax.inject.Inject
 
 private const val TAG = "BACKLOG_VM_DEBUG"
 
-// ... (sealed class UiEvent, GoalActionDialogState, etc. залишаються без змін) ...
+
+// ЗМІНА: Видаляємо UiEvent.NavigateToAuth
 sealed class UiEvent {
     data class ShowSnackbar(
         val message: String,
@@ -84,10 +91,10 @@ sealed class UiEvent {
 
     data object ScrollToLatestInboxRecord : UiEvent()
 
-    data class NavigateToAuth(
-        val url: String,
-    ) : UiEvent()
+    // ВИДАЛЕНО: data class NavigateToAuth(val url: String) : UiEvent()
 }
+
+enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
 
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
@@ -96,8 +103,6 @@ sealed class GoalActionDialogState {
         val itemContent: ListItemContent,
     ) : GoalActionDialogState()
 }
-
-enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
 
 data class UiState(
     val localSearchQuery: String = "",
@@ -126,7 +131,6 @@ data class UiState(
     val showExportTransferDialog: Boolean = false,
     val transferStatus: TransferStatus = TransferStatus.IDLE
 )
-
 interface BacklogMarkdownHandlerResultListener {
     fun copyToClipboard(
         text: String,
@@ -381,7 +385,7 @@ constructor(
         settingsRepository.desktopAddressFlow
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    private var pendingTransferUrl: String? = null
+    // ВИДАЛЕНО: private var pendingTransferUrl: String? = null
 
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
@@ -1075,45 +1079,24 @@ constructor(
         onExportTransferDialogDismiss()
     }
 
-// File: ui/screens/backlog/BacklogViewModel.kt
 
+    // --- ПОЧАТОК ЗМІН ---
+    /**
+     * Ініціює передачу беклогу на сервер по Wi-Fi.
+     * Автентифікація більше не потрібна, запит відправляється напряму.
+     */
     fun onTransferBacklogViaWifi(url: String) {
-        Log.d(TAG, "onTransferBacklogViaWifi: Процес ініційовано з URL: $url")
-        viewModelScope.launch(Dispatchers.IO) {
-            val token = TokenManager.getToken(application)
-
-            if (token == null) {
-                // Цей блок виконується, якщо потрібно увійти в систему
-                Log.w(TAG, "onTransferBacklogViaWifi: Токен відсутній. Запит на навігацію до auth_screen.")
-                withContext(Dispatchers.Main) {
-                    showSnackbar("Потрібна автентифікація", null)
-                    _uiEventFlow.send(UiEvent.NavigateToAuth(url))                 }
-            } else {
-                // Цей блок виконується, якщо токен вже є і можна відправляти дані
-                // <--- ПРАВИЛЬНЕ МІСЦЕ ДЛЯ ЦЬОГО ЛОГУ
-                Log.d(TAG, "onTransferBacklogViaWifi: Токен знайдено. Починаємо відправку.")
-                pendingTransferUrl = url
-                executeBacklogTransfer(url)
-            }
-        }
+        Log.d(TAG, "onTransferBacklogViaWifi: Ініційовано передачу на URL: $url")
+        // Просто викликаємо метод для виконання передачі
+        executeBacklogTransfer(url)
     }
 
-    // Додайте цей метод, щоб повторити відправку після успішної автентифікації
-    fun retryPendingTransfer() {
-        Log.d(TAG, "retryPendingTransfer: Спроба повторної відправки після автентифікації.")
-        pendingTransferUrl?.let {
-            executeBacklogTransfer(it)
-        }
-        pendingTransferUrl = null
-    }
-    // Цей метод викликається після успішної автентифікації
-    fun onAuthSuccess() {
-        pendingTransferUrl?.let {
-            executeBacklogTransfer(it)
-            pendingTransferUrl = null // Очищуємо після використання
-        }
-    }
+    // ВИДАЛЕНО: Метод `retryPendingTransfer` більше не потрібен
+    // ВИДАЛЕНО: Метод `onAuthSuccess` більше не потрібен
 
+    /**
+     * Готує та надсилає дані беклогу на сервер у форматі JSON.
+     */
     private fun executeBacklogTransfer(url: String) {
         Log.d(TAG, "executeBacklogTransfer: Початок підготовки даних для відправки.")
         _uiState.update { it.copy(transferStatus = TransferStatus.IN_PROGRESS) }
@@ -1139,41 +1122,47 @@ constructor(
                 val markdownContent = markdownBuilder.toString()
 
                 if (markdownContent.isBlank()) {
-                    showSnackbar("Беклог порожній. Нічого передавати.", null)
-                    _uiState.update { it.copy(transferStatus = TransferStatus.IDLE) }
+                    withContext(Dispatchers.Main) {
+                        showSnackbar("Беклог порожній. Нічого передавати.", null)
+                        _uiState.update { it.copy(transferStatus = TransferStatus.IDLE) }
+                    }
                     return@launch
                 }
 
-                // 2. Готуємо файл для завантаження
-                val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-                val filename = "backlog_${goalList.value?.name ?: "export"}_$timestamp.md"
+                // 2. Готуємо ім'я файлу (без розширення)
+                val filename = goalList.value?.name ?: "backlog_export"
 
-                val filenameBody = filename.toRequestBody("text/plain".toMediaTypeOrNull())
-                val contentBody = markdownContent.toRequestBody("text/markdown".toMediaTypeOrNull())
-                val filePart = MultipartBody.Part.createFormData("content", filename, contentBody)
+                // 3. Створюємо JSON тіло запиту
+                val requestBody = FileDataRequest(
+                    filename = filename,
+                    content = markdownContent
+                )
+
                 Log.d(TAG, "executeBacklogTransfer: Дані підготовлено. Відправка на: $url")
-                // 3. Виконуємо запит
-                val response = RetrofitClient.getInstance(application, url).uploadBacklog(filenameBody, filePart)
 
+                // 4. Виконуємо запит через Retrofit, використовуючи новий метод
+                val response = RetrofitClient.getInstance(application, url).uploadFileAsJson(requestBody)
+
+                // 5. Обробляємо результат
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         Log.d(TAG, "executeBacklogTransfer: Успішна відповідь від сервера. Код: ${response.code()}")
                         _uiState.update { it.copy(transferStatus = TransferStatus.SUCCESS) }
                     } else {
-                        Log.e(TAG, "executeBacklogTransfer: Помилка від сервера. Код: ${response.code()}")
+                        val errorMsg = response.errorBody()?.string() ?: "Невідома помилка"
+                        Log.e(TAG, "executeBacklogTransfer: Помилка від сервера. Код: ${response.code()}, Повідомлення: $errorMsg")
                         _uiState.update { it.copy(transferStatus = TransferStatus.ERROR) }
-                        showSnackbar("Помилка: ${response.code()}", null)
+                        showSnackbar("Помилка: ${response.code()} - $errorMsg", null)
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-
+                    Log.e(TAG, "executeBacklogTransfer: Критична помилка мережі.", e)
                     _uiState.update { it.copy(transferStatus = TransferStatus.ERROR) }
                     showSnackbar("Помилка мережі: ${e.message}", null)
                 }
             }
         }
     }
+    // --- КІНЕЦЬ ЗМІН ---
 }
-
-

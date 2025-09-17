@@ -20,7 +20,6 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.Interac
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
-
 @Composable
 fun BacklogView(
     modifier: Modifier = Modifier,
