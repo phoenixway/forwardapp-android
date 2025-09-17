@@ -181,49 +181,52 @@ fun ProjectsScreen(
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
             ) {
-                ModernInputPanel(
-                    inputValue = uiState.inputValue,
-                    inputMode = uiState.inputMode,
-                    onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
-                    onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
-                    onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
-                    onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
-                    onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
-                    onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
-                    onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
-                    onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
-                    canGoBack = navController.previousBackStackEntry != null,
-                    onBackClick = {
-                        viewModel.flushPendingMoves()
-                        navController.popBackStack()
-                    },
-                    onForwardClick = { /* TODO */ },
-                    onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
-                    isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
-                    onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
-                    onEditList = {
-                        menuExpanded = false
-                        navController.navigate("edit_list_screen/${list?.id}")
-                    },
-                    onShareList = { /* TODO */ },
-                    onDeleteList = { viewModel.deleteCurrentList() },
-                    menuExpanded = menuExpanded,
-                    onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
-                    currentView = uiState.currentView,
-                    onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
-                    onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
-                    onExportToMarkdown = viewModel::onExportToMarkdownRequest,
-                    onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
+// File: ProjectScreen.kt
+
+                        ModernInputPanel(
+                          inputValue = uiState.inputValue,
+                          inputMode = uiState.inputMode,
+                          onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
+                          onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
+                          onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
+                          onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
+                          onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
+                          onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
+                          onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
+                          onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
+                          canGoBack = navController.previousBackStackEntry != null,
+                          onBackClick = {
+                            viewModel.flushPendingMoves()
+                            navController.popBackStack()
+                          },
+                          onForwardClick = {},
+                          onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                          isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
+                          onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                          onEditList = {
+                            menuExpanded = false
+                            navController.navigate("edit_list_screen/${list?.id}")
+                          },
+                          onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
+                          onDeleteList = { viewModel.deleteCurrentList() },
+                          menuExpanded = menuExpanded,
+                          onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
+                          currentView = uiState.currentView,
+                          onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
+                          onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
+                          onExportToMarkdown = viewModel::onExportToMarkdownRequest,
+                          onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
                     onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
-                    reminderParseResult = reminderParseResult,
-                    onClearReminder = viewModel::onClearReminder,
-                    isNerActive = uiState.nerState is NerState.Ready,
-                    onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
-                    isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
-                    modifier = Modifier.navigationBarsPadding().imePadding(),
-                    onToggleProjectManagement = viewModel::onToggleProjectManagement,
-                    onExportProjectState = viewModel::onExportProjectStateRequest,
-                )
+                          reminderParseResult = reminderParseResult,
+                          onClearReminder = viewModel::onClearReminder,
+                          isNerActive = uiState.nerState is NerState.Ready,
+                          onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
+                          isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
+                          modifier = Modifier.navigationBarsPadding().imePadding(),
+                          onToggleProjectManagement = viewModel::onToggleProjectManagement,
+                          onExportProjectState = viewModel::onExportProjectStateRequest,
+                          onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
+                        )
             }
         },
     ) { paddingValues ->

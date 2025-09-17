@@ -27,7 +27,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 import kotlinx.coroutines.launch
 
 private enum class DayManagementTab(
@@ -140,6 +139,7 @@ fun DayManagementScreen(
                         ) {
                             tabs.forEachIndexed { index, tab ->
                                 val selected = pagerState.currentPage == index
+                                // --- ЗМІНА: Прибрано іконки та зайві відступи ---
                                 Tab(
                                     selected = selected,
                                     onClick = {
@@ -150,40 +150,16 @@ fun DayManagementScreen(
                                     text = {
                                         Text(
                                             text = tab.title,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelLarge.copy(
+                                            style = MaterialTheme.typography.labelLarge.copy( // Збільшено шрифт для читабельності
                                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                                            ),
-                                            color = if (selected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            }
-                                        )
-                                    },
-                                    icon = {
-                                        Icon(
-                                            tab.icon,
-                                            contentDescription = tab.description,
-                                            modifier = Modifier.size(20.dp),
-                                            tint = if (selected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            }
+                                            )
                                         )
                                     },
                                     selectedContentColor = MaterialTheme.colorScheme.primary,
-                                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier
-                                        .padding(vertical = 8.dp)
-                                        .clip(MaterialTheme.shapes.small)
+                                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-
-                        // File: DayManagementScreen.kt
 
                         HorizontalPager(
                             state = pagerState,
@@ -196,10 +172,7 @@ fun DayManagementScreen(
                                     onNavigateToProject = { projectId ->
                                         mainNavController.navigate("goal_detail_screen/$projectId")
                                     },
-                                    // --- ВИРІШЕННЯ ПОМИЛКИ: Додано відсутній параметр ---
                                     onNavigateToBacklog = { task ->
-                                        // Якщо у завдання є projectId, здійснюємо навігацію
-                                        // на екран відповідного проєкту (беклогу).
                                         task.projectId?.let { id ->
                                             mainNavController.navigate("goal_detail_screen/$id")
                                         }

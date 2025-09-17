@@ -1056,10 +1056,25 @@ constructor(
             }
 
             if (task != null) {
-                showSnackbar("Додано до плану на сьогодні")
+                showSnackbar("Додано до плану на сьогодні", null)
             } else {
-                showSnackbar("Цей тип елемента неможливо додати до плану")
+                showSnackbar("Цей тип елемента неможливо додати до плану", null)
             }
+        }
+    }
+
+    fun addCurrentProjectToDayPlan() {
+        val currentListId = listIdFlow.value
+        if (currentListId.isBlank()) {
+            showSnackbar("Неможливо додати, проект не визначено", null)
+            return
+        }
+
+        viewModelScope.launch {
+            val today = System.currentTimeMillis()
+            val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
+            dayManagementRepository.addProjectToDayPlan(dayPlan.id, currentListId)
+            showSnackbar("Проект додано до плану на сьогодні", null)
         }
     }
 
