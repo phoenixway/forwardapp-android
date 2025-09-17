@@ -10,7 +10,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext // <-- НОВИЙ ІМПОРТ
+import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -93,9 +93,19 @@ constructor(
         context.dataStore.edit { settings -> settings[obsidianVaultNameKey] = name }
     }
 
+    // --- ЗМІНА 1: Робимо читання showPlanningModesFlow безпечним ---
     val showPlanningModesFlow: Flow<Boolean> =
         context.dataStore.data
-            .map { preferences -> preferences[showPlanningModesKey] ?: false }
+            .map { preferences ->
+                try {
+                    preferences[showPlanningModesKey] ?: false
+                } catch (e: ClassCastException) {
+                    Log.w("SettingsRepository", "Could not read showPlanningModes as Boolean, attempting fallback to String.", e)
+                    // Спроба прочитати як String і конвертувати. Повертаємо false, якщо невдало.
+                    preferences[stringPreferencesKey(showPlanningModesKey.name)]?.toBoolean() ?: false
+                }
+            }
+
 
     suspend fun saveShowPlanningModes(show: Boolean) {
         context.dataStore.edit { settings -> settings[showPlanningModesKey] = show }
@@ -335,12 +345,14 @@ constructor(
 
     suspend fun getPreferencesSnapshot(): Preferences = context.dataStore.data.first()
 
+    // --- ЗМІНА 2: Виправляємо логіку відновлення з резервної копії ---
     suspend fun restoreFromMap(settingsMap: Map<String, String>) {
         context.dataStore.edit { preferences ->
             preferences.clear()
             for ((key, value) in settingsMap) {
                 when (key) {
-                    showPlanningModesKey.name -> {
+                    showPlanningModesKey.name,
+                    isBottomNavExpandedKey.name -> { // Додано isBottomNavExpandedKey
                         preferences[booleanPreferencesKey(key)] = value.toBoolean()
                     }
 
@@ -381,9 +393,18 @@ constructor(
 
     private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
 
+    // --- ЗМІНА 3: Робимо читання isBottomNavExpandedFlow безпечним ---
     val isBottomNavExpandedFlow: Flow<Boolean> =
         context.dataStore.data
-            .map { preferences -> preferences[isBottomNavExpandedKey] ?: false }
+            .map { preferences ->
+                try {
+                    preferences[isBottomNavExpandedKey] ?: false
+                } catch (e: ClassCastException) {
+                    Log.w("SettingsRepository", "Could not read isBottomNavExpanded as Boolean, attempting fallback to String.", e)
+                    // Спроба прочитати як String і конвертувати. Повертаємо false, якщо невдало.
+                    preferences[stringPreferencesKey(isBottomNavExpandedKey.name)]?.toBoolean() ?: false
+                }
+            }
 
     suspend fun saveBottomNavExpanded(isExpanded: Boolean) {
         context.dataStore.edit { settings ->
