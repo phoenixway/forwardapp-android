@@ -24,7 +24,7 @@ data class NewTaskParameters(
     val taskType: ListItemType? = null ,
 )
 
-
+/*
 enum class DayStatus {
     PLANNED,
     IN_PROGRESS,
@@ -47,7 +47,7 @@ enum class TaskStatus {
     COMPLETED,
     CANCELLED,
     DEFERRED
-}
+}*/
 
 @Entity(tableName = "day_plans")
 data class DayPlan(

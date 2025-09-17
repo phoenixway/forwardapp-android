@@ -1,57 +1,114 @@
 package com.romankozak.forwardappmobile.data.database.models
 
-import androidx.room.*
+import androidx.room.ColumnInfo
+import androidx.room.Embedded
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Fts4
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.UUID
 
 // --- ЛОКАЛЬНИЙ КОНВЕРТЕР (БЕЗ @ProvidedTypeConverter) ---
+// Використовується тільки для поля `pathSegments`
 class PathSegmentsConverter {
     private val pathSeparator = " / "
-    @TypeConverter fun fromPathSegments(pathSegments: List<String>?): String? = pathSegments?.joinToString(pathSeparator)
-    @TypeConverter fun fromStringToPathSegments(data: String?): List<String>? = data?.split(pathSeparator)?.map { it.trim() }
+
+    @TypeConverter
+    fun fromPathSegments(pathSegments: List<String>?): String? {
+        return pathSegments?.joinToString(pathSeparator)
+    }
+
+    @TypeConverter
+    fun fromStringToPathSegments(data: String?): List<String>? {
+        return data?.split(pathSeparator)?.map { it.trim() }
+    }
 }
 
-// --- ГЛОБАЛЬНИЙ ОБ'ЄДНАНИЙ КОНВЕРТЕР (З @ProvidedTypeConverter) ---
-@ProvidedTypeConverter
+// --- ГЛОБАЛЬНИЙ КОНВЕРТЕР ---
+// Реєструється в AppDatabase.kt для всіх загальних типів
+@TypeConverters(Converters::class) // Можна повернути цю анотацію для ясності
 class Converters {
     private val gson = Gson()
+    private val pathSeparator = " / " // Використовуємо наш роздільник
 
-    // Конвертери для List<String> (для `tags`)
-    @TypeConverter fun fromStringList(value: String?): List<String>? = value?.let { gson.fromJson(it, object : TypeToken<List<String>>() {}.type) }
-    @TypeConverter fun fromListToString(list: List<String>?): String? = gson.toJson(list)
+    // --- ЗМІНЕНО КОНВЕРТЕР ДЛЯ LIST<STRING> ---
+    @TypeConverter
+    fun fromString(value: String?): List<String>? {
+        // Тепер він очікує рядок з роздільниками, а не JSON
+        return value?.split(pathSeparator)?.map { it.trim() }
+    }
 
-    // Конвертери для ENUM-ів
-    @TypeConverter fun fromScoringStatus(status: ScoringStatus?): String? = status?.name
-    @TypeConverter fun toScoringStatus(value: String?): ScoringStatus? = value?.let { ScoringStatus.valueOf(it) }
-    @TypeConverter fun fromListItemType(type: ListItemType?): String? = type?.name
-    @TypeConverter fun toListItemType(value: String?): ListItemType? = value?.let { ListItemType.valueOf(it) }
-    @TypeConverter fun fromProjectStatus(status: ProjectStatus?): String? = status?.name
-    @TypeConverter fun toProjectStatus(value: String?): ProjectStatus? = value?.let { ProjectStatus.valueOf(it) }
-    @TypeConverter fun fromProjectLogLevel(level: ProjectLogLevel?): String? = level?.name
-    @TypeConverter fun toProjectLogLevel(value: String?): ProjectLogLevel? = value?.let { ProjectLogLevel.valueOf(it) }
-    @TypeConverter fun fromProjectLogEntryType(type: ProjectLogEntryType?): String? = type?.name
-    @TypeConverter fun toProjectLogEntryType(value: String?): ProjectLogEntryType? = value?.let { ProjectLogEntryType.valueOf(it) }
+    @TypeConverter
+    fun fromList(list: List<String>?): String? {
+        // Тепер він створює рядок з роздільниками
+        return list?.joinToString(pathSeparator)
+    }
 
-    // Конвертери для DayManagementEntities
-    @TypeConverter fun fromDayStatus(status: DayStatus?): String? = status?.name
-    @TypeConverter fun toDayStatus(value: String?): DayStatus? = value?.let { DayStatus.valueOf(it) }
-    @TypeConverter fun fromTaskPriority(priority: TaskPriority?): String? = priority?.name
-    @TypeConverter fun toTaskPriority(value: String?): TaskPriority? = value?.let { TaskPriority.valueOf(it) }
-    @TypeConverter fun fromTaskStatus(status: TaskStatus?): String? = status?.name
-    @TypeConverter fun toTaskStatus(value: String?): TaskStatus? = value?.let { TaskStatus.valueOf(it) }
 
-    // Конвертери для складних типів (Gson)
+    @TypeConverter
+    fun fromScoringStatus(status: ScoringStatus?): String? = status?.name
+
+    @TypeConverter
+    fun toScoringStatus(value: String?): ScoringStatus? = value?.let { ScoringStatus.valueOf(it) }
+
+    @TypeConverter
+    fun fromListItemType(type: ListItemType?): String? = type?.name
+
+    @TypeConverter
+    fun toListItemType(value: String?): ListItemType? = value?.let { ListItemType.valueOf(it) }
+
     private val relatedLinkListType = object : TypeToken<List<RelatedLink>>() {}.type
-    @TypeConverter fun fromRelatedLinkList(links: List<RelatedLink>?): String? = gson.toJson(links, relatedLinkListType)
-    @TypeConverter fun toRelatedLinkList(json: String?): List<RelatedLink>? = json?.let { gson.fromJson(it, relatedLinkListType) }
-    @TypeConverter fun fromRelatedLink(link: RelatedLink?): String? = gson.toJson(link)
-    @TypeConverter fun toRelatedLink(json: String?): RelatedLink? = json?.let { gson.fromJson(it, RelatedLink::class.java) }
-    @TypeConverter fun fromCustomMetrics(metrics: Map<String, Float>?): String? = gson.toJson(metrics)
-    @TypeConverter fun toCustomMetrics(json: String?): Map<String, Float>? = json?.let { gson.fromJson(it, object : TypeToken<Map<String, Float>>() {}.type) }
+
+    @TypeConverter
+    fun fromRelatedLinkList(links: List<RelatedLink>?): String? {
+        if (links == null) return null
+        return gson.toJson(links, relatedLinkListType)
+    }
+
+    @TypeConverter
+    fun toRelatedLinkList(json: String?): List<RelatedLink>? {
+        if (json == null) return null
+        return gson.fromJson(json, relatedLinkListType)
+    }
+
+    @TypeConverter
+    fun fromRelatedLink(link: RelatedLink?): String? {
+        if (link == null) return null
+        return gson.toJson(link, RelatedLink::class.java)
+    }
+
+    @TypeConverter
+    fun toRelatedLink(json: String?): RelatedLink? {
+        if (json == null) return null
+        return gson.fromJson(json, RelatedLink::class.java)
+    }
+
+    @TypeConverter
+    fun fromProjectStatus(status: ProjectStatus?): String? = status?.name
+
+    @TypeConverter
+    fun toProjectStatus(value: String?): ProjectStatus? = value?.let { ProjectStatus.valueOf(it) }
+
+    @TypeConverter
+    fun fromProjectLogLevel(level: ProjectLogLevel?): String? = level?.name
+
+    @TypeConverter
+    fun toProjectLogLevel(value: String?): ProjectLogLevel? = value?.let { ProjectLogLevel.valueOf(it) }
+
+    @TypeConverter
+    fun fromProjectLogEntryType(type: ProjectLogEntryType?): String? = type?.name
+
+    @TypeConverter
+    fun toProjectLogEntryType(value: String?): ProjectLogEntryType? = value?.let { ProjectLogEntryType.valueOf(it) }
 }
 
 // --- ENUMS ---
+
 enum class ProjectViewMode { BACKLOG, INBOX, DASHBOARD }
 enum class ListItemType { GOAL, SUBLIST, LINK_ITEM }
 enum class LinkType { GOAL_LIST, URL, OBSIDIAN }
@@ -61,10 +118,23 @@ enum class ProjectLogEntryType { STATUS_CHANGE, COMMENT, AUTOMATIC, INSIGHT, MIL
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
 enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE }
 enum class TaskStatus { NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED, DEFERRED }
-enum class ProjectStatus(val displayName: String) { NO_PLAN("Без плану"), PLANNING("Планується"), IN_PROGRESS("В реалізації"), COMPLETED("Завершено"), ON_HOLD("Відкладено"), PAUSED("На паузі") }
+
+enum class ProjectStatus(val displayName: String) {
+    NO_PLAN("Без плану"),
+    PLANNING("Планується"),
+    IN_PROGRESS("В реалізації"),
+    COMPLETED("Завершено"),
+    ON_HOLD("Відкладено"),
+    PAUSED("На паузі"),
+}
 
 // --- DATA CLASSES & ENTITIES ---
-data class RelatedLink(val type: LinkType, val target: String, val displayName: String? = null)
+
+data class RelatedLink(
+    val type: LinkType,
+    val target: String,
+    val displayName: String? = null,
+)
 
 @Entity(tableName = "link_items")
 data class LinkItemEntity(
@@ -169,7 +239,7 @@ data class ActivityRecordFts(
     val text: String,
 )
 
-@Entity(tableName = "day_plans")
+/*@Entity(tableName = "day_plans")
 data class DayPlan(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val date: Long,
@@ -184,18 +254,9 @@ data class DayPlan(
     val completionPercentage: Float = 0f,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
-)
+)*/
 
-@Entity(
-    tableName = "day_tasks",
-    foreignKeys = [
-        ForeignKey(entity = DayPlan::class, parentColumns = ["id"], childColumns = ["dayPlanId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = Goal::class, parentColumns = ["id"], childColumns = ["goalId"], onDelete = ForeignKey.SET_NULL),
-        ForeignKey(entity = GoalList::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.SET_NULL),
-        ForeignKey(entity = ActivityRecord::class, parentColumns = ["id"], childColumns = ["activityRecordId"], onDelete = ForeignKey.SET_NULL)
-    ],
-    indices = [Index("dayPlanId"), Index("goalId"), Index("projectId"), Index("activityRecordId"), Index("scheduledTime")]
-)
+/*@Entity(tableName = "day_tasks", foreignKeys = [ForeignKey(entity = DayPlan::class, parentColumns = ["id"], childColumns = ["dayPlanId"], onDelete = ForeignKey.CASCADE), ForeignKey(entity = Goal::class, parentColumns = ["id"], childColumns = ["goalId"], onDelete = ForeignKey.SET_NULL), ForeignKey(entity = GoalList::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.SET_NULL), ForeignKey(entity = ActivityRecord::class, parentColumns = ["id"], childColumns = ["activityRecordId"], onDelete = ForeignKey.SET_NULL)], indices = [Index("dayPlanId"), Index("goalId"), Index("projectId"), Index("activityRecordId"), Index("scheduledTime")])
 data class DayTask(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val dayPlanId: String,
@@ -226,7 +287,8 @@ data class DayTask(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
     val completedAt: Long? = null
-)
+)*/
+/*
 
 @Entity(tableName = "daily_metrics")
 data class DailyMetric(
@@ -247,8 +309,9 @@ data class DailyMetric(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null
 )
+*/
 
-// --- SEARCH RESULT AND UI MODELS ---
+// --- UI & SEARCH MODELS ---
 
 sealed class ListItemContent {
     abstract val item: ListItem
@@ -256,14 +319,13 @@ sealed class ListItemContent {
     data class SublistItem(val sublist: GoalList, override val item: ListItem) : ListItemContent()
     data class LinkItem(val link: LinkItemEntity, override val item: ListItem) : ListItemContent()
 }
-
+// У файлі DatabaseModel.kt
 data class GlobalSearchResult(
     @Embedded
     val goal: Goal,
     val listId: String,
     val listName: String,
-    // Локально застосовуємо специфічний конвертер
-    @TypeConverters(PathSegmentsConverter::class)
+    // Анотацію видалено, оскільки тепер буде працювати глобальний конвертер
     val pathSegments: List<String>
 )
 
