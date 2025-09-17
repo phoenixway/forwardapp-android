@@ -337,11 +337,23 @@ data class GlobalLinkSearchResult(
     val listItemId: String,
 )
 
+// У файлі: DatabaseModel.kt
+
 data class GlobalSublistSearchResult(
     @Embedded
     val sublist: GoalList,
     val parentListId: String,
     val parentListName: String,
+    // --- ДОДАЙТЕ ЦІ ДВА РЯДКИ ---
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>
+)
+
+data class GlobalListSearchResult(
+    @Embedded
+    val list: GoalList,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>
 )
 
 sealed class GlobalSearchResultItem {
@@ -363,10 +375,14 @@ sealed class GlobalSearchResultItem {
         override val uniqueId: String get() = "sublist_${searchResult.sublist.id}_${searchResult.parentListId}"
     }
 
-    data class ListItem(val list: GoalList) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = list.updatedAt ?: list.createdAt
-        override val uniqueId: String get() = "list_${list.id}"
+    data class ListItem(
+        val searchResult: GlobalListSearchResult, // <-- Змінено з list: GoalList
+    ) : GlobalSearchResultItem() {
+        // Оновлюємо доступ до полів
+        override val timestamp: Long get() = searchResult.list.updatedAt ?: searchResult.list.createdAt
+        override val uniqueId: String get() = "list_${searchResult.list.id}"
     }
+
 
     data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.startTime ?: record.createdAt

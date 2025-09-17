@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -31,6 +32,8 @@ fun SublistSearchResultItem(
     onClick: () -> Unit,
     onOpenInNavigation: () -> Unit,
 ) {
+    Log.d("PATH_DEBUG", "[COMPOSABLE] Відображення SublistSearchResultItem: name='${result.sublist.name}', pathSegments=${result.pathSegments}")
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -81,21 +84,26 @@ fun SublistSearchResultItem(
                 )
             }
 
-            // Другий рядок: батьківський проєкт
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Link to nested project: ${result.parentListName}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
+            // --- ЗМІНЕНО ТУТ: Тепер тут відображається повний шлях ---
+            // Другий рядок: шлях проєкту
+            if (result.pathSegments.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val pathText = result.pathSegments.joinToString(" → ")
+                    Text(
+                        text = pathText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
+            // --- КІНЕЦЬ ЗМІН ---
 
             // Третій рядок: іконка типу (ліворуч) + кнопки (праворуч)
             Row(

@@ -363,13 +363,20 @@ constructor(
             linkItemDao.searchLinksGlobal(query).map {
                 GlobalSearchResultItem.LinkItem(it)
             }
-        val sublistResults =
-            goalListDao.searchSublistsGlobal(query).map {
-                GlobalSearchResultItem.SublistItem(it)
-            }
+
+        // --- ЗМІНИ ТУТ ---
+        val sublistResultsRaw = goalListDao.searchSublistsGlobal(query)
+        Log.d("PATH_DEBUG", "[REPOSITORY] Знайдено ${sublistResultsRaw.size} підсписків.")
+        sublistResultsRaw.firstOrNull()?.let {
+            Log.d("PATH_DEBUG", "[REPOSITORY] Перший результат: name='${it.sublist.name}', pathSegments=${it.pathSegments}")
+        }
+        val sublistResults = goalListDao.searchSublistsGlobal(query).map {
+            GlobalSearchResultItem.SublistItem(it)
+        }
+
         val listResults =
             goalListDao.searchListsGlobal(query).map {
-                GlobalSearchResultItem.ListItem(it)
+                GlobalSearchResultItem.ListItem(it) // <-- Тепер `it` має тип GlobalListSearchResult
             }
         val activityResults =
             activityRepository.searchActivities(query).map {
