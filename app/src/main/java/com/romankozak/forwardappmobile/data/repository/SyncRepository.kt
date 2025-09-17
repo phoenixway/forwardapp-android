@@ -86,10 +86,10 @@ constructor(
 ) {
     private val TAG = "SyncRepository"
     private val gson = Gson()
-    private val client =
+    private val client: HttpClient by lazy {
         HttpClient(CIO) {
             install(ContentNegotiation) { gson() }
-        }
+        }}
 
     suspend fun fetchBackupFromWifi(address: String): Result<String> =
         try {

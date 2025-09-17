@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.firstOrNull
 
 // --- DATA КЛАСИ, ВИНЕСЕНІ ЗА МЕЖІ VIEWMODEL ДЛЯ ЧИСТОТИ ---
-
+private const val TAG = "SendDebug"
 sealed class GoalListUiEvent {
     data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
     data class NavigateToDetails(val listId: String) : GoalListUiEvent()
@@ -413,14 +413,19 @@ class GoalListViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+
+            // Тепер цей виклик безпечний, бо він не в головному потоці
             settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
-                _isBottomNavExpanded.value = savedState
+                // Для оновлення UI-стейту (_isBottomNavExpanded) безпечно повернутись в головний потік
+                withContext(Dispatchers.Main) {
+                    _isBottomNavExpanded.value = savedState
+                }
             }
-            withContext(ioDispatcher) {
-                _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
-                contextHandler.initialize()
-            }
+
+            // Цей код вже виконується в IO потоці, тому додатковий withContext не потрібен
+            _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
+            contextHandler.initialize()
         }
     }
 

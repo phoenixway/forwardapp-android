@@ -209,6 +209,29 @@ dependencies {
     implementation("com.google.mlkit:translate:17.0.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0") // Для дебагу
+
+    // Для безпечного зберігання даних
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    implementation("androidx.credentials:credentials:1.2.2")
+    implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
+// Biometric authentication
+    implementation("androidx.biometric:biometric:1.1.0")
+// Google Play Services (необхідно для Passkeys)
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation("com.google.android.gms:play-services-base:18.2.0")
+// Якщо ще немає
+    implementation("com.google.android.gms:play-services-fido:20.1.0")
+
+
+
+// KotlinX Serialization для роботи з JSON
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+// Адаптер для Retrofit, щоб він працював з KotlinX Serialization
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
 
 
 }

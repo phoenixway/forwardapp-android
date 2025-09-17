@@ -21,9 +21,10 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
-private const val TAG = "BACKLOG_UI_DEBUG"
-
+private const val TAG = "SendDebug" // <--- Додайте цей тег
 @Composable
 fun GoalDetailEffects(
     navController: NavController,
@@ -56,7 +57,17 @@ fun GoalDetailEffects(
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
-                is UiEvent.Navigate -> navController.navigate(event.route)
+                is UiEvent.NavigateToAuth -> {
+                    Log.d("SendDebug", "GoalDetailEffects: Отримано подію NavigateToAuth. URL: '${event.url}'")
+                    // Кодуємо URL для безпечної передачі як аргумент
+                    val encodedUrl = URLEncoder.encode(event.url, StandardCharsets.UTF_8.toString())
+                    // Виконуємо навігацію з передачею аргументу
+                    navController.navigate("auth_screen/$encodedUrl")
+                }
+                is UiEvent.Navigate -> {
+                    Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate. Маршрут: '${event.route}'")
+                    navController.navigate(event.route)
+                }
                 is UiEvent.ShowSnackbar -> {
                     coroutineScope.launch {
                         val result =

@@ -1,11 +1,13 @@
-// file: ui/screens/backlog/GoalDetailScreen.kt
-
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
-// import android.util.Log // <--- ВИДАЛЕНО НЕПОТРІБНИЙ ІМПОРТ
+import android.app.Activity
+import android.content.Intent
+import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,33 +23,108 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.domain.wifirestapi.TokenManager
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.ExportTransferDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.topbar.AdaptiveTopBar
-// import kotlinx.coroutines.CoroutineScope // <--- ВИДАЛЕНО НЕПОТРІБНИЙ ІМПОРТ
+import kotlinx.coroutines.flow.collectLatest
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun ProjectsScreen(
     navController: NavController,
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
+    Log.d("ViewModelInitTest", "ProjectsScreen: Спроба створити GoalDetailViewModel. Результат: $viewModel")
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val list by viewModel.goalList.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
+    val desktopAddress by viewModel.desktopAddress.collectAsStateWithLifecycle() // <-- Отримуємо адресу
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val inboxListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    var menuExpanded by remember { mutableStateOf(value = false) } // <--- Додано іменований аргумент для ясності
+    var menuExpanded by remember { mutableStateOf(value = false) }
+    val context = LocalContext.current
+
+    //val navController = rememberNavController() // або отримайте його з параметрів
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Коли екран повертається у фокус (напр. після входу)
+                // Перевіряємо, чи є токен, і повторюємо відправку
+                if (TokenManager.getToken(context) != null) {
+                    viewModel.retryPendingTransfer()
+                }
+            }
+        })
+    }
+
+
+
+    // --- ЛОГІКА ДЛЯ АВТЕНТИФІКАЦІЇ ТА ПЕРЕДАЧІ ФАЙЛІВ ---
+
+    // Launcher для активності автентифікації
+    val authLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            viewModel.showSnackbar("Вхід успішний!", null)
+            viewModel.onAuthSuccess() // Повторюємо спробу передачі
+        } else {
+            viewModel.showSnackbar("Вхід скасовано або невдалий", null)
+        }
+    }
+
+    // Обробник навігаційних подій від ViewModel
+/*    LaunchedEffect(Unit) {
+        viewModel.uiEventFlow.collectLatest { event ->
+            if (event is UiEvent.Navigate && event.route == "auth_screen") {
+                navController.navigate("auth_screen")
+            }
+        }
+    }*/
+
+    // Відображення діалогу експорту/передачі
+    if (uiState.showExportTransferDialog) {
+        val transferUrl = remember(desktopAddress) {
+            val ip = desktopAddress
+            if (ip.isNotBlank() && !ip.startsWith("http")) {
+                "http://$ip:8000"
+            } else {
+                ip
+            }
+        }
+
+        ExportTransferDialog(
+            onDismiss = { viewModel.onExportTransferDialogDismiss() },
+            onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
+            onTransfer = { url -> viewModel.onTransferBacklogViaWifi(url) },
+            desktopUrl = transferUrl,
+            transferStatus = uiState.transferStatus
+        )
+    }
+
+    // --- КІНЕЦЬ ЛОГІКИ ДЛЯ АВТЕНТИФІКАЦІЇ ---
 
     val dragDropState = rememberSimpleDragDropState(
         lazyListState = listState,
@@ -107,6 +184,23 @@ fun ProjectsScreen(
             null
         }
 
+    LaunchedEffect(key1 = Unit) {
+        viewModel.uiEventFlow.collectLatest { event ->
+            when (event) {
+                is UiEvent.NavigateToAuth -> {
+                    // Кодуємо URL для безпечної передачі як аргумент
+                    val encodedUrl = URLEncoder.encode(event.url, StandardCharsets.UTF_8.toString())
+                    // Виконуємо навігацію з передачею аргументу
+                    navController.navigate("auth_screen/$encodedUrl")
+                }
+                // Тут можна додати обробку інших подій, якщо потрібно
+                else -> {
+                    // Можна залишити порожнім або додати логування
+                }
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -121,7 +215,6 @@ fun ProjectsScreen(
                 onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
                 onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
                 onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                // 👇 ДОДАНО РЯДОК
                 currentViewMode = uiState.currentView
             )
         },
@@ -135,7 +228,6 @@ fun ProjectsScreen(
                 ModernInputPanel(
                     inputValue = uiState.inputValue,
                     inputMode = uiState.inputMode,
-                    // ПОМИЛКУ ВИПРАВЛЕНО: onValue-Change -> onValueChange
                     onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
                     onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
                     onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
@@ -166,7 +258,8 @@ fun ProjectsScreen(
                     onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
                     onExportToMarkdown = viewModel::onExportToMarkdownRequest,
                     onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
-                    onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
+                    // 👇 ОНОВЛЕНО: Викликаємо функцію, що відкриває новий діалог
+                    onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
                     reminderParseResult = reminderParseResult,
                     onClearReminder = viewModel::onClearReminder,
                     isNerActive = uiState.nerState is NerState.Ready,
