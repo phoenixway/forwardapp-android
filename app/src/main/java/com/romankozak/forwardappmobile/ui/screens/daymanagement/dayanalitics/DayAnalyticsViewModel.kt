@@ -1,5 +1,5 @@
 // DayAnalyticsViewModel.kt
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

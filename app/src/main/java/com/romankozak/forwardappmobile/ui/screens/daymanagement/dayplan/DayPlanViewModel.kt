@@ -1,5 +1,5 @@
 // DayPlanViewModel.kt - Updated with reordering support
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.UUID
 import javax.inject.Inject
 
 data class DayPlanUiState(
@@ -132,7 +133,7 @@ class DayPlanViewModel @Inject constructor(
 
                 // 1. Створюємо новий об'єкт завдання
                 val newTask = DayTask(
-                    id = java.util.UUID.randomUUID().toString(), // Генеруємо унікальний ID
+                    id = UUID.randomUUID().toString(), // Генеруємо унікальний ID
                     dayPlanId = dayPlanId,
                     title = trimmedTitle,
                     description = trimmedDescription,

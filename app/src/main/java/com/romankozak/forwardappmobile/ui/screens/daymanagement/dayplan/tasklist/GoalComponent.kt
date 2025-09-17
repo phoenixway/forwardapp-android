@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape

@@ -24,7 +24,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.daydashboard.DayDashboardScreen
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 import kotlinx.coroutines.launch
 
 private enum class DayManagementTab(

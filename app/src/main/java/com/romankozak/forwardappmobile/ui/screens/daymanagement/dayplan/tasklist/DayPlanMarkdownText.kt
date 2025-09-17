@@ -1,5 +1,5 @@
 // file: ui/screens/daymanagement/tasklist/DayPlanMarkdownText.kt
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*

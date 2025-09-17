@@ -1,8 +1,7 @@
-package com.romankozak.forwardappmobile.ui.screens.daydashboard
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
@@ -16,7 +15,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
