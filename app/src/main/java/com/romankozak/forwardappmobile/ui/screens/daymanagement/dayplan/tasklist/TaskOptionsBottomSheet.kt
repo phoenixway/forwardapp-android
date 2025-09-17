@@ -1,5 +1,5 @@
 // TaskOptionsBottomSheet.kt
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

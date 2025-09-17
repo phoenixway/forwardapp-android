@@ -1,5 +1,5 @@
 // file: ui/screens/daymanagement/tasklist/DayTaskItem.kt
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke

@@ -28,9 +28,9 @@ import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.EnhancedCustomCheckbox
 // Примітка: Переконайтесь, що CompactDayPlanHeader імпортується з правильного місця
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.CompactDayPlanHeader
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.DayTaskAsGoalItem
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.DayTaskAsSublistItem
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeader
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsGoalItem
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsSublistItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import sh.calvin.reorderable.ReorderableItem

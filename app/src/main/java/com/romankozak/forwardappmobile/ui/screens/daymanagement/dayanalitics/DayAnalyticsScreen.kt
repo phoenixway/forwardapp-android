@@ -1,6 +1,6 @@
 // File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/DayAnalyticsScreen.kt
 
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*

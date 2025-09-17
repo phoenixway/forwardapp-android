@@ -1,5 +1,5 @@
 // DayPlanScreen.kt - Updated with reminder dialog fix
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
 import TaskList
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -33,8 +33,8 @@ import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.AddTaskDialog
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist.EditTaskDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.AddTaskDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.EditTaskDialog
 import sh.calvin.reorderable.ReorderableLazyListState
 import java.time.Instant
 import java.time.ZoneId
@@ -282,16 +282,16 @@ fun DayPlanScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            FloatingActionButton(
                 onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.openAddTaskDialog()
                 },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Додати завдання") },
-                text = { Text("Додати завдання") },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Додати завдання")
+            }
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
