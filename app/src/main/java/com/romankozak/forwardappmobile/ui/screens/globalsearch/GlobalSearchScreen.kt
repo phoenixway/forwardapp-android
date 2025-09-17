@@ -342,10 +342,14 @@ private fun SearchResultsContent(
                                 },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    // Відкрити в навігації - повернутися з виділеним елементом
+
+                                    // --- ЗМІНЕНО ТУТ ---
+                                    // Тепер передаємо ID батьківського списку з правильним ключем
                                     navController.previousBackStackEntry
                                         ?.savedStateHandle
-                                        ?.set("item_to_reveal", result.searchResult.goal.id)
+                                        ?.set("list_to_reveal", result.searchResult.listId)
+                                    // --- КІНЕЦЬ ЗМІН ---
+
                                     navController.popBackStack()
                                 },
                             )
