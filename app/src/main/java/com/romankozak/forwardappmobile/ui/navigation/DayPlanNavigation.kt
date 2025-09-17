@@ -6,7 +6,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
+import com.romankozak.forwardappmobile.ui.screens.dayplan.daymanagement.DayPlanScreen
 
 // Константи для нового маршруту
 const val DAY_PLAN_ROUTE = "day_plan_screen"

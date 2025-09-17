@@ -1,5 +1,5 @@
 // DayPlanScreen.kt - Updated with reminder dialog fix
-package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
+package com.romankozak.forwardappmobile.ui.screens.dayplan.daymanagement
 
 import TaskList
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -33,6 +33,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.EditTaskDialog
 import sh.calvin.reorderable.ReorderableLazyListState
@@ -292,7 +293,8 @@ fun DayPlanScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Додати завдання")
             }
-        }
+        },
+        floatingActionButtonPosition = FabPosition.Center
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             when {
