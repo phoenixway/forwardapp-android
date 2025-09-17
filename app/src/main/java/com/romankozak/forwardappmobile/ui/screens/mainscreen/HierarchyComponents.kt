@@ -478,50 +478,28 @@ fun SmartHierarchyView(
                 }
             }
         }
-
         if (list.isExpanded) {
-            // Перевіряємо, чи є у нащадків довгі імена
-            val hasLongNames = remember(list.id, childMap) {
-                viewModel.hasDescendantsWithLongNames(list.id, childMap)
-            }
-
-            if (hasLongNames) {
-                // Якщо так, показуємо індикатор "..."
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = ((level + 1) * 24).dp, top = 4.dp, bottom = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreHoriz,
-                        contentDescription = "Дочірні елементи приховані",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 56.dp) // Відступ для вирівнювання з текстом
+            // ЗАВЖДИ ПОКАЗУЄМО ДОЧІРНІ ЕЛЕМЕНТИ
+            Column(modifier = Modifier.padding(start = 24.dp)) {
+                children.forEach { child ->
+                    SmartHierarchyView(
+                        list = child,
+                        childMap = childMap,
+                        level = level + 1,
+                        dragAndDropState = dragAndDropState,
+                        viewModel = viewModel,
+                        isSearchActive = isSearchActive,
+                        planningMode = planningMode,
+                        highlightedListId = highlightedListId,
+                        settings = settings,
+                        searchQuery = searchQuery,
+                        onNavigateToList = onNavigateToList,
+                        focusedListId = focusedListId
                     )
-                }
-            } else {
-                // Якщо ні, показуємо дочірні елементи, як і раніше
-                Column(modifier = Modifier.padding(start = 24.dp)) {
-                    children.forEach { child ->
-                        SmartHierarchyView(
-                            list = child,
-                            childMap = childMap,
-                            level = level + 1,
-                            dragAndDropState = dragAndDropState,
-                            viewModel = viewModel,
-                            isSearchActive = isSearchActive,
-                            planningMode = planningMode,
-                            highlightedListId = highlightedListId,
-                            settings = settings,
-                            searchQuery = searchQuery,
-                            onNavigateToList = onNavigateToList,
-                            focusedListId = focusedListId
-                        )
-                    }
                 }
             }
         }
+
     }
 }
 
