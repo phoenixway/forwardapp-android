@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -122,17 +123,26 @@ internal fun InboxSearchResultItem(
                 // Inbox іконка (ліворуч)
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(8.dp)) // Змінено форму
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Inbox,
-                        contentDescription = "Inbox record",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Inbox,
+                            contentDescription = "Inbox record",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Inbox",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
 
                 // Кнопка відкрити (праворуч)

@@ -117,17 +117,26 @@ fun SublistSearchResultItem(
                 // Folder іконка (ліворуч)
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(8.dp)) // Змінено форму
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Folder,
-                        contentDescription = "Project",
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = "Sub-Project",
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Sub-Project",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
 
                 // Кнопки (праворуч)
