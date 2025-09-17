@@ -45,12 +45,26 @@ interface GoalDao {
     @Transaction
     @Query(
         """
-    SELECT DISTINCT g.*, gl.id as listId, gl.name as listName
-    FROM goals g
-    JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
-    JOIN goal_lists gl ON li.listId = gl.id
-    WHERE g.text LIKE :query
-    """,
+WITH RECURSIVE path_cte(id, name, path) AS (
+    -- Базовий випадок: вибираємо кореневі списки (у яких немає батьків)
+    SELECT id, name, name as path
+    FROM goal_lists
+    WHERE parentId IS NULL
+
+    UNION ALL
+
+    -- Рекурсивний крок: приєднуємо дочірні списки та доповнюємо шлях
+    SELECT gl.id, gl.name, p.path || ' / ' || gl.name
+    FROM goal_lists gl
+    JOIN path_cte p ON gl.parentId = p.id
+)
+SELECT DISTINCT g.*, gl.id as listId, gl.name as listName, pc.path as pathSegments
+FROM goals g
+JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
+JOIN goal_lists gl ON li.listId = gl.id
+JOIN path_cte pc ON gl.id = pc.id -- Приєднуємо згенерований шлях до кожного списку
+WHERE g.text LIKE :query
+""",
     )
     suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult>
 
