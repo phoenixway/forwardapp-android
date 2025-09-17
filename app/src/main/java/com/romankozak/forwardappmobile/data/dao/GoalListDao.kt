@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.romankozak.forwardappmobile.data.database.models.GlobalListSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSublistSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import kotlinx.coroutines.flow.Flow
@@ -67,17 +68,40 @@ interface GoalListDao {
     @Transaction
     @Query(
         """
-    SELECT sublist.*, parent_list.id as parentListId, parent_list.name as parentListName
+    WITH RECURSIVE path_cte(id, name, path) AS (
+        SELECT id, name, name as path FROM goal_lists WHERE parentId IS NULL
+        UNION ALL
+        SELECT gl.id, gl.name, p.path || ' / ' || gl.name
+        FROM goal_lists gl JOIN path_cte p ON gl.parentId = p.id
+    )
+    SELECT
+        sublist.*,
+        parent_list.id as parentListId,
+        parent_list.name as parentListName,
+        pc.path as pathSegments
     FROM goal_lists AS sublist
     INNER JOIN list_items AS li ON sublist.id = li.entityId
     INNER JOIN goal_lists AS parent_list ON li.listId = parent_list.id
+    INNER JOIN path_cte pc ON sublist.id = pc.id
     WHERE li.itemType = 'SUBLIST' AND sublist.name LIKE :query
-""",
+    """
     )
     suspend fun searchSublistsGlobal(query: String): List<GlobalSublistSearchResult>
 
-    @Query("SELECT * FROM goal_lists WHERE name LIKE :query")
-    suspend fun searchListsGlobal(query: String): List<GoalList>
+
+    @Query("""
+    WITH RECURSIVE path_cte(id, name, path) AS (
+        SELECT id, name, name as path FROM goal_lists WHERE parentId IS NULL
+        UNION ALL
+        SELECT gl.id, gl.name, p.path || ' / ' || gl.name
+        FROM goal_lists gl JOIN path_cte p ON gl.parentId = p.id
+    )
+    SELECT gl.*, pc.path as pathSegments
+    FROM goal_lists gl
+    JOIN path_cte pc ON gl.id = pc.id
+    WHERE gl.name LIKE :query AND gl.parentId IS NOT NULL 
+""")
+    suspend fun searchListsGlobal(query: String): List<GlobalListSearchResult>
 
     @Query("DELETE FROM goal_lists")
     suspend fun deleteAll()

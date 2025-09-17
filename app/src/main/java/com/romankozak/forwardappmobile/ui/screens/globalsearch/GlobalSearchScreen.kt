@@ -15,14 +15,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.outlined.Workspaces
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.data.database.models.GlobalSublistSearchResult
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
@@ -388,41 +393,40 @@ private fun SearchResultsContent(
                             )
                         }
                         is GlobalSearchResultItem.SublistItem -> {
-                            SublistSearchResultItem(
+                            SublistSearchResultItem( // <-- Використовуємо новий компонент
                                 result = result.searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val parentListId = result.searchResult.parentListId
-                                    navController.navigate("goal_detail_screen/$parentListId")
+                                    // Ця дія відкриває батьківський список, де знаходиться посилання
+                                    navController.navigate("goal_detail_screen/${result.searchResult.parentListId}")
                                 },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    // Відкрити в навігації - повернутися з виділеним підсписком
+                                    // Ця дія показує сам підсписок у головній ієрархії
                                     navController.previousBackStackEntry
                                         ?.savedStateHandle
-                                        ?.set("sublist_to_reveal", result.searchResult.sublist.id)
+                                        ?.set("list_to_reveal", result.searchResult.sublist.id)
                                     navController.popBackStack()
                                 },
                             )
                         }
                         is GlobalSearchResultItem.ListItem -> {
                             ListSearchResultItem(
-                                list = result.list,
+                                result = result.searchResult, // <-- Змінено з list = result.list
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("list_to_reveal", result.list.id)
-                                    navController.popBackStack()
+                                    // Ця дія відкриває сам проєкт
+                                    navController.navigate("goal_detail_screen/${result.searchResult.list.id}")
                                 },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    // Відкрити в навігації - повернутися з виділеним списком
+                                    // Ця дія показує проєкт у головній ієрархії
                                     navController.previousBackStackEntry
                                         ?.savedStateHandle
-                                        ?.set("list_to_reveal", result.list.id)
+                                        ?.set("list_to_reveal", result.searchResult.list.id)
                                     navController.popBackStack()
                                 },
+
                             )
                         }
                         is GlobalSearchResultItem.ActivityItem -> {

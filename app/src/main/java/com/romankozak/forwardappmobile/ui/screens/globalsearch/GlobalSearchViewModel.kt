@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.globalsearch
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -29,33 +30,50 @@ class GlobalSearchViewModel
         private val settingsRepository: SettingsRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        val query: String = savedStateHandle.get<String>("query") ?: ""
+    val query: String = savedStateHandle.get<String>("query") ?: ""
 
-        private val _uiState = MutableStateFlow(GlobalSearchUiState())
-        val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(GlobalSearchUiState())
+    val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
 
-        val obsidianVaultName: StateFlow<String> =
-            settingsRepository.obsidianVaultNameFlow
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val obsidianVaultName: StateFlow<String> =
+        settingsRepository.obsidianVaultNameFlow
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-        init {
-            performSearch()
+    init {
+        performSearch()
+    }
+
+// У файлі: GlobalSearchViewModel.kt
+
+    private fun performSearch() {
+        if (query.isBlank()) {
+            _uiState.update { it.copy(isLoading = false) }
+            return
         }
 
-        private fun performSearch() {
-            if (query.isBlank()) {
-                _uiState.update { it.copy(isLoading = false) }
-                return
+        viewModelScope.launch {
+            val results = goalRepository.searchGoalsGlobal("%$query%")
+
+            // --- ДОДАЙТЕ ЛОГУВАННЯ ТУТ ---
+            val sublistItems = results.filterIsInstance<GlobalSearchResultItem.SublistItem>()
+            Log.d(
+                "PATH_DEBUG",
+                "[VIEWMODEL] Всього результатів: ${results.size}. З них підсписків: ${sublistItems.size}"
+            )
+            sublistItems.firstOrNull()?.let {
+                Log.d(
+                    "PATH_DEBUG",
+                    "[VIEWMODEL] Перший підсписок: name='${it.searchResult.sublist.name}', pathSegments=${it.searchResult.pathSegments}"
+                )
+            }
+            // --- КІНЕЦЬ ЛОГУВАННЯ ---
+
+            val distinctResults = results.distinct()
+            _uiState.update {
+                it.copy(results = distinctResults, isLoading = false)
             }
 
-            viewModelScope.launch {
-                val results = goalRepository.searchGoalsGlobal("%$query%")
-
-                val distinctResults = results.distinct()
-
-                _uiState.update {
-                    it.copy(results = distinctResults, isLoading = false)
-                }
-            }
         }
     }
+}
+
