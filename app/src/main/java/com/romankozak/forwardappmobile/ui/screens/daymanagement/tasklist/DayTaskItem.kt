@@ -2,17 +2,13 @@
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.tasklist
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material.icons.filled.TrackChanges
@@ -25,15 +21,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.ListItemType // Припускаємо, що цей enum існує
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.EnhancedCustomCheckbox
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.EnhancedReminderBadge
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.MarkdownText
-
-// --- Примітка: Додайте цей enum у відповідний файл з моделями ---
-// enum class ListItemType { GOAL, SUBLIST, LINK }
-// ----------------------------------------------------------------
 
 /**
  * Іконка для підсписку, аналогічна тій, що в беклозі.
@@ -87,7 +76,7 @@ fun DayTaskAsGoalItem(task: DayTask, currentTimeMillis: Long) {
         )
 
         val hasStatusContent = hasStatusContent(task)
-        AnimatedVisibility(visible = hasStatusContent, /* ... */) {
+        AnimatedVisibility(visible = hasStatusContent) {
             Column {
                 Spacer(modifier = Modifier.height(6.dp))
                 FlowRow(
@@ -95,16 +84,12 @@ fun DayTaskAsGoalItem(task: DayTask, currentTimeMillis: Long) {
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    // --- ОНОВЛЕНИЙ ПОРЯДОК ---
-                    // 1. Іконка проєкту (якщо є)
                     if (task.projectId != null) {
                         ProjectLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     }
-                    // 2. Іконка цілі (якщо є)
                     if (task.goalId != null) {
                         GoalLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     }
-                    // 3. Решта бейджів (пріоритет, нагадування і т.д.)
                     RenderBadges(task, currentTimeMillis)
                 }
             }
@@ -125,7 +110,7 @@ fun DayTaskAsSublistItem(task: DayTask, currentTimeMillis: Long) {
         )
 
         val hasStatusContent = hasStatusContent(task)
-        AnimatedVisibility(visible = hasStatusContent, /* ... */) {
+        AnimatedVisibility(visible = hasStatusContent) {
             Column {
                 Spacer(modifier = Modifier.height(6.dp))
                 FlowRow(
@@ -133,18 +118,13 @@ fun DayTaskAsSublistItem(task: DayTask, currentTimeMillis: Long) {
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    // --- ОНОВЛЕНИЙ ПОРЯДОК ---
-                    // 1. Іконка підсписку
                     SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                    // 2. Іконка проєкту
                     if (task.projectId != null) {
                         ProjectLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     }
-                    // 3. Іконка цілі
                     if (task.goalId != null) {
                         GoalLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     }
-                    // 4. Решта бейджів
                     RenderBadges(task, currentTimeMillis)
                 }
             }
@@ -164,7 +144,6 @@ private fun hasStatusContent(task: DayTask): Boolean {
 
 @Composable
 private fun FlowRowScope.RenderBadges(task: DayTask, currentTimeMillis: Long) {
-    // Тепер ця функція не відповідає за іконки зв'язків
     task.reminderTime?.let { time ->
         EnhancedReminderBadge(
             reminderTime = time,
@@ -184,36 +163,94 @@ private fun FlowRowScope.RenderBadges(task: DayTask, currentTimeMillis: Long) {
     }
 }
 
+/**
+ * --- ОНОВЛЕНИЙ КОМПОНЕНТ ---
+ * Тепер "Критичний" та "Високий" пріоритети мають суцільний фон для кращої видимості.
+ */
 @Composable
 private fun PriorityBadge(priority: TaskPriority) {
-    val (color, text) = when (priority) {
-        TaskPriority.CRITICAL -> MaterialTheme.colorScheme.error to "Критичний"
-        TaskPriority.HIGH -> MaterialTheme.colorScheme.errorContainer to "Високий"
-        TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary to "Середній"
-        TaskPriority.LOW -> MaterialTheme.colorScheme.tertiary to "Низький"
-        TaskPriority.NONE -> MaterialTheme.colorScheme.onSurfaceVariant to "Без пріоритету"
-    }
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.1f),
-        border = androidx.compose.foundation.BorderStroke(0.7.dp, color.copy(alpha = 0.3f))
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Flag,
-                contentDescription = "Пріоритет",
-                tint = color,
-                modifier = Modifier.size(12.dp)
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                color = color,
-            )
+    when (priority) {
+        TaskPriority.CRITICAL -> {
+            val backgroundColor = MaterialTheme.colorScheme.error
+            val contentColor = MaterialTheme.colorScheme.onError
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = backgroundColor
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = "Пріоритет",
+                        tint = contentColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "Критичний",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor,
+                    )
+                }
+            }
+        }
+        TaskPriority.HIGH -> {
+            val backgroundColor = MaterialTheme.colorScheme.errorContainer
+            val contentColor = MaterialTheme.colorScheme.onErrorContainer
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = backgroundColor
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = "Пріоритет",
+                        tint = contentColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "Високий",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor,
+                    )
+                }
+            }
+        }
+        else -> { // Для MEDIUM, LOW, NONE використовуємо старий, менш виразний стиль
+            val (color, text) = when (priority) {
+                TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary to "Середній"
+                TaskPriority.LOW -> MaterialTheme.colorScheme.tertiary to "Низький"
+                else -> MaterialTheme.colorScheme.onSurfaceVariant to "Без пріоритету"
+            }
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = color.copy(alpha = 0.1f),
+                border = BorderStroke(0.7.dp, color.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = "Пріоритет",
+                        tint = color,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color,
+                    )
+                }
+            }
         }
     }
 }

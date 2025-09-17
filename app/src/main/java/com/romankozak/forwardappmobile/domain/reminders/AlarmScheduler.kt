@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.GoalList
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -233,4 +234,29 @@ constructor(
         Log.i(tag, "AlarmScheduler: Scheduling test alarm for 1 minute from now")
         schedule(testGoal)
     }
+
+    fun scheduleForTask(task: DayTask) {
+        Log.d(tag, "AlarmScheduler: scheduleForTask() called for task ID: ${task.id}, text: '${task.title}', reminderTime: ${task.reminderTime}")
+        val reminderTime = task.reminderTime ?: return
+        if (reminderTime <= System.currentTimeMillis()) {
+            Log.w(tag, "AlarmScheduler: Reminder time for task is in the past. Aborting schedule.")
+            return
+        }
+        if (!checkPermissions()) return
+
+        val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, task.id) // Використовуємо існуючі ключі
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, task.title)
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, task.description)
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "📅") // Емодзі для завдань з плану
+        }
+        setExactAlarm(task.id.hashCode(), reminderTime, intent)
+    }
+
+    // --- НОВИЙ МЕТОД: Скасовує нагадування для DayTask ---
+    fun cancelForTask(task: DayTask) {
+        Log.d(tag, "AlarmScheduler: cancelForTask() called for task ID: ${task.id}")
+        cancelAlarm(task.id.hashCode())
+    }
+
 }

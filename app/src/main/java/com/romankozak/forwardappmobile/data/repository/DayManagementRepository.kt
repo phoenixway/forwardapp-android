@@ -5,6 +5,7 @@ import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -23,6 +24,7 @@ class DayManagementRepository @Inject constructor(
     private val goalDao: GoalDao,
     private val goalListDao: GoalListDao,
     private val activityRepository: ActivityRepository,
+    private val alarmScheduler: AlarmScheduler, // НОВА ЗАЛЕЖНІСТЬ
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
@@ -221,13 +223,6 @@ class DayManagementRepository @Inject constructor(
         recalculateDayProgress(taskId)
     }
 
-    suspend fun deleteTask(taskId: String) = withContext(ioDispatcher) {
-        val task = dayTaskDao.getTaskById(taskId)
-        if (task != null) {
-            dayTaskDao.deleteById(taskId)
-            calculateAndSaveDailyMetrics(task.dayPlanId)
-        }
-    }
 
     suspend fun updateTask(
         taskId: String,
@@ -247,20 +242,6 @@ class DayManagementRepository @Inject constructor(
         dayTaskDao.update(updatedTask)
     }
 
-    suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
-        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
-        val now = System.currentTimeMillis()
-        val newStatus = !task.completed
-
-        dayTaskDao.updateTaskCompletion(
-            taskId = taskId,
-            completed = newStatus,
-            status = if (newStatus) TaskStatus.COMPLETED else TaskStatus.NOT_STARTED,
-            completedAt = if (newStatus) now else null,
-            updatedAt = now
-        )
-        recalculateDayProgress(taskId)
-    }
 
     suspend fun startTaskWithTimeTracking(taskId: String): ActivityRecord? = withContext(ioDispatcher) {
         val task = dayTaskDao.getTaskById(taskId) ?: return@withContext null
@@ -405,15 +386,57 @@ class DayManagementRepository @Inject constructor(
         }
     }
 
-    // --- НОВИЙ МЕТОД: Встановлює час нагадування для завдання ---
-    suspend fun setTaskReminder(taskId: String, reminderTime: Long) = withContext(ioDispatcher) {
-        // Примітка: цей код припускає, що у вашому DayTaskDao є метод updateReminderTime
-        dayTaskDao.updateReminderTime(taskId, reminderTime, System.currentTimeMillis())
+    //
+    suspend fun deleteTask(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId)
+        if (task != null) {
+            // Скасовуємо нагадування перед видаленням
+            if (task.reminderTime != null) {
+                alarmScheduler.cancelForTask(task)
+            }
+            dayTaskDao.deleteById(taskId)
+            calculateAndSaveDailyMetrics(task.dayPlanId)
+        }
     }
 
-    // --- НОВИЙ МЕТОД: Скасовує нагадування для завдання ---
+    suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
+        val now = System.currentTimeMillis()
+        val newStatus = !task.completed
+
+        dayTaskDao.updateTaskCompletion(
+            taskId = taskId,
+            completed = newStatus,
+            status = if (newStatus) TaskStatus.COMPLETED else TaskStatus.NOT_STARTED,
+            completedAt = if (newStatus) now else null,
+            updatedAt = now
+        )
+
+        // Керуємо нагадуванням залежно від статусу
+        if (task.reminderTime != null) {
+            if (newStatus) { // Якщо завдання виконано -> скасувати нагадування
+                alarmScheduler.cancelForTask(task)
+            } else { // Якщо завдання знову активне -> перепланувати нагадування
+                alarmScheduler.scheduleForTask(task)
+            }
+        }
+
+        recalculateDayProgress(taskId)
+    }
+
+    suspend fun setTaskReminder(taskId: String, reminderTime: Long) = withContext(ioDispatcher) {
+        dayTaskDao.updateReminderTime(taskId, reminderTime, System.currentTimeMillis())
+        val updatedTask = dayTaskDao.getTaskById(taskId)
+        if (updatedTask != null) {
+            alarmScheduler.scheduleForTask(updatedTask)
+        }
+    }
+
     suspend fun clearTaskReminder(taskId: String) = withContext(ioDispatcher) {
-        // Той самий метод DAO використовується для скидання часу на null
+        val task = dayTaskDao.getTaskById(taskId)
         dayTaskDao.updateReminderTime(taskId, null, System.currentTimeMillis())
+        if (task != null) {
+            alarmScheduler.cancelForTask(task)
+        }
     }
 }
