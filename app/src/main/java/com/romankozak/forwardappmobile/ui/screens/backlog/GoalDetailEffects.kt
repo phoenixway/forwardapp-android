@@ -21,10 +21,11 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
+// ВИДАЛЕНО: URLEncoder більше не потрібен тут
+// import java.net.URLEncoder
+// import java.nio.charset.StandardCharsets
 
-private const val TAG = "SendDebug" // <--- Додайте цей тег
+private const val TAG = "SendDebug"
 @Composable
 fun GoalDetailEffects(
     navController: NavController,
@@ -39,7 +40,6 @@ fun GoalDetailEffects(
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val list by viewModel.goalList.collectAsStateWithLifecycle()
 
-    // ВИПРАВЛЕНО: Звертаємось до inboxRecords через viewModel.inboxHandler
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
 
     val localContext = LocalContext.current
@@ -57,16 +57,15 @@ fun GoalDetailEffects(
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
-                is UiEvent.NavigateToAuth -> {
-                    Log.d("SendDebug", "GoalDetailEffects: Отримано подію NavigateToAuth. URL: '${event.url}'")
-                    // Кодуємо URL для безпечної передачі як аргумент
-                    val encodedUrl = URLEncoder.encode(event.url, StandardCharsets.UTF_8.toString())
-                    // Виконуємо навігацію з передачею аргументу
-                    navController.navigate("auth_screen/$encodedUrl")
-                }
+                // --- ЗМІНА: Видаляємо обробку NavigateToAuth ---
+                // is UiEvent.NavigateToAuth -> { ... }
                 is UiEvent.Navigate -> {
                     Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate. Маршрут: '${event.route}'")
-                    navController.navigate(event.route)
+                    if (event.route == "back") {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(event.route)
+                    }
                 }
                 is UiEvent.ShowSnackbar -> {
                     coroutineScope.launch {
@@ -105,6 +104,8 @@ fun GoalDetailEffects(
             }
         }
     }
+
+    // ... (решта коду в GoalDetailEffects залишається без змін) ...
 
     // Авто-скрол до нового елемента
     val newItemInList = uiState.newlyAddedItemId?.let { id -> displayList.find { it.item.id == id } }
