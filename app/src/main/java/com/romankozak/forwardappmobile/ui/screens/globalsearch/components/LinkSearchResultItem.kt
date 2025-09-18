@@ -34,7 +34,7 @@ fun LinkSearchResultItem(
     result: GlobalLinkSearchResult,
     onClick: () -> Unit,
     onOpenInObsidian: () -> Unit,
-    onGoToTargetList: () -> Unit,
+    onGoToTargetProject: () -> Unit,
     onOpenUrl: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -50,7 +50,7 @@ fun LinkSearchResultItem(
         getLinkDisplayData(
             linkType = linkType,
             onOpenInObsidian = onOpenInObsidian,
-            onGoToTargetList = onGoToTargetList,
+            onGoToTargetProject = onGoToTargetProject,
             onOpenUrl = onOpenUrl,
         )
 
@@ -126,13 +126,13 @@ fun LinkSearchResultItem(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ListAlt,
-                        contentDescription = "Список",
+                        contentDescription = "Проект",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = result.listName,
+                        text = result.projectName,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -181,7 +181,7 @@ fun LinkSearchResultItem(
 private fun getLinkDisplayData(
     linkType: LinkType,
     onOpenInObsidian: () -> Unit,
-    onGoToTargetList: () -> Unit,
+    onGoToTargetProject: () -> Unit,
     onOpenUrl: () -> Unit,
 ): LinkDisplayData =
     when (linkType) {
@@ -211,7 +211,7 @@ private fun getLinkDisplayData(
                 actionIcon = Icons.AutoMirrored.Filled.Note,
                 actionDescription = "Відкрити в Obsidian",
             )
-        LinkType.GOAL_LIST ->
+        LinkType.PROJECT ->
             LinkDisplayData(
                 icon = Icons.AutoMirrored.Filled.ListAlt,
                 colors =
@@ -220,9 +220,9 @@ private fun getLinkDisplayData(
                         container = MaterialTheme.colorScheme.primaryContainer,
                         onContainer = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
-                actionHandler = onGoToTargetList,
+                actionHandler = onGoToTargetProject,
                 actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
-                actionDescription = "Перейти до списку",
+                actionDescription = "Перейти до проекту",
             )
     }
 
@@ -230,7 +230,7 @@ private fun getLinkTypeLabel(linkType: LinkType): String =
     when (linkType) {
         LinkType.URL -> "Attachment: web-url"
         LinkType.OBSIDIAN -> "Attachment: Obsidian note"
-        LinkType.GOAL_LIST -> "Attachment: link to project"
+        LinkType.PROJECT -> "Attachment: link to project"
     }
 
 private data class LinkDisplayData(

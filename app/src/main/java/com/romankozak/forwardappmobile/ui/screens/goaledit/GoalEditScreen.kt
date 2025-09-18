@@ -363,7 +363,7 @@ private fun RelatedLinksSection(
             }
 
             AddLinksButtons(
-                onAddListLink = onAddLink,
+                onAddProjectLink = onAddLink,
                 onAddWebLink = onAddWebLink,
                 onAddObsidianLink = onAddObsidianLink,
             )
@@ -383,7 +383,7 @@ private fun LinkItem(
         shape = RoundedCornerShape(12.dp),
         color =
             when (link.type) {
-                LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                LinkType.PROJECT -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                 LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
             },
@@ -391,7 +391,7 @@ private fun LinkItem(
             BorderStroke(
                 1.dp,
                 when (link.type) {
-                    LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    LinkType.PROJECT -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                     LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
                 },
@@ -412,14 +412,14 @@ private fun LinkItem(
                 Icon(
                     imageVector =
                         when (link.type) {
-                            LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.List
+                            LinkType.PROJECT -> Icons.AutoMirrored.Filled.List
                             LinkType.URL -> Icons.Default.Language
                             LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
                         },
                     contentDescription = null,
                     tint =
                         when (link.type) {
-                            LinkType.GOAL_LIST -> MaterialTheme.colorScheme.primary
+                            LinkType.PROJECT -> MaterialTheme.colorScheme.primary
                             LinkType.URL -> MaterialTheme.colorScheme.secondary
                             LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
                         },
@@ -440,7 +440,7 @@ private fun LinkItem(
                     Text(
                         text =
                             when (link.type) {
-                                LinkType.GOAL_LIST -> "Список цілей"
+                                LinkType.PROJECT -> "Проект"
                                 LinkType.URL -> "Веб-посилання"
                                 LinkType.OBSIDIAN -> "Obsidian нотатка"
                             },
@@ -468,7 +468,7 @@ private fun LinkItem(
 
 @Composable
 private fun AddLinksButtons(
-    onAddListLink: () -> Unit,
+    onAddProjectLink: () -> Unit,
     onAddWebLink: () -> Unit,
     onAddObsidianLink: () -> Unit,
 ) {
@@ -480,7 +480,7 @@ private fun AddLinksButtons(
     ) {
         if (isExpanded) {
             OutlinedButton(
-                onClick = onAddListLink,
+                onClick = onAddProjectLink,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
@@ -489,7 +489,7 @@ private fun AddLinksButtons(
                     modifier = Modifier.size(ButtonDefaults.IconSize),
                 )
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text("Додати список цілей")
+                Text("Додати проект")
             }
 
             OutlinedButton(

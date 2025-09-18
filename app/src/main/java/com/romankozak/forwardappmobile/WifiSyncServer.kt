@@ -51,7 +51,7 @@ class WifiSyncServer(
                         get("/export") {
                             Log.d("WifiSyncServer", "Запит на /export отримано.")
                             try {
-                                val backupJson = syncRepository.createBackupJsonString()
+                                val backupJson = syncRepository.createFullBackupJsonString()
                                 call.respondText(backupJson, ContentType.Application.Json)
                             } catch (e: Exception) {
                                 Log.e("WifiSyncServer", "Помилка при створенні бекапу", e)

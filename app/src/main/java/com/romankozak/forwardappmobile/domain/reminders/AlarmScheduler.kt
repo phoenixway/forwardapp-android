@@ -10,8 +10,9 @@ import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,31 +56,31 @@ constructor(
         cancelAlarm(goal.id.hashCode())
     }
 
-    fun scheduleForList(list: GoalList) {
+    fun scheduleForProject(project: Project) {
         Log.d(
             tag,
-            "AlarmScheduler: scheduleForList() called for list ID: ${list.id}, name: '${list.name}', reminderTime: ${list.reminderTime}",
+            "AlarmScheduler: scheduleForProject() called for project ID: ${project.id}, name: '${project.name}', reminderTime: ${project.reminderTime}",
         )
-        val reminderTime = list.reminderTime ?: return
+        val reminderTime = project.reminderTime ?: return
         if (reminderTime <= System.currentTimeMillis()) {
-            Log.w(tag, "AlarmScheduler: Reminder time is in the past or now for list. Aborting schedule.")
+            Log.w(tag, "AlarmScheduler: Reminder time is in the past or now for project. Aborting schedule.")
             return
         }
         if (!checkPermissions()) return
 
         val intent =
             Intent(context, ReminderBroadcastReceiver::class.java).apply {
-                putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, list.id) // Можна використовувати той же ключ
-                putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, list.name)
-                putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, list.description)
+                putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, project.id) // Можна використовувати той же ключ
+                putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, project.name)
+                putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, project.description)
                 putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "📂") // Інша іконка для проектів
             }
-        setExactAlarm(list.id.hashCode(), reminderTime, intent)
+        setExactAlarm(project.id.hashCode(), reminderTime, intent)
     }
 
-    fun cancelForList(list: GoalList) {
-        Log.d(tag, "AlarmScheduler: cancelForList() called for list ID: ${list.id}")
-        cancelAlarm(list.id.hashCode())
+    fun cancelForProject(project: Project) {
+        Log.d(tag, "AlarmScheduler: cancelForProject() called for project ID: ${project.id}")
+        cancelAlarm(project.id.hashCode())
     }
 
     override fun scheduleNotification(
@@ -180,7 +181,6 @@ constructor(
         return true
     }
 
-    // ... (решта файлу без змін)
     private fun checkBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -232,5 +232,28 @@ constructor(
 
         Log.i(tag, "AlarmScheduler: Scheduling test alarm for 1 minute from now")
         schedule(testGoal)
+    }
+
+    fun scheduleForTask(task: DayTask) {
+        Log.d(tag, "AlarmScheduler: scheduleForTask() called for task ID: ${task.id}, text: '${task.title}', reminderTime: ${task.reminderTime}")
+        val reminderTime = task.reminderTime ?: return
+        if (reminderTime <= System.currentTimeMillis()) {
+            Log.w(tag, "AlarmScheduler: Reminder time for task is in the past. Aborting schedule.")
+            return
+        }
+        if (!checkPermissions()) return
+
+        val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, task.id)
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, task.title)
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, task.description)
+            putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "📅")
+        }
+        setExactAlarm(task.id.hashCode(), reminderTime, intent)
+    }
+
+    fun cancelForTask(task: DayTask) {
+        Log.d(tag, "AlarmScheduler: cancelForTask() called for task ID: ${task.id}")
+        cancelAlarm(task.id.hashCode())
     }
 }

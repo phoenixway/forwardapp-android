@@ -65,7 +65,7 @@ class SimpleDragDropState(
     fun onDragStart(item: ListItemContent) {
         if (isDragging) return
 
-        val itemInfo = state.layoutInfo.visibleItemsInfo.find { it.key == item.item.id }
+        val itemInfo = state.layoutInfo.visibleItemsInfo.find { it.key == item.listItem.id }
         if (itemInfo != null) {
             if (isDragging) {
                 reset()
@@ -74,9 +74,9 @@ class SimpleDragDropState(
             initialIndexOfDraggedItem = itemInfo.index
             draggedItemIndex = itemInfo.index
             targetIndexOfDraggedItem = itemInfo.index
-            Log.d(TAG, "▶️ [onDragStart] START. ItemId: ${item.item.id}, Index: ${itemInfo.index}")
+            Log.d(TAG, "▶️ [onDragStart] START. ItemId: ${item.listItem.id}, Index: ${itemInfo.index}")
         } else {
-            Log.w(TAG, "[onDragStart] WARNING: Could not find layout info for dragged item: ${item.item.id}")
+            Log.w(TAG, "[onDragStart] WARNING: Could not find layout info for dragged item: ${item.listItem.id}")
         }
     }
 
@@ -151,7 +151,7 @@ class SimpleDragDropState(
     fun getItemOffset(item: ListItemContent): Float {
         if (!isDragging) return 0f
 
-        val itemInfo = state.layoutInfo.visibleItemsInfo.find { it.key == item.item.id }
+        val itemInfo = state.layoutInfo.visibleItemsInfo.find { it.key == item.listItem.id }
         val itemIndex = itemInfo?.index ?: return 0f
 
         val draggedIndex = initialIndexOfDraggedItem

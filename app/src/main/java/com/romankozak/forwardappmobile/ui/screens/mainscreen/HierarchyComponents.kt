@@ -41,9 +41,8 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.ui.components.GoalListRow
 
 // --- Допоміжні функції для підсвічування ---
 private fun fuzzyMatchAndGetIndices(query: String, text: String): List<Int>? {
@@ -109,25 +108,20 @@ internal fun highlightSubstring(text: String, query: String): AnnotatedString {
     }
 }
 
-
-/**
- * Оновлений компонент GoalListRow, який включає ваш новий дизайн
- * та логіку приховування іконки розгортання.
- */
 @Composable
-fun GoalListRow(
-    list: GoalList,
+fun ProjectRow(
+    project: Project,
     level: Int,
     hasChildren: Boolean,
-    onListClick: (String) -> Unit,
-    onToggleExpanded: (list: GoalList) -> Unit,
-    onMenuRequested: (list: GoalList) -> Unit,
+    onProjectClick: (String) -> Unit,
+    onToggleExpanded: (project: Project) -> Unit,
+    onMenuRequested: (project: Project) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
     showFocusButton: Boolean,
-    onFocusRequested: (list: GoalList) -> Unit,
+    onFocusRequested: (project: Project) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false
@@ -161,21 +155,20 @@ fun GoalListRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onListClick(list.id) }
+                .clickable { onProjectClick(project.id) }
                 .alpha(if (isCurrentlyDragging) 0.6f else 1f)
                 .padding(start = indentation)
                 .padding(vertical = 8.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Іконка розгортання/згортання
             Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                 if (hasChildren && !showFocusButton) {
                     IconButton(
-                        onClick = { onToggleExpanded(list) },
+                        onClick = { onToggleExpanded(project) },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            imageVector = if (list.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                            imageVector = if (project.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                             contentDescription = "Згорнути/Розгорнути",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -185,9 +178,8 @@ fun GoalListRow(
                 }
             }
 
-            // Назва списку
             Text(
-                text = displayName ?: AnnotatedString(list.name),
+                text = displayName ?: AnnotatedString(project.name),
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp),
@@ -200,18 +192,17 @@ fun GoalListRow(
                 else MaterialTheme.colorScheme.onBackground
             )
 
-            // Кнопка фокусування
             AnimatedVisibility(
                 visible = showFocusButton,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
                 IconButton(
-                    onClick = { onFocusRequested(list) },
+                    onClick = { onFocusRequested(project) },
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.MoreHoriz, // <-- ЗМІНА ІКОНКИ
+                        imageVector = Icons.Filled.MoreHoriz,
                         contentDescription = if (isFocused) "Вийти з фокусу" else "Сфокусуватися",
                         tint = if (isFocused) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -219,14 +210,13 @@ fun GoalListRow(
                 }
             }
 
-            // Іконка "Більше"
             IconButton(
-                onClick = { onMenuRequested(list) },
+                onClick = { onMenuRequested(project) },
                 modifier = Modifier.size(36.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Дії зі списком",
+                    contentDescription = "Дії з проектом",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -241,12 +231,6 @@ fun GoalListRow(
         }
     }
 }
-
-// ... (ваш код до цього моменту) ...
-
-// ... (ваш код до цього моменту) ...
-
-// ... (ваш код до цього моменту) ...
 
 @Composable
 fun BreadcrumbNavigation(
@@ -307,7 +291,6 @@ fun BreadcrumbNavigation(
             itemsIndexed(breadcrumbs) { index, item ->
                 val isLast = index == breadcrumbs.size - 1
 
-                // Головний елемент списку
                 Surface(
                     modifier = Modifier.clickable { if (!isLast) onNavigate(item) },
                     shape = RoundedCornerShape(16.dp),
@@ -330,7 +313,6 @@ fun BreadcrumbNavigation(
                     }
                 }
 
-                // Кнопки розміщуються ПІСЛЯ елемента, якщо це останній елемент
                 if (isLast) {
                     Spacer(modifier = Modifier.width(4.dp))
 
@@ -391,70 +373,76 @@ fun BreadcrumbNavigation(
 }
 @Composable
 fun SmartHierarchyView(
-    list: GoalList,
-    childMap: Map<String, List<GoalList>>,
+    project: Project,
+    childMap: Map<String, List<Project>>,
     level: Int,
-    dragAndDropState: DragAndDropState<GoalList>,
-    viewModel: GoalListViewModel,
+    dragAndDropState: DragAndDropState<Project>,
     isSearchActive: Boolean,
     planningMode: PlanningMode,
-    highlightedListId: String?,
+    highlightedProjectId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
-    onNavigateToList: (String) -> Unit,
-    focusedListId: String?
+    onNavigateToProject: (String) -> Unit,
+    focusedProjectId: String?,
+    longDescendantsMap: Map<String, Boolean>,
+    onProjectClick: (String) -> Unit,
+    onToggleExpanded: (Project) -> Unit,
+    onMenuRequested: (Project) -> Unit,
+    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit
 ) {
-    val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
+    val children = childMap[project.id]?.sortedBy { it.order } ?: emptyList()
     val hasChildren = children.isNotEmpty()
 
     val displayName = if (isSearchActive && searchQuery.isNotEmpty()) {
         if (searchQuery.length > 3) {
-            highlightFuzzy(text = list.name, query = searchQuery)
+            highlightFuzzy(text = project.name, query = searchQuery)
         } else {
-            highlightSubstring(text = list.name, query = searchQuery)
+            highlightSubstring(text = project.name, query = searchQuery)
         }
     } else {
-        AnnotatedString(list.name)
+        AnnotatedString(project.name)
     }
 
-    val shouldShowFocusButton = hasChildren && level >= settings.useBreadcrumbsAfter
-    val isFocused = list.id == focusedListId
+    val hasLongDescendants = longDescendantsMap[project.id] ?: false
+    val isDeeplyNested = hasChildren && level >= settings.useBreadcrumbsAfter
+    val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
+    val isFocused = project.id == focusedProjectId
 
     Column {
         DraggableItem(
             state = dragAndDropState,
-            key = list.id,
-            data = list,
+            key = project.id,
+            data = project,
             dragAfterLongPress = true
         ) {
             val draggedItemData = dragAndDropState.draggedItem?.data
-            val isDropAllowed = remember(draggedItemData, list) {
-                draggedItemData == null || (draggedItemData.parentId == list.parentId)
+            val isDropAllowed = remember(draggedItemData, project) {
+                draggedItemData == null || (draggedItemData.parentId == project.parentId)
             }
 
             val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
-            val isHovered = remember(hoveredDropTargetKey, list.id) {
-                isDropAllowed && (hoveredDropTargetKey == "before-${list.id}" || hoveredDropTargetKey == "after-${list.id}")
+            val isHovered = remember(hoveredDropTargetKey, project.id) {
+                isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
             }
-            val isDraggingDown = remember(hoveredDropTargetKey, list.id) {
-                isDropAllowed && hoveredDropTargetKey == "after-${list.id}"
+            val isDraggingDown = remember(hoveredDropTargetKey, project.id) {
+                isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
             }
 
             Box(modifier = Modifier.fillMaxWidth()) {
-                GoalListRow(
-                    list = list,
+                ProjectRow(
+                    project = project,
                     level = level,
                     hasChildren = hasChildren,
-                    onListClick = { listId -> viewModel.onListClicked(listId) },
-                    onToggleExpanded = { goalList -> viewModel.onToggleExpanded(goalList) },
-                    onMenuRequested = { goalList -> viewModel.onMenuRequested(goalList) },
+                    onProjectClick = onProjectClick,
+                    onToggleExpanded = onToggleExpanded,
+                    onMenuRequested = onMenuRequested,
                     isCurrentlyDragging = isDragging,
                     isHovered = isHovered,
                     isDraggingDown = isDraggingDown,
-                    isHighlighted = list.id == highlightedListId,
+                    isHighlighted = project.id == highlightedProjectId,
                     displayName = displayName,
                     showFocusButton = shouldShowFocusButton,
-                    onFocusRequested = { onNavigateToList(it.id) },
+                    onFocusRequested = { onNavigateToProject(it.id) },
                     isFocused = isFocused
                 )
 
@@ -466,8 +454,8 @@ fun SmartHierarchyView(
                                 .weight(1f)
                                 .then(
                                     if (isDropAllowed) {
-                                        Modifier.dropTarget(state = dragAndDropState, key = "$position-${list.id}") {
-                                            viewModel.onListReorder(it.data.id, list.id, position)
+                                        Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
+                                            onProjectReorder(it.data.id, project.id, position)
                                         }
                                     } else Modifier
                                 )
@@ -478,47 +466,27 @@ fun SmartHierarchyView(
                 }
             }
         }
-
-        if (list.isExpanded) {
-            // Перевіряємо, чи є у нащадків довгі імена
-            val hasLongNames = remember(list.id, childMap) {
-                viewModel.hasDescendantsWithLongNames(list.id, childMap)
-            }
-
-            if (hasLongNames) {
-                // Якщо так, показуємо індикатор "..."
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = ((level + 1) * 24).dp, top = 4.dp, bottom = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreHoriz,
-                        contentDescription = "Дочірні елементи приховані",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 56.dp) // Відступ для вирівнювання з текстом
+        if (project.isExpanded && !shouldShowFocusButton) {
+            Column(modifier = Modifier.padding(start = 24.dp)) {
+                children.forEach { child ->
+                    SmartHierarchyView(
+                        project = child,
+                        childMap = childMap,
+                        level = level + 1,
+                        dragAndDropState = dragAndDropState,
+                        isSearchActive = isSearchActive,
+                        planningMode = planningMode,
+                        highlightedProjectId = highlightedProjectId,
+                        settings = settings,
+                        searchQuery = searchQuery,
+                        onNavigateToProject = onNavigateToProject,
+                        focusedProjectId = focusedProjectId,
+                        longDescendantsMap = longDescendantsMap,
+                        onProjectClick = onProjectClick,
+                        onToggleExpanded = onToggleExpanded,
+                        onMenuRequested = onMenuRequested,
+                        onProjectReorder = onProjectReorder
                     )
-                }
-            } else {
-                // Якщо ні, показуємо дочірні елементи, як і раніше
-                Column(modifier = Modifier.padding(start = 24.dp)) {
-                    children.forEach { child ->
-                        SmartHierarchyView(
-                            list = child,
-                            childMap = childMap,
-                            level = level + 1,
-                            dragAndDropState = dragAndDropState,
-                            viewModel = viewModel,
-                            isSearchActive = isSearchActive,
-                            planningMode = planningMode,
-                            highlightedListId = highlightedListId,
-                            settings = settings,
-                            searchQuery = searchQuery,
-                            onNavigateToList = onNavigateToList,
-                            focusedListId = focusedListId
-                        )
-                    }
                 }
             }
         }
@@ -527,35 +495,43 @@ fun SmartHierarchyView(
 
 @Composable
 fun FocusedListView(
-    focusedListId: String,
+    focusedProjectId: String,
     hierarchy: ListHierarchyData,
-    dragAndDropState: DragAndDropState<GoalList>,
-    viewModel: GoalListViewModel,
+    dragAndDropState: DragAndDropState<Project>,
     isSearchActive: Boolean,
     planningMode: PlanningMode,
-    highlightedListId: String?,
+    highlightedProjectId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
-    onNavigateToList: (String) -> Unit
+    longDescendantsMap: Map<String, Boolean>,
+    onNavigateToProject: (String) -> Unit,
+    onProjectClick: (String) -> Unit,
+    onToggleExpanded: (Project) -> Unit,
+    onMenuRequested: (Project) -> Unit,
+    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit
 ) {
-    val children = (hierarchy.childMap[focusedListId] ?: emptyList()).sortedBy { it.order }
+    val children = (hierarchy.childMap[focusedProjectId] ?: emptyList()).sortedBy { it.order }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if (children.isNotEmpty()) {
             items(children, key = { it.id }) { child ->
                 SmartHierarchyView(
-                    list = child,
+                    project = child,
                     childMap = hierarchy.childMap,
-                    level = 0, // В режимі фокусування дочірні елементи починаються з 0-го рівня
+                    level = 0,
                     dragAndDropState = dragAndDropState,
-                    viewModel = viewModel,
                     isSearchActive = isSearchActive,
                     planningMode = planningMode,
-                    highlightedListId = highlightedListId,
+                    highlightedProjectId = highlightedProjectId,
                     settings = settings,
                     searchQuery = searchQuery,
-                    onNavigateToList = onNavigateToList,
-                    focusedListId = focusedListId
+                    onNavigateToProject = onNavigateToProject,
+                    focusedProjectId = focusedProjectId,
+                    longDescendantsMap = longDescendantsMap,
+                    onProjectClick = onProjectClick,
+                    onToggleExpanded = onToggleExpanded,
+                    onMenuRequested = onMenuRequested,
+                    onProjectReorder = onProjectReorder
                 )
             }
         } else {
@@ -573,7 +549,7 @@ fun FocusedListView(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "No sublists",
+                            text = "No subprojects",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

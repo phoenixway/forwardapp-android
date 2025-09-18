@@ -1,3 +1,5 @@
+// file: ui/screens/backlog/BacklogViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
 import android.app.Application
@@ -13,7 +15,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
@@ -21,6 +23,9 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
+import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
+import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.TransferStatus
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputMode
@@ -30,7 +35,6 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.InboxMarkdow
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ItemActionHandler
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ProjectMarkdownExporter
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.SelectionHandler
-import com.romankozak.forwardappmobile.utils.DayManagementUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +53,6 @@ import javax.inject.Inject
 
 private const val TAG = "BACKLOG_VM_DEBUG"
 
-// ... (sealed class UiEvent, GoalActionDialogState, etc. залишаються без змін) ...
 sealed class UiEvent {
     data class ShowSnackbar(
         val message: String,
@@ -69,7 +72,7 @@ sealed class UiEvent {
     ) : UiEvent()
 
     data class NavigateBackAndReveal(
-        val listId: String,
+        val projectId: String,
     ) : UiEvent()
 
     data class HandleLinkClick(
@@ -79,6 +82,8 @@ sealed class UiEvent {
     data object ScrollToLatestInboxRecord : UiEvent()
 }
 
+enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
+
 sealed class GoalActionDialogState {
     object Hidden : GoalActionDialogState()
 
@@ -86,8 +91,6 @@ sealed class GoalActionDialogState {
         val itemContent: ListItemContent,
     ) : GoalActionDialogState()
 }
-
-enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
 
 data class UiState(
     val localSearchQuery: String = "",
@@ -104,7 +107,7 @@ data class UiState(
     val inboxRecordToHighlight: String? = null,
     val needsStateRefresh: Boolean = false,
     val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
-    val showRecentListsSheet: Boolean = false,
+    val showRecentProjectsSheet: Boolean = false,
     val showImportFromMarkdownDialog: Boolean = false,
     val showImportBacklogFromMarkdownDialog: Boolean = false,
     val refreshTrigger: Int = 0,
@@ -113,8 +116,9 @@ data class UiState(
     val nerState: NerState = NerState.NotInitialized,
     val recordForReminderDialog: ActivityRecord? = null,
     val projectTimeMetrics: ProjectTimeMetrics? = null,
+    val showExportTransferDialog: Boolean = false,
+    val transferStatus: TransferStatus = TransferStatus.IDLE
 )
-
 interface BacklogMarkdownHandlerResultListener {
     fun copyToClipboard(
         text: String,
@@ -132,7 +136,7 @@ interface BacklogMarkdownHandlerResultListener {
 class BacklogMarkdownHandler
 @Inject
 constructor(
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository, // Corrected dependency
     private val scope: CoroutineScope,
     private val listener: BacklogMarkdownHandlerResultListener,
 ) {
@@ -150,7 +154,7 @@ constructor(
                         "$checkbox ${item.goal.text}"
                     }
 
-                    is ListItemContent.SublistItem -> "- [С] ${item.sublist.name}"
+                    is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
                     is ListItemContent.LinkItem -> {
                         val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                         "- [Л] [$displayName](${item.link.linkData.target})"
@@ -165,7 +169,7 @@ constructor(
 
     fun importFromMarkdown(
         markdownText: String,
-        listId: String,
+        projectId: String,
     ) {
         if (markdownText.isBlank()) {
             listener.showSnackbar("Нічого імпортувати.", null)
@@ -181,7 +185,7 @@ constructor(
                         trimmedLine.startsWith("- [ ]") -> {
                             val goalText = trimmedLine.removePrefix("- [ ]").trim()
                             if (goalText.isNotEmpty()) {
-                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }
@@ -189,7 +193,7 @@ constructor(
                         trimmedLine.startsWith("- [x]") -> {
                             val goalText = trimmedLine.removePrefix("- [x]").trim()
                             if (goalText.isNotEmpty()) {
-                                goalRepository.addGoalToList(goalText, listId, completed = true)
+                                projectRepository.addGoalToProject(goalText, projectId, completed = true)
                                 importedCount++
                             }
                         }
@@ -204,15 +208,15 @@ constructor(
             }
         }
     }
-} // <-- **ВАЖЛИВО: Клас BacklogMarkdownHandler тут закінчується**
+}
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
-class GoalDetailViewModel // **Тепер це клас верхнього рівня**
+class BacklogViewModel
 @Inject
 constructor(
     private val application: Application,
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository,
     private val settingsRepository: SettingsRepository,
     private val contextHandler: ContextHandler,
     private val alarmScheduler: AlarmScheduler,
@@ -221,7 +225,7 @@ constructor(
     private val activityRepository: ActivityRepository,
     private val projectMarkdownExporter: ProjectMarkdownExporter,
     private val savedStateHandle: SavedStateHandle,
-    private val dayManagementRepository: DayManagementRepository, // <-- Нова, правильна назва
+    private val dayManagementRepository: DayManagementRepository,
 ) : ViewModel(),
     ItemActionHandler.ResultListener,
     InputHandler.ResultListener,
@@ -235,15 +239,15 @@ constructor(
 
     private var batchSaveJob: Job? = null
 
-    private val listIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+    private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("projectId", "")
     private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
     val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
-    val itemActionHandler = ItemActionHandler(goalRepository, viewModelScope, listIdFlow, this)
-    val selectionHandler = SelectionHandler(goalRepository, viewModelScope, _listContent, this)
-    val inboxHandler = InboxHandler(goalRepository, viewModelScope, listIdFlow, this)
-    val inboxMarkdownHandler = InboxMarkdownHandler(goalRepository, viewModelScope, this)
-    val backlogMarkdownHandler = BacklogMarkdownHandler(goalRepository, viewModelScope, this)
+    val itemActionHandler = ItemActionHandler(projectRepository, viewModelScope, projectIdFlow, this)
+    val selectionHandler = SelectionHandler(projectRepository, viewModelScope, _listContent, this)
+    val inboxHandler = InboxHandler(projectRepository, viewModelScope, projectIdFlow, this)
+    val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, viewModelScope, this)
+    val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, viewModelScope, this)
 
     private val _uiState =
         MutableStateFlow(
@@ -256,29 +260,20 @@ constructor(
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     val projectLogs: StateFlow<List<ProjectExecutionLog>> =
-        listIdFlow
+        projectIdFlow
             .flatMapLatest { id ->
                 if (id.isNotEmpty()) {
-                    goalRepository.getProjectLogsStream(id)
+                    projectRepository.getProjectLogsStream(id)
                 } else {
                     flowOf(emptyList())
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val detectedCalendarFlow: StateFlow<Calendar?> =
-        uiState
-            .map { it.detectedReminderCalendar }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = null,
-            )
-
     val inputHandler =
         InputHandler(
-            goalRepository,
+            projectRepository,
             viewModelScope,
-            listIdFlow,
+            projectIdFlow,
             this,
             reminderParser,
             alarmScheduler,
@@ -289,40 +284,40 @@ constructor(
     private val _uiEventFlow = Channel<UiEvent>()
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
-    val recentLists: StateFlow<List<GoalList>> =
-        goalRepository
-            .getRecentLists()
+    val recentProjects: StateFlow<List<Project>> =
+        projectRepository
+            .getRecentProjects()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val contextMarkerToEmojiMap: StateFlow<Map<String, String>> =
         contextHandler.contextMarkerToEmojiMap
 
-    val goalList: StateFlow<GoalList?> =
-        combine(listIdFlow, _refreshTrigger) { id, _ -> id }
+    val project: StateFlow<Project?> =
+        combine(projectIdFlow, _refreshTrigger) { id, _ -> id }
             .flatMapLatest { id ->
-                if (id.isNotEmpty()) goalRepository.getGoalListByIdFlow(id) else flowOf(null)
+                if (id.isNotEmpty()) projectRepository.getProjectByIdFlow(id) else flowOf(null)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val tagToContextNameMap: StateFlow<Map<String, String>> =
         contextHandler.tagToContextNameMap
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    val currentListContextMarker: StateFlow<String?> =
-        combine(goalList, tagToContextNameMap) { list, tagMap ->
-            val listTags = list?.tags ?: emptyList()
-            if (listTags.isEmpty() || tagMap.isEmpty()) return@combine null
-            val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in listTags }?.value
+    val currentProjectContextMarker: StateFlow<String?> =
+        combine(project, tagToContextNameMap) { proj, tagMap ->
+            val projectTags = proj?.tags ?: emptyList()
+            if (projectTags.isEmpty() || tagMap.isEmpty()) return@combine null
+            val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in projectTags }?.value
             contextName?.let { contextHandler.getContextMarker(it) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val currentListContextEmojiToHide: StateFlow<String?> =
-        combine(currentListContextMarker, contextMarkerToEmojiMap) { marker, emojiMap ->
+    val currentProjectContextEmojiToHide: StateFlow<String?> =
+        combine(currentProjectContextMarker, contextMarkerToEmojiMap) { marker, emojiMap ->
             marker?.let { emojiMap[it] }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val databaseContentStream: Flow<List<ListItemContent>> =
         combine(
-            listIdFlow,
+            projectIdFlow,
             _uiState.map { it.localSearchQuery }.distinctUntilChanged(),
             _refreshTrigger,
         ) { id, query, _ -> Pair(id, query) }
@@ -330,13 +325,13 @@ constructor(
                 if (id.isEmpty()) {
                     flowOf(emptyList())
                 } else {
-                    goalRepository.getListContentStream(id).map { content ->
+                    projectRepository.getProjectContentStream(id).map { content ->
                         if (query.isNotBlank()) {
                             content.filter { itemContent ->
                                 val textToSearch =
                                     when (itemContent) {
                                         is ListItemContent.GoalItem -> itemContent.goal.text
-                                        is ListItemContent.SublistItem -> itemContent.sublist.name
+                                        is ListItemContent.SublistItem -> itemContent.project.name
                                         is ListItemContent.LinkItem ->
                                             itemContent.link.linkData.displayName
                                                 ?: itemContent.link.linkData.target
@@ -365,13 +360,17 @@ constructor(
     private var pendingSourceGoalIds: Set<String> = emptySet()
     private var pendingActivityForReminder: ActivityRecord? = null
 
+    val desktopAddress: StateFlow<String> =
+        settingsRepository.desktopAddressFlow
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
 
         viewModelScope.launch {
-            goalList.collect { list ->
-                if (list != null) {
-                    val isManagementEnabled = list.isProjectManagementEnabled ?: false
+            project.collect { proj ->
+                if (proj != null) {
+                    val isManagementEnabled = proj.isProjectManagementEnabled ?: false
                     val currentView = uiState.value.currentView
                     if (!isManagementEnabled && currentView == ProjectViewMode.DASHBOARD) {
                         Log.d(
@@ -400,7 +399,7 @@ constructor(
         }
 
         viewModelScope.launch {
-            goalList
+            project
                 .filterNotNull()
                 .map { it.defaultViewModeName }
                 .distinctUntilChanged()
@@ -420,19 +419,18 @@ constructor(
             databaseContentStream.collect { dbContent -> _listContent.value = dbContent }
         }
         viewModelScope.launch {
-            listIdFlow.filter { it.isNotEmpty() }.collect { id -> goalRepository.logListAccess(id) }
+            projectIdFlow.filter { it.isNotEmpty() }.collect { id -> projectRepository.logProjectAccess(id) }
         }
         viewModelScope.launch {
-            // Перемикаємо ініціалізацію у фоновий потік
             withContext(Dispatchers.IO) {
                 contextHandler.initialize()
             }
-        }    }
+        }
+    }
 
-    // ... (решта методів GoalDetailViewModel залишається без змін) ...
     fun onToggleProjectManagement(isEnabled: Boolean) {
         viewModelScope.launch {
-            goalRepository.toggleProjectManagement(listIdFlow.value, isEnabled)
+            projectRepository.toggleProjectManagement(projectIdFlow.value, isEnabled)
         }
     }
 
@@ -441,14 +439,14 @@ constructor(
         statusText: String?,
     ) {
         viewModelScope.launch {
-            goalRepository.updateProjectStatus(listIdFlow.value, newStatus, statusText)
+            projectRepository.updateProjectStatus(projectIdFlow.value, newStatus, statusText)
         }
     }
 
     override fun addProjectComment(text: String) {
         if (text.isBlank()) return
         viewModelScope.launch(Dispatchers.IO) {
-            goalRepository.addProjectComment(listIdFlow.value, text)
+            projectRepository.addProjectComment(projectIdFlow.value, text)
             withContext(Dispatchers.Main) {
                 _uiState.update { it.copy(inputValue = TextFieldValue("")) }
             }
@@ -518,8 +516,8 @@ constructor(
                 GoalActionType.CreateInstance -> "Створити посилання у..."
                 GoalActionType.MoveInstance -> "Перемістити до..."
                 GoalActionType.CopyGoal -> "Копіювати до..."
-                GoalActionType.AddLinkToList -> "Додати посилання на список..."
-                GoalActionType.ADD_LIST_SHORTCUT -> "Додати ярлик на список..."
+                GoalActionType.AddLinkToList -> "Додати посилання на проект..."
+                GoalActionType.ADD_LIST_SHORTCUT -> "Додати ярлик на проект..."
             }
         navigateToListChooser(title)
     }
@@ -562,7 +560,6 @@ constructor(
         )
     }
 
-    // Реалізація методу з InboxHandlerResultListener
     override fun updateInputState(inputValue: TextFieldValue) {
         _uiState.update { it.copy(inputValue = inputValue) }
     }
@@ -582,7 +579,7 @@ constructor(
     }
 
     override fun showRecentListsSheet(show: Boolean) {
-        _uiState.update { it.copy(showRecentListsSheet = show) }
+        _uiState.update { it.copy(showRecentProjectsSheet = show) }
     }
 
     override fun updateSelectionState(selectedIds: Set<String>) {
@@ -590,9 +587,9 @@ constructor(
         _uiState.update { it.copy(selectedItemIds = selectedIds) }
     }
 
-    fun onListChooserResult(targetListId: String) {
+    fun onListChooserResult(targetProjectId: String) {
         if (inboxHandler.recordForPromotion.value != null) {
-            inboxHandler.onListSelectedForInboxPromotion(targetListId)
+            inboxHandler.onListSelectedForInboxPromotion(targetProjectId)
             return
         }
 
@@ -602,22 +599,22 @@ constructor(
         viewModelScope.launch(Dispatchers.IO) {
             when (actionType) {
                 GoalActionType.CreateInstance ->
-                    goalRepository.createGoalLinks(
+                    projectRepository.createGoalLinks(
                         goalIds,
-                        targetListId,
+                        targetProjectId,
                     )
 
-                GoalActionType.MoveInstance -> goalRepository.moveListItems(itemIds, targetListId)
-                GoalActionType.CopyGoal -> goalRepository.copyGoalsToList(goalIds, targetListId)
+                GoalActionType.MoveInstance -> projectRepository.moveListItems(itemIds, targetProjectId)
+                GoalActionType.CopyGoal -> projectRepository.copyGoalsToProject(goalIds, targetProjectId)
                 GoalActionType.AddLinkToList -> {
-                    val targetList = goalRepository.getGoalListById(targetListId)
+                    val targetProject = projectRepository.getProjectById(targetProjectId)
                     val link =
                         RelatedLink(
-                            type = LinkType.GOAL_LIST,
-                            target = targetListId,
-                            displayName = targetList?.name ?: "Список без назви",
+                            type = LinkType.PROJECT,
+                            target = targetProjectId,
+                            displayName = targetProject?.name ?: "Проект без назви",
                         )
-                    val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
+                    val newItemId = projectRepository.addLinkItemToProject(projectIdFlow.value, link)
                     withContext(Dispatchers.Main) {
                         _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                     }
@@ -625,13 +622,13 @@ constructor(
 
                 GoalActionType.ADD_LIST_SHORTCUT -> {
                     if (goalIds.isNotEmpty()) {
-                        val sublistToLinkId = goalIds.first()
-                        val newItemId = goalRepository.addListLinkToList(sublistToLinkId, targetListId)
+                        val subprojectToLinkId = goalIds.first()
+                        val newItemId = projectRepository.addProjectLinkToProject(subprojectToLinkId, targetProjectId)
                         withContext(Dispatchers.Main) {
                             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                         }
                     } else {
-                        val newItemId = goalRepository.addListLinkToList(targetListId, listIdFlow.value)
+                        val newItemId = projectRepository.addProjectLinkToProject(targetProjectId, projectIdFlow.value)
                         withContext(Dispatchers.Main) {
                             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
                         }
@@ -646,11 +643,10 @@ constructor(
         selectionHandler.clearSelection()
     }
 
-
     private fun navigateToListChooser(title: String) {
         viewModelScope.launch {
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
-            val disabledIds = listIdFlow.value
+            val disabledIds = projectIdFlow.value
             _uiEventFlow.send(UiEvent.Navigate("list_chooser_screen/$encodedTitle?disabledIds=$disabledIds"))
         }
     }
@@ -699,8 +695,8 @@ constructor(
         withContext(Dispatchers.IO) {
             try {
                 val updatedItems =
-                    listToSave.mapIndexed { index, content -> content.item.copy(order = index.toLong()) }
-                goalRepository.updateListItemsOrder(updatedItems)
+                    listToSave.mapIndexed { index, content -> content.listItem.copy(order = index.toLong()) }
+                projectRepository.updateListItemsOrder(updatedItems)
             } catch (e: Exception) {
                 Log.e(TAG, "[saveListOrder] Failed to save list order", e)
             }
@@ -717,10 +713,10 @@ constructor(
         }
     }
 
-    fun onRevealInExplorer(currentListId: String) {
-        if (currentListId.isEmpty()) return
+    fun onRevealInExplorer(currentProjectId: String) {
+        if (currentProjectId.isEmpty()) return
         viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentListId))
+            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentProjectId))
         }
     }
 
@@ -756,41 +752,37 @@ constructor(
 
     private var lastToggleTime = 0L
 
-
     fun toggleAttachmentsVisibility() {
-        // --- Початок логіки дебаунсингу ---
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastToggleTime < 500) { // Ігнорувати, якщо з останнього виклику пройшло менше 500 мс
+        if (currentTime - lastToggleTime < 500) {
             Log.d("ATTACHMENT_DEBUG", "VM: Toggle DEBOUNCED. Call ignored.")
             return
         }
         lastToggleTime = currentTime
-        // --- Кінець логіки дебаунсингу ---
 
         Log.d("ATTACHMENT_DEBUG", "VM: toggleAttachmentsVisibility() called (ROBUST + DEBOUNCED).")
         viewModelScope.launch(Dispatchers.IO) {
-            val listId = listIdFlow.value
-            if (listId.isBlank()) {
-                Log.w("ATTACHMENT_DEBUG", "VM: listId is blank, aborting toggle.")
+            val projectId = projectIdFlow.value
+            if (projectId.isBlank()) {
+                Log.w("ATTACHMENT_DEBUG", "VM: projectId is blank, aborting toggle.")
                 return@launch
             }
-            val currentList = goalRepository.getGoalListById(listId)
+            val currentProject = projectRepository.getProjectById(projectId)
 
-            if (currentList == null) {
-                Log.w("ATTACHMENT_DEBUG", "VM: list from repository is null, aborting toggle.")
+            if (currentProject == null) {
+                Log.w("ATTACHMENT_DEBUG", "VM: project from repository is null, aborting toggle.")
                 return@launch
             }
 
-            val currentExpandedState = currentList.isAttachmentsExpanded ?: false
+            val currentExpandedState = currentProject.isAttachmentsExpanded ?: false
             Log.d("ATTACHMENT_DEBUG", "VM: Read current isAttachmentsExpanded state FROM REPO: $currentExpandedState")
 
             val newState = !currentExpandedState
             Log.d("ATTACHMENT_DEBUG", "VM: Calculated newState for DB: $newState")
 
-            goalRepository.updateGoalList(currentList.copy(isAttachmentsExpanded = newState))
+            projectRepository.updateProject(currentProject.copy(isAttachmentsExpanded = newState))
         }
     }
-
 
     fun onAddAttachment(type: AttachmentType) {
         when (type) {
@@ -810,11 +802,11 @@ constructor(
         clipboard.setPrimaryClip(clip)
     }
 
-    fun deleteCurrentList() {
+    fun deleteCurrentProject() {
         viewModelScope.launch(Dispatchers.IO) {
-            val listId = listIdFlow.value
-            if (listId.isNotEmpty()) {
-                goalRepository.deleteGoalList(listId)
+            val projectId = projectIdFlow.value
+            if (projectId.isNotEmpty()) {
+                projectRepository.deleteProject(projectId)
                 withContext(Dispatchers.Main) {
                     requestNavigation("back")
                 }
@@ -835,7 +827,7 @@ constructor(
             it.copy(currentView = newView, inputMode = getInputModeForView(newView))
         }
         viewModelScope.launch {
-            goalRepository.updateGoalListViewMode(listIdFlow.value, newView)
+            projectRepository.updateProjectViewMode(projectIdFlow.value, newView)
         }
     }
 
@@ -856,7 +848,7 @@ constructor(
     }
 
     fun onImportFromMarkdownConfirm(markdownText: String) {
-        inboxMarkdownHandler.importFromMarkdown(markdownText, listIdFlow.value)
+        inboxMarkdownHandler.importFromMarkdown(markdownText, projectIdFlow.value)
         onImportFromMarkdownDismiss()
     }
 
@@ -873,7 +865,7 @@ constructor(
     }
 
     fun onImportBacklogFromMarkdownConfirm(markdownText: String) {
-        backlogMarkdownHandler.importFromMarkdown(markdownText, listIdFlow.value)
+        backlogMarkdownHandler.importFromMarkdown(markdownText, projectIdFlow.value)
         onImportBacklogFromMarkdownDismiss()
     }
 
@@ -883,20 +875,20 @@ constructor(
 
     fun onExportProjectStateRequest() {
         projectMarkdownExporter.exportProjectStateToMarkdown(
-            project = goalList.value,
+            project = project.value,
             backlog = listContent.value,
             logs = projectLogs.value,
             listener = this,
         )
     }
 
-    fun onSublistCompletedChanged(
-        sublist: GoalList,
+    fun onSubprojectCompletedChanged(
+        subproject: Project,
         isCompleted: Boolean,
     ) {
         viewModelScope.launch {
-            val updatedSublist = sublist.copy(isCompleted = isCompleted)
-            goalRepository.updateGoalList(updatedSublist)
+            val updatedSubproject = subproject.copy(isCompleted = isCompleted)
+            projectRepository.updateProject(updatedSubproject)
             forceRefresh()
         }
     }
@@ -915,7 +907,7 @@ constructor(
                     }
 
                     is ListItemContent.SublistItem -> {
-                        val record = activityRepository.startListActivity(item.sublist.id)
+                        val record = activityRepository.startProjectActivity(item.project.id)
                         record to "Відстежую проєкт"
                     }
 
@@ -938,8 +930,6 @@ constructor(
     fun onReminderDialogDismiss() {
         _uiState.update { it.copy(recordForReminderDialog = null) }
     }
-
-    // File: BacklogViewModel.kt
 
     fun onSetReminder(timestamp: Long) =
         viewModelScope.launch {
@@ -970,11 +960,11 @@ constructor(
         }
 
     fun onStartTrackingCurrentProject() {
-        val currentListId = listIdFlow.value
-        if (currentListId.isBlank()) return
+        val currentProjectId = projectIdFlow.value
+        if (currentProjectId.isBlank()) return
 
         viewModelScope.launch {
-            val record = activityRepository.startListActivity(currentListId)
+            val record = activityRepository.startProjectActivity(currentProjectId)
             if (record != null) {
                 showSnackbar("Відстежую проєкт", "Обмежити в часі")
                 pendingActivityForReminder = record
@@ -984,12 +974,12 @@ constructor(
 
     fun onToggleProjectManagement() {
         viewModelScope.launch {
-            val list = goalList.value ?: return@launch
-            val currentState = list.isProjectManagementEnabled ?: false
+            val proj = project.value ?: return@launch
+            val currentState = proj.isProjectManagementEnabled ?: false
             val newState = !currentState
             val currentView = uiState.value.currentView
 
-            goalRepository.toggleProjectManagement(list.id, newState)
+            projectRepository.toggleProjectManagement(proj.id, newState)
 
             if (newState) {
                 onProjectViewChange(ProjectViewMode.DASHBOARD)
@@ -1000,45 +990,134 @@ constructor(
     }
 
     fun onRecalculateTime() {
-        val currentListId = listIdFlow.value
-        if (currentListId.isNotBlank()) {
+        val currentProjectId = projectIdFlow.value
+        if (currentProjectId.isNotBlank()) {
             viewModelScope.launch {
-                val metrics = goalRepository.calculateProjectTimeMetrics(currentListId)
+                val metrics = projectRepository.calculateProjectTimeMetrics(currentProjectId)
                 _uiState.update { it.copy(projectTimeMetrics = metrics) }
 
-                goalRepository.recalculateAndLogProjectTime(currentListId)
+                projectRepository.recalculateAndLogProjectTime(currentProjectId)
             }
         }
     }
 
     fun addItemToDailyPlan(itemContent: ListItemContent) {
         viewModelScope.launch {
-            // Примітка: Переконайтесь, що DayManagementUtils.getCurrentDay() існує
-            // або замініть на логіку отримання поточної дати.
-            val today = System.currentTimeMillis() // Приклад, як можна отримати поточний час
-
-            // ВИПРАВЛЕНО: Використовуємо dayManagementRepository
+            val today = System.currentTimeMillis()
             val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
 
             val task = when (itemContent) {
                 is ListItemContent.GoalItem -> {
-                    // Створюємо або отримуємо план на сьогодні і додаємо до нього ціль
                     dayManagementRepository.addGoalToDayPlan(dayPlan.id, itemContent.goal.id)
                 }
                 is ListItemContent.SublistItem -> {
-                    // Створюємо або отримуємо план на сьогодні і додаємо до нього проєкт
-                    dayManagementRepository.addProjectToDayPlan(dayPlan.id, itemContent.sublist.id)
+                    dayManagementRepository.addProjectToDayPlan(dayPlan.id, itemContent.project.id)
                 }
-                // Посилання (LinkItem) не можна додати до плану дня
                 is ListItemContent.LinkItem -> null
             }
 
             if (task != null) {
-                showSnackbar("Додано до плану на сьогодні")
+                showSnackbar("Додано до плану на сьогодні", null)
             } else {
-                showSnackbar("Цей тип елемента неможливо додати до плану")
+                showSnackbar("Цей тип елемента неможливо додати до плану", null)
             }
         }
     }
 
+    fun addCurrentProjectToDayPlan() {
+        val currentProjectId = projectIdFlow.value
+        if (currentProjectId.isBlank()) {
+            showSnackbar("Неможливо додати, проект не визначено", null)
+            return
+        }
+
+        viewModelScope.launch {
+            val today = System.currentTimeMillis()
+            val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
+            dayManagementRepository.addProjectToDayPlan(dayPlan.id, currentProjectId)
+            showSnackbar("Проект додано до плану на сьогодні", null)
+        }
+    }
+
+    fun onExportBacklogRequest() {
+        _uiState.update { it.copy(showExportTransferDialog = true, transferStatus = TransferStatus.IDLE) }
+    }
+
+    fun onExportTransferDialogDismiss() {
+        _uiState.update { it.copy(showExportTransferDialog = false) }
+    }
+
+    fun onCopyToClipboardRequest() {
+        backlogMarkdownHandler.exportToMarkdown(listContent.value)
+        showSnackbar("Беклог скопійовано", null)
+        onExportTransferDialogDismiss()
+    }
+
+    fun onTransferBacklogViaWifi(url: String) {
+        Log.d(TAG, "onTransferBacklogViaWifi: Ініційовано передачу на URL: $url")
+        executeBacklogTransfer(url)
+    }
+
+    private fun executeBacklogTransfer(url: String) {
+        Log.d(TAG, "executeBacklogTransfer: Початок підготовки даних для відправки.")
+        _uiState.update { it.copy(transferStatus = TransferStatus.IN_PROGRESS) }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val markdownBuilder = StringBuilder()
+                listContent.value.forEach { item ->
+                    val line = when (item) {
+                        is ListItemContent.GoalItem -> {
+                            val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
+                            "$checkbox ${item.goal.text}"
+                        }
+                        is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
+                        is ListItemContent.LinkItem -> {
+                            val displayName = item.link.linkData.displayName ?: item.link.linkData.target
+                            "- [Л] [$displayName](${item.link.linkData.target})"
+                        }
+                    }
+                    markdownBuilder.appendLine(line)
+                }
+                val markdownContent = markdownBuilder.toString()
+
+                if (markdownContent.isBlank()) {
+                    withContext(Dispatchers.Main) {
+                        showSnackbar("Беклог порожній. Нічого передавати.", null)
+                        _uiState.update { it.copy(transferStatus = TransferStatus.IDLE) }
+                    }
+                    return@launch
+                }
+
+                val filename = project.value?.name ?: "backlog_export"
+
+                val requestBody = FileDataRequest(
+                    filename = filename,
+                    content = markdownContent
+                )
+
+                Log.d(TAG, "executeBacklogTransfer: Дані підготовлено. Відправка на: $url")
+
+                val response = RetrofitClient.getInstance(application, url).uploadFileAsJson(requestBody)
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        Log.d(TAG, "executeBacklogTransfer: Успішна відповідь від сервера. Код: ${response.code()}")
+                        _uiState.update { it.copy(transferStatus = TransferStatus.SUCCESS) }
+                    } else {
+                        val errorMsg = response.errorBody()?.string() ?: "Невідома помилка"
+                        Log.e(TAG, "executeBacklogTransfer: Помилка від сервера. Код: ${response.code()}, Повідомлення: $errorMsg")
+                        _uiState.update { it.copy(transferStatus = TransferStatus.ERROR) }
+                        showSnackbar("Помилка: ${response.code()} - $errorMsg", null)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Log.e(TAG, "executeBacklogTransfer: Критична помилка мережі.", e)
+                    _uiState.update { it.copy(transferStatus = TransferStatus.ERROR) }
+                    showSnackbar("Помилка мережі: ${e.message}", null)
+                }
+            }
+        }
+    }
 }

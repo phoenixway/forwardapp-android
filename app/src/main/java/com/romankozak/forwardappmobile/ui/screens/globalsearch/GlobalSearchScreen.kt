@@ -8,8 +8,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -18,9 +16,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.*
@@ -28,7 +24,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -41,16 +36,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.LinkSearchResultItem
-import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ListSearchResultItem
-import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SearchResultItem
-import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SublistSearchResultItem
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ProjectSearchResultItem
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SubprojectSearchResultItem
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SearchResultItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -199,8 +195,6 @@ fun GlobalSearchScreen(
                     )
                 }
             }
-
-            
         }
     }
 }
@@ -320,23 +314,31 @@ private fun SearchResultsContent(
                             ),
                         initialOffsetY = { it / 2 },
                     ) +
-                        fadeIn(
-                            animationSpec =
-                                tween(
-                                    durationMillis = 300,
-                                    delayMillis = index * 40,
-                                ),
-                        ),
+                            fadeIn(
+                                animationSpec =
+                                    tween(
+                                        durationMillis = 300,
+                                        delayMillis = index * 40,
+                                    ),
+                            ),
             ) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
                             SearchResultItem(
                                 result = result.searchResult,
-                                onClick = {
+                                onOpenAsProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "goal_detail_screen/${result.searchResult.listId}?goalId=${result.searchResult.goal.id}"
+                                    val route =
+                                        "project_detail_screen/${result.searchResult.projectId}?goalId=${result.searchResult.goal.id}"
                                     navController.navigate(route)
+                                },
+                                onOpenInNavigation = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    navController.previousBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("project_to_reveal", result.searchResult.projectId)
+                                    navController.popBackStack()
                                 },
                             )
                         }
@@ -347,12 +349,12 @@ private fun SearchResultsContent(
                                 result = searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "goal_detail_screen/${searchResult.listId}?itemIdToHighlight=${searchResult.listItemId}"
+                                    val route = "project_detail_screen/${searchResult.projectId}?itemIdToHighlight=${searchResult.listItemId}"
                                     navController.navigate(route)
                                 },
-                                onGoToTargetList = {
+                                onGoToTargetProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "goal_detail_screen/${linkData.target}"
+                                    val route = "project_detail_screen/${linkData.target}"
                                     navController.navigate(route)
                                 },
                                 onOpenInObsidian = {
@@ -374,23 +376,33 @@ private fun SearchResultsContent(
                             )
                         }
                         is GlobalSearchResultItem.SublistItem -> {
-                            SublistSearchResultItem(
+                            SubprojectSearchResultItem(
                                 result = result.searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val parentListId = result.searchResult.parentListId
-                                    navController.navigate("goal_detail_screen/$parentListId")
+                                    navController.navigate("project_detail_screen/${result.searchResult.parentProjectId}")
                                 },
-                            )
-                        }
-                        is GlobalSearchResultItem.ListItem -> {
-                            ListSearchResultItem(
-                                list = result.list,
-                                onClick = {
+                                onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     navController.previousBackStackEntry
                                         ?.savedStateHandle
-                                        ?.set("list_to_reveal", result.list.id)
+                                        ?.set("project_to_reveal", result.searchResult.subproject.id)
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        is GlobalSearchResultItem.ProjectItem -> {
+                            ProjectSearchResultItem(
+                                result = result.searchResult,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    navController.navigate("project_detail_screen/${result.searchResult.project.id}")
+                                },
+                                onOpenInNavigation = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    navController.previousBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("project_to_reveal", result.searchResult.project.id)
                                     navController.popBackStack()
                                 },
                             )
@@ -403,7 +415,7 @@ private fun SearchResultsContent(
                                 record = result.record,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "goal_detail_screen/${result.record.projectId}?inboxRecordIdToHighlight=${result.record.id}"
+                                    val route = "project_detail_screen/${result.record.projectId}?inboxRecordIdToHighlight=${result.record.id}"
                                     Log.d(TAG, "Navigating to Inbox. Route: $route")
 
                                     navController.navigate(route)
@@ -442,7 +454,7 @@ private fun ResultsCountBadge(
 }
 
 @Composable
-private fun ActivitySearchResultItem(record: com.romankozak.forwardappmobile.data.database.models.ActivityRecord) {
+private fun ActivitySearchResultItem(record: ActivityRecord) {
     val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
 
     Card(

@@ -53,7 +53,7 @@ fun RelatedLinkChip(
 ) {
     val icon =
         when (link.type) {
-            LinkType.GOAL_LIST -> Icons.Default.ListAlt
+            LinkType.PROJECT -> Icons.Default.ListAlt
             LinkType.URL -> Icons.Default.Link
             LinkType.OBSIDIAN -> Icons.Default.Book
         }

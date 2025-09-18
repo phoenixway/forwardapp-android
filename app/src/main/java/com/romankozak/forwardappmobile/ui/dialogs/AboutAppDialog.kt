@@ -33,7 +33,7 @@ fun AboutAppDialog(
         title = { Text("About Forward App") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Total lists: ${stats.listCount}")
+                Text("Total lists: ${stats.projectCount}")
                 Text("Total goals: ${stats.goalCount}")
                 Text("---")
                 Text("Version: ${packageInfo?.versionName ?: "N/A"}")

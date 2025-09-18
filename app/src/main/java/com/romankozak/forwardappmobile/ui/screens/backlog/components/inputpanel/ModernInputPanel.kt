@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -95,6 +96,7 @@ fun ModernInputPanel(
     onStartTrackingCurrentProject: () -> Unit,
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: () -> Unit,
+    onAddProjectToDayPlan: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
@@ -154,15 +156,6 @@ fun ModernInputPanel(
                     accentColor = MaterialTheme.colorScheme.secondary,
                     inputFieldColor = MaterialTheme.colorScheme.primaryContainer,
                 )
-
-
-
-
-
-
-
-
-
         }
 
     val animatedContainerColor by animateColorAsState(
@@ -221,6 +214,7 @@ fun ModernInputPanel(
                 onStartTrackingCurrentProject = onStartTrackingCurrentProject,
                 isProjectManagementEnabled = isProjectManagementEnabled,
                 onToggleProjectManagement = onToggleProjectManagement,
+                onAddProjectToDayPlan = onAddProjectToDayPlan,
             )
 
             AnimatedVisibility(
@@ -401,7 +395,7 @@ fun ModernInputPanel(
                                                     InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
                                                     InputMode.AddProjectLog -> "Додати коментар до проекту..."
                                                 },
-                                            style =                                                 MaterialTheme.typography.bodyLarge.copy(
+                                            style = MaterialTheme.typography.bodyLarge.copy(
                                                 // --- ПОЧАТОК ЗМІН (Крок 2) ---
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                                                 // --- КІНЕЦЬ ЗМІН (Крок 2) ---
@@ -486,11 +480,8 @@ fun ModernInputPanel(
                         )
                     }
                 }
-
             }
         }
-
-
     }
     if (showModeMenu) {
         InputModeSelectionDialog(
@@ -580,6 +571,7 @@ private fun NavigationBar(
     onStartTrackingCurrentProject: () -> Unit,
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: () -> Unit,
+    onAddProjectToDayPlan: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -653,6 +645,17 @@ private fun NavigationBar(
                 Icon(
                     imageVector = Icons.Default.Home,
                     contentDescription = stringResource(R.string.go_to_home_list),
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            IconButton(
+                onClick = onAddProjectToDayPlan,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.EventAvailable,
+                    contentDescription = "Додати проект в план на сьогодні",
                     tint = contentColor,
                     modifier = Modifier.size(20.dp),
                 )

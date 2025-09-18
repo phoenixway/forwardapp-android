@@ -6,7 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import kotlinx.coroutines.flow.Flow
 
@@ -45,14 +45,22 @@ interface GoalDao {
     @Transaction
     @Query(
         """
-    SELECT DISTINCT g.*, gl.id as listId, gl.name as listName
-    FROM goals g
-    JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
-    JOIN goal_lists gl ON li.listId = gl.id
-    WHERE g.text LIKE :query
-    """,
+WITH RECURSIVE path_cte(id, name, path) AS (
+    SELECT id, name, name as path FROM projects WHERE parentId IS NULL
+    UNION ALL
+    SELECT p.id, p.name, pct.path || ' / ' || p.name
+    FROM projects p JOIN path_cte pct ON p.parentId = pct.id
+)
+SELECT DISTINCT g.*, p.id as projectId, p.name as projectName, pc.path as pathSegments
+FROM goals g
+JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
+JOIN projects p ON li.project_id = p.id
+JOIN path_cte pc ON p.id = pc.id
+WHERE g.text LIKE :query OR g.description LIKE :query
+"""
     )
-    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult>
+    // ВИПРАВЛЕНО: Змінено тип, що повертається, на GlobalGoalSearchResult
+    suspend fun searchGoalsGlobal(query: String): List<GlobalGoalSearchResult>
 
     @Query("SELECT COUNT(*) FROM goals")
     fun getAllGoalsCountFlow(): Flow<Int>
@@ -62,9 +70,6 @@ interface GoalDao {
         goalId: String,
         markdown: String,
     )
-
-    @Query("DELETE FROM goal_lists WHERE id = :listId")
-    suspend fun deleteGoalListById(listId: String)
 
     @Query("DELETE FROM goals")
     suspend fun deleteAll()

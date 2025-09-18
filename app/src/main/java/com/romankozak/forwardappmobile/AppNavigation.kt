@@ -18,13 +18,13 @@ import com.romankozak.forwardappmobile.ui.navigation.dayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectsScreen
+import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.GoalListViewModel
-import com.romankozak.forwardappmobile.ui.screens.editlist.EditListScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectViewModel
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
@@ -39,7 +39,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         startDestination = "goal_lists_screen",
     ) {
         composable("goal_lists_screen") {
-            val viewModel: GoalListViewModel = hiltViewModel()
+            val viewModel: ProjectViewModel = hiltViewModel()
             MainScreen(
                 navController = navController,
                 syncDataViewModel = syncDataViewModel,
@@ -48,7 +48,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         }
 
         composable("settings_screen") { backStackEntry ->
-            val goalListViewModel: GoalListViewModel =
+            val goalListViewModel: ProjectViewModel =
                 hiltViewModel(
                     remember(backStackEntry) {
                         navController.getBackStackEntry("goal_lists_screen")
@@ -81,7 +81,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         }
 
         composable("manage_contexts_screen") { backStackEntry ->
-            val goalListViewModel: GoalListViewModel =
+            val goalListViewModel: ProjectViewModel =
                 hiltViewModel(
                     remember(backStackEntry) {
                         navController.getBackStackEntry("goal_lists_screen")
@@ -155,7 +155,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                     navArgument("listId") { type = NavType.StringType },
                 ),
         ) { backStackEntry ->
-            EditListScreen(
+            EditProjectScreen(
                 navController = navController
                 // Параметр listId більше не потрібен, оскільки ViewModel отримує його самостійно
             )
@@ -247,7 +247,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                 },
                 currentParentId = currentParentId,
                 disabledIds = disabledIds,
-                onAddNewList = viewModel::addNewList,
+                onAddNewList = viewModel::addNewProject,
                 showDescendants = showDescendants,
                 onToggleShowDescendants = viewModel::toggleShowDescendants,
             )

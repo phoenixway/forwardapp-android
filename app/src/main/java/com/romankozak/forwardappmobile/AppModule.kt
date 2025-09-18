@@ -46,13 +46,15 @@ object DatabaseModule {
                 MIGRATION_27_28,
                 MIGRATION_28_29,
                 MIGRATION_29_30,
+                MIGRATION_30_31,
+                MIGRATION_31_32,
             ).build()
 
     @Provides
     fun provideGoalDao(db: AppDatabase): GoalDao = db.goalDao()
 
     @Provides
-    fun provideGoalListDao(db: AppDatabase): GoalListDao = db.goalListDao()
+    fun provideProjectDao(db: AppDatabase): ProjectDao = db.projectDao()
 
     @Provides
     fun provideListItemDao(db: AppDatabase): ListItemDao = db.listItemDao()
@@ -61,7 +63,7 @@ object DatabaseModule {
     fun provideActivityRecordDao(db: AppDatabase): ActivityRecordDao = db.activityRecordDao()
 
     @Provides
-    fun provideRecentListDao(db: AppDatabase): RecentListDao = db.recentListDao()
+    fun provideRecentProjectDao(db: AppDatabase): RecentProjectDao = db.recentProjectDao()
 
     @Provides
     fun provideLinkItemDao(db: AppDatabase): LinkItemDao = db.linkItemDao()
@@ -74,6 +76,7 @@ object DatabaseModule {
 
     @Provides
     fun provideProjectManagementDao(db: AppDatabase): ProjectManagementDao = db.projectManagementDao()
+
     @Provides
     fun provideDayPlanDao(db: AppDatabase): DayPlanDao = db.dayPlanDao()
 
@@ -82,5 +85,4 @@ object DatabaseModule {
 
     @Provides
     fun provideDailyMetricDao(db: AppDatabase): DailyMetricDao = db.dailyMetricDao()
-
 }

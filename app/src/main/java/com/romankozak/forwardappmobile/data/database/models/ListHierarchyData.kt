@@ -1,9 +1,8 @@
 package com.romankozak.forwardappmobile.data.database.models
 
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-
+// This is the single, correct definition for your hierarchy data.
 data class ListHierarchyData(
-    val allLists: List<GoalList> = emptyList(),
-    val topLevelLists: List<GoalList> = emptyList(),
-    val childMap: Map<String, List<GoalList>> = emptyMap(),
+    val allProjects: List<Project> = emptyList(),
+    val topLevelProjects: List<Project> = emptyList(),
+    val childMap: Map<String, List<Project>> = emptyMap()
 )

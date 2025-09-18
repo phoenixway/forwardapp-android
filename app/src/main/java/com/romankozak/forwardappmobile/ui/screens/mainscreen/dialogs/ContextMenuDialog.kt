@@ -13,16 +13,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 
 @Composable
 fun ContextMenuDialog(
-    list: GoalList,
+    project: Project,
     onDismissRequest: () -> Unit,
-    onMoveRequest: (GoalList) -> Unit,
-    onAddSublistRequest: (GoalList) -> Unit,
-    onDeleteRequest: (GoalList) -> Unit,
-    onEditRequest: (GoalList) -> Unit,
+    onMoveRequest: (Project) -> Unit,
+    onAddSubprojectRequest: (Project) -> Unit,
+    onDeleteRequest: (Project) -> Unit,
+    onEditRequest: (Project) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -31,7 +31,7 @@ fun ContextMenuDialog(
         ) {
             Column {
                 Text(
-                    text = list.name,
+                    text = project.name,
                     style = MaterialTheme.typography.titleLarge,
                     textAlign = TextAlign.Center,
                     modifier =
@@ -43,29 +43,29 @@ fun ContextMenuDialog(
                 DialogActionItem(
                     text = "Перемістити",
                     icon = Icons.Default.MoveUp,
-                    onClick = { onMoveRequest(list) },
+                    onClick = { onMoveRequest(project) },
                 )
                 HorizontalDivider()
                 DialogActionItem(
                     text = "Редагувати",
                     icon = Icons.Default.Edit,
                     onClick = {
-                        onEditRequest(list)
+                        onEditRequest(project)
                         onDismissRequest()
                     },
                 )
                 HorizontalDivider()
                 DialogActionItem(
-                    text = "Додати підсписок",
+                    text = "Додати підпроект",
                     icon = Icons.Default.Add,
-                    onClick = { onAddSublistRequest(list) },
+                    onClick = { onAddSubprojectRequest(project) },
                 )
                 HorizontalDivider()
                 DialogActionItem(
                     text = "Видалити",
                     icon = Icons.Default.Delete,
                     color = MaterialTheme.colorScheme.error,
-                    onClick = { onDeleteRequest(list) },
+                    onClick = { onDeleteRequest(project) },
                 )
             }
         }

@@ -9,11 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.InboxScreen
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectViewModel
 
 @Composable
 fun InboxView(
     modifier: Modifier = Modifier,
-    viewModel: GoalDetailViewModel,
+    viewModel: BacklogViewModel,
     inboxRecords: List<InboxRecord>,
     listState: LazyListState,
     highlightedRecordId: String?,
