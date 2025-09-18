@@ -43,7 +43,7 @@ constructor(
 
     fun onItemClick(item: ListItemContent) {
         if (resultListener.isSelectionModeActive()) {
-            resultListener.toggleSelection(item.item.id)
+            resultListener.toggleSelection(item.listItem.id)
         } else {
             val currentProjectId = projectIdFlow.value
             when (item) {
@@ -51,7 +51,7 @@ constructor(
                     resultListener.requestNavigation(
                         "goal_edit_screen/$currentProjectId?goalId=${item.goal.id}",
                     )
-                is ListItemContent.SublistItem -> resultListener.requestNavigation("project_detail_screen/${item.sublist.id}")
+                is ListItemContent.SublistItem -> resultListener.requestNavigation("project_detail_screen/${item.project.id}")
                 is ListItemContent.LinkItem ->
                     resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
             }
@@ -61,7 +61,7 @@ constructor(
     fun deleteItem(item: ListItemContent) {
         scope.launch {
             recentlyDeletedItems = listOf(item)
-            projectRepository.deleteListItems(listOf(item.item.id))
+            projectRepository.deleteListItems(listOf(item.listItem.id))
             resultListener.showSnackbar("Елемент видалено", "Скасувати")
         }
     }
@@ -80,8 +80,8 @@ constructor(
     ) {
         val (itemIds, goalIds) =
             when (item) {
-                is ListItemContent.GoalItem -> Pair(setOf(item.item.id), setOf(item.goal.id))
-                else -> Pair(setOf(item.item.id), emptySet())
+                is ListItemContent.GoalItem -> Pair(setOf(item.listItem.id), setOf(item.goal.id))
+                else -> Pair(setOf(item.listItem.id), emptySet())
             }
 
         val isActionApplicable =
@@ -117,7 +117,7 @@ constructor(
                         val linkText = content.link.linkData.displayName ?: content.link.linkData.target
                         Pair("Посилання скопійовано", linkText)
                     }
-                    is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.sublist.name)
+                    is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
                 }
 
             resultListener.copyToClipboard(text)
@@ -150,14 +150,14 @@ constructor(
                     GoalActionType.CreateInstance -> {
                         resultListener.setPendingAction(
                             GoalActionType.ADD_LIST_SHORTCUT,
-                            setOf(item.item.id),
-                            setOf(item.sublist.id)
+                            setOf(item.listItem.id),
+                            setOf(item.project.id)
                         )
                     }
                     GoalActionType.MoveInstance -> {
                         resultListener.setPendingAction(
                             GoalActionType.MoveInstance,
-                            setOf(item.item.id),
+                            setOf(item.listItem.id),
                             emptySet()
                         )
                     }

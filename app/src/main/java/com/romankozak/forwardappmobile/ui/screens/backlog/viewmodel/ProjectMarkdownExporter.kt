@@ -51,7 +51,7 @@ constructor() {
                                     val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
                                     "$checkbox ${item.goal.text}"
                                 }
-                                is ListItemContent.SublistItem -> "- [С] ${item.sublist.name}"
+                                is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
                                 is ListItemContent.LinkItem -> {
                                     val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                                     "- [Л] [$displayName](${item.link.linkData.target})"

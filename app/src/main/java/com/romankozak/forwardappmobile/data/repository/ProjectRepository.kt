@@ -135,9 +135,15 @@ constructor(
         listItemDao.getItemsForProjectStream(projectId).map { items ->
             items.mapNotNull { item ->
                 when (item.itemType) {
-                    ListItemType.GOAL -> goalDao.getGoalById(item.entityId)?.let { ListItemContent.GoalItem(it, item) }
-                    ListItemType.SUBLIST -> projectDao.getProjectById(item.entityId)?.let { ListItemContent.SublistItem(it, item) }
-                    ListItemType.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId)?.let { ListItemContent.LinkItem(it, item) }
+                    ListItemType.GOAL -> goalDao.getGoalById(item.entityId)?.let { goal ->
+                        ListItemContent.GoalItem(goal, item)
+                    }
+                    ListItemType.SUBLIST -> projectDao.getProjectById(item.entityId)?.let { project ->
+                        ListItemContent.SublistItem(project, item)
+                    }
+                    ListItemType.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId)?.let { link ->
+                        ListItemContent.LinkItem(link, item)
+                    }
                 }
             }
         }

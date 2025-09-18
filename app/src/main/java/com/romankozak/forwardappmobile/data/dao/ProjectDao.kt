@@ -98,9 +98,10 @@ interface ProjectDao {
     SELECT p.*, pc.path as pathSegments
     FROM projects p
     JOIN path_cte pc ON p.id = pc.id
-    WHERE p.name LIKE :query AND p.parentId IS NOT NULL 
-""")
+    WHERE p.name LIKE :query
+""") // <-- ВИДАЛЕНО "AND p.parentId IS NOT NULL"
     suspend fun searchProjectsGlobal(query: String): List<GlobalProjectSearchResult>
+
 
     @Query("DELETE FROM projects")
     suspend fun deleteAll()
