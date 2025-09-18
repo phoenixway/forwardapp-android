@@ -202,4 +202,21 @@ constructor(
             return Result.failure(e)
         }
     }
+
+    suspend fun fetchBackupFromWifi(address: String): Result<String> =
+        try {
+            var cleanAddress = address.trim()
+            if (!cleanAddress.startsWith("http://") && !cleanAddress.startsWith("https://")) {
+                cleanAddress = "http://$cleanAddress"
+            }
+            val uri = Uri.parse(cleanAddress)
+            val hostAndPort = "${uri.host}:${if (uri.port != -1) uri.port else 8080}"
+            val fullUrl = "http://$hostAndPort/export"
+            Log.d(TAG, "Fetching from: $fullUrl")
+            val response: String = client.get(fullUrl).body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching from WiFi", e)
+            Result.failure(e)
+        }
 }
