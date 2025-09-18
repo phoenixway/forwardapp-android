@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.Link
@@ -56,6 +57,9 @@ fun RelatedLinkChip(
             LinkType.PROJECT -> Icons.Default.ListAlt
             LinkType.URL -> Icons.Default.Link
             LinkType.OBSIDIAN -> Icons.Default.Book
+            null -> Icons.Default.BrokenImage // Or any other default icon
+            else -> Icons.Default.BrokenImage
+
         }
     Box(
         modifier =
@@ -69,7 +73,7 @@ fun RelatedLinkChip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(imageVector = icon, contentDescription = link.type.name, modifier = Modifier.size(14.dp))
+            Icon(imageVector = icon, contentDescription = link.type?.name ?: "Link", modifier = Modifier.size(14.dp))
             Text(
                 text = link.displayName ?: link.target,
                 style = MaterialTheme.typography.labelMedium,

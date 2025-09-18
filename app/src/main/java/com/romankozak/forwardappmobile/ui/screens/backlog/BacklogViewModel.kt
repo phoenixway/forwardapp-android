@@ -239,7 +239,7 @@ constructor(
 
     private var batchSaveJob: Job? = null
 
-    private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("projectId", "")
+    private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
     private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
     val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
