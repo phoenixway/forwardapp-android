@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.romankozak.forwardappmobile.data.database.models.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import kotlinx.coroutines.flow.Flow
 
@@ -55,10 +56,11 @@ FROM goals g
 JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
 JOIN projects p ON li.project_id = p.id
 JOIN path_cte pc ON p.id = pc.id
-WHERE g.text LIKE :query
+WHERE g.text LIKE :query OR g.description LIKE :query
 """
     )
-    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResult>
+    // ВИПРАВЛЕНО: Змінено тип, що повертається, на GlobalGoalSearchResult
+    suspend fun searchGoalsGlobal(query: String): List<GlobalGoalSearchResult>
 
     @Query("SELECT COUNT(*) FROM goals")
     fun getAllGoalsCountFlow(): Flow<Int>

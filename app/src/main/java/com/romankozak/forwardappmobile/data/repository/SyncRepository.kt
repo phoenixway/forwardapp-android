@@ -97,7 +97,7 @@ constructor(
             Result.failure(e)
         }
 
-    private suspend fun createFullBackupJsonString(): String {
+    suspend fun createFullBackupJsonString(): String {
         val databaseContent =
             DatabaseContent(
                 goals = goalDao.getAll(),

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 32,
-    "identityHash": "32f48109f69a80c9ce0bb09cbd4b9fb7",
+    "identityHash": "f0235e55671c09b1fac32a8e295d9936",
     "entities": [
       {
         "tableName": "goals",
@@ -546,41 +546,6 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_activity_records_project_id` ON `${TABLE_NAME}` (`project_id`)"
           }
         ],
-        "foreignKeys": []
-      },
-      {
-        "ftsVersion": "FTS4",
-        "ftsOptions": {
-          "tokenizer": "simple",
-          "tokenizerArgs": [],
-          "contentTable": "activity_records",
-          "languageIdColumnName": "",
-          "matchInfo": "FTS4",
-          "notIndexedColumns": [],
-          "prefixSizes": [],
-          "preferredOrder": "ASC"
-        },
-        "contentSyncTriggers": [
-          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_BEFORE_UPDATE BEFORE UPDATE ON `activity_records` BEGIN DELETE FROM `activity_records_fts` WHERE `docid`=OLD.`rowid`; END",
-          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_BEFORE_DELETE BEFORE DELETE ON `activity_records` BEGIN DELETE FROM `activity_records_fts` WHERE `docid`=OLD.`rowid`; END",
-          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_AFTER_UPDATE AFTER UPDATE ON `activity_records` BEGIN INSERT INTO `activity_records_fts`(`docid`, `text`) VALUES (NEW.`rowid`, NEW.`text`); END",
-          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_AFTER_INSERT AFTER INSERT ON `activity_records` BEGIN INSERT INTO `activity_records_fts`(`docid`, `text`) VALUES (NEW.`rowid`, NEW.`text`); END"
-        ],
-        "tableName": "activity_records_fts",
-        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`text` TEXT NOT NULL, content=`activity_records`)",
-        "fields": [
-          {
-            "fieldPath": "text",
-            "columnName": "text",
-            "affinity": "TEXT",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": []
-        },
-        "indices": [],
         "foreignKeys": []
       },
       {
@@ -1326,12 +1291,129 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "simple",
+          "tokenizerArgs": [],
+          "contentTable": "goals",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_goals_fts_BEFORE_UPDATE BEFORE UPDATE ON `goals` BEGIN DELETE FROM `goals_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_goals_fts_BEFORE_DELETE BEFORE DELETE ON `goals` BEGIN DELETE FROM `goals_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_goals_fts_AFTER_UPDATE AFTER UPDATE ON `goals` BEGIN INSERT INTO `goals_fts`(`docid`, `text`, `description`) VALUES (NEW.`rowid`, NEW.`text`, NEW.`description`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_goals_fts_AFTER_INSERT AFTER INSERT ON `goals` BEGIN INSERT INTO `goals_fts`(`docid`, `text`, `description`) VALUES (NEW.`rowid`, NEW.`text`, NEW.`description`); END"
+        ],
+        "tableName": "goals_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`text` TEXT NOT NULL, `description` TEXT, content=`goals`)",
+        "fields": [
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "simple",
+          "tokenizerArgs": [],
+          "contentTable": "projects",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_projects_fts_BEFORE_UPDATE BEFORE UPDATE ON `projects` BEGIN DELETE FROM `projects_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_projects_fts_BEFORE_DELETE BEFORE DELETE ON `projects` BEGIN DELETE FROM `projects_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_projects_fts_AFTER_UPDATE AFTER UPDATE ON `projects` BEGIN INSERT INTO `projects_fts`(`docid`, `name`, `description`) VALUES (NEW.`rowid`, NEW.`name`, NEW.`description`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_projects_fts_AFTER_INSERT AFTER INSERT ON `projects` BEGIN INSERT INTO `projects_fts`(`docid`, `name`, `description`) VALUES (NEW.`rowid`, NEW.`name`, NEW.`description`); END"
+        ],
+        "tableName": "projects_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`name` TEXT NOT NULL, `description` TEXT, content=`projects`)",
+        "fields": [
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "simple",
+          "tokenizerArgs": [],
+          "contentTable": "activity_records",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_BEFORE_UPDATE BEFORE UPDATE ON `activity_records` BEGIN DELETE FROM `activity_records_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_BEFORE_DELETE BEFORE DELETE ON `activity_records` BEGIN DELETE FROM `activity_records_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_AFTER_UPDATE AFTER UPDATE ON `activity_records` BEGIN INSERT INTO `activity_records_fts`(`docid`, `text`) VALUES (NEW.`rowid`, NEW.`text`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_activity_records_fts_AFTER_INSERT AFTER INSERT ON `activity_records` BEGIN INSERT INTO `activity_records_fts`(`docid`, `text`) VALUES (NEW.`rowid`, NEW.`text`); END"
+        ],
+        "tableName": "activity_records_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`text` TEXT NOT NULL, content=`activity_records`)",
+        "fields": [
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '32f48109f69a80c9ce0bb09cbd4b9fb7')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f0235e55671c09b1fac32a8e295d9936')"
     ]
   }
 }
