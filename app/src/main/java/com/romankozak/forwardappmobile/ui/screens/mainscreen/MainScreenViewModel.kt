@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -172,13 +173,33 @@ class MainScreenViewModel @Inject constructor(
         FilterState(emptyList(), "", false, PlanningMode.All, PlanningSettingsState()),
     )
 
+    // Delegate properties to managers
+    val searchQuery = searchAndNavigationManager.searchQuery
+    val isSearchActive = searchAndNavigationManager.isSearchActive
+    val highlightedProjectId = searchAndNavigationManager.highlightedProjectId
+    val currentBreadcrumbs = searchAndNavigationManager.currentBreadcrumbs
+    val focusedProjectId = searchAndNavigationManager.focusedProjectId
+    val hierarchySettings = searchAndNavigationManager.hierarchySettings
+    val searchHistory = searchAndNavigationManager.searchHistory
+
+
     // Main project hierarchy
     val projectHierarchy: StateFlow<ListHierarchyData> = combine(
         filterStateFlow,
         _expandedInDailyMode,
         _expandedInMediumMode,
         _expandedInLongMode,
-    ) { filterState, expandedDaily, expandedMedium, expandedLong ->
+        focusedProjectId, // ← ДОДАНО! Тепер оновлюється при зміні фокусу
+    ) { values ->
+        Log.d("HIERARCHY", "Rebuilding hierarchy, focusedProjectId=${values[4]}")
+
+        @Suppress("UNCHECKED_CAST")
+        val filterState = values[0] as FilterState
+        val expandedDaily = values[1] as Set<String>?
+        val expandedMedium = values[2] as Set<String>?
+        val expandedLong = values[3] as Set<String>?
+        // values[4] — це focusedProjectId, ми його ігноруємо, але він тригерить оновлення
+
         hierarchyManager.createProjectHierarchy(
             filterState, expandedDaily, expandedMedium, expandedLong
         )
@@ -221,20 +242,20 @@ class MainScreenViewModel @Inject constructor(
     val allContextsForDialog: StateFlow<List<UiContext>> = contextHandler.allContextsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Delegate properties to managers
-    val searchQuery = searchAndNavigationManager.searchQuery
-    val isSearchActive = searchAndNavigationManager.isSearchActive
-    val highlightedProjectId = searchAndNavigationManager.highlightedProjectId
-    val currentBreadcrumbs = searchAndNavigationManager.currentBreadcrumbs
-    val focusedProjectId = searchAndNavigationManager.focusedProjectId
-    val hierarchySettings = searchAndNavigationManager.hierarchySettings
-    val searchHistory = searchAndNavigationManager.searchHistory
 
     // WiFi Sync properties
     val desktopAddress = wifiSyncManager.desktopAddress
     val showWifiServerDialog = wifiSyncManager.showWifiServerDialog
     val showWifiImportDialog = wifiSyncManager.showWifiImportDialog
     val wifiServerAddress = wifiSyncManager.wifiServerAddress
+
+    private val _scrollTargetIndex = MutableStateFlow<Int?>(null)
+    val scrollTargetIndex: StateFlow<Int?> = _scrollTargetIndex.asStateFlow()
+
+    fun clearScrollTarget() {
+        _scrollTargetIndex.value = null
+    }
+
 
     init {
         initializeViewModel()
@@ -468,5 +489,10 @@ class MainScreenViewModel @Inject constructor(
     // Utility Methods
     fun enableFiltering() {
         _isReadyForFiltering.value = true
+    }
+
+    fun setScrollTarget(index: Int) {
+        Log.d("VM_SCROLL", "Setting scroll target to: $index")
+        _scrollTargetIndex.value = index
     }
 }

@@ -66,6 +66,8 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEve
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun MainScreen(
@@ -152,10 +154,13 @@ fun MainScreen(
                 is ProjectUiEvent.NavigateToGlobalSearch -> {
                     navController.navigate("global_search_screen/${event.query}")
                 }
-                is ProjectUiEvent.ScrollToIndex -> {
+                /*is ProjectUiEvent.ScrollToIndex -> {
                     coroutineScope.launch {
                         listState.animateScrollToItem(event.index)
                     }
+                }*/
+                is ProjectUiEvent.ScrollToIndex -> {
+                    viewModel.setScrollTarget(event.index) // або _scrollTargetIndex.value = event.index
                 }
                 ProjectUiEvent.FocusSearchField -> {
                     coroutineScope.launch {
@@ -179,7 +184,24 @@ fun MainScreen(
             }
         }
     }
+    val scrollTargetIndex by viewModel.scrollTargetIndex.collectAsState()
 
+    LaunchedEffect(viewModel.projectHierarchy, scrollTargetIndex) {
+        val targetIndex: Int? = scrollTargetIndex // ✅ він уже Int?
+        if (targetIndex != null && targetIndex >= 0) {
+            val index = targetIndex // ✅ Вже Int, бо пройшли перевірку
+
+            // Чекаємо, поки список матиме достатню кількість елементів
+            snapshotFlow { listState.layoutInfo.totalItemsCount }
+                .filter { it > index }
+                .first()
+
+            Log.d("UI_SCROLL", "Scrolling to index: $index after hierarchy update")
+            delay(50)
+            listState.animateScrollToItem(index)
+            viewModel.clearScrollTarget()
+        }
+    }
     if (showContextSheet) {
         ModalBottomSheet(onDismissRequest = { showContextSheet = false }) {
             Column(Modifier.navigationBarsPadding()) {
