@@ -11,20 +11,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.WifiSyncServer
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
-import com.romankozak.forwardappmobile.ui.utils.HierarchyFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -32,28 +29,30 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import javax.inject.Inject
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.firstOrNull
 
 // --- DATA КЛАСИ, ВИНЕСЕНІ ЗА МЕЖІ VIEWMODEL ДЛЯ ЧИСТОТИ ---
 private const val TAG = "SendDebug"
-sealed class GoalListUiEvent {
-    data class NavigateToSyncScreenWithData(val json: String) : GoalListUiEvent()
-    data class NavigateToDetails(val listId: String) : GoalListUiEvent()
-    data class NavigateToGlobalSearch(val query: String) : GoalListUiEvent()
-    object NavigateToSettings : GoalListUiEvent()
-    data class ShowToast(val message: String) : GoalListUiEvent()
-    data class ScrollToIndex(val index: Int) : GoalListUiEvent()
-    object FocusSearchField : GoalListUiEvent()
-    data class NavigateToEditListScreen(val listId: String) : GoalListUiEvent()
-    data class Navigate(val route: String) : GoalListUiEvent()
-    data class NavigateToDayPlan(val date: Long) : GoalListUiEvent()
+sealed class ProjectUiEvent {
+    data class NavigateToSyncScreenWithData(val json: String) : ProjectUiEvent()
+    data class NavigateToDetails(val projectId: String) : ProjectUiEvent()
+    data class NavigateToGlobalSearch(val query: String) : ProjectUiEvent()
+    object NavigateToSettings : ProjectUiEvent()
+    data class ShowToast(val message: String) : ProjectUiEvent()
+    data class ScrollToIndex(val index: Int) : ProjectUiEvent()
+    object FocusSearchField : ProjectUiEvent()
+    data class NavigateToEditProjectScreen(val projectId: String) : ProjectUiEvent()
+    data class Navigate(val route: String) : ProjectUiEvent()
+    data class NavigateToDayPlan(val date: Long) : ProjectUiEvent()
 }
 
+data class ListHierarchyData(
+    val allProjects: List<Project> = emptyList(),
+    val topLevelProjects: List<Project> = emptyList(),
+    val childMap: Map<String, List<Project>> = emptyMap()
+)
+
 data class SearchResult(
-    val list: GoalList,
+    val project: Project,
     val path: List<BreadcrumbItem>
 )
 
@@ -64,14 +63,14 @@ sealed class PlanningMode {
     object Long : PlanningMode()
 }
 
-data class AppStatistics(val listCount: Int = 0, val goalCount: Int = 0)
+data class AppStatistics(val projectCount: Int = 0, val goalCount: Int = 0)
 
 sealed class DialogState {
     object Hidden : DialogState()
-    data class AddList(val parentId: String?) : DialogState()
-    data class ContextMenu(val list: GoalList) : DialogState()
-    data class ConfirmDelete(val list: GoalList) : DialogState()
-    data class EditList(val list: GoalList) : DialogState()
+    data class AddProject(val parentId: String?) : DialogState()
+    data class ContextMenu(val project: Project) : DialogState()
+    data class ConfirmDelete(val project: Project) : DialogState()
+    data class EditProject(val project: Project) : DialogState()
     object AboutApp : DialogState()
     data class ConfirmFullImport(val uri: Uri) : DialogState()
 }
@@ -84,7 +83,7 @@ data class PlanningSettingsState(
 )
 
 private data class FilterState(
-    val flatList: List<GoalList>,
+    val flatList: List<Project>,
     val query: String,
     val searchActive: Boolean,
     val mode: PlanningMode,
@@ -122,8 +121,8 @@ data class HierarchyDisplaySettings(
 )
 
 @HiltViewModel
-class GoalListViewModel @Inject constructor(
-    private val goalRepository: GoalRepository,
+class ProjectViewModel @Inject constructor(
+    private val projectRepository: ProjectRepository,
     private val settingsRepo: SettingsRepository,
     private val application: Application,
     private val syncRepo: SyncRepository,
@@ -132,16 +131,15 @@ class GoalListViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
     companion object {
-        private const val LIST_BEING_MOVED_ID_KEY = "listBeingMovedId"
+        private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
         private const val SEARCH_HISTORY_KEY = "search_history"
         private const val MAX_SEARCH_HISTORY = 10
     }
 
-    // --- ВІДНОВЛЕНІ ЗМІННІ ---
     private val _dialogState = MutableStateFlow<DialogState>(DialogState.Hidden)
     val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
 
-    private val _uiEventChannel = Channel<GoalListUiEvent>()
+    private val _uiEventChannel = Channel<ProjectUiEvent>()
     val uiEventFlow = _uiEventChannel.receiveAsFlow()
 
     private val _isBottomNavExpanded = MutableStateFlow(false)
@@ -161,21 +159,20 @@ class GoalListViewModel @Inject constructor(
 
     private val wifiSyncServer = WifiSyncServer(syncRepo, application)
 
-    private val listBeingMovedId = savedStateHandle.getStateFlow<String?>(LIST_BEING_MOVED_ID_KEY, null)
+    private val projectBeingMovedId = savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
 
     private val _listChooserUserExpandedIds = MutableStateFlow<Set<String>>(emptySet())
     private val _listChooserFilterText = MutableStateFlow("")
 
     private val _showSearchDialog = MutableStateFlow(false)
     val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
-    // --- КІНЕЦЬ ВІДНОВЛЕНИХ ЗМІННИХ ---
 
     private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
     private val _isReadyForFiltering = MutableStateFlow(false)
-    private val _highlightedListId = MutableStateFlow<String?>(null)
-    val highlightedListId: StateFlow<String?> = _highlightedListId.asStateFlow()
+    private val _highlightedProjectId = MutableStateFlow<String?>(null)
+    val highlightedProjectId: StateFlow<String?> = _highlightedProjectId.asStateFlow()
     private val _searchQuery = MutableStateFlow(TextFieldValue(""))
     val searchQuery = _searchQuery.asStateFlow()
     private val _isSearchActive = MutableStateFlow(false)
@@ -187,10 +184,8 @@ class GoalListViewModel @Inject constructor(
     private val _expandedInMediumMode = MutableStateFlow<Set<String>?>(null)
     private val _expandedInLongMode = MutableStateFlow<Set<String>?>(null)
 
-    // <-- ДОДАНО ЗМІННУ ДЛЯ ІСТОРІЇ ПОШУКУ
     val searchHistory: StateFlow<List<String>> =
         savedStateHandle.getStateFlow(SEARCH_HISTORY_KEY, emptyList())
-    // КІНЕЦЬ ДОДАНОЇ ЗМІННОЇ -->
 
     val obsidianVaultName: StateFlow<String> =
         settingsRepo.obsidianVaultNameFlow
@@ -210,9 +205,9 @@ class GoalListViewModel @Inject constructor(
             initialValue = PlanningSettingsState(),
         )
 
-    private val _allListsFlat =
-        goalRepository
-            .getAllGoalListsFlow()
+    private val _allProjectsFlat =
+        projectRepository
+            .getAllProjectsFlow()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -222,20 +217,20 @@ class GoalListViewModel @Inject constructor(
             .debounce(350L)
             .distinctUntilChanged()
 
-    val areAnyListsExpanded: StateFlow<Boolean> =
-        _allListsFlat
-            .map { lists ->
-                lists.any { it.isExpanded }
+    val areAnyProjectsExpanded: StateFlow<Boolean> =
+        _allProjectsFlat
+            .map { projects ->
+                projects.any { it.isExpanded }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val appStatistics: StateFlow<AppStatistics> =
-        combine(_allListsFlat, goalRepository.getAllGoalsCountFlow()) { allLists, allGoalsCount ->
-            AppStatistics(listCount = allLists.size, goalCount = allGoalsCount)
+        combine(_allProjectsFlat, projectRepository.getAllGoalsCountFlow()) { allProjects, allGoalsCount ->
+            AppStatistics(projectCount = allProjects.size, goalCount = allGoalsCount)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppStatistics())
 
     private val filterStateFlow: StateFlow<FilterState> =
         combine(
-            _allListsFlat,
+            _allProjectsFlat,
             debouncedSearchQueryText,
             isSearchActive,
             planningMode,
@@ -243,7 +238,7 @@ class GoalListViewModel @Inject constructor(
             _isReadyForFiltering
         ) { values ->
             @Suppress("UNCHECKED_CAST")
-            val flatList = values[0] as List<GoalList>
+            val flatList = values[0] as List<Project>
             val query = values[1] as String
             val searchActive = values[2] as Boolean
             val mode = values[3] as PlanningMode
@@ -261,13 +256,13 @@ class GoalListViewModel @Inject constructor(
             FilterState(emptyList(), "", false, PlanningMode.All, PlanningSettingsState()),
         )
 
-    val listHierarchy: StateFlow<ListHierarchyData> =
+    val projectHierarchy: StateFlow<ListHierarchyData> =
         combine(
             filterStateFlow,
             _expandedInDailyMode,
             _expandedInMediumMode,
             _expandedInLongMode,
-        ) { filterState, expandedDaily, expandedMedium, expandedLong ->
+        ) { filterState: FilterState, expandedDaily: Set<String>?, expandedMedium: Set<String>?, expandedLong: Set<String>? ->
             try {
                 val (flatList, _, _, mode, settings) = filterState
                 val isPlanningModeActive = mode != PlanningMode.All
@@ -275,10 +270,10 @@ class GoalListViewModel @Inject constructor(
                 if (!isPlanningModeActive) {
                     val topLevel = flatList.filter { it.parentId == null }.sortedBy { it.order }
                     val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
-                    return@combine ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
+                    return@combine ListHierarchyData(allProjects = flatList, topLevelProjects = topLevel, childMap = childMap)
                 }
 
-                val listLookup = flatList.associateBy { it.id }
+                val projectLookup = flatList.associateBy { it.id }
 
                 val targetTag =
                     when (mode) {
@@ -287,15 +282,15 @@ class GoalListViewModel @Inject constructor(
                         PlanningMode.Long -> settings.longTag
                         else -> null
                     }
-                val matchingLists = if (targetTag != null) flatList.filter { it.tags?.contains(targetTag) == true } else emptyList()
+                val matchingProjects = if (targetTag != null) flatList.filter { it.tags?.contains(targetTag) == true } else emptyList()
 
                 val ancestorIds = mutableSetOf<String>()
                 val visitedAncestors = mutableSetOf<String>()
-                matchingLists.forEach { list ->
-                    findAncestorsRecursive(list.id, listLookup, ancestorIds, visitedAncestors)
+                matchingProjects.forEach { project ->
+                    findAncestorsRecursive(project.id, projectLookup, ancestorIds, visitedAncestors)
                 }
 
-                val visibleIds = ancestorIds + matchingLists.map { it.id }
+                val visibleIds = ancestorIds + matchingProjects.map { it.id }
 
                 val currentExpandedState = when (mode) {
                     is PlanningMode.Daily -> expandedDaily
@@ -304,7 +299,7 @@ class GoalListViewModel @Inject constructor(
                     else -> null
                 }
 
-                val shouldInitialize = currentExpandedState == null && matchingLists.isNotEmpty()
+                val shouldInitialize = currentExpandedState == null && matchingProjects.isNotEmpty()
                 val currentExpandedIds = if (shouldInitialize) ancestorIds else (currentExpandedState ?: emptySet())
 
                 if (shouldInitialize) {
@@ -316,65 +311,99 @@ class GoalListViewModel @Inject constructor(
                     }
                 }
 
-                val visibleLists = flatList.filter { it.id in visibleIds }
-                val displayLists = visibleLists.map { list -> list.copy(isExpanded = currentExpandedIds.contains(list.id)) }
-                val topLevel = displayLists.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
-                val childMap = displayLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+                val visibleProjects = flatList.filter { it.id in visibleIds }
+                val displayProjects = visibleProjects.map { project -> project.copy(isExpanded = currentExpandedIds.contains(project.id)) }
+                val topLevel = displayProjects.filter { it.parentId == null || it.parentId !in visibleIds }.sortedBy { it.order }
+                val childMap = displayProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
 
-                return@combine ListHierarchyData(allLists = flatList, topLevelLists = topLevel, childMap = childMap)
+                return@combine ListHierarchyData(allProjects = flatList, topLevelProjects = topLevel, childMap = childMap)
             } catch (e: Exception) {
-                Log.e("GoalListViewModel_DEBUG", "Exception in listHierarchy combine block", e)
+                Log.e("ProjectViewModel_DEBUG", "Exception in projectHierarchy combine block", e)
                 return@combine ListHierarchyData()
             }
         }.flowOn(Dispatchers.Default)
             .catch { e ->
-                Log.e("GoalListViewModel_DEBUG", "Exception in listHierarchy flow", e)
+                Log.e("ProjectViewModel_DEBUG", "Exception in projectHierarchy flow", e)
                 emit(ListHierarchyData())
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+    val longDescendantsMap: StateFlow<Map<String, Boolean>> = _allProjectsFlat
+        .map { allProjects ->
+            if (allProjects.isEmpty()) return@map emptyMap<String, Boolean>()
+            val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
+            val resultMap = mutableMapOf<String, Boolean>()
+            val memo = mutableMapOf<String, Boolean>()
+            val characterLimit = 35
+
+            fun hasLongDescendantsRecursive(projectId: String): Boolean {
+                if (memo.containsKey(projectId)) return memo[projectId]!!
+
+                val children = childMap[projectId] ?: emptyList()
+                for (child in children) {
+                    if (child.name.length > characterLimit) {
+                        memo[projectId] = true
+                        return true
+                    }
+                    if (hasLongDescendantsRecursive(child.id)) {
+                        memo[projectId] = true
+                        return true
+                    }
+                }
+                memo[projectId] = false
+                return false
+            }
+
+            allProjects.forEach { project ->
+                resultMap[project.id] = hasLongDescendantsRecursive(project.id)
+            }
+            resultMap
+        }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     private val _collapsedAncestorsOnFocus = MutableStateFlow<Set<String>>(emptySet())
 
     val listChooserFinalExpandedIds: StateFlow<Set<String>> =
         combine(
             _listChooserUserExpandedIds,
-            _allListsFlat,
-            listBeingMovedId
-        ) { userExpanded, allLists, movingId ->
+            _allProjectsFlat,
+            projectBeingMovedId
+        ) { userExpanded, allProjects, movingId ->
             if (movingId == null) return@combine emptySet<String>()
 
-            val listLookup = allLists.associateBy { it.id }
+            val projectLookup = allProjects.associateBy { it.id }
             val ancestorIds = mutableSetOf<String>()
             val visitedAncestors = mutableSetOf<String>()
-            findAncestorsRecursive(movingId, listLookup, ancestorIds, visitedAncestors)
+            findAncestorsRecursive(movingId, projectLookup, ancestorIds, visitedAncestors)
 
             userExpanded + ancestorIds
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     val filteredListHierarchyForDialog: StateFlow<ListHierarchyData> =
         combine(
-            _allListsFlat,
+            _allProjectsFlat,
             _listChooserFilterText,
-            listBeingMovedId
-        ) { allLists, filterText, movingId ->
+            projectBeingMovedId
+        ) { allProjects, filterText, movingId ->
             if (movingId == null) {
                 return@combine ListHierarchyData()
             }
 
-            val filteredLists = if (filterText.isBlank()) {
-                allLists
+            val filteredProjects = if (filterText.isBlank()) {
+                allProjects
             } else {
-                allLists.filter {
+                allProjects.filter {
                     it.name.contains(filterText, ignoreCase = true) ||
                             fuzzyMatch(filterText, it.name)
                 }
             }
 
-            val topLevel = filteredLists.filter { it.parentId == null }.sortedBy { it.order }
-            val childMap = filteredLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+            val topLevel = filteredProjects.filter { it.parentId == null }.sortedBy { it.order }
+            val childMap = filteredProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
 
             ListHierarchyData(
-                allLists = filteredLists,
-                topLevelLists = topLevel,
+                allProjects = filteredProjects,
+                topLevelProjects = topLevel,
                 childMap = childMap
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
@@ -387,26 +416,26 @@ class GoalListViewModel @Inject constructor(
         viewModelScope.launch {
             filterStateFlow.collect { state ->
                 if (state.searchActive && state.query.isNotBlank()) {
-                    val allLists = _allListsFlat.first()
+                    val allProjects = _allProjectsFlat.first()
                     val fullHierarchy = ListHierarchyData(
-                        allLists = allLists,
-                        topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order },
-                        childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+                        allProjects = allProjects,
+                        topLevelProjects = allProjects.filter { it.parentId == null }.sortedBy { it.order },
+                        childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
                     )
 
-                    val matchingLists = if (state.query.length > 3) {
-                        allLists.filter { fuzzyMatch(state.query, it.name) }
+                    val matchingProjects = if (state.query.length > 3) {
+                        allProjects.filter { fuzzyMatch(state.query, it.name) }
                     } else {
-                        allLists.filter { it.name.contains(state.query, ignoreCase = true) }
+                        allProjects.filter { it.name.contains(state.query, ignoreCase = true) }
                     }
 
-                    val results = matchingLists.map { list ->
+                    val results = matchingProjects.map { project ->
                         SearchResult(
-                            list = list,
-                            path = buildPathToList(list.id, fullHierarchy)
+                            project = project,
+                            path = buildPathToProject(project.id, fullHierarchy)
                         )
                     }
-                    _searchResults.value = results.sortedBy { it.list.name }
+                    _searchResults.value = results.sortedBy { it.project.name }
                 } else {
                     _searchResults.value = emptyList()
                 }
@@ -414,50 +443,45 @@ class GoalListViewModel @Inject constructor(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-
-            // Тепер цей виклик безпечний, бо він не в головному потоці
             settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
-                // Для оновлення UI-стейту (_isBottomNavExpanded) безпечно повернутись в головний потік
                 withContext(Dispatchers.Main) {
                     _isBottomNavExpanded.value = savedState
                 }
             }
-
-            // Цей код вже виконується в IO потоці, тому додатковий withContext не потрібен
             _desktopAddress.value = settingsRepo.desktopAddressFlow.first()
             contextHandler.initialize()
         }
     }
 
-    fun onSearchResultClick(listId: String) {
+    fun onSearchResultClick(projectId: String) {
         viewModelScope.launch {
             onToggleSearch(false)
 
-            val allLists = _allListsFlat.first()
+            val allProjects = _allProjectsFlat.first()
             val fullHierarchy = ListHierarchyData(
-                allLists = allLists,
-                topLevelLists = allLists.filter { it.parentId == null }.sortedBy { it.order },
-                childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
+                allProjects = allProjects,
+                topLevelProjects = allProjects.filter { it.parentId == null }.sortedBy { it.order },
+                childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
             )
 
-            val path = buildPathToList(listId, fullHierarchy)
+            val path = buildPathToProject(projectId, fullHierarchy)
             val level = if (path.isEmpty()) 0 else path.last().level
 
             val settings = hierarchySettings.value
 
             if (level >= settings.useBreadcrumbsAfter) {
-                navigateToList(listId)
+                navigateToProject(projectId)
             } else {
-                processRevealRequest(listId)
+                processRevealRequest(projectId)
             }
         }
     }
 
     private val _showRecentListsSheet = MutableStateFlow(false)
     val showRecentListsSheet: StateFlow<Boolean> = _showRecentListsSheet.asStateFlow()
-    val recentLists: StateFlow<List<GoalList>> =
-        goalRepository
-            .getRecentLists()
+    val recentProjects: StateFlow<List<Project>> =
+        projectRepository
+            .getRecentProjects()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun onShowRecentLists() {
@@ -468,81 +492,94 @@ class GoalListViewModel @Inject constructor(
         _showRecentListsSheet.value = false
     }
 
-    fun onRecentListSelected(listId: String) {
+    fun onRecentProjectSelected(projectId: String) {
         viewModelScope.launch {
             onDismissRecentLists()
-            _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId))
+            _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(projectId))
         }
     }
 
     fun onDayPlanClicked() {
         viewModelScope.launch {
             val today = System.currentTimeMillis()
-            _uiEventChannel.send(GoalListUiEvent.NavigateToDayPlan(today))
+            _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today))
         }
     }
 
-    fun processRevealRequest(listId: String) {
+    fun onHomeClicked() {
+        viewModelScope.launch {
+            if (focusedProjectId.value != null) {
+                clearNavigation()
+            }
+            if (planningMode.value != PlanningMode.All) {
+                onPlanningModeChange(PlanningMode.All)
+            }
+            collapseAllProjects()
+            _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
+        }
+    }
+
+    fun processRevealRequest(projectId: String) {
         viewModelScope.launch {
             _isSearchActive.value = false
             _planningMode.value = PlanningMode.All
 
-            val allLists = _allListsFlat.first { it.isNotEmpty() }
-            val listLookup = allLists.associateBy { it.id }
+            val allProjects = _allProjectsFlat.first { it.isNotEmpty() }
+            val projectLookup = allProjects.associateBy { it.id }
 
-            if (!listLookup.containsKey(listId)) {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Could not find list."))
+            if (!projectLookup.containsKey(projectId)) {
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Could not find project."))
                 return@launch
             }
 
             val ancestorIds = mutableSetOf<String>()
-            findAncestorsRecursive(listId, listLookup, ancestorIds, mutableSetOf())
+            findAncestorsRecursive(projectId, projectLookup, ancestorIds, mutableSetOf())
 
-            val listsToExpand = ancestorIds
-                .mapNotNull { listLookup[it] }
-                .filter { !it.isExpanded && it.id != listId }
+            val projectsToExpand = ancestorIds
+                .mapNotNull { projectLookup[it] }
+                .filter { !it.isExpanded && it.id != projectId }
 
-            if (listsToExpand.isNotEmpty()) {
-                goalRepository.updateGoalLists(listsToExpand.map { it.copy(isExpanded = true) })
+            if (projectsToExpand.isNotEmpty()) {
+                projectRepository.updateProjects(projectsToExpand.map { it.copy(isExpanded = true) })
 
-                _allListsFlat.first { updatedListState ->
-                    listsToExpand.all { listToExpand ->
-                        updatedListState.find { it.id == listToExpand.id }?.isExpanded == true
+                _allProjectsFlat.first { updatedProjectState ->
+                    projectsToExpand.all { projectToExpand ->
+                        updatedProjectState.find { it.id == projectToExpand.id }?.isExpanded == true
                     }
                 }
             }
 
-            val finalListState = _allListsFlat.value
-            val topLevel = finalListState.filter { it.parentId == null }.sortedBy { it.order }
+            val finalProjectState = _allProjectsFlat.value
+            val topLevel = finalProjectState.filter { it.parentId == null }.sortedBy { it.order }
 
-            fun flattenHierarchy(currentLists: List<GoalList>, listMap: Map<String, List<GoalList>>): List<GoalList> {
-                val result = mutableListOf<GoalList>()
-                for (list in currentLists) {
-                    result.add(list)
-                    if (list.isExpanded) {
-                        val children = listMap[list.id]?.sortedBy { it.order } ?: emptyList()
+            fun flattenHierarchy(currentProjects: List<Project>, projectMap: Map<String, List<Project>>): List<Project> {
+                val result = mutableListOf<Project>()
+                for (project in currentProjects) {
+                    result.add(project)
+                    if (project.isExpanded) {
+                        val children = projectMap[project.id]?.sortedBy { it.order } ?: emptyList()
                         if (children.isNotEmpty()) {
-                            result.addAll(flattenHierarchy(children, listMap))
+                            result.addAll(flattenHierarchy(children, projectMap))
                         }
                     }
                 }
                 return result
             }
 
-            val childrenOnly = finalListState.filter { it.parentId != null }
+            val childrenOnly = finalProjectState.filter { it.parentId != null }
             val childMap = childrenOnly.groupBy { it.parentId!! }
-            val displayedLists = flattenHierarchy(topLevel, childMap)
+            val displayedProjects = flattenHierarchy(topLevel, childMap)
 
-            val index = displayedLists.indexOfFirst { it.id == listId }
+            val index = displayedProjects.indexOfFirst { it.id == projectId }
 
             if (index != -1) {
-                _uiEventChannel.send(GoalListUiEvent.ScrollToIndex(index))
+                _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(index))
             }
 
-            _highlightedListId.value = listId
+            _highlightedProjectId.value = projectId
             delay(1500)
-            if (_highlightedListId.value == listId) {
-                _highlightedListId.value = null
+            if (_highlightedProjectId.value == projectId) {
+                _highlightedProjectId.value = null
             }
         }
     }
@@ -553,7 +590,7 @@ class GoalListViewModel @Inject constructor(
             val currentText = _searchQuery.value.text
             _searchQuery.value = TextFieldValue(currentText, TextRange(0, currentText.length))
             viewModelScope.launch {
-                _uiEventChannel.send(GoalListUiEvent.FocusSearchField)
+                _uiEventChannel.send(ProjectUiEvent.FocusSearchField)
             }
         } else {
             val query = _searchQuery.value.text
@@ -572,19 +609,19 @@ class GoalListViewModel @Inject constructor(
         _planningMode.value = mode
     }
 
-    fun collapseAllLists() {
+    fun collapseAllProjects() {
         viewModelScope.launch {
-            val listsToCollapse =
-                _allListsFlat.value
+            val projectsToCollapse =
+                _allProjectsFlat.value
                     .filter { it.isExpanded }
                     .map { it.copy(isExpanded = false) }
-            if (listsToCollapse.isNotEmpty()) {
-                goalRepository.updateGoalLists(listsToCollapse)
+            if (projectsToCollapse.isNotEmpty()) {
+                projectRepository.updateProjects(projectsToCollapse)
             }
         }
     }
 
-    fun onToggleExpanded(list: GoalList) {
+    fun onToggleExpanded(project: Project) {
         if (planningMode.value != PlanningMode.All) {
             val currentStateFlow =
                 when (planningMode.value) {
@@ -595,16 +632,16 @@ class GoalListViewModel @Inject constructor(
                 }
 
             val currentExpanded = (currentStateFlow.value ?: emptySet()).toMutableSet()
-            if (list.isExpanded) {
-                currentExpanded.remove(list.id)
+            if (project.isExpanded) {
+                currentExpanded.remove(project.id)
             } else {
-                currentExpanded.add(list.id)
+                currentExpanded.add(project.id)
             }
             currentStateFlow.value = currentExpanded
 
         } else {
             viewModelScope.launch {
-                goalRepository.updateGoalList(list.copy(isExpanded = !list.isExpanded))
+                projectRepository.updateProject(project.copy(isExpanded = !project.isExpanded))
             }
         }
     }
@@ -613,7 +650,6 @@ class GoalListViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    // <-- НОВІ МЕТОДИ ДЛЯ ІСТОРІЇ ПОШУКУ
     fun onSearchQueryFromHistory(query: String) {
         _searchQuery.value = TextFieldValue(query)
         onToggleSearch(true)
@@ -633,7 +669,6 @@ class GoalListViewModel @Inject constructor(
         val newHistory = mutableHistory.take(MAX_SEARCH_HISTORY)
         savedStateHandle[SEARCH_HISTORY_KEY] = newHistory
     }
-    // КІНЕЦЬ НОВИХ МЕТОДІВ -->
 
     fun onShowWifiServerDialog() {
         _wifiServerAddress.value = null
@@ -661,60 +696,47 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    fun addNewList(id: String, parentId: String?, name: String) {
+    fun addNewProject(id: String, parentId: String?, name: String) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            goalRepository.createGoalListWithId(id, name, parentId)
+            projectRepository.createProjectWithId(id, name, parentId)
             if (parentId != null) {
-                val parentList = _allListsFlat.value.find { it.id == parentId }
-                if (parentList != null && !parentList.isExpanded) {
-                    goalRepository.updateGoalList(parentList.copy(isExpanded = true))
+                val parentProject = _allProjectsFlat.value.find { it.id == parentId }
+                if (parentProject != null && !parentProject.isExpanded) {
+                    projectRepository.updateProject(parentProject.copy(isExpanded = true))
                 }
             }
         }
     }
 
-    fun onDeleteListConfirmed(list: GoalList) {
+    fun onDeleteProjectConfirmed(project: Project) {
         viewModelScope.launch {
-            val listsToDelete = findDescendantsForDeletion(list.id, listHierarchy.value.childMap)
-            goalRepository.deleteListsAndSubLists(listOf(list) + listsToDelete)
+            val projectsToDelete = findDescendantsForDeletion(project.id, projectHierarchy.value.childMap)
+            projectRepository.deleteProjectsAndSubProjects(listOf(project) + projectsToDelete)
             dismissDialog()
         }
     }
 
     private fun findAncestorsRecursive(
-        listId: String?,
-        listLookup: Map<String, GoalList>,
+        projectId: String?,
+        projectLookup: Map<String, Project>,
         ids: MutableSet<String>,
         visited: MutableSet<String>,
     ) {
-        var currentId = listId
+        var currentId = projectId
         while (currentId != null && visited.add(currentId)) {
             ids.add(currentId)
-            currentId = listLookup[currentId]?.parentId
-        }
-    }
-
-    private fun findDescendantsRecursive(
-        listId: String,
-        childMap: Map<String, List<GoalList>>,
-        ids: MutableSet<String>,
-        visited: MutableSet<String>,
-    ) {
-        if (!visited.add(listId)) return
-        ids.add(listId)
-        childMap[listId]?.forEach { child ->
-            findDescendantsRecursive(child.id, childMap, ids, visited)
+            currentId = projectLookup[currentId]?.parentId
         }
     }
 
     private fun findDescendantsForDeletion(
-        listId: String,
-        childMap: Map<String, List<GoalList>>,
+        projectId: String,
+        childMap: Map<String, List<Project>>,
         visited: MutableSet<String> = mutableSetOf(),
-    ): List<GoalList> {
-        if (!visited.add(listId)) return emptyList()
-        val children = childMap[listId] ?: emptyList()
+    ): List<Project> {
+        if (!visited.add(projectId)) return emptyList()
+        val children = childMap[projectId] ?: emptyList()
         return children + children.flatMap { findDescendantsForDeletion(it.id, childMap, visited) }
     }
 
@@ -722,21 +744,21 @@ class GoalListViewModel @Inject constructor(
         viewModelScope.launch {
             val result = syncRepo.fetchBackupFromWifi(address)
             result.onSuccess { jsonString ->
-                _uiEventChannel.send(GoalListUiEvent.NavigateToSyncScreenWithData(jsonString))
+                _uiEventChannel.send(ProjectUiEvent.NavigateToSyncScreenWithData(jsonString))
                 onDismissWifiImportDialog()
             }.onFailure {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Error: ${it.message}"))
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Error: ${it.message}"))
             }
         }
     }
 
-    fun onAddNewListRequest() { _dialogState.value = DialogState.AddList(null) }
-    fun onAddSublistRequest(parentList: GoalList) { _dialogState.value = DialogState.AddList(parentList.id) }
+    fun onAddNewProjectRequest() { _dialogState.value = DialogState.AddProject(null) }
+    fun onAddSubprojectRequest(parentProject: Project) { _dialogState.value = DialogState.AddProject(parentProject.id) }
 
-    private fun getDescendantIds(listId: String, childMap: Map<String, List<GoalList>>): Set<String> {
+    private fun getDescendantIds(projectId: String, childMap: Map<String, List<Project>>): Set<String> {
         val descendants = mutableSetOf<String>()
         val queue = ArrayDeque<String>()
-        queue.add(listId)
+        queue.add(projectId)
         while (queue.isNotEmpty()) {
             val currentId = queue.removeFirst()
             childMap[currentId]?.forEach { child ->
@@ -747,33 +769,33 @@ class GoalListViewModel @Inject constructor(
         return descendants
     }
 
-    fun onMoveListRequest(list: GoalList) {
+    fun onMoveProjectRequest(project: Project) {
         dismissDialog()
-        savedStateHandle[LIST_BEING_MOVED_ID_KEY] = list.id
+        savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = project.id
         viewModelScope.launch {
-            val title = "Перемістити '${list.name}'"
+            val title = "Перемістити '${project.name}'"
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
-            val allLists = _allListsFlat.first()
-            val childMap = allLists.filter { it.parentId != null }.groupBy { it.parentId!! }
-            val descendantIds = getDescendantIds(list.id, childMap).joinToString(",")
-            val currentParentId = list.parentId ?: "root"
-            val disabledIds = "${list.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
-            val route = "list_chooser_screen/$encodedTitle?currentParentId=$currentParentId&disabledIds=$disabledIds"
-            _uiEventChannel.send(GoalListUiEvent.Navigate(route))
+            val allProjects = _allProjectsFlat.first()
+            val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
+            val descendantIds = getDescendantIds(project.id, childMap).joinToString(",")
+            val currentParentId = project.parentId ?: "root"
+            val disabledIds = "${project.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
+            val route = "project_chooser_screen/$encodedTitle?currentParentId=$currentParentId&disabledIds=$disabledIds"
+            _uiEventChannel.send(ProjectUiEvent.Navigate(route))
         }
     }
 
-    fun onMenuRequested(list: GoalList) { _dialogState.value = DialogState.ContextMenu(list) }
-    fun onDeleteRequest(list: GoalList) { _dialogState.value = DialogState.ConfirmDelete(list) }
-    fun onEditRequest(list: GoalList) {
+    fun onMenuRequested(project: Project) { _dialogState.value = DialogState.ContextMenu(project) }
+    fun onDeleteRequest(project: Project) { _dialogState.value = DialogState.ConfirmDelete(project) }
+    fun onEditRequest(project: Project) {
         viewModelScope.launch {
-            _uiEventChannel.send(GoalListUiEvent.NavigateToEditListScreen(list.id))
+            _uiEventChannel.send(ProjectUiEvent.NavigateToEditProjectScreen(project.id))
         }
     }
 
-    fun onShowSettingsScreen() { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToSettings) } }
+    fun onShowSettingsScreen() { viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.NavigateToSettings) } }
     fun onShowAboutDialog() { _dialogState.value = DialogState.AboutApp }
-    fun onListClicked(listId: String) { viewModelScope.launch { _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(listId)) } }
+    fun onProjectClicked(projectId: String) { viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(projectId)) } }
     fun onDesktopAddressChange(newAddress: String) {
         _desktopAddress.value = newAddress
         viewModelScope.launch { settingsRepo.saveDesktopAddress(newAddress) }
@@ -788,7 +810,7 @@ class GoalListViewModel @Inject constructor(
         if (query.isNotBlank()) {
             addSearchQueryToHistory(query)
             viewModelScope.launch {
-                _uiEventChannel.send(GoalListUiEvent.NavigateToGlobalSearch(query))
+                _uiEventChannel.send(ProjectUiEvent.NavigateToGlobalSearch(query))
                 onDismissSearchDialog()
             }
         }
@@ -798,9 +820,9 @@ class GoalListViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val result = syncRepo.exportFullBackupToFile()
             result.onSuccess { message ->
-                _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
+                _uiEventChannel.send(ProjectUiEvent.ShowToast(message))
             }.onFailure { error ->
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Export error: ${error.message}"))
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Export error: ${error.message}"))
             }
         }
     }
@@ -815,21 +837,21 @@ class GoalListViewModel @Inject constructor(
 
     fun onListChooserResult(newParentId: String?) {
         viewModelScope.launch {
-            val listIdToMove = listBeingMovedId.value ?: return@launch
-            val listToMove = _allListsFlat.value.find { it.id == listIdToMove } ?: return@launch
+            val projectToMoveId = projectBeingMovedId.value ?: return@launch
+            val projectToMove = _allProjectsFlat.value.find { it.id == projectToMoveId } ?: return@launch
             val finalNewParentId = if (newParentId == "root") null else newParentId
-            if (listToMove.parentId == finalNewParentId) {
-                savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
+            if (projectToMove.parentId == finalNewParentId) {
+                savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
                 return@launch
             }
-            goalRepository.moveGoalList(listToMove, finalNewParentId)
+            projectRepository.moveProject(projectToMove, finalNewParentId)
             if (finalNewParentId != null) {
-                val parentList = _allListsFlat.value.find { it.id == finalNewParentId }
-                if (parentList != null && !parentList.isExpanded) {
-                    goalRepository.updateGoalList(parentList.copy(isExpanded = true))
+                val parentProject = _allProjectsFlat.value.find { it.id == finalNewParentId }
+                if (parentProject != null && !parentProject.isExpanded) {
+                    projectRepository.updateProject(parentProject.copy(isExpanded = true))
                 }
             }
-            savedStateHandle[LIST_BEING_MOVED_ID_KEY] = null
+            savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
         }
     }
 
@@ -839,15 +861,15 @@ class GoalListViewModel @Inject constructor(
         _listChooserUserExpandedIds.value = emptySet()
     }
 
-    fun onListReorder(fromId: String, toId: String, position: DropPosition) {
+    fun onProjectReorder(fromId: String, toId: String, position: DropPosition) {
         if (fromId == toId || isSearchActive.value) return
         viewModelScope.launch(Dispatchers.IO) {
-            val allLists = _allListsFlat.first()
-            val fromList = allLists.find { it.id == fromId }
-            val toList = allLists.find { it.id == toId }
-            if (fromList == null || toList == null || fromList.parentId != toList.parentId) return@launch
-            val parentId = fromList.parentId
-            val siblings = allLists.filter { it.parentId == parentId }.sortedBy { it.order }
+            val allProjects = _allProjectsFlat.first()
+            val fromProject = allProjects.find { it.id == fromId }
+            val toProject = allProjects.find { it.id == toId }
+            if (fromProject == null || toProject == null || fromProject.parentId != toProject.parentId) return@launch
+            val parentId = fromProject.parentId
+            val siblings = allProjects.filter { it.parentId == parentId }.sortedBy { it.order }
             val mutableSiblings = siblings.toMutableList()
             val fromIndex = mutableSiblings.indexOfFirst { it.id == fromId }
             val toIndex = mutableSiblings.indexOfFirst { it.id == toId }
@@ -859,10 +881,10 @@ class GoalListViewModel @Inject constructor(
             }
             val finalIndex = insertionIndex.coerceIn(0, mutableSiblings.size)
             mutableSiblings.add(finalIndex, movedItem)
-            val listsToUpdate = mutableSiblings.mapIndexed { index, list ->
-                list.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
+            val projectsToUpdate = mutableSiblings.mapIndexed { index, project ->
+                project.copy(order = index.toLong(), updatedAt = System.currentTimeMillis())
             }
-            goalRepository.updateGoalLists(listsToUpdate)
+            projectRepository.updateProjects(projectsToUpdate)
         }
     }
 
@@ -872,9 +894,9 @@ class GoalListViewModel @Inject constructor(
             val result = syncRepo.importFullBackupFromFile(uri)
             withContext(Dispatchers.Main) {
                 result.onSuccess { message ->
-                    _uiEventChannel.send(GoalListUiEvent.ShowToast(message))
+                    _uiEventChannel.send(ProjectUiEvent.ShowToast(message))
                 }.onFailure { error ->
-                    _uiEventChannel.send(GoalListUiEvent.ShowToast("Import error: ${error.message}"))
+                    _uiEventChannel.send(ProjectUiEvent.ShowToast("Import error: ${error.message}"))
                 }
             }
         }
@@ -891,19 +913,19 @@ class GoalListViewModel @Inject constructor(
 
     private val _currentBreadcrumbs = MutableStateFlow<List<BreadcrumbItem>>(emptyList())
     val currentBreadcrumbs = _currentBreadcrumbs.asStateFlow()
-    private val _focusedListId = MutableStateFlow<String?>(null)
-    val focusedListId = _focusedListId.asStateFlow()
+    private val _focusedProjectId = MutableStateFlow<String?>(null)
+    val focusedProjectId = _focusedProjectId.asStateFlow()
     private val _hierarchySettings = MutableStateFlow(HierarchyDisplaySettings())
     val hierarchySettings = _hierarchySettings.asStateFlow()
 
-    fun navigateToList(listId: String) {
+    fun navigateToProject(projectId: String) {
         viewModelScope.launch(Dispatchers.Default) {
-            val hierarchy = listHierarchy.value
-            val path = buildPathToList(listId, hierarchy)
+            val hierarchy = projectHierarchy.value
+            val path = buildPathToProject(projectId, hierarchy)
 
             val collapsedIds = path
                 .mapNotNull { breadcrumbItem ->
-                    hierarchy.allLists.find { it.id == breadcrumbItem.id }
+                    hierarchy.allProjects.find { it.id == breadcrumbItem.id }
                 }
                 .filter { !it.isExpanded }
                 .map { it.id }
@@ -912,7 +934,7 @@ class GoalListViewModel @Inject constructor(
             _collapsedAncestorsOnFocus.value = collapsedIds
 
             _currentBreadcrumbs.value = path
-            _focusedListId.value = listId
+            _focusedProjectId.value = projectId
         }
     }
 
@@ -920,7 +942,7 @@ class GoalListViewModel @Inject constructor(
         val currentPath = _currentBreadcrumbs.value
         val newPath = currentPath.take(breadcrumbItem.level + 1)
         _currentBreadcrumbs.value = newPath
-        _focusedListId.value = breadcrumbItem.id
+        _focusedProjectId.value = breadcrumbItem.id
     }
 
     fun clearNavigation() {
@@ -928,48 +950,48 @@ class GoalListViewModel @Inject constructor(
             val breadcrumbs = _currentBreadcrumbs.value
             if (breadcrumbs.isNotEmpty()) {
                 val topLevelAncestorId = breadcrumbs.first().id
-                val ancestorList = _allListsFlat.value.find { it.id == topLevelAncestorId }
+                val ancestorProject = _allProjectsFlat.value.find { it.id == topLevelAncestorId }
 
-                if (ancestorList != null && !ancestorList.isExpanded) {
-                    goalRepository.updateGoalList(ancestorList.copy(isExpanded = true))
+                if (ancestorProject != null && !ancestorProject.isExpanded) {
+                    projectRepository.updateProject(ancestorProject.copy(isExpanded = true))
 
-                    _allListsFlat.first { updatedLists ->
-                        updatedLists.find { it.id == topLevelAncestorId }?.isExpanded == true
+                    _allProjectsFlat.first { updatedProjects ->
+                        updatedProjects.find { it.id == topLevelAncestorId }?.isExpanded == true
                     }
                 }
             }
 
-            val listsToCollapseIds = _collapsedAncestorsOnFocus.value
-            if (listsToCollapseIds.isNotEmpty()) {
-                val listsToUpdate = _allListsFlat.value
-                    .filter { it.id in listsToCollapseIds }
+            val projectsToCollapseIds = _collapsedAncestorsOnFocus.value
+            if (projectsToCollapseIds.isNotEmpty()) {
+                val projectsToUpdate = _allProjectsFlat.value
+                    .filter { it.id in projectsToCollapseIds }
                     .map { it.copy(isExpanded = false) }
 
-                if (listsToUpdate.isNotEmpty()) {
-                    goalRepository.updateGoalLists(listsToUpdate)
+                if (projectsToUpdate.isNotEmpty()) {
+                    projectRepository.updateProjects(projectsToUpdate)
                 }
             }
 
             _collapsedAncestorsOnFocus.value = emptySet()
             _currentBreadcrumbs.value = emptyList()
-            _focusedListId.value = null
+            _focusedProjectId.value = null
         }
     }
 
-    private fun buildPathToList(targetId: String, hierarchy: ListHierarchyData): List<BreadcrumbItem> {
+    private fun buildPathToProject(targetId: String, hierarchy: ListHierarchyData): List<BreadcrumbItem> {
         val path = mutableListOf<BreadcrumbItem>()
-        fun findPath(lists: List<GoalList>, level: Int): Boolean {
-            val sortedLists = lists.sortedBy { it.order }
-            for (list in sortedLists) {
-                path.add(BreadcrumbItem(list.id, list.name, level))
-                if (list.id == targetId) return true
-                val children = hierarchy.childMap[list.id] ?: emptyList()
+        fun findPath(projects: List<Project>, level: Int): Boolean {
+            val sortedProjects = projects.sortedBy { it.order }
+            for (project in sortedProjects) {
+                path.add(BreadcrumbItem(project.id, project.name, level))
+                if (project.id == targetId) return true
+                val children = hierarchy.childMap[project.id] ?: emptyList()
                 if (findPath(children, level + 1)) return true
                 path.removeLastOrNull()
             }
             return false
         }
-        findPath(hierarchy.topLevelLists, 0)
+        findPath(hierarchy.topLevelProjects, 0)
         return path.toList()
     }
 
@@ -977,14 +999,14 @@ class GoalListViewModel @Inject constructor(
         viewModelScope.launch {
             val targetTag = contextHandler.getContextTag(contextName)
             if (targetTag.isNullOrBlank()) {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Тег для контексту '$contextName' не знайдено або порожній"))
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Тег для контексту '$contextName' не знайдено або порожній"))
                 return@launch
             }
-            val targetList = _allListsFlat.value.find { it.tags?.contains(targetTag) == true }
-            if (targetList != null) {
-                _uiEventChannel.send(GoalListUiEvent.NavigateToDetails(targetList.id))
+            val targetProject = _allProjectsFlat.value.find { it.tags?.contains(targetTag) == true }
+            if (targetProject != null) {
+                _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(targetProject.id))
             } else {
-                _uiEventChannel.send(GoalListUiEvent.ShowToast("Список з тегом '#$targetTag' не знайдено"))
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Проект з тегом '#$targetTag' не знайдено"))
             }
         }
     }
@@ -1005,37 +1027,10 @@ class GoalListViewModel @Inject constructor(
         }
     }
 
-    fun hasDescendantsWithLongNames(
-        listId: String,
-        childMap: Map<String, List<GoalList>>,
-        characterLimit: Int = 35
-    ): Boolean {
-        val queue = ArrayDeque<String>()
-
-        childMap[listId]?.forEach { queue.add(it.id) }
-
-        while (queue.isNotEmpty()) {
-            val currentId = queue.removeFirst()
-            val list = _allListsFlat.value.find { it.id == currentId }
-
-            if (list != null) {
-                if (list.name.length > characterLimit) {
-                    return true
-                }
-
-                childMap[currentId]?.forEach { queue.add(it.id) }
-            }
-        }
-
-        return false
-    }
-
     fun saveAllContexts(updatedContexts: List<UiContext>) {
         viewModelScope.launch {
             val customContextsToSave = updatedContexts.filter { !it.isReserved }
-
             settingsRepo.saveCustomContexts(customContextsToSave)
-
             contextHandler.initialize()
         }
     }

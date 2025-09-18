@@ -2,15 +2,13 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
-import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
-import com.romankozak.forwardappmobile.ui.screens.backlog.GoalDetailViewModel
+import com.romankozak.forwardappmobile.ui.screens.backlog.BacklogViewModel
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,9 +19,9 @@ import javax.inject.Inject
 class ItemActionHandler
 @Inject
 constructor(
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository,
     val scope: CoroutineScope,
-    private val listIdFlow: StateFlow<String>,
+    private val projectIdFlow: StateFlow<String>,
     private val resultListener: ResultListener,
 ) {
     interface ResultListener : BaseHandlerResultListener {
@@ -47,15 +45,15 @@ constructor(
         if (resultListener.isSelectionModeActive()) {
             resultListener.toggleSelection(item.item.id)
         } else {
-            val currentListId = listIdFlow.value
+            val currentProjectId = projectIdFlow.value
             when (item) {
                 is ListItemContent.GoalItem ->
                     resultListener.requestNavigation(
-                        "goal_edit_screen/$currentListId?goalId=${item.goal.id}",
+                        "goal_edit_screen/$currentProjectId?goalId=${item.goal.id}",
                     )
-                is ListItemContent.SublistItem -> resultListener.requestNavigation("goal_detail_screen/${item.sublist.id}")
+                is ListItemContent.SublistItem -> resultListener.requestNavigation("project_detail_screen/${item.sublist.id}")
                 is ListItemContent.LinkItem ->
-                    resultListener.requestNavigation(GoalDetailViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
+                    resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
             }
         }
     }
@@ -63,7 +61,7 @@ constructor(
     fun deleteItem(item: ListItemContent) {
         scope.launch {
             recentlyDeletedItems = listOf(item)
-            goalRepository.deleteListItems(listOf(item.item.id))
+            projectRepository.deleteListItems(listOf(item.item.id))
             resultListener.showSnackbar("Елемент видалено", "Скасувати")
         }
     }
@@ -104,7 +102,7 @@ constructor(
     ) {
         scope.launch {
             val updatedGoal = goal.copy(completed = isChecked, updatedAt = System.currentTimeMillis())
-            goalRepository.updateGoal(updatedGoal)
+            projectRepository.updateGoal(updatedGoal)
             delay(100)
             resultListener.forceRefresh()
         }
@@ -119,7 +117,7 @@ constructor(
                         val linkText = content.link.linkData.displayName ?: content.link.linkData.target
                         Pair("Посилання скопійовано", linkText)
                     }
-                    is ListItemContent.SublistItem -> Pair("Назва списку скопійована", content.sublist.name)
+                    is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.sublist.name)
                 }
 
             resultListener.copyToClipboard(text)
@@ -145,32 +143,28 @@ constructor(
         val item = _itemForTransportMenu.value ?: return
         when (item) {
             is ListItemContent.GoalItem -> {
-                // Для цілей використовуємо стару логіку
                 onGoalActionSelected(actionType, item)
             }
             is ListItemContent.SublistItem -> {
-                // Для під-проектів реалізуємо нову логіку
                 when (actionType) {
                     GoalActionType.CreateInstance -> {
-                        // "Створити зв'язок" для під-проекту означає створити ярлик
                         resultListener.setPendingAction(
                             GoalActionType.ADD_LIST_SHORTCUT,
                             setOf(item.item.id),
-                            setOf(item.sublist.id) // Передаємо ID під-проекту
+                            setOf(item.sublist.id)
                         )
                     }
                     GoalActionType.MoveInstance -> {
-                        // Переміщення працює однаково
                         resultListener.setPendingAction(
                             GoalActionType.MoveInstance,
                             setOf(item.item.id),
                             emptySet()
                         )
                     }
-                    else -> Unit // Інші дії (напр. копіювання) не застосовуються
+                    else -> Unit
                 }
             }
-            else -> Unit // Для інших типів (напр. LinkItem) транспорт не доступний
+            else -> Unit
         }
         onDismissGoalTransportMenu()
     }

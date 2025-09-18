@@ -3,8 +3,8 @@ package com.romankozak.forwardappmobile.ui.screens.listchooser
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -13,142 +13,142 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ChooserUiState(
-    val topLevelLists: List<GoalList> = emptyList(),
-    val childMap: Map<String, List<GoalList>> = emptyMap(),
+    val topLevelProjects: List<Project> = emptyList(),
+    val childMap: Map<String, List<Project>> = emptyMap(),
 )
 
 @HiltViewModel
 class FilterableListChooserViewModel
-    @Inject
-    constructor(
-        private val goalListRepository: GoalRepository,
-    ) : ViewModel() {
-        private val TAG = "FilterChooserVM"
+@Inject
+constructor(
+    private val projectRepository: ProjectRepository,
+) : ViewModel() {
+    private val TAG = "FilterChooserVM"
 
-        private val _filterText = MutableStateFlow("")
-        val filterText: StateFlow<String> = _filterText.asStateFlow()
+    private val _filterText = MutableStateFlow("")
+    val filterText: StateFlow<String> = _filterText.asStateFlow()
 
-        private val _expandedIds = MutableStateFlow<Set<String>>(emptySet())
-        val expandedIds: StateFlow<Set<String>> = _expandedIds.asStateFlow()
+    private val _expandedIds = MutableStateFlow<Set<String>>(emptySet())
+    val expandedIds: StateFlow<Set<String>> = _expandedIds.asStateFlow()
 
-        private val _showDescendants = MutableStateFlow(false)
-        val showDescendants: StateFlow<Boolean> = _showDescendants.asStateFlow()
-        private val allLists =
-            goalListRepository
-                .getAllGoalListsFlow()
-                .stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5000),
-                    initialValue = emptyList(),
-                )
+    private val _showDescendants = MutableStateFlow(false)
+    val showDescendants: StateFlow<Boolean> = _showDescendants.asStateFlow()
+    private val allProjects =
+        projectRepository
+            .getAllProjectsFlow()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList(),
+            )
 
-        @OptIn(FlowPreview::class)
-        val chooserState: StateFlow<ChooserUiState> =
-            combine(
-                filterText.debounce(300),
-                allLists,
-                showDescendants,
-            ) { filter, lists, shouldShowDescendants ->
-                if (filter.isBlank()) {
-                    val fullChildMap =
-                        lists
-                            .filter { it.parentId != null }
-                            .groupBy { it.parentId!! }
-                            .mapValues { (_, children) -> children.sortedBy { it.order } }
-                    val fullTopLevelLists = lists.filter { it.parentId == null }.sortedBy { it.order }
-                    ChooserUiState(topLevelLists = fullTopLevelLists, childMap = fullChildMap)
-                } else {
-                    val allListsById = lists.associateBy { it.id }
-                    val matchingLists = lists.filter { it.name.contains(filter, ignoreCase = true) }
-
-                    val visibleIds = mutableSetOf<String>()
-
-                    matchingLists.forEach { matchedList ->
-                        val path = mutableSetOf<String>()
-                        var current: GoalList? = matchedList
-                        while (current != null && current.id !in path) {
-                            path.add(current.id)
-                            visibleIds.add(current.id)
-                            current = current.parentId?.let { parentId -> allListsById[parentId] }
-                        }
-                    }
-
-                    if (shouldShowDescendants) {
-                        val fullChildMapForTraversal = lists.filter { it.parentId != null }.groupBy { it.parentId!! }
-                        val descendantsQueue = ArrayDeque(matchingLists)
-
-                        while (descendantsQueue.isNotEmpty()) {
-                            val current = descendantsQueue.removeFirst()
-                            visibleIds.add(current.id)
-                            val children = fullChildMapForTraversal[current.id] ?: emptyList()
-                            descendantsQueue.addAll(children)
-                        }
-                    }
-                    val visibleLists = lists.filter { list -> list.id in visibleIds }
-
-                    val filteredChildMap =
-                        visibleLists
-                            .filter { list -> list.parentId != null }
-                            .groupBy { list -> list.parentId!! }
-                            .mapValues { entry -> entry.value.sortedBy { child -> child.order } }
-
-                    val filteredTopLevelLists =
-                        visibleLists
-                            .filter { list -> list.parentId == null }
-                            .sortedBy { list -> list.order }
-
-                    ChooserUiState(topLevelLists = filteredTopLevelLists, childMap = filteredChildMap)
-                }
-            }.flowOn(Dispatchers.Default)
-                .stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5000),
-                    initialValue = ChooserUiState(),
-                )
-
-        fun updateFilterText(text: String) {
-            _filterText.value = text
-            if (text.isBlank()) {
-                _expandedIds.value = emptySet()
+    @OptIn(FlowPreview::class)
+    val chooserState: StateFlow<ChooserUiState> =
+        combine(
+            filterText.debounce(300),
+            allProjects,
+            showDescendants,
+        ) { filter, projects, shouldShowDescendants ->
+            if (filter.isBlank()) {
+                val fullChildMap =
+                    projects
+                        .filter { it.parentId != null }
+                        .groupBy { it.parentId!! }
+                        .mapValues { (_, children) -> children.sortedBy { it.order } }
+                val fullTopLevelProjects = projects.filter { it.parentId == null }.sortedBy { it.order }
+                ChooserUiState(topLevelProjects = fullTopLevelProjects, childMap = fullChildMap)
             } else {
-                viewModelScope.launch(Dispatchers.Default) {
-                    val lists = allLists.value
-                    val listMap = lists.associateBy { it.id }
-                    val matchingLists = lists.filter { it.name.contains(text, ignoreCase = true) }
+                val allProjectsById = projects.associateBy { it.id }
+                val matchingProjects = projects.filter { it.name.contains(filter, ignoreCase = true) }
 
-                    val idsToExpand = mutableSetOf<String>()
-                    matchingLists.forEach { list ->
-                        var parentId = list.parentId
-                        while (parentId != null) {
-                            idsToExpand.add(parentId)
-                            parentId = listMap[parentId]?.parentId
-                        }
+                val visibleIds = mutableSetOf<String>()
+
+                matchingProjects.forEach { matchedProject ->
+                    val path = mutableSetOf<String>()
+                    var current: Project? = matchedProject
+                    while (current != null && current.id !in path) {
+                        path.add(current.id)
+                        visibleIds.add(current.id)
+                        current = current.parentId?.let { parentId -> allProjectsById[parentId] }
                     }
-                    _expandedIds.value = idsToExpand
                 }
+
+                if (shouldShowDescendants) {
+                    val fullChildMapForTraversal = projects.filter { it.parentId != null }.groupBy { it.parentId!! }
+                    val descendantsQueue = ArrayDeque(matchingProjects)
+
+                    while (descendantsQueue.isNotEmpty()) {
+                        val current = descendantsQueue.removeFirst()
+                        visibleIds.add(current.id)
+                        val children = fullChildMapForTraversal[current.id] ?: emptyList()
+                        descendantsQueue.addAll(children)
+                    }
+                }
+                val visibleProjects = projects.filter { project -> project.id in visibleIds }
+
+                val filteredChildMap =
+                    visibleProjects
+                        .filter { project -> project.parentId != null }
+                        .groupBy { project -> project.parentId!! }
+                        .mapValues { entry -> entry.value.sortedBy { child -> child.order } }
+
+                val filteredTopLevelProjects =
+                    visibleProjects
+                        .filter { project -> project.parentId == null }
+                        .sortedBy { project -> project.order }
+
+                ChooserUiState(topLevelProjects = filteredTopLevelProjects, childMap = filteredChildMap)
             }
-        }
+        }.flowOn(Dispatchers.Default)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = ChooserUiState(),
+            )
 
-        fun toggleShowDescendants() {
-            _showDescendants.value = !_showDescendants.value
-        }
+    fun updateFilterText(text: String) {
+        _filterText.value = text
+        if (text.isBlank()) {
+            _expandedIds.value = emptySet()
+        } else {
+            viewModelScope.launch(Dispatchers.Default) {
+                val projects = allProjects.value
+                val projectMap = projects.associateBy { it.id }
+                val matchingProjects = projects.filter { it.name.contains(text, ignoreCase = true) }
 
-        fun toggleExpanded(listId: String) {
-            _expandedIds.value =
-                if (listId in _expandedIds.value) {
-                    _expandedIds.value - listId
-                } else {
-                    _expandedIds.value + listId
+                val idsToExpand = mutableSetOf<String>()
+                matchingProjects.forEach { project ->
+                    var parentId = project.parentId
+                    while (parentId != null) {
+                        idsToExpand.add(parentId)
+                        parentId = projectMap[parentId]?.parentId
+                    }
                 }
-        }
-
-        fun addNewList(
-            id: String,
-            parentId: String?,
-            name: String,
-        ) {
-            viewModelScope.launch {
-                goalListRepository.createGoalListWithId(id, name, parentId)
+                _expandedIds.value = idsToExpand
             }
         }
     }
+
+    fun toggleShowDescendants() {
+        _showDescendants.value = !_showDescendants.value
+    }
+
+    fun toggleExpanded(projectId: String) {
+        _expandedIds.value =
+            if (projectId in _expandedIds.value) {
+                _expandedIds.value - projectId
+            } else {
+                _expandedIds.value + projectId
+            }
+    }
+
+    fun addNewProject(
+        id: String,
+        parentId: String?,
+        name: String,
+    ) {
+        viewModelScope.launch {
+            projectRepository.createProjectWithId(id, name, parentId)
+        }
+    }
+}

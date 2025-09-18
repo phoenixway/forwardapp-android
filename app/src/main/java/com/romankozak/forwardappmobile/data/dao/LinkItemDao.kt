@@ -23,10 +23,10 @@ interface LinkItemDao {
     @Transaction
     @Query(
         """
-    SELECT li.*, l.listId as listId, gl.name as listName, l.id as listItemId
+    SELECT li.*, l.project_id as projectId, p.name as projectName, l.id as listItemId
     FROM link_items li
     INNER JOIN list_items l ON li.id = l.entityId
-    INNER JOIN goal_lists gl ON l.listId = gl.id
+    INNER JOIN projects p ON l.project_id = p.id
     WHERE l.itemType = 'LINK_ITEM' AND li.link_data LIKE :query
 """,
     )

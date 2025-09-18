@@ -4,11 +4,10 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -57,12 +56,12 @@ class SmartDebouncer(
 }
 
 class InputHandler(
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository,
     private val scope: CoroutineScope,
-    private val listIdFlow: StateFlow<String>,
+    private val projectIdFlow: StateFlow<String>,
     private val resultListener: ResultListener,
     private val reminderParser: ReminderParser,
-    private val alarmScheduler: AlarmScheduler, 
+    private val alarmScheduler: AlarmScheduler,
 ) {
     private val TAG = "ReminderFlow"
     private val smartDebouncer = SmartDebouncer(800L)
@@ -161,8 +160,8 @@ class InputHandler(
 
         when (inputMode) {
             InputMode.AddGoal -> {
-                val currentListId = listIdFlow.value
-                if (currentListId.isBlank()) return
+                val currentProjectId = projectIdFlow.value
+                if (currentProjectId.isBlank()) return
 
                 resultListener.updateInputState(
                     inputValue = TextFieldValue(""),
@@ -193,7 +192,7 @@ class InputHandler(
 
                         val newItemIdentifier: String
                         if (reminderTime != null) {
-                            val newGoal = goalRepository.addGoalWithReminder(textToSave, currentListId, reminderTime)
+                            val newGoal = projectRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
                             newItemIdentifier = newGoal.id
                             Log.d(
                                 TAG,
@@ -201,7 +200,7 @@ class InputHandler(
                             )
                             alarmScheduler.schedule(newGoal)
                         } else {
-                            newItemIdentifier = goalRepository.addGoalToList(textToSave, currentListId)
+                            newItemIdentifier = projectRepository.addGoalToProject(textToSave, currentProjectId)
                         }
 
                         withContext(Dispatchers.Main) {
@@ -264,7 +263,7 @@ class InputHandler(
                     name
                 }
             val link = RelatedLink(type = LinkType.URL, target = url, displayName = displayName)
-            val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
+            val newItemId = projectRepository.addLinkItemToProject(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -277,7 +276,7 @@ class InputHandler(
         }
         scope.launch(Dispatchers.IO) {
             val link = RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
-            val newItemId = goalRepository.addLinkItemToList(listIdFlow.value, link)
+            val newItemId = projectRepository.addLinkItemToProject(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -297,8 +296,8 @@ class InputHandler(
 
     fun onDismissRecentLists() = resultListener.showRecentListsSheet(false)
 
-    fun onRecentListSelected(listId: String) {
-        resultListener.requestNavigation("goal_detail_screen/$listId")
+    fun onRecentListSelected(projectId: String) {
+        resultListener.requestNavigation("project_detail_screen/$projectId")
         onDismissRecentLists()
     }
 }

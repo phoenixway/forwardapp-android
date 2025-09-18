@@ -5,10 +5,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.* 
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -28,7 +26,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -42,7 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import kotlinx.coroutines.delay
 import java.util.*
 
@@ -64,19 +61,19 @@ fun FilterableListChooserScreen(
     onToggleShowDescendants: () -> Unit,
 ) {
     var isCreatingMode by remember { mutableStateOf(false) }
-    var newListName by remember { mutableStateOf("") }
-    var parentForNewList by remember { mutableStateOf<GoalList?>(null) }
-    var highlightedListId by remember { mutableStateOf<String?>(null) }
+    var newProjectName by remember { mutableStateOf("") }
+    var parentForNewProject by remember { mutableStateOf<Project?>(null) }
+    var highlightedProjectId by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val searchFocusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
     val listState = rememberLazyListState()
 
-    LaunchedEffect(highlightedListId) {
-        if (highlightedListId != null) {
+    LaunchedEffect(highlightedProjectId) {
+        if (highlightedProjectId != null) {
             delay(3000L)
-            highlightedListId = null
+            highlightedProjectId = null
         }
     }
 
@@ -87,14 +84,14 @@ fun FilterableListChooserScreen(
                     AnimatedContent(
                         targetState =
                             if (isCreatingMode) {
-                                parentForNewList?.let { "Новий підсписок: '${it.name}'" }
-                                    ?: "Новий список"
+                                parentForNewProject?.let { "Новий підпроект: '${it.name}'" }
+                                    ?: "Новий проект"
                             } else {
                                 title
                             },
                         transitionSpec = {
                             slideInVertically { -it } + fadeIn() with
-                                slideOutVertically { it } + fadeOut()
+                                    slideOutVertically { it } + fadeOut()
                         },
                     ) { titleText ->
                         Text(
@@ -136,8 +133,8 @@ fun FilterableListChooserScreen(
                 FloatingActionButton(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        parentForNewList = null
-                        newListName = ""
+                        parentForNewProject = null
+                        newProjectName = ""
                         isCreatingMode = true
                     },
                     modifier =
@@ -175,7 +172,7 @@ fun FilterableListChooserScreen(
             targetState = isCreatingMode,
             transitionSpec = {
                 (slideInVertically { it } + fadeIn(tween(300)) + expandVertically()) with
-                    (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
+                        (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
             },
             modifier =
                 Modifier
@@ -184,9 +181,9 @@ fun FilterableListChooserScreen(
                     .imePadding(),
         ) { creating ->
             if (creating) {
-                CreateListForm(
-                    name = newListName,
-                    onNameChange = { newListName = it },
+                CreateProjectForm(
+                    name = newProjectName,
+                    onNameChange = { newProjectName = it },
                     onCancel = {
                         isCreatingMode = false
                         keyboardController?.hide()
@@ -194,8 +191,8 @@ fun FilterableListChooserScreen(
                     },
                     onCreate = {
                         val id = UUID.randomUUID().toString()
-                        onAddNewList(id, parentForNewList?.id, newListName)
-                        highlightedListId = id
+                        onAddNewList(id, parentForNewProject?.id, newProjectName)
+                        highlightedProjectId = id
                         isCreatingMode = false
                         keyboardController?.hide()
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -210,8 +207,8 @@ fun FilterableListChooserScreen(
                     OutlinedTextField(
                         value = filterText,
                         onValueChange = onFilterTextChanged,
-                        label = { Text(stringResource(R.string.search_lists)) },
-                        placeholder = { Text(stringResource(R.string.search_placeholder)) },
+                        label = { Text("Пошук проектів...") },
+                        placeholder = { Text("Введіть назву проекту") },
                         modifier =
                             Modifier
                                 .fillMaxWidth()
@@ -299,7 +296,7 @@ fun FilterableListChooserScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    stringResource(R.string.show_nested_lists),
+                                    "Показувати вкладені проекти",
                                     style = MaterialTheme.typography.bodySmall,
                                     color =
                                         if (showDescendants) {
@@ -326,13 +323,8 @@ fun FilterableListChooserScreen(
                     }
 
                     if (filterText.isNotBlank()) {
-                        val filteredCount = chooserUiState.topLevelLists.size
-                        val listsWord =
-                            if (filteredCount == 1) {
-                                stringResource(R.string.list_singular)
-                            } else {
-                                stringResource(R.string.lists_plural)
-                            }
+                        val filteredCount = chooserUiState.topLevelProjects.size
+                        val projectsWord = if (filteredCount == 1) "проект" else "проектів"
 
                         Row(
                             modifier =
@@ -349,7 +341,7 @@ fun FilterableListChooserScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                stringResource(R.string.found_lists, filteredCount, listsWord),
+                                "Знайдено $filteredCount $projectsWord",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -369,7 +361,7 @@ fun FilterableListChooserScreen(
                             ),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        if (chooserUiState.topLevelLists.isEmpty()) {
+                        if (chooserUiState.topLevelProjects.isEmpty()) {
                             item {
                                 EnhancedEmptyState(hasFilter = filterText.isNotBlank())
                             }
@@ -377,7 +369,7 @@ fun FilterableListChooserScreen(
                             if (filterText.isBlank()) {
                                 item {
                                     RootListItem(
-                                        text = stringResource(R.string.root_level),
+                                        text = "Кореневий рівень (без батьківського проекту)",
                                         isEnabled = currentParentId != null,
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -387,9 +379,9 @@ fun FilterableListChooserScreen(
                                 }
                             }
 
-                            items(chooserUiState.topLevelLists, key = { it.id }) { list ->
+                            items(chooserUiState.topLevelProjects, key = { it.id }) { project ->
                                 RecursiveSelectableListItem(
-                                    list = list,
+                                    project = project,
                                     childMap = chooserUiState.childMap,
                                     level = 0,
                                     expandedIds = expandedIds,
@@ -399,11 +391,11 @@ fun FilterableListChooserScreen(
                                         onConfirm(id)
                                     },
                                     disabledIds = disabledIds,
-                                    highlightedListId = highlightedListId,
-                                    onAddSublistRequest = { parent ->
+                                    highlightedProjectId = highlightedProjectId,
+                                    onAddSubprojectRequest = { parent ->
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        parentForNewList = parent
-                                        newListName = ""
+                                        parentForNewProject = parent
+                                        newProjectName = ""
                                         isCreatingMode = true
                                     },
                                     filterText = filterText,
@@ -418,7 +410,7 @@ fun FilterableListChooserScreen(
 }
 
 @Composable
-private fun CreateListForm(
+private fun CreateProjectForm(
     name: String,
     onNameChange: (String) -> Unit,
     onCancel: () -> Unit,
@@ -451,7 +443,7 @@ private fun CreateListForm(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                stringResource(R.string.creating_new_list),
+                "Створення нового проекту",
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -465,8 +457,8 @@ private fun CreateListForm(
                     onNameChange(it)
                     isError = it.isNotBlank() && it.length < 3
                 },
-                label = { Text(stringResource(R.string.new_list_name_label)) },
-                placeholder = { Text(stringResource(R.string.new_list_name_placeholder)) },
+                label = { Text("Назва нового проекту") },
+                placeholder = { Text("Наприклад, 'Ремонт на кухні'") },
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -541,23 +533,13 @@ private fun EnhancedEmptyState(hasFilter: Boolean) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text =
-                    if (hasFilter) {
-                        stringResource(R.string.lists_not_found)
-                    } else {
-                        stringResource(R.string.no_lists)
-                    },
+                text = if (hasFilter) "Проектів не знайдено" else "Проектів ще немає",
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text =
-                    if (hasFilter) {
-                        stringResource(R.string.try_change_search_criteria)
-                    } else {
-                        stringResource(R.string.create_first_list_hint)
-                    },
+                text = if (hasFilter) "Спробуйте змінити критерії пошуку." else "Створіть свій перший проект, щоб почати.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -568,21 +550,21 @@ private fun EnhancedEmptyState(hasFilter: Boolean) {
 
 @Composable
 private fun RecursiveSelectableListItem(
-    list: GoalList,
-    childMap: Map<String, List<GoalList>>,
+    project: Project,
+    childMap: Map<String, List<Project>>,
     level: Int,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onSelect: (String) -> Unit,
     disabledIds: Set<String>,
-    highlightedListId: String?,
-    onAddSublistRequest: (parentList: GoalList) -> Unit,
+    highlightedProjectId: String?,
+    onAddSubprojectRequest: (parentProject: Project) -> Unit,
     filterText: String,
 ) {
-    val isExpanded = list.id in expandedIds
-    val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
-    val isEnabled = list.id !in disabledIds
-    val isHighlighted = list.id == highlightedListId
+    val isExpanded = project.id in expandedIds
+    val children = childMap[project.id]?.sortedBy { it.order } ?: emptyList()
+    val isEnabled = project.id !in disabledIds
+    val isHighlighted = project.id == highlightedProjectId
     val haptic = LocalHapticFeedback.current
 
     val cardElevation by animateFloatAsState(
@@ -621,7 +603,7 @@ private fun RecursiveSelectableListItem(
                         .fillMaxWidth()
                         .clickable(enabled = isEnabled) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSelect(list.id)
+                            onSelect(project.id)
                         }.padding(vertical = 12.dp, horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -631,7 +613,7 @@ private fun RecursiveSelectableListItem(
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onToggleExpanded(list.id)
+                            onToggleExpanded(project.id)
                         },
                         modifier = Modifier.size(24.dp),
                     ) {
@@ -652,7 +634,7 @@ private fun RecursiveSelectableListItem(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = highlightText(list.name, filterText),
+                    text = highlightText(project.name, filterText),
                     style =
                         MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
@@ -685,13 +667,13 @@ private fun RecursiveSelectableListItem(
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onAddSublistRequest(list)
+                            onAddSubprojectRequest(project)
                         },
                         modifier = Modifier.size(32.dp),
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = stringResource(R.string.add_sublist),
+                            contentDescription = "Додати підпроект",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
@@ -704,15 +686,15 @@ private fun RecursiveSelectableListItem(
             Spacer(modifier = Modifier.height(4.dp))
             children.forEach { child ->
                 RecursiveSelectableListItem(
-                    list = child,
+                    project = child,
                     childMap = childMap,
                     level = level + 1,
                     expandedIds = expandedIds,
                     onToggleExpanded = onToggleExpanded,
                     onSelect = onSelect,
                     disabledIds = disabledIds,
-                    highlightedListId = highlightedListId,
-                    onAddSublistRequest = onAddSublistRequest,
+                    highlightedProjectId = highlightedProjectId,
+                    onAddSubprojectRequest = onAddSubprojectRequest,
                     filterText = filterText,
                 )
                 if (child != children.last()) {

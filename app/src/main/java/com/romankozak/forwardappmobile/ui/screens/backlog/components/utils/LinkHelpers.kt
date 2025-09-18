@@ -22,8 +22,8 @@ fun handleRelatedLinkClick(
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link.target))
                 context.startActivity(intent)
             }
-            LinkType.GOAL_LIST -> {
-                navController.navigate("goal_detail_screen/${link.target}")
+            LinkType.PROJECT -> {
+                navController.navigate("project_detail_screen/${link.target}")
             }
             LinkType.OBSIDIAN -> {
                 if (obsidianVaultName.isNotBlank()) {

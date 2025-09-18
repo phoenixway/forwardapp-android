@@ -42,22 +42,20 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%'")
     fun searchGoalsByText(query: String): Flow<List<Goal>>
 
-// У файлі: GoalDao.kt
-
     @Transaction
     @Query(
         """
 WITH RECURSIVE path_cte(id, name, path) AS (
-    SELECT id, name, name as path FROM goal_lists WHERE parentId IS NULL
+    SELECT id, name, name as path FROM projects WHERE parentId IS NULL
     UNION ALL
-    SELECT gl.id, gl.name, p.path || ' / ' || gl.name
-    FROM goal_lists gl JOIN path_cte p ON gl.parentId = p.id
+    SELECT p.id, p.name, pct.path || ' / ' || p.name
+    FROM projects p JOIN path_cte pct ON p.parentId = pct.id
 )
-SELECT DISTINCT g.*, gl.id as listId, gl.name as listName, pc.path as pathSegments
+SELECT DISTINCT g.*, p.id as projectId, p.name as projectName, pc.path as pathSegments
 FROM goals g
 JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
-JOIN goal_lists gl ON li.listId = gl.id
-JOIN path_cte pc ON gl.id = pc.id
+JOIN projects p ON li.project_id = p.id
+JOIN path_cte pc ON p.id = pc.id
 WHERE g.text LIKE :query
 """
     )
@@ -71,9 +69,6 @@ WHERE g.text LIKE :query
         goalId: String,
         markdown: String,
     )
-
-    @Query("DELETE FROM goal_lists WHERE id = :listId")
-    suspend fun deleteGoalListById(listId: String)
 
     @Query("DELETE FROM goals")
     suspend fun deleteAll()

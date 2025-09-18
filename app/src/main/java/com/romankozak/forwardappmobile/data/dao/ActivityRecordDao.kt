@@ -24,20 +24,20 @@ interface ActivityRecordDao {
     suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord?
 
     @Query(
-        "SELECT * FROM activity_records WHERE list_id = :listId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1",
+        "SELECT * FROM activity_records WHERE project_id = :projectId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1",
     )
-    suspend fun findLastOngoingActivityForList(listId: String): ActivityRecord?
+    suspend fun findLastOngoingActivityForProject(projectId: String): ActivityRecord?
 
     @Query(
         """
         SELECT * FROM activity_records
-        WHERE (list_id = :listId OR goal_id IN (:goalIds))
+        WHERE (project_id = :projectId OR goal_id IN (:goalIds))
         AND createdAt BETWEEN :startTime AND :endTime
         AND startTime IS NOT NULL AND endTime IS NOT NULL
     """,
     )
     suspend fun getCompletedActivitiesForProject(
-        listId: String,
+        projectId: String,
         goalIds: List<String>,
         startTime: Long,
         endTime: Long,
@@ -65,19 +65,19 @@ interface ActivityRecordDao {
     @Query(
         """
     SELECT * FROM activity_records
-    WHERE (list_id = :listId OR goal_id IN (:goalIds))
+    WHERE (project_id = :projectId OR goal_id IN (:goalIds))
     AND startTime IS NOT NULL AND endTime IS NOT NULL
 """,
     )
     suspend fun getAllCompletedActivitiesForProject(
-        listId: String,
+        projectId: String,
         goalIds: List<String>,
     ): List<ActivityRecord>
 
     @Query("SELECT * FROM activity_records WHERE id = :recordId")
     suspend fun findById(recordId: String): ActivityRecord?
 
-/*    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(records: List<ActivityRecord>)*/
+    /* @Insert(onConflict = OnConflictStrategy.REPLACE)
+        suspend fun insertAll(records: List<ActivityRecord>)*/
 
 }

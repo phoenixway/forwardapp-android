@@ -2,12 +2,6 @@ package com.romankozak.forwardappmobile.ui.screens.backlog.components.projectrea
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,7 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
@@ -45,7 +39,7 @@ import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DashboardContent(
-    goalList: GoalList,
+    project: Project,
     onStatusUpdate: (ProjectStatus, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
@@ -61,7 +55,7 @@ fun DashboardContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AnimatedContent(
-            targetState = goalList.isProjectManagementEnabled == true,
+            targetState = project.isProjectManagementEnabled == true,
             label = "DashboardContentAnimation",
         ) { isManagementEnabled ->
             Column(
@@ -71,7 +65,7 @@ fun DashboardContent(
                 if (!isManagementEnabled) {
                     EnableSupportCard(onEnable = { onToggleProjectManagement(true) })
                 } else {
-                    StatusDisplayCard(status = goalList.projectStatus ?: ProjectStatus.NO_PLAN, statusText = goalList.projectStatusText, onClick = {
+                    StatusDisplayCard(status = project.projectStatus ?: ProjectStatus.NO_PLAN, statusText = project.projectStatusText, onClick = {
                         showStatusDialog = true
                     })
 
@@ -95,8 +89,8 @@ fun DashboardContent(
 
     if (showStatusDialog) {
         UpdateStatusDialog(
-            currentStatus = goalList.projectStatus ?: ProjectStatus.NO_PLAN,
-            currentStatusText = goalList.projectStatusText ?: "",
+            currentStatus = project.projectStatus ?: ProjectStatus.NO_PLAN,
+            currentStatusText = project.projectStatusText ?: "",
             onDismissRequest = {
                 showStatusDialog = false
             },

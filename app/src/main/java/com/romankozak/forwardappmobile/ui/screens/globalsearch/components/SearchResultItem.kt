@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -74,7 +73,6 @@ fun SearchResultItem(
         shape = RoundedCornerShape(16.dp),
     ) {
         Column {
-            // Верхній рядок: статус + текст цілі
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -82,7 +80,6 @@ fun SearchResultItem(
                     .padding(bottom = 0.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                // Статус індикатор (тільки для завершених цілей)
                 if (result.goal.completed) {
                     Box(
                         modifier = Modifier
@@ -101,7 +98,6 @@ fun SearchResultItem(
                     Spacer(modifier = Modifier.width(12.dp))
                 }
 
-                // Текст цілі
                 Text(
                     text = result.goal.text,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -114,7 +110,6 @@ fun SearchResultItem(
                 )
             }
 
-            // Другий рядок: шлях проєкту
             if (result.pathSegments.isNotEmpty()) {
                 Row(
                     modifier = Modifier
@@ -132,7 +127,6 @@ fun SearchResultItem(
                         modifier = Modifier.weight(1f)
                     )
 
-                    // Статус бейдж (тільки для завершених цілей)
                     if (result.goal.completed) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Box(
@@ -153,7 +147,6 @@ fun SearchResultItem(
                 }
             }
 
-            // Третій рядок: Goal лейбл (ліворуч) + кнопки (праворуч)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,7 +157,7 @@ fun SearchResultItem(
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp)) // Змінено форму для тексту
+                        .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
@@ -186,11 +179,9 @@ fun SearchResultItem(
                     }
                 }
 
-                // Кнопки (праворуч)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Відкрити локацію
                     IconButton(
                         onClick = onOpenInNavigation,
                         modifier = Modifier.size(36.dp)
@@ -202,8 +193,6 @@ fun SearchResultItem(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-
-                    // Відкрити в проєкті (дія за замовчуванням)
                     IconButton(
                         onClick = onOpenAsProject,
                         modifier = Modifier.size(36.dp)
@@ -218,7 +207,6 @@ fun SearchResultItem(
                 }
             }
 
-            // Якщо немає шляху, але є статус завершено - показуємо тільки його
             if (result.pathSegments.isEmpty() && result.goal.completed) {
                 Row(
                     modifier = Modifier

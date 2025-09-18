@@ -3,12 +3,12 @@ package com.romankozak.forwardappmobile.data.repository
 import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.GoalListDao
+import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.RecentListDao
+import com.romankozak.forwardappmobile.data.dao.RecentProjectDao
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
@@ -20,17 +20,24 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
-import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 
 internal enum class ContextTextAction { ADD, REMOVE }
 
+private val GlobalSearchResultItem.typeOrder: Int
+    get() = when (this) {
+        is GlobalSearchResultItem.ProjectItem,
+        is GlobalSearchResultItem.SublistItem -> 0
+        is GlobalSearchResultItem.GoalItem -> 1
+        else -> 2
+    }
+
 @Singleton
-class GoalRepository
+class ProjectRepository
 @Inject
 constructor(
     private val goalDao: GoalDao,
-    private val goalListDao: GoalListDao,
-    private val recentListDao: RecentListDao,
+    private val projectDao: ProjectDao,
+    private val recentProjectDao: RecentProjectDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val contextHandlerProvider: Provider<ContextHandler>,
@@ -39,38 +46,38 @@ constructor(
     private val projectManagementDao: ProjectManagementDao,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
-    private val TAG = "AddSublistDebug"
+    private val TAG = "AddSubprojectDebug"
 
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
         projectManagementDao.getLogsForProjectStream(projectId)
 
     suspend fun toggleProjectManagement(
-        listId: String,
+        projectId: String,
         isEnabled: Boolean,
     ) {
-        val list = getGoalListById(listId) ?: return
-        if (list.isProjectManagementEnabled == isEnabled) return
+        val project = getProjectById(projectId) ?: return
+        if (project.isProjectManagementEnabled == isEnabled) return
 
-        updateGoalList(list.copy(isProjectManagementEnabled = isEnabled))
+        updateProject(project.copy(isProjectManagementEnabled = isEnabled))
 
         val status = if (isEnabled) "активовано" else "деактивовано"
         addProjectLogEntry(
-            projectId = listId,
+            projectId = projectId,
             type = ProjectLogEntryType.AUTOMATIC,
             description = "Управління проектом було $status.",
         )
     }
 
     suspend fun updateProjectStatus(
-        listId: String,
+        projectId: String,
         newStatus: ProjectStatus,
         statusText: String?,
     ) {
-        val list = getGoalListById(listId) ?: return
-        if (list.projectStatus == newStatus && list.projectStatusText == statusText) return
+        val project = getProjectById(projectId) ?: return
+        if (project.projectStatus == newStatus && project.projectStatusText == statusText) return
 
-        updateGoalList(
-            list.copy(
+        updateProject(
+            project.copy(
                 projectStatus = newStatus,
                 projectStatusText = statusText,
                 updatedAt = System.currentTimeMillis(),
@@ -82,7 +89,7 @@ constructor(
                     (statusText?.let { "\nКоментар: $it" } ?: "")
 
         addProjectLogEntry(
-            projectId = listId,
+            projectId = projectId,
             type = ProjectLogEntryType.STATUS_CHANGE,
             description = logDescription,
         )
@@ -117,37 +124,27 @@ constructor(
         projectManagementDao.insertLog(logEntry)
     }
 
-// file: data/repository/BacklogRepository.kt
-
-    suspend fun updateGoalListViewMode(
-        listId: String,
+    suspend fun updateProjectViewMode(
+        projectId: String,
         viewMode: ProjectViewMode,
     ) {
-        /* СТАРИЙ КОД, ЩО ВИКЛИКАВ ПРОБЛЕМУ
-        val list = getGoalListById(listId)
-        if (list != null) {
-            updateGoalList(list.copy(defaultViewModeName = viewMode.name))
-        }
-        */
-
-        // НОВИЙ, ВИПРАВЛЕНИЙ КОД
-        goalListDao.updateViewMode(listId, viewMode.name)
+        projectDao.updateViewMode(projectId, viewMode.name)
     }
 
-    fun getListContentStream(listId: String): Flow<List<ListItemContent>> =
-        listItemDao.getItemsForListStream(listId).map { items ->
+    fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> =
+        listItemDao.getItemsForProjectStream(projectId).map { items ->
             items.mapNotNull { item ->
                 when (item.itemType) {
                     ListItemType.GOAL -> goalDao.getGoalById(item.entityId)?.let { ListItemContent.GoalItem(it, item) }
-                    ListItemType.SUBLIST -> goalListDao.getGoalListById(item.entityId)?.let { ListItemContent.SublistItem(it, item) }
+                    ListItemType.SUBLIST -> projectDao.getProjectById(item.entityId)?.let { ListItemContent.SublistItem(it, item) }
                     ListItemType.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId)?.let { ListItemContent.LinkItem(it, item) }
                 }
             }
         }
 
-    suspend fun addGoalToList(
+    suspend fun addGoalToProject(
         title: String,
-        listId: String,
+        projectId: String,
         completed: Boolean = false,
     ): String {
         val currentTime = System.currentTimeMillis()
@@ -160,12 +157,12 @@ constructor(
                 updatedAt = currentTime,
             )
         goalDao.insertGoal(newGoal)
-        syncContextMarker(newGoal.id, listId, ContextTextAction.ADD)
+        syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
 
         val newListItem =
             ListItem(
                 id = UUID.randomUUID().toString(),
-                listId = listId,
+                projectId = projectId,
                 itemType = ListItemType.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
@@ -178,17 +175,17 @@ constructor(
     }
 
     @Transaction
-    suspend fun addListLinkToList(
-        targetListId: String,
-        currentListId: String,
+    suspend fun addProjectLinkToProject(
+        targetProjectId: String,
+        currentProjectId: String,
     ): String {
-        Log.d(TAG, "addListLinkToList: targetListId=$targetListId, currentListId=$currentListId")
+        Log.d(TAG, "addProjectLinkToProject: targetProjectId=$targetProjectId, currentProjectId=$currentProjectId")
         val newListItem =
             ListItem(
                 id = UUID.randomUUID().toString(),
-                listId = currentListId,
+                projectId = currentProjectId,
                 itemType = ListItemType.SUBLIST,
-                entityId = targetListId,
+                entityId = targetProjectId,
                 order = -System.currentTimeMillis(),
             )
         Log.d(TAG, "Constructed ListItem to insert: $newListItem")
@@ -205,14 +202,14 @@ constructor(
 
     suspend fun createGoalLinks(
         goalIds: List<String>,
-        targetListId: String,
+        targetProjectId: String,
     ) {
         if (goalIds.isNotEmpty()) {
             val newItems =
                 goalIds.map { goalId ->
                     ListItem(
                         id = UUID.randomUUID().toString(),
-                        listId = targetListId,
+                        projectId = targetProjectId,
                         itemType = ListItemType.GOAL,
                         entityId = goalId,
                         order = -System.currentTimeMillis(),
@@ -222,9 +219,9 @@ constructor(
         }
     }
 
-    suspend fun copyGoalsToList(
+    suspend fun copyGoalsToProject(
         goalIds: List<String>,
-        targetListId: String,
+        targetProjectId: String,
     ) {
         if (goalIds.isNotEmpty()) {
             val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
@@ -237,7 +234,7 @@ constructor(
                 newItems.add(
                     ListItem(
                         id = UUID.randomUUID().toString(),
-                        listId = targetListId,
+                        projectId = targetProjectId,
                         itemType = ListItemType.GOAL,
                         entityId = newGoal.id,
                         order = -System.currentTimeMillis(),
@@ -251,10 +248,10 @@ constructor(
 
     suspend fun moveListItems(
         itemIds: List<String>,
-        targetListId: String,
+        targetProjectId: String,
     ) {
         if (itemIds.isNotEmpty()) {
-            listItemDao.updateListItemListIds(itemIds, targetListId)
+            listItemDao.updateListItemProjectIds(itemIds, targetProjectId)
         }
     }
 
@@ -272,15 +269,15 @@ constructor(
 
     private suspend fun syncContextMarker(
         goalId: String,
-        listId: String,
+        projectId: String,
         action: ContextTextAction,
     ) {
-        val list = goalListDao.getGoalListById(listId) ?: return
-        val listTags = list.tags.orEmpty()
-        if (listTags.isEmpty()) return
+        val project = projectDao.getProjectById(projectId) ?: return
+        val projectTags = project.tags.orEmpty()
+        if (projectTags.isEmpty()) return
 
         val tagMap = contextHandler.tagToContextNameMap.value
-        val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in listTags }?.value ?: return
+        val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in projectTags }?.value ?: return
         val marker = contextHandler.getContextMarker(contextName) ?: return
         val goal = goalDao.getGoalById(goalId) ?: return
 
@@ -300,41 +297,41 @@ constructor(
 
     suspend fun doesLinkExist(
         entityId: String,
-        listId: String,
-    ): Boolean = listItemDao.getLinkCount(entityId, listId) > 0
+        projectId: String,
+    ): Boolean = listItemDao.getLinkCount(entityId, projectId) > 0
 
-    suspend fun deleteLinkByEntityIdAndListId(
+    suspend fun deleteLinkByEntityIdAndProjectId(
         entityId: String,
-        listId: String,
-    ) = listItemDao.deleteLinkByEntityAndList(entityId, listId)
+        projectId: String,
+    ) = listItemDao.deleteLinkByEntityAndProject(entityId, projectId)
 
-    fun getAllGoalListsFlow(): Flow<List<GoalList>> = goalListDao.getAllLists()
+    fun getAllProjectsFlow(): Flow<List<Project>> = projectDao.getAllProjects()
 
-    suspend fun getGoalListById(id: String): GoalList? = goalListDao.getGoalListById(id)
+    suspend fun getProjectById(id: String): Project? = projectDao.getProjectById(id)
 
-    fun getGoalListByIdFlow(id: String): Flow<GoalList?> = goalListDao.getGoalListByIdStream(id)
+    fun getProjectByIdFlow(id: String): Flow<Project?> = projectDao.getProjectByIdStream(id)
 
-    suspend fun updateGoalList(list: GoalList) {
-        goalListDao.update(list)
+    suspend fun updateProject(project: Project) {
+        projectDao.update(project)
     }
 
-    suspend fun updateGoalLists(lists: List<GoalList>): Int = if (lists.isNotEmpty()) goalListDao.update(lists) else 0
+    suspend fun updateProjects(projects: List<Project>): Int = if (projects.isNotEmpty()) projectDao.update(projects) else 0
 
     @Transaction
-    suspend fun deleteListsAndSubLists(listsToDelete: List<GoalList>) {
-        if (listsToDelete.isEmpty()) return
-        val listIds = listsToDelete.map { it.id }
-        listItemDao.deleteItemsForLists(listIds)
-        listsToDelete.forEach { goalListDao.delete(it) }
+    suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Project>) {
+        if (projectsToDelete.isEmpty()) return
+        val projectIds = projectsToDelete.map { it.id }
+        listItemDao.deleteItemsForProjects(projectIds)
+        projectsToDelete.forEach { projectDao.delete(it) }
     }
 
-    suspend fun createGoalListWithId(
+    suspend fun createProjectWithId(
         id: String,
         name: String,
         parentId: String?,
     ) {
-        val newList =
-            GoalList(
+        val newProject =
+            Project(
                 id = id,
                 name = name,
                 parentId = parentId,
@@ -342,7 +339,7 @@ constructor(
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
             )
-        goalListDao.insert(newList)
+        projectDao.insert(newProject)
     }
 
     suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
@@ -354,7 +351,7 @@ constructor(
     fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
 
     @Transaction
-    suspend fun searchGoalsGlobal(query: String): List<GlobalSearchResultItem> {
+    suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
         val goalResults =
             goalDao.searchGoalsGlobal(query).map {
                 GlobalSearchResultItem.GoalItem(it)
@@ -363,20 +360,13 @@ constructor(
             linkItemDao.searchLinksGlobal(query).map {
                 GlobalSearchResultItem.LinkItem(it)
             }
-
-        // --- ЗМІНИ ТУТ ---
-        val sublistResultsRaw = goalListDao.searchSublistsGlobal(query)
-        Log.d("PATH_DEBUG", "[REPOSITORY] Знайдено ${sublistResultsRaw.size} підсписків.")
-        sublistResultsRaw.firstOrNull()?.let {
-            Log.d("PATH_DEBUG", "[REPOSITORY] Перший результат: name='${it.sublist.name}', pathSegments=${it.pathSegments}")
-        }
-        val sublistResults = goalListDao.searchSublistsGlobal(query).map {
-            GlobalSearchResultItem.SublistItem(it)
-        }
-
-        val listResults =
-            goalListDao.searchListsGlobal(query).map {
-                GlobalSearchResultItem.ListItem(it) // <-- Тепер `it` має тип GlobalListSearchResult
+        val subprojectResults =
+            projectDao.searchSubprojectsGlobal(query).map {
+                GlobalSearchResultItem.SublistItem(it)
+            }
+        val projectResults =
+            projectDao.searchProjectsGlobal(query).map {
+                GlobalSearchResultItem.ProjectItem(it)
             }
         val activityResults =
             activityRepository.searchActivities(query).map {
@@ -387,59 +377,62 @@ constructor(
                 GlobalSearchResultItem.InboxItem(it)
             }
 
-        return (goalResults + linkResults + sublistResults + listResults + activityResults + inboxResults)
-            .sortedByDescending { it.timestamp }
+        val combinedResults = (goalResults + linkResults + subprojectResults + projectResults + activityResults + inboxResults)
+
+        return combinedResults.sortedWith(
+            compareBy<GlobalSearchResultItem> { it.typeOrder }
+                .thenByDescending { it.timestamp }
+        )
+    }
+    suspend fun logProjectAccess(projectId: String) {
+        recentProjectDao.logAccess(RecentProjectEntry(projectId = projectId, lastAccessed = System.currentTimeMillis()))
     }
 
-    suspend fun logListAccess(listId: String) {
-        recentListDao.logAccess(RecentListEntry(listId = listId, lastAccessed = System.currentTimeMillis()))
-    }
-
-    fun getRecentLists(limit: Int = 20): Flow<List<GoalList>> = recentListDao.getRecentLists(limit)
+    fun getRecentProjects(limit: Int = 20): Flow<List<Project>> = recentProjectDao.getRecentProjects(limit)
 
     @Transaction
-    suspend fun moveGoalList(
-        listToMove: GoalList,
+    suspend fun moveProject(
+        projectToMove: Project,
         newParentId: String?,
     ) {
-        val listFromDb = goalListDao.getGoalListById(listToMove.id) ?: return
-        val oldParentId = listFromDb.parentId
+        val projectFromDb = projectDao.getProjectById(projectToMove.id) ?: return
+        val oldParentId = projectFromDb.parentId
 
         if (oldParentId != newParentId) {
             val oldSiblings =
                 (
                         if (oldParentId != null) {
-                            goalListDao.getListsByParentId(oldParentId)
+                            projectDao.getProjectsByParentId(oldParentId)
                         } else {
-                            goalListDao.getTopLevelLists()
+                            projectDao.getTopLevelProjects()
                         }
-                        ).filter { it.id != listToMove.id }
+                        ).filter { it.id != projectToMove.id }
 
             if (oldSiblings.isNotEmpty()) {
-                goalListDao.update(oldSiblings.mapIndexed { index, list -> list.copy(order = index.toLong()) })
+                projectDao.update(oldSiblings.mapIndexed { index, project -> project.copy(order = index.toLong()) })
             }
         }
 
         val newSiblings =
             (
                     if (newParentId != null) {
-                        goalListDao.getListsByParentId(newParentId)
+                        projectDao.getProjectsByParentId(newParentId)
                     } else {
-                        goalListDao.getTopLevelLists()
+                        projectDao.getTopLevelProjects()
                     }
-                    ).filter { it.id != listToMove.id }
+                    ).filter { it.id != projectToMove.id }
 
-        val finalListToMove =
-            listToMove.copy(
+        val finalProjectToMove =
+            projectToMove.copy(
                 parentId = newParentId,
                 order = newSiblings.size.toLong(),
             )
-        goalListDao.update(finalListToMove)
+        projectDao.update(finalProjectToMove)
     }
 
     @Transaction
-    suspend fun addLinkItemToList(
-        listId: String,
+    suspend fun addLinkItemToProject(
+        projectId: String,
         link: RelatedLink,
     ): String {
         val newLinkEntity =
@@ -453,7 +446,7 @@ constructor(
         val newListItem =
             ListItem(
                 id = UUID.randomUUID().toString(),
-                listId = listId,
+                projectId = projectId,
                 itemType = ListItemType.LINK_ITEM,
                 entityId = newLinkEntity.id,
                 order = -System.currentTimeMillis(),
@@ -462,27 +455,25 @@ constructor(
         return newListItem.id
     }
 
-    suspend fun findListIdsByTag(tag: String): List<String> = goalListDao.getListIdsByTag(tag)
+    suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
 
-    suspend fun getAllGoalLists(): List<GoalList> = goalListDao.getAll()
+    suspend fun getAllProjects(): List<Project> = projectDao.getAll()
 
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
     suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
 
-    suspend fun logCurrentDbOrderForDebug(listId: String) {
-        val itemsFromDb = listItemDao.getItemsForListSyncForDebug(listId)
+    suspend fun logCurrentDbOrderForDebug(projectId: String) {
+        val itemsFromDb = listItemDao.getItemsForProjectSyncForDebug(projectId)
         val orderLog =
             itemsFromDb.joinToString(separator = "\n") {
                 "  - DB_ORDER=${it.order}, id=${it.id}"
             }
         Log.d("DND_DEBUG", "[DEBUG_QUERY] СИРИЙ ПОРЯДОК З БАЗИ ДАНИХ:\n$orderLog")
     }
-    suspend fun deleteGoalList(listId: String) {
-        // goalDao.deleteGoalListById(listId) // <- НЕПРАВИЛЬНО
-        goalListDao.deleteListById(listId) // <- ПРАВИЛЬНО
+    suspend fun deleteProject(projectId: String) {
+        projectDao.deleteProjectById(projectId)
     }
-
 
     fun getInboxRecordsStream(projectId: String): Flow<List<InboxRecord>> = inboxRecordDao.getRecordsForProjectStream(projectId)
 
@@ -512,22 +503,22 @@ constructor(
 
     @Transaction
     suspend fun promoteInboxRecordToGoal(record: InboxRecord) {
-        addGoalToList(record.text, record.projectId)
+        addGoalToProject(record.text, record.projectId)
         inboxRecordDao.deleteById(record.id)
     }
 
     @Transaction
     suspend fun promoteInboxRecordToGoal(
         record: InboxRecord,
-        targetListId: String,
+        targetProjectId: String,
     ) {
-        addGoalToList(record.text, targetListId)
+        addGoalToProject(record.text, targetProjectId)
         inboxRecordDao.deleteById(record.id)
     }
 
     suspend fun addGoalWithReminder(
         title: String,
-        listId: String,
+        projectId: String,
         reminderTime: Long,
     ): Goal {
         val currentTime = System.currentTimeMillis()
@@ -541,12 +532,12 @@ constructor(
                 reminderTime = reminderTime,
             )
         goalDao.insertGoal(newGoal)
-        syncContextMarker(newGoal.id, listId, ContextTextAction.ADD)
+        syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
 
         val newListItem =
             ListItem(
                 id = UUID.randomUUID().toString(),
-                listId = listId,
+                projectId = projectId,
                 itemType = ListItemType.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
@@ -572,11 +563,11 @@ constructor(
         calendar.add(Calendar.DAY_OF_YEAR, 1)
         val endTime = calendar.timeInMillis - 1
 
-        val goalIds = listItemDao.getGoalIdsForList(projectId)
+        val goalIds = listItemDao.getGoalIdsForProject(projectId)
 
         val activities =
             activityRepository.getCompletedActivitiesForProject(
-                listId = projectId,
+                projectId = projectId,
                 goalIds = goalIds,
                 startTime = startTime,
                 endTime = endTime,
@@ -627,7 +618,7 @@ constructor(
     }
 
     private suspend fun logTotalProjectTimeSummary(projectId: String) {
-        val goalIds = listItemDao.getGoalIdsForList(projectId)
+        val goalIds = listItemDao.getGoalIdsForProject(projectId)
         val activities = activityRepository.getAllCompletedActivitiesForProject(projectId, goalIds)
 
         if (activities.isEmpty()) return
@@ -652,7 +643,7 @@ constructor(
         logTotalProjectTimeSummary(projectId)
     }
 
-    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics { // Тепер ця функція повертатиме правильний тип
+    suspend fun calculateProjectTimeMetrics(projectId: String): ProjectTimeMetrics {
         val todayCalendar = Calendar.getInstance()
         todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
         todayCalendar.set(Calendar.MINUTE, 0)
@@ -660,7 +651,7 @@ constructor(
         todayCalendar.add(Calendar.DAY_OF_YEAR, 1)
         val endTime = todayCalendar.timeInMillis - 1
 
-        val goalIds = listItemDao.getGoalIdsForList(projectId)
+        val goalIds = listItemDao.getGoalIdsForProject(projectId)
         val todayActivities = activityRepository.getCompletedActivitiesForProject(projectId, goalIds, startTime, endTime)
         val timeToday = todayActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
 

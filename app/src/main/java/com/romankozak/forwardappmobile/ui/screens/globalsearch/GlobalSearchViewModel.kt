@@ -5,7 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +24,12 @@ data class GlobalSearchUiState(
 
 @HiltViewModel
 class GlobalSearchViewModel
-    @Inject
-    constructor(
-        private val goalRepository: GoalRepository,
-        private val settingsRepository: SettingsRepository,
-        savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
+@Inject
+constructor(
+    private val projectRepository: ProjectRepository,
+    private val settingsRepository: SettingsRepository,
+    savedStateHandle: SavedStateHandle,
+) : ViewModel() {
     val query: String = savedStateHandle.get<String>("query") ?: ""
 
     private val _uiState = MutableStateFlow(GlobalSearchUiState())
@@ -43,8 +43,6 @@ class GlobalSearchViewModel
         performSearch()
     }
 
-// У файлі: GlobalSearchViewModel.kt
-
     private fun performSearch() {
         if (query.isBlank()) {
             _uiState.update { it.copy(isLoading = false) }
@@ -52,28 +50,24 @@ class GlobalSearchViewModel
         }
 
         viewModelScope.launch {
-            val results = goalRepository.searchGoalsGlobal("%$query%")
+            val results = projectRepository.searchGlobal("%$query%")
 
-            // --- ДОДАЙТЕ ЛОГУВАННЯ ТУТ ---
             val sublistItems = results.filterIsInstance<GlobalSearchResultItem.SublistItem>()
             Log.d(
                 "PATH_DEBUG",
-                "[VIEWMODEL] Всього результатів: ${results.size}. З них підсписків: ${sublistItems.size}"
+                "[VIEWMODEL] Всього результатів: ${results.size}. З них підпроектів: ${sublistItems.size}"
             )
             sublistItems.firstOrNull()?.let {
                 Log.d(
                     "PATH_DEBUG",
-                    "[VIEWMODEL] Перший підсписок: name='${it.searchResult.sublist.name}', pathSegments=${it.searchResult.pathSegments}"
+                    "[VIEWMODEL] Перший підпроект: name='${it.searchResult.subproject.name}', pathSegments=${it.searchResult.pathSegments}"
                 )
             }
-            // --- КІНЕЦЬ ЛОГУВАННЯ ---
 
-            val distinctResults = results.distinct()
+            val distinctResults = results.distinctBy { it.uniqueId }
             _uiState.update {
                 it.copy(results = distinctResults, isLoading = false)
             }
-
         }
     }
 }
-

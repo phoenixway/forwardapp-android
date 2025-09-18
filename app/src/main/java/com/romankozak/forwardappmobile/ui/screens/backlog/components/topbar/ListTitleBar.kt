@@ -35,7 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 
@@ -86,16 +86,15 @@ private fun BriefStatusIndicator(
         )
     }
 }
-
 @Composable
 fun ListTitleBar(
-    goalList: GoalList?,
+    project: Project?,
     currentViewMode: ProjectViewMode? = null,
     modifier: Modifier = Modifier,
 ) {
     var isStatusExpanded by remember { mutableStateOf(false) }
 
-    val isProjectManagementActive = goalList?.isProjectManagementEnabled == true && goalList.projectStatus != null
+    val isProjectManagementActive = project?.isProjectManagementEnabled == true && project.projectStatus != null
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -129,7 +128,7 @@ fun ListTitleBar(
                 horizontalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = goalList?.name ?: stringResource(id = R.string.loading),
+                    text = project?.name ?: stringResource(id = R.string.loading),
                     modifier = Modifier.weight(1f, fill = false),
                     textAlign = TextAlign.Center,
                     style =
@@ -144,22 +143,20 @@ fun ListTitleBar(
 
                 if (currentViewMode != null) {
                     Spacer(Modifier.width(8.dp))
-                    // --- 👇 ПОЧАТОК ЗМІН: Виклик нового компонента ---
                     ViewModeIndicator(viewMode = currentViewMode)
-                    // --- 👆 КІНЕЦЬ ЗМІН ---
                 }
 
                 if (isProjectManagementActive) {
                     Spacer(Modifier.width(8.dp))
-                    BriefStatusIndicator(status = goalList!!.projectStatus!!)
+                    BriefStatusIndicator(status = project!!.projectStatus!!)
                 }
             }
 
             AnimatedVisibility(visible = isStatusExpanded) {
-                if (goalList?.projectStatus != null) {
+                if (project?.projectStatus != null) {
                     ProjectStatusIndicator(
-                        status = goalList.projectStatus,
-                        statusText = goalList.projectStatusText,
+                        status = project.projectStatus,
+                        statusText = project.projectStatusText,
                     )
                 }
             }

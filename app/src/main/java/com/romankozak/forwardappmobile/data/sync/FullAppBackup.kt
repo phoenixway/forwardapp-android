@@ -14,7 +14,7 @@ data class DatabaseContent(
     val goalLists: List<GoalList>,
     val listItems: List<ListItem>,
     val activityRecords: List<ActivityRecord>? = null,
-    val recentListEntries: List<RecentListEntry>? = null,
+    val recentListEntries: List<RecentProjectEntry>? = null,
     val linkItemEntities: List<LinkItemEntity>? = null,
     val inboxRecords: List<InboxRecord>? = null,
     val projectExecutionLogs: List<ProjectExecutionLog>? = null,

@@ -20,8 +20,8 @@ data class ActivityRecord(
     val targetType: String? = null,
     @ColumnInfo(name = "goal_id", index = true)
     val goalId: String? = null,
-    @ColumnInfo(name = "list_id", index = true)
-    val listId: String? = null,
+    @ColumnInfo(name = "project_id", index = true)
+    val projectId: String? = null,
 ) {
     val isTimeless: Boolean
         get() = startTime == null && endTime == null

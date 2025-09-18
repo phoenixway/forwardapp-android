@@ -1,7 +1,6 @@
-// У файлі: ListSearchResultItem.kt
-
 package com.romankozak.forwardappmobile.ui.screens.globalsearch.components
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -9,13 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,17 +19,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GlobalListSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
 
 @Composable
-fun ListSearchResultItem(
-    result: GlobalListSearchResult, // <-- Змінено тип
+fun SubprojectSearchResultItem(
+    result: GlobalSubprojectSearchResult,
     onClick: () -> Unit,
     onOpenInNavigation: () -> Unit,
 ) {
+    Log.d("PATH_DEBUG", "[COMPOSABLE] Відображення SubprojectSearchResultItem: name='${result.subproject.name}', pathSegments=${result.pathSegments}")
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -43,24 +42,38 @@ fun ListSearchResultItem(
     )
 
     Card(
-        modifier = Modifier.fillMaxWidth().scale(scale).clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClickLabel = "Перейти до проекту",
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp,
+            pressedElevation = 4.dp
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp, pressedElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
         shape = RoundedCornerShape(16.dp),
     ) {
         Column {
-            // Верхній рядок: назва проєкту
             Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 0.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(bottom = 0.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = result.list.name, // <-- Змінено доступ
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    text = result.subproject.name,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
@@ -68,14 +81,12 @@ fun ListSearchResultItem(
                 )
             }
 
-            // У файлі: ListSearchResultItem.kt
-
             if (result.pathSegments.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // --- ВИПРАВЛЕНО ТУТ ---
-                        .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val pathText = result.pathSegments.joinToString(" → ")
@@ -87,41 +98,63 @@ fun ListSearchResultItem(
                     )
                 }
             }
-            // Третій рядок: іконка типу + кнопки
+
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp)) // Змінено форму
-                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f))
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ListAlt,
-                            contentDescription = "Project",
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = "Subproject",
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Project",
+                            text = "Subproject",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.SemiBold
                             ),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = onOpenInNavigation, modifier = Modifier.size(36.dp)) {
-                        Icon(imageVector = Icons.Default.Navigation, contentDescription = "Відкрити локацію", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(
+                        onClick = onOpenInNavigation,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Navigation,
+                            contentDescription = "Відкрити локацію",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
-                    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Відкрити проєкт", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    IconButton(
+                        onClick = onClick,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Відкрити проект",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }

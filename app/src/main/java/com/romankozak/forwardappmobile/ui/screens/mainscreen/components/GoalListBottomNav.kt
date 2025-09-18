@@ -144,6 +144,7 @@ internal fun ExpandingBottomNav(
     onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
+    onHomeClick: () -> Unit,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
@@ -191,11 +192,10 @@ internal fun ExpandingBottomNav(
                         onPlanningModeChange = onPlanningModeChange,
                     )
 
-                    // --- ОСЬ ЗМІНА ---
                     SmallBottomNavButton(
-                        text = "Search",
-                        icon = Icons.Outlined.Search,
-                        onClick = onGlobalSearchClick,
+                        text = "Contexts",
+                        icon = Icons.Outlined.Style,
+                        onClick = onContextsClick,
                     )
 
                     SmallBottomNavButton(
@@ -227,6 +227,15 @@ internal fun ExpandingBottomNav(
                                 )
                                 .clip(RoundedCornerShape(16.dp)),
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Global Search") },
+                                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Global Search") },
+                                onClick = {
+                                    onGlobalSearchClick()
+                                    showMoreMenu = false
+                                }
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             DropdownMenuItem(
                                 text = {
                                     Row(
@@ -300,13 +309,13 @@ internal fun ExpandingBottomNav(
                     .fillMaxWidth()
                     .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = { navController.navigate("activity_tracker_screen") })
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
                 ModernBottomNavButton(text = "Пошук", icon = Icons.Outlined.Search, isSelected = isSearchActive, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
-                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
+                ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
             }
         }
     }

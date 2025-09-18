@@ -6,14 +6,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -29,27 +33,26 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.SearchResult
 @Composable
 fun SearchResultsView(
     results: List<SearchResult>,
-    onResultClick: (String) -> Unit
+    onRevealClick: (String) -> Unit,
+    onOpenClick: (String) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(results, key = { it.list.id }) { result ->
+        items(results, key = { it.project.id }) { result ->
             ListItem(
                 headlineContent = {
                     Text(
-                        text = result.list.name,
+                        text = result.project.name,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 },
                 supportingContent = {
-                    // --- ЗМІНЕНО ТУТ: Використовуємо FlowRow для повного шляху ---
                     FlowRow(
-                        verticalArrangement = Arrangement.spacedBy(4.dp), // <-- Correct parameter and value
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // Видалено логіку скорочення, тепер завжди показуємо повний шлях
                         result.path.forEachIndexed { index, breadcrumb ->
                             Text(
                                 text = breadcrumb.name,
@@ -67,18 +70,25 @@ fun SearchResultsView(
                             }
                         }
                     }
-                    // --- КІНЕЦЬ ЗМІН ---
                 },
                 trailingContent = {
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "Перейти",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row {
+                        IconButton(onClick = { onRevealClick(result.project.id) }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Visibility,
+                                contentDescription = "Show in hierarchy"
+                            )
+                        }
+                        IconButton(onClick = { onOpenClick(result.project.id) }) {
+                            Icon(
+                                imageVector = Icons.Outlined.OpenInNew,
+                                contentDescription = "Open project"
+                            )
+                        }
+                    }
                 },
                 modifier = Modifier
-                   // .animateItemPlacement()
-                    .clickable { onResultClick(result.list.id) },
+                    .clickable { onOpenClick(result.project.id) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
             HorizontalDivider(

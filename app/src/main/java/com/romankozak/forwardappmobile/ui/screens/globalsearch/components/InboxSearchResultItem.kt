@@ -12,11 +12,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
@@ -74,7 +72,6 @@ internal fun InboxSearchResultItem(
         shape = RoundedCornerShape(16.dp),
     ) {
         Column {
-            // Верхній рядок: текст запису
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -82,7 +79,6 @@ internal fun InboxSearchResultItem(
                     .padding(bottom = 0.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                // Текст запису
                 Text(
                     text = record.text,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -95,7 +91,6 @@ internal fun InboxSearchResultItem(
                 )
             }
 
-            // Другий рядок: дата створення
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,7 +106,6 @@ internal fun InboxSearchResultItem(
                 )
             }
 
-            // Третій рядок: іконка типу (ліворуч) + кнопка (праворуч)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,10 +114,9 @@ internal fun InboxSearchResultItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Inbox іконка (ліворуч)
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp)) // Змінено форму
+                        .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
@@ -145,7 +138,6 @@ internal fun InboxSearchResultItem(
                     }
                 }
 
-                // Кнопка відкрити (праворуч)
                 IconButton(
                     onClick = onClick,
                     modifier = Modifier.size(36.dp)
