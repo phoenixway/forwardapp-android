@@ -86,7 +86,14 @@ class MainScreenViewModel @Inject constructor(
 
     // UI States
     private val _isBottomNavExpanded = MutableStateFlow(false)
-    val isBottomNavExpanded: StateFlow<Boolean> = _isBottomNavExpanded.asStateFlow()
+    val isBottomNavExpanded: StateFlow<Boolean> = combine(
+        _isBottomNavExpanded,
+        settingsRepo.isBottomNavExpandedFlow
+    ) { currentState, savedState ->
+        // Use saved state if available, otherwise current state
+        savedState ?: currentState
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
 
     private val _showSearchDialog = MutableStateFlow(false)
     val showSearchDialog: StateFlow<Boolean> = _showSearchDialog.asStateFlow()
@@ -282,6 +289,7 @@ class MainScreenViewModel @Inject constructor(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
+            // FIXED: Properly initialize the bottom nav state
             settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
                 withContext(Dispatchers.Main) {
                     _isBottomNavExpanded.value = savedState
@@ -290,6 +298,7 @@ class MainScreenViewModel @Inject constructor(
             contextHandler.initialize()
         }
     }
+
 
     // Search and Navigation Methods
     fun onToggleSearch(isActive: Boolean) = searchAndNavigationManager.onToggleSearch(isActive)
@@ -310,7 +319,15 @@ class MainScreenViewModel @Inject constructor(
     fun collapseAllProjects() = actionsHandler.collapseAllProjects()
     fun exportToFile() = actionsHandler.exportToFile()
     fun onFullImportConfirmed(uri: Uri) = actionsHandler.onFullImportConfirmed(uri)
-    fun onBottomNavExpandedChange(expanded: Boolean) = actionsHandler.onBottomNavExpandedChange(expanded, _isBottomNavExpanded.value)
+    fun onBottomNavExpandedChange(expanded: Boolean) {
+        viewModelScope.launch {
+            _isBottomNavExpanded.value = expanded
+            // Save to settings repository
+            withContext(Dispatchers.IO) {
+                settingsRepo.saveBottomNavExpanded(expanded)
+            }
+        }
+    }
 
     // WiFi Sync Methods
     fun onShowWifiServerDialog() = wifiSyncManager.onShowWifiServerDialog()

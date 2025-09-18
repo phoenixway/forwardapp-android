@@ -72,9 +72,21 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: П
     GoalTransportMenu(
         isVisible = showGoalTransportMenu,
         onDismiss = { viewModel.itemActionHandler.onDismissGoalTransportMenu() },
-        onCreateInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CreateInstance) },
-        onMoveInstanceRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.MoveInstance) },
-        onCopyGoalRequest = { viewModel.itemActionHandler.onTransportActionSelected(GoalActionType.CopyGoal) },
+        onCreateInstanceRequest = {
+            itemForTransportMenu?.let { item ->
+                viewModel.itemActionHandler.onItemActionSelected(GoalActionType.CreateInstance, item)
+            }
+        },
+        onMoveInstanceRequest = {
+            itemForTransportMenu?.let { item ->
+                viewModel.itemActionHandler.onItemActionSelected(GoalActionType.MoveInstance, item)
+            }
+        },
+        onCopyGoalRequest = {
+            itemForTransportMenu?.let { item ->
+                viewModel.itemActionHandler.onItemActionSelected(GoalActionType.CopyGoal, item)
+            }
+        },
         isGoalItem = itemForTransportMenu is ListItemContent.GoalItem
     )
 

@@ -155,6 +155,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                     navArgument("listId") { type = NavType.StringType },
                 ),
         ) { backStackEntry ->
+            Log.d("EDIT_PROJECT_DEBUG", "nav activated")
             EditProjectScreen(
                 navController = navController
                 // Параметр listId більше не потрібен, оскільки ViewModel отримує його самостійно
