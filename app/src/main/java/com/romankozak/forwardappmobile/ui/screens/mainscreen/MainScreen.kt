@@ -105,11 +105,11 @@ fun MainScreen(
 
     LaunchedEffect(savedStateHandle) {
         savedStateHandle
-            ?.getStateFlow<String?>("list_to_reveal", null)
+            ?.getStateFlow<String?>("project_to_reveal", null)
             ?.filterNotNull()
             ?.collect { projectId ->
                 viewModel.processRevealRequest(projectId)
-                savedStateHandle["list_to_reveal"] = null
+                savedStateHandle["project_to_reveal"] = null
             }
     }
 
@@ -431,4 +431,176 @@ fun MainScreen(
         listChooserExpandedIds = listChooserFinalExpandedIds,
         filteredListHierarchyForDialog = filteredListHierarchyForDialog,
     )
+}
+
+@Composable
+private fun SearchBottomBar(
+    searchQuery: TextFieldValue,
+    onQueryChange: (TextFieldValue) -> Unit,
+    onCloseSearch: () -> Unit,
+    onPerformGlobalSearch: (String) -> Unit,
+    onShowSearchHistory: () -> Unit,
+    focusRequester: FocusRequester,
+) {
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .navigationBarsPadding()
+                    .imePadding(),
+        ) {
+            AnimatedVisibility(
+                visible = searchQuery.text.isNotBlank(),
+                enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
+                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
+            ) {
+                Surface(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onPerformGlobalSearch(searchQuery.text) },
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 12.dp)
+                                .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Search,
+                            contentDescription = "Perform global search",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Search everywhere for \"${searchQuery.text}\"",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .height(52.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onCloseSearch) {
+                    Icon(
+                        imageVector = Icons.Outlined.ArrowBack,
+                        contentDescription = "Close search",
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                val focusManager = LocalFocusManager.current
+                val interactionSource = remember { MutableInteractionSource() }
+                val isFocused by interactionSource.collectIsFocusedAsState()
+
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onQueryChange,
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
+                    singleLine = true,
+                    textStyle =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+                    keyboardActions =
+                        KeyboardActions(
+                            onSearch = {
+                                if (searchQuery.text.isNotBlank()) {
+                                    onPerformGlobalSearch(searchQuery.text)
+                                }
+                                focusManager.clearFocus()
+                            },
+                        ),
+                    interactionSource = interactionSource,
+                    decorationBox = { innerTextField ->
+                        Row(
+                            modifier =
+                                Modifier
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
+                                        shape = RoundedCornerShape(24.dp),
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        shape = RoundedCornerShape(24.dp),
+                                    )
+                                    .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (searchQuery.text.isEmpty()) {
+                                    Text(
+                                        text = "Search projects...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.semantics { contentDescription = "Search placeholder" },
+                                    )
+                                }
+                                innerTextField()
+                            }
+                            AnimatedVisibility(
+                                visible = searchQuery.text.isNotBlank(),
+                                enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
+                                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
+                            ) {
+                                IconButton(
+                                    onClick = { onQueryChange(TextFieldValue("")) },
+                                    modifier = Modifier.size(28.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = "Clear search input",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                )
+
+                IconButton(onClick = onShowSearchHistory) {
+                    Icon(
+                        imageVector = Icons.Outlined.History,
+                        contentDescription = "Search history"
+                    )
+                }
+            }
+        }
+    }
 }

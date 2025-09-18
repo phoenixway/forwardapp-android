@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ProjectSearchResultItem
 import java.util.UUID
 
 data class NewTaskParameters(
@@ -82,7 +83,7 @@ data class DayPlan(
             onDelete = ForeignKey.SET_NULL
         ),
         ForeignKey(
-            entity = GoalList::class,
+            entity = Project::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL

@@ -2,7 +2,9 @@ package com.romankozak.forwardappmobile.data.database.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Fts4
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
 @Entity(tableName = "activity_records")
@@ -20,6 +22,7 @@ data class ActivityRecord(
     val targetType: String? = null,
     @ColumnInfo(name = "goal_id", index = true)
     val goalId: String? = null,
+    @SerializedName(value = "projectId", alternate = ["listId"])
     @ColumnInfo(name = "project_id", index = true)
     val projectId: String? = null,
 ) {
@@ -32,3 +35,10 @@ data class ActivityRecord(
     val durationInMillis: Long?
         get() = if (startTime != null && endTime != null) endTime - startTime else null
 }
+
+// ДОДАНО ЦЕЙ КЛАС для виправлення помилки компіляції
+@Fts4(contentEntity = ActivityRecord::class)
+@Entity(tableName = "activity_records_fts")
+data class ActivityRecordFts(
+    val text: String
+)

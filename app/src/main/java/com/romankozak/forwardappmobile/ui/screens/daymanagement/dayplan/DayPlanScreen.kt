@@ -234,7 +234,7 @@ private fun DayTask.toGoal(): Goal {
 fun DayTask.toListItem(): ListItem {
     return ListItem(
         id = this.id,
-        listId = this.projectId ?: this.dayPlanId,
+        projectId = this.projectId ?: this.dayPlanId,
         itemType = this.taskType ?: ListItemType.GOAL,
         entityId = this.entityId ?: this.goalId ?: this.id,
         order = this.order

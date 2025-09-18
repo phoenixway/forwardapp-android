@@ -1,3 +1,4 @@
+// File: data/logic/ContextHandler.kt
 package com.romankozak.forwardappmobile.data.logic
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -23,6 +24,7 @@ constructor(
     private val settingsRepository: SettingsRepository,
 ) {
     private val projectRepository: ProjectRepository by lazy { projectRepositoryProvider.get() }
+
 
     private val contextTagMap = mutableMapOf<String, String>()
     private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())

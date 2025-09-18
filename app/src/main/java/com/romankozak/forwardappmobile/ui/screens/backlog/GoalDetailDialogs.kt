@@ -16,8 +16,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.*
 
@@ -25,15 +25,15 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.dialogs.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GoalDetailDialogs(viewModel: GoalDetailViewModel) { // ВИПРАВЛЕНО: Правильний тип ViewModel
+fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: Правильний тип ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // ВИПРАВЛЕНО: Звертаємось до recordToEdit через inboxHandler
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val itemForTransportMenu by viewModel.itemActionHandler.itemForTransportMenu.collectAsStateWithLifecycle()
-    val showRecentListsSheet = uiState.showRecentListsSheet
-    val recentLists by viewModel.recentLists.collectAsStateWithLifecycle()
+    val showRecentListsSheet = uiState.showRecentProjectsSheet
+    val recentLists by viewModel.recentProjects.collectAsStateWithLifecycle()
 
     if (uiState.showAddWebLinkDialog) {
         AddWebLinkDialog(
@@ -89,7 +89,7 @@ fun GoalDetailDialogs(viewModel: GoalDetailViewModel) { // ВИПРАВЛЕНО:
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 LazyColumn {
-                    items(recentLists, key = { it.id }) { list: GoalList ->
+                    items(recentLists, key = { it.id }) { list: Project ->
                         ListItem(
                             headlineContent = { Text(list.name) },
                             modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(list.id) },

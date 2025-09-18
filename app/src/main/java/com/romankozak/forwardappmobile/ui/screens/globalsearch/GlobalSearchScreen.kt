@@ -40,6 +40,7 @@ import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.LinkSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ProjectSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SubprojectSearchResultItem

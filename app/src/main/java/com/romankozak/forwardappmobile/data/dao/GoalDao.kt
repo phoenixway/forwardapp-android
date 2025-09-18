@@ -6,7 +6,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import kotlinx.coroutines.flow.Flow
 
