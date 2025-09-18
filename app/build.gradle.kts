@@ -23,8 +23,8 @@ android {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 29
         targetSdk = 36
-        versionCode = 12
-        versionName = "4.0-beta3"
+        versionCode = 50
+        versionName = "10.0-alpha1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
