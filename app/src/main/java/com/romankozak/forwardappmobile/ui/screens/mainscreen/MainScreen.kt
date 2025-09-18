@@ -138,7 +138,7 @@ fun MainScreen(
                     navController.navigate("sync_screen")
                 }
                 is ProjectUiEvent.NavigateToDetails -> {
-                    navController.navigate("project_detail_screen/${event.projectId}")
+                    navController.navigate("goal_detail_screen/${event.projectId}")
                 }
                 is ProjectUiEvent.ShowToast -> {
                     Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()

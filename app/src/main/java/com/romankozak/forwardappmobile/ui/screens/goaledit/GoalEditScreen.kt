@@ -386,6 +386,7 @@ private fun LinkItem(
                 LinkType.PROJECT -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                 LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                null -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
             },
         border =
             BorderStroke(
@@ -394,6 +395,8 @@ private fun LinkItem(
                     LinkType.PROJECT -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                     LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                    null -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+
                 },
             ),
     ) {
@@ -415,6 +418,7 @@ private fun LinkItem(
                             LinkType.PROJECT -> Icons.AutoMirrored.Filled.List
                             LinkType.URL -> Icons.Default.Language
                             LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                            null -> Icons.AutoMirrored.Filled.Note
                         },
                     contentDescription = null,
                     tint =
@@ -422,6 +426,7 @@ private fun LinkItem(
                             LinkType.PROJECT -> MaterialTheme.colorScheme.primary
                             LinkType.URL -> MaterialTheme.colorScheme.secondary
                             LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
+                            null -> MaterialTheme.colorScheme.tertiary
                         },
                     modifier = Modifier.size(20.dp),
                 )
@@ -443,6 +448,7 @@ private fun LinkItem(
                                 LinkType.PROJECT -> "Проект"
                                 LinkType.URL -> "Веб-посилання"
                                 LinkType.OBSIDIAN -> "Obsidian нотатка"
+                                null -> "broken"
                             },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

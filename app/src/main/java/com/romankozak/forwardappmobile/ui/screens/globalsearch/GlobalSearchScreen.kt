@@ -329,8 +329,9 @@ private fun SearchResultsContent(
                                 result = result.searchResult,
                                 onOpenAsProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route =
-                                        "project_detail_screen/${result.searchResult.projectId}?goalId=${result.searchResult.goal.id}"
+                                    val route = "goal_detail_screen/${result.searchResult.projectId}?goalId=${result.searchResult.goal.id}"
+
+
                                     navController.navigate(route)
                                 },
                                 onOpenInNavigation = {
@@ -380,8 +381,8 @@ private fun SearchResultsContent(
                                 result = result.searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.navigate("project_detail_screen/${result.searchResult.parentProjectId}")
-                                },
+
+                                    navController.navigate("goal_detail_screen/${result.searchResult.subproject.id}")                           },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     navController.previousBackStackEntry
@@ -396,8 +397,7 @@ private fun SearchResultsContent(
                                 result = result.searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.navigate("project_detail_screen/${result.searchResult.project.id}")
-                                },
+                                    navController.navigate("goal_detail_screen/${result.searchResult.project.id}")                                },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     navController.previousBackStackEntry

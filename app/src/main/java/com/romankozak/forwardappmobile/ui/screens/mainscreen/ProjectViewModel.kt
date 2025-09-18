@@ -950,38 +950,90 @@ class ProjectViewModel @Inject constructor(
     }
 
     fun clearNavigation() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             val breadcrumbs = _currentBreadcrumbs.value
-            if (breadcrumbs.isNotEmpty()) {
-                val topLevelAncestorId = breadcrumbs.first().id
-                val ancestorProject = _allProjectsFlat.value.find { it.id == topLevelAncestorId }
+            val settings = hierarchySettings.value
+            if (breadcrumbs.isEmpty()) {
+                // Якщо хлібних крихт немає, просто скидаємо фокус
+                withContext(Dispatchers.Main) {
+                    _focusedProjectId.value = null
+                    _currentBreadcrumbs.value = emptyList()
+                }
+                return@launch
+            }
 
-                if (ancestorProject != null && !ancestorProject.isExpanded) {
-                    projectRepository.updateProject(ancestorProject.copy(isExpanded = true))
+            // 1. Визначаємо цільового предка
+            val targetAncestorLevel = (settings.useBreadcrumbsAfter - 1).coerceAtLeast(0)
+            val targetAncestorBreadcrumb = breadcrumbs.getOrNull(targetAncestorLevel) ?: breadcrumbs.first()
+            val targetAncestorId = targetAncestorBreadcrumb.id
 
-                    _allProjectsFlat.first { updatedProjects ->
-                        updatedProjects.find { it.id == topLevelAncestorId }?.isExpanded == true
+            // 2. Визначаємо шлях, який потрібно розкрити
+            val pathIdsToExpand = breadcrumbs
+                .take(targetAncestorLevel + 1)
+                .map { it.id }
+                .toSet()
+
+            val allProjects = _allProjectsFlat.first()
+            val projectsToExpand = allProjects
+                .filter { it.id in pathIdsToExpand && !it.isExpanded }
+                .map { it.copy(isExpanded = true) }
+
+            // Оновлюємо проекти в базі даних, якщо є що оновлювати
+            if (projectsToExpand.isNotEmpty()) {
+                projectRepository.updateProjects(projectsToExpand)
+
+                // 3. Чекаємо, поки зміни з БД відобразяться у стані
+                _allProjectsFlat.first { updatedProjects ->
+                    projectsToExpand.all { projectToUpdate ->
+                        updatedProjects.find { it.id == projectToUpdate.id }?.isExpanded == true
                     }
                 }
             }
 
-            val projectsToCollapseIds = _collapsedAncestorsOnFocus.value
-            if (projectsToCollapseIds.isNotEmpty()) {
-                val projectsToUpdate = _allProjectsFlat.value
-                    .filter { it.id in projectsToCollapseIds }
-                    .map { it.copy(isExpanded = false) }
-
-                if (projectsToUpdate.isNotEmpty()) {
-                    projectRepository.updateProjects(projectsToUpdate)
-                }
+            // 4. Вимикаємо режим фокусування (критично важливо зробити це ПЕРЕД розрахунком індексу)
+            withContext(Dispatchers.Main) {
+                _focusedProjectId.value = null
             }
 
-            _collapsedAncestorsOnFocus.value = emptySet()
-            _currentBreadcrumbs.value = emptyList()
-            _focusedProjectId.value = null
+            // Даємо невелику затримку, щоб UI встиг перебудуватися на LazyColumn
+            delay(100)
+
+            // 5. Розраховуємо індекс для скролу в оновленій ієрархії
+            val finalHierarchy = projectHierarchy.value
+
+            // Допоміжна функція для "розгладження" ієрархії у плаский список
+            fun flattenHierarchy(
+                currentProjects: List<Project>,
+                projectMap: Map<String, List<Project>>
+            ): List<Project> {
+                val result = mutableListOf<Project>()
+                for (project in currentProjects) {
+                    result.add(project)
+                    if (project.isExpanded) {
+                        val children = projectMap[project.id]?.sortedBy { it.order } ?: emptyList()
+                        if (children.isNotEmpty()) {
+                            result.addAll(flattenHierarchy(children, projectMap))
+                        }
+                    }
+                }
+                return result
+            }
+
+            val displayedProjects = flattenHierarchy(finalHierarchy.topLevelProjects, finalHierarchy.childMap)
+            val scrollIndex = displayedProjects.indexOfFirst { it.id == targetAncestorId }
+
+            // 6. Надсилаємо команду на автоскрол
+            if (scrollIndex != -1) {
+                _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(scrollIndex))
+            }
+
+            // 7. Остаточна очистка
+            withContext(Dispatchers.Main) {
+                _currentBreadcrumbs.value = emptyList()
+                _collapsedAncestorsOnFocus.value = emptySet()
+            }
         }
     }
-
     private fun buildPathToProject(targetId: String, hierarchy: ListHierarchyData): List<BreadcrumbItem> {
         val path = mutableListOf<BreadcrumbItem>()
         fun findPath(projects: List<Project>, level: Int): Boolean {
