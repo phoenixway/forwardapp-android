@@ -68,7 +68,7 @@ fun InteractiveListItem(
     val isCompleted =
         when (item) {
             is ListItemContent.GoalItem -> item.goal.completed
-            is ListItemContent.SublistItem -> item.sublist.isCompleted
+            is ListItemContent.SublistItem -> item.project.isCompleted
             else -> false
         }
 
@@ -88,7 +88,7 @@ fun InteractiveListItem(
 
     val itemModifier =
         modifier
-            .pointerInput(dragDropState, item.item.id, isDraggable) {
+            .pointerInput(dragDropState, item.listItem.id, isDraggable) {
                 if (isDraggable) {
                     detectDragGesturesAfterLongPress(
                         onDragStart = { dragDropState.onDragStart(item) },

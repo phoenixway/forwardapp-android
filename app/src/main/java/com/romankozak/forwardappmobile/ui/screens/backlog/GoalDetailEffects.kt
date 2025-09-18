@@ -21,13 +21,15 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.utils.handl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+// ВИДАЛЕНО: URLEncoder більше не потрібен тут
+// import java.net.URLEncoder
+// import java.nio.charset.StandardCharsets
 
-private const val TAG = "BACKLOG_UI_DEBUG"
-
+private const val TAG = "SendDebug"
 @Composable
 fun GoalDetailEffects(
     navController: NavController,
-    viewModel: GoalDetailViewModel,
+    viewModel: BacklogViewModel,
     snackbarHostState: SnackbarHostState,
     listState: LazyListState,
     inboxListState: LazyListState,
@@ -36,9 +38,8 @@ fun GoalDetailEffects(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    val list by viewModel.goalList.collectAsStateWithLifecycle()
+    val list by viewModel.project.collectAsStateWithLifecycle()
 
-    // ВИПРАВЛЕНО: Звертаємось до inboxRecords через viewModel.inboxHandler
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
 
     val localContext = LocalContext.current
@@ -56,7 +57,16 @@ fun GoalDetailEffects(
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
-                is UiEvent.Navigate -> navController.navigate(event.route)
+                // --- ЗМІНА: Видаляємо обробку NavigateToAuth ---
+                // is UiEvent.NavigateToAuth -> { ... }
+                is UiEvent.Navigate -> {
+                    Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate. Маршрут: '${event.route}'")
+                    if (event.route == "back") {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(event.route)
+                    }
+                }
                 is UiEvent.ShowSnackbar -> {
                     coroutineScope.launch {
                         val result =
@@ -75,10 +85,11 @@ fun GoalDetailEffects(
                 }
                 is UiEvent.NavigateBackAndReveal -> {
                     navController
-                        .getBackStackEntry("goal_lists_screen")
-                        .savedStateHandle["list_to_reveal"] = event.listId
-                    navController.popBackStack("goal_lists_screen", inclusive = false)
+                        .getBackStackEntry("projects_screen") // Corrected route
+                        .savedStateHandle["project_to_reveal"] = event.projectId // Corrected key and property
+                    navController.popBackStack("projects_screen", inclusive = false)
                 }
+
                 is UiEvent.HandleLinkClick -> {
                     handleRelatedLinkClick(event.link, obsidianVaultName, localContext, navController)
                 }
@@ -95,8 +106,10 @@ fun GoalDetailEffects(
         }
     }
 
+    // ... (решта коду в GoalDetailEffects залишається без змін) ...
+
     // Авто-скрол до нового елемента
-    val newItemInList = uiState.newlyAddedItemId?.let { id -> displayList.find { it.item.id == id } }
+    val newItemInList = uiState.newlyAddedItemId?.let { id -> displayList.find { it.listItem.id == id } }
     LaunchedEffect(newItemInList) {
         if (newItemInList != null) {
             listState.animateScrollToItem(0)
@@ -151,7 +164,7 @@ fun GoalDetailEffects(
 
         val indexToScroll = when {
             goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
-            itemId != null -> displayList.indexOfFirst { it.item.id == itemId }.takeIf { it != -1 }
+            itemId != null -> displayList.indexOfFirst { it.listItem.id == itemId }.takeIf { it != -1 }
             else -> null
         }
 
@@ -199,7 +212,7 @@ fun GoalDetailEffects(
         val itemId = uiState.newlyAddedItemId
         Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
         if (itemId != null) {
-            var index = displayList.indexOfFirst { it.item.id == itemId }
+            var index = displayList.indexOfFirst { it.listItem.id == itemId }
             if (index == -1) {
                 index = displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == itemId }
                 Log.d("AutoScrollDebug", "Trying goal.id search, found index: $index")

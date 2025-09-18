@@ -7,40 +7,41 @@ import androidx.room.TypeConverters
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.models.*
 
-// ПЕРЕВІРТЕ, ЩО ЦЕЙ ІМПОРТ ДОДАНО
-import com.romankozak.forwardappmobile.data.database.models.DailyPlanConverters
-
 @Database(
     entities = [
+        // Основні сутності
         Goal::class,
-        GoalList::class,
+        Project::class,
         ListItem::class,
         ActivityRecord::class,
-        ActivityRecordFts::class,
-        RecentListEntry::class,
+        RecentProjectEntry::class,
         LinkItemEntity::class,
         InboxRecord::class,
         ChatMessageEntity::class,
         ProjectExecutionLog::class,
         DayPlan::class,
         DayTask::class,
-        DailyMetric::class
+        DailyMetric::class,
+        // FTS (Full-Text Search) сутності
+        GoalFts::class,
+        ProjectFts::class,
+        ActivityRecordFts::class // <-- Додано відсутній клас
     ],
-    version = 31,
+    version = 32,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),
+        // Додайте інші автоміграції, якщо вони потрібні
     ],
-    exportSchema = true,
+    exportSchema = true
 )
-// ОСНОВНА ЗМІНА ТУТ: ДОДАНО DailyPlanConverters::class
 @TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun goalListDao(): GoalListDao
+    abstract fun projectDao(): ProjectDao
     abstract fun goalDao(): GoalDao
     abstract fun listItemDao(): ListItemDao
     abstract fun activityRecordDao(): ActivityRecordDao
-    abstract fun recentListDao(): RecentListDao
+    abstract fun recentProjectDao(): RecentProjectDao
     abstract fun linkItemDao(): LinkItemDao
     abstract fun inboxRecordDao(): InboxRecordDao
     abstract fun chatDao(): ChatDao

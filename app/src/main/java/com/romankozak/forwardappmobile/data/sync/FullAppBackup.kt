@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.sync
 
+import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.data.database.models.*
 
 data class FullAppBackup(
@@ -11,10 +12,12 @@ data class FullAppBackup(
 
 data class DatabaseContent(
     val goals: List<Goal>,
-    val goalLists: List<GoalList>,
+    @SerializedName(value = "projects", alternate = ["goalLists"])
+
+    val projects: List<Project>,
     val listItems: List<ListItem>,
     val activityRecords: List<ActivityRecord>? = null,
-    val recentListEntries: List<RecentListEntry>? = null,
+    val recentListEntries: List<RecentProjectEntry>? = null,
     val linkItemEntities: List<LinkItemEntity>? = null,
     val inboxRecords: List<InboxRecord>? = null,
     val projectExecutionLogs: List<ProjectExecutionLog>? = null,

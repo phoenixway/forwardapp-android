@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Dashboard
@@ -24,7 +25,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.daydashboard.DayDashboardScreen
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
 import kotlinx.coroutines.launch
 
 private enum class DayManagementTab(
@@ -69,20 +71,14 @@ fun DayManagementScreen(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "Керування днем",
-                            style = MaterialTheme.typography.titleLarge
+            TopAppBar(
+                title = { Text("Керування днем") },
+                navigationIcon = {
+                    IconButton(onClick = { mainNavController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад"
                         )
-                        if (!uiState.isLoading && uiState.error == null) {
-                            Text(
-                                "Сьогодні",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 },
                 actions = {
@@ -93,20 +89,11 @@ fun DayManagementScreen(
                         ) {
                             Icon(
                                 Icons.Default.Refresh,
-                                contentDescription = "Оновити",
-                                tint = if (uiState.isLoading)
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                contentDescription = "Оновити"
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                }
             )
         }
     ) { innerPadding ->
@@ -152,6 +139,7 @@ fun DayManagementScreen(
                         ) {
                             tabs.forEachIndexed { index, tab ->
                                 val selected = pagerState.currentPage == index
+                                // --- ЗМІНА: Прибрано іконки та зайві відступи ---
                                 Tab(
                                     selected = selected,
                                     onClick = {
@@ -162,35 +150,13 @@ fun DayManagementScreen(
                                     text = {
                                         Text(
                                             text = tab.title,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelLarge.copy(
+                                            style = MaterialTheme.typography.labelLarge.copy( // Збільшено шрифт для читабельності
                                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                                            ),
-                                            color = if (selected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            }
-                                        )
-                                    },
-                                    icon = {
-                                        Icon(
-                                            tab.icon,
-                                            contentDescription = tab.description,
-                                            modifier = Modifier.size(20.dp),
-                                            tint = if (selected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            }
+                                            )
                                         )
                                     },
                                     selectedContentColor = MaterialTheme.colorScheme.primary,
-                                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier
-                                        .padding(vertical = 8.dp)
-                                        .clip(MaterialTheme.shapes.small)
+                                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -205,6 +171,11 @@ fun DayManagementScreen(
                                     onNavigateBack = { mainNavController.navigateUp() },
                                     onNavigateToProject = { projectId ->
                                         mainNavController.navigate("goal_detail_screen/$projectId")
+                                    },
+                                    onNavigateToBacklog = { task ->
+                                        task.projectId?.let { id ->
+                                            mainNavController.navigate("goal_detail_screen/$id")
+                                        }
                                     }
                                 )
                                 DayManagementTab.DASHBOARD -> DayDashboardScreen(

@@ -51,9 +51,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import com.mohamedrejeb.compose.dnd.DragAndDropContainer
-import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
-import com.romankozak.forwardappmobile.data.database.models.GoalList
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
@@ -68,34 +65,34 @@ import androidx.compose.runtime.getValue
 fun MainScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
-    viewModel: GoalListViewModel = hiltViewModel(),
+    viewModel: ProjectViewModel = hiltViewModel(),
 ) {
-    val hierarchy by viewModel.listHierarchy.collectAsState()
+    val hierarchy by viewModel.projectHierarchy.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
     val isSearchActive by viewModel.isSearchActive.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val planningMode by viewModel.planningMode.collectAsState()
     val planningSettings by viewModel.planningSettingsState.collectAsState()
-    val dragAndDropState = rememberDragAndDropState<GoalList>()
-    val highlightedListId by viewModel.highlightedListId.collectAsState()
+    val highlightedProjectId by viewModel.highlightedProjectId.collectAsState()
+    val longDescendantsMap by viewModel.longDescendantsMap.collectAsState()
 
     val currentBreadcrumbs by viewModel.currentBreadcrumbs.collectAsState()
-    val focusedListId by viewModel.focusedListId.collectAsState()
+    val focusedProjectId by viewModel.focusedProjectId.collectAsState()
     val hierarchySettings by viewModel.hierarchySettings.collectAsState()
 
     val isBottomNavExpanded by viewModel.isBottomNavExpanded.collectAsState()
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
     var showContextSheet by remember { mutableStateOf(value = false) }
-    var showSearchHistorySheet by remember { mutableStateOf(value = false) } // <-- ДОДАНО НОВИЙ СТАН
+    var showSearchHistorySheet by remember { mutableStateOf(value = false) }
     val allContexts by viewModel.allContextsForDialog.collectAsState()
-    val searchHistory by viewModel.searchHistory.collectAsState() // <-- ДОДАНО СТАН ІСТОРІЇ
+    val searchHistory by viewModel.searchHistory.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
-    val recentLists by viewModel.recentLists.collectAsState()
-    val areAnyListsExpanded by viewModel.areAnyListsExpanded.collectAsState()
+    val recentProjects by viewModel.recentProjects.collectAsState()
+    val areAnyProjectsExpanded by viewModel.areAnyProjectsExpanded.collectAsState()
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -108,11 +105,11 @@ fun MainScreen(
 
     LaunchedEffect(savedStateHandle) {
         savedStateHandle
-            ?.getStateFlow<String?>("list_to_reveal", null)
+            ?.getStateFlow<String?>("project_to_reveal", null)
             ?.filterNotNull()
-            ?.collect { listId ->
-                viewModel.processRevealRequest(listId)
-                savedStateHandle["list_to_reveal"] = null
+            ?.collect { projectId ->
+                viewModel.processRevealRequest(projectId)
+                savedStateHandle["project_to_reveal"] = null
             }
     }
 
@@ -136,41 +133,41 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
-                is GoalListUiEvent.NavigateToSyncScreenWithData -> {
+                is ProjectUiEvent.NavigateToSyncScreenWithData -> {
                     syncDataViewModel.jsonString = event.json
                     navController.navigate("sync_screen")
                 }
-                is GoalListUiEvent.NavigateToDetails -> {
-                    navController.navigate("goal_detail_screen/${event.listId}")
+                is ProjectUiEvent.NavigateToDetails -> {
+                    navController.navigate("project_detail_screen/${event.projectId}")
                 }
-                is GoalListUiEvent.ShowToast -> {
+                is ProjectUiEvent.ShowToast -> {
                     Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
                 }
-                is GoalListUiEvent.NavigateToGlobalSearch -> {
+                is ProjectUiEvent.NavigateToGlobalSearch -> {
                     navController.navigate("global_search_screen/${event.query}")
                 }
-                is GoalListUiEvent.ScrollToIndex -> {
+                is ProjectUiEvent.ScrollToIndex -> {
                     coroutineScope.launch {
                         listState.animateScrollToItem(event.index)
                     }
                 }
-                GoalListUiEvent.FocusSearchField -> {
+                ProjectUiEvent.FocusSearchField -> {
                     coroutineScope.launch {
                         delay(100)
                         focusRequester.requestFocus()
                     }
                 }
-                GoalListUiEvent.NavigateToSettings -> {
+                ProjectUiEvent.NavigateToSettings -> {
                     navController.navigate("settings_screen")
                 }
-                is GoalListUiEvent.NavigateToEditListScreen -> {
-                    navController.navigate("edit_list_screen/${event.listId}")
+                is ProjectUiEvent.NavigateToEditProjectScreen -> {
+                    navController.navigate("edit_project_screen/${event.projectId}")
                 }
-                is GoalListUiEvent.Navigate -> {
+                is ProjectUiEvent.Navigate -> {
                     navController.navigate(event.route)
                 }
 
-                is GoalListUiEvent.NavigateToDayPlan -> {
+                is ProjectUiEvent.NavigateToDayPlan -> {
                     navController.navigateToDayManagement(event.date)
                 }
             }
@@ -216,7 +213,6 @@ fun MainScreen(
         }
     }
 
-    // <-- НОВИЙ MODAL BOTTOM SHEET ДЛЯ ІСТОРІЇ ПОШУКУ
     if (showSearchHistorySheet) {
         ModalBottomSheet(onDismissRequest = { showSearchHistorySheet = false }) {
             Column(Modifier.navigationBarsPadding()) {
@@ -253,12 +249,11 @@ fun MainScreen(
             }
         }
     }
-    // КІНЕЦЬ НОВОГО MODAL BOTTOM SHEET -->
 
-    BackHandler(enabled = focusedListId != null) { viewModel.clearNavigation() }
+    BackHandler(enabled = focusedProjectId != null) { viewModel.clearNavigation() }
     BackHandler(enabled = isSearchActive) { viewModel.onToggleSearch(isActive = false) }
-    BackHandler(enabled = !isSearchActive && areAnyListsExpanded && focusedListId == null) {
-        viewModel.collapseAllLists()
+    BackHandler(enabled = !isSearchActive && areAnyProjectsExpanded && focusedProjectId == null) {
+        viewModel.collapseAllProjects()
     }
 
     val importLauncher =
@@ -269,11 +264,61 @@ fun MainScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize().imePadding(),
         topBar = {
-            GoalListTopAppBar(
-                isSearchActive = isSearchActive,
-                onAddNewList = { viewModel.onAddNewListRequest() },
-                viewModel = viewModel,
-                onImportFromFile = { importLauncher.launch("application/json") },
+            TopAppBar(
+                title = { Text("Projects") },
+                actions = {
+                    if (!isSearchActive) {
+                        IconButton(onClick = { viewModel.onAddNewProjectRequest() }) { Icon(Icons.Default.Add, "Add new project") }
+                        var menuExpanded by remember { mutableStateOf(false) }
+                        IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
+                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Run Wi-Fi Server") },
+                                onClick = {
+                                    viewModel.onShowWifiServerDialog()
+                                    menuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import from Wi-Fi") },
+                                onClick = {
+                                    viewModel.onShowWifiImportDialog()
+                                    menuExpanded = false
+                                },
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Export to file") },
+                                onClick = {
+                                    viewModel.exportToFile()
+                                    menuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import from file") },
+                                onClick = {
+                                    importLauncher.launch("application/json")
+                                    menuExpanded = false
+                                },
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                onClick = {
+                                    viewModel.onShowSettingsScreen()
+                                    menuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                onClick = {
+                                    viewModel.onShowAboutDialog()
+                                    menuExpanded = false
+                                },
+                            )
+                        }
+                    }
+                },
             )
         },
         bottomBar = {
@@ -283,7 +328,7 @@ fun MainScreen(
                     onQueryChange = viewModel::onSearchQueryChanged,
                     onCloseSearch = { viewModel.onToggleSearch(false) },
                     onPerformGlobalSearch = { viewModel.onPerformGlobalSearch(it) },
-                    onShowSearchHistory = { showSearchHistorySheet = true }, // <-- ПЕРЕДАЄМО НОВУ ДІЮ
+                    onShowSearchHistory = { showSearchHistorySheet = true },
                     focusRequester = focusRequester,
                 )
             } else {
@@ -297,6 +342,7 @@ fun MainScreen(
                     onContextsClick = { showContextSheet = true },
                     onRecentsClick = { viewModel.onShowRecentLists() },
                     onDayPlanClick = viewModel::onDayPlanClicked,
+                    onHomeClick = viewModel::onHomeClicked,
                     isExpanded = isBottomNavExpanded,
                     onExpandedChange = viewModel::onBottomNavExpandedChange
                 )
@@ -308,7 +354,8 @@ fun MainScreen(
                 val results by viewModel.searchResults.collectAsState()
                 SearchResultsView(
                     results = results,
-                    onResultClick = viewModel::onSearchResultClick
+                    onRevealClick = viewModel::onSearchResultClick,
+                    onOpenClick = viewModel::onProjectClicked
                 )
             } else {
                 AnimatedVisibility(
@@ -320,18 +367,18 @@ fun MainScreen(
                         breadcrumbs = currentBreadcrumbs,
                         onNavigate = { viewModel.navigateToBreadcrumb(it) },
                         onClearNavigation = { viewModel.clearNavigation() },
-                        onFocusedListMenuClick = { listId ->
-                            hierarchy.allLists.find { it.id == listId }?.let {
+                        onFocusedListMenuClick = { projectId ->
+                            hierarchy.allProjects.find { it.id == projectId }?.let {
                                 viewModel.onMenuRequested(it)
                             }
                         },
-                        onOpenAsProject = { listId ->
-                            viewModel.onListClicked(listId)
+                        onOpenAsProject = { projectId ->
+                            viewModel.onProjectClicked(projectId)
                         }
                     )
                 }
 
-                val isListEmpty = hierarchy.topLevelLists.isEmpty() && hierarchy.childMap.isEmpty()
+                val isListEmpty = hierarchy.topLevelProjects.isEmpty() && hierarchy.childMap.isEmpty()
                 if (isListEmpty) {
                     Box(
                         modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
@@ -348,54 +395,23 @@ fun MainScreen(
                         Text(emptyText, style = MaterialTheme.typography.bodyLarge)
                     }
                 } else {
-                    DragAndDropContainer(
-                        state = dragAndDropState,
-                        enabled = !isSearchActive,
+                    ProjectHierarchyView(
                         modifier = Modifier.weight(1f),
-                    ) {
-                        val currentFocusedId = focusedListId
-
-                        if (currentFocusedId != null) {
-                            FocusedListView(
-                                focusedListId = currentFocusedId,
-                                hierarchy = hierarchy,
-                                dragAndDropState = dragAndDropState,
-                                viewModel = viewModel,
-                                isSearchActive = isSearchActive,
-                                planningMode = planningMode,
-                                highlightedListId = highlightedListId,
-                                settings = hierarchySettings,
-                                searchQuery = searchQuery.text,
-                                onNavigateToList = { listId -> viewModel.navigateToList(listId) },
-                            )
-                        } else {
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier.fillMaxSize(),
-                            ) {
-                                items(hierarchy.topLevelLists, key = { it.id }) { topLevelList ->
-                                    SmartHierarchyView(
-                                        list = topLevelList,
-                                        childMap = hierarchy.childMap,
-                                        level = 0,
-                                        dragAndDropState = dragAndDropState,
-                                        viewModel = viewModel,
-                                        isSearchActive = isSearchActive,
-                                        planningMode = planningMode,
-                                        highlightedListId = highlightedListId,
-                                        settings = hierarchySettings,
-                                        searchQuery = searchQuery.text,
-                                        onNavigateToList = { listId ->
-                                            viewModel.navigateToList(
-                                                listId
-                                            )
-                                        },
-                                        focusedListId = currentFocusedId,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                        hierarchy = hierarchy,
+                        focusedProjectId = focusedProjectId,
+                        highlightedProjectId = highlightedProjectId,
+                        searchQuery = searchQuery.text,
+                        isSearchActive = isSearchActive,
+                        planningMode = planningMode,
+                        hierarchySettings = hierarchySettings,
+                        listState = listState,
+                        longDescendantsMap = longDescendantsMap,
+                        onProjectClicked = viewModel::onProjectClicked,
+                        onToggleExpanded = viewModel::onToggleExpanded,
+                        onMenuRequested = viewModel::onMenuRequested,
+                        onNavigateToProject = viewModel::navigateToProject,
+                        onProjectReorder = viewModel::onProjectReorder
+                    )
                 }
             }
         }
@@ -403,9 +419,9 @@ fun MainScreen(
 
     RecentListsSheet(
         showSheet = showRecentSheet,
-        recentLists = recentLists,
+        recentLists = recentProjects,
         onDismiss = { viewModel.onDismissRecentLists() },
-        onListClick = { listId -> viewModel.onRecentListSelected(listId) },
+        onListClick = { projectId -> viewModel.onRecentProjectSelected(projectId) },
     )
 
     HandleDialogs(
@@ -418,77 +434,12 @@ fun MainScreen(
 }
 
 @Composable
-private fun GoalListTopAppBar(
-    isSearchActive: Boolean,
-    onAddNewList: () -> Unit,
-    viewModel: GoalListViewModel,
-    onImportFromFile: () -> Unit,
-) {
-    TopAppBar(
-        title = { Text("Projects") },
-        actions = {
-            if (!isSearchActive) {
-                IconButton(onClick = onAddNewList) { Icon(Icons.Default.Add, "Add new project") }
-                var menuExpanded by remember { mutableStateOf(false) }
-                IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Run Wi-Fi Server") },
-                        onClick = {
-                            viewModel.onShowWifiServerDialog()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Import from Wi-Fi") },
-                        onClick = {
-                            viewModel.onShowWifiImportDialog()
-                            menuExpanded = false
-                        },
-                    )
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { Text("Export to file") },
-                        onClick = {
-                            viewModel.exportToFile()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Import from file") },
-                        onClick = {
-                            onImportFromFile()
-                            menuExpanded = false
-                        },
-                    )
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { Text("Settings") },
-                        onClick = {
-                            viewModel.onShowSettingsScreen()
-                            menuExpanded = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("About") },
-                        onClick = {
-                            viewModel.onShowAboutDialog()
-                            menuExpanded = false
-                        },
-                    )
-                }
-            }
-        },
-    )
-}
-
-@Composable
 private fun SearchBottomBar(
     searchQuery: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
     onCloseSearch: () -> Unit,
     onPerformGlobalSearch: (String) -> Unit,
-    onShowSearchHistory: () -> Unit, // <-- ДОДАНО НОВИЙ ПАРАМЕТР
+    onShowSearchHistory: () -> Unit,
     focusRequester: FocusRequester,
 ) {
     Surface(
@@ -643,14 +594,12 @@ private fun SearchBottomBar(
                     },
                 )
 
-                // <-- НОВА КНОПКА ДЛЯ ІСТОРІЇ ПОШУКУ
                 IconButton(onClick = onShowSearchHistory) {
                     Icon(
                         imageVector = Icons.Outlined.History,
                         contentDescription = "Search history"
                     )
                 }
-                // КІНЕЦЬ НОВОЇ КНОПКИ -->
             }
         }
     }

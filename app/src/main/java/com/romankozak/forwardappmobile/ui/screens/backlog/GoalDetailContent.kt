@@ -19,7 +19,7 @@ private const val TAG = "BACKLOG_UI_DEBUG"
 @Composable
 fun GoalDetailContent(
     modifier: Modifier = Modifier,
-    viewModel: GoalDetailViewModel, // ВИПРАВЛЕНО: Правильний тип для ViewModel
+    viewModel: BacklogViewModel, // ВИПРАВЛЕНО: Правильний тип для ViewModel
     uiState: UiState,
     listState: LazyListState,
     inboxListState: LazyListState,
@@ -28,7 +28,7 @@ fun GoalDetailContent(
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     // ВИПРАВЛЕНО: Звертаємось до inboxRecords через inboxHandler
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
-    val goalList by viewModel.goalList.collectAsStateWithLifecycle()
+    val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
 
@@ -74,7 +74,7 @@ fun GoalDetailContent(
         ProjectViewMode.DASHBOARD -> {
             ProjectDashboardView(
                 modifier = modifier,
-                goalList = goalList,
+                project = goalList,
                 projectLogs = projectLogs,
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onStatusUpdate = viewModel::onProjectStatusUpdate,

@@ -7,14 +7,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 
 @Composable
 fun AdaptiveTopBar(
     isSelectionModeActive: Boolean,
-    goalList: GoalList?,
+    project: Project?,
     selectedCount: Int,
     areAllSelected: Boolean,
     onClearSelection: () -> Unit,
@@ -35,7 +35,7 @@ fun AdaptiveTopBar(
         if (isSelectionModeActive) {
             Column(modifier = Modifier.statusBarsPadding()) {
                 ListTitleBar(
-                    goalList = goalList?.copy(isProjectManagementEnabled = false),
+                    project = project?.copy(isProjectManagementEnabled = false),
                     currentViewMode = currentViewMode
                 )
                 MultiSelectTopAppBar(
@@ -51,7 +51,7 @@ fun AdaptiveTopBar(
             }
         } else {
             ListTitleBar(
-                goalList = goalList,
+                project = project,
                 currentViewMode = currentViewMode
             )
         }

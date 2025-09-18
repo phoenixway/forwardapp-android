@@ -2,38 +2,26 @@ package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 
-/**
- * Оновлений інтерфейс для комунікації з ViewModel.
- */
 interface InboxHandlerResultListener {
     fun requestNavigation(route: String)
-    /**
-     * ВИПРАВЛЕНО: Прибрано значення за замовчуванням "= null", щоб уникнути конфлікту реалізацій.
-     */
     fun showSnackbar(message: String, action: String?)
     fun scrollToListEnd()
     fun updateInputState(inputValue: TextFieldValue)
 }
 
-/**
- * Клас, що інкапсулює всю бізнес-логіку та стан для функціоналу "Інбокс".
- */
 class InboxHandler(
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository,
     private val scope: CoroutineScope,
-    private val listIdFlow: StateFlow<String>,
+    private val projectIdFlow: StateFlow<String>,
     private val listener: InboxHandlerResultListener,
 ) {
-
-    // --- Стан (State) ---
-
     private val _inboxRecords = MutableStateFlow<List<InboxRecord>>(emptyList())
     val inboxRecords: StateFlow<List<InboxRecord>> = _inboxRecords.asStateFlow()
 
@@ -45,22 +33,20 @@ class InboxHandler(
 
     init {
         scope.launch {
-            listIdFlow
+            projectIdFlow
                 .filter { it.isNotEmpty() }
-                .flatMapLatest { id -> goalRepository.getInboxRecordsStream(id) }
+                .flatMapLatest { id -> projectRepository.getInboxRecordsStream(id) }
                 .collect { records ->
                     _inboxRecords.value = records.sortedBy { it.createdAt }
                 }
         }
     }
 
-    // --- Публічні методи для UI ---
-
     fun addQuickRecord(text: String) {
         scope.launch(Dispatchers.IO) {
-            val listId = listIdFlow.value
-            if (listId.isNotEmpty() && text.isNotBlank()) {
-                goalRepository.addInboxRecord(text, listId)
+            val projectId = projectIdFlow.value
+            if (projectId.isNotEmpty() && text.isNotBlank()) {
+                projectRepository.addInboxRecord(text, projectId)
             }
         }
         listener.updateInputState(TextFieldValue(""))
@@ -69,25 +55,25 @@ class InboxHandler(
 
     fun deleteInboxRecord(recordId: String) {
         scope.launch(Dispatchers.IO) {
-            goalRepository.deleteInboxRecordById(recordId)
+            projectRepository.deleteInboxRecordById(recordId)
         }
     }
 
     fun promoteInboxRecordToGoal(record: InboxRecord) {
         scope.launch(Dispatchers.IO) {
-            goalRepository.promoteInboxRecordToGoal(record)
+            projectRepository.promoteInboxRecordToGoal(record)
         }
     }
 
-    private fun promoteInboxRecordToGoal(record: InboxRecord, targetListId: String) {
+    private fun promoteInboxRecordToGoal(record: InboxRecord, targetProjectId: String) {
         scope.launch(Dispatchers.IO) {
-            goalRepository.promoteInboxRecordToGoal(record, targetListId)
+            projectRepository.promoteInboxRecordToGoal(record, targetProjectId)
         }
     }
 
     private fun updateInboxRecordText(record: InboxRecord, newText: String) {
         scope.launch(Dispatchers.IO) {
-            goalRepository.updateInboxRecord(record.copy(text = newText))
+            projectRepository.updateInboxRecord(record.copy(text = newText))
         }
     }
 
@@ -111,15 +97,15 @@ class InboxHandler(
         val title = "Перемістити запис до..."
         scope.launch {
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
-            val disabledIds = listIdFlow.value
+            val disabledIds = projectIdFlow.value
             listener.requestNavigation("list_chooser_screen/$encodedTitle?disabledIds=$disabledIds")
         }
     }
 
-    fun onListSelectedForInboxPromotion(targetListId: String) {
+    fun onListSelectedForInboxPromotion(targetProjectId: String) {
         val recordToPromote = _recordForPromotion.value
         if (recordToPromote != null) {
-            promoteInboxRecordToGoal(recordToPromote, targetListId)
+            promoteInboxRecordToGoal(recordToPromote, targetProjectId)
             listener.showSnackbar("Запис переміщено до цілей", null)
         }
         _recordForPromotion.value = null

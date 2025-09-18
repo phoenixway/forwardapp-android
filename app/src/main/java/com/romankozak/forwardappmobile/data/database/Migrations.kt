@@ -125,7 +125,7 @@ val MIGRATION_14_15 =
                         val oldListIds: List<String> = gson.fromJson(jsonOld, listStringType)
                         val newRelatedLinks =
                             oldListIds.map { listId ->
-                                RelatedLink(type = LinkType.GOAL_LIST, target = listId)
+                                RelatedLink(type = LinkType.PROJECT, target = listId)
                             }
                         val jsonNew = gson.toJson(newRelatedLinks)
                         relatedLinkList.add(goalId to jsonNew)
@@ -435,8 +435,102 @@ val MIGRATION_29_30 = object : Migration(29, 30) {
 }
 val MIGRATION_30_31 = object : Migration(30, 31) {
     override fun migrate(database: SupportSQLiteDatabase) {
-        // Додаємо нову колонку 'dueTime' до таблиці 'day_tasks'
-        // Room зберігає Long? як INTEGER
         database.execSQL("ALTER TABLE day_tasks ADD COLUMN dueTime INTEGER")
+    }
+}
+
+val MIGRATION_31_32 = object : Migration(31, 32) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Start transaction
+        db.execSQL("BEGIN TRANSACTION;")
+
+        // 1. Rename the main table
+        db.execSQL("ALTER TABLE goal_lists RENAME TO projects;")
+
+        // 2. Rename recent entries table and its column
+        db.execSQL("ALTER TABLE recent_list_entries RENAME TO recent_project_entries;")
+        db.execSQL("ALTER TABLE recent_project_entries RENAME COLUMN list_id TO project_id;")
+
+        // 3. Rename columns in other tables
+        db.execSQL("ALTER TABLE activity_records RENAME COLUMN list_id TO project_id;")
+
+        // 4. Rebuild 'list_items' to rename column and update Foreign Key
+        db.execSQL("""
+            CREATE TABLE `list_items_new` (
+                `id` TEXT NOT NULL, 
+                `project_id` TEXT NOT NULL, 
+                `itemType` TEXT NOT NULL, 
+                `entityId` TEXT NOT NULL, 
+                `item_order` INTEGER NOT NULL, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_list_items_project_id` ON `list_items_new` (`project_id`)")
+        db.execSQL("INSERT INTO list_items_new (id, project_id, itemType, entityId, item_order) SELECT id, listId, itemType, entityId, item_order FROM list_items;")
+        db.execSQL("DROP TABLE list_items;")
+        db.execSQL("ALTER TABLE list_items_new RENAME TO list_items;")
+
+        // 5. Rebuild 'inbox_records' to update Foreign Key
+        db.execSQL("""
+            CREATE TABLE `inbox_records_new` (
+                `id` TEXT NOT NULL, 
+                `projectId` TEXT NOT NULL, 
+                `text` TEXT NOT NULL, 
+                `createdAt` INTEGER NOT NULL, 
+                `item_order` INTEGER NOT NULL, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_inbox_records_projectId` ON `inbox_records_new` (`projectId`)")
+        db.execSQL("INSERT INTO inbox_records_new SELECT * FROM inbox_records;")
+        db.execSQL("DROP TABLE inbox_records;")
+        db.execSQL("ALTER TABLE inbox_records_new RENAME TO inbox_records;")
+
+        // 6. Rebuild 'project_execution_logs' to update Foreign Key
+        db.execSQL("""
+            CREATE TABLE `project_execution_logs_new` (
+                `id` TEXT NOT NULL, 
+                `projectId` TEXT NOT NULL, 
+                `timestamp` INTEGER NOT NULL, 
+                `type` TEXT NOT NULL, 
+                `description` TEXT NOT NULL, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs_new` (`projectId`)")
+        db.execSQL("INSERT INTO project_execution_logs_new SELECT * FROM project_execution_logs;")
+        db.execSQL("DROP TABLE project_execution_logs;")
+        db.execSQL("ALTER TABLE project_execution_logs_new RENAME TO project_execution_logs;")
+
+        // 7. Rebuild 'day_tasks' to update Foreign Key
+        db.execSQL("""
+            CREATE TABLE `day_tasks_new` (
+                `id` TEXT NOT NULL, `dayPlanId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `goalId` TEXT, 
+                `projectId` TEXT, `activityRecordId` TEXT, `taskType` TEXT, `entityId` TEXT, `order` INTEGER NOT NULL, 
+                `priority` TEXT NOT NULL, `status` TEXT NOT NULL, `completed` INTEGER NOT NULL, `scheduledTime` INTEGER, 
+                `estimatedDurationMinutes` INTEGER, `actualDurationMinutes` INTEGER, `reminderTime` INTEGER, 
+                `valueImportance` REAL NOT NULL, `valueImpact` REAL NOT NULL, `effort` REAL NOT NULL, `cost` REAL NOT NULL, 
+                `risk` REAL NOT NULL, `location` TEXT, `tags` TEXT, `notes` TEXT, `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER, `completedAt` INTEGER, `dueTime` INTEGER, PRIMARY KEY(`id`), 
+                FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+                FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, 
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, 
+                FOREIGN KEY(`activityRecordId`) REFERENCES `activity_records`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_dayPlanId` ON `day_tasks_new` (`dayPlanId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_goalId` ON `day_tasks_new` (`goalId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_projectId` ON `day_tasks_new` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_activityRecordId` ON `day_tasks_new` (`activityRecordId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_scheduledTime` ON `day_tasks_new` (`scheduledTime`)")
+        db.execSQL("INSERT INTO day_tasks_new SELECT * FROM day_tasks;")
+        db.execSQL("DROP TABLE day_tasks;")
+        db.execSQL("ALTER TABLE day_tasks_new RENAME TO day_tasks;")
+
+        // Commit transaction
+        db.execSQL("COMMIT;")
     }
 }

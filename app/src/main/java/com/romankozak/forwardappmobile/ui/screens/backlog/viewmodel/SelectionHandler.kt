@@ -2,14 +2,14 @@ package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class SelectionHandler(
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository,
     private val scope: CoroutineScope,
     private val listContentFlow: StateFlow<List<ListItemContent>>,
     private val resultListener: ResultListener,
@@ -37,7 +37,7 @@ class SelectionHandler(
         val itemsToSelect =
             listContentFlow.value
                 .filterNot { it is ListItemContent.LinkItem }
-                .map { it.item.id }
+                .map { it.listItem.id }
                 .toSet()
         resultListener.updateSelectionState(itemsToSelect)
     }
@@ -54,7 +54,7 @@ class SelectionHandler(
 
         val goalsToUpdate =
             listContentFlow.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
+                .filter { it.listItem.id in selectedIds && it is ListItemContent.GoalItem }
                 .map { (it as ListItemContent.GoalItem).goal }
                 .distinctBy { it.id }
 
@@ -63,7 +63,7 @@ class SelectionHandler(
         if (goalsToUpdate.isNotEmpty()) {
             scope.launch {
                 val updatedGoals = goalsToUpdate.map { it.copy(completed = true, updatedAt = System.currentTimeMillis()) }
-                goalRepository.updateGoals(updatedGoals)
+                projectRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Позначено як виконані: ${goalsToUpdate.size}", null)
                 resultListener.forceRefresh()
             }
@@ -77,7 +77,7 @@ class SelectionHandler(
 
         val goalsToUpdate =
             listContentFlow.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
+                .filter { it.listItem.id in selectedIds && it is ListItemContent.GoalItem }
                 .map { (it as ListItemContent.GoalItem).goal }
                 .distinctBy { it.id }
 
@@ -86,7 +86,7 @@ class SelectionHandler(
         if (goalsToUpdate.isNotEmpty()) {
             scope.launch {
                 val updatedGoals = goalsToUpdate.map { it.copy(completed = false, updatedAt = System.currentTimeMillis()) }
-                goalRepository.updateGoals(updatedGoals)
+                projectRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Знято позначку виконання: ${goalsToUpdate.size}", null)
                 resultListener.forceRefresh()
             }
@@ -101,8 +101,8 @@ class SelectionHandler(
 
         val sourceGoalIds =
             listContentFlow.value
-                .filter { it.item.id in selectedIds && it is ListItemContent.GoalItem }
-                .map { it.item.entityId }
+                .filter { it.listItem.id in selectedIds && it is ListItemContent.GoalItem }
+                .map { it.listItem.entityId }
                 .toSet()
 
         resultListener.setPendingAction(actionType, selectedIds, sourceGoalIds)
@@ -115,7 +115,7 @@ class SelectionHandler(
         clearSelection()
 
         scope.launch {
-            goalRepository.deleteListItems(selectedIds.toList())
+            projectRepository.deleteListItems(selectedIds.toList())
             resultListener.showSnackbar("Видалено елементів: ${selectedIds.size}", "Скасувати")
         }
     }

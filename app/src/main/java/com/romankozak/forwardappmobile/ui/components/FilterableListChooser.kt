@@ -33,7 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import kotlinx.coroutines.delay
 import java.util.UUID
 
@@ -42,8 +42,8 @@ fun FilterableListChooser(
     title: String,
     filterText: String,
     onFilterTextChanged: (String) -> Unit,
-    topLevelLists: List<GoalList>,
-    childMap: Map<String, List<GoalList>>,
+    topLevelLists: List<Project>,
+    childMap: Map<String, List<Project>>,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -54,7 +54,7 @@ fun FilterableListChooser(
 ) {
     var isCreatingMode by remember { mutableStateOf(false) }
     var newListName by remember { mutableStateOf("") }
-    var parentForNewList by remember { mutableStateOf<GoalList?>(null) }
+    var parentForNewList by remember { mutableStateOf<Project?>(null) }
     var highlightedListId by remember { mutableStateOf<String?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val searchFocusRequester = remember { FocusRequester() }
@@ -266,7 +266,7 @@ fun FilterableListChooser(
                                 },
                                 disabledIds = disabledIds,
                                 highlightedListId = highlightedListId,
-                                onAddSublistRequest = { parent ->
+                                onAddSubProjectRequest = { parent ->
                                     parentForNewList = parent
                                     isCreatingMode = true
                                     newListName = ""
@@ -369,15 +369,15 @@ private fun SelectableRootItem(
 
 @Composable
 private fun RecursiveSelectableListItem(
-    list: GoalList,
-    childMap: Map<String, List<GoalList>>,
+    list: Project,
+    childMap: Map<String, List<Project>>,
     level: Int,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onSelect: (String) -> Unit,
     disabledIds: Set<String>,
     highlightedListId: String?,
-    onAddSublistRequest: (parentList: GoalList) -> Unit,
+    onAddSubProjectRequest: (parentList: Project) -> Unit,
 ) {
     val isExpanded = list.id in expandedIds
     val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
@@ -446,7 +446,7 @@ private fun RecursiveSelectableListItem(
 
             if (isEnabled) {
                 IconButton(
-                    onClick = { onAddSublistRequest(list) },
+                    onClick = { onAddSubProjectRequest(list) },
                     modifier = Modifier.size(36.dp),
                 ) {
                     Icon(
@@ -479,7 +479,7 @@ private fun RecursiveSelectableListItem(
                     onSelect = onSelect,
                     disabledIds = disabledIds,
                     highlightedListId = highlightedListId,
-                    onAddSublistRequest = onAddSublistRequest,
+                    onAddSubProjectRequest = onAddSubProjectRequest,
                 )
             }
         }

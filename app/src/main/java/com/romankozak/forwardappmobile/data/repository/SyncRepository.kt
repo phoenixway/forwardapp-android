@@ -11,21 +11,24 @@ import androidx.room.withTransaction
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.GoalListDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.RecentListDao
+import com.romankozak.forwardappmobile.data.dao.RecentProjectDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.data.sync.DatabaseContent
+import com.romankozak.forwardappmobile.data.database.models.DatabaseContent
+import com.romankozak.forwardappmobile.data.database.models.FullAppBackup
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevel
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.data.sync.DesktopBackupData
 import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
-import com.romankozak.forwardappmobile.data.sync.DesktopGoal
-import com.romankozak.forwardappmobile.data.sync.DesktopGoalInstance
-import com.romankozak.forwardappmobile.data.sync.DesktopGoalList
-import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.sync.SettingsContent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
@@ -41,6 +44,7 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
+
 
 enum class ChangeType {
     Add,
@@ -64,7 +68,7 @@ data class SyncReport(
 
 private data class LocalSyncState(
     val goals: Map<String, Goal>,
-    val goalLists: Map<String, GoalList>,
+    val goalLists: Map<String, Project>,
     val listItems: Map<String, ListItem>,
 )
 
@@ -75,113 +79,21 @@ constructor(
     private val appDatabase: AppDatabase,
     @ApplicationContext private val context: Context,
     private val goalDao: GoalDao,
-    private val goalListDao: GoalListDao,
+    private val projectDao: ProjectDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val activityRecordDao: ActivityRecordDao,
-    private val recentListDao: RecentListDao,
+    private val recentProjectDao: RecentProjectDao,
     private val inboxRecordDao: InboxRecordDao,
     private val settingsRepository: SettingsRepository,
     private val projectManagementDao: ProjectManagementDao,
 ) {
     private val TAG = "SyncRepository"
     private val gson = Gson()
-    private val client =
+    private val client: HttpClient by lazy {
         HttpClient(CIO) {
             install(ContentNegotiation) { gson() }
         }
-
-    suspend fun fetchBackupFromWifi(address: String): Result<String> =
-        try {
-            var cleanAddress = address.trim()
-            if (!cleanAddress.startsWith("http://") && !cleanAddress.startsWith("https://")) {
-                cleanAddress = "http://$cleanAddress"
-            }
-            val uri = Uri.parse(cleanAddress)
-            val hostAndPort = "${uri.host}:${if (uri.port != -1) uri.port else 8080}"
-            val fullUrl = "http://$hostAndPort/export"
-            Log.d(TAG, "Fetching from: $fullUrl")
-            val response: String = client.get(fullUrl).body()
-            Result.success(response)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching from WiFi", e)
-            Result.failure(e)
-        }
-
-    suspend fun createBackupJsonString(): String {
-        val lists = goalListDao.getAll()
-        val goals = goalDao.getAll()
-        val listItems = listItemDao.getAll()
-
-        val desktopGoals =
-            goals.associate {
-                it.id to
-                        DesktopGoal(
-                            id = it.id,
-                            text = it.text,
-                            completed = it.completed,
-                            createdAt = longToDateString(it.createdAt)!!,
-                            updatedAt = longToDateString(it.updatedAt),
-                            associatedListIds =
-                                it.relatedLinks
-                                    ?.filter { l -> l.type == LinkType.GOAL_LIST }
-                                    ?.map { l -> l.target },
-                            description = it.description,
-                            tags = it.tags,
-                            valueImportance = it.valueImportance,
-                            valueImpact = it.valueImpact,
-                            effort = it.effort,
-                            cost = it.cost,
-                            risk = it.risk,
-                            weightEffort = it.weightEffort,
-                            weightCost = it.weightCost,
-                            weightRisk = it.weightRisk,
-                            rawScore = it.rawScore,
-                            displayScore = it.displayScore,
-                            scoringStatus = it.scoringStatus,
-                        )
-            }
-
-        val goalListItems = listItems.filter { it.itemType == ListItemType.GOAL }
-        val desktopInstances =
-            goalListItems.associate {
-                it.id to DesktopGoalInstance(id = it.id, goalId = it.entityId)
-            }
-
-        val desktopLists =
-            lists.associate { list ->
-                val listInstances = goalListItems.filter { it.listId == list.id }.sortedBy { it.order }
-                list.id to
-                        DesktopGoalList(
-                            id = list.id,
-                            name = list.name,
-                            parentId = list.parentId,
-                            description = list.description,
-                            createdAt = longToDateString(list.createdAt)!!,
-                            updatedAt = longToDateString(list.updatedAt),
-                            itemInstanceIds = listInstances.map { it.id },
-                            isExpanded = list.isExpanded,
-                            order = list.order,
-                            tags = list.tags,
-                        )
-            }
-
-        val desktopBackupData =
-            DesktopBackupData(
-                goals = desktopGoals,
-                goalLists = desktopLists,
-                goalInstances = desktopInstances,
-                notes = emptyMap(),
-            )
-
-        val desktopBackupFile =
-            DesktopBackupFile(
-                version = 4,
-                exportedAt = longToDateString(System.currentTimeMillis())!!,
-                data = desktopBackupData,
-            )
-
-        return gson.toJson(desktopBackupFile)
     }
 
     suspend fun exportFullBackupToFile(): Result<String> =
@@ -212,28 +124,19 @@ constructor(
             Result.failure(e)
         }
 
-    private suspend fun createFullBackupJsonString(): String {
+    suspend fun createFullBackupJsonString(): String {
         val databaseContent =
             DatabaseContent(
                 goals = goalDao.getAll(),
-                goalLists = goalListDao.getAll(),
+                projects = projectDao.getAll(),
                 listItems = listItemDao.getAll(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
-                recentListEntries = recentListDao.getAllEntries(),
+                recentProjectEntries = recentProjectDao.getAllEntries(),
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
             )
-
-        val settingsSnapshot: Preferences = settingsRepository.getPreferencesSnapshot()
-        val settingsMap = settingsSnapshot.asMap().mapKeys { it.key.name }.mapValues { it.value.toString() }
-        val settingsContent = SettingsContent(settings = settingsMap)
-
-        val fullBackup =
-            FullAppBackup(
-                database = databaseContent,
-                settings = settingsContent,
-            )
+        val fullBackup = FullAppBackup(database = databaseContent)
         return gson.toJson(fullBackup)
     }
 
@@ -254,69 +157,70 @@ constructor(
             Log.d(IMPORT_TAG, "Файл успішно прочитано.")
 
             Log.d(IMPORT_TAG, "Починаємо розбір JSON в об'єкт FullAppBackup...")
-            val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
+            val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+            val backup = backupData.database
             Log.d(IMPORT_TAG, "JSON успішно розібрано.")
 
             Log.d(IMPORT_TAG, "Починаємо очищення даних для сумісності...")
-            val cleanedGoalLists =
-                backup.database.goalLists.map { listFromBackup ->
-                    listFromBackup.copy(
-                        // Існуючі перевірки для сумісності
-                        defaultViewModeName = listFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
-                        isProjectManagementEnabled = listFromBackup.isProjectManagementEnabled ?: false,
-                        projectStatus = listFromBackup.projectStatus ?: ProjectStatus.NO_PLAN,
-                        projectStatusText = listFromBackup.projectStatusText ?: "",
-                        projectLogLevel = listFromBackup.projectLogLevel ?: ProjectLogLevel.NORMAL,
-                        totalTimeSpentMinutes = listFromBackup.totalTimeSpentMinutes ?: 0,
-
-                        // ВИПРАВЛЕННЯ: Додано перевірки для нових полів, щоб уникнути NPE
-                        scoringStatus = listFromBackup.scoringStatus ?: ScoringStatus.NOT_ASSESSED,
-                        // Примітивні типи (Float, Int) автоматично отримають 0, якщо їх немає в JSON,
-                        // але для Enum (ScoringStatus) Gson поверне null, що спричиняло помилку.
-                        // Явно задаємо значення за замовчуванням.
-                        valueImportance = listFromBackup.valueImportance,
-                        valueImpact = listFromBackup.valueImpact,
-                        effort = listFromBackup.effort,
-                        cost = listFromBackup.cost,
-                        risk = listFromBackup.risk,
-                        weightEffort = listFromBackup.weightEffort,
-                        weightCost = listFromBackup.weightCost,
-                        weightRisk = listFromBackup.weightRisk,
-                        rawScore = listFromBackup.rawScore,
-                        displayScore = listFromBackup.displayScore
+            val cleanedProjects =
+                backup.projects.map { projectFromBackup ->
+                    projectFromBackup.copy(
+                        defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
+                        isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
+                        projectStatus = projectFromBackup.projectStatus ?: ProjectStatus.NO_PLAN,
+                        projectStatusText = projectFromBackup.projectStatusText ?: "",
+                        projectLogLevel = projectFromBackup.projectLogLevel ?: ProjectLogLevel.NORMAL,
+                        totalTimeSpentMinutes = projectFromBackup.totalTimeSpentMinutes ?: 0,
+                        scoringStatus = projectFromBackup.scoringStatus ?: ScoringStatus.NOT_ASSESSED,
+                        valueImportance = projectFromBackup.valueImportance,
+                        valueImpact = projectFromBackup.valueImpact,
+                        effort = projectFromBackup.effort,
+                        cost = projectFromBackup.cost,
+                        risk = projectFromBackup.risk,
+                        weightEffort = projectFromBackup.weightEffort,
+                        weightCost = projectFromBackup.weightCost,
+                        weightRisk = projectFromBackup.weightRisk,
+                        rawScore = projectFromBackup.rawScore,
+                        displayScore = projectFromBackup.displayScore
                     )
                 }
-            Log.d(IMPORT_TAG, "Очищення даних завершено.")
+            Log.d(IMPORT_TAG, "Очищення даних Project завершено.")
+
+            val cleanedListItems = backup.listItems.mapNotNull { item ->
+                if (item.id.isBlank() || item.projectId.isBlank() || item.entityId.isBlank()) {
+                    Log.w(IMPORT_TAG, "Skipping invalid ListItem due to blank ID(s): $item")
+                    null
+                } else {
+                    item
+                }
+            }
+            Log.d(IMPORT_TAG, "Очищення ListItem завершено. Original: ${backup.listItems.size}, Cleaned: ${cleanedListItems.size}")
 
             appDatabase.withTransaction {
                 Log.d(IMPORT_TAG, "Початок транзакції в БД. Очищення старих даних...")
                 projectManagementDao.deleteAllLogs()
                 inboxRecordDao.deleteAll()
                 linkItemDao.deleteAll()
-                recentListDao.deleteAll()
+                recentProjectDao.deleteAll()
                 activityRecordDao.clearAll()
                 listItemDao.deleteAll()
-                goalListDao.deleteAll()
+                projectDao.deleteAll()
                 goalDao.deleteAll()
                 Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
                 Log.d(IMPORT_TAG, "Вставка нових даних...")
-                goalDao.insertGoals(backup.database.goals)
-                goalListDao.insertLists(cleanedGoalLists)
-                listItemDao.insertItems(backup.database.listItems)
+                goalDao.insertGoals(backup.goals)
+                projectDao.insertProjects(cleanedProjects)
+                listItemDao.insertItems(cleanedListItems)
 
-                backup.database.activityRecords?.let { activityRecordDao.insertAll(it) }
-                backup.database.recentListEntries?.let { recentListDao.insertAll(it) }
-                backup.database.linkItemEntities?.let { linkItemDao.insertAll(it) }
-                backup.database.inboxRecords?.let { inboxRecordDao.insertAll(it) }
-                backup.database.projectExecutionLogs?.let { projectManagementDao.insertAllLogs(it) }
+                backup.activityRecords?.let { activityRecordDao.insertAll(it) }
+                backup.recentProjectEntries?.let { recentProjectDao.insertAll(it) }
+                backup.linkItemEntities?.let { linkItemDao.insertAll(it) }
+                backup.inboxRecords?.let { inboxRecordDao.insertAll(it) }
+                backup.projectExecutionLogs?.let { projectManagementDao.insertAllLogs(it) }
 
                 Log.d(IMPORT_TAG, "Вставка даних завершена.")
             }
-
-            Log.d(IMPORT_TAG, "Відновлення налаштувань...")
-            settingsRepository.restoreFromMap(backup.settings.settings)
-            Log.d(IMPORT_TAG, "Налаштування відновлено.")
 
             Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
             return Result.success("Backup imported successfully!")
@@ -326,95 +230,30 @@ constructor(
         }
     }
 
-    // ... (решта файлу без змін)
-    private fun dateStringToLong(dateString: String?): Long? {
-        if (dateString == null) return null
-        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-        format.timeZone = TimeZone.getTimeZone("UTC")
-        return try {
-            format.parse(dateString)?.time
+    suspend fun fetchBackupFromWifi(address: String): Result<String> =
+        try {
+            var cleanAddress = address.trim()
+            if (!cleanAddress.startsWith("http://") && !cleanAddress.startsWith("https://")) {
+                cleanAddress = "http://$cleanAddress"
+            }
+            val uri = Uri.parse(cleanAddress)
+            val hostAndPort = "${uri.host}:${if (uri.port != -1) uri.port else 8080}"
+            val fullUrl = "http://$hostAndPort/export"
+            Log.d(TAG, "Fetching from: $fullUrl")
+            val response: String = client.get(fullUrl).body()
+            Result.success(response)
         } catch (e: Exception) {
-            null
+            Log.e(TAG, "Error fetching from WiFi", e)
+            Result.failure(e)
         }
-    }
-
-    private fun longToDateString(time: Long?): String? {
-        if (time == null) return null
-        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-        format.timeZone = TimeZone.getTimeZone("UTC")
-        return format.format(Date(time))
-    }
-
-    private fun transformImportedData(data: DesktopBackupData): LocalSyncState {
-        val newGoals =
-            (data.goals ?: emptyMap()).mapValues { (_, goal) ->
-                Goal(
-                    id = goal.id,
-                    text = goal.text,
-                    completed = goal.completed,
-                    createdAt = dateStringToLong(goal.createdAt) ?: 0L,
-                    updatedAt = dateStringToLong(goal.updatedAt),
-                    description = goal.description,
-                    tags = goal.tags,
-                    relatedLinks =
-                        goal.associatedListIds?.map { listId ->
-                            RelatedLink(type = LinkType.GOAL_LIST, target = listId, displayName = data.goalLists?.get(listId)?.name)
-                        },
-                    valueImportance = goal.valueImportance,
-                    valueImpact = goal.valueImpact,
-                    effort = goal.effort,
-                    cost = goal.cost,
-                    risk = goal.risk,
-                    weightEffort = goal.weightEffort,
-                    weightCost = goal.weightCost,
-                    weightRisk = goal.weightRisk,
-                    rawScore = goal.rawScore,
-                    displayScore = goal.displayScore,
-                    scoringStatus = goal.scoringStatus,
-                )
-            }
-
-        val newGoalLists =
-            (data.goalLists ?: emptyMap()).mapValues { (_, list) ->
-                GoalList(
-                    id = list.id,
-                    name = list.name,
-                    parentId = list.parentId,
-                    description = list.description,
-                    createdAt = dateStringToLong(list.createdAt) ?: 0L,
-                    updatedAt = dateStringToLong(list.updatedAt),
-                    isExpanded = list.isExpanded ?: true,
-                    order = list.order ?: 0L,
-                    tags = list.tags,
-                )
-            }
-
-        val newListItems = mutableMapOf<String, ListItem>()
-        (data.goalLists ?: emptyMap()).values.forEach { list ->
-            list.itemInstanceIds.forEachIndexed { index, instanceId ->
-                data.goalInstances?.get(instanceId)?.let { originalInstance ->
-                    newListItems[instanceId] =
-                        ListItem(
-                            id = originalInstance.id,
-                            listId = list.id,
-                            itemType = ListItemType.GOAL,
-                            entityId = originalInstance.goalId,
-                            order = index.toLong(),
-                        )
-                }
-            }
-        }
-
-        return LocalSyncState(goals = newGoals, goalLists = newGoalLists, listItems = newListItems)
-    }
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
-        try {
+/*        try {
             val backupFile = gson.fromJson(jsonString, DesktopBackupFile::class.java)
             val remoteData = backupFile.data ?: throw IllegalArgumentException("Backup data is missing.")
 
             val remoteState = transformImportedData(remoteData)
-            val localLists = goalListDao.getAll().associateBy { it.id }
+            val localLists = projectDao.getAll().associateBy { it.id }
             val localGoals = goalDao.getAll().associateBy { it.id }
             val localItems = listItemDao.getAll().associateBy { it.id }
 
@@ -482,7 +321,9 @@ constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error creating sync report", e)
             throw IllegalStateException("Error parsing data: ${e.message}", e)
-        }
+        }*/
+        val changes = mutableListOf<SyncChange>()
+        return SyncReport(changes)
     }
 
     suspend fun applyChanges(approvedChanges: List<SyncChange>) {
@@ -491,14 +332,14 @@ constructor(
         changesByType[ChangeType.Delete]?.forEach { change ->
             when (change.entityType) {
                 "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
-                "Список" -> goalListDao.deleteListById(change.id)
+                "Список" -> projectDao.deleteProjectById(change.id)
                 "Ціль" -> goalDao.deleteGoalById(change.id)
             }
         }
 
         changesByType[ChangeType.Update]?.forEach { change ->
             when (change.entityType) {
-                "Список" -> goalListDao.update(change.entity as GoalList)
+                "Список" -> projectDao.update(change.entity as Project)
                 "Ціль" -> goalDao.updateGoal(change.entity as Goal)
             }
         }
@@ -506,10 +347,11 @@ constructor(
         val addsAndMoves = (changesByType[ChangeType.Add] ?: emptyList()) + (changesByType[ChangeType.Move] ?: emptyList())
         addsAndMoves.forEach { change ->
             when (change.entityType) {
-                "Список" -> goalListDao.insert(change.entity as GoalList)
+                "Список" -> projectDao.insert(change.entity as Project)
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }
         }
     }
+
 }

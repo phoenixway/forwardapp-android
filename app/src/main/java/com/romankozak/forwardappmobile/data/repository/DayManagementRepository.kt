@@ -5,6 +5,7 @@ import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.di.IoDispatcher
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -21,8 +22,9 @@ class DayManagementRepository @Inject constructor(
     private val dayTaskDao: DayTaskDao,
     private val dailyMetricDao: DailyMetricDao,
     private val goalDao: GoalDao,
-    private val goalListDao: GoalListDao,
+    private val projectDao: ProjectDao,
     private val activityRepository: ActivityRepository,
+    private val alarmScheduler: AlarmScheduler, // НОВА ЗАЛЕЖНІСТЬ
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
@@ -33,6 +35,15 @@ class DayManagementRepository @Inject constructor(
 
     fun getPlanForDate(date: Long): Flow<DayPlan?> =
         dayPlanDao.getPlanForDate(getDayStart(date)).flowOn(ioDispatcher)
+
+    /**
+     * НОВИЙ МЕТОД: Отримує ID плану для вказаної дати.
+     * Потрібен для навігації між днями у DayPlanViewModel.
+     */
+    suspend fun getPlanIdForDate(date: Long): String? = withContext(ioDispatcher) {
+        val dayStart = getDayStart(date)
+        dayPlanDao.getPlanForDateSync(dayStart)?.id
+    }
 
     suspend fun createOrUpdateDayPlan(date: Long, name: String? = null): DayPlan = withContext(ioDispatcher) {
         val dayStart = getDayStart(date)
@@ -117,7 +128,7 @@ class DayManagementRepository @Inject constructor(
 
     @Transaction
     suspend fun addProjectToDayPlan(dayPlanId: String, projectId: String, scheduledTime: Long? = null): DayTask = withContext(ioDispatcher) {
-        val project = goalListDao.getGoalListById(projectId)
+        val project = projectDao.getProjectById(projectId)
             ?: throw NoSuchElementException("Project with id $projectId not found")
 
         val taskParams = NewTaskParameters(
@@ -130,6 +141,33 @@ class DayManagementRepository @Inject constructor(
             taskType = ListItemType.SUBLIST // <-- ВИПРАВЛЕНО: Явно вказуємо тип
         )
         addTaskToDayPlan(taskParams)
+    }
+
+    /**
+     * НОВИЙ МЕТОД: Копіює завдання у план на сьогодні.
+     * Спочатку знаходить або створює план для сьогоднішнього дня, а потім додає до нього копію завдання.
+     */
+    suspend fun copyTaskToTodaysPlan(taskToCopy: DayTask) = withContext(ioDispatcher) {
+        // 1. Отримати або створити план на сьогодні.
+        val todayTimestamp = getDayStart(System.currentTimeMillis())
+        val todaysPlan = createOrUpdateDayPlan(todayTimestamp)
+
+        // 2. Підготувати параметри для нового завдання на основі існуючого.
+        val newTaskParams = NewTaskParameters(
+            dayPlanId = todaysPlan.id,
+            title = taskToCopy.title,
+            description = taskToCopy.description,
+            goalId = taskToCopy.goalId,
+            projectId = taskToCopy.projectId,
+            priority = taskToCopy.priority,
+            scheduledTime = null, // Не переносимо запланований час, щоб уникнути плутанини
+            estimatedDurationMinutes = taskToCopy.estimatedDurationMinutes,
+            taskType = taskToCopy.taskType,
+            order = null // Дозволяємо addTaskToDayPlan автоматично визначити порядок
+        )
+
+        // 3. Додати нове завдання в сьогоднішній план.
+        addTaskToDayPlan(newTaskParams)
     }
 
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>> =
@@ -185,13 +223,6 @@ class DayManagementRepository @Inject constructor(
         recalculateDayProgress(taskId)
     }
 
-    suspend fun deleteTask(taskId: String) = withContext(ioDispatcher) {
-        val task = dayTaskDao.getTaskById(taskId)
-        if (task != null) {
-            dayTaskDao.deleteById(taskId)
-            calculateAndSaveDailyMetrics(task.dayPlanId)
-        }
-    }
 
     suspend fun updateTask(
         taskId: String,
@@ -211,20 +242,6 @@ class DayManagementRepository @Inject constructor(
         dayTaskDao.update(updatedTask)
     }
 
-    suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
-        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
-        val now = System.currentTimeMillis()
-        val newStatus = !task.completed
-
-        dayTaskDao.updateTaskCompletion(
-            taskId = taskId,
-            completed = newStatus,
-            status = if (newStatus) TaskStatus.COMPLETED else TaskStatus.NOT_STARTED,
-            completedAt = if (newStatus) now else null,
-            updatedAt = now
-        )
-        recalculateDayProgress(taskId)
-    }
 
     suspend fun startTaskWithTimeTracking(taskId: String): ActivityRecord? = withContext(ioDispatcher) {
         val task = dayTaskDao.getTaskById(taskId) ?: return@withContext null
@@ -232,7 +249,7 @@ class DayManagementRepository @Inject constructor(
 
         val activityRecord = when {
             task.goalId != null -> activityRepository.startGoalActivity(task.goalId)
-            task.projectId != null -> activityRepository.startListActivity(task.projectId)
+            task.projectId != null -> activityRepository.startProjectActivity(task.projectId)
             else -> activityRepository.startActivity(task.title, now)
         }
 
@@ -366,6 +383,60 @@ class DayManagementRepository @Inject constructor(
             importance >= 6f -> TaskPriority.HIGH
             importance >= 4f -> TaskPriority.MEDIUM
             else -> TaskPriority.LOW
+        }
+    }
+
+    //
+    suspend fun deleteTask(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId)
+        if (task != null) {
+            // Скасовуємо нагадування перед видаленням
+            if (task.reminderTime != null) {
+                alarmScheduler.cancelForTask(task)
+            }
+            dayTaskDao.deleteById(taskId)
+            calculateAndSaveDailyMetrics(task.dayPlanId)
+        }
+    }
+
+    suspend fun toggleTaskCompletion(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
+        val now = System.currentTimeMillis()
+        val newStatus = !task.completed
+
+        dayTaskDao.updateTaskCompletion(
+            taskId = taskId,
+            completed = newStatus,
+            status = if (newStatus) TaskStatus.COMPLETED else TaskStatus.NOT_STARTED,
+            completedAt = if (newStatus) now else null,
+            updatedAt = now
+        )
+
+        // Керуємо нагадуванням залежно від статусу
+        if (task.reminderTime != null) {
+            if (newStatus) { // Якщо завдання виконано -> скасувати нагадування
+                alarmScheduler.cancelForTask(task)
+            } else { // Якщо завдання знову активне -> перепланувати нагадування
+                alarmScheduler.scheduleForTask(task)
+            }
+        }
+
+        recalculateDayProgress(taskId)
+    }
+
+    suspend fun setTaskReminder(taskId: String, reminderTime: Long) = withContext(ioDispatcher) {
+        dayTaskDao.updateReminderTime(taskId, reminderTime, System.currentTimeMillis())
+        val updatedTask = dayTaskDao.getTaskById(taskId)
+        if (updatedTask != null) {
+            alarmScheduler.scheduleForTask(updatedTask)
+        }
+    }
+
+    suspend fun clearTaskReminder(taskId: String) = withContext(ioDispatcher) {
+        val task = dayTaskDao.getTaskById(taskId)
+        dayTaskDao.updateReminderTime(taskId, null, System.currentTimeMillis())
+        if (task != null) {
+            alarmScheduler.cancelForTask(task)
         }
     }
 }
