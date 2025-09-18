@@ -14,10 +14,9 @@ import com.romankozak.forwardappmobile.data.database.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.domain.GenerationService
-import com.romankozak.forwardappmobile.domain.Message
-import com.romankozak.forwardappmobile.domain.OllamaService
-import com.romankozak.forwardappmobile.domain.RoleItem
+import com.romankozak.forwardappmobile.domain.aichat.GenerationService
+import com.romankozak.forwardappmobile.domain.aichat.OllamaService
+import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

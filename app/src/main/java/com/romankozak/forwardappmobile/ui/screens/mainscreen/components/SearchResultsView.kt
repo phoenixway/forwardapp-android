@@ -27,7 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.SearchResult
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable

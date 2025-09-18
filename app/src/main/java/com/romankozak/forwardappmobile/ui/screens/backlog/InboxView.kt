@@ -3,13 +3,11 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.InboxScreen
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectViewModel
 
 @Composable
 fun InboxView(
