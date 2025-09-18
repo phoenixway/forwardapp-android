@@ -326,4 +326,32 @@ constructor(
         return SyncReport(changes)
     }
 
+    suspend fun applyChanges(approvedChanges: List<SyncChange>) {
+        val changesByType = approvedChanges.groupBy { it.type }
+
+        changesByType[ChangeType.Delete]?.forEach { change ->
+            when (change.entityType) {
+                "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
+                "Список" -> projectDao.deleteProjectById(change.id)
+                "Ціль" -> goalDao.deleteGoalById(change.id)
+            }
+        }
+
+        changesByType[ChangeType.Update]?.forEach { change ->
+            when (change.entityType) {
+                "Список" -> projectDao.update(change.entity as Project)
+                "Ціль" -> goalDao.updateGoal(change.entity as Goal)
+            }
+        }
+
+        val addsAndMoves = (changesByType[ChangeType.Add] ?: emptyList()) + (changesByType[ChangeType.Move] ?: emptyList())
+        addsAndMoves.forEach { change ->
+            when (change.entityType) {
+                "Список" -> projectDao.insert(change.entity as Project)
+                "Ціль" -> goalDao.insertGoal(change.entity as Goal)
+                "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
+            }
+        }
+    }
+
 }
