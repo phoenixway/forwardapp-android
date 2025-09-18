@@ -252,6 +252,14 @@ data class GlobalProjectSearchResult(
     val pathSegments: List<String>,
 )
 
+
+data class GlobalSearchResult(
+    @Embedded
+    val goal: Goal,
+    val listId: String,
+    val listName: String,
+)
+
 sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
     abstract val uniqueId: String
@@ -287,4 +295,6 @@ sealed class GlobalSearchResultItem {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "inbox_${record.id}"
     }
+
+
 }

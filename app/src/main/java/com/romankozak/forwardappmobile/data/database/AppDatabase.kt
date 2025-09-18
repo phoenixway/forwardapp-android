@@ -6,15 +6,14 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.data.database.models.DailyPlanConverters
 
 @Database(
     entities = [
+        // Основні сутності
         Goal::class,
         Project::class,
         ListItem::class,
         ActivityRecord::class,
-        ActivityRecordFts::class,
         RecentProjectEntry::class,
         LinkItemEntity::class,
         InboxRecord::class,
@@ -22,14 +21,19 @@ import com.romankozak.forwardappmobile.data.database.models.DailyPlanConverters
         ProjectExecutionLog::class,
         DayPlan::class,
         DayTask::class,
-        DailyMetric::class
+        DailyMetric::class,
+        // FTS (Full-Text Search) сутності
+        GoalFts::class,
+        ProjectFts::class,
+        ActivityRecordFts::class // <-- Додано відсутній клас
     ],
     version = 32,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),
+        // Додайте інші автоміграції, якщо вони потрібні
     ],
-    exportSchema = true,
+    exportSchema = true
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
