@@ -322,6 +322,8 @@ class ProjectViewModel @Inject constructor(
                 emit(ListHierarchyData())
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
+// ProjectViewModel.kt
+
     val longDescendantsMap: StateFlow<Map<String, Boolean>> = _allProjectsFlat
         .map { allProjects ->
             if (allProjects.isEmpty()) return@map emptyMap<String, Boolean>()
@@ -330,7 +332,12 @@ class ProjectViewModel @Inject constructor(
             val memo = mutableMapOf<String, Boolean>()
             val characterLimit = 35
 
-            fun hasLongDescendantsRecursive(projectId: String): Boolean {
+            fun hasLongDescendantsRecursive(projectId: String, visitedInPath: Set<String>): Boolean {
+                // 1. Check for a cycle. If we've seen this ID in this path, stop.
+                if (projectId in visitedInPath) {
+                    return false
+                }
+
                 if (memo.containsKey(projectId)) return memo[projectId]!!
 
                 val children = childMap[projectId] ?: emptyList()
@@ -339,7 +346,8 @@ class ProjectViewModel @Inject constructor(
                         memo[projectId] = true
                         return true
                     }
-                    if (hasLongDescendantsRecursive(child.id)) {
+                    // 2. Pass the updated path to the next recursive call.
+                    if (hasLongDescendantsRecursive(child.id, visitedInPath + projectId)) {
                         memo[projectId] = true
                         return true
                     }
@@ -349,7 +357,8 @@ class ProjectViewModel @Inject constructor(
             }
 
             allProjects.forEach { project ->
-                resultMap[project.id] = hasLongDescendantsRecursive(project.id)
+                // 3. Start each check with an empty path.
+                resultMap[project.id] = hasLongDescendantsRecursive(project.id, emptySet())
             }
             resultMap
         }
