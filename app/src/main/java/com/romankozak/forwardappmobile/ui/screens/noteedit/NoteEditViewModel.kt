@@ -4,7 +4,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,36 +30,36 @@ data class NoteEditUiState(
 
 @HiltViewModel
 class NoteEditViewModel
-    @Inject
-    constructor(
-        private val goalRepository: GoalRepository,
-        savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
-        private val _uiState = MutableStateFlow(NoteEditUiState())
-        val uiState = _uiState.asStateFlow()
+@Inject
+constructor(
+    private val projectRepository: ProjectRepository,
+    savedStateHandle: SavedStateHandle,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(NoteEditUiState())
+    val uiState = _uiState.asStateFlow()
 
-        private val _events = Channel<NoteEditEvent>()
-        val events = _events.receiveAsFlow()
+    private val _events = Channel<NoteEditEvent>()
+    val events = _events.receiveAsFlow()
 
-        init {
-            viewModelScope.launch {
-                _uiState.value =
-                    NoteEditUiState(
-                        isReady = true,
-                        error = "Функціонал нотаток видалено.",
-                    )
-            }
-        }
-
-        fun onTitleChange(newValue: TextFieldValue) {
-        }
-
-        fun onContentChange(newValue: TextFieldValue) {
-        }
-
-        fun onSave() {
-            viewModelScope.launch {
-                _events.send(NoteEditEvent.NavigateBack())
-            }
+    init {
+        viewModelScope.launch {
+            _uiState.value =
+                NoteEditUiState(
+                    isReady = true,
+                    error = "Функціонал нотаток видалено.",
+                )
         }
     }
+
+    fun onTitleChange(newValue: TextFieldValue) {
+    }
+
+    fun onContentChange(newValue: TextFieldValue) {
+    }
+
+    fun onSave() {
+        viewModelScope.launch {
+            _events.send(NoteEditEvent.NavigateBack())
+        }
+    }
+}

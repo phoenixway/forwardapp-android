@@ -22,7 +22,7 @@ class DayManagementRepository @Inject constructor(
     private val dayTaskDao: DayTaskDao,
     private val dailyMetricDao: DailyMetricDao,
     private val goalDao: GoalDao,
-    private val goalListDao: GoalListDao,
+    private val projectDao: ProjectDao,
     private val activityRepository: ActivityRepository,
     private val alarmScheduler: AlarmScheduler, // НОВА ЗАЛЕЖНІСТЬ
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
@@ -128,7 +128,7 @@ class DayManagementRepository @Inject constructor(
 
     @Transaction
     suspend fun addProjectToDayPlan(dayPlanId: String, projectId: String, scheduledTime: Long? = null): DayTask = withContext(ioDispatcher) {
-        val project = goalListDao.getGoalListById(projectId)
+        val project = projectDao.getGoalListById(projectId)
             ?: throw NoSuchElementException("Project with id $projectId not found")
 
         val taskParams = NewTaskParameters(

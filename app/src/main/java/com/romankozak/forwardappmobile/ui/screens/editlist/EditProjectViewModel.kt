@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.ui.screens.editlist
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -14,8 +14,8 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 
-data class EditListUiState(
-    val list: GoalList? = null,
+data class EditProjectUiState(
+    val project: Project? = null,
     val name: String = "",
     val tags: List<String> = emptyList(),
     val reminderTime: Long? = null,
@@ -33,42 +33,42 @@ data class EditListUiState(
 )
 
 @HiltViewModel
-class EditListViewModel
+class EditProjectViewModel
 @Inject
 constructor(
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository,
     private val alarmScheduler: AlarmScheduler,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    private val listId: String = checkNotNull(savedStateHandle["listId"])
+    private val projectId: String = checkNotNull(savedStateHandle["projectId"])
 
-    private val _uiState = MutableStateFlow(EditListUiState())
-    val uiState: StateFlow<EditListUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(EditProjectUiState())
+    val uiState: StateFlow<EditProjectUiState> = _uiState.asStateFlow()
 
-    private var originalList: GoalList? = null
+    private var originalProject: Project? = null
 
     init {
         viewModelScope.launch {
-            val loadedList = goalRepository.getGoalListById(listId)
-            originalList = loadedList
+            val loadedProject = projectRepository.getProjectById(projectId)
+            originalProject = loadedProject
             _uiState.update {
-                if (loadedList != null) {
+                if (loadedProject != null) {
                     it.copy(
-                        list = loadedList,
-                        name = loadedList.name,
-                        tags = loadedList.tags ?: emptyList(),
-                        reminderTime = loadedList.reminderTime,
-                        scoringStatus = loadedList.scoringStatus,
-                        isScoringEnabled = loadedList.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS,
-                        valueImportance = loadedList.valueImportance,
-                        valueImpact = loadedList.valueImpact,
-                        effort = loadedList.effort,
-                        cost = loadedList.cost,
-                        risk = loadedList.risk,
-                        weightEffort = loadedList.weightEffort,
-                        weightCost = loadedList.weightCost,
-                        weightRisk = loadedList.weightRisk,
-                        rawScore = loadedList.rawScore
+                        project = loadedProject,
+                        name = loadedProject.name,
+                        tags = loadedProject.tags ?: emptyList(),
+                        reminderTime = loadedProject.reminderTime,
+                        scoringStatus = loadedProject.scoringStatus,
+                        isScoringEnabled = loadedProject.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS,
+                        valueImportance = loadedProject.valueImportance,
+                        valueImpact = loadedProject.valueImpact,
+                        effort = loadedProject.effort,
+                        cost = loadedProject.cost,
+                        risk = loadedProject.risk,
+                        weightEffort = loadedProject.weightEffort,
+                        weightCost = loadedProject.weightCost,
+                        weightRisk = loadedProject.weightRisk,
+                        rawScore = loadedProject.rawScore
                     )
                 } else {
                     it
@@ -85,13 +85,13 @@ constructor(
         _uiState.update { it.copy(tags = newTags) }
     }
 
-    fun onSave(): GoalList? {
+    fun onSave(): Project? {
         if (_uiState.value.name.isBlank()) return null
 
         val state = _uiState.value
-        val currentList = originalList ?: return null
+        val currentProject = originalProject ?: return null
 
-        val tempGoalList = currentList.copy(
+        val tempProject = currentProject.copy(
             name = state.name,
             tags = state.tags.filter { it.isNotBlank() }.map { it.trim() },
             updatedAt = System.currentTimeMillis(),
@@ -107,22 +107,22 @@ constructor(
             weightRisk = state.weightRisk
         )
 
-        val updatedList = GoalScoringManager.calculateScoresForList(tempGoalList)
+        val updatedProject = GoalScoringManager.calculateScoresForProject(tempProject)
 
         viewModelScope.launch {
-            val oldReminderTime = originalList?.reminderTime
-            val newReminderTime = updatedList.reminderTime
+            val oldReminderTime = originalProject?.reminderTime
+            val newReminderTime = updatedProject.reminderTime
             if (newReminderTime != oldReminderTime) {
                 if (newReminderTime != null) {
-                    alarmScheduler.scheduleForList(updatedList)
+                    alarmScheduler.scheduleForProject(updatedProject)
                 } else {
-                    originalList?.let { alarmScheduler.cancelForList(it) }
+                    originalProject?.let { alarmScheduler.cancelForProject(it) }
                 }
             }
 
-            goalRepository.updateGoalList(updatedList)
+            projectRepository.updateProject(updatedProject)
         }
-        return updatedList
+        return updatedProject
     }
 
     fun onSetReminder(year: Int, month: Int, day: Int, hour: Int, minute: Int) {
@@ -150,7 +150,7 @@ constructor(
     fun onWeightCostChange(value: Float) = onScoringParameterChange { it.copy(weightCost = value) }
     fun onWeightRiskChange(value: Float) = onScoringParameterChange { it.copy(weightRisk = value) }
 
-    private fun onScoringParameterChange(update: (EditListUiState) -> EditListUiState) {
+    private fun onScoringParameterChange(update: (EditProjectUiState) -> EditProjectUiState) {
         _uiState.update(update)
         if (_uiState.value.scoringStatus == ScoringStatus.NOT_ASSESSED) {
             _uiState.update { it.copy(scoringStatus = ScoringStatus.ASSESSED) }
@@ -160,7 +160,7 @@ constructor(
 
     private fun updateScores() {
         val state = _uiState.value
-        val tempList = (state.list ?: return).copy(
+        val tempProject = (state.project ?: return).copy(
             scoringStatus = state.scoringStatus,
             valueImportance = state.valueImportance,
             valueImpact = state.valueImpact,
@@ -171,7 +171,7 @@ constructor(
             weightCost = state.weightCost,
             weightRisk = state.weightRisk
         )
-        val updatedList = GoalScoringManager.calculateScoresForList(tempList)
-        _uiState.update { it.copy(rawScore = updatedList.rawScore) }
+        val updatedProject = GoalScoringManager.calculateScoresForProject(tempProject)
+        _uiState.update { it.copy(rawScore = updatedProject.rawScore) }
     }
 }

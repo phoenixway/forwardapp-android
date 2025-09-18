@@ -27,7 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
@@ -35,7 +35,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
-import com.romankozak.forwardappmobile.ui.navigation.dayManagementGraph
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -43,7 +42,7 @@ class MainActivity : ComponentActivity() {
     private val tag = "MainActivity"
 
     @Inject
-    lateinit var goalRepository: GoalRepository
+    lateinit var projectRepository: ProjectRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -101,9 +100,9 @@ class MainActivity : ComponentActivity() {
                 val dayToProcess = lastLogCalendar.apply { add(Calendar.DAY_OF_YEAR, 1) }
 
                 while (dayToProcess.before(todayCalendar)) {
-                    val projectId = "your_project_id_to_log" 
+                    val projectId = "your_project_id_to_log"
 
-                    goalRepository.logProjectTimeSummaryForDate(projectId, dayToProcess)
+                    projectRepository.logProjectTimeSummaryForDate(projectId, dayToProcess)
 
                     dayToProcess.add(Calendar.DAY_OF_YEAR, 1)
                 }
@@ -192,9 +191,9 @@ private fun RequestAllPermissions() {
                 Text(
                     text =
                         when (permissionType) {
-                            "notification" -> "🔔 Notification Permission"
-                            "alarm" -> "⏰ Exact Alarm Permission"
-                            else -> "📱 Permission Required"
+                            "notification" -> "粕 Notification Permission"
+                            "alarm" -> "竢ｰ Exact Alarm Permission"
+                            else -> "導 Permission Required"
                         },
                 )
             },
@@ -255,7 +254,7 @@ private fun RequestAllPermissions() {
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("🛠️ Debug Controls", style = MaterialTheme.typography.titleMedium)
+                    Text("屏ｸDebug Controls", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
@@ -269,7 +268,7 @@ private fun RequestAllPermissions() {
                             },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("📱 Permissions", maxLines = 1)
+                            Text("導 Permissions", maxLines = 1)
                         }
 
                         Button(
@@ -281,7 +280,7 @@ private fun RequestAllPermissions() {
                             },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("🔋 Battery", maxLines = 1)
+                            Text("萩 Battery", maxLines = 1)
                         }
                     }
                 }

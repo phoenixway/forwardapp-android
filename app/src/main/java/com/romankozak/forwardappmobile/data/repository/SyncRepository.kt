@@ -11,12 +11,12 @@ import androidx.room.withTransaction
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.GoalListDao
+import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.RecentListDao
+import com.romankozak.forwardappmobile.data.dao.RecentProjectDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.sync.DatabaseContent
@@ -75,11 +75,11 @@ constructor(
     private val appDatabase: AppDatabase,
     @ApplicationContext private val context: Context,
     private val goalDao: GoalDao,
-    private val goalListDao: GoalListDao,
+    private val projectDao: ProjectDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val activityRecordDao: ActivityRecordDao,
-    private val recentListDao: RecentListDao,
+    private val recentProjectDao: RecentProjectDao,
     private val inboxRecordDao: InboxRecordDao,
     private val settingsRepository: SettingsRepository,
     private val projectManagementDao: ProjectManagementDao,
@@ -109,7 +109,7 @@ constructor(
         }
 
     suspend fun createBackupJsonString(): String {
-        val lists = goalListDao.getAll()
+        val lists = projectDao.getAll()
         val goals = goalDao.getAll()
         val listItems = listItemDao.getAll()
 
@@ -216,10 +216,10 @@ constructor(
         val databaseContent =
             DatabaseContent(
                 goals = goalDao.getAll(),
-                goalLists = goalListDao.getAll(),
+                goalLists = projectDao.getAll(),
                 listItems = listItemDao.getAll(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
-                recentListEntries = recentListDao.getAllEntries(),
+                recentListEntries = recentProjectDao.getAllEntries(),
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
@@ -293,20 +293,20 @@ constructor(
                 projectManagementDao.deleteAllLogs()
                 inboxRecordDao.deleteAll()
                 linkItemDao.deleteAll()
-                recentListDao.deleteAll()
+                recentProjectDao.deleteAll()
                 activityRecordDao.clearAll()
                 listItemDao.deleteAll()
-                goalListDao.deleteAll()
+                projectDao.deleteAll()
                 goalDao.deleteAll()
                 Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
                 Log.d(IMPORT_TAG, "Вставка нових даних...")
                 goalDao.insertGoals(backup.database.goals)
-                goalListDao.insertLists(cleanedGoalLists)
+                projectDao.insertLists(cleanedGoalLists)
                 listItemDao.insertItems(backup.database.listItems)
 
                 backup.database.activityRecords?.let { activityRecordDao.insertAll(it) }
-                backup.database.recentListEntries?.let { recentListDao.insertAll(it) }
+                backup.database.recentListEntries?.let { recentProjectDao.insertAll(it) }
                 backup.database.linkItemEntities?.let { linkItemDao.insertAll(it) }
                 backup.database.inboxRecords?.let { inboxRecordDao.insertAll(it) }
                 backup.database.projectExecutionLogs?.let { projectManagementDao.insertAllLogs(it) }
@@ -414,7 +414,7 @@ constructor(
             val remoteData = backupFile.data ?: throw IllegalArgumentException("Backup data is missing.")
 
             val remoteState = transformImportedData(remoteData)
-            val localLists = goalListDao.getAll().associateBy { it.id }
+            val localLists = projectDao.getAll().associateBy { it.id }
             val localGoals = goalDao.getAll().associateBy { it.id }
             val localItems = listItemDao.getAll().associateBy { it.id }
 
@@ -491,14 +491,14 @@ constructor(
         changesByType[ChangeType.Delete]?.forEach { change ->
             when (change.entityType) {
                 "Привʼязка" -> listItemDao.deleteItemsByIds(listOf(change.id))
-                "Список" -> goalListDao.deleteListById(change.id)
+                "Список" -> projectDao.deleteListById(change.id)
                 "Ціль" -> goalDao.deleteGoalById(change.id)
             }
         }
 
         changesByType[ChangeType.Update]?.forEach { change ->
             when (change.entityType) {
-                "Список" -> goalListDao.update(change.entity as GoalList)
+                "Список" -> projectDao.update(change.entity as GoalList)
                 "Ціль" -> goalDao.updateGoal(change.entity as Goal)
             }
         }
@@ -506,7 +506,7 @@ constructor(
         val addsAndMoves = (changesByType[ChangeType.Add] ?: emptyList()) + (changesByType[ChangeType.Move] ?: emptyList())
         addsAndMoves.forEach { change ->
             when (change.entityType) {
-                "Список" -> goalListDao.insert(change.entity as GoalList)
+                "Список" -> projectDao.insert(change.entity as GoalList)
                 "Ціль" -> goalDao.insertGoal(change.entity as Goal)
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }

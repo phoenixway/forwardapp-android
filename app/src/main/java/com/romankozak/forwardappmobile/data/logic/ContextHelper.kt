@@ -1,10 +1,9 @@
-// File: data/logic/ContextHandler.kt
 package com.romankozak.forwardappmobile.data.logic
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext // <-- NEW: Імпорт необхідного data-класу
+import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -20,10 +19,10 @@ import javax.inject.Singleton
 class ContextHandler
 @Inject
 constructor(
-    private val goalRepositoryProvider: Provider<GoalRepository>,
+    private val projectRepositoryProvider: Provider<ProjectRepository>,
     private val settingsRepository: SettingsRepository,
 ) {
-    private val goalRepository: GoalRepository by lazy { goalRepositoryProvider.get() }
+    private val projectRepository: ProjectRepository by lazy { projectRepositoryProvider.get() }
 
     private val contextTagMap = mutableMapOf<String, String>()
     private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())
@@ -35,10 +34,8 @@ constructor(
     private val _contextMarkerToEmojiMap = MutableStateFlow<Map<String, String>>(emptyMap())
     val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = _contextMarkerToEmojiMap.asStateFlow()
 
-    // NEW: Додаємо потік, який очікує ViewModel
     private val _allContextsFlow = MutableStateFlow<List<UiContext>>(emptyList())
     val allContextsFlow: StateFlow<List<UiContext>> = _allContextsFlow.asStateFlow()
-
 
     private val contextMarkerMap = mutableMapOf<String, String>()
 
@@ -50,13 +47,10 @@ constructor(
         loadContextSettings()
     }
 
-    // File: data/logic/ContextHandler.kt
-
     private suspend fun loadContextSettings() {
         val localContextTagMap = mutableMapOf<String, String>()
         val localContextMarkerMap = mutableMapOf<String, String>()
         val localMarkerToEmojiMap = mutableMapOf<String, String>()
-        // NEW: Створюємо тимчасовий список для побудови UiContext
         val contextsBeingBuilt = mutableListOf<UiContext>()
 
         val reservedContextsInfo =
@@ -82,13 +76,12 @@ constructor(
             localContextMarkerMap[name.uppercase()] = marker
             if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
 
-            // UPDATED: Додаємо UiContext для зарезервованого контексту
             contextsBeingBuilt.add(
                 UiContext(
                     name = name.lowercase(),
                     emoji = emoji,
                     tag = tag,
-                    isReserved = true // Це зарезервований контекст
+                    isReserved = true
                 )
             )
         }
@@ -103,22 +96,19 @@ constructor(
                 localContextMarkerMap[name.uppercase()] = marker
                 if (emoji.isNotBlank()) localMarkerToEmojiMap[marker] = emoji
 
-                // UPDATED: Додаємо UiContext для користувацького контексту
                 contextsBeingBuilt.add(
                     UiContext(
                         name = name.lowercase(),
                         emoji = emoji,
                         tag = tag,
-                        isReserved = false // Це користувацький контекст
+                        isReserved = false
                     )
                 )
             }
         }
 
-        // Оновлюємо потік відсортованим списком
         _allContextsFlow.value = contextsBeingBuilt.sortedBy { it.name }
 
-        // Оновлюємо інші властивості, як і раніше
         contextTagMap.clear()
         contextTagMap.putAll(localContextTagMap)
 
@@ -144,10 +134,10 @@ constructor(
                 async {
                     val tag = contextTagMap[contextName.lowercase()]
                     if (tag != null) {
-                        val targetListIds = goalRepository.findListIdsByTag(tag)
-                        for (listId in targetListIds) {
-                            if (!goalRepository.doesLinkExist(goal.id, listId)) {
-                                goalRepository.createGoalLinks(listOf(goal.id), listId)
+                        val targetProjectIds = projectRepository.findProjectIdsByTag(tag)
+                        for (projectId in targetProjectIds) {
+                            if (!projectRepository.doesLinkExist(goal.id, projectId)) {
+                                projectRepository.createGoalLinks(listOf(goal.id), projectId)
                             }
                         }
                     }
@@ -177,9 +167,9 @@ constructor(
                 async {
                     val tag = contextTagMap[contextName.lowercase()]
                     if (tag != null) {
-                        val targetListIds = goalRepository.findListIdsByTag(tag)
-                        for (listId in targetListIds) {
-                            goalRepository.deleteLinkByEntityIdAndListId(entityId = oldGoal.id, listId = listId)
+                        val targetProjectIds = projectRepository.findProjectIdsByTag(tag)
+                        for (projectId in targetProjectIds) {
+                            projectRepository.deleteLinkByEntityIdAndProjectId(entityId = oldGoal.id, projectId = projectId)
                         }
                     }
                 }

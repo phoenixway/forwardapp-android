@@ -31,24 +31,20 @@ class PathSegmentsConverter {
 
 // --- ГЛОБАЛЬНИЙ КОНВЕРТЕР ---
 // Реєструється в AppDatabase.kt для всіх загальних типів
-@TypeConverters(Converters::class) // Можна повернути цю анотацію для ясності
+@TypeConverters(Converters::class)
 class Converters {
     private val gson = Gson()
-    private val pathSeparator = " / " // Використовуємо наш роздільник
+    private val pathSeparator = " / "
 
-    // --- ЗМІНЕНО КОНВЕРТЕР ДЛЯ LIST<STRING> ---
     @TypeConverter
     fun fromString(value: String?): List<String>? {
-        // Тепер він очікує рядок з роздільниками, а не JSON
         return value?.split(pathSeparator)?.map { it.trim() }
     }
 
     @TypeConverter
     fun fromList(list: List<String>?): String? {
-        // Тепер він створює рядок з роздільниками
         return list?.joinToString(pathSeparator)
     }
-
 
     @TypeConverter
     fun fromScoringStatus(status: ScoringStatus?): String? = status?.name
@@ -111,7 +107,7 @@ class Converters {
 
 enum class ProjectViewMode { BACKLOG, INBOX, DASHBOARD }
 enum class ListItemType { GOAL, SUBLIST, LINK_ITEM }
-enum class LinkType { GOAL_LIST, URL, OBSIDIAN }
+enum class LinkType { PROJECT, URL, OBSIDIAN }
 enum class ScoringStatus { NOT_ASSESSED, IMPOSSIBLE_TO_ASSESS, ASSESSED }
 enum class ProjectLogLevel { DETAILED, NORMAL }
 enum class ProjectLogEntryType { STATUS_CHANGE, COMMENT, AUTOMATIC, INSIGHT, MILESTONE }
@@ -172,8 +168,8 @@ data class Goal(
     @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
 )
 
-@Entity(tableName = "goal_lists")
-data class GoalList(
+@Entity(tableName = "projects")
+data class Project(
     @PrimaryKey val id: String,
     val name: String,
     val description: String?,
@@ -205,7 +201,7 @@ data class GoalList(
     @ColumnInfo(name = "scoring_status", defaultValue = "'NOT_ASSESSED'") val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
 )
 
-@Entity(tableName = "project_execution_logs", foreignKeys = [ForeignKey(entity = GoalList::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE)])
+@Entity(tableName = "project_execution_logs", foreignKeys = [ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE)])
 data class ProjectExecutionLog(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val projectId: String,
@@ -215,7 +211,7 @@ data class ProjectExecutionLog(
     val details: String? = null,
 )
 
-@Entity(tableName = "inbox_records", foreignKeys = [ForeignKey(entity = GoalList::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE)])
+@Entity(tableName = "inbox_records", foreignKeys = [ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE)])
 data class InboxRecord(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val projectId: String,
@@ -224,10 +220,10 @@ data class InboxRecord(
     @ColumnInfo(name = "item_order") val order: Long,
 )
 
-@Entity(tableName = "list_items", foreignKeys = [ForeignKey(entity = GoalList::class, parentColumns = ["id"], childColumns = ["listId"], onDelete = ForeignKey.CASCADE)])
+@Entity(tableName = "list_items", foreignKeys = [ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["project_id"], onDelete = ForeignKey.CASCADE)])
 data class ListItem(
     @PrimaryKey val id: String,
-    @ColumnInfo(index = true) val listId: String,
+    @ColumnInfo(name = "project_id", index = true) val projectId: String,
     val itemType: ListItemType,
     val entityId: String,
     @ColumnInfo(name = "item_order") val order: Long,
@@ -239,119 +235,42 @@ data class ActivityRecordFts(
     val text: String,
 )
 
-/*@Entity(tableName = "day_plans")
-data class DayPlan(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val date: Long,
-    val name: String? = null,
-    val status: DayStatus = DayStatus.PLANNED,
-    val reflection: String? = null,
-    val energyLevel: Int? = null,
-    val mood: String? = null,
-    val weatherConditions: String? = null,
-    val totalPlannedMinutes: Long = 0,
-    val totalCompletedMinutes: Long = 0,
-    val completionPercentage: Float = 0f,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long? = null,
-)*/
-
-/*@Entity(tableName = "day_tasks", foreignKeys = [ForeignKey(entity = DayPlan::class, parentColumns = ["id"], childColumns = ["dayPlanId"], onDelete = ForeignKey.CASCADE), ForeignKey(entity = Goal::class, parentColumns = ["id"], childColumns = ["goalId"], onDelete = ForeignKey.SET_NULL), ForeignKey(entity = GoalList::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.SET_NULL), ForeignKey(entity = ActivityRecord::class, parentColumns = ["id"], childColumns = ["activityRecordId"], onDelete = ForeignKey.SET_NULL)], indices = [Index("dayPlanId"), Index("goalId"), Index("projectId"), Index("activityRecordId"), Index("scheduledTime")])
-data class DayTask(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val dayPlanId: String,
-    val title: String,
-    val description: String? = null,
-    val goalId: String? = null,
-    val projectId: String? = null,
-    val activityRecordId: String? = null,
-    val taskType: ListItemType? = null,
-    val entityId: String? = null,
-    val order: Long = 0,
-    val priority: TaskPriority = TaskPriority.MEDIUM,
-    val status: TaskStatus = TaskStatus.NOT_STARTED,
-    val completed: Boolean = false,
-    val scheduledTime: Long? = null,
-    val estimatedDurationMinutes: Long? = null,
-    val actualDurationMinutes: Long? = null,
-    val reminderTime: Long? = null,
-    val dueTime: Long? = null,
-    @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
-    @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
-    val location: String? = null,
-    val tags: List<String>? = null,
-    val notes: String? = null,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long? = null,
-    val completedAt: Long? = null
-)*/
-/*
-
-@Entity(tableName = "daily_metrics")
-data class DailyMetric(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val dayPlanId: String,
-    val date: Long,
-    val tasksPlanned: Int = 0,
-    val tasksCompleted: Int = 0,
-    val completionRate: Float = 0f,
-    val totalPlannedTime: Long = 0,
-    val totalActiveTime: Long = 0,
-    val totalBreakTime: Long = 0,
-    val morningEnergyLevel: Int? = null,
-    val eveningEnergyLevel: Int? = null,
-    val overallMood: String? = null,
-    val stressLevel: Int? = null,
-    val customMetrics: Map<String, Float>? = null,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long? = null
-)
-*/
-
 // --- UI & SEARCH MODELS ---
 
 sealed class ListItemContent {
     abstract val item: ListItem
     data class GoalItem(val goal: Goal, override val item: ListItem) : ListItemContent()
-    data class SublistItem(val sublist: GoalList, override val item: ListItem) : ListItemContent()
+    data class SublistItem(val sublist: Project, override val item: ListItem) : ListItemContent()
     data class LinkItem(val link: LinkItemEntity, override val item: ListItem) : ListItemContent()
 }
-// У файлі DatabaseModel.kt
 data class GlobalSearchResult(
     @Embedded
     val goal: Goal,
-    val listId: String,
-    val listName: String,
-    // Анотацію видалено, оскільки тепер буде працювати глобальний конвертер
+    val projectId: String,
+    val projectName: String,
     val pathSegments: List<String>
 )
 
 data class GlobalLinkSearchResult(
     @Embedded
     val link: LinkItemEntity,
-    val listId: String,
-    val listName: String,
+    val projectId: String,
+    val projectName: String,
     val listItemId: String,
 )
 
-// У файлі: DatabaseModel.kt
-
-data class GlobalSublistSearchResult(
+data class GlobalSubprojectSearchResult(
     @Embedded
-    val sublist: GoalList,
-    val parentListId: String,
-    val parentListName: String,
-    // --- ДОДАЙТЕ ЦІ ДВА РЯДКИ ---
+    val subproject: Project,
+    val parentProjectId: String,
+    val parentProjectName: String,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>
 )
 
-data class GlobalListSearchResult(
+data class GlobalProjectSearchResult(
     @Embedded
-    val list: GoalList,
+    val project: Project,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>
 )
@@ -362,27 +281,25 @@ sealed class GlobalSearchResultItem {
 
     data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.goal.updatedAt ?: searchResult.goal.createdAt
-        override val uniqueId: String get() = "goal_${searchResult.goal.id}_${searchResult.listId}"
+        override val uniqueId: String get() = "goal_${searchResult.goal.id}_${searchResult.projectId}"
     }
 
     data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.link.createdAt
-        override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.listId}"
+        override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.projectId}"
     }
 
-    data class SublistItem(val searchResult: GlobalSublistSearchResult) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = searchResult.sublist.updatedAt ?: searchResult.sublist.createdAt
-        override val uniqueId: String get() = "sublist_${searchResult.sublist.id}_${searchResult.parentListId}"
+    data class SublistItem(val searchResult: GlobalSubprojectSearchResult) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.subproject.updatedAt ?: searchResult.subproject.createdAt
+        override val uniqueId: String get() = "sublist_${searchResult.subproject.id}_${searchResult.parentProjectId}"
     }
 
-    data class ListItem(
-        val searchResult: GlobalListSearchResult, // <-- Змінено з list: GoalList
+    data class ProjectItem(
+        val searchResult: GlobalProjectSearchResult,
     ) : GlobalSearchResultItem() {
-        // Оновлюємо доступ до полів
-        override val timestamp: Long get() = searchResult.list.updatedAt ?: searchResult.list.createdAt
-        override val uniqueId: String get() = "list_${searchResult.list.id}"
+        override val timestamp: Long get() = searchResult.project.updatedAt ?: searchResult.project.createdAt
+        override val uniqueId: String get() = "project_${searchResult.project.id}"
     }
-
 
     data class ActivityItem(val record: ActivityRecord) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.startTime ?: record.createdAt

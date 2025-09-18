@@ -1,10 +1,4 @@
 // File: com/romankozak/forwardappmobile/ui/screens/mainscreen/MainScreenHelper.kt
-// ВИДАЛІТЬ З ЦЬОГО ФАЙЛУ ФУНКЦІЇ:
-// - highlightFuzzy
-// - highlightSubstring
-// - renderGoalList
-
-// Залишитися має лише функція HandleDialogs та її залежності.
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import androidx.compose.material3.*
@@ -13,19 +7,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog
-import com.romankozak.forwardappmobile.ui.dialogs.AddListDialog
+import com.romankozak.forwardappmobile.ui.dialogs.AddProjectDialog
 import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
 import java.util.*
 
-// --- renderGoalList, highlightFuzzy, highlightSubstring видалені звідси ---
-
 @Composable
 fun HandleDialogs(
     dialogState: DialogState,
-    viewModel: GoalListViewModel,
+    viewModel: ProjectViewModel,
     listChooserFilterText: String,
     listChooserExpandedIds: Set<String>,
     filteredListHierarchyForDialog: ListHierarchyData,
@@ -38,23 +30,23 @@ fun HandleDialogs(
 
     when (val state = dialogState) {
         DialogState.Hidden -> {}
-        is DialogState.AddList -> {
-            AddListDialog(
-                title = if (state.parentId == null) "Create new list" else "Create sublist",
+        is DialogState.AddProject -> {
+            AddProjectDialog(
+                title = if (state.parentId == null) "Create new project" else "Create subproject",
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { name ->
                     val newId = UUID.randomUUID().toString()
-                    viewModel.addNewList(newId, state.parentId, name)
+                    viewModel.addNewProject(newId, state.parentId, name)
                     viewModel.dismissDialog()
                 },
             )
         }
         is DialogState.ContextMenu -> {
             ContextMenuDialog(
-                list = state.list,
+                project = state.project,
                 onDismissRequest = { viewModel.dismissDialog() },
-                onMoveRequest = { viewModel.onMoveListRequest(it) },
-                onAddSublistRequest = { viewModel.onAddSublistRequest(it) },
+                onMoveRequest = { viewModel.onMoveProjectRequest(it) },
+                onAddSublistRequest = { viewModel.onAddSubprojectRequest(it) },
                 onDeleteRequest = { viewModel.onDeleteRequest(it) },
                 onEditRequest = { viewModel.onEditRequest(it) },
             )
@@ -62,13 +54,13 @@ fun HandleDialogs(
         is DialogState.ConfirmDelete -> {
             AlertDialog(
                 onDismissRequest = { viewModel.dismissDialog() },
-                title = { Text("Delete list?") },
-                text = { Text("Are you sure you want to delete '${state.list.name}' and all its sublists and goals? This action cannot be undone.") },
-                confirmButton = { Button(onClick = { viewModel.onDeleteListConfirmed(state.list) }) { Text("Delete") } },
+                title = { Text("Delete project?") },
+                text = { Text("Are you sure you want to delete '${state.project.name}' and all its subprojects and goals? This action cannot be undone.") },
+                confirmButton = { Button(onClick = { viewModel.onDeleteProjectConfirmed(state.project) }) { Text("Delete") } },
                 dismissButton = { TextButton(onClick = { viewModel.dismissDialog() }) { Text("Cancel") } },
             )
         }
-        is DialogState.EditList -> {}
+        is DialogState.EditProject -> {}
         is DialogState.AboutApp -> {
             AboutAppDialog(stats) { viewModel.dismissDialog() }
         }

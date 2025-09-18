@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.utils
 
-import com.romankozak.forwardappmobile.data.database.models.GoalList
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.ListHierarchyData
 
 object HierarchyFilter {
     fun filter(
@@ -12,18 +12,18 @@ object HierarchyFilter {
             return originalHierarchy
         }
 
-        val filteredLists =
-            originalHierarchy.allLists.filter {
-                it.name?.contains(query, ignoreCase = true) == true
+        val filteredProjects =
+            originalHierarchy.allProjects.filter {
+                it.name.contains(query, ignoreCase = true)
             }
 
         val allRelevantIds =
-            filteredLists
+            filteredProjects
                 .flatMap { findParentIds(it, originalHierarchy) }
-                .plus(filteredLists.map { it.id })
+                .plus(filteredProjects.map { it.id })
                 .toSet()
 
-        val topLevelLists = originalHierarchy.topLevelLists.filter { it.id in allRelevantIds }
+        val topLevelProjects = originalHierarchy.topLevelProjects.filter { it.id in allRelevantIds }
 
         val childMap =
             originalHierarchy.childMap
@@ -32,20 +32,20 @@ object HierarchyFilter {
                 }.filterValues { it.isNotEmpty() }
 
         return ListHierarchyData(
-            allLists = filteredLists,
-            topLevelLists = topLevelLists,
+            allProjects = filteredProjects,
+            topLevelProjects = topLevelProjects,
             childMap = childMap,
         )
     }
 
     private fun findParentIds(
-        list: GoalList,
+        project: Project,
         hierarchy: ListHierarchyData,
     ): Set<String> {
         val parents = mutableSetOf<String>()
-        var currentParentId = list.parentId
+        var currentParentId = project.parentId
         while (currentParentId != null && parents.add(currentParentId)) {
-            currentParentId = hierarchy.allLists.find { it.id == currentParentId }?.parentId
+            currentParentId = hierarchy.allProjects.find { it.id == currentParentId }?.parentId
         }
         return parents
     }

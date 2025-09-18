@@ -290,7 +290,7 @@ fun EnhancedCustomCheckbox(
 }
 
 @Composable
-fun EnhancedRelatedLinkChip(
+internal fun EnhancedRelatedLinkChip(
     link: RelatedLink,
     onClick: () -> Unit,
 ) {
@@ -338,7 +338,7 @@ fun EnhancedRelatedLinkChip(
             Icon(
                 imageVector =
                     when (link.type) {
-                        LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
+                        LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
                         LinkType.URL -> Icons.Default.Link
                         LinkType.OBSIDIAN -> Icons.Default.Book
                     },
@@ -361,7 +361,6 @@ fun EnhancedRelatedLinkChip(
         }
     }
 }
-
 @Composable
 fun AnimatedContextEmoji(
     emoji: String,

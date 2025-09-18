@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
@@ -23,14 +23,14 @@ private enum class ProjectManagementTab(
 @Composable
 fun ProjectDashboardView(
     modifier: Modifier = Modifier,
-    goalList: GoalList?,
+    project: Project?,
     projectLogs: List<ProjectExecutionLog>,
     onStatusUpdate: (ProjectStatus, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
     projectTimeMetrics: ProjectTimeMetrics?,
 ) {
-    if (goalList == null) return
+    if (project == null) return
 
     var selectedTab by remember { mutableStateOf(ProjectManagementTab.Dashboard) }
 
@@ -52,16 +52,16 @@ fun ProjectDashboardView(
         when (selectedTab) {
             ProjectManagementTab.Dashboard ->
                 DashboardContent(
-                    goalList = goalList,
+                    project = project,
                     onStatusUpdate = onStatusUpdate,
                     onToggleProjectManagement = onToggleProjectManagement,
                     onRecalculateTime = onRecalculateTime,
                     projectTimeMetrics = projectTimeMetrics,
                 )
             ProjectManagementTab.Log ->
-                LogContent(logs = projectLogs, isManagementEnabled = goalList.isProjectManagementEnabled == true)
+                LogContent(logs = projectLogs, isManagementEnabled = project.isProjectManagementEnabled == true)
             ProjectManagementTab.Insights ->
-                InsightsContent(isManagementEnabled = goalList.isProjectManagementEnabled == true)
+                InsightsContent(isManagementEnabled = project.isProjectManagementEnabled == true)
         }
     }
 }

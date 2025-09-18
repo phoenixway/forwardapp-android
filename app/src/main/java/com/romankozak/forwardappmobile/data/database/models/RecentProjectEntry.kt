@@ -6,20 +6,20 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "recent_list_entries",
+    tableName = "recent_project_entries",
     foreignKeys = [
         ForeignKey(
-            entity = GoalList::class,
+            entity = Project::class,
             parentColumns = ["id"],
-            childColumns = ["list_id"],
+            childColumns = ["project_id"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
 )
-data class RecentListEntry(
+data class RecentProjectEntry(
     @PrimaryKey
-    @ColumnInfo(name = "list_id")
-    val listId: String,
+    @ColumnInfo(name = "project_id")
+    val projectId: String,
     @ColumnInfo(name = "last_accessed")
     val lastAccessed: Long,
 )

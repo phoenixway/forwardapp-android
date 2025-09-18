@@ -2,14 +2,14 @@ package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class InboxMarkdownHandler(
-    private val goalRepository: GoalRepository,
+    private val projectRepository: ProjectRepository,
     private val scope: CoroutineScope,
     private val listener: ResultListener,
 ) {
@@ -28,7 +28,7 @@ class InboxMarkdownHandler(
     }
     fun importFromMarkdown(
         markdownText: String,
-        listId: String,
+        projectId: String,
     ) {
         if (markdownText.isBlank()) {
             listener.showSnackbar("Нічого імпортувати.", null)
@@ -41,41 +41,38 @@ class InboxMarkdownHandler(
                 try {
                     val trimmedLine = line.trim()
                     when {
-                        // Існуюча логіка для виконаних завдань
                         trimmedLine.startsWith("- [x]") -> {
                             val goalText = trimmedLine.removePrefix("- [x]").trim()
                             if (goalText.isNotEmpty()) {
-                                goalRepository.addGoalToList(goalText, listId, completed = true)
+                                projectRepository.addGoalToProject(goalText, projectId, completed = true)
                                 importedCount++
                             }
                         }
-                        // Існуюча логіка для невиконаних завдань
                         trimmedLine.startsWith("- [ ]") -> {
                             val goalText = trimmedLine.removePrefix("- [ ]").trim()
                             if (goalText.isNotEmpty()) {
-                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }
-                        // --- ДОДАНО: підтримка звичайних списків ---
                         trimmedLine.startsWith("- ") -> {
                             val goalText = trimmedLine.removePrefix("- ").trim()
                             if (goalText.isNotEmpty()) {
-                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }
                         trimmedLine.startsWith("* ") -> {
                             val goalText = trimmedLine.removePrefix("* ").trim()
                             if (goalText.isNotEmpty()) {
-                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }
                         trimmedLine.startsWith("+ ") -> {
                             val goalText = trimmedLine.removePrefix("+ ").trim()
                             if (goalText.isNotEmpty()) {
-                                goalRepository.addGoalToList(goalText, listId, completed = false)
+                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }

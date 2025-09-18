@@ -53,9 +53,9 @@ private object Scales {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditListScreen(
+fun EditProjectScreen(
     navController: NavController,
-    viewModel: EditListViewModel = hiltViewModel(),
+    viewModel: EditProjectViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var currentTagInput by remember { mutableStateOf("") }
@@ -64,7 +64,7 @@ fun EditListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.list?.name ?: "Редагування") },
+                title = { Text(uiState.project?.name ?: "Редагування проекту") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -74,8 +74,8 @@ fun EditListScreen(
                     Button(
                         onClick = {
                             scope.launch {
-                                val savedList = viewModel.onSave()
-                                if (savedList != null) {
+                                val savedProject = viewModel.onSave()
+                                if (savedProject != null) {
                                     navController.previousBackStackEntry
                                         ?.savedStateHandle
                                         ?.set("needs_refresh", true)
@@ -83,7 +83,7 @@ fun EditListScreen(
                                 }
                             }
                         },
-                        enabled = uiState.list != null && uiState.name.isNotBlank(),
+                        enabled = uiState.project != null && uiState.name.isNotBlank(),
                     ) {
                         Text("Зберегти")
                     }
@@ -91,7 +91,7 @@ fun EditListScreen(
             )
         },
     ) { paddingValues ->
-        if (uiState.list == null) {
+        if (uiState.project == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -108,7 +108,7 @@ fun EditListScreen(
                     OutlinedTextField(
                         value = uiState.name,
                         onValueChange = { viewModel.onNameChange(it) },
-                        label = { Text("Назва списку") },
+                        label = { Text("Назва проекту") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -291,8 +291,8 @@ private fun ReminderSection(
 
 @Composable
 private fun EvaluationSection(
-    uiState: EditListUiState,
-    onViewModelAction: EditListViewModel,
+    uiState: EditProjectUiState,
+    onViewModelAction: EditProjectViewModel,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -385,8 +385,8 @@ private fun ScoringStatusSelector(
 
 @Composable
 private fun EvaluationTabs(
-    uiState: EditListUiState,
-    onViewModelAction: EditListViewModel,
+    uiState: EditProjectUiState,
+    onViewModelAction: EditProjectViewModel,
     isEnabled: Boolean,
 ) {
     val tabTitles = listOf("Вигода", "Втрати", "Ваги")
@@ -530,12 +530,10 @@ private fun ParameterSlider(
     }
 }
 
-
 private fun formatDateTime(millis: Long): String {
     val sdf = SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.getDefault())
     return sdf.format(Date(millis))
 }
-
 
 @Composable
 fun TagChip(
