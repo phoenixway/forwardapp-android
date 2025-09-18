@@ -264,8 +264,30 @@ class MainScreenViewModel @Inject constructor(
     }
 
 
+// File: MainScreenViewModel.kt
+
     init {
         initializeViewModel()
+        // Use the asFlow() method to observe SavedStateHandle values via Kotlin Flows.
+        savedStateHandle.getStateFlow<String?>("project_to_reveal", null)
+            .filterNotNull() // Only proceed when the value is not null
+            .onEach { projectId ->
+                // Use viewModelScope to launch a coroutine to handle the reveal request
+                viewModelScope.launch {
+                    Log.d("SearchNavManager", "msvm here")
+                    // Check if the planningMode flow is mutable
+                    val planningModeMutable = planningMode as? MutableStateFlow<PlanningMode>
+                    // Check if the projectHierarchy flow is mutable
+                    val projectHierarchyState = projectHierarchy as? StateFlow<ListHierarchyData>
+
+                    if (planningModeMutable != null && projectHierarchyState != null) {
+                        searchAndNavigationManager.onSearchRevealRequest(projectId, planningModeMutable, projectHierarchyState)
+                    }
+
+                    // Clear the value to prevent re-triggering on configuration changes
+                    savedStateHandle["project_to_reveal"] = null
+                }
+            }.launchIn(viewModelScope)
     }
 
     private fun initializeViewModel() {
@@ -425,13 +447,23 @@ class MainScreenViewModel @Inject constructor(
 
     fun onHomeClicked() {
         viewModelScope.launch {
-            if (focusedProjectId.value != null) {
-                clearNavigation()
-            }
+            // Повністю очищаємо навігацію (не використовуємо clearNavigation)
+            searchAndNavigationManager.clearNavigationCompletely()
+
+            // Встановлюємо звичайний режим планування
             if (planningMode.value != PlanningMode.All) {
                 onPlanningModeChange(PlanningMode.All)
             }
+
+            // Очищаємо розгортання для всіх режимів планування
+            _expandedInDailyMode.value = emptySet()
+            _expandedInMediumMode.value = emptySet()
+            _expandedInLongMode.value = emptySet()
+
+            // Згортаємо всі проекти в базовому режимі
             collapseAllProjects()
+
+            // Прокручуємо до верху
             _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
         }
     }

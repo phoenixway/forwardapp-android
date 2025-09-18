@@ -1,3 +1,5 @@
+// File: GlobalSearchViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.screens.globalsearch
 
 import android.util.Log
@@ -30,8 +32,7 @@ constructor(
     private val settingsRepository: SettingsRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    val query: String = savedStateHandle.get<String>("query") ?: ""
-
+    val query: String = savedStateHandle["query"] ?: ""
     private val _uiState = MutableStateFlow(GlobalSearchUiState())
     val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
 
@@ -51,19 +52,6 @@ constructor(
 
         viewModelScope.launch {
             val results = projectRepository.searchGlobal("%$query%")
-
-            val sublistItems = results.filterIsInstance<GlobalSearchResultItem.SublistItem>()
-            Log.d(
-                "PATH_DEBUG",
-                "[VIEWMODEL] Всього результатів: ${results.size}. З них підпроектів: ${sublistItems.size}"
-            )
-            sublistItems.firstOrNull()?.let {
-                Log.d(
-                    "PATH_DEBUG",
-                    "[VIEWMODEL] Перший підпроект: name='${it.searchResult.subproject.name}', pathSegments=${it.searchResult.pathSegments}"
-                )
-            }
-
             val distinctResults = results.distinctBy { it.uniqueId }
             _uiState.update {
                 it.copy(results = distinctResults, isLoading = false)

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
@@ -376,7 +377,7 @@ private fun SearchResultsContent(
                                 },
                             )
                         }
-                        is GlobalSearchResultItem.SublistItem -> {
+/*                        is GlobalSearchResultItem.SublistItem -> {
                             SubprojectSearchResultItem(
                                 result = result.searchResult,
                                 onClick = {
@@ -406,7 +407,43 @@ private fun SearchResultsContent(
                                     navController.popBackStack()
                                 },
                             )
+                        }*/
+
+                        is GlobalSearchResultItem.SublistItem -> {
+                            SubprojectSearchResultItem(
+                                result = result.searchResult,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    navController.navigate("goal_detail_screen/${result.searchResult.subproject.id}")
+                                },
+                                onOpenInNavigation = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // This is the correct way to pass data back to the previous screen.
+                                    navController.previousBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("project_to_reveal", result.searchResult.subproject.id)
+                                    navController.popBackStack()
+                                },
+                            )
                         }
+                        is GlobalSearchResultItem.ProjectItem -> {
+                            ProjectSearchResultItem(
+                                result = result.searchResult,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    navController.navigate("goal_detail_screen/${result.searchResult.project.id}")
+                                },
+                                onOpenInNavigation = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // This is the correct way to pass data back to the previous screen.
+                                    navController.previousBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("project_to_reveal", result.searchResult.project.id)
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+
                         is GlobalSearchResultItem.ActivityItem -> {
                             ActivitySearchResultItem(record = result.record)
                         }
