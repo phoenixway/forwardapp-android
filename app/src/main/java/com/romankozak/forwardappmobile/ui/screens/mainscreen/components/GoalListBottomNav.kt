@@ -312,10 +312,11 @@ internal fun ExpandingBottomNav(
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = { navController.navigate("activity_tracker_screen") })
-                ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Пошук", icon = Icons.Outlined.Search, isSelected = isSearchActive, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
+                ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = isSearchActive, onClick = { onToggleSearch(true) })
+                ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
+
             }
         }
     }

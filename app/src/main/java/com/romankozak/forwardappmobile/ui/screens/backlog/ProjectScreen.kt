@@ -200,11 +200,13 @@ fun ProjectsScreen(
                             navController.popBackStack()
                           },
                           onForwardClick = {},
-                          onHomeClick = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                          onHomeClick = viewModel::onHomeClick,//{ viewModel.onRevealInExplorer(list?.id ?: "") },
                           isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
                           onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
                           onEditList = {
+                              Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                             menuExpanded = false
+                              Log.d("EDIT_PROJECT_DEBUG", "List id: ${list?.id}")
                             navController.navigate("edit_list_screen/${list?.id}")
                           },
                           onShareList = { viewModel.onExportBacklogToMarkdownRequest() },

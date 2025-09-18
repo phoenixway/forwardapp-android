@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.ui.navigation.navigateToDayManagement
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.BreadcrumbNavigation
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyView
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
@@ -88,7 +89,8 @@ fun MainScreen(
     val focusedProjectId by viewModel.focusedProjectId.collectAsState()
     val hierarchySettings by viewModel.hierarchySettings.collectAsState()
 
-    val isBottomNavExpanded by viewModel.isBottomNavExpanded.collectAsState()
+    val isBottomNavExpanded by viewModel.isBottomNavExpanded.collectAsStateWithLifecycle()
+
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
     var showContextSheet by remember { mutableStateOf(value = false) }
@@ -154,13 +156,8 @@ fun MainScreen(
                 is ProjectUiEvent.NavigateToGlobalSearch -> {
                     navController.navigate("global_search_screen/${event.query}")
                 }
-                /*is ProjectUiEvent.ScrollToIndex -> {
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(event.index)
-                    }
-                }*/
                 is ProjectUiEvent.ScrollToIndex -> {
-                    viewModel.setScrollTarget(event.index) // або _scrollTargetIndex.value = event.index
+                    viewModel.setScrollTarget(event.index)
                 }
                 ProjectUiEvent.FocusSearchField -> {
                     coroutineScope.launch {
@@ -172,12 +169,11 @@ fun MainScreen(
                     navController.navigate("settings_screen")
                 }
                 is ProjectUiEvent.NavigateToEditProjectScreen -> {
-                    navController.navigate("edit_project_screen/${event.projectId}")
+                    navController.navigate("edit_list_screen/${event.projectId}")
                 }
                 is ProjectUiEvent.Navigate -> {
                     navController.navigate(event.route)
                 }
-
                 is ProjectUiEvent.NavigateToDayPlan -> {
                     navController.navigateToDayManagement(event.date)
                 }
@@ -187,11 +183,9 @@ fun MainScreen(
     val scrollTargetIndex by viewModel.scrollTargetIndex.collectAsState()
 
     LaunchedEffect(viewModel.projectHierarchy, scrollTargetIndex) {
-        val targetIndex: Int? = scrollTargetIndex // ✅ він уже Int?
+        val targetIndex: Int? = scrollTargetIndex
         if (targetIndex != null && targetIndex >= 0) {
-            val index = targetIndex // ✅ Вже Int, бо пройшли перевірку
-
-            // Чекаємо, поки список матиме достатню кількість елементів
+            val index = targetIndex
             snapshotFlow { listState.layoutInfo.totalItemsCount }
                 .filter { it > index }
                 .first()

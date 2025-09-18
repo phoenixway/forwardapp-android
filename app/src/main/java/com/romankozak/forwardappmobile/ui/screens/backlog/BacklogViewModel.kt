@@ -1120,4 +1120,12 @@ constructor(
             }
         }
     }
+
+    fun onHomeClick() {
+        // "goal_lists_screen" is defined as the home screen in AppNavigation.kt
+        viewModelScope.launch {
+            requestNavigation("goal_lists_screen")
+        }
+    }
+
 }
