@@ -65,7 +65,7 @@ fun SublistItemRow(
     onCheckedChange: (Boolean) -> Unit,
     currentTimeMillis: Long,
 ) {
-    val sublist = sublistContent.sublist
+    val sublist = sublistContent.project
 
     Row(
         modifier =

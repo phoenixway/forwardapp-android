@@ -232,6 +232,7 @@ data class GlobalLinkSearchResult(
     val link: LinkItemEntity,
     val projectId: String,
     val projectName: String,
+    val listItemId: String, // Add this line
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )

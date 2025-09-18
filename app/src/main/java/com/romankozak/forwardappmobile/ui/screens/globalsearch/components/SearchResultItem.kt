@@ -38,11 +38,12 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.database.models.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResult
 
 @Composable
 fun SearchResultItem(
-    result: GlobalSearchResult,
+    result: GlobalGoalSearchResult,
     onOpenInNavigation: () -> Unit,
     onOpenAsProject: () -> Unit,
 ) {

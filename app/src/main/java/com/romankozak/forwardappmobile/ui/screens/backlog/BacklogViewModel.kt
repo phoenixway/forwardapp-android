@@ -154,7 +154,7 @@ constructor(
                         "$checkbox ${item.goal.text}"
                     }
 
-                    is ListItemContent.SublistItem -> "- [С] ${item.sublist.name}"
+                    is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
                     is ListItemContent.LinkItem -> {
                         val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                         "- [Л] [$displayName](${item.link.linkData.target})"
@@ -331,7 +331,7 @@ constructor(
                                 val textToSearch =
                                     when (itemContent) {
                                         is ListItemContent.GoalItem -> itemContent.goal.text
-                                        is ListItemContent.SublistItem -> itemContent.sublist.name
+                                        is ListItemContent.SublistItem -> itemContent.project.name
                                         is ListItemContent.LinkItem ->
                                             itemContent.link.linkData.displayName
                                                 ?: itemContent.link.linkData.target
@@ -695,7 +695,7 @@ constructor(
         withContext(Dispatchers.IO) {
             try {
                 val updatedItems =
-                    listToSave.mapIndexed { index, content -> content.item.copy(order = index.toLong()) }
+                    listToSave.mapIndexed { index, content -> content.listItem.copy(order = index.toLong()) }
                 projectRepository.updateListItemsOrder(updatedItems)
             } catch (e: Exception) {
                 Log.e(TAG, "[saveListOrder] Failed to save list order", e)
@@ -907,7 +907,7 @@ constructor(
                     }
 
                     is ListItemContent.SublistItem -> {
-                        val record = activityRepository.startProjectActivity(item.sublist.id)
+                        val record = activityRepository.startProjectActivity(item.project.id)
                         record to "Відстежую проєкт"
                     }
 
@@ -1011,7 +1011,7 @@ constructor(
                     dayManagementRepository.addGoalToDayPlan(dayPlan.id, itemContent.goal.id)
                 }
                 is ListItemContent.SublistItem -> {
-                    dayManagementRepository.addProjectToDayPlan(dayPlan.id, itemContent.sublist.id)
+                    dayManagementRepository.addProjectToDayPlan(dayPlan.id, itemContent.project.id)
                 }
                 is ListItemContent.LinkItem -> null
             }
@@ -1071,7 +1071,7 @@ constructor(
                             val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
                             "$checkbox ${item.goal.text}"
                         }
-                        is ListItemContent.SublistItem -> "- [С] ${item.sublist.name}"
+                        is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
                         is ListItemContent.LinkItem -> {
                             val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                             "- [Л] [$displayName](${item.link.linkData.target})"

@@ -109,7 +109,7 @@ fun GoalDetailEffects(
     // ... (решта коду в GoalDetailEffects залишається без змін) ...
 
     // Авто-скрол до нового елемента
-    val newItemInList = uiState.newlyAddedItemId?.let { id -> displayList.find { it.item.id == id } }
+    val newItemInList = uiState.newlyAddedItemId?.let { id -> displayList.find { it.listItem.id == id } }
     LaunchedEffect(newItemInList) {
         if (newItemInList != null) {
             listState.animateScrollToItem(0)
@@ -164,7 +164,7 @@ fun GoalDetailEffects(
 
         val indexToScroll = when {
             goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
-            itemId != null -> displayList.indexOfFirst { it.item.id == itemId }.takeIf { it != -1 }
+            itemId != null -> displayList.indexOfFirst { it.listItem.id == itemId }.takeIf { it != -1 }
             else -> null
         }
 
@@ -212,7 +212,7 @@ fun GoalDetailEffects(
         val itemId = uiState.newlyAddedItemId
         Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
         if (itemId != null) {
-            var index = displayList.indexOfFirst { it.item.id == itemId }
+            var index = displayList.indexOfFirst { it.listItem.id == itemId }
             if (index == -1) {
                 index = displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == itemId }
                 Log.d("AutoScrollDebug", "Trying goal.id search, found index: $index")

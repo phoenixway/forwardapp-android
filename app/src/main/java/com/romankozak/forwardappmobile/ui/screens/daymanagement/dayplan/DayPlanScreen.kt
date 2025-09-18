@@ -465,7 +465,7 @@ fun TaskGoalItem(
     reorderableState: ReorderableLazyListState? = null,
     modifier: Modifier = Modifier
 ) {
-    val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), item = task.toListItem())
+    val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem())
     Card(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(8.dp),

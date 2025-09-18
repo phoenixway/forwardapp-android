@@ -1,5 +1,3 @@
-// file: ui/screens/backlog/BacklogView.kt
-
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
 import android.util.Log
@@ -20,6 +18,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.Interac
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.dnd.SimpleDragDropState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+
 @Composable
 fun BacklogView(
     modifier: Modifier = Modifier,
@@ -37,7 +36,7 @@ fun BacklogView(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
 
-    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         flow {
             while (true) {
@@ -71,11 +70,11 @@ fun BacklogView(
         ) {
             itemsIndexed(
                 items = draggableItems,
-                key = { _, item -> item.item.id },
+                key = { _, item -> item.listItem.id }, // ВИПРАВЛЕНО
             ) { index, content ->
-                val isSelected = content.item.id in uiState.selectedItemIds
+                val isSelected = content.listItem.id in uiState.selectedItemIds // ВИПРАВЛЕНО
                 val isHighlighted =
-                    (uiState.itemToHighlight == content.item.id) ||
+                    (uiState.itemToHighlight == content.listItem.id) || // ВИПРАВЛЕНО
                             (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
                 InteractiveListItem(
@@ -85,13 +84,12 @@ fun BacklogView(
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
                     swipeEnabled = swipeEnabled,
-                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.item.id),
-                    resetTrigger = uiState.resetTriggers[content.item.id] ?: 0,
-                    onSwipeStart = { viewModel.onSwipeStart(content.item.id) },
+                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id), // ВИПРАВЛЕНО
+                    resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0, // ВИПРАВЛЕНО
+                    onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) }, // ВИПРАВЛЕНО
                     onDelete = { viewModel.itemActionHandler.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                     onAddToDayPlanRequest = { viewModel.addItemToDailyPlan(content) },
-
                     onCreateInstanceRequest = {
                         viewModel.itemActionHandler.onGoalActionSelected(
                             GoalActionType.CreateInstance,
@@ -114,7 +112,7 @@ fun BacklogView(
                     onGoalTransportRequest = { viewModel.itemActionHandler.onGoalTransportInitiated(content) },
                     onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(content) },
                     onStartTrackingRequest = { viewModel.onStartTrackingRequest(content) },
-                ) { isDragging ->
+                ) {
                     when (content) {
                         is ListItemContent.GoalItem -> {
                             GoalItem(
@@ -127,7 +125,7 @@ fun BacklogView(
                                     )
                                 },
                                 onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                onLongClick = { viewModel.toggleSelection(content.item.id) },
+                                onLongClick = { viewModel.toggleSelection(content.listItem.id) }, // ВИПРАВЛЕНО
                                 onTagClick = { tag -> viewModel.onTagClicked(tag) },
                                 onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
@@ -140,9 +138,9 @@ fun BacklogView(
                                 sublistContent = content,
                                 isSelected = isSelected,
                                 onClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                onLongClick = { viewModel.toggleSelection(content.item.id) },
+                                onLongClick = { viewModel.toggleSelection(content.listItem.id) }, // ВИПРАВЛЕНО
                                 onCheckedChange = { isCompleted ->
-                                    viewModel.onSubprojectCompletedChanged(content.sublist, isCompleted)
+                                    viewModel.onSubprojectCompletedChanged(content.project, isCompleted) // ВИПРАВЛЕНО
                                 },
                                 currentTimeMillis = currentTime,
                             )
