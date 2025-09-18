@@ -72,7 +72,7 @@ fun LinkItemRow(
                 Icon(
                     imageVector =
                         when (link.type) {
-                            LinkType.GOAL_LIST -> Icons.AutoMirrored.Filled.ListAlt
+                            LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
                             LinkType.URL -> Icons.Default.Language
                             LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
                         },
@@ -91,7 +91,7 @@ fun LinkItemRow(
                     Text(
                         text =
                             when (link.type) {
-                                LinkType.GOAL_LIST -> "Посилання на список"
+                                LinkType.PROJECT -> "Посилання на список"
                                 LinkType.URL -> link.target
                                 LinkType.OBSIDIAN -> "Нотатка Obsidian"
                             },

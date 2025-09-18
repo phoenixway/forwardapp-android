@@ -12,13 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecentListsSheet(
     showSheet: Boolean,
-    recentLists: List<GoalList>,
+    recentLists: List<Project>,
     onDismiss: () -> Unit,
     onListClick: (String) -> Unit,
 ) {

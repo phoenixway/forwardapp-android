@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.flow
 @Composable
 fun BacklogView(
     modifier: Modifier = Modifier,
-    viewModel: GoalDetailViewModel,
+    viewModel: BacklogViewModel,
     uiState: UiState,
     listState: LazyListState,
     dragDropState: SimpleDragDropState,
@@ -35,7 +35,7 @@ fun BacklogView(
 
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
-    val currentListContextEmojiToHide by viewModel.currentListContextEmojiToHide.collectAsStateWithLifecycle()
+    val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
 
     var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -142,7 +142,7 @@ fun BacklogView(
                                 onClick = { viewModel.itemActionHandler.onItemClick(content) },
                                 onLongClick = { viewModel.toggleSelection(content.item.id) },
                                 onCheckedChange = { isCompleted ->
-                                    viewModel.onSublistCompletedChanged(content.sublist, isCompleted)
+                                    viewModel.onSubprojectCompletedChanged(content.sublist, isCompleted)
                                 },
                                 currentTimeMillis = currentTime,
                             )

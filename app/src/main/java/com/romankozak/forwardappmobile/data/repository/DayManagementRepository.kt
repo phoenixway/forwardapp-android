@@ -128,7 +128,7 @@ class DayManagementRepository @Inject constructor(
 
     @Transaction
     suspend fun addProjectToDayPlan(dayPlanId: String, projectId: String, scheduledTime: Long? = null): DayTask = withContext(ioDispatcher) {
-        val project = projectDao.getGoalListById(projectId)
+        val project = projectDao.getProjectById(projectId)
             ?: throw NoSuchElementException("Project with id $projectId not found")
 
         val taskParams = NewTaskParameters(
@@ -249,7 +249,7 @@ class DayManagementRepository @Inject constructor(
 
         val activityRecord = when {
             task.goalId != null -> activityRepository.startGoalActivity(task.goalId)
-            task.projectId != null -> activityRepository.startListActivity(task.projectId)
+            task.projectId != null -> activityRepository.startProjectActivity(task.projectId)
             else -> activityRepository.startActivity(task.title, now)
         }
 

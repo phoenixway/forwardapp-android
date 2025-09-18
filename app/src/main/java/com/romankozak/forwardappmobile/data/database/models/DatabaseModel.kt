@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import java.util.UUID
 
@@ -47,60 +48,32 @@ class Converters {
     }
 
     @TypeConverter
-    fun fromScoringStatus(status: ScoringStatus?): String? = status?.name
-
-    @TypeConverter
-    fun toScoringStatus(value: String?): ScoringStatus? = value?.let { ScoringStatus.valueOf(it) }
-
-    @TypeConverter
-    fun fromListItemType(type: ListItemType?): String? = type?.name
-
-    @TypeConverter
-    fun toListItemType(value: String?): ListItemType? = value?.let { ListItemType.valueOf(it) }
-
-    private val relatedLinkListType = object : TypeToken<List<RelatedLink>>() {}.type
-
-    @TypeConverter
-    fun fromRelatedLinkList(links: List<RelatedLink>?): String? {
-        if (links == null) return null
-        return gson.toJson(links, relatedLinkListType)
+    fun fromRelatedLinkList(value: List<RelatedLink>?): String? {
+        return gson.toJson(value)
     }
 
     @TypeConverter
-    fun toRelatedLinkList(json: String?): List<RelatedLink>? {
-        if (json == null) return null
-        return gson.fromJson(json, relatedLinkListType)
+    fun toRelatedLinkList(value: String?): List<RelatedLink>? {
+        if (value.isNullOrEmpty()) {
+            return null
+        }
+        val listType = object : TypeToken<List<RelatedLink>>() {}.type
+        return gson.fromJson(value, listType)
     }
 
     @TypeConverter
-    fun fromRelatedLink(link: RelatedLink?): String? {
-        if (link == null) return null
-        return gson.toJson(link, RelatedLink::class.java)
+    fun fromRelatedLink(value: RelatedLink?): String? {
+        return gson.toJson(value)
     }
 
     @TypeConverter
-    fun toRelatedLink(json: String?): RelatedLink? {
-        if (json == null) return null
-        return gson.fromJson(json, RelatedLink::class.java)
+    fun toRelatedLink(value: String?): RelatedLink? {
+        if (value.isNullOrEmpty()) {
+            return null
+        }
+        val type = object : TypeToken<RelatedLink>() {}.type
+        return gson.fromJson(value, type)
     }
-
-    @TypeConverter
-    fun fromProjectStatus(status: ProjectStatus?): String? = status?.name
-
-    @TypeConverter
-    fun toProjectStatus(value: String?): ProjectStatus? = value?.let { ProjectStatus.valueOf(it) }
-
-    @TypeConverter
-    fun fromProjectLogLevel(level: ProjectLogLevel?): String? = level?.name
-
-    @TypeConverter
-    fun toProjectLogLevel(value: String?): ProjectLogLevel? = value?.let { ProjectLogLevel.valueOf(it) }
-
-    @TypeConverter
-    fun fromProjectLogEntryType(type: ProjectLogEntryType?): String? = type?.name
-
-    @TypeConverter
-    fun toProjectLogEntryType(value: String?): ProjectLogEntryType? = value?.let { ProjectLogEntryType.valueOf(it) }
 }
 
 // --- ENUMS ---
@@ -223,32 +196,35 @@ data class InboxRecord(
 @Entity(tableName = "list_items", foreignKeys = [ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["project_id"], onDelete = ForeignKey.CASCADE)])
 data class ListItem(
     @PrimaryKey val id: String,
-    @ColumnInfo(name = "project_id", index = true) val projectId: String,
+    @SerializedName(value = "projectId", alternate = ["listId"])
+    @ColumnInfo(name = "project_id", index = true)
+    val projectId: String,
     val itemType: ListItemType,
     val entityId: String,
     @ColumnInfo(name = "item_order") val order: Long,
 )
 
-@Entity(tableName = "activity_records_fts")
-@Fts4(contentEntity = ActivityRecord::class)
-data class ActivityRecordFts(
+@Fts4(contentEntity = Goal::class)
+@Entity(tableName = "goals_fts")
+data class GoalFts(
     val text: String,
+    val description: String?,
 )
 
-// --- UI & SEARCH MODELS ---
+@Fts4(contentEntity = Project::class)
+@Entity(tableName = "projects_fts")
+data class ProjectFts(
+    val name: String,
+    val description: String?,
+)
 
-sealed class ListItemContent {
-    abstract val item: ListItem
-    data class GoalItem(val goal: Goal, override val item: ListItem) : ListItemContent()
-    data class SublistItem(val sublist: Project, override val item: ListItem) : ListItemContent()
-    data class LinkItem(val link: LinkItemEntity, override val item: ListItem) : ListItemContent()
-}
-data class GlobalSearchResult(
+data class GlobalGoalSearchResult(
     @Embedded
     val goal: Goal,
     val projectId: String,
     val projectName: String,
-    val pathSegments: List<String>
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
 )
 
 data class GlobalLinkSearchResult(
@@ -256,7 +232,8 @@ data class GlobalLinkSearchResult(
     val link: LinkItemEntity,
     val projectId: String,
     val projectName: String,
-    val listItemId: String,
+    @TypeConverters(PathSegmentsConverter::class)
+    val pathSegments: List<String>,
 )
 
 data class GlobalSubprojectSearchResult(
@@ -265,21 +242,21 @@ data class GlobalSubprojectSearchResult(
     val parentProjectId: String,
     val parentProjectName: String,
     @TypeConverters(PathSegmentsConverter::class)
-    val pathSegments: List<String>
+    val pathSegments: List<String>,
 )
 
 data class GlobalProjectSearchResult(
     @Embedded
     val project: Project,
     @TypeConverters(PathSegmentsConverter::class)
-    val pathSegments: List<String>
+    val pathSegments: List<String>,
 )
 
 sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
     abstract val uniqueId: String
 
-    data class GoalItem(val searchResult: GlobalSearchResult) : GlobalSearchResultItem() {
+    data class GoalItem(val searchResult: GlobalGoalSearchResult) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.goal.updatedAt ?: searchResult.goal.createdAt
         override val uniqueId: String get() = "goal_${searchResult.goal.id}_${searchResult.projectId}"
     }

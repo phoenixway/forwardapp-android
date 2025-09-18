@@ -1,4 +1,4 @@
-// File: com/romankozak/forwardappmobile/ui/components/GoalListItemUI.kt
+// File: com/romankozak/forwardappmobile/ui/components/ProjectListItemUI.kt
 // ПОВНА ОНОВЛЕНА ВЕРСІЯ
 
 package com.romankozak.forwardappmobile.ui.components
@@ -27,22 +27,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.GoalList
+import com.romankozak.forwardappmobile.data.database.models.Project
 
 @Composable
-fun GoalListRow(
-    list: GoalList,
+fun ProjectRow(
+    list: Project,
     level: Int,
     hasChildren: Boolean,
     onListClick: (String) -> Unit,
-    onToggleExpanded: (list: GoalList) -> Unit,
-    onMenuRequested: (list: GoalList) -> Unit,
+    onToggleExpanded: (list: Project) -> Unit,
+    onMenuRequested: (list: Project) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
     showFocusButton: Boolean,
-    onFocusRequested: (list: GoalList) -> Unit,
+    onFocusRequested: (list: Project) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
 ) {

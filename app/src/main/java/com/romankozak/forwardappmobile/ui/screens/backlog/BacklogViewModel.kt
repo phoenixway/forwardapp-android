@@ -136,7 +136,7 @@ interface BacklogMarkdownHandlerResultListener {
 class BacklogMarkdownHandler
 @Inject
 constructor(
-    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepository, // Corrected dependency
     private val scope: CoroutineScope,
     private val listener: BacklogMarkdownHandlerResultListener,
 ) {

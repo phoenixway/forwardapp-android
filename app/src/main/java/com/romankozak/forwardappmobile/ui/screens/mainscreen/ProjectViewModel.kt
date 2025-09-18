@@ -11,6 +11,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.WifiSyncServer
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
@@ -44,12 +45,6 @@ sealed class ProjectUiEvent {
     data class Navigate(val route: String) : ProjectUiEvent()
     data class NavigateToDayPlan(val date: Long) : ProjectUiEvent()
 }
-
-data class ListHierarchyData(
-    val allProjects: List<Project> = emptyList(),
-    val topLevelProjects: List<Project> = emptyList(),
-    val childMap: Map<String, List<Project>> = emptyMap()
-)
 
 data class SearchResult(
     val project: Project,

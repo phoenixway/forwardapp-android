@@ -53,12 +53,12 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun ProjectsScreen(
     navController: NavController,
-    viewModel: GoalDetailViewModel = hiltViewModel(),
+    viewModel: BacklogViewModel = hiltViewModel(),
 ) {
     Log.d("ViewModelInitTest", "ProjectsScreen: Спроба створити GoalDetailViewModel. Результат: $viewModel")
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    val list by viewModel.goalList.collectAsStateWithLifecycle()
+    val list by viewModel.project.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val desktopAddress by viewModel.desktopAddress.collectAsStateWithLifecycle()
 
@@ -162,7 +162,7 @@ fun ProjectsScreen(
         topBar = {
             AdaptiveTopBar(
                 isSelectionModeActive = isSelectionModeActive,
-                goalList = list,
+                project = list,
                 selectedCount = uiState.selectedItemIds.size,
                 areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
                 onClearSelection = { viewModel.selectionHandler.clearSelection() },
@@ -208,7 +208,7 @@ fun ProjectsScreen(
                             navController.navigate("edit_list_screen/${list?.id}")
                           },
                           onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
-                          onDeleteList = { viewModel.deleteCurrentList() },
+                          onDeleteList = { viewModel.deleteCurrentProject() },
                           menuExpanded = menuExpanded,
                           onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
                           currentView = uiState.currentView,

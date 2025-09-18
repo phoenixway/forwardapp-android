@@ -19,7 +19,7 @@ import androidx.compose.ui.focus.focusRequester
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddListDialog(
+fun AddProjectDialog(
     title: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,

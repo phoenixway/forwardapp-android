@@ -46,7 +46,7 @@ fun HandleDialogs(
                 project = state.project,
                 onDismissRequest = { viewModel.dismissDialog() },
                 onMoveRequest = { viewModel.onMoveProjectRequest(it) },
-                onAddSublistRequest = { viewModel.onAddSubprojectRequest(it) },
+                onAddSubprojectRequest = { viewModel.onAddSubprojectRequest(it) },
                 onDeleteRequest = { viewModel.onDeleteRequest(it) },
                 onEditRequest = { viewModel.onEditRequest(it) },
             )

@@ -29,7 +29,7 @@ private const val TAG = "SendDebug"
 @Composable
 fun GoalDetailEffects(
     navController: NavController,
-    viewModel: GoalDetailViewModel,
+    viewModel: BacklogViewModel,
     snackbarHostState: SnackbarHostState,
     listState: LazyListState,
     inboxListState: LazyListState,
@@ -38,7 +38,7 @@ fun GoalDetailEffects(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    val list by viewModel.goalList.collectAsStateWithLifecycle()
+    val list by viewModel.project.collectAsStateWithLifecycle()
 
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
 
@@ -85,10 +85,11 @@ fun GoalDetailEffects(
                 }
                 is UiEvent.NavigateBackAndReveal -> {
                     navController
-                        .getBackStackEntry("goal_lists_screen")
-                        .savedStateHandle["list_to_reveal"] = event.listId
-                    navController.popBackStack("goal_lists_screen", inclusive = false)
+                        .getBackStackEntry("projects_screen") // Corrected route
+                        .savedStateHandle["project_to_reveal"] = event.projectId // Corrected key and property
+                    navController.popBackStack("projects_screen", inclusive = false)
                 }
+
                 is UiEvent.HandleLinkClick -> {
                     handleRelatedLinkClick(event.link, obsidianVaultName, localContext, navController)
                 }
