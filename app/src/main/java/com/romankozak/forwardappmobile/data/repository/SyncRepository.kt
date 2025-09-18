@@ -45,6 +45,33 @@ import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
+enum class ChangeType {
+    Add,
+    Update,
+    Delete,
+    Move,
+}
+
+data class SyncChange(
+    val type: ChangeType,
+    val entityType: String,
+    val id: String,
+    val description: String,
+    val longDescription: String? = null,
+    val entity: Any,
+)
+
+data class SyncReport(
+    val changes: List<SyncChange>,
+)
+
+private data class LocalSyncState(
+    val goals: Map<String, Goal>,
+    val goalLists: Map<String, Project>,
+    val listItems: Map<String, ListItem>,
+)
+
 @Singleton
 class SyncRepository
 @Inject
