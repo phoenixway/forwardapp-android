@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
@@ -121,13 +122,23 @@ class SearchAndNavigationManager(
                 childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
             )
 
+            // Визначаємо шлях і рівень вкладеності
             val path = buildPathToProject(projectId, fullHierarchy)
             val level = if (path.isEmpty()) 0 else path.last().level
             val settings = hierarchySettings.value
 
-            if (level >= settings.useBreadcrumbsAfter) {
+            // Перевіряємо, чи має проект довгих нащадків
+            // Примітка: для цього потрібна мапа longDescendantsMap, яку треба передати або обчислити тут
+            val project = allProjects.firstOrNull { it.id == projectId }
+            val longDescendantsMap = ProjectHierarchyManager().createLongDescendantsMap(allProjects)
+            val hasLongDescendants = project?.let { longDescendantsMap[it.id] } ?: false
+
+            // Вирішуємо, який режим використовувати: звичайний або фокусний
+            if (level >= settings.useBreadcrumbsAfter || hasLongDescendants) {
+                // Переходимо в фокус-режим
                 navigateToProject(projectId, projectHierarchy)
             } else {
+                // Залишаємося в звичайному режимі, просто розгортаємо ієрархію
                 processRevealRequest(projectId, planningMode)
             }
         }
@@ -349,4 +360,45 @@ class SearchAndNavigationManager(
             Log.d(TAG, "clearNavigation: COMPLETED")
         }
     }
+
+// File: SearchAndNavigationManager.kt
+// File: SearchAndNavigationManager.kt
+
+    fun onSearchRevealRequest(projectId: String, planningMode: MutableStateFlow<PlanningMode>, projectHierarchy: StateFlow<ListHierarchyData>) {
+        Log.d(TAG, "onSearchRevealRequest: projectId=$projectId")
+        viewModelScope.launch {
+            onToggleSearch(isActive = false)
+            planningMode.value = PlanningMode.All
+
+            val allProjects = allProjectsFlat.first()
+            val fullHierarchy = ListHierarchyData(
+                allProjects = allProjects,
+                topLevelProjects = allProjects.filter { it.parentId == null }.sortedBy { it.order },
+                childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
+            )
+
+            val path = buildPathToProject(projectId, fullHierarchy)
+            val level = if (path.isEmpty()) 0 else path.last().level
+            val settings = hierarchySettings.value
+
+            // Для глобального пошуку завжди використовуємо навігацію
+            // незалежно від рівня вкладеності
+            navigateToProject(projectId, projectHierarchy)
+        }
+    }
+
+    fun clearNavigationCompletely() {
+        Log.d(TAG, "clearNavigationCompletely: STARTED")
+        viewModelScope.launch(Dispatchers.Default) {
+            // Повністю очищаємо навігацію без логіки "назад"
+            withContext(Dispatchers.Main) {
+                _focusedProjectId.value = null
+                _currentBreadcrumbs.value = emptyList()
+                _collapsedAncestorsOnFocus.value = emptySet()
+            }
+
+            Log.d(TAG, "clearNavigationCompletely: Navigation completely cleared")
+        }
+    }
+
 }
