@@ -246,4 +246,84 @@ constructor(
             Log.e(TAG, "Error fetching from WiFi", e)
             Result.failure(e)
         }
+
+    suspend fun createSyncReport(jsonString: String): SyncReport {
+/*        try {
+            val backupFile = gson.fromJson(jsonString, DesktopBackupFile::class.java)
+            val remoteData = backupFile.data ?: throw IllegalArgumentException("Backup data is missing.")
+
+            val remoteState = transformImportedData(remoteData)
+            val localLists = projectDao.getAll().associateBy { it.id }
+            val localGoals = goalDao.getAll().associateBy { it.id }
+            val localItems = listItemDao.getAll().associateBy { it.id }
+
+            val changes = mutableListOf<SyncChange>()
+
+            (localLists.keys + remoteState.goalLists.keys).distinct().forEach { id ->
+                val local = localLists[id]
+                val remote = remoteState.goalLists[id]
+                when {
+                    remote != null && local == null ->
+                        changes.add(
+                            SyncChange(ChangeType.Add, "Список", id, remote.name, entity = remote),
+                        )
+                    remote == null && local != null ->
+                        changes.add(
+                            SyncChange(ChangeType.Delete, "Список", id, local.name, entity = local),
+                        )
+                    remote != null && local != null && (remote.updatedAt ?: 0) > (local.updatedAt ?: 0) ->
+                        changes.add(
+                            SyncChange(ChangeType.Update, "Список", id, remote.name, entity = remote),
+                        )
+                }
+            }
+
+            (localGoals.keys + remoteState.goals.keys).distinct().forEach { id ->
+                val local = localGoals[id]
+                val remote = remoteState.goals[id]
+                when {
+                    remote != null && local == null -> changes.add(SyncChange(ChangeType.Add, "Ціль", id, remote.text, entity = remote))
+                    remote == null && local != null ->
+                        changes.add(
+                            SyncChange(ChangeType.Delete, "Ціль", id, local.text, entity = local),
+                        )
+                    remote != null && local != null && (remote.updatedAt ?: 0) > (local.updatedAt ?: 0) ->
+                        changes.add(
+                            SyncChange(ChangeType.Update, "Ціль", id, remote.text, entity = remote),
+                        )
+                }
+            }
+
+            (localItems.keys + remoteState.listItems.keys).distinct().forEach { id ->
+                val local = localItems[id]
+                val remote = remoteState.listItems[id]
+                when {
+                    remote != null && local == null -> {
+                        val desc = "Прив'язка до списку \"${remoteState.goalLists[remote.listId]?.name ?: "?"}\""
+                        changes.add(SyncChange(ChangeType.Add, "Привʼязка", id, desc, entity = remote))
+                    }
+                    remote == null && local != null -> {
+                        val desc = "Прив'язка зі списку \"${localLists[local.listId]?.name ?: "?"}\""
+                        changes.add(SyncChange(ChangeType.Delete, "Привʼязка", id, desc, entity = local))
+                    }
+                    remote != null && local != null && (remote.order != local.order || remote.listId != local.listId) -> {
+                        val goalText = remoteState.goals[remote.entityId]?.text ?: "?"
+                        val fromList = localLists[local.listId]?.name ?: "?"
+                        val toList = remoteState.goalLists[remote.listId]?.name ?: "?"
+                        val desc = "Переміщення прив'язки \"$goalText\""
+                        val longDesc = "Прив'язку \"$goalText\" переміщено з \"$fromList\" (поз. ${local.order}) у \"$toList\" (поз. ${remote.order})."
+                        changes.add(SyncChange(ChangeType.Move, "Привʼязка", id, desc, longDesc, entity = remote))
+                    }
+                }
+            }
+
+            return SyncReport(changes)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating sync report", e)
+            throw IllegalStateException("Error parsing data: ${e.message}", e)
+        }*/
+        val changes = mutableListOf<SyncChange>()
+        return SyncReport(changes)
+    }
+
 }
