@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.domain
+package com.romankozak.forwardappmobile.domain.aichat
 
 sealed interface RoleItem {
     val name: String

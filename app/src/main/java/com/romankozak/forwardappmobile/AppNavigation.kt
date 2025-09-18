@@ -24,7 +24,7 @@ import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScree
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.ProjectViewModel
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
@@ -39,7 +39,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         startDestination = "goal_lists_screen",
     ) {
         composable("goal_lists_screen") {
-            val viewModel: ProjectViewModel = hiltViewModel()
+            val viewModel: MainScreenViewModel = hiltViewModel()
             MainScreen(
                 navController = navController,
                 syncDataViewModel = syncDataViewModel,
@@ -48,7 +48,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         }
 
         composable("settings_screen") { backStackEntry ->
-            val goalListViewModel: ProjectViewModel =
+            val goalListViewModel: MainScreenViewModel =
                 hiltViewModel(
                     remember(backStackEntry) {
                         navController.getBackStackEntry("goal_lists_screen")
@@ -81,7 +81,7 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         }
 
         composable("manage_contexts_screen") { backStackEntry ->
-            val goalListViewModel: ProjectViewModel =
+            val goalListViewModel: MainScreenViewModel =
                 hiltViewModel(
                     remember(backStackEntry) {
                         navController.getBackStackEntry("goal_lists_screen")

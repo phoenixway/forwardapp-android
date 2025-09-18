@@ -60,12 +60,18 @@ import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.ui.navigation.navigateToDayManagement
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
 import androidx.compose.runtime.getValue
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.BreadcrumbNavigation
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyView
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 
 @Composable
 fun MainScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
-    viewModel: ProjectViewModel = hiltViewModel(),
+    viewModel: MainScreenViewModel = hiltViewModel(),
 ) {
     val hierarchy by viewModel.projectHierarchy.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
@@ -365,7 +371,7 @@ fun MainScreen(
                 ) {
                     BreadcrumbNavigation(
                         breadcrumbs = currentBreadcrumbs,
-                        onNavigate = { viewModel.navigateToBreadcrumb(it) },
+                        onNavigate = { breadcrumb: BreadcrumbItem -> viewModel.navigateToBreadcrumb(breadcrumb) },
                         onClearNavigation = { viewModel.clearNavigation() },
                         onFocusedListMenuClick = { projectId ->
                             hierarchy.allProjects.find { it.id == projectId }?.let {

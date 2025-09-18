@@ -1,5 +1,5 @@
 // File: com/romankozak/forwardappmobile/ui/screens/mainscreen/MainScreenHelper.kt
-package com.romankozak.forwardappmobile.ui.screens.mainscreen
+package com.romankozak.forwardappmobile.ui.screens.mainscreen.utils
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -11,13 +11,15 @@ import com.romankozak.forwardappmobile.ui.dialogs.AddProjectDialog
 import com.romankozak.forwardappmobile.ui.dialogs.GlobalSearchDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenuDialog
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
 import java.util.*
 
 @Composable
 fun HandleDialogs(
     dialogState: DialogState,
-    viewModel: ProjectViewModel,
+    viewModel: MainScreenViewModel,
     listChooserFilterText: String,
     listChooserExpandedIds: Set<String>,
     filteredListHierarchyForDialog: ListHierarchyData,

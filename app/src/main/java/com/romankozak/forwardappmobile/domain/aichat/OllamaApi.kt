@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.domain
+package com.romankozak.forwardappmobile.domain.aichat
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
