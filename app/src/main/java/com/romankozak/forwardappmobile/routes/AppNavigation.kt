@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
+import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand // **NEW: Імпортуємо навігаційні команди**
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.backlog.BacklogViewModel
@@ -35,10 +36,34 @@ import java.net.URLDecoder
 @Composable
 fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
     val navController = rememberNavController()
-    // 1. Отримуємо екземпляр AppNavigationViewModel, який буде жити разом з NavHost
+    // 1. Отримуємо AppNavigationViewModel, який живе разом з NavHost
     val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
-    // 2. Ініціалізуємо менеджер навігації, передаючи йому navController
-    appNavigationViewModel.initialize(navController)
+
+    // 2. Ініціалізуємо менеджер (тепер без прямої залежності від NavController)
+    appNavigationViewModel.initialize()
+    val navigationManager = appNavigationViewModel.navigationManager
+
+    // --- NEW: Центральний обробник навігаційних команд ---
+    // Цей ефект слухає потік команд від менеджера і виконує реальну навігацію.
+    // Це єдине місце, де викликаються методи navController для навігації.
+    LaunchedEffect(navigationManager, navController) {
+        navigationManager.navigationCommandFlow.collect { command ->
+            when (command) {
+                is NavigationCommand.Navigate -> {
+                    navController.navigate(command.route, command.builder)
+                }
+                is NavigationCommand.PopBackStack -> {
+                    // Якщо потрібно передати результат на попередній екран
+                    if (command.key != null && command.value != null) {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(command.key, command.value)
+                    }
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
 
 
     NavHost(
@@ -48,13 +73,13 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         composable("goal_lists_screen") {
             val viewModel: MainScreenViewModel = hiltViewModel()
 
-            // 3. Передаємо готовий менеджер у MainScreenViewModel
-            viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+            // 3. Передаємо єдиний екземпляр менеджера у ViewModel екрану
+            viewModel.enhancedNavigationManager = navigationManager
 
-            // Додаємо головний екран в історію при першому запуску
+            // Додаємо головний екран в історію при першому запуску (логіка залишається)
             LaunchedEffect(Unit) {
-                if (viewModel.enhancedNavigationManager.getNavigationHistory().isEmpty()) {
-                    viewModel.enhancedNavigationManager.navigateToMainScreen(isInitial = true)
+                if (navigationManager.getNavigationHistory().isEmpty()) {
+                    navigationManager.navigateToMainScreen(isInitial = true)
                 }
             }
 
@@ -65,22 +90,38 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
             )
         }
 
-        // ... (інші екрани без змін: settings, manage_contexts, activity_tracker, etc.)
-
         composable(
             route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}",
-            // ... (аргументи без змін)
+            arguments = listOf(
+                navArgument("listId") { type = NavType.StringType },
+                navArgument("goalId") { type = NavType.StringType; nullable = true },
+                navArgument("itemIdToHighlight") { type = NavType.StringType; nullable = true },
+                navArgument("inboxRecordIdToHighlight") { type = NavType.StringType; nullable = true }
+            )
         ) {
             val viewModel: BacklogViewModel = hiltViewModel()
 
             // 4. Передаємо той самий екземпляр менеджера у BacklogViewModel
-            viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+            viewModel.enhancedNavigationManager = navigationManager
 
             ProjectsScreen(navController = navController, viewModel = viewModel)
         }
 
-        // ... (решта вашого файлу AppNavigation.kt залишається без змін)
-        // Наприклад, edit_list_screen, global_search_screen і т.д.
+        composable(
+            "global_search_screen/{query}",
+            arguments = listOf(navArgument("query") { type = NavType.StringType }),
+        ) {
+            val viewModel: GlobalSearchViewModel = hiltViewModel()
+            // 5. Передаємо менеджер у ViewModel глобального пошуку
+            viewModel.enhancedNavigationManager = navigationManager
+
+            GlobalSearchScreen(
+                viewModel = viewModel,
+                navController = navController,
+            )
+        }
+
+        // --- Решта екранів залишаються здебільшого без змін ---
 
         composable("settings_screen") { backStackEntry ->
             val goalListViewModel: MainScreenViewModel =
@@ -162,24 +203,9 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                 listOf(
                     navArgument("listId") { type = NavType.StringType },
                 ),
-        ) { backStackEntry ->
-            Log.d("EDIT_PROJECT_DEBUG", "nav activated")
+        ) {
             EditProjectScreen(
                 navController = navController
-            )
-        }
-
-        composable(
-            "global_search_screen/{query}",
-            arguments = listOf(navArgument("query") { type = NavType.StringType }),
-        ) {
-            // --- ПОЧАТОК ЗМІН ---
-            val viewModel: GlobalSearchViewModel = hiltViewModel()
-            viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
-
-            GlobalSearchScreen(
-                viewModel = viewModel,
-                navController = navController,
             )
         }
 
@@ -232,9 +258,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
             val currentParentId = if (currentParentIdArg == "root") null else currentParentIdArg
 
             Log.d(TAG, "[Nav] list_chooser_screen launched.")
-            Log.d(TAG, "[Nav] Received title: '$title'")
-            Log.d(TAG, "[Nav] Received currentParentId: '$currentParentId' (from arg '$currentParentIdArg')")
-            Log.d(TAG, "[Nav] Received disabledIds: $disabledIds")
 
             val chooserUiState by viewModel.chooserState.collectAsStateWithLifecycle()
             val filterText by viewModel.filterText.collectAsStateWithLifecycle()
@@ -250,7 +273,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
                 onToggleExpanded = viewModel::toggleExpanded,
                 onNavigateBack = { navController.popBackStack() },
                 onConfirm = { selectedId ->
-                    Log.d(TAG, "[Nav] onConfirm called with selectedId: '$selectedId'. Setting result.")
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set("list_chooser_result", selectedId ?: "root")

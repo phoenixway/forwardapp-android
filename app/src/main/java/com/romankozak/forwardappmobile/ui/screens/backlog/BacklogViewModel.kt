@@ -80,6 +80,7 @@ sealed class UiEvent {
     ) : UiEvent()
 
     data object ScrollToLatestInboxRecord : UiEvent()
+
 }
 
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
@@ -721,13 +722,6 @@ constructor(
         }
     }
 
-    fun onRevealInExplorer(currentProjectId: String) {
-        if (currentProjectId.isEmpty()) return
-        viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentProjectId))
-        }
-    }
-
     fun onSwipeStart(itemId: String) {
         if (_uiState.value.swipedItemId != itemId) {
             _uiState.update { it.copy(swipedItemId = itemId) }
@@ -1137,33 +1131,44 @@ constructor(
         enhancedNavigationManager.goForward()
     }
 
-    fun onBackPressed(): Boolean {
-        Log.d(TAG, "onBackPressed TRIGGERED")
-        if (uiState.value.inputValue.text.isNotEmpty()) {
-            Log.d(TAG, "Action: Clearing input field.")
-            inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
-            return true
-        }
-        if (isSelectionModeActive.value) {
-            Log.d(TAG, "Action: Clearing selection.")
-            selectionHandler.clearSelection()
-            return true
-        }
-        if (enhancedNavigationManager.canGoBack.value) {
-            Log.d(TAG, "Action: Navigating back via EnhancedNavigationManager.")
-            flushPendingMoves()
-            enhancedNavigationManager.goBack()
-            return true
-        }
 
-        Log.d(TAG, "Action: No local actions or history, letting system handle back press.")
-        flushPendingMoves()
-        return false // Let default back navigation handle this
-    }
 
     private fun updateProjectNameInHistory(newName: String) {
         // This function is not currently used but could be useful if project names can be edited
         // from the backlog screen.
         // enhancedNavigationManager.updateCurrentEntry(newName)
     }
+
+
+    fun onRevealInExplorer(currentProjectId: String) {
+        if (currentProjectId.isEmpty()) return
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentProjectId))
+        }
+    }
+
+    fun onBackPressed(): Boolean {
+        Log.d(TAG, "onBackPressed TRIGGERED")
+        if (uiState.value.inputValue.text.isNotEmpty()) {
+            Log.d(TAG, "Action: Clearing input field.")
+            inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
+            return true // Consumed back press
+        }
+        if (isSelectionModeActive.value) {
+            Log.d(TAG, "Action: Clearing selection.")
+            selectionHandler.clearSelection()
+            return true // Consumed back press
+        }
+        if (enhancedNavigationManager.canGoBack.value) {
+            Log.d(TAG, "Action: Navigating back via EnhancedNavigationManager.")
+            flushPendingMoves()
+            enhancedNavigationManager.goBack()
+            return true // Consumed back press
+        }
+
+        Log.d(TAG, "Action: No local actions or history, letting system handle back press.")
+        flushPendingMoves()
+        return false // Let system handle the back press (e.g., pop the NavController)
+    }
+
 }

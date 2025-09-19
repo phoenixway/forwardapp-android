@@ -1,3 +1,5 @@
+// File: MainScreen.kt
+
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
@@ -17,6 +19,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,26 +55,26 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
-import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.routes.navigateToDayManagement
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.routes.navigateToDayManagement
+import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
+import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.BreadcrumbNavigation
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyView
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
+import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
@@ -79,48 +82,66 @@ fun MainScreen(
     syncDataViewModel: SyncDataViewModel,
     viewModel: MainScreenViewModel = hiltViewModel(),
 ) {
+    // region State Collection
     val hierarchy by viewModel.projectHierarchy.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
     val isSearchActive by viewModel.isSearchActive.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val planningMode by viewModel.planningMode.collectAsState()
     val planningSettings by viewModel.planningSettingsState.collectAsState()
-    val highlightedProjectId by viewModel.highlightedProjectId.collectAsState()
-    val longDescendantsMap by viewModel.longDescendantsMap.collectAsState()
-
     val currentBreadcrumbs by viewModel.currentBreadcrumbs.collectAsState()
     val focusedProjectId by viewModel.focusedProjectId.collectAsState()
-    val hierarchySettings by viewModel.hierarchySettings.collectAsState()
-
+    val areAnyProjectsExpanded by viewModel.areAnyProjectsExpanded.collectAsState()
     val isBottomNavExpanded by viewModel.isBottomNavExpanded.collectAsStateWithLifecycle()
-
     val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
     val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
-    var showContextSheet by remember { mutableStateOf(value = false) }
-    var showSearchHistorySheet by remember { mutableStateOf(value = false) }
     val allContexts by viewModel.allContextsForDialog.collectAsState()
     val searchHistory by viewModel.searchHistory.collectAsState()
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    val focusRequester = remember { FocusRequester() }
     val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
     val recentProjects by viewModel.recentProjects.collectAsState()
-    val areAnyProjectsExpanded by viewModel.areAnyProjectsExpanded.collectAsState()
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    val searchQueryText by remember { derivedStateOf { searchQuery.text } }
-
-    // --- ПОЧАТОК ЗМІН ---
-    // Отримуємо стани для кнопок та меню історії з ViewModel
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val showHistoryMenu by viewModel.showNavigationMenu.collectAsStateWithLifecycle()
-    // --- КІНЕЦЬ ЗМІН ---
+    val scrollTargetIndex by viewModel.scrollTargetIndex.collectAsState()
+    val searchQueryText by remember { derivedStateOf { searchQuery.text } }
 
+    var showContextSheet by remember { mutableStateOf(false) }
+    var showSearchHistorySheet by remember { mutableStateOf(false) }
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    // endregion
+
+    // region Side Effects
     LaunchedEffect(Unit) {
         delay(100)
         viewModel.enableFiltering()
+
+        viewModel.uiEventFlow.collect { event ->
+            when (event) {
+                is ProjectUiEvent.NavigateToSyncScreenWithData -> {
+                    syncDataViewModel.jsonString = event.json
+                    navController.navigate("sync_screen")
+                }
+                is ProjectUiEvent.NavigateToDetails -> navController.navigate("goal_detail_screen/${event.projectId}")
+                is ProjectUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
+                is ProjectUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
+                is ProjectUiEvent.ScrollToIndex -> viewModel.setScrollTarget(event.index)
+                ProjectUiEvent.FocusSearchField -> {
+                    coroutineScope.launch {
+                        delay(100)
+                        focusRequester.requestFocus()
+                    }
+                }
+                ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
+                is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("edit_list_screen/${event.projectId}")
+                is ProjectUiEvent.Navigate -> navController.navigate(event.route)
+                is ProjectUiEvent.NavigateToDayPlan -> navController.navigateToDayManagement(event.date)
+            }
+        }
     }
 
     LaunchedEffect(savedStateHandle) {
@@ -128,164 +149,40 @@ fun MainScreen(
             ?.getStateFlow<String?>("project_to_reveal", null)
             ?.filterNotNull()
             ?.collect { projectId ->
-                viewModel.processRevealRequest(projectId)
+                viewModel.onSearchResultClick(projectId)
                 savedStateHandle["project_to_reveal"] = null
             }
     }
 
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    val result = savedStateHandle?.remove<String?>("list_chooser_result")
-                    if (result != null) {
-                        Log.d("MOVE_DEBUG", "[Screen] Resumed and processed result: '$result'")
-                        viewModel.onListChooserResult(result)
-                    }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                savedStateHandle?.remove<String?>("list_chooser_result")?.let { result ->
+                    Log.d("MOVE_DEBUG", "[Screen] Resumed and processed result: '$result'")
+                    viewModel.onListChooserResult(result)
                 }
             }
+        }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-
-    LaunchedEffect(Unit) {
-        viewModel.uiEventFlow.collect { event ->
-            when (event) {
-                is ProjectUiEvent.NavigateToSyncScreenWithData -> {
-                    syncDataViewModel.jsonString = event.json
-                    navController.navigate("sync_screen")
-                }
-                is ProjectUiEvent.NavigateToDetails -> {
-                    navController.navigate("goal_detail_screen/${event.projectId}")
-                }
-                is ProjectUiEvent.ShowToast -> {
-                    Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
-                }
-                is ProjectUiEvent.NavigateToGlobalSearch -> {
-                    navController.navigate("global_search_screen/${event.query}")
-                }
-                is ProjectUiEvent.ScrollToIndex -> {
-                    viewModel.setScrollTarget(event.index)
-                }
-                ProjectUiEvent.FocusSearchField -> {
-                    coroutineScope.launch {
-                        delay(100)
-                        focusRequester.requestFocus()
-                    }
-                }
-                ProjectUiEvent.NavigateToSettings -> {
-                    navController.navigate("settings_screen")
-                }
-                is ProjectUiEvent.NavigateToEditProjectScreen -> {
-                    navController.navigate("edit_list_screen/${event.projectId}")
-                }
-                is ProjectUiEvent.Navigate -> {
-                    navController.navigate(event.route)
-                }
-                is ProjectUiEvent.NavigateToDayPlan -> {
-                    navController.navigateToDayManagement(event.date)
-                }
-            }
-        }
-    }
-    val scrollTargetIndex by viewModel.scrollTargetIndex.collectAsState()
 
     LaunchedEffect(viewModel.projectHierarchy, scrollTargetIndex) {
-        val targetIndex: Int? = scrollTargetIndex
-        if (targetIndex != null && targetIndex >= 0) {
-            val index = targetIndex
-            snapshotFlow { listState.layoutInfo.totalItemsCount }
-                .filter { it > index }
-                .first()
-
-            Log.d("UI_SCROLL", "Scrolling to index: $index after hierarchy update")
-            delay(50)
-            listState.animateScrollToItem(index)
-            viewModel.clearScrollTarget()
-        }
-    }
-    if (showContextSheet) {
-        ModalBottomSheet(onDismissRequest = { showContextSheet = false }) {
-            Column(Modifier.navigationBarsPadding()) {
-                Text(
-                    text = "Обрати контекст",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-                if (allContexts.isEmpty()) {
-                    Text(
-                        text = "Немає налаштованих контекстів.",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    LazyColumn {
-                        items(allContexts, key = { it.name }) { context ->
-                            ListItem(
-                                headlineContent = { Text(context.name.replaceFirstChar { it.uppercase() }) },
-                                leadingContent = {
-                                    if (context.emoji.isNotBlank()) {
-                                        Text(context.emoji, fontSize = 24.sp)
-                                    } else {
-                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
-                                    }
-                                },
-                                modifier =
-                                    Modifier.clickable {
-                                        viewModel.onContextSelected(context.name)
-                                        showContextSheet = false
-                                    },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showSearchHistorySheet) {
-        ModalBottomSheet(onDismissRequest = { showSearchHistorySheet = false }) {
-            Column(Modifier.navigationBarsPadding()) {
-                Text(
-                    text = "Search History",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-                if (searchHistory.isEmpty()) {
-                    Text(
-                        text = "No recent searches.",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    LazyColumn {
-                        items(searchHistory, key = { it }) { query ->
-                            ListItem(
-                                headlineContent = { Text(query) },
-                                leadingContent = {
-                                    Icon(
-                                        Icons.Outlined.History,
-                                        contentDescription = "Search history item"
-                                    )
-                                },
-                                modifier = Modifier.clickable {
-                                    viewModel.onSearchQueryFromHistory(query)
-                                    showSearchHistorySheet = false
-                                }
-                            )
-                        }
-                    }
-                }
+        scrollTargetIndex?.let { targetIndex ->
+            if (targetIndex >= 0) {
+                snapshotFlow { listState.layoutInfo.totalItemsCount }
+                    .filter { it > targetIndex }
+                    .first()
+                Log.d("UI_SCROLL", "Scrolling to index: $targetIndex after hierarchy update")
+                delay(50)
+                listState.animateScrollToItem(targetIndex)
+                viewModel.clearScrollTarget()
             }
         }
     }
 
     val backHandlerEnabled by remember(isSearchActive, focusedProjectId, canGoBack, areAnyProjectsExpanded) {
-        derivedStateOf {
-            isSearchActive || focusedProjectId != null || canGoBack || areAnyProjectsExpanded
-        }
+        derivedStateOf { isSearchActive || focusedProjectId != null || canGoBack || areAnyProjectsExpanded }
     }
 
     BackHandler(enabled = backHandlerEnabled) {
@@ -296,94 +193,26 @@ fun MainScreen(
             areAnyProjectsExpanded -> viewModel.collapseAllProjects()
         }
     }
-
-    val importLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { viewModel.onImportFromFileRequested(it) }
-        }
+    // endregion
 
     Scaffold(
-        modifier = Modifier.fillMaxSize().imePadding(),
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
         topBar = {
-            TopAppBar(
-                title = { Text("Projects") },
-                actions = {
-                    if (!isSearchActive) {
-                        // --- ПОЧАТОК ЗМІН: Додаємо кнопки навігації ---
-                        AnimatedVisibility(
-                            visible = canGoBack,
-                            enter = fadeIn(animationSpec = tween(200)),
-                            exit = fadeOut(animationSpec = tween(200))
-                        ) {
-                            IconButton(onClick = { viewModel.enhancedNavigationManager.goBack() }) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад")
-                            }
-                        }
-                        AnimatedVisibility(
-                            visible = canGoForward,
-                            enter = fadeIn(animationSpec = tween(200)),
-                            exit = fadeOut(animationSpec = tween(200))
-                        ) {
-                            IconButton(onClick = { viewModel.enhancedNavigationManager.goForward() }) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
-                            }
-                        }
-                        IconButton(onClick = { viewModel.onShowNavigationHistory() }) {
-                            Icon(Icons.Outlined.History, "Історія")
-                        }
-                        // --- КІНЕЦЬ ЗМІН ---
-
-                        IconButton(onClick = { viewModel.onAddNewProjectRequest() }) { Icon(Icons.Default.Add, "Add new project") }
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
-                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Run Wi-Fi Server") },
-                                onClick = {
-                                    viewModel.onShowWifiServerDialog()
-                                    menuExpanded = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Import from Wi-Fi") },
-                                onClick = {
-                                    viewModel.onShowWifiImportDialog()
-                                    menuExpanded = false
-                                },
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Export to file") },
-                                onClick = {
-                                    viewModel.exportToFile()
-                                    menuExpanded = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Import from file") },
-                                onClick = {
-                                    importLauncher.launch("application/json")
-                                    menuExpanded = false
-                                },
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Settings") },
-                                onClick = {
-                                    viewModel.onShowSettingsScreen()
-                                    menuExpanded = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                onClick = {
-                                    viewModel.onShowAboutDialog()
-                                    menuExpanded = false
-                                },
-                            )
-                        }
-                    }
-                },
+            MainScreenTopAppBar(
+                isSearchActive = isSearchActive,
+                canGoBack = canGoBack,
+                canGoForward = canGoForward,
+                onGoBack = { viewModel.enhancedNavigationManager.goBack() },
+                onGoForward = { viewModel.enhancedNavigationManager.goForward() },
+                onShowHistory = { viewModel.onShowNavigationHistory() },
+                onAddNewProject = { viewModel.onAddNewProjectRequest() },
+                onShowWifiServer = { viewModel.onShowWifiServerDialog() },
+                onShowWifiImport = { viewModel.onShowWifiImportDialog() },
+                onExportToFile = { viewModel.exportToFile() },
+                onShowSettings = { viewModel.onShowSettingsScreen() },
+                onShowAbout = { viewModel.onShowAboutDialog() }
             )
         },
         bottomBar = {
@@ -391,7 +220,7 @@ fun MainScreen(
                 SearchBottomBar(
                     searchQuery = searchQuery,
                     onQueryChange = viewModel::onSearchQueryChanged,
-                    onCloseSearch = { viewModel.onToggleSearch(false) },
+                    onCloseSearch = { viewModel.onToggleSearch(isActive = false) },
                     onPerformGlobalSearch = { viewModel.onPerformGlobalSearch(it) },
                     onShowSearchHistory = { showSearchHistorySheet = true },
                     focusRequester = focusRequester,
@@ -414,73 +243,47 @@ fun MainScreen(
             }
         },
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            if (isSearchActive && searchQueryText.isNotBlank()) {
-                val results by viewModel.searchResults.collectAsState()
-                SearchResultsView(
-                    results = results,
-                    onRevealClick = viewModel::onSearchResultClick,
-                    onOpenClick = viewModel::onProjectClicked
-                )
-            } else {
-                AnimatedVisibility(
-                    visible = currentBreadcrumbs.isNotEmpty(),
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    BreadcrumbNavigation(
-                        breadcrumbs = currentBreadcrumbs,
-                        onNavigate = { breadcrumb: BreadcrumbItem -> viewModel.navigateToBreadcrumb(breadcrumb) },
-                        onClearNavigation = { viewModel.clearNavigation() },
-                        onFocusedListMenuClick = { projectId ->
-                            hierarchy.allProjects.find { it.id == projectId }?.let {
-                                viewModel.onMenuRequested(it)
-                            }
-                        },
-                        onOpenAsProject = { projectId ->
-                            viewModel.onProjectClicked(projectId)
-                        }
-                    )
-                }
-
-                val isListEmpty = hierarchy.topLevelProjects.isEmpty() && hierarchy.childMap.isEmpty()
-                if (isListEmpty) {
-                    Box(
-                        modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        val emptyText =
-                            when {
-                                isSearchActive -> "No projects found for your query."
-                                planningMode is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
-                                planningMode is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
-                                planningMode is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
-                                else -> "Create your first project"
-                            }
-                        Text(emptyText, style = MaterialTheme.typography.bodyLarge)
-                    }
-                } else {
-                    ProjectHierarchyView(
-                        modifier = Modifier.weight(1f),
-                        hierarchy = hierarchy,
-                        focusedProjectId = focusedProjectId,
-                        highlightedProjectId = highlightedProjectId,
-                        searchQuery = searchQuery.text,
-                        isSearchActive = isSearchActive,
-                        planningMode = planningMode,
-                        hierarchySettings = hierarchySettings,
-                        listState = listState,
-                        longDescendantsMap = longDescendantsMap,
-                        onProjectClicked = viewModel::onProjectClicked,
-                        onToggleExpanded = viewModel::onToggleExpanded,
-                        onMenuRequested = viewModel::onMenuRequested,
-                        onNavigateToProject = viewModel::navigateToProject,
-                        onProjectReorder = viewModel::onProjectReorder
-                    )
-                }
-            }
-        }
+        MainScreenContent(
+            modifier = Modifier.padding(paddingValues),
+            isSearchActive = isSearchActive,
+            searchQueryText = searchQueryText,
+            searchResults = viewModel.searchResults.collectAsState().value,
+            onRevealClick = viewModel::onSearchResultClick,
+            onOpenClick = viewModel::onProjectClicked,
+            currentBreadcrumbs = currentBreadcrumbs,
+            hierarchy = hierarchy,
+            onNavigateToBreadcrumb = viewModel::navigateToBreadcrumb,
+            onClearNavigation = viewModel::clearNavigation,
+            onFocusedListMenuClick = { projectId ->
+                hierarchy.allProjects.find { it.id == projectId }?.let(viewModel::onMenuRequested)
+            },
+            planningMode = planningMode,
+            planningSettings = planningSettings,
+            listState = listState,
+            viewModel = viewModel
+        )
     }
+
+    // region Modals and Dialogs
+    ContextBottomSheet(
+        showSheet = showContextSheet,
+        onDismiss = { showContextSheet = false },
+        contexts = allContexts,
+        onContextSelected = { contextName ->
+            viewModel.onContextSelected(contextName)
+            showContextSheet = false
+        }
+    )
+
+    SearchHistoryBottomSheet(
+        showSheet = showSearchHistorySheet,
+        onDismiss = { showSearchHistorySheet = false },
+        searchHistory = searchHistory,
+        onHistoryClick = { query ->
+            viewModel.onSearchQueryFromHistory(query)
+            showSearchHistorySheet = false
+        }
+    )
 
     RecentListsSheet(
         showSheet = showRecentSheet,
@@ -497,15 +300,222 @@ fun MainScreen(
         filteredListHierarchyForDialog = filteredListHierarchyForDialog,
     )
 
-    // --- ПОЧАТОК ЗМІН: Відображаємо меню історії, якщо потрібно ---
     if (showHistoryMenu) {
         NavigationHistoryMenu(
             navManager = viewModel.enhancedNavigationManager,
             onDismiss = { viewModel.onHideNavigationHistory() }
         )
     }
-    // --- КІНЕЦЬ ЗМІН ---
+    // endregion
 }
+
+@Composable
+private fun MainScreenTopAppBar(
+    isSearchActive: Boolean,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onGoBack: () -> Unit,
+    onGoForward: () -> Unit,
+    onShowHistory: () -> Unit,
+    onAddNewProject: () -> Unit,
+    onShowWifiServer: () -> Unit,
+    onShowWifiImport: () -> Unit,
+    onExportToFile: () -> Unit,
+    onShowSettings: () -> Unit,
+    onShowAbout: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text("Projects") },
+        actions = {
+            if (!isSearchActive) {
+                AnimatedVisibility(visible = canGoBack, enter = fadeIn(animationSpec = tween(200)), exit = fadeOut(animationSpec = tween(200))) {
+                    IconButton(onClick = onGoBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") }
+                }
+                AnimatedVisibility(visible = canGoForward, enter = fadeIn(animationSpec = tween(200)), exit = fadeOut(animationSpec = tween(200))) {
+                    IconButton(onClick = onGoForward) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед") }
+                }
+                IconButton(onClick = onShowHistory) { Icon(Icons.Outlined.History, "Історія") }
+
+                IconButton(onClick = onAddNewProject) { Icon(Icons.Default.Add, "Add new project") }
+                var menuExpanded by remember { mutableStateOf(false) }
+                IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Run Wi-Fi Server") }, onClick = { onShowWifiServer(); menuExpanded = false })
+                    DropdownMenuItem(text = { Text("Import from Wi-Fi") }, onClick = { onShowWifiImport(); menuExpanded = false })
+                    HorizontalDivider()
+                    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { _ ->
+                        // This logic needs to be hoisted to the MainScreen to access the ViewModel
+                    }
+                    DropdownMenuItem(text = { Text("Export to file") }, onClick = { onExportToFile(); menuExpanded = false })
+                    DropdownMenuItem(text = { Text("Import from file") }, onClick = { importLauncher.launch("application/json"); menuExpanded = false })
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text("Settings") }, onClick = { onShowSettings(); menuExpanded = false })
+                    DropdownMenuItem(text = { Text("About") }, onClick = { onShowAbout(); menuExpanded = false })
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun MainScreenContent(
+    modifier: Modifier = Modifier,
+    isSearchActive: Boolean,
+    searchQueryText: String,
+    searchResults: List<SearchResult>,
+    onRevealClick: (String) -> Unit,
+    onOpenClick: (String) -> Unit,
+    currentBreadcrumbs: List<BreadcrumbItem>,
+    hierarchy: ListHierarchyData,
+    onNavigateToBreadcrumb: (BreadcrumbItem) -> Unit,
+    onClearNavigation: () -> Unit,
+    onFocusedListMenuClick: (String) -> Unit,
+    planningMode: PlanningMode,
+    planningSettings: PlanningSettingsState,
+    listState: LazyListState,
+    viewModel: MainScreenViewModel
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        if (isSearchActive && searchQueryText.isNotBlank()) {
+            SearchResultsView(
+                results = searchResults,
+                onRevealClick = onRevealClick,
+                onOpenClick = onOpenClick
+            )
+        } else {
+            AnimatedVisibility(
+                visible = currentBreadcrumbs.isNotEmpty(),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                BreadcrumbNavigation(
+                    breadcrumbs = currentBreadcrumbs,
+                    onNavigate = onNavigateToBreadcrumb,
+                    onClearNavigation = onClearNavigation,
+                    onFocusedListMenuClick = onFocusedListMenuClick,
+                    onOpenAsProject = onOpenClick
+                )
+            }
+
+            val isListEmpty = hierarchy.topLevelProjects.isEmpty() && hierarchy.childMap.isEmpty()
+            if (isListEmpty) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val emptyText = when (planningMode) {
+                        is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
+                        is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
+                        is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
+                        else -> "Create your first project"
+                    }
+                    Text(emptyText, style = MaterialTheme.typography.bodyLarge)
+                }
+            } else {
+                ProjectHierarchyView(
+                    modifier = Modifier.weight(1f),
+                    hierarchy = hierarchy,
+                    focusedProjectId = viewModel.focusedProjectId.collectAsState().value,
+                    highlightedProjectId = viewModel.highlightedProjectId.collectAsState().value,
+                    searchQuery = searchQueryText,
+                    isSearchActive = isSearchActive,
+                    planningMode = planningMode,
+                    hierarchySettings = viewModel.hierarchySettings.collectAsState().value,
+                    listState = listState,
+                    longDescendantsMap = viewModel.longDescendantsMap.collectAsState().value,
+                    onProjectClicked = viewModel::onProjectClicked,
+                    onToggleExpanded = viewModel::onToggleExpanded,
+                    onMenuRequested = viewModel::onMenuRequested,
+                    onNavigateToProject = viewModel::navigateToProject,
+                    onProjectReorder = viewModel::onProjectReorder
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContextBottomSheet(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    contexts: List<UiContext>,
+    onContextSelected: (String) -> Unit
+) {
+    if (showSheet) {
+        ModalBottomSheet(onDismissRequest = onDismiss) {
+            Column(Modifier.navigationBarsPadding()) {
+                Text(
+                    text = "Обрати контекст",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                if (contexts.isEmpty()) {
+                    Text(
+                        text = "Немає налаштованих контекстів.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    LazyColumn {
+                        items(contexts, key = { it.name }) { context ->
+                            ListItem(
+                                headlineContent = { Text(context.name.replaceFirstChar { it.uppercase() }) },
+                                leadingContent = {
+                                    if (context.emoji.isNotBlank()) {
+                                        Text(context.emoji, fontSize = 24.sp)
+                                    } else {
+                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
+                                    }
+                                },
+                                modifier = Modifier.clickable { onContextSelected(context.name) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchHistoryBottomSheet(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    searchHistory: List<String>,
+    onHistoryClick: (String) -> Unit
+) {
+    if (showSheet) {
+        ModalBottomSheet(onDismissRequest = onDismiss) {
+            Column(Modifier.navigationBarsPadding()) {
+                Text(
+                    text = "Search History",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                if (searchHistory.isEmpty()) {
+                    Text(
+                        text = "No recent searches.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    LazyColumn {
+                        items(searchHistory, key = { it }) { query ->
+                            ListItem(
+                                headlineContent = { Text(query) },
+                                leadingContent = {
+                                    Icon(Icons.Outlined.History, contentDescription = "Search history item")
+                                },
+                                modifier = Modifier.clickable { onHistoryClick(query) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun SearchBottomBar(
@@ -517,19 +527,17 @@ private fun SearchBottomBar(
     focusRequester: FocusRequester,
 ) {
     Surface(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .navigationBarsPadding()
-                    .imePadding(),
+            modifier = Modifier
+                .navigationBarsPadding()
+                .imePadding(),
         ) {
             AnimatedVisibility(
                 visible = searchQuery.text.isNotBlank(),
@@ -537,21 +545,19 @@ private fun SearchBottomBar(
                 exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
             ) {
                 Surface(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onPerformGlobalSearch(searchQuery.text) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onPerformGlobalSearch(searchQuery.text) },
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 12.dp)
-                                .fillMaxWidth(),
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp)
+                            .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -574,98 +580,27 @@ private fun SearchBottomBar(
             }
 
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .height(52.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onCloseSearch) {
                     Icon(
-                        imageVector = Icons.Outlined.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Close search",
                     )
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                val focusManager = LocalFocusManager.current
-                val interactionSource = remember { MutableInteractionSource() }
-                val isFocused by interactionSource.collectIsFocusedAsState()
-
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = onQueryChange,
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .focusRequester(focusRequester),
-                    singleLine = true,
-                    textStyle =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                        ),
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-                    keyboardActions =
-                        KeyboardActions(
-                            onSearch = {
-                                if (searchQuery.text.isNotBlank()) {
-                                    onPerformGlobalSearch(searchQuery.text)
-                                }
-                                focusManager.clearFocus()
-                            },
-                        ),
-                    interactionSource = interactionSource,
-                    decorationBox = { innerTextField ->
-                        Row(
-                            modifier =
-                                Modifier
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
-                                        shape = RoundedCornerShape(24.dp),
-                                    )
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                        shape = RoundedCornerShape(24.dp),
-                                    )
-                                    .padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                if (searchQuery.text.isEmpty()) {
-                                    Text(
-                                        text = "Search projects...",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.semantics { contentDescription = "Search placeholder" },
-                                    )
-                                }
-                                innerTextField()
-                            }
-                            AnimatedVisibility(
-                                visible = searchQuery.text.isNotBlank(),
-                                enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
-                                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
-                            ) {
-                                IconButton(
-                                    onClick = { onQueryChange(TextFieldValue("")) },
-                                    modifier = Modifier.size(28.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Close,
-                                        contentDescription = "Clear search input",
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    },
+                SearchTextField(
+                    searchQuery = searchQuery,
+                    onQueryChange = onQueryChange,
+                    onPerformGlobalSearch = onPerformGlobalSearch,
+                    focusRequester = focusRequester,
+                    modifier = Modifier.weight(1f)
                 )
 
                 IconButton(onClick = onShowSearchHistory) {
@@ -677,4 +612,84 @@ private fun SearchBottomBar(
             }
         }
     }
+}
+
+@Composable
+private fun SearchTextField(
+    searchQuery: TextFieldValue,
+    onQueryChange: (TextFieldValue) -> Unit,
+    onPerformGlobalSearch: (String) -> Unit,
+    focusRequester: FocusRequester,
+    modifier: Modifier = Modifier
+) {
+    val focusManager = LocalFocusManager.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    BasicTextField(
+        value = searchQuery,
+        onValueChange = onQueryChange,
+        modifier = modifier.focusRequester(focusRequester),
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+        ),
+        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(
+            onSearch = {
+                if (searchQuery.text.isNotBlank()) {
+                    onPerformGlobalSearch(searchQuery.text)
+                }
+                focusManager.clearFocus()
+            },
+        ),
+        interactionSource = interactionSource,
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        shape = RoundedCornerShape(24.dp),
+                    )
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    if (searchQuery.text.isEmpty()) {
+                        Text(
+                            text = "Search projects...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.semantics { contentDescription = "Search placeholder" },
+                        )
+                    }
+                    innerTextField()
+                }
+                AnimatedVisibility(
+                    visible = searchQuery.text.isNotBlank(),
+                    enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
+                    exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
+                ) {
+                    IconButton(
+                        onClick = { onQueryChange(TextFieldValue("")) },
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "Clear search input",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+    )
 }
