@@ -1,5 +1,5 @@
 // file: ui/navigation/DayPlanNavigation.kt
-package com.romankozak.forwardappmobile.ui.navigation
+package com.romankozak.forwardappmobile.ui.navigation.routes
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder

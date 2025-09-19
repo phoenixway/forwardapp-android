@@ -57,7 +57,7 @@ import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.ui.navigation.navigateToDayManagement
+import com.romankozak.forwardappmobile.ui.navigation.routes.navigateToDayManagement
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle

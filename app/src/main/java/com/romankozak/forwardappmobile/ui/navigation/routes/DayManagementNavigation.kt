@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.navigation // Приклад шляху
+package com.romankozak.forwardappmobile.ui.navigation.routes // Приклад шляху
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -6,8 +6,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScreen
-import com.romankozak.forwardappmobile.ui.navigation.DAY_MANAGEMENT_ROUTE
-import com.romankozak.forwardappmobile.ui.navigation.DAY_PLAN_DATE_ARG
 
 fun NavGraphBuilder.dayManagementGraph(navController: NavController) {
     composable(

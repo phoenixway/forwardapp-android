@@ -31,15 +31,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.navigation.CHAT_ROUTE
+import com.romankozak.forwardappmobile.ui.navigation.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-import kotlinx.coroutines.launch
 
 @Composable
 private fun PlanningModeSelector(

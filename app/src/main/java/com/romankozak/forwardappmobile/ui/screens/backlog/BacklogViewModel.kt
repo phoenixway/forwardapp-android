@@ -11,6 +11,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -25,6 +26,7 @@ import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
+import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.TransferStatus
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputHandler
@@ -236,6 +238,13 @@ constructor(
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
     }
+
+    private var enhancedNavigationManager: EnhancedNavigationManager? = null
+
+    // Exposing navigation states
+    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoBack ?: MutableStateFlow(false)
+    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoForward ?: MutableStateFlow(false)
+
 
     private var batchSaveJob: Job? = null
 
@@ -1121,11 +1130,58 @@ constructor(
         }
     }
 
-    fun onHomeClick() {
+/*    fun onHomeClick() {
         // "goal_lists_screen" is defined as the home screen in AppNavigation.kt
         viewModelScope.launch {
             requestNavigation("goal_lists_screen")
         }
+    }*/
+
+    fun initializeNavigation(navController: NavController) {
+        enhancedNavigationManager = EnhancedNavigationManager(navController, savedStateHandle, viewModelScope)
+
+        // Ініціалізуємо з поточним проектом
+        viewModelScope.launch {
+            project.filterNotNull().first().let { proj ->
+                enhancedNavigationManager?.initializeWithCurrentScreen("goal_detail_screen/${proj.id}")
+                // Додаємо поточний проект до історії якщо її немає
+                if (enhancedNavigationManager?.getNavigationHistory()?.isEmpty() == true) {
+                    enhancedNavigationManager?.navigateToMainScreen()
+                    enhancedNavigationManager?.navigateToProject(proj.id, proj.name)
+                }
+            }
+        }
     }
 
+    // Оновлений метод для навігації додому
+    fun onHomeClick() {
+        enhancedNavigationManager?.navigateToMainScreen()
+    }
+
+    // Оновлений BackHandler
+    fun onBackPressed(): Boolean {
+        return when {
+            uiState.value.inputValue.text.isNotEmpty() -> {
+                inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
+                true
+            }
+            isSelectionModeActive.value -> {
+                selectionHandler.clearSelection()
+                true
+            }
+            enhancedNavigationManager?.canGoBack?.value == true -> {
+                enhancedNavigationManager?.goBack()
+                true
+            }
+            else -> {
+                flushPendingMoves()
+                false // Let default back navigation handle this
+            }
+        }
+    }
+
+    // Метод для оновлення назви проекту в історії
+    private fun updateProjectNameInHistory(newName: String) {
+        enhancedNavigationManager?.updateCurrentEntry(newName)
+    }
 }

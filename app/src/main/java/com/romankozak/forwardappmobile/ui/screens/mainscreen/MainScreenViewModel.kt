@@ -15,6 +15,8 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.ui.navigation.NavigationEntry
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActionsHandler
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
@@ -48,6 +50,12 @@ class MainScreenViewModel @Inject constructor(
 
     // Core managers
     private val hierarchyManager = ProjectHierarchyManager()
+
+    private var enhancedNavigationManager: EnhancedNavigationManager? = null
+    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoBack ?: MutableStateFlow(false)
+    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoForward ?: MutableStateFlow(false)
+    val showNavigationMenu: StateFlow<Boolean> get() = enhancedNavigationManager?.showNavigationMenu ?: MutableStateFlow(false)
+
 
     // UI Event Channel
     private val _uiEventChannel = Channel<ProjectUiEvent>()
@@ -415,11 +423,11 @@ class MainScreenViewModel @Inject constructor(
         }
     }
 
-    fun onProjectClicked(projectId: String) {
+/*    fun onProjectClicked(projectId: String) {
         viewModelScope.launch {
             _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(projectId))
         }
-    }
+    }*/
 
     // Recent Projects Methods
     fun onShowRecentLists() {
@@ -472,15 +480,15 @@ class MainScreenViewModel @Inject constructor(
     fun onShowSearchDialog() { _showSearchDialog.value = true }
     fun onDismissSearchDialog() { _showSearchDialog.value = false }
 
-    fun onPerformGlobalSearch(query: String) {
-        if (query.isNotBlank()) {
-            searchAndNavigationManager.onSearchQueryFromHistory(query)
-            viewModelScope.launch {
-                _uiEventChannel.send(ProjectUiEvent.NavigateToGlobalSearch(query))
-                onDismissSearchDialog()
-            }
-        }
-    }
+//    fun onPerformGlobalSearch(query: String) {
+//        if (query.isNotBlank()) {
+//            searchAndNavigationManager.onSearchQueryFromHistory(query)
+//            viewModelScope.launch {
+//                _uiEventChannel.send(ProjectUiEvent.NavigateToGlobalSearch(query))
+//                onDismissSearchDialog()
+//            }
+//        }
+//    }
 
     // List Chooser Methods
     fun onListChooserFilterChanged(text: String) {
@@ -543,5 +551,62 @@ class MainScreenViewModel @Inject constructor(
     fun setScrollTarget(index: Int) {
         Log.d("VM_SCROLL", "Setting scroll target to: $index")
         _scrollTargetIndex.value = index
+    }
+
+    // Оновлені методи навігації
+    fun onProjectClicked(projectId: String) {
+        viewModelScope.launch {
+            val project = _allProjectsFlat.value.find { it.id == projectId }
+            if (project != null) {
+                enhancedNavigationManager?.navigateToProject(projectId, project.name)
+            }
+        }
+    }
+
+    fun onPerformGlobalSearch(query: String) {
+        if (query.isNotBlank()) {
+            searchAndNavigationManager.onSearchQueryFromHistory(query)
+            enhancedNavigationManager?.navigateToGlobalSearch(query)
+            onDismissSearchDialog()
+        }
+    }
+
+    // Оновлений BackHandler
+    fun onBackPressed(): Boolean {
+        return when {
+            focusedProjectId.value != null -> {
+                clearNavigation()
+                true
+            }
+            isSearchActive.value -> {
+                onToggleSearch(false)
+                true
+            }
+            enhancedNavigationManager?.canGoBack?.value == true -> {
+                enhancedNavigationManager?.goBack()
+                true
+            }
+            else -> false
+        }
+    }
+
+    fun onForwardPressed(): Boolean {
+        return enhancedNavigationManager?.goForward() ?: false
+    }
+
+    fun onShowNavigationHistory() {
+        enhancedNavigationManager?.showNavigationMenu()
+    }
+
+    fun onHideNavigationHistory() {
+        enhancedNavigationManager?.hideNavigationMenu()
+    }
+
+    fun navigateToHistoryEntry(index: Int) {
+        enhancedNavigationManager?.navigateToHistoryEntry(index)
+    }
+
+    fun getNavigationHistory(): List<NavigationEntry> {
+        return enhancedNavigationManager?.getNavigationHistory() ?: emptyList()
     }
 }
