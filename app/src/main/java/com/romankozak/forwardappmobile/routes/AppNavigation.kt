@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
@@ -124,52 +125,58 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         // --- Решта екранів залишаються здебільшого без змін ---
 
         composable("settings_screen") { backStackEntry ->
-            val goalListViewModel: MainScreenViewModel =
-                hiltViewModel(
-                    remember(backStackEntry) {
-                        navController.getBackStackEntry("goal_lists_screen")
-                    },
-                )
+            val goalListViewModel: MainScreenViewModel = hiltViewModel(
+                remember(backStackEntry) {
+                    navController.getBackStackEntry("goal_lists_screen")
+                }
+            )
 
-            val planningSettings by goalListViewModel.planningSettingsState.collectAsState()
-            val vaultName by goalListViewModel.obsidianVaultName.collectAsState()
-            val allContexts by goalListViewModel.allContextsForDialog.collectAsState()
-            val reservedContextCount = allContexts.count { it.isReserved }
+            // Collect the single UiState object
+            val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
+
+            // Calculate derived state from the UiState
+            val reservedContextCount = uiState.allContexts.count { it.isReserved }
 
             SettingsScreen(
-                planningSettings = planningSettings,
-                initialVaultName = vaultName,
+                // Pass data directly from the uiState object
+                planningSettings = uiState.planningSettings,
+                initialVaultName = uiState.obsidianVaultName,
                 reservedContextCount = reservedContextCount,
                 onManageContextsClick = {
                     navController.navigate("manage_contexts_screen")
                 },
                 onBack = { navController.popBackStack() },
                 onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName ->
-                    goalListViewModel.saveSettings(
-                        showModes,
-                        dailyTag,
-                        mediumTag,
-                        longTag,
-                        newVaultName,
+                    // Use the onEvent handler to trigger the save action
+                    goalListViewModel.onEvent(
+                        MainScreenEvent.SaveSettings(
+                            show = showModes,
+                            daily = dailyTag,
+                            medium = mediumTag,
+                            long = longTag,
+                            vaultName = newVaultName
+                        )
                     )
                 },
             )
         }
 
         composable("manage_contexts_screen") { backStackEntry ->
-            val goalListViewModel: MainScreenViewModel =
-                hiltViewModel(
-                    remember(backStackEntry) {
-                        navController.getBackStackEntry("goal_lists_screen")
-                    },
-                )
-            val allContexts by goalListViewModel.allContextsForDialog.collectAsState()
+            val goalListViewModel: MainScreenViewModel = hiltViewModel(
+                remember(backStackEntry) {
+                    navController.getBackStackEntry("goal_lists_screen")
+                }
+            )
+
+            // Collect the single UiState object
+            val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
 
             ManageContextsScreen(
-                initialContexts = allContexts,
+                initialContexts = uiState.allContexts,
                 onBack = { navController.popBackStack() },
                 onSave = { updatedContexts ->
-                    goalListViewModel.saveAllContexts(updatedContexts)
+                    // Use the onEvent handler to trigger the save action
+                    goalListViewModel.onEvent(MainScreenEvent.SaveAllContexts(updatedContexts))
                     navController.popBackStack()
                 },
             )

@@ -133,8 +133,6 @@ private fun PlanningModeSelector(
 
 @Composable
 internal fun ExpandingBottomNav(
-    navController: NavController,
-    isSearchActive: Boolean,
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     currentMode: PlanningMode,
@@ -145,6 +143,9 @@ internal fun ExpandingBottomNav(
     onHomeClick: () -> Unit,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
+    // --- NEW: Лямбди для навігації ---
+    onAiChatClick: () -> Unit,
+    onActivityTrackerClick: () -> Unit
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -204,7 +205,8 @@ internal fun ExpandingBottomNav(
                     SmallBottomNavButton(
                         text = "AI-Chat",
                         icon = Icons.Outlined.AutoAwesome,
-                        onClick = { navController.navigate(CHAT_ROUTE) },
+                        // --- UPDATED: Викликаємо лямбду замість navController ---
+                        onClick = onAiChatClick,
                     )
 
                     Box {
@@ -309,12 +311,12 @@ internal fun ExpandingBottomNav(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = { navController.navigate("activity_tracker_screen") })
+                // --- UPDATED: Викликаємо лямбду замість navController ---
+                ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = onActivityTrackerClick)
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
-                ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = isSearchActive, onClick = { onToggleSearch(true) })
+                ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-
             }
         }
     }

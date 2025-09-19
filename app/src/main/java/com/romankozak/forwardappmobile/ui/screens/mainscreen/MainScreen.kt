@@ -1,7 +1,4 @@
 // File: MainScreen.kt
-
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.util.Log
@@ -70,57 +67,21 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHi
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 
+// File: MainScreen.kt
 @Composable
 fun MainScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
     viewModel: MainScreenViewModel = hiltViewModel(),
 ) {
-    // region State Collection
-    val hierarchy by viewModel.projectHierarchy.collectAsState()
-    val dialogState by viewModel.dialogState.collectAsState()
-    val isSearchActive by viewModel.isSearchActive.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val planningMode by viewModel.planningMode.collectAsState()
-    val planningSettings by viewModel.planningSettingsState.collectAsState()
-    val currentBreadcrumbs by viewModel.currentBreadcrumbs.collectAsState()
-    val focusedProjectId by viewModel.focusedProjectId.collectAsState()
-    val areAnyProjectsExpanded by viewModel.areAnyProjectsExpanded.collectAsState()
-    val isBottomNavExpanded by viewModel.isBottomNavExpanded.collectAsStateWithLifecycle()
-    val listChooserFinalExpandedIds by viewModel.listChooserFinalExpandedIds.collectAsState()
-    val filteredListHierarchyForDialog by viewModel.filteredListHierarchyForDialog.collectAsState()
-    val allContexts by viewModel.allContextsForDialog.collectAsState()
-    val searchHistory by viewModel.searchHistory.collectAsState()
-    val showRecentSheet by viewModel.showRecentListsSheet.collectAsState()
-    val recentProjects by viewModel.recentProjects.collectAsState()
-    val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
-    val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
-    val showHistoryMenu by viewModel.showNavigationMenu.collectAsStateWithLifecycle()
-    val scrollTargetIndex by viewModel.scrollTargetIndex.collectAsState()
-    val searchQueryText by remember { derivedStateOf { searchQuery.text } }
-
-    var showContextSheet by remember { mutableStateOf(false) }
-    var showSearchHistorySheet by remember { mutableStateOf(false) }
-
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    val focusRequester = remember { FocusRequester() }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    // endregion
 
-    // region Side Effects
+    // Обробка одноразових подій з ViewModel (навігація, тости, фокус)
     LaunchedEffect(Unit) {
-        delay(100)
-        viewModel.enableFiltering()
-
-        viewModel.uiEventFlow.collect { event ->
+        viewModel.uiEventFlow.collectLatest { event ->
             when (event) {
                 is ProjectUiEvent.NavigateToSyncScreenWithData -> {
                     syncDataViewModel.jsonString = event.json
@@ -129,148 +90,150 @@ fun MainScreen(
                 is ProjectUiEvent.NavigateToDetails -> navController.navigate("goal_detail_screen/${event.projectId}")
                 is ProjectUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
                 is ProjectUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
-                is ProjectUiEvent.ScrollToIndex -> viewModel.setScrollTarget(event.index)
-                ProjectUiEvent.FocusSearchField -> {
-                    coroutineScope.launch {
-                        delay(100)
-                        focusRequester.requestFocus()
-                    }
-                }
-                ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
+                is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
                 is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("edit_list_screen/${event.projectId}")
                 is ProjectUiEvent.Navigate -> navController.navigate(event.route)
                 is ProjectUiEvent.NavigateToDayPlan -> navController.navigateToDayManagement(event.date)
+                is ProjectUiEvent.FocusSearchField -> {
+                    // ЗМІНА: Видаляємо focusRequester.requestFocus() звідси
+                    // Фокус тепер обробляється безпосередньо в SearchBottomBar
+                }
+                is ProjectUiEvent.ScrollToIndex -> { /* Ця логіка тепер вбудована в projectHierarchyFlow */ }
             }
         }
     }
 
-    LaunchedEffect(savedStateHandle) {
-        savedStateHandle
-            ?.getStateFlow<String?>("project_to_reveal", null)
-            ?.filterNotNull()
-            ?.collect { projectId ->
-                viewModel.onSearchResultClick(projectId)
-                savedStateHandle["project_to_reveal"] = null
-            }
-    }
-
-    DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
+    // Обробка результатів з інших екранів
+    DisposableEffect(navController, lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                savedStateHandle?.remove<String?>("list_chooser_result")?.let { result ->
-                    Log.d("MOVE_DEBUG", "[Screen] Resumed and processed result: '$result'")
-                    viewModel.onListChooserResult(result)
-                }
+                navController.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.remove<String?>("list_chooser_result")
+                    ?.let { result ->
+                        viewModel.onEvent(MainScreenEvent.MoveConfirm(result))
+                    }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(viewModel.projectHierarchy, scrollTargetIndex) {
-        scrollTargetIndex?.let { targetIndex ->
-            if (targetIndex >= 0) {
-                snapshotFlow { listState.layoutInfo.totalItemsCount }
-                    .filter { it > targetIndex }
-                    .first()
-                Log.d("UI_SCROLL", "Scrolling to index: $targetIndex after hierarchy update")
-                delay(50)
-                listState.animateScrollToItem(targetIndex)
-                viewModel.clearScrollTarget()
-            }
-        }
+    viewModel.enhancedNavigationManager?.let { navManager ->
+        MainScreenScaffold(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+            enhancedNavigationManager = navManager
+        )
+    } ?: Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun MainScreenScaffold(
+    uiState: MainScreenUiState,
+    onEvent: (MainScreenEvent) -> Unit,
+    enhancedNavigationManager: com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
+) {
+    val listState = rememberLazyListState()
+
+    // Локальний стан для модальних вікон, які не потребують збереження у ViewModel
+    var showContextSheet by remember { mutableStateOf(false) }
+    var showSearchHistorySheet by remember { mutableStateOf(false) }
+
+    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { onEvent(MainScreenEvent.ImportFromFileRequest(it)) }
     }
 
-    val backHandlerEnabled by remember(isSearchActive, focusedProjectId, canGoBack, areAnyProjectsExpanded) {
-        derivedStateOf { isSearchActive || focusedProjectId != null || canGoBack || areAnyProjectsExpanded }
+    val backHandlerEnabled by remember(uiState.isSearchActive, uiState.focusedProjectId, uiState.canGoBack, uiState.areAnyProjectsExpanded) {
+        derivedStateOf {
+            uiState.isSearchActive || uiState.focusedProjectId != null || uiState.canGoBack || uiState.areAnyProjectsExpanded
+        }
     }
 
     BackHandler(enabled = backHandlerEnabled) {
         when {
-            isSearchActive -> viewModel.onToggleSearch(isActive = false)
-            focusedProjectId != null -> viewModel.clearNavigation()
-            canGoBack -> viewModel.enhancedNavigationManager.goBack()
-            areAnyProjectsExpanded -> viewModel.collapseAllProjects()
+            uiState.isSearchActive -> onEvent(MainScreenEvent.ToggleSearch(false))
+            uiState.focusedProjectId != null -> onEvent(MainScreenEvent.ClearBreadcrumbNavigation)
+            uiState.canGoBack -> onEvent(MainScreenEvent.BackClick)
+            uiState.areAnyProjectsExpanded -> { /* onEvent(MainScreenEvent.CollapseAllProjects) */ }
         }
     }
-    // endregion
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(),
+        modifier = Modifier.imePadding(),
         topBar = {
             MainScreenTopAppBar(
-                isSearchActive = isSearchActive,
-                canGoBack = canGoBack,
-                canGoForward = canGoForward,
-                onGoBack = { viewModel.enhancedNavigationManager.goBack() },
-                onGoForward = { viewModel.enhancedNavigationManager.goForward() },
-                onShowHistory = { viewModel.onShowNavigationHistory() },
-                onAddNewProject = { viewModel.onAddNewProjectRequest() },
-                onShowWifiServer = { viewModel.onShowWifiServerDialog() },
-                onShowWifiImport = { viewModel.onShowWifiImportDialog() },
-                onExportToFile = { viewModel.exportToFile() },
-                onShowSettings = { viewModel.onShowSettingsScreen() },
-                onShowAbout = { viewModel.onShowAboutDialog() }
+                isSearchActive = uiState.isSearchActive,
+                canGoBack = uiState.canGoBack,
+                canGoForward = uiState.canGoForward,
+                onGoBack = { onEvent(MainScreenEvent.BackClick) },
+                onGoForward = { onEvent(MainScreenEvent.ForwardClick) },
+                onShowHistory = { onEvent(MainScreenEvent.HistoryClick) },
+                onAddNewProject = { onEvent(MainScreenEvent.AddNewProjectRequest) },
+                onShowWifiServer = { onEvent(MainScreenEvent.ShowWifiServerDialog) },
+                onShowWifiImport = { onEvent(MainScreenEvent.ShowWifiImportDialog) },
+                onExportToFile = { onEvent(MainScreenEvent.ExportToFile) },
+                onImportFromFile = { importLauncher.launch("application/json") },
+                onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
+                onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) }
             )
         },
         bottomBar = {
-            if (isSearchActive) {
+            if (uiState.isSearchActive) {
                 SearchBottomBar(
-                    searchQuery = searchQuery,
-                    onQueryChange = viewModel::onSearchQueryChanged,
-                    onCloseSearch = { viewModel.onToggleSearch(isActive = false) },
-                    onPerformGlobalSearch = { viewModel.onPerformGlobalSearch(it) },
-                    onShowSearchHistory = { showSearchHistorySheet = true },
-                    focusRequester = focusRequester,
+                    searchQuery = uiState.searchQuery,
+                    onQueryChange = { onEvent(MainScreenEvent.SearchQueryChanged(it)) },
+                    onCloseSearch = { onEvent(MainScreenEvent.ToggleSearch(false)) },
+                    onPerformGlobalSearch = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
+                    onShowSearchHistory = { showSearchHistorySheet = true }
                 )
             } else {
                 ExpandingBottomNav(
-                    navController = navController,
-                    isSearchActive = isSearchActive,
-                    onToggleSearch = viewModel::onToggleSearch,
-                    onGlobalSearchClick = { viewModel.onShowSearchDialog() },
-                    currentMode = planningMode,
-                    onPlanningModeChange = viewModel::onPlanningModeChange,
+                    onToggleSearch = { onEvent(MainScreenEvent.ToggleSearch(true)) },
+                    onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
+                    currentMode = uiState.planningMode,
+                    onPlanningModeChange = { onEvent(MainScreenEvent.PlanningModeChange(it)) },
                     onContextsClick = { showContextSheet = true },
-                    onRecentsClick = { viewModel.onShowRecentLists() },
-                    onDayPlanClick = viewModel::onDayPlanClicked,
-                    onHomeClick = viewModel::onHomeClicked,
-                    isExpanded = isBottomNavExpanded,
-                    onExpandedChange = viewModel::onBottomNavExpandedChange
+                    onRecentsClick = { onEvent(MainScreenEvent.ShowRecentLists) },
+                    onDayPlanClick = { onEvent(MainScreenEvent.DayPlanClick) },
+                    onHomeClick = { onEvent(MainScreenEvent.HomeClick) },
+                    isExpanded = uiState.isBottomNavExpanded,
+                    onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
+                    onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
+                    onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) }
                 )
             }
-        },
+        }
     ) { paddingValues ->
         MainScreenContent(
             modifier = Modifier.padding(paddingValues),
-            isSearchActive = isSearchActive,
-            searchQueryText = searchQueryText,
-            searchResults = viewModel.searchResults.collectAsState().value,
-            onRevealClick = viewModel::onSearchResultClick,
-            onOpenClick = viewModel::onProjectClicked,
-            currentBreadcrumbs = currentBreadcrumbs,
-            hierarchy = hierarchy,
-            onNavigateToBreadcrumb = viewModel::navigateToBreadcrumb,
-            onClearNavigation = viewModel::clearNavigation,
-            onFocusedListMenuClick = { projectId ->
-                hierarchy.allProjects.find { it.id == projectId }?.let(viewModel::onMenuRequested)
-            },
-            planningMode = planningMode,
-            planningSettings = planningSettings,
-            listState = listState,
-            viewModel = viewModel
+            uiState = uiState,
+            onEvent = onEvent,
+            listState = listState
         )
     }
 
-    // region Modals and Dialogs
+    // --- Модальні вікна та діалоги ---
+
+    if (uiState.showNavigationMenu) {
+        NavigationHistoryMenu(
+            navManager = enhancedNavigationManager,
+            onDismiss = { onEvent(MainScreenEvent.HideHistory) }
+        )
+    }
+
     ContextBottomSheet(
         showSheet = showContextSheet,
         onDismiss = { showContextSheet = false },
-        contexts = allContexts,
-        onContextSelected = { contextName ->
-            viewModel.onContextSelected(contextName)
+        contexts = uiState.allContexts,
+        onContextSelected = {
+            onEvent(MainScreenEvent.ContextSelected(it))
             showContextSheet = false
         }
     )
@@ -278,244 +241,20 @@ fun MainScreen(
     SearchHistoryBottomSheet(
         showSheet = showSearchHistorySheet,
         onDismiss = { showSearchHistorySheet = false },
-        searchHistory = searchHistory,
-        onHistoryClick = { query ->
-            viewModel.onSearchQueryFromHistory(query)
+        searchHistory = uiState.searchHistory,
+        onHistoryClick = {
+            onEvent(MainScreenEvent.SearchFromHistory(it))
             showSearchHistorySheet = false
         }
     )
 
     RecentListsSheet(
-        showSheet = showRecentSheet,
-        recentLists = recentProjects,
-        onDismiss = { viewModel.onDismissRecentLists() },
-        onListClick = { projectId -> viewModel.onRecentProjectSelected(projectId) },
-    )
-
-    HandleDialogs(
-        dialogState = dialogState,
-        viewModel = viewModel,
-        listChooserFilterText = "",
-        listChooserExpandedIds = listChooserFinalExpandedIds,
-        filteredListHierarchyForDialog = filteredListHierarchyForDialog,
-    )
-
-    if (showHistoryMenu) {
-        NavigationHistoryMenu(
-            navManager = viewModel.enhancedNavigationManager,
-            onDismiss = { viewModel.onHideNavigationHistory() }
-        )
-    }
-    // endregion
-}
-
-@Composable
-private fun MainScreenTopAppBar(
-    isSearchActive: Boolean,
-    canGoBack: Boolean,
-    canGoForward: Boolean,
-    onGoBack: () -> Unit,
-    onGoForward: () -> Unit,
-    onShowHistory: () -> Unit,
-    onAddNewProject: () -> Unit,
-    onShowWifiServer: () -> Unit,
-    onShowWifiImport: () -> Unit,
-    onExportToFile: () -> Unit,
-    onShowSettings: () -> Unit,
-    onShowAbout: () -> Unit,
-) {
-    TopAppBar(
-        title = { Text("Projects") },
-        actions = {
-            if (!isSearchActive) {
-                AnimatedVisibility(visible = canGoBack, enter = fadeIn(animationSpec = tween(200)), exit = fadeOut(animationSpec = tween(200))) {
-                    IconButton(onClick = onGoBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") }
-                }
-                AnimatedVisibility(visible = canGoForward, enter = fadeIn(animationSpec = tween(200)), exit = fadeOut(animationSpec = tween(200))) {
-                    IconButton(onClick = onGoForward) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед") }
-                }
-                IconButton(onClick = onShowHistory) { Icon(Icons.Outlined.History, "Історія") }
-
-                IconButton(onClick = onAddNewProject) { Icon(Icons.Default.Add, "Add new project") }
-                var menuExpanded by remember { mutableStateOf(false) }
-                IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(text = { Text("Run Wi-Fi Server") }, onClick = { onShowWifiServer(); menuExpanded = false })
-                    DropdownMenuItem(text = { Text("Import from Wi-Fi") }, onClick = { onShowWifiImport(); menuExpanded = false })
-                    HorizontalDivider()
-                    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { _ ->
-                        // This logic needs to be hoisted to the MainScreen to access the ViewModel
-                    }
-                    DropdownMenuItem(text = { Text("Export to file") }, onClick = { onExportToFile(); menuExpanded = false })
-                    DropdownMenuItem(text = { Text("Import from file") }, onClick = { importLauncher.launch("application/json"); menuExpanded = false })
-                    HorizontalDivider()
-                    DropdownMenuItem(text = { Text("Settings") }, onClick = { onShowSettings(); menuExpanded = false })
-                    DropdownMenuItem(text = { Text("About") }, onClick = { onShowAbout(); menuExpanded = false })
-                }
-            }
-        },
+        showSheet = uiState.showRecentListsSheet,
+        recentLists = uiState.recentProjects,
+        onDismiss = { onEvent(MainScreenEvent.DismissRecentLists) },
+        onListClick = { onEvent(MainScreenEvent.RecentProjectSelected(it)) },
     )
 }
-
-@Composable
-private fun MainScreenContent(
-    modifier: Modifier = Modifier,
-    isSearchActive: Boolean,
-    searchQueryText: String,
-    searchResults: List<SearchResult>,
-    onRevealClick: (String) -> Unit,
-    onOpenClick: (String) -> Unit,
-    currentBreadcrumbs: List<BreadcrumbItem>,
-    hierarchy: ListHierarchyData,
-    onNavigateToBreadcrumb: (BreadcrumbItem) -> Unit,
-    onClearNavigation: () -> Unit,
-    onFocusedListMenuClick: (String) -> Unit,
-    planningMode: PlanningMode,
-    planningSettings: PlanningSettingsState,
-    listState: LazyListState,
-    viewModel: MainScreenViewModel
-) {
-    Column(modifier = modifier.fillMaxSize()) {
-        if (isSearchActive && searchQueryText.isNotBlank()) {
-            SearchResultsView(
-                results = searchResults,
-                onRevealClick = onRevealClick,
-                onOpenClick = onOpenClick
-            )
-        } else {
-            AnimatedVisibility(
-                visible = currentBreadcrumbs.isNotEmpty(),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                BreadcrumbNavigation(
-                    breadcrumbs = currentBreadcrumbs,
-                    onNavigate = onNavigateToBreadcrumb,
-                    onClearNavigation = onClearNavigation,
-                    onFocusedListMenuClick = onFocusedListMenuClick,
-                    onOpenAsProject = onOpenClick
-                )
-            }
-
-            val isListEmpty = hierarchy.topLevelProjects.isEmpty() && hierarchy.childMap.isEmpty()
-            if (isListEmpty) {
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val emptyText = when (planningMode) {
-                        is PlanningMode.Daily -> "No projects with tag '#${planningSettings.dailyTag}'"
-                        is PlanningMode.Medium -> "No projects with tag '#${planningSettings.mediumTag}'"
-                        is PlanningMode.Long -> "No projects with tag '#${planningSettings.longTag}'"
-                        else -> "Create your first project"
-                    }
-                    Text(emptyText, style = MaterialTheme.typography.bodyLarge)
-                }
-            } else {
-                ProjectHierarchyView(
-                    modifier = Modifier.weight(1f),
-                    hierarchy = hierarchy,
-                    focusedProjectId = viewModel.focusedProjectId.collectAsState().value,
-                    highlightedProjectId = viewModel.highlightedProjectId.collectAsState().value,
-                    searchQuery = searchQueryText,
-                    isSearchActive = isSearchActive,
-                    planningMode = planningMode,
-                    hierarchySettings = viewModel.hierarchySettings.collectAsState().value,
-                    listState = listState,
-                    longDescendantsMap = viewModel.longDescendantsMap.collectAsState().value,
-                    onProjectClicked = viewModel::onProjectClicked,
-                    onToggleExpanded = viewModel::onToggleExpanded,
-                    onMenuRequested = viewModel::onMenuRequested,
-                    onNavigateToProject = viewModel::navigateToProject,
-                    onProjectReorder = viewModel::onProjectReorder
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContextBottomSheet(
-    showSheet: Boolean,
-    onDismiss: () -> Unit,
-    contexts: List<UiContext>,
-    onContextSelected: (String) -> Unit
-) {
-    if (showSheet) {
-        ModalBottomSheet(onDismissRequest = onDismiss) {
-            Column(Modifier.navigationBarsPadding()) {
-                Text(
-                    text = "Обрати контекст",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-                if (contexts.isEmpty()) {
-                    Text(
-                        text = "Немає налаштованих контекстів.",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    LazyColumn {
-                        items(contexts, key = { it.name }) { context ->
-                            ListItem(
-                                headlineContent = { Text(context.name.replaceFirstChar { it.uppercase() }) },
-                                leadingContent = {
-                                    if (context.emoji.isNotBlank()) {
-                                        Text(context.emoji, fontSize = 24.sp)
-                                    } else {
-                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
-                                    }
-                                },
-                                modifier = Modifier.clickable { onContextSelected(context.name) },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchHistoryBottomSheet(
-    showSheet: Boolean,
-    onDismiss: () -> Unit,
-    searchHistory: List<String>,
-    onHistoryClick: (String) -> Unit
-) {
-    if (showSheet) {
-        ModalBottomSheet(onDismissRequest = onDismiss) {
-            Column(Modifier.navigationBarsPadding()) {
-                Text(
-                    text = "Search History",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-                if (searchHistory.isEmpty()) {
-                    Text(
-                        text = "No recent searches.",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    LazyColumn {
-                        items(searchHistory, key = { it }) { query ->
-                            ListItem(
-                                headlineContent = { Text(query) },
-                                leadingContent = {
-                                    Icon(Icons.Outlined.History, contentDescription = "Search history item")
-                                },
-                                modifier = Modifier.clickable { onHistoryClick(query) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 
 @Composable
 private fun SearchBottomBar(
@@ -524,8 +263,15 @@ private fun SearchBottomBar(
     onCloseSearch: () -> Unit,
     onPerformGlobalSearch: (String) -> Unit,
     onShowSearchHistory: () -> Unit,
-    focusRequester: FocusRequester,
 ) {
+    // ЗМІНА: Створюємо focusRequester безпосередньо тут
+    val focusRequester = remember { FocusRequester() }
+
+    // ЗМІНА: Автоматично фокусуємо поле при появі SearchBottomBar
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -613,6 +359,208 @@ private fun SearchBottomBar(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScreenTopAppBar(
+    isSearchActive: Boolean,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onGoBack: () -> Unit,
+    onGoForward: () -> Unit,
+    onShowHistory: () -> Unit,
+    onAddNewProject: () -> Unit,
+    onShowWifiServer: () -> Unit,
+    onShowWifiImport: () -> Unit,
+    onExportToFile: () -> Unit,
+    onImportFromFile: () -> Unit,
+    onShowSettings: () -> Unit,
+    onShowAbout: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text("Projects") },
+        actions = {
+            if (!isSearchActive) {
+                AnimatedVisibility(visible = canGoBack) { IconButton(onClick = onGoBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") } }
+                AnimatedVisibility(visible = canGoForward) { IconButton(onClick = onGoForward) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед") } }
+                IconButton(onClick = onShowHistory) { Icon(Icons.Outlined.History, "Історія") }
+
+                IconButton(onClick = onAddNewProject) { Icon(Icons.Default.Add, "Add new project") }
+                var menuExpanded by remember { mutableStateOf(false) }
+                IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Run Wi-Fi Server") }, onClick = { onShowWifiServer(); menuExpanded = false })
+                    DropdownMenuItem(text = { Text("Import from Wi-Fi") }, onClick = { onShowWifiImport(); menuExpanded = false })
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text("Export to file") }, onClick = { onExportToFile(); menuExpanded = false })
+                    DropdownMenuItem(text = { Text("Import from file") }, onClick = { onImportFromFile(); menuExpanded = false })
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text("Settings") }, onClick = { onShowSettings(); menuExpanded = false })
+                    DropdownMenuItem(text = { Text("About") }, onClick = { onShowAbout(); menuExpanded = false })
+                }
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MainScreenContent(
+    modifier: Modifier = Modifier,
+    uiState: MainScreenUiState,
+    onEvent: (MainScreenEvent) -> Unit,
+    listState: LazyListState,
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        if (uiState.isSearchActive && uiState.searchQuery.text.isNotBlank()) {
+            SearchResultsView(
+                results = uiState.searchResults,
+                onRevealClick = { onEvent(MainScreenEvent.SearchResultClick(it)) },
+                onOpenClick = { onEvent(MainScreenEvent.ProjectClick(it)) }
+            )
+        } else {
+            AnimatedVisibility(
+                visible = uiState.currentBreadcrumbs.isNotEmpty(),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                BreadcrumbNavigation(
+                    breadcrumbs = uiState.currentBreadcrumbs,
+                    onNavigate = { onEvent(MainScreenEvent.BreadcrumbNavigation(it)) },
+                    onClearNavigation = { onEvent(MainScreenEvent.ClearBreadcrumbNavigation) },
+                    onFocusedListMenuClick = { projectId ->
+                        uiState.projectHierarchy.allProjects.find { it.id == projectId }
+                            ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
+                    },
+                    onOpenAsProject = { onEvent(MainScreenEvent.ProjectClick(it)) }
+                )
+            }
+
+            val isListEmpty = uiState.projectHierarchy.topLevelProjects.isEmpty() && uiState.projectHierarchy.childMap.isEmpty()
+            if (isListEmpty) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val emptyText = when (uiState.planningMode) {
+                        is PlanningMode.Daily -> "No projects with tag '#${uiState.planningSettings.dailyTag}'"
+                        is PlanningMode.Medium -> "No projects with tag '#${uiState.planningSettings.mediumTag}'"
+                        is PlanningMode.Long -> "No projects with tag '#${uiState.planningSettings.longTag}'"
+                        else -> "Create your first project"
+                    }
+                    Text(emptyText, style = MaterialTheme.typography.bodyLarge)
+                }
+            } else {
+                ProjectHierarchyView(
+                    modifier = Modifier.weight(1f),
+                    hierarchy = uiState.projectHierarchy,
+                    focusedProjectId = uiState.focusedProjectId,
+                    highlightedProjectId = null, // Потребує додавання в UiState
+                    searchQuery = uiState.searchQuery.text,
+                    isSearchActive = uiState.isSearchActive,
+                    planningMode = uiState.planningMode,
+                    hierarchySettings = HierarchyDisplaySettings(), // Потребує додавання в UiState
+                    listState = listState,
+                    longDescendantsMap = emptyMap(), // Потребує додавання в UiState
+                    onProjectClicked = { onEvent(MainScreenEvent.ProjectClick(it)) },
+                    onToggleExpanded = { onEvent(MainScreenEvent.ToggleProjectExpanded(it)) },
+                    onMenuRequested = { onEvent(MainScreenEvent.ProjectMenuRequest(it)) },
+                    onNavigateToProject = { /* Реалізувати через Event */ },
+                    onProjectReorder = { from, to, pos -> onEvent(MainScreenEvent.ProjectReorder(from, to, pos)) }
+                )
+            }
+        }
+    }
+}
+
+// ... (Решта допоміжних Composable-функцій: ContextBottomSheet, SearchHistoryBottomSheet, SearchBottomBar)
+// Їх тіла залишаються такими ж, але виклики viewModel.method() замінюються на onEvent(...)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ContextBottomSheet(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    contexts: List<UiContext>,
+    onContextSelected: (String) -> Unit
+) {
+    if (showSheet) {
+        ModalBottomSheet(onDismissRequest = onDismiss) {
+            Column(Modifier.navigationBarsPadding()) {
+                Text(
+                    text = "Обрати контекст",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                if (contexts.isEmpty()) {
+                    Text(
+                        text = "Немає налаштованих контекстів.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    LazyColumn {
+                        items(contexts, key = { it.name }) { context ->
+                            ListItem(
+                                headlineContent = { Text(context.name.replaceFirstChar { it.uppercase() }) },
+                                leadingContent = {
+                                    if (context.emoji.isNotBlank()) {
+                                        Text(context.emoji, fontSize = 24.sp)
+                                    } else {
+                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
+                                    }
+                                },
+                                modifier = Modifier.clickable { onContextSelected(context.name) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchHistoryBottomSheet(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    searchHistory: List<String>,
+    onHistoryClick: (String) -> Unit
+) {
+    if (showSheet) {
+        ModalBottomSheet(onDismissRequest = onDismiss) {
+            Column(Modifier.navigationBarsPadding()) {
+                Text(
+                    text = "Search History",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                if (searchHistory.isEmpty()) {
+                    Text(
+                        text = "No recent searches.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    LazyColumn {
+                        items(searchHistory, key = { it }) { query ->
+                            ListItem(
+                                headlineContent = { Text(query) },
+                                leadingContent = {
+                                    Icon(Icons.Outlined.History, contentDescription = "Search history item")
+                                },
+                                modifier = Modifier.clickable { onHistoryClick(query) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
 
 @Composable
 private fun SearchTextField(
