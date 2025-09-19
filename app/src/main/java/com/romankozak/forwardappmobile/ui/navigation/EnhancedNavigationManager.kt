@@ -29,27 +29,41 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavController
+import androidx.navigation.NavOptionsBuilder
 import com.romankozak.forwardappmobile.data.database.models.NavigationEntry
 import com.romankozak.forwardappmobile.data.database.models.NavigationType
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
+// --- NEW: Клас для представлення навігаційних команд ---
+sealed class NavigationCommand {
+    data class Navigate(val route: String, val builder: NavOptionsBuilder.() -> Unit = {}) : NavigationCommand()
+    data class PopBackStack(val key: String? = null, val value: String? = null) : NavigationCommand()
+}
+
+
 /**
- * Розширений менеджер навігації з підтримкою історії
+ * Розширений менеджер навігації, ВІДВ'ЯЗАНИЙ від NavController.
+ * Тепер він генерує навігаційні події.
  */
 class EnhancedNavigationManager(
-    private val navController: NavController,
     savedStateHandle: SavedStateHandle,
-    scope: CoroutineScope
+    private val scope: CoroutineScope
 ) {
     companion object {
         private const val TAG = "Nav_DEBUG"
     }
 
     private val historyManager = NavigationHistoryManager(savedStateHandle, scope)
+
+    // --- NEW: Канал для надсилання навігаційних команд ---
+    private val _navigationChannel = Channel<NavigationCommand>()
+    val navigationCommandFlow = _navigationChannel.receiveAsFlow()
 
     val canGoBack: StateFlow<Boolean> = historyManager.canGoBack
     val canGoForward: StateFlow<Boolean> = historyManager.canGoForward
@@ -58,55 +72,47 @@ class EnhancedNavigationManager(
     private val _showNavigationMenu = MutableStateFlow(false)
     val showNavigationMenu: StateFlow<Boolean> = _showNavigationMenu.asStateFlow()
 
-    fun getNavController(): NavController = navController
-
     fun navigateToMainScreen(isInitial: Boolean = false) {
         val entry = NavigationEntry.createMainScreen()
         historyManager.addEntry(entry)
         if (!isInitial) {
-            navController.navigate("goal_lists_screen")
+            // Замість виклику navController, надсилаємо команду
+            sendNavigationCommand(NavigationCommand.Navigate("goal_lists_screen"))
         }
     }
 
     fun navigateToProject(projectId: String, projectName: String) {
         val entry = NavigationEntry.createProjectScreen(projectId, projectName)
         historyManager.addEntry(entry)
-        navController.navigate("goal_detail_screen/$projectId")
+        sendNavigationCommand(NavigationCommand.Navigate("goal_detail_screen/$projectId"))
     }
 
     fun navigateToGlobalSearch(query: String) {
         val entry = NavigationEntry.createGlobalSearch(query)
         historyManager.addEntry(entry)
-        navController.navigate("global_search_screen/$query")
+        sendNavigationCommand(NavigationCommand.Navigate("global_search_screen/$query"))
     }
 
-    fun goBack(): Boolean {
+    fun goBack() {
         val entry = historyManager.goBack()
-        return if (entry != null) {
+        if (entry != null) {
             navigateToEntry(entry)
-            true
         } else {
-            if (navController.previousBackStackEntry != null) {
-                navController.popBackStack()
-                true
-            } else {
-                false
-            }
+            // Якщо в історії немає куди йти, надсилаємо команду повернутися назад по системі
+            sendNavigationCommand(NavigationCommand.PopBackStack())
         }
     }
 
     fun goBackWithResult(key: String, value: String) {
-        navController.previousBackStackEntry?.savedStateHandle?.set(key, value)
-        goBack()
+        sendNavigationCommand(NavigationCommand.PopBackStack(key, value))
+        // Оновлюємо внутрішній стан історії, ніби ми повернулись назад
+        historyManager.goBack()
     }
 
-    fun goForward(): Boolean {
+    fun goForward() {
         val entry = historyManager.goForward()
-        return if (entry != null) {
+        if (entry != null) {
             navigateToEntry(entry)
-            true
-        } else {
-            false
         }
     }
 
@@ -138,43 +144,40 @@ class EnhancedNavigationManager(
         }
     }
 
-    fun clearHistory() {
-        historyManager.clearHistory()
-    }
-
     private fun navigateToEntry(entry: NavigationEntry) {
         Log.d(TAG, "Navigating to history entry: ${entry.type} - ${entry.title}")
 
-        when (entry.type) {
-            NavigationType.MAIN_SCREEN -> {
-                navController.navigate("goal_lists_screen") {
-                    popUpTo("goal_lists_screen") { inclusive = false }
-                }
+        val command = when (entry.type) {
+            NavigationType.MAIN_SCREEN -> NavigationCommand.Navigate("goal_lists_screen") {
+                // Очищуємо стек до головного екрану, щоб уникнути циклів
+                popUpTo("goal_lists_screen") { inclusive = false }
             }
-            NavigationType.PROJECT_SCREEN -> {
-                navController.navigate("goal_detail_screen/${entry.id}")
-            }
+            NavigationType.PROJECT_SCREEN -> NavigationCommand.Navigate("goal_detail_screen/${entry.id}")
             NavigationType.GLOBAL_SEARCH -> {
                 val query = entry.id.removePrefix("search_")
-                navController.navigate("global_search_screen/$query")
+                NavigationCommand.Navigate("global_search_screen/$query")
             }
-            else -> {
-                navController.navigate(entry.route)
-            }
+            else -> NavigationCommand.Navigate(entry.route)
+        }
+        sendNavigationCommand(command)
+    }
+
+    private fun sendNavigationCommand(command: NavigationCommand) {
+        scope.launch {
+            _navigationChannel.send(command)
         }
     }
 }
 
-/**
- * Composable для відображення меню історії навігації.
- * Ця функція має бути в цьому файлі, щоб її можна було імпортувати.
- */
+
+// Composable для меню залишається тут, він не змінився
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationHistoryMenu(
     navManager: EnhancedNavigationManager,
     onDismiss: () -> Unit
 ) {
+    // ... тіло функції без змін
     val history = remember { navManager.getNavigationHistory() }
     val currentEntry by navManager.currentEntry.collectAsState()
 

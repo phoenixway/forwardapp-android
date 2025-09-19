@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.ui.navigation
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -15,10 +14,11 @@ class AppNavigationViewModel @Inject constructor(
     lateinit var navigationManager: EnhancedNavigationManager
         private set
 
-    fun initialize(navController: NavController) {
-        // Гарантуємо, що менеджер ініціалізується лише один раз
+    // --- ЗМІНА: NavController більше не потрібен для ініціалізації ---
+    fun initialize() {
         if (!::navigationManager.isInitialized) {
-            navigationManager = EnhancedNavigationManager(navController, savedStateHandle, viewModelScope)
+            // Передаємо лише savedStateHandle та scope
+            navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
         }
     }
 }
