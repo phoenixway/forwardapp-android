@@ -54,7 +54,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
-import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.delay
@@ -72,6 +71,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
 
 @Composable
 fun MainScreen(

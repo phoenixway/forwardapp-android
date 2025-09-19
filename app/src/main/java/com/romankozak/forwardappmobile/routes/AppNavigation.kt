@@ -21,6 +21,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
@@ -172,8 +173,12 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
             "global_search_screen/{query}",
             arguments = listOf(navArgument("query") { type = NavType.StringType }),
         ) {
+            // --- ПОЧАТОК ЗМІН ---
+            val viewModel: GlobalSearchViewModel = hiltViewModel()
+            viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
             GlobalSearchScreen(
-                viewModel = hiltViewModel(),
+                viewModel = viewModel,
                 navController = navController,
             )
         }
