@@ -42,7 +42,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
@@ -73,6 +72,7 @@ fun ModernInputPanel(
     onShowAddObsidianLinkDialog: () -> Unit,
     onAddListShortcutClick: () -> Unit,
     canGoBack: Boolean,
+    canGoForward: Boolean,
     onBackClick: () -> Unit,
     onForwardClick: () -> Unit,
     onHomeClick: () -> Unit,
@@ -191,6 +191,7 @@ fun ModernInputPanel(
         Column {
             NavigationBar(
                 canGoBack = canGoBack,
+                canGoForward = canGoForward,
                 onBackClick = onBackClick,
                 onForwardClick = onForwardClick,
                 onHomeClick = onHomeClick,
@@ -361,14 +362,10 @@ fun ModernInputPanel(
                                 .focusRequester(focusRequester),
                         textStyle =
                             MaterialTheme.typography.bodyLarge.copy(
-                                // --- ПОЧАТОК ЗМІН (Крок 2) ---
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                // --- КІНЕЦЬ ЗМІН (Крок 2) ---
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
                             ),
-
-
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
                         singleLine = false,
@@ -396,14 +393,10 @@ fun ModernInputPanel(
                                                     InputMode.AddProjectLog -> "Додати коментар до проекту..."
                                                 },
                                             style = MaterialTheme.typography.bodyLarge.copy(
-                                                // --- ПОЧАТОК ЗМІН (Крок 2) ---
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                                                // --- КІНЕЦЬ ЗМІН (Крок 2) ---
                                                 fontSize = 16.sp,
                                             ),
-
-
-                                            )
+                                        )
                                     }
                                     innerTextField()
                                 }
@@ -447,8 +440,6 @@ fun ModernInputPanel(
                     enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
                     exit = fadeOut() + scaleOut(targetScale = 0.8f),
                 ) {
-                    // --- ПОЧАТОК ЗМІН ---
-                    // Визначаємо колір фону кнопки в залежності від режиму
                     val sendButtonBackgroundColor = when (inputMode) {
                         InputMode.AddProjectLog -> MaterialTheme.colorScheme.onSecondary
                         else -> panelColors.accentColor
@@ -467,12 +458,10 @@ fun ModernInputPanel(
                                         InputMode.AddGoal, InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
                                         InputMode.SearchInList -> MaterialTheme.colorScheme.onPrimary
                                         InputMode.SearchGlobal -> MaterialTheme.colorScheme.onTertiary
-                                        // Міняємо колір іконки на 'secondary'
                                         InputMode.AddProjectLog -> MaterialTheme.colorScheme.primary
                                     },
                             ),
                     ) {
-                        // --- КІНЕЦЬ ЗМІН ---
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = stringResource(R.string.send),
@@ -547,6 +536,7 @@ private fun NerIndicator(
 @Composable
 private fun NavigationBar(
     canGoBack: Boolean,
+    canGoForward: Boolean,
     onBackClick: () -> Unit,
     onForwardClick: () -> Unit,
     onHomeClick: () -> Unit,
@@ -623,18 +613,24 @@ private fun NavigationBar(
                     modifier = Modifier.size(20.dp),
                 )
             }
+
+            val forwardButtonAlpha by animateFloatAsState(
+                targetValue = if (canGoForward) 1f else 0.4f,
+                label = "forwardButtonAlpha",
+            )
+
             IconButton(
                 onClick = onForwardClick,
-                enabled = false,
+                enabled = canGoForward,
                 modifier =
                     Modifier
                         .size(40.dp)
-                        .alpha(0.38f),
+                        .alpha(forwardButtonAlpha),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = stringResource(R.string.forward),
-                    tint = contentColor.copy(alpha = 0.38f),
+                    tint = if (canGoForward) contentColor else contentColor.copy(alpha = 0.38f),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -780,35 +776,31 @@ private fun NavigationBar(
             )
             IconButton(
                 onClick = {
-                    // --- Початок логування ---
                     Log.d("ATTACHMENT_DEBUG", "--- Attachment Button Clicked ---")
                     Log.d("ATTACHMENT_DEBUG", "Initial state: currentView = $currentView, isAttachmentsExpanded = $isAttachmentsExpanded")
 
                     val comingFromAnotherView = currentView == ProjectViewMode.INBOX || currentView == ProjectViewMode.DASHBOARD
                     Log.d("ATTACHMENT_DEBUG", "comingFromAnotherView = $comingFromAnotherView")
-                    // --- Кінець логування ---
 
-                    // Крок 1: Якщо ми не в беклозі, перемкнутися на нього.
                     if (comingFromAnotherView) {
-                        Log.d("ATTACHMENT_DEBUG", "ACTION: Calling onViewChange(BACKLOG).") // Лог
+                        Log.d("ATTACHMENT_DEBUG", "ACTION: Calling onViewChange(BACKLOG).")
                         onViewChange(ProjectViewMode.BACKLOG)
                         onInputModeSelected(InputMode.AddGoal)
                     }
 
-                    // Крок 2: Вирішити, чи потрібно показувати вкладення.
                     if (comingFromAnotherView) {
-                        Log.d("ATTACHMENT_DEBUG", "DECISION: Switched view. Goal is to SHOW attachments.") // Лог
+                        Log.d("ATTACHMENT_DEBUG", "DECISION: Switched view. Goal is to SHOW attachments.")
                         if (!isAttachmentsExpanded) {
-                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are hidden, calling onToggleAttachments() to SHOW them.") // Лог
+                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are hidden, calling onToggleAttachments() to SHOW them.")
                             onToggleAttachments()
                         } else {
-                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are already expanded, DOING NOTHING.") // Лог
+                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are already expanded, DOING NOTHING.")
                         }
                     } else {
-                        Log.d("ATTACHMENT_DEBUG", "DECISION: Already in backlog. Calling onToggleAttachments() to TOGGLE.") // Лог
+                        Log.d("ATTACHMENT_DEBUG", "DECISION: Already in backlog. Calling onToggleAttachments() to TOGGLE.")
                         onToggleAttachments()
                     }
-                    Log.d("ATTACHMENT_DEBUG", "--- Click Handler Finished ---") // Лог
+                    Log.d("ATTACHMENT_DEBUG", "--- Click Handler Finished ---")
                 },
                 modifier = Modifier.size(40.dp),
             ) {

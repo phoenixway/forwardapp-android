@@ -113,7 +113,10 @@ class SearchAndNavigationManager(
     fun onSearchResultClick(projectId: String, projectHierarchy: StateFlow<ListHierarchyData>, planningMode: MutableStateFlow<PlanningMode>) {
         Log.d(TAG, "onSearchResultClick: projectId=$projectId")
         viewModelScope.launch {
-            onToggleSearch(isActive = false)
+            // --- ПОЧАТОК ВИПРАВЛЕННЯ ---
+            // Рядок onToggleSearch(isActive = false) ВИДАЛЕНО.
+            // Тепер режим пошуку не вимикається при переході на екран проекту.
+            // --- КІНЕЦЬ ВИПРАВЛЕННЯ ---
 
             val allProjects = allProjectsFlat.first()
             val fullHierarchy = ListHierarchyData(
@@ -245,13 +248,9 @@ class SearchAndNavigationManager(
                 return@launch
             }
 
-            // 🔥 ВИПРАВЛЕНА ЛОГІКА: Видаляємо останній breadcrumb, щоб повернутися назад
-            // Якщо breadcrumbs = [A, B, C], то після "назад" залишається [A, B]
             val newBreadcrumbs = breadcrumbs.dropLast(1)
 
             if (newBreadcrumbs.isEmpty()) {
-                // Якщо після видалення останнього елемента нічого не залишилося,
-                // просто очищуємо навігацію повністю
                 withContext(Dispatchers.Main) {
                     _focusedProjectId.value = null
                     _currentBreadcrumbs.value = emptyList()
@@ -268,25 +267,21 @@ class SearchAndNavigationManager(
             Log.d(TAG, "New breadcrumbs after back: ${newBreadcrumbs.map { it.id }}")
             Log.d(TAG, "Target ancestor level: $targetAncestorLevel, id: $targetAncestorId")
 
-            // Зберігаємо поточний стан розгорнутих проектів
             val currentAllProjects = allProjectsFlat.first()
             val currentExpandedIds = currentAllProjects.filter { it.isExpanded }.map { it.id }.toSet()
 
             Log.d(TAG, "Currently expanded projects: $currentExpandedIds")
 
-            // Визначаємо шлях, який потрібно розкрити (тільки предків до цільового рівня включно)
             val pathIdsToExpand = newBreadcrumbs.map { it.id }.toSet()
 
             Log.d(TAG, "Path to expand: $pathIdsToExpand")
 
-            // Знаходимо проекти, які потрібно розгорнути (тільки ті, що ще не розгорнуті)
             val projectsToExpand = currentAllProjects
                 .filter { it.id in pathIdsToExpand && !it.isExpanded }
                 .map { it.copy(isExpanded = true) }
 
             Log.d(TAG, "Projects to expand: ${projectsToExpand.map { it.id }}")
 
-            // Також зберігаємо стан проектів, які були згорнуті при фокусі
             val collapsedOnFocus = _collapsedAncestorsOnFocus.value
             val projectsToRestore = currentAllProjects
                 .filter { it.id in collapsedOnFocus && it.id !in pathIdsToExpand }
@@ -294,17 +289,14 @@ class SearchAndNavigationManager(
 
             Log.d(TAG, "Projects to restore (collapsed on focus): ${projectsToRestore.map { it.id }}")
 
-            // Об'єднуємо всі зміни
             val allProjectsToUpdate = (projectsToExpand + projectsToRestore).distinctBy { it.id }
 
             Log.d(TAG, "Total projects to update: ${allProjectsToUpdate.map { it.id }}")
 
-            // Оновлюємо проекти в базі даних, якщо є що оновлювати
             if (allProjectsToUpdate.isNotEmpty()) {
                 Log.d(TAG, "Updating projects in DB...")
                 projectRepository.updateProjects(allProjectsToUpdate)
 
-                // Чекаємо, поки зміни з БД відобразяться у стані
                 try {
                     val updatedState = allProjectsFlat.first { updatedProjects ->
                         allProjectsToUpdate.all { projectToUpdate ->
@@ -319,18 +311,15 @@ class SearchAndNavigationManager(
                 Log.d(TAG, "No projects to update in DB")
             }
 
-            // НЕ вимикаємо фокус одразу - спочатку встановлюємо новий
             withContext(Dispatchers.Main) {
                 _focusedProjectId.value = targetAncestorId
                 _currentBreadcrumbs.value = newBreadcrumbs
                 Log.d(TAG, "Navigation state updated immediately to prevent UI flicker")
             }
 
-            // Даємо час UI оновитися з новим станом
             delay(200)
             Log.d(TAG, "Delayed 200ms for UI rebuild")
 
-            // 🔥 ВАЖЛИВО: Перечитуємо АКТУАЛЬНИЙ стан проектів після оновлення
             val finalAllProjects = allProjectsFlat.value
             val topLevel = finalAllProjects.filter { it.parentId == null }.sortedBy { it.order }
             val childrenOnly = finalAllProjects.filter { it.parentId != null }
@@ -349,7 +338,6 @@ class SearchAndNavigationManager(
                 Log.w(TAG, "Target ancestor not found in displayed projects!")
             }
 
-            // Остаточна очистка - встановлюємо новий фокус
             withContext(Dispatchers.Main) {
                 _focusedProjectId.value = targetAncestorId
                 _currentBreadcrumbs.value = newBreadcrumbs
@@ -360,9 +348,6 @@ class SearchAndNavigationManager(
             Log.d(TAG, "clearNavigation: COMPLETED")
         }
     }
-
-// File: SearchAndNavigationManager.kt
-// File: SearchAndNavigationManager.kt
 
     fun onSearchRevealRequest(projectId: String, planningMode: MutableStateFlow<PlanningMode>, projectHierarchy: StateFlow<ListHierarchyData>) {
         Log.d(TAG, "onSearchRevealRequest: projectId=$projectId")
@@ -381,8 +366,6 @@ class SearchAndNavigationManager(
             val level = if (path.isEmpty()) 0 else path.last().level
             val settings = hierarchySettings.value
 
-            // Для глобального пошуку завжди використовуємо навігацію
-            // незалежно від рівня вкладеності
             navigateToProject(projectId, projectHierarchy)
         }
     }
@@ -390,7 +373,6 @@ class SearchAndNavigationManager(
     fun clearNavigationCompletely() {
         Log.d(TAG, "clearNavigationCompletely: STARTED")
         viewModelScope.launch(Dispatchers.Default) {
-            // Повністю очищаємо навігацію без логіки "назад"
             withContext(Dispatchers.Main) {
                 _focusedProjectId.value = null
                 _currentBreadcrumbs.value = emptyList()
@@ -400,5 +382,4 @@ class SearchAndNavigationManager(
             Log.d(TAG, "clearNavigationCompletely: Navigation completely cleared")
         }
     }
-
 }

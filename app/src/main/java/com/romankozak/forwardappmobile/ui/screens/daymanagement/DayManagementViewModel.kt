@@ -9,7 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.romankozak.forwardappmobile.ui.navigation.routes.DAY_PLAN_DATE_ARG
+import com.romankozak.forwardappmobile.routes.DAY_PLAN_DATE_ARG
 
 data class DayManagementState(
     val dayPlanId: String? = null,

@@ -47,14 +47,16 @@ class EnhancedNavigationManager(
     private val _showNavigationMenu = MutableStateFlow(false)
     val showNavigationMenu: StateFlow<Boolean> = _showNavigationMenu.asStateFlow()
 
-    /**
-     * Навігація до головного екрану з додаванням до історії
-     */
-    fun navigateToMainScreen() {
+    fun navigateToMainScreen(isInitial: Boolean = false) {
         val entry = NavigationEntry.createMainScreen()
         historyManager.addEntry(entry)
-        navController.navigate("goal_lists_screen")
-        Log.d(TAG, "Navigated to main screen")
+
+        // Only navigate if this isn't the initial screen setup,
+        // as NavHost already handles displaying the start destination.
+        if (!isInitial) {
+            navController.navigate("goal_lists_screen")
+        }
+        Log.d(TAG, "Navigated to main screen (isInitial: $isInitial)")
     }
 
     /**
@@ -234,8 +236,7 @@ fun NavigationHistoryMenu(
             androidx.compose.foundation.lazy.LazyColumn {
                 itemsIndexed(history.reversed()) { reverseIndex, entry ->
                     val actualIndex = history.size - 1 - reverseIndex
-                    val isCurrentEntry = entry == currentEntry.value
-
+                    val isCurrentEntry = entry == currentEntry
                     androidx.compose.material3.ListItem(
                         headlineContent = {
                             androidx.compose.material3.Text(entry.title)

@@ -1,7 +1,8 @@
-package com.romankozak.forwardappmobile
+package com.romankozak.forwardappmobile.routes
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -12,11 +13,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.romankozak.forwardappmobile.ui.navigation.routes.chatScreen
-import com.romankozak.forwardappmobile.ui.navigation.routes.dayManagementGraph
-import com.romankozak.forwardappmobile.ui.navigation.routes.dayPlanScreen
+import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
+import com.romankozak.forwardappmobile.ui.screens.backlog.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.backlog.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
@@ -34,18 +34,52 @@ import java.net.URLDecoder
 @Composable
 fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
     val navController = rememberNavController()
+    // 1. Отримуємо екземпляр AppNavigationViewModel, який буде жити разом з NavHost
+    val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
+    // 2. Ініціалізуємо менеджер навігації, передаючи йому navController
+    appNavigationViewModel.initialize(navController)
+
+
     NavHost(
         navController = navController,
         startDestination = "goal_lists_screen",
     ) {
         composable("goal_lists_screen") {
             val viewModel: MainScreenViewModel = hiltViewModel()
+
+            // 3. Передаємо готовий менеджер у MainScreenViewModel
+            viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+            // Додаємо головний екран в історію при першому запуску
+            LaunchedEffect(Unit) {
+                if (viewModel.enhancedNavigationManager.getNavigationHistory().isEmpty()) {
+                    viewModel.enhancedNavigationManager.navigateToMainScreen(isInitial = true)
+                }
+            }
+
             MainScreen(
                 navController = navController,
                 syncDataViewModel = syncDataViewModel,
                 viewModel = viewModel,
             )
         }
+
+        // ... (інші екрани без змін: settings, manage_contexts, activity_tracker, etc.)
+
+        composable(
+            route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}",
+            // ... (аргументи без змін)
+        ) {
+            val viewModel: BacklogViewModel = hiltViewModel()
+
+            // 4. Передаємо той самий екземпляр менеджера у BacklogViewModel
+            viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+            ProjectsScreen(navController = navController, viewModel = viewModel)
+        }
+
+        // ... (решта вашого файлу AppNavigation.kt залишається без змін)
+        // Наприклад, edit_list_screen, global_search_screen і т.д.
 
         composable("settings_screen") { backStackEntry ->
             val goalListViewModel: MainScreenViewModel =
@@ -122,33 +156,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         }
 
         composable(
-            route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}",
-            arguments =
-                listOf(
-                    navArgument("listId") {
-                        type = NavType.StringType
-                    },
-                    navArgument("goalId") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("itemIdToHighlight") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("inboxRecordIdToHighlight") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                ),
-        ) {
-            ProjectsScreen(navController = navController)
-        }
-
-        composable(
             route = "edit_list_screen/{listId}",
             arguments =
                 listOf(
@@ -158,7 +165,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
             Log.d("EDIT_PROJECT_DEBUG", "nav activated")
             EditProjectScreen(
                 navController = navController
-                // Параметр listId більше не потрібен, оскільки ViewModel отримує його самостійно
             )
         }
 
@@ -254,7 +260,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
             )
         }
         chatScreen(navController)
-//        dayPlanScreen(navController)
         dayManagementGraph(navController)
         dayPlanScreen(navController)
     }

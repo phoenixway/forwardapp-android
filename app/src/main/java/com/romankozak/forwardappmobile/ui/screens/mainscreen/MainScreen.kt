@@ -24,6 +24,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -52,12 +54,13 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
+import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.ui.navigation.routes.navigateToDayManagement
+import com.romankozak.forwardappmobile.routes.navigateToDayManagement
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -107,6 +110,13 @@ fun MainScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val searchQueryText by remember { derivedStateOf { searchQuery.text } }
+
+    // --- ПОЧАТОК ЗМІН ---
+    // Отримуємо стани для кнопок та меню історії з ViewModel
+    val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
+    val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
+    val showHistoryMenu by viewModel.showNavigationMenu.collectAsStateWithLifecycle()
+    // --- КІНЕЦЬ ЗМІН ---
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -272,10 +282,19 @@ fun MainScreen(
         }
     }
 
-    BackHandler(enabled = focusedProjectId != null) { viewModel.clearNavigation() }
-    BackHandler(enabled = isSearchActive) { viewModel.onToggleSearch(isActive = false) }
-    BackHandler(enabled = !isSearchActive && areAnyProjectsExpanded && focusedProjectId == null) {
-        viewModel.collapseAllProjects()
+    val backHandlerEnabled by remember(isSearchActive, focusedProjectId, canGoBack, areAnyProjectsExpanded) {
+        derivedStateOf {
+            isSearchActive || focusedProjectId != null || canGoBack || areAnyProjectsExpanded
+        }
+    }
+
+    BackHandler(enabled = backHandlerEnabled) {
+        when {
+            isSearchActive -> viewModel.onToggleSearch(isActive = false)
+            focusedProjectId != null -> viewModel.clearNavigation()
+            canGoBack -> viewModel.enhancedNavigationManager.goBack()
+            areAnyProjectsExpanded -> viewModel.collapseAllProjects()
+        }
     }
 
     val importLauncher =
@@ -290,6 +309,30 @@ fun MainScreen(
                 title = { Text("Projects") },
                 actions = {
                     if (!isSearchActive) {
+                        // --- ПОЧАТОК ЗМІН: Додаємо кнопки навігації ---
+                        AnimatedVisibility(
+                            visible = canGoBack,
+                            enter = fadeIn(animationSpec = tween(200)),
+                            exit = fadeOut(animationSpec = tween(200))
+                        ) {
+                            IconButton(onClick = { viewModel.enhancedNavigationManager.goBack() }) {
+                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад")
+                            }
+                        }
+                        AnimatedVisibility(
+                            visible = canGoForward,
+                            enter = fadeIn(animationSpec = tween(200)),
+                            exit = fadeOut(animationSpec = tween(200))
+                        ) {
+                            IconButton(onClick = { viewModel.enhancedNavigationManager.goForward() }) {
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
+                            }
+                        }
+                        IconButton(onClick = { viewModel.onShowNavigationHistory() }) {
+                            Icon(Icons.Outlined.History, "Історія")
+                        }
+                        // --- КІНЕЦЬ ЗМІН ---
+
                         IconButton(onClick = { viewModel.onAddNewProjectRequest() }) { Icon(Icons.Default.Add, "Add new project") }
                         var menuExpanded by remember { mutableStateOf(false) }
                         IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
@@ -453,6 +496,15 @@ fun MainScreen(
         listChooserExpandedIds = listChooserFinalExpandedIds,
         filteredListHierarchyForDialog = filteredListHierarchyForDialog,
     )
+
+    // --- ПОЧАТОК ЗМІН: Відображаємо меню історії, якщо потрібно ---
+    if (showHistoryMenu) {
+        NavigationHistoryMenu(
+            navManager = viewModel.enhancedNavigationManager,
+            onDismiss = { viewModel.onHideNavigationHistory() }
+        )
+    }
+    // --- КІНЕЦЬ ЗМІН ---
 }
 
 @Composable
