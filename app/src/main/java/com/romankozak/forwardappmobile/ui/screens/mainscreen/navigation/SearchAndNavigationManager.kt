@@ -175,9 +175,12 @@ class SearchAndNavigationManager(
         }
     }
 
-    fun navigateToProject(projectId: String, projectHierarchy: StateFlow<ListHierarchyData>) {
+// file: ui/screens/mainscreen/navigation/SearchAndNavigationManager.kt
+
+    fun navigateToProject(projectId: String, currentHierarchy: ListHierarchyData) {
         scope.launch {
-            val path = buildPathToProject(projectId, projectHierarchy.value)
+            // Тепер функція працює з конкретним станом ієрархії, переданим їй
+            val path = buildPathToProject(projectId, currentHierarchy)
             currentBreadcrumbs.value = path
             focusedProjectId.value = projectId
         }
