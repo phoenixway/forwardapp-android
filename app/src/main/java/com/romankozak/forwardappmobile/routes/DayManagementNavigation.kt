@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.navigation.routes // Приклад шляху
+package com.romankozak.forwardappmobile.routes // Приклад шляху
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder

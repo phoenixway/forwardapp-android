@@ -51,11 +51,10 @@ class MainScreenViewModel @Inject constructor(
     // Core managers
     private val hierarchyManager = ProjectHierarchyManager()
 
-    private var enhancedNavigationManager: EnhancedNavigationManager? = null
-    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoBack ?: MutableStateFlow(false)
-    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoForward ?: MutableStateFlow(false)
-    val showNavigationMenu: StateFlow<Boolean> get() = enhancedNavigationManager?.showNavigationMenu ?: MutableStateFlow(false)
-
+    lateinit var enhancedNavigationManager: EnhancedNavigationManager
+    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
+    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
+    val showNavigationMenu: StateFlow<Boolean> get() = enhancedNavigationManager.showNavigationMenu
 
     // UI Event Channel
     private val _uiEventChannel = Channel<ProjectUiEvent>()
@@ -553,20 +552,22 @@ class MainScreenViewModel @Inject constructor(
         _scrollTargetIndex.value = index
     }
 
-    // Оновлені методи навігації
     fun onProjectClicked(projectId: String) {
         viewModelScope.launch {
             val project = _allProjectsFlat.value.find { it.id == projectId }
             if (project != null) {
-                enhancedNavigationManager?.navigateToProject(projectId, project.name)
+                // Замість відправки UI event, прямо викликаємо менеджер
+                enhancedNavigationManager.navigateToProject(projectId, project.name)
             }
         }
     }
 
+
     fun onPerformGlobalSearch(query: String) {
         if (query.isNotBlank()) {
             searchAndNavigationManager.onSearchQueryFromHistory(query)
-            enhancedNavigationManager?.navigateToGlobalSearch(query)
+            // Прямий виклик менеджера
+            enhancedNavigationManager.navigateToGlobalSearch(query)
             onDismissSearchDialog()
         }
     }

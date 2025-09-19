@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.navigation.routes.CHAT_ROUTE
+import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @Composable

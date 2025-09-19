@@ -239,11 +239,9 @@ constructor(
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
     }
 
-    private var enhancedNavigationManager: EnhancedNavigationManager? = null
-
-    // Exposing navigation states
-    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoBack ?: MutableStateFlow(false)
-    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager?.canGoForward ?: MutableStateFlow(false)
+    lateinit var enhancedNavigationManager: EnhancedNavigationManager
+    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
+    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
 
 
     private var batchSaveJob: Job? = null
@@ -1153,35 +1151,39 @@ constructor(
         }
     }
 
-    // Оновлений метод для навігації додому
     fun onHomeClick() {
-        enhancedNavigationManager?.navigateToMainScreen()
+        enhancedNavigationManager.navigateToMainScreen()
     }
 
-    // Оновлений BackHandler
     fun onBackPressed(): Boolean {
-        return when {
-            uiState.value.inputValue.text.isNotEmpty() -> {
-                inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
-                true
-            }
-            isSelectionModeActive.value -> {
-                selectionHandler.clearSelection()
-                true
-            }
-            enhancedNavigationManager?.canGoBack?.value == true -> {
-                enhancedNavigationManager?.goBack()
-                true
-            }
-            else -> {
-                flushPendingMoves()
-                false // Let default back navigation handle this
-            }
+        // Спочатку локальні дії
+        if (uiState.value.inputValue.text.isNotEmpty()) {
+            inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
+            return true
         }
+        if (isSelectionModeActive.value) {
+            selectionHandler.clearSelection()
+            return true
+        }
+        // Потім глобальна історія
+        if (enhancedNavigationManager.canGoBack.value) {
+            flushPendingMoves() // Важливо зберегти зміни перед виходом
+            enhancedNavigationManager.goBack()
+            return true
+        }
+        // Якщо нічого не спрацювало, повертаємо false, щоб NavController обробив вихід
+        flushPendingMoves()
+        return false
     }
+
 
     // Метод для оновлення назви проекту в історії
     private fun updateProjectNameInHistory(newName: String) {
         enhancedNavigationManager?.updateCurrentEntry(newName)
     }
+
+    fun onForwardPressed() {
+        enhancedNavigationManager.goForward()
+    }
+
 }
