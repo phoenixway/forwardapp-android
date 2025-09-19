@@ -8,6 +8,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.NavigationEntry
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
@@ -16,7 +17,6 @@ import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.ui.navigation.NavigationEntry
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActionsHandler
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
@@ -46,6 +46,8 @@ class MainScreenViewModel @Inject constructor(
 
     companion object {
         private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
+        private const val TAG = "MainVM_DEBUG" // Змінено TAG для логування
+
     }
 
     // Core managers
@@ -333,7 +335,10 @@ class MainScreenViewModel @Inject constructor(
     fun onToggleSearch(isActive: Boolean) = searchAndNavigationManager.onToggleSearch(isActive)
     fun onSearchQueryChanged(query: TextFieldValue) = searchAndNavigationManager.onSearchQueryChanged(query)
     fun onSearchQueryFromHistory(query: String) = searchAndNavigationManager.onSearchQueryFromHistory(query)
-    fun onSearchResultClick(projectId: String) = searchAndNavigationManager.onSearchResultClick(projectId, projectHierarchy, _planningMode)
+    fun onSearchResultClick(projectId: String) {
+        Log.d(TAG, "onSearchResultClick (Reveal) TRIGGERED for projectId: $projectId")
+        searchAndNavigationManager.onSearchResultClick(projectId, projectHierarchy, _planningMode)
+    }
     fun processRevealRequest(projectId: String) = searchAndNavigationManager.processRevealRequest(projectId, _planningMode)
     fun navigateToProject(projectId: String) = searchAndNavigationManager.navigateToProject(projectId, projectHierarchy)
     fun navigateToBreadcrumb(breadcrumbItem: BreadcrumbItem) = searchAndNavigationManager.navigateToBreadcrumb(breadcrumbItem)
@@ -553,11 +558,13 @@ class MainScreenViewModel @Inject constructor(
     }
 
     fun onProjectClicked(projectId: String) {
+        Log.d(TAG, "onProjectClicked (Open) TRIGGERED for projectId: $projectId. Search state should be preserved.")
         viewModelScope.launch {
             val project = _allProjectsFlat.value.find { it.id == projectId }
             if (project != null) {
-                // Замість відправки UI event, прямо викликаємо менеджер
                 enhancedNavigationManager.navigateToProject(projectId, project.name)
+            } else {
+                Log.w(TAG, "onProjectClicked: Project with id $projectId not found!")
             }
         }
     }

@@ -1,5 +1,3 @@
-// file: ui/screens/backlog/BacklogViewModel.kt
-
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
 import android.app.Application
@@ -53,7 +51,7 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
-private const val TAG = "BACKLOG_VM_DEBUG"
+private const val TAG = "BacklogVM_DEBUG"
 
 sealed class UiEvent {
     data class ShowSnackbar(
@@ -239,10 +237,13 @@ constructor(
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
     }
 
+    // --- ПОЧАТОК ЗМІН ---
+    // Тепер ViewModel отримує готовий менеджер, а не створює його
     lateinit var enhancedNavigationManager: EnhancedNavigationManager
+
     val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
     val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
-
+    // --- КІНЕЦЬ ЗМІН ---
 
     private var batchSaveJob: Job? = null
 
@@ -1128,62 +1129,41 @@ constructor(
         }
     }
 
-/*    fun onHomeClick() {
-        // "goal_lists_screen" is defined as the home screen in AppNavigation.kt
-        viewModelScope.launch {
-            requestNavigation("goal_lists_screen")
-        }
-    }*/
-
-    fun initializeNavigation(navController: NavController) {
-        enhancedNavigationManager = EnhancedNavigationManager(navController, savedStateHandle, viewModelScope)
-
-        // Ініціалізуємо з поточним проектом
-        viewModelScope.launch {
-            project.filterNotNull().first().let { proj ->
-                enhancedNavigationManager?.initializeWithCurrentScreen("goal_detail_screen/${proj.id}")
-                // Додаємо поточний проект до історії якщо її немає
-                if (enhancedNavigationManager?.getNavigationHistory()?.isEmpty() == true) {
-                    enhancedNavigationManager?.navigateToMainScreen()
-                    enhancedNavigationManager?.navigateToProject(proj.id, proj.name)
-                }
-            }
-        }
-    }
-
     fun onHomeClick() {
         enhancedNavigationManager.navigateToMainScreen()
-    }
-
-    fun onBackPressed(): Boolean {
-        // Спочатку локальні дії
-        if (uiState.value.inputValue.text.isNotEmpty()) {
-            inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
-            return true
-        }
-        if (isSelectionModeActive.value) {
-            selectionHandler.clearSelection()
-            return true
-        }
-        // Потім глобальна історія
-        if (enhancedNavigationManager.canGoBack.value) {
-            flushPendingMoves() // Важливо зберегти зміни перед виходом
-            enhancedNavigationManager.goBack()
-            return true
-        }
-        // Якщо нічого не спрацювало, повертаємо false, щоб NavController обробив вихід
-        flushPendingMoves()
-        return false
-    }
-
-
-    // Метод для оновлення назви проекту в історії
-    private fun updateProjectNameInHistory(newName: String) {
-        enhancedNavigationManager?.updateCurrentEntry(newName)
     }
 
     fun onForwardPressed() {
         enhancedNavigationManager.goForward()
     }
 
+    fun onBackPressed(): Boolean {
+        Log.d(TAG, "onBackPressed TRIGGERED")
+        if (uiState.value.inputValue.text.isNotEmpty()) {
+            Log.d(TAG, "Action: Clearing input field.")
+            inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
+            return true
+        }
+        if (isSelectionModeActive.value) {
+            Log.d(TAG, "Action: Clearing selection.")
+            selectionHandler.clearSelection()
+            return true
+        }
+        if (enhancedNavigationManager.canGoBack.value) {
+            Log.d(TAG, "Action: Navigating back via EnhancedNavigationManager.")
+            flushPendingMoves()
+            enhancedNavigationManager.goBack()
+            return true
+        }
+
+        Log.d(TAG, "Action: No local actions or history, letting system handle back press.")
+        flushPendingMoves()
+        return false // Let default back navigation handle this
+    }
+
+    private fun updateProjectNameInHistory(newName: String) {
+        // This function is not currently used but could be useful if project names can be edited
+        // from the backlog screen.
+        // enhancedNavigationManager.updateCurrentEntry(newName)
+    }
 }

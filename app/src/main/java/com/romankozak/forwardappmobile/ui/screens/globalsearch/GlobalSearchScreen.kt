@@ -4,10 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -35,7 +35,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
@@ -44,10 +43,10 @@ import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.InboxSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.LinkSearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.ProjectSearchResultItem
+import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SearchResultItem
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SubprojectSearchResultItem
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
-import com.romankozak.forwardappmobile.ui.screens.globalsearch.components.SearchResultItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,6 +82,10 @@ fun GlobalSearchScreen(
         label = "results_alpha",
     )
 
+    BackHandler {
+        viewModel.enhancedNavigationManager.goBack()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -104,7 +107,7 @@ fun GlobalSearchScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { viewModel.enhancedNavigationManager.goBack() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад",
@@ -185,7 +188,7 @@ fun GlobalSearchScreen(
                 else -> {
                     SearchResultsContent(
                         results = uiState.results,
-                        navController = navController,
+                        viewModel = viewModel,
                         obsidianVaultName = obsidianVaultName,
                         context = context,
                         listState = listState,
@@ -287,7 +290,7 @@ private fun EmptySearchContent(
 @Composable
 private fun SearchResultsContent(
     results: List<GlobalSearchResultItem>,
-    navController: NavController,
+    viewModel: GlobalSearchViewModel,
     obsidianVaultName: String,
     context: Context,
     listState: LazyListState,
@@ -326,21 +329,16 @@ private fun SearchResultsContent(
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
+                            val searchResult = result.searchResult
                             SearchResultItem(
-                                result = result.searchResult,
+                                result = searchResult,
                                 onOpenAsProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "goal_detail_screen/${result.searchResult.projectId}?goalId=${result.searchResult.goal.id}"
-
-
-                                    navController.navigate(route)
+                                    viewModel.navigateToProjectForResult(searchResult.projectId, searchResult.projectName)
                                 },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("project_to_reveal", result.searchResult.projectId)
-                                    navController.popBackStack()
+                                    viewModel.goBackToRevealProject(searchResult.projectId)
                                 },
                             )
                         }
@@ -351,13 +349,11 @@ private fun SearchResultsContent(
                                 result = searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "project_detail_screen/${searchResult.projectId}?itemIdToHighlight=${searchResult.listItemId}"
-                                    navController.navigate(route)
+                                    viewModel.navigateToProjectForResult(searchResult.projectId, searchResult.projectName)
                                 },
                                 onGoToTargetProject = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "project_detail_screen/${linkData.target}"
-                                    navController.navigate(route)
+                                    viewModel.navigateToProjectForResult(linkData.target, null)
                                 },
                                 onOpenInObsidian = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -377,69 +373,31 @@ private fun SearchResultsContent(
                                 },
                             )
                         }
-/*                        is GlobalSearchResultItem.SublistItem -> {
-                            SubprojectSearchResultItem(
-                                result = result.searchResult,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                                    navController.navigate("goal_detail_screen/${result.searchResult.subproject.id}")                           },
-                                onOpenInNavigation = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("project_to_reveal", result.searchResult.subproject.id)
-                                    navController.popBackStack()
-                                },
-                            )
-                        }
-                        is GlobalSearchResultItem.ProjectItem -> {
-                            ProjectSearchResultItem(
-                                result = result.searchResult,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.navigate("goal_detail_screen/${result.searchResult.project.id}")                                },
-                                onOpenInNavigation = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("project_to_reveal", result.searchResult.project.id)
-                                    navController.popBackStack()
-                                },
-                            )
-                        }*/
-
                         is GlobalSearchResultItem.SublistItem -> {
+                            val subproject = result.searchResult.subproject
                             SubprojectSearchResultItem(
                                 result = result.searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.navigate("goal_detail_screen/${result.searchResult.subproject.id}")
+                                    viewModel.navigateToProjectForResult(subproject.id, subproject.name)
                                 },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    // This is the correct way to pass data back to the previous screen.
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("project_to_reveal", result.searchResult.subproject.id)
-                                    navController.popBackStack()
+                                    viewModel.goBackToRevealProject(subproject.id)
                                 },
                             )
                         }
                         is GlobalSearchResultItem.ProjectItem -> {
+                            val project = result.searchResult.project
                             ProjectSearchResultItem(
                                 result = result.searchResult,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    navController.navigate("goal_detail_screen/${result.searchResult.project.id}")
+                                    viewModel.navigateToProjectForResult(project.id, project.name)
                                 },
                                 onOpenInNavigation = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    // This is the correct way to pass data back to the previous screen.
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("project_to_reveal", result.searchResult.project.id)
-                                    navController.popBackStack()
+                                    viewModel.goBackToRevealProject(project.id)
                                 },
                             )
                         }
@@ -452,10 +410,7 @@ private fun SearchResultsContent(
                                 record = result.record,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val route = "project_detail_screen/${result.record.projectId}?inboxRecordIdToHighlight=${result.record.id}"
-                                    Log.d(TAG, "Navigating to Inbox. Route: $route")
-
-                                    navController.navigate(route)
+                                    viewModel.navigateToProjectForResult(result.record.projectId, null)
                                 },
                             )
                         }
@@ -575,6 +530,7 @@ private fun handleRelatedLinkClick(
                 }
             }
             else -> {
+                // Ignore other link types
             }
         }
     } catch (e: Exception) {
