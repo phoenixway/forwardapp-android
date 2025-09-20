@@ -34,18 +34,17 @@ import com.romankozak.forwardappmobile.data.database.models.NavigationEntry
 import com.romankozak.forwardappmobile.data.database.models.NavigationType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-// --- NEW: Клас для представлення навігаційних команд ---
+// ДОДАНО: Клас для результатів навігації
+data class NavigationResult(val key: String, val value: String)
+
+// NEW: Клас для представлення навігаційних команд
 sealed class NavigationCommand {
     data class Navigate(val route: String, val builder: NavOptionsBuilder.() -> Unit = {}) : NavigationCommand()
     data class PopBackStack(val key: String? = null, val value: String? = null) : NavigationCommand()
 }
-
 
 /**
  * Розширений менеджер навігації, ВІДВ'ЯЗАНИЙ від NavController.
@@ -61,9 +60,13 @@ class EnhancedNavigationManager(
 
     private val historyManager = NavigationHistoryManager(savedStateHandle, scope)
 
-    // --- NEW: Канал для надсилання навігаційних команд ---
+    // NEW: Канал для надсилання навігаційних команд
     private val _navigationChannel = Channel<NavigationCommand>()
     val navigationCommandFlow = _navigationChannel.receiveAsFlow()
+
+    // ДОДАНО: Канал для результатів навігації
+    private val _navigationResults = MutableSharedFlow<NavigationResult>()
+    val navigationResults: SharedFlow<NavigationResult> = _navigationResults.asSharedFlow()
 
     val canGoBack: StateFlow<Boolean> = historyManager.canGoBack
     val canGoForward: StateFlow<Boolean> = historyManager.canGoForward
@@ -104,6 +107,12 @@ class EnhancedNavigationManager(
     }
 
     fun goBackWithResult(key: String, value: String) {
+        // ДОДАНО: Надсилаємо результат через flow
+        scope.launch {
+            _navigationResults.emit(NavigationResult(key, value))
+        }
+
+        // Потім виконуємо навігацію назад
         sendNavigationCommand(NavigationCommand.PopBackStack(key, value))
         // Оновлюємо внутрішній стан історії, ніби ми повернулись назад
         historyManager.goBack()
@@ -144,6 +153,34 @@ class EnhancedNavigationManager(
         }
     }
 
+    // ДОДАНО: Метод для відправки результату без навігації
+    fun sendResult(key: String, value: String) {
+        scope.launch {
+            _navigationResults.emit(NavigationResult(key, value))
+        }
+    }
+
+    // ДОДАНО: Метод для очищення історії
+    fun clearHistory() {
+        historyManager.clearHistory()
+    }
+
+    // ДОДАНО: Поліпшена навігація до домашнього стану
+    fun navigateHome() {
+        // Очищуємо всю історію та повертаємося до основного екрану
+        historyManager.clearHistory()
+
+        // Додаємо новий запис для основного екрану
+        val homeEntry = NavigationEntry.createMainScreen()
+        historyManager.addEntry(homeEntry)
+
+        // Навігуємо до основного екрану
+        sendNavigationCommand(NavigationCommand.Navigate("goal_lists_screen") {
+            popUpTo("goal_lists_screen") { inclusive = true }
+            launchSingleTop = true
+        })
+    }
+
     private fun navigateToEntry(entry: NavigationEntry) {
         Log.d(TAG, "Navigating to history entry: ${entry.type} - ${entry.title}")
 
@@ -168,7 +205,6 @@ class EnhancedNavigationManager(
         }
     }
 }
-
 
 // Composable для меню залишається тут, він не змінився
 @OptIn(ExperimentalMaterial3Api::class)
