@@ -40,7 +40,7 @@ constructor(
     private val alarmScheduler: AlarmScheduler,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    private val projectId: String = checkNotNull(savedStateHandle["projectId"])
+    private val projectId: String = checkNotNull(savedStateHandle["listId"])
 
     private val _uiState = MutableStateFlow(EditProjectUiState())
     val uiState: StateFlow<EditProjectUiState> = _uiState.asStateFlow()

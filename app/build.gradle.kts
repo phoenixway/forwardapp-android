@@ -9,7 +9,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
     //kotlin("kapt")
     //id("com.google.devtools.ksp")
-
+    id("kotlin-parcelize")
 
     id("io.gitlab.arturbosch.detekt")
 
@@ -23,7 +23,7 @@ android {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 29
         targetSdk = 36
-        versionCode = 50
+        versionCode = 53
         versionName = "10.0-alpha1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

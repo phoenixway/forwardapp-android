@@ -1,5 +1,3 @@
-// file: ui/screens/backlog/BacklogViewModel.kt
-
 package com.romankozak.forwardappmobile.ui.screens.backlog
 
 import android.app.Application
@@ -11,6 +9,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -25,6 +24,7 @@ import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
+import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.TransferStatus
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel.InputHandler
@@ -51,7 +51,7 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
-private const val TAG = "BACKLOG_VM_DEBUG"
+private const val TAG = "BacklogVM_DEBUG"
 
 sealed class UiEvent {
     data class ShowSnackbar(
@@ -80,6 +80,7 @@ sealed class UiEvent {
     ) : UiEvent()
 
     data object ScrollToLatestInboxRecord : UiEvent()
+
 }
 
 enum class GoalActionType { CreateInstance, MoveInstance, CopyGoal, AddLinkToList, ADD_LIST_SHORTCUT }
@@ -237,9 +238,17 @@ constructor(
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
     }
 
+    // --- ПОЧАТОК ЗМІН ---
+    // Тепер ViewModel отримує готовий менеджер, а не створює його
+    lateinit var enhancedNavigationManager: EnhancedNavigationManager
+
+    val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
+    val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
+    // --- КІНЕЦЬ ЗМІН ---
+
     private var batchSaveJob: Job? = null
 
-    private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("projectId", "")
+    private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
     private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
     val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
@@ -713,13 +722,6 @@ constructor(
         }
     }
 
-    fun onRevealInExplorer(currentProjectId: String) {
-        if (currentProjectId.isEmpty()) return
-        viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentProjectId))
-        }
-    }
-
     fun onSwipeStart(itemId: String) {
         if (_uiState.value.swipedItemId != itemId) {
             _uiState.update { it.copy(swipedItemId = itemId) }
@@ -1120,4 +1122,53 @@ constructor(
             }
         }
     }
+
+    fun onHomeClick() {
+        enhancedNavigationManager.navigateToMainScreen()
+    }
+
+    fun onForwardPressed() {
+        enhancedNavigationManager.goForward()
+    }
+
+
+
+    private fun updateProjectNameInHistory(newName: String) {
+        // This function is not currently used but could be useful if project names can be edited
+        // from the backlog screen.
+        // enhancedNavigationManager.updateCurrentEntry(newName)
+    }
+
+
+    fun onRevealInExplorer(currentProjectId: String) {
+        if (currentProjectId.isEmpty()) return
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentProjectId))
+        }
+    }
+
+    fun onBackPressed(): Boolean {
+        Log.d(TAG, "onBackPressed TRIGGERED")
+        if (uiState.value.inputValue.text.isNotEmpty()) {
+            Log.d(TAG, "Action: Clearing input field.")
+            inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
+            return true // Consumed back press
+        }
+        if (isSelectionModeActive.value) {
+            Log.d(TAG, "Action: Clearing selection.")
+            selectionHandler.clearSelection()
+            return true // Consumed back press
+        }
+        if (enhancedNavigationManager.canGoBack.value) {
+            Log.d(TAG, "Action: Navigating back via EnhancedNavigationManager.")
+            flushPendingMoves()
+            enhancedNavigationManager.goBack()
+            return true // Consumed back press
+        }
+
+        Log.d(TAG, "Action: No local actions or history, letting system handle back press.")
+        flushPendingMoves()
+        return false // Let system handle the back press (e.g., pop the NavController)
+    }
+
 }

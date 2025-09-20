@@ -54,6 +54,8 @@ private fun SublistIconBadge(modifier: Modifier = Modifier) {
     }
 }
 
+// File: SublistItemRow.kt
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SublistItemRow(
@@ -114,43 +116,43 @@ fun SublistItemRow(
                     (sublist.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                     (sublist.reminderTime != null)
 
-            AnimatedVisibility(
-                visible = hasExtraContent,
-                enter =
-                    slideInVertically(
-                        initialOffsetY = { height -> -height },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
+            // ВИПРАВЛЕНО: Ми переносимо бейдж підсписку за межі AnimatedVisibility.
+            // Тепер він завжди буде відображатися.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Column {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
+                SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
 
-                        sublist.reminderTime?.let { time ->
-                            EnhancedReminderBadge(
-                                reminderTime = time,
-                                currentTimeMillis = currentTimeMillis,
-                            )
-                        }
-
-                        EnhancedScoreStatusBadge(
-                            scoringStatus = sublist.scoringStatus,
-                            displayScore = sublist.displayScore
+                AnimatedVisibility(
+                    visible = hasExtraContent,
+                    enter =
+                        slideInVertically(
+                            initialOffsetY = { height -> -height },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        ) + fadeIn(),
+                ) {
+                    // Тепер тут тільки ті бейджи, які залежать від наявності додаткового контенту
+                    sublist.reminderTime?.let { time ->
+                        EnhancedReminderBadge(
+                            reminderTime = time,
+                            currentTimeMillis = currentTimeMillis,
                         )
+                    }
 
-                        if (!sublist.tags.isNullOrEmpty()) {
-                            sublist.tags.forEach { tag ->
-                                TagChip(
-                                    text = "#$tag",
-                                    onDismiss = {},
-                                    isDismissible = false,
-                                )
-                            }
+                    EnhancedScoreStatusBadge(
+                        scoringStatus = sublist.scoringStatus,
+                        displayScore = sublist.displayScore
+                    )
+
+                    if (!sublist.tags.isNullOrEmpty()) {
+                        sublist.tags.forEach { tag ->
+                            TagChip(
+                                text = "#$tag",
+                                onDismiss = {},
+                                isDismissible = false,
+                            )
                         }
                     }
                 }

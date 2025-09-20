@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.screens.backlog.GoalActionType
@@ -51,7 +52,9 @@ constructor(
                     resultListener.requestNavigation(
                         "goal_edit_screen/$currentProjectId?goalId=${item.goal.id}",
                     )
-                is ListItemContent.SublistItem -> resultListener.requestNavigation("project_detail_screen/${item.project.id}")
+                is ListItemContent.SublistItem ->
+                    // ВИПРАВЛЕНО: Використання правильного маршруту "goal_detail_screen"
+                    resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
                 is ListItemContent.LinkItem ->
                     resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
             }
@@ -78,22 +81,8 @@ constructor(
         actionType: GoalActionType,
         item: ListItemContent,
     ) {
-        val (itemIds, goalIds) =
-            when (item) {
-                is ListItemContent.GoalItem -> Pair(setOf(item.listItem.id), setOf(item.goal.id))
-                else -> Pair(setOf(item.listItem.id), emptySet())
-            }
-
-        val isActionApplicable =
-            when (actionType) {
-                GoalActionType.MoveInstance -> true
-                GoalActionType.CreateInstance, GoalActionType.CopyGoal -> item is ListItemContent.GoalItem
-                else -> false
-            }
-        if (!isActionApplicable) return
-
-        resultListener.setPendingAction(actionType, itemIds, goalIds)
-        onDismissGoalActionDialogs()
+        // ВИПРАВЛЕНО: Нова функція, яка універсально обробляє дії
+        onItemActionSelected(actionType, item)
     }
 
     fun toggleGoalCompletedWithState(
@@ -139,34 +128,37 @@ constructor(
         _itemForTransportMenu.value = null
     }
 
-    fun onTransportActionSelected(actionType: GoalActionType) {
-        val item = _itemForTransportMenu.value ?: return
+    // НОВА ФУНКЦІЯ: Універсальна обробка дій над елементами. Замінює старий onGoalActionSelected
+    fun onItemActionSelected(actionType: GoalActionType, item: ListItemContent) {
         when (item) {
             is ListItemContent.GoalItem -> {
-                onGoalActionSelected(actionType, item)
+                resultListener.setPendingAction(
+                    actionType,
+                    itemIds = setOf(item.listItem.id),
+                    goalIds = setOf(item.goal.id),
+                )
             }
             is ListItemContent.SublistItem -> {
                 when (actionType) {
                     GoalActionType.CreateInstance -> {
+                        resultListener.showSnackbar("Дія 'Створити посилання' недоступна для під-проектів.", null)
+                        return
+                    }
+                    else -> {
                         resultListener.setPendingAction(
-                            GoalActionType.ADD_LIST_SHORTCUT,
-                            setOf(item.listItem.id),
-                            setOf(item.project.id)
+                            actionType,
+                            itemIds = setOf(item.listItem.id),
+                            goalIds = setOf(item.project.id), // Для MoveInstance це project.id, для CopyGoal це також project.id
                         )
                     }
-                    GoalActionType.MoveInstance -> {
-                        resultListener.setPendingAction(
-                            GoalActionType.MoveInstance,
-                            setOf(item.listItem.id),
-                            emptySet()
-                        )
-                    }
-                    else -> Unit
                 }
             }
-            else -> Unit
+            else -> {
+                resultListener.showSnackbar("Ця дія недоступна для даного типу елемента.", null)
+                return
+            }
         }
-        onDismissGoalTransportMenu()
+        onDismissGoalActionDialogs()
     }
 
     fun undoDelete() {

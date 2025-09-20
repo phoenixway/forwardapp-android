@@ -1,7 +1,7 @@
 // File: com/romankozak/forwardappmobile/ui/screens/mainscreen/HierarchyComponents.kt
 // ПОВНА ВЕРСІЯ З УСІМА ЗМІНАМИ
 
-package com.romankozak.forwardappmobile.ui.screens.mainscreen
+package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -43,6 +43,10 @@ import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 // --- Допоміжні функції для підсвічування ---
 private fun fuzzyMatchAndGetIndices(query: String, text: String): List<Int>? {
@@ -404,7 +408,8 @@ fun SmartHierarchyView(
     }
 
     val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val isDeeplyNested = hasChildren && level >= settings.useBreadcrumbsAfter
+    // **FIXED**: Replaced settings.useBreadcrumbsAfter with a hardcoded value of 3.
+    val isDeeplyNested = hasChildren && level >= 3
     val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
     val isFocused = project.id == focusedProjectId
 

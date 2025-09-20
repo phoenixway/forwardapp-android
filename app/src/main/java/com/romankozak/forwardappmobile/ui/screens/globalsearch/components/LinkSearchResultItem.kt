@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
@@ -179,7 +180,7 @@ fun LinkSearchResultItem(
 
 @Composable
 private fun getLinkDisplayData(
-    linkType: LinkType,
+    linkType: LinkType?,
     onOpenInObsidian: () -> Unit,
     onGoToTargetProject: () -> Unit,
     onOpenUrl: () -> Unit,
@@ -224,13 +225,27 @@ private fun getLinkDisplayData(
                 actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
                 actionDescription = "Перейти до проекту",
             )
+        null -> // Handle the case where the link type is missing
+            LinkDisplayData(
+                icon = Icons.Default.BrokenImage,
+                colors =
+                    LinkColors(
+                        primary = MaterialTheme.colorScheme.outline,
+                        container = MaterialTheme.colorScheme.surfaceVariant,
+                        onContainer = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                actionHandler = null,
+                actionIcon = null,
+                actionDescription = "Invalid link",
+            )
     }
 
-private fun getLinkTypeLabel(linkType: LinkType): String =
+private fun getLinkTypeLabel(linkType: LinkType?): String =
     when (linkType) {
         LinkType.URL -> "Attachment: web-url"
         LinkType.OBSIDIAN -> "Attachment: Obsidian note"
         LinkType.PROJECT -> "Attachment: link to project"
+        null -> "Attachment: Unknown" // Handle the null case
     }
 
 private data class LinkDisplayData(

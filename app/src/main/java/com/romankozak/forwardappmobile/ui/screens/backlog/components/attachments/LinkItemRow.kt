@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Note
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
@@ -75,6 +76,10 @@ fun LinkItemRow(
                             LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
                             LinkType.URL -> Icons.Default.Language
                             LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+
+                        null -> Icons.Default.BrokenImage // Or any other default icon
+                            else -> Icons.Default.BrokenImage
+
                         },
                     contentDescription = "Link icon",
                     tint = MaterialTheme.colorScheme.primary,
@@ -94,6 +99,9 @@ fun LinkItemRow(
                                 LinkType.PROJECT -> "Посилання на список"
                                 LinkType.URL -> link.target
                                 LinkType.OBSIDIAN -> "Нотатка Obsidian"
+                                null -> "Broken" // Or any other default icon
+                                else -> "Broken"
+
                             },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -84,10 +84,11 @@ fun GoalDetailEffects(
                     }
                 }
                 is UiEvent.NavigateBackAndReveal -> {
-                    navController
-                        .getBackStackEntry("projects_screen") // Corrected route
-                        .savedStateHandle["project_to_reveal"] = event.projectId // Corrected key and property
-                    navController.popBackStack("projects_screen", inclusive = false)
+                    // Set the result on the *previous* screen's saved state handle
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("project_to_reveal", event.projectId)
+                    navController.popBackStack()
                 }
 
                 is UiEvent.HandleLinkClick -> {
