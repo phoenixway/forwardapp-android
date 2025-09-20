@@ -3,29 +3,38 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.data.database.models.Project
+import android.os.Parcelable // <-- ДОДАЙТЕ ІМПОРТ
+import kotlinx.parcelize.Parcelize // <-- ДОДАЙТЕ ІМПОРТ
+
+
 
 /**
  * Представляє різні підстани головного екрану.
  * Використовується як стек для відслідковування навігації між станами.
  */
-sealed class MainSubState {
+@Parcelize // <-- ДОДАЙТЕ АНОТАЦІЮ
+sealed class MainSubState : Parcelable { // <-- ДОДАЙТЕ РЕАЛІЗАЦІЮ Parcelable
     /**
      * Базовий стан - показує ієрархію проектів
      */
+    @Parcelize
     data object Hierarchy : MainSubState()
 
     /**
      * Стан локального пошуку по проектам
      * @param query поточний пошуковий запит
      */
+    @Parcelize
     data class LocalSearch(val query: String) : MainSubState()
 
     /**
      * Стан фокусу на конкретному проекті в ієрархії
      * @param projectId ID проекту, на якому сфокусовано
      */
+    @Parcelize
     data class ProjectFocused(val projectId: String) : MainSubState()
 }
+
 
 /**
  * Статистика додатка

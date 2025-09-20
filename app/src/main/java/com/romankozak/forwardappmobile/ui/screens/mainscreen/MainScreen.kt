@@ -69,6 +69,9 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.flow.collectLatest
 
+private const val UI_TAG = "MainScreenUI_DEBUG"
+
+
 @Composable
 fun MainScreen(
     navController: NavController,
@@ -148,18 +151,18 @@ private fun MainScreenScaffold(
         uri?.let { onEvent(MainScreenEvent.ImportFromFileRequest(it)) }
     }
 
-    // ИСПРАВЛЕНО: Упрощенная логика BackHandler с использованием стека подсостояний
-    val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded, uiState.canGoBack) {
+    val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
         derivedStateOf {
-            uiState.subStateStack.size > 1 || // Есть подсостояния кроме базового
-                    uiState.currentBreadcrumbs.isNotEmpty() || // Есть фокус на проекте
-                    uiState.areAnyProjectsExpanded || // Развернуты проекты
-                    uiState.canGoBack // Есть глобальная история навигации
+            val enabled = uiState.subStateStack.size > 1 ||
+                    uiState.currentBreadcrumbs.isNotEmpty() ||
+                    uiState.areAnyProjectsExpanded
+            Log.d(UI_TAG, "BackHandler enabled = $enabled") // Логуємо стан обробника
+            enabled
         }
     }
 
     BackHandler(enabled = backHandlerEnabled) {
-        // Просто вызываем обработчик в ViewModel
+        Log.i(UI_TAG, "Custom BackHandler INVOKED") // Логуємо виклик
         onEvent(MainScreenEvent.BackClick)
     }
 
@@ -459,6 +462,8 @@ private fun MainScreenContent(
     onEvent: (MainScreenEvent) -> Unit,
     listState: LazyListState,
 ) {
+    Log.d(UI_TAG, "MainScreenContent recomposing | currentSubState = ${uiState.currentSubState}")
+
     Column(modifier = modifier.fillMaxSize()) {
         // ИСПРАВЛЕНО: Определяем нужно ли показывать результаты поиска на основе стека подсостояний
         val currentSubState = uiState.currentSubState
