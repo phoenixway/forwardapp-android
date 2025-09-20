@@ -4,9 +4,9 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
-import com.romankozak.forwardappmobile.domain.RoleFile
-import com.romankozak.forwardappmobile.domain.RoleFolder
-import com.romankozak.forwardappmobile.domain.RoleItem
+import com.romankozak.forwardappmobile.domain.aichat.RoleFile
+import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
+import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

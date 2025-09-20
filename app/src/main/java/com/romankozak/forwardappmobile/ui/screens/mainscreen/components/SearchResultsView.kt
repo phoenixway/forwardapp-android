@@ -1,3 +1,5 @@
+// File: SearchResultsView.kt - CORRECTED
+
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -12,8 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,40 +29,43 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.SearchResult
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun SearchResultsView(
     results: List<SearchResult>,
     onRevealClick: (String) -> Unit,
-    onOpenClick: (String) -> Unit
+    onOpenClick: (String) -> Unit,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(results, key = { it.project.id }) { result ->
+        items(results, key = { it.projectId }) { result ->
             ListItem(
                 headlineContent = {
                     Text(
-                        text = result.project.name,
+                        text = result.projectName,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 },
                 supportingContent = {
                     FlowRow(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        // FIXED: Changed 'verticalAlignment' to 'verticalArrangement'
+                        // and used Arrangement.Center for the value.
+                        verticalArrangement = Arrangement.Center,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 4.dp)
                     ) {
-                        result.path.forEachIndexed { index, breadcrumb ->
+                        result.parentPath.forEachIndexed { index, breadcrumb ->
                             Text(
-                                text = breadcrumb.name,
+                                text = breadcrumb,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
 
-                            if (index < result.path.size - 1) {
+                            if (index < result.parentPath.size - 1) {
                                 Icon(
                                     imageVector = Icons.Default.ChevronRight,
                                     contentDescription = null,
@@ -73,22 +78,22 @@ fun SearchResultsView(
                 },
                 trailingContent = {
                     Row {
-                        IconButton(onClick = { onRevealClick(result.project.id) }) {
+                        IconButton(onClick = { onRevealClick(result.projectId) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Visibility,
                                 contentDescription = "Show in hierarchy"
                             )
                         }
-                        IconButton(onClick = { onOpenClick(result.project.id) }) {
+                        IconButton(onClick = { onOpenClick(result.projectId) }) {
                             Icon(
-                                imageVector = Icons.Outlined.OpenInNew,
+                                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
                                 contentDescription = "Open project"
                             )
                         }
                     }
                 },
                 modifier = Modifier
-                    .clickable { onOpenClick(result.project.id) },
+                    .clickable { onOpenClick(result.projectId) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
             HorizontalDivider(

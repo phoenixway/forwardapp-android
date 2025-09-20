@@ -1,9 +1,10 @@
-package com.romankozak.forwardappmobile.domain
+package com.romankozak.forwardappmobile.domain.aichat
 
 import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -110,7 +111,7 @@ class OllamaService
                 throw e
             }.flowOn(Dispatchers.IO)
 
-        private suspend fun kotlinx.coroutines.flow.FlowCollector<String>.processStreamingResponse(
+        private suspend fun FlowCollector<String>.processStreamingResponse(
             responseBody: ResponseBody,
             isGenerateEndpoint: Boolean,
         ) {

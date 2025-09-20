@@ -323,7 +323,7 @@ internal fun EnhancedRelatedLinkChip(
                     )
                 }
                 .semantics {
-                    contentDescription = "${link.type.name}: ${link.displayName ?: link.target}"
+                    contentDescription = "${link.type?.name ?: "LINK"}: ${link.displayName ?: link.target}"
                     role = Role.Button
                 },
         shape = RoundedCornerShape(12.dp),
@@ -341,6 +341,8 @@ internal fun EnhancedRelatedLinkChip(
                         LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
                         LinkType.URL -> Icons.Default.Link
                         LinkType.OBSIDIAN -> Icons.Default.Book
+                        null -> Icons.Default.BrokenImage // Or any other default icon
+                        else -> Icons.Default.BrokenImage
                     },
                 contentDescription = null,
                 tint = contentColor,
@@ -552,8 +554,8 @@ fun GoalItem(
                             NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
                         }
 
-                        goal.relatedLinks?.forEachIndexed { index, link ->
-                            key(link.target + link.type.name) {
+                        goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
+                            key(link.target + link.type?.name) {
                                 var delayedVisible by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) {
                                     delay((parsedData.icons.size + index) * 50L)
@@ -696,8 +698,8 @@ fun GoalItem(
                             NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
                         }
 
-                        goal.relatedLinks?.forEachIndexed { index, link ->
-                            key(link.target + link.type.name) {
+                        goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
+                            key(link.target + link.type?.name) {
                                 var delayedVisible by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) {
                                     delay((parsedData.icons.size + index) * 50L)

@@ -30,7 +30,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,14 +49,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.domain.RoleFile
-import com.romankozak.forwardappmobile.domain.RoleFolder
-import com.romankozak.forwardappmobile.domain.RoleItem
+import com.romankozak.forwardappmobile.domain.aichat.RoleFile
+import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
+import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*

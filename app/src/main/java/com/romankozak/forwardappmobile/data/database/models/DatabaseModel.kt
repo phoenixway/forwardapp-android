@@ -100,7 +100,7 @@ enum class ProjectStatus(val displayName: String) {
 // --- DATA CLASSES & ENTITIES ---
 
 data class RelatedLink(
-    val type: LinkType,
+    val type: LinkType?, // Має бути
     val target: String,
     val displayName: String? = null,
 )
@@ -254,12 +254,12 @@ data class GlobalProjectSearchResult(
 )
 
 
-data class GlobalSearchResult(
+/*data class GlobalSearchResult(
     @Embedded
     val goal: Goal,
     val listId: String,
     val listName: String,
-)
+)*/
 
 sealed class GlobalSearchResultItem {
     abstract val timestamp: Long

@@ -1,10 +1,9 @@
-package com.romankozak.forwardappmobile.domain
+package com.romankozak.forwardappmobile.domain.aichat
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
@@ -64,7 +63,10 @@ class GenerationService : Service() {
                         historyEntities
                             .filter { !it.isError && it.id != assistantMessageId }
                             .map { msg ->
-                                Message(role = if (msg.isFromUser) "user" else "assistant", content = msg.text)
+                                Message(
+                                    role = if (msg.isFromUser) "user" else "assistant",
+                                    content = msg.text
+                                )
                             }
 
                 var fullResponse = ""
@@ -108,7 +110,7 @@ class GenerationService : Service() {
                     "AI Generation",
                     NotificationManager.IMPORTANCE_LOW,
                 )
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
 

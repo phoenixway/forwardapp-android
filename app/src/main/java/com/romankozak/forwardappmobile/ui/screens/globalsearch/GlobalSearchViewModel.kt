@@ -1,12 +1,12 @@
 package com.romankozak.forwardappmobile.ui.screens.globalsearch
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,10 +30,11 @@ constructor(
     private val settingsRepository: SettingsRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    val query: String = savedStateHandle.get<String>("query") ?: ""
-
+    val query: String = savedStateHandle["query"] ?: ""
     private val _uiState = MutableStateFlow(GlobalSearchUiState())
     val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
+
+    lateinit var enhancedNavigationManager: EnhancedNavigationManager
 
     val obsidianVaultName: StateFlow<String> =
         settingsRepository.obsidianVaultNameFlow
@@ -43,6 +44,12 @@ constructor(
         performSearch()
     }
 
+    // --- ПОЧАТОК ЗМІН: Новий метод для "Відкрити локацію" ---
+    fun goBackToRevealProject(projectId: String) {
+        enhancedNavigationManager.goBackWithResult("project_to_reveal", projectId)
+    }
+    // --- КІНЕЦЬ ЗМІН ---
+
     private fun performSearch() {
         if (query.isBlank()) {
             _uiState.update { it.copy(isLoading = false) }
@@ -51,23 +58,17 @@ constructor(
 
         viewModelScope.launch {
             val results = projectRepository.searchGlobal("%$query%")
-
-            val sublistItems = results.filterIsInstance<GlobalSearchResultItem.SublistItem>()
-            Log.d(
-                "PATH_DEBUG",
-                "[VIEWMODEL] Всього результатів: ${results.size}. З них підпроектів: ${sublistItems.size}"
-            )
-            sublistItems.firstOrNull()?.let {
-                Log.d(
-                    "PATH_DEBUG",
-                    "[VIEWMODEL] Перший підпроект: name='${it.searchResult.subproject.name}', pathSegments=${it.searchResult.pathSegments}"
-                )
-            }
-
             val distinctResults = results.distinctBy { it.uniqueId }
             _uiState.update {
                 it.copy(results = distinctResults, isLoading = false)
             }
+        }
+    }
+
+    fun navigateToProjectForResult(projectId: String, projectName: String?) {
+        viewModelScope.launch {
+            val finalProjectName = projectName ?: projectRepository.getProjectById(projectId)?.name ?: "Project"
+            enhancedNavigationManager.navigateToProject(projectId, finalProjectName)
         }
     }
 }
