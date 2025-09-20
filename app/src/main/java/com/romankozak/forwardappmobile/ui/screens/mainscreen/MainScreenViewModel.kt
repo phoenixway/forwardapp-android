@@ -394,7 +394,10 @@ class MainScreenViewModel @Inject constructor(
                     wifiSyncManager.wifiServerAddress, // 23
                     wifiSyncManager.showWifiImportDialog, // 24
                     wifiSyncManager.desktopAddress, // 25
-                    _showSearchDialog // 26
+                    _showSearchDialog, // 26
+
+                    // VVVVVVVVVV  ОСЬ ТУТ ПОТРІБНО ДОДАТИ РЯДОК VVVVVVVVVV
+                    searchResultsFlow // 27
                 ) { states ->
                     @Suppress("UNCHECKED_CAST")
                     MainScreenUiState(
@@ -424,7 +427,10 @@ class MainScreenViewModel @Inject constructor(
                         wifiServerAddress = states[23] as String?,
                         showWifiImportDialog = states[24] as Boolean,
                         desktopAddress = states[25] as String,
-                        showSearchDialog = states[26] as Boolean
+                        showSearchDialog = states[26] as Boolean,
+                        // Тепер цей рядок є правильним, оскільки є 28 джерел (індекси 0-27)
+                        searchResults = states[27] as List<SearchResult>
+
                     )
                 }
             }.collect { newState ->
@@ -437,11 +443,14 @@ class MainScreenViewModel @Inject constructor(
         when (event) {
             is MainScreenEvent.SearchQueryChanged -> {
                 searchAndNavigationManager.onSearchQueryChanged(event.query)
-                if (event.query.text.isNotBlank() && !isSearchActive()) {
+                // Якщо ми ще не в режимі пошуку, перейти в нього.
+                if (!isSearchActive()) {
                     pushSubState(MainSubState.LocalSearch(event.query.text))
-                } else if (event.query.text.isBlank() && isSearchActive()) {
-                    popToSubState(MainSubState.Hierarchy)
+                } else {
+                    // Якщо ми вже в режимі пошуку, оновити стан з новим запитом.
+                    replaceCurrentSubState(MainSubState.LocalSearch(event.query.text))
                 }
+
             }
             is MainScreenEvent.SearchFromHistory -> {
                 pushSubState(MainSubState.LocalSearch(event.query))
