@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -75,14 +76,34 @@ constructor(
 
     val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
 
+    // New: Available tags from all goals
+    private val _allTags = MutableStateFlow<List<String>>(emptyList())
+    val allTags: StateFlow<List<String>> = _allTags.asStateFlow()
+
     init {
         viewModelScope.launch {
             contextHandler.initialize()
+            loadAvailableTags()
             if (goalId != null) {
                 loadExistingGoal(goalId)
             } else {
                 createNewGoal()
             }
+        }
+    }
+
+    private suspend fun loadAvailableTags() {
+        try {
+            // Get all goals and extract unique tags
+            val allGoals = projectRepository.getAllGoals()
+            val allTagsFromGoals = allGoals.flatMap { goal ->
+                TagUtils.extractTags(goal.text).map { it.fullTag }
+            }.distinct().sorted()
+
+            _allTags.value = allTagsFromGoals
+        } catch (e: Exception) {
+            Log.e("GoalEditViewModel", "Error loading tags", e)
+            _allTags.value = emptyList()
         }
     }
 
@@ -166,6 +187,9 @@ constructor(
                 initialProjectId ?: return@launch
                 projectRepository.addGoalToProject(goalToSave.text, initialProjectId)
             }
+
+            // Reload tags after saving
+            loadAvailableTags()
 
             _events.send(GoalEditEvent.NavigateBack("Збережено"))
         }

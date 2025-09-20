@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -601,6 +602,11 @@ class MainScreenViewModel @Inject constructor(
             is MainScreenEvent.DismissWifiImportDialog -> wifiSyncManager.onDismissWifiImportDialog()
             is MainScreenEvent.DesktopAddressChange -> wifiSyncManager.onDesktopAddressChange(event.address)
             is MainScreenEvent.PerformWifiImport -> wifiSyncManager.performWifiImport(event.address)
+            is MainScreenEvent.AddProjectConfirm -> {
+                onAddNewProjectConfirmed(event.name, event.parentId)
+                dialogStateManager.dismissDialog()
+            }
+
         }
     }
 // File: MainScreenViewModel.kt
@@ -810,6 +816,28 @@ class MainScreenViewModel @Inject constructor(
     fun collapseAllProjects() {
         viewModelScope.launch {
             actionsHandler.collapseAllProjects(_allProjectsFlat.value)
+        }
+    }
+
+    private fun onAddNewProjectConfirmed(name: String, parentId: String?) {
+        if (name.isBlank()) {
+            viewModelScope.launch {
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Назва проекту не може бути порожньою"))
+            }
+            return
+        }
+
+        // **FIX 1: Generate a unique ID for the new project**
+        val newProjectId = UUID.randomUUID().toString()
+
+        viewModelScope.launch(ioDispatcher) {
+            actionsHandler.addNewProject(
+                // **FIX 2: Pass the newly generated ID to the function**
+                id = newProjectId,
+                name = name,
+                parentId = parentId,
+                allProjects = _allProjectsFlat.value
+            )
         }
     }
 }

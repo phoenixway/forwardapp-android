@@ -49,12 +49,296 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import kotlinx.coroutines.delay
 
+// region Refactored Data Classes & Components
+
 private data class PanelColors(
     val containerColor: Color,
     val contentColor: Color,
     val accentColor: Color,
     val inputFieldColor: Color,
 )
+
+private data class NavPanelState(
+    val canGoBack: Boolean,
+    val canGoForward: Boolean,
+    val isAttachmentsExpanded: Boolean,
+    val menuExpanded: Boolean,
+    val currentView: ProjectViewMode,
+    val isProjectManagementEnabled: Boolean,
+    val inputMode: InputMode
+)
+
+private data class NavPanelActions(
+    val onBackClick: () -> Unit,
+    val onForwardClick: () -> Unit,
+    val onHomeClick: () -> Unit,
+    val onRecentsClick: () -> Unit,
+    val onRevealInExplorer: () -> Unit,
+    val onCloseSearch: () -> Unit,
+    val onViewChange: (ProjectViewMode) -> Unit,
+    val onInputModeSelected: (InputMode) -> Unit,
+    val onToggleAttachments: () -> Unit,
+    val onMenuExpandedChange: (Boolean) -> Unit,
+    val onAddProjectToDayPlan: () -> Unit,
+    val menuActions: OptionsMenuActions
+)
+
+private data class OptionsMenuActions(
+    val onEditList: () -> Unit,
+    val onToggleProjectManagement: () -> Unit,
+    val onStartTrackingCurrentProject: () -> Unit,
+    val onShareList: () -> Unit,
+    val onImportFromMarkdown: () -> Unit,
+    val onExportToMarkdown: () -> Unit,
+    val onImportBacklogFromMarkdown: () -> Unit,
+    val onExportBacklogToMarkdown: () -> Unit,
+    val onExportProjectState: () -> Unit,
+    val onDeleteList: () -> Unit
+)
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NavControls(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
+    val haptic = LocalHapticFeedback.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (state.inputMode == InputMode.SearchInList) {
+            IconButton(onClick = actions.onCloseSearch, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.Close, "Закрити пошук", tint = contentColor, modifier = Modifier.size(20.dp))
+            }
+        } else {
+            val backButtonAlpha by animateFloatAsState(if (state.canGoBack) 1f else 0.4f, label = "backAlpha")
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(40.dp)
+                    .alpha(backButtonAlpha)
+                    .clip(CircleShape)
+                    .combinedClickable(
+                        enabled = state.canGoBack,
+                        onClick = actions.onBackClick,
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            actions.onRecentsClick()
+                        }
+                    )
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back),
+                    tint = if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.38f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        val forwardButtonAlpha by animateFloatAsState(if (state.canGoForward) 1f else 0.4f, label = "forwardAlpha")
+        IconButton(onClick = actions.onForwardClick, enabled = state.canGoForward, modifier = Modifier.size(40.dp).alpha(forwardButtonAlpha)) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                stringResource(R.string.forward),
+                tint = if (state.canGoForward) contentColor else contentColor.copy(alpha = 0.38f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Default.Home, stringResource(R.string.go_to_home_list), tint = contentColor, modifier = Modifier.size(20.dp))
+        }
+
+        IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Outlined.Visibility, "Показати в ієрархії", tint = contentColor, modifier = Modifier.size(20.dp))
+        }
+
+        // **FIX: Повертаємо кнопку "Недавні" сюди**
+        IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
+            Icon(
+                imageVector = Icons.Default.Restore,
+                contentDescription = "Недавні",
+                tint = contentColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ViewModeToggle(
+    currentView: ProjectViewMode,
+    isProjectManagementEnabled: Boolean,
+    onViewChange: (ProjectViewMode) -> Unit,
+    onInputModeSelected: (InputMode) -> Unit,
+    contentColor: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = contentColor.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f))
+    ) {
+        Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
+            val availableViews = ProjectViewMode.values().filter {
+                it != ProjectViewMode.DASHBOARD || isProjectManagementEnabled
+            }
+            availableViews.forEach { viewMode ->
+                val isSelected = currentView == viewMode
+                IconButton(
+                    onClick = {
+                        onViewChange(viewMode)
+                        val newMode = when (viewMode) {
+                            ProjectViewMode.INBOX -> InputMode.AddQuickRecord
+                            ProjectViewMode.DASHBOARD -> InputMode.AddQuickRecord
+                            else -> InputMode.AddGoal
+                        }
+                        onInputModeSelected(newMode)
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            color = if (isSelected) contentColor.copy(alpha = 0.2f) else Color.Transparent,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = when (viewMode) {
+                            ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
+                            ProjectViewMode.INBOX -> Icons.Outlined.Inbox
+                            ProjectViewMode.DASHBOARD -> Icons.Outlined.Dashboard
+                        },
+                        contentDescription = viewMode.name,
+                        modifier = Modifier.size(18.dp),
+                        tint = contentColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
+    Box {
+        IconButton(onClick = { actions.onMenuExpandedChange(true) }, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Default.MoreVert, stringResource(R.string.more_options), tint = contentColor.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+        }
+        DropdownMenu(
+            expanded = state.menuExpanded,
+            onDismissRequest = { actions.onMenuExpandedChange(false) },
+            properties = PopupProperties(focusable = true),
+            modifier = Modifier.width(280.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(16.dp))
+        ) {
+            val menu = actions.menuActions
+            DropdownMenuItem(
+                text = { Text("Додати до плану на сьогодні") },
+                onClick = { actions.onAddProjectToDayPlan(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Outlined.EventAvailable, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+            )
+            // **FIX: Кнопка "Недавні" тепер тут не потрібна, оскільки вона на головній панелі**
+            // DropdownMenuItem(text = { Text("Недавні проекти") }, ... )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.edit_list)) },
+                onClick = { menu.onEditList(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+            )
+            DropdownMenuItem(
+                text = { Text("Toggle realization support") },
+                onClick = { menu.onToggleProjectManagement(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Outlined.Construction, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+            )
+            DropdownMenuItem(
+                text = { Text("Start tracking current project") },
+                onClick = { menu.onStartTrackingCurrentProject(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Outlined.PlayCircle, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.share_list)) },
+                onClick = { menu.onShareList(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Default.Share, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.tertiary) }
+            )
+
+            if (state.currentView == ProjectViewMode.INBOX) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                DropdownMenuItem(
+                    text = { Text("Імпортувати з Markdown") },
+                    onClick = { menu.onImportFromMarkdown(); actions.onMenuExpandedChange(false) },
+                    leadingIcon = { Icon(Icons.Default.Upload, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Експортувати в Markdown") },
+                    onClick = { menu.onExportToMarkdown(); actions.onMenuExpandedChange(false) },
+                    leadingIcon = { Icon(Icons.Default.Download, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
+                )
+            }
+            if (state.currentView == ProjectViewMode.BACKLOG) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                DropdownMenuItem(
+                    text = { Text("Імпортувати беклог з Markdown") },
+                    onClick = { menu.onImportBacklogFromMarkdown(); actions.onMenuExpandedChange(false) },
+                    leadingIcon = { Icon(Icons.Default.Upload, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Експортувати беклог в Markdown") },
+                    onClick = { menu.onExportBacklogToMarkdown(); actions.onMenuExpandedChange(false) },
+                    leadingIcon = { Icon(Icons.Default.Download, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
+                )
+            }
+            if (state.isProjectManagementEnabled) {
+                DropdownMenuItem(
+                    text = { Text("Експортувати історію і стан") },
+                    onClick = { menu.onExportProjectState(); actions.onMenuExpandedChange(false) },
+                    leadingIcon = { Icon(Icons.Outlined.Assessment, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.delete_list), color = MaterialTheme.colorScheme.error) },
+                onClick = { menu.onDeleteList(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Outlined.Delete, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun NavigationBar(
+    state: NavPanelState,
+    actions: NavPanelActions,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        NavControls(state = state, actions = actions, contentColor = contentColor)
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ViewModeToggle(
+                currentView = state.currentView,
+                isProjectManagementEnabled = state.isProjectManagementEnabled,
+                onViewChange = actions.onViewChange,
+                onInputModeSelected = actions.onInputModeSelected,
+                contentColor = contentColor
+            )
+            val attachmentIconColor by animateColorAsState(if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f), label = "attColor")
+            val attachmentIconScale by animateFloatAsState(if (state.isAttachmentsExpanded) 1.2f else 1.0f, label = "attScale")
+            IconButton(onClick = actions.onToggleAttachments, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Attachment,
+                    contentDescription = stringResource(R.string.toggle_attachments),
+                    tint = attachmentIconColor,
+                    modifier = Modifier.size(20.dp).scale(attachmentIconScale)
+                )
+            }
+            OptionsMenu(state = state, actions = actions, contentColor = contentColor)
+        }
+    }
+}
+
+// endregion
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -98,11 +382,43 @@ fun ModernInputPanel(
     onAddProjectToDayPlan: () -> Unit,
     onRevealInExplorer: () -> Unit,
     onCloseSearch: () -> Unit
-
 ) {
-    val focusRequester = remember { FocusRequester() }
-    val haptic = LocalHapticFeedback.current
+    val state = NavPanelState(
+        canGoBack = canGoBack,
+        canGoForward = canGoForward,
+        isAttachmentsExpanded = isAttachmentsExpanded,
+        menuExpanded = menuExpanded,
+        currentView = currentView,
+        isProjectManagementEnabled = isProjectManagementEnabled,
+        inputMode = inputMode
+    )
+    val actions = NavPanelActions(
+        onBackClick = onBackClick,
+        onForwardClick = onForwardClick,
+        onHomeClick = onHomeClick,
+        onRecentsClick = onRecentsClick,
+        onRevealInExplorer = onRevealInExplorer,
+        onCloseSearch = onCloseSearch,
+        onViewChange = onViewChange,
+        onInputModeSelected = onInputModeSelected,
+        onToggleAttachments = onToggleAttachments,
+        onMenuExpandedChange = onMenuExpandedChange,
+        onAddProjectToDayPlan = onAddProjectToDayPlan,
+        menuActions = OptionsMenuActions(
+            onEditList = onEditList,
+            onToggleProjectManagement = onToggleProjectManagement,
+            onStartTrackingCurrentProject = onStartTrackingCurrentProject,
+            onShareList = onShareList,
+            onImportFromMarkdown = onImportFromMarkdown,
+            onExportToMarkdown = onExportToMarkdown,
+            onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+            onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+            onExportProjectState = onExportProjectState,
+            onDeleteList = onDeleteList
+        )
+    )
 
+    val focusRequester = remember { FocusRequester() }
     val modes =
         remember(isProjectManagementEnabled) {
             listOfNotNull(
@@ -192,36 +508,9 @@ fun ModernInputPanel(
     ) {
         Column {
             NavigationBar(
-                canGoBack = canGoBack,
-                canGoForward = canGoForward,
-                onBackClick = onBackClick,
-                onForwardClick = onForwardClick,
-                onHomeClick = onHomeClick,
-                isAttachmentsExpanded = isAttachmentsExpanded,
-                onToggleAttachments = onToggleAttachments,
-                onEditList = onEditList,
-                onShareList = onShareList,
-                onDeleteList = onDeleteList,
-                menuExpanded = menuExpanded,
-                onMenuExpandedChange = onMenuExpandedChange,
-                currentView = currentView,
-                onViewChange = onViewChange,
-                onImportFromMarkdown = onImportFromMarkdown,
-                onExportToMarkdown = onExportToMarkdown,
-                contentColor = panelColors.contentColor,
-                onRecentsClick = onRecentsClick,
-                onInputModeSelected = onInputModeSelected,
-                onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-                onExportBacklogToMarkdown = onExportBacklogToMarkdown,
-                onExportProjectState = onExportProjectState,
-                onStartTrackingCurrentProject = onStartTrackingCurrentProject,
-                isProjectManagementEnabled = isProjectManagementEnabled,
-                onToggleProjectManagement = onToggleProjectManagement,
-                onAddProjectToDayPlan = onAddProjectToDayPlan,
-                onCloseSearch = onCloseSearch,
-                inputMode = inputMode,
-
-                onRevealInExplorer = onRevealInExplorer
+                state = state,
+                actions = actions,
+                contentColor = panelColors.contentColor
             )
 
             AnimatedVisibility(
@@ -292,23 +581,11 @@ fun ModernInputPanel(
                                 transitionSpec = {
                                     val slideIn =
                                         slideInHorizontally(animationSpec = tween(250)) {
-                                            if (animationDirection ==
-                                                1
-                                            ) {
-                                                it
-                                            } else {
-                                                -it
-                                            }
+                                            if (animationDirection == 1) it else -it
                                         }
                                     val slideOut =
                                         slideOutHorizontally(animationSpec = tween(250)) {
-                                            if (animationDirection ==
-                                                1
-                                            ) {
-                                                -it
-                                            } else {
-                                                it
-                                            }
+                                            if (animationDirection == 1) -it else it
                                         }
                                     (slideIn togetherWith slideOut).using(SizeTransform(clip = false))
                                 },
@@ -535,558 +812,5 @@ private fun NerIndicator(
                     .size(18.dp)
                     .scale(scale),
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Composable
-private fun NavigationBar(
-    canGoBack: Boolean,
-    canGoForward: Boolean,
-    onBackClick: () -> Unit,
-    onForwardClick: () -> Unit,
-    onHomeClick: () -> Unit,
-    isAttachmentsExpanded: Boolean,
-    onToggleAttachments: () -> Unit,
-    onEditList: () -> Unit,
-    onShareList: () -> Unit,
-    onDeleteList: () -> Unit,
-    menuExpanded: Boolean,
-    onMenuExpandedChange: (Boolean) -> Unit,
-    currentView: ProjectViewMode,
-    onViewChange: (ProjectViewMode) -> Unit,
-    onImportFromMarkdown: () -> Unit,
-    onExportToMarkdown: () -> Unit,
-    contentColor: Color,
-    onRecentsClick: () -> Unit,
-    onInputModeSelected: (InputMode) -> Unit,
-    modifier: Modifier = Modifier,
-    onImportBacklogFromMarkdown: () -> Unit,
-    onExportBacklogToMarkdown: () -> Unit,
-    onExportProjectState: () -> Unit,
-    onStartTrackingCurrentProject: () -> Unit,
-    isProjectManagementEnabled: Boolean,
-    onToggleProjectManagement: () -> Unit,
-    onAddProjectToDayPlan: () -> Unit,
-    onRevealInExplorer: () -> Unit,
-    onCloseSearch: () -> Unit,
-    inputMode: InputMode
-
-
-) {
-    val haptic = LocalHapticFeedback.current
-
-    val attachmentIconScale by animateFloatAsState(
-        targetValue = if (isAttachmentsExpanded) 1.2f else 1.0f,
-        label = "attachmentIconScale",
-        animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
-    )
-
-    Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .heightIn(min = 52.dp)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-
-            if (inputMode == InputMode.SearchInList) {
-                // Кнопка "Закрити" для режиму пошуку
-                IconButton(
-                    onClick = onCloseSearch,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Закрити пошук",
-                        tint = contentColor,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            } else {
-                // Стандартна кнопка "Назад" для інших режимів
-
-            }
-
-
-
-            val forwardButtonAlpha by animateFloatAsState(
-                targetValue = if (canGoForward) 1f else 0.4f,
-                label = "forwardButtonAlpha",
-            )
-
-            IconButton(
-                onClick = onForwardClick,
-                enabled = canGoForward,
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .alpha(forwardButtonAlpha),
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = stringResource(R.string.forward),
-                    tint = if (canGoForward) contentColor else contentColor.copy(alpha = 0.38f),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            IconButton(
-                onClick = onHomeClick,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = stringResource(R.string.go_to_home_list),
-                    tint = contentColor,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            IconButton(
-                onClick = onRevealInExplorer,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Visibility,
-                    contentDescription = "Показати в ієрархії",
-                    tint = contentColor,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = contentColor.copy(alpha = 0.1f),
-                border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f)),
-            ) {
-                Row(
-                    modifier = Modifier.height(36.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = {
-                            onViewChange(ProjectViewMode.BACKLOG)
-                            onInputModeSelected(InputMode.AddGoal)
-                        },
-                        modifier =
-                            Modifier
-                                .size(36.dp)
-                                .background(
-                                    color =
-                                        if (currentView ==
-                                            ProjectViewMode.BACKLOG
-                                        ) {
-                                            contentColor.copy(alpha = 0.2f)
-                                        } else {
-                                            Color.Transparent
-                                        },
-                                    shape = RoundedCornerShape(16.dp),
-                                ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.List,
-                            contentDescription = "Backlog",
-                            modifier = Modifier.size(18.dp),
-                            tint = contentColor,
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            onViewChange(ProjectViewMode.INBOX)
-                            onInputModeSelected(InputMode.AddQuickRecord)
-                        },
-                        modifier =
-                            Modifier
-                                .size(36.dp)
-                                .background(
-                                    color =
-                                        if (currentView ==
-                                            ProjectViewMode.INBOX
-                                        ) {
-                                            contentColor.copy(alpha = 0.2f)
-                                        } else {
-                                            Color.Transparent
-                                        },
-                                    shape = RoundedCornerShape(16.dp),
-                                ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Inbox,
-                            contentDescription = "Inbox",
-                            modifier = Modifier.size(18.dp),
-                            tint = contentColor,
-                        )
-                    }
-                    if (isProjectManagementEnabled) {
-                        IconButton(
-                            onClick = {
-                                onViewChange(ProjectViewMode.DASHBOARD)
-                                onInputModeSelected(InputMode.AddQuickRecord)
-                            },
-                            modifier =
-                                Modifier
-                                    .size(36.dp)
-                                    .background(
-                                        color =
-                                            if (currentView == ProjectViewMode.DASHBOARD) {
-                                                contentColor.copy(
-                                                    alpha = 0.2f,
-                                                )
-                                            } else {
-                                                Color.Transparent
-                                            },
-                                        shape = RoundedCornerShape(16.dp),
-                                    ),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Dashboard,
-                                contentDescription = "Dashboard",
-                                modifier = Modifier.size(18.dp),
-                                tint = contentColor,
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            val attachmentIconColor by animateColorAsState(
-                targetValue = if (isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
-                label = "attachmentIconColor",
-            )
-            IconButton(
-                onClick = {
-                    Log.d("ATTACHMENT_DEBUG", "--- Attachment Button Clicked ---")
-                    Log.d("ATTACHMENT_DEBUG", "Initial state: currentView = $currentView, isAttachmentsExpanded = $isAttachmentsExpanded")
-
-                    val comingFromAnotherView = currentView == ProjectViewMode.INBOX || currentView == ProjectViewMode.DASHBOARD
-                    Log.d("ATTACHMENT_DEBUG", "comingFromAnotherView = $comingFromAnotherView")
-
-                    if (comingFromAnotherView) {
-                        Log.d("ATTACHMENT_DEBUG", "ACTION: Calling onViewChange(BACKLOG).")
-                        onViewChange(ProjectViewMode.BACKLOG)
-                        onInputModeSelected(InputMode.AddGoal)
-                    }
-
-                    if (comingFromAnotherView) {
-                        Log.d("ATTACHMENT_DEBUG", "DECISION: Switched view. Goal is to SHOW attachments.")
-                        if (!isAttachmentsExpanded) {
-                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are hidden, calling onToggleAttachments() to SHOW them.")
-                            onToggleAttachments()
-                        } else {
-                            Log.d("ATTACHMENT_DEBUG", "ACTION: Attachments are already expanded, DOING NOTHING.")
-                        }
-                    } else {
-                        Log.d("ATTACHMENT_DEBUG", "DECISION: Already in backlog. Calling onToggleAttachments() to TOGGLE.")
-                        onToggleAttachments()
-                    }
-                    Log.d("ATTACHMENT_DEBUG", "--- Click Handler Finished ---")
-                },
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Attachment,
-                    contentDescription = stringResource(R.string.toggle_attachments),
-                    tint = attachmentIconColor,
-                    modifier =
-                        Modifier
-                            .size(20.dp)
-                            .scale(attachmentIconScale),
-                )
-            }
-
-            Box {
-                IconButton(
-                    onClick = { onMenuExpandedChange(true) },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.more_options),
-                        tint = contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { onMenuExpandedChange(false) },
-                    properties = PopupProperties(focusable = true),
-                    modifier =
-                        Modifier
-                            .width(280.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                shape = RoundedCornerShape(16.dp),
-                            ),
-                ) {
-                    DropdownMenuItem(
-                        text = {
-                            Text("Додати до плану на сьогодні")
-                        },
-                        onClick = {
-                            onAddProjectToDayPlan()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.EventAvailable,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Недавні проекти") },
-                        onClick = {
-                            onRecentsClick()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Restore,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(R.string.edit_list),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        onClick = {
-                            onEditList()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "Toggle realization support",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        onClick = {
-                            onToggleProjectManagement()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.Construction,
-                                contentDescription = "Toggle realization support",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "Start tracking current project",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        onClick = {
-                            onStartTrackingCurrentProject()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.PlayCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(R.string.share_list),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        onClick = {
-                            onShareList()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Share,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
-
-                    if (currentView == ProjectViewMode.INBOX) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "Імпортувати з Markdown",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            onClick = {
-                                onImportFromMarkdown()
-                                onMenuExpandedChange(false)
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Upload,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "Експортувати в Markdown",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            onClick = {
-                                onExportToMarkdown()
-                                onMenuExpandedChange(false)
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Download,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                        )
-                    }
-
-                    if (currentView == ProjectViewMode.BACKLOG) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "Імпортувати беклог з Markdown",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            onClick = {
-                                onImportBacklogFromMarkdown()
-                                onMenuExpandedChange(false)
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Upload,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "Експортувати беклог в Markdown",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            onClick = {
-                                onExportBacklogToMarkdown()
-                                onMenuExpandedChange(false)
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Download,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                        )
-                    }
-
-                    if (isProjectManagementEnabled) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "Експортувати історію і стан",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            onClick = {
-                                onExportProjectState()
-                                onMenuExpandedChange(false)
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.Assessment,
-                                    contentDescription = "Експортувати історію і стан",
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                        )
-                    }
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    )
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = stringResource(R.string.delete_list),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        onClick = {
-                            onDeleteList()
-                            onMenuExpandedChange(false)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
-                }
-            }
-        }
     }
 }

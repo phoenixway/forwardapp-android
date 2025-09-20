@@ -430,7 +430,6 @@ private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
         )
     }
 }
-
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
@@ -451,23 +450,30 @@ fun GoalItem(
             parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
         }
 
-    Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        EnhancedCustomCheckbox(
-            checked = goal.completed,
-            onCheckedChange = onToggle,
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
         )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EnhancedCustomCheckbox(
+                checked = goal.completed,
+                onCheckedChange = onToggle,
+            )
 
-        Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-        Column(
-            modifier =
-                Modifier
+            Column(
+                modifier = Modifier
                     .weight(1f)
                     .pointerInput(onItemClick, onLongClick) {
                         detectTapGestures(
@@ -475,104 +481,103 @@ fun GoalItem(
                             onTap = { onItemClick() },
                         )
                     },
-        ) {
-            MarkdownText(
-                text = parsedData.mainText,
-                isCompleted = goal.completed,
-                obsidianVaultName = obsidianVaultName,
-                onTagClick = onTagClick,
-                onTextClick = onItemClick,
-                onLongClick = onLongClick,
-                style =
-                    MaterialTheme.typography.bodySmall.copy(
+            ) {
+                MarkdownText(
+                    text = parsedData.mainText,
+                    isCompleted = goal.completed,
+                    obsidianVaultName = obsidianVaultName,
+                    onTagClick = onTagClick,
+                    onTextClick = onItemClick,
+                    onLongClick = onLongClick,
+                    style = MaterialTheme.typography.bodySmall.copy(
                         lineHeight = 16.sp,
                         letterSpacing = 0.1.sp,
                         fontSize = 12.sp,
                         fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
                     ),
-            )
+                )
 
-            val hasStatusContent =
-                (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                        (goal.reminderTime != null) ||
-                        (parsedData.icons.isNotEmpty()) ||
-                        (!goal.description.isNullOrBlank()) ||
-                        (!goal.relatedLinks.isNullOrEmpty())
+                val hasStatusContent =
+                    (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                            (goal.reminderTime != null) ||
+                            (parsedData.icons.isNotEmpty()) ||
+                            (!goal.description.isNullOrBlank()) ||
+                            (!goal.relatedLinks.isNullOrEmpty())
 
-            AnimatedVisibility(
-                visible = hasStatusContent,
-                enter =
-                    slideInVertically(
+                AnimatedVisibility(
+                    visible = hasStatusContent,
+                    enter = slideInVertically(
                         initialOffsetY = { height -> -height },
                         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                     ) + fadeIn(),
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        goal.reminderTime?.let { time ->
-                            EnhancedReminderBadge(
-                                reminderTime = time,
-                                currentTimeMillis = currentTimeMillis,
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            goal.reminderTime?.let { time ->
+                                EnhancedReminderBadge(
+                                    reminderTime = time,
+                                    currentTimeMillis = currentTimeMillis,
+                                )
+                            }
+
+                            EnhancedScoreStatusBadge(
+                                scoringStatus = goal.scoringStatus,
+                                displayScore = goal.displayScore
                             )
-                        }
 
-                        EnhancedScoreStatusBadge(
-                            scoringStatus = goal.scoringStatus,
-                            displayScore = goal.displayScore
-                        )
+                            parsedData.icons
+                                .filterNot { icon -> icon == emojiToHide }
+                                .forEachIndexed { index, icon ->
+                                    key(icon) {
+                                        var delayedVisible by remember { mutableStateOf(false) }
+                                        LaunchedEffect(Unit) {
+                                            delay(index * 50L)
+                                            delayedVisible = true
+                                        }
+                                        AnimatedVisibility(
+                                            visible = delayedVisible,
+                                            enter = scaleIn(
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy
+                                                ),
+                                            ) + fadeIn(),
+                                        ) {
+                                            AnimatedContextEmoji(
+                                                emoji = icon,
+                                                modifier = Modifier.align(Alignment.CenterVertically),
+                                            )
+                                        }
+                                    }
+                                }
 
-                        parsedData.icons
-                            .filterNot { icon -> icon == emojiToHide }
-                            .forEachIndexed { index, icon ->
-                                key(icon) {
+                            if (!goal.description.isNullOrBlank()) {
+                                NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
+                            }
+
+                            goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
+                                key(link.target + link.type?.name) {
                                     var delayedVisible by remember { mutableStateOf(false) }
                                     LaunchedEffect(Unit) {
-                                        delay(index * 50L)
+                                        delay((parsedData.icons.size + index) * 50L)
                                         delayedVisible = true
                                     }
                                     AnimatedVisibility(
                                         visible = delayedVisible,
-                                        enter =
-                                            scaleIn(
-                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                            ) + fadeIn(),
-                                    ) {
-                                        AnimatedContextEmoji(
-                                            emoji = icon,
-                                            modifier = Modifier.align(Alignment.CenterVertically),
-                                        )
-                                    }
-                                }
-                            }
-
-                        if (!goal.description.isNullOrBlank()) {
-                            NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                        }
-
-                        goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
-                            key(link.target + link.type?.name) {
-                                var delayedVisible by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    delay((parsedData.icons.size + index) * 50L)
-                                    delayedVisible = true
-                                }
-                                AnimatedVisibility(
-                                    visible = delayedVisible,
-                                    enter =
-                                        slideInHorizontally(
+                                        enter = slideInHorizontally(
                                             initialOffsetX = { fullWidth -> fullWidth },
                                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                                         ) + fadeIn(),
-                                ) {
-                                    EnhancedRelatedLinkChip(
-                                        link = link,
-                                        onClick = { onRelatedLinkClick(link) },
-                                    )
+                                    ) {
+                                        EnhancedRelatedLinkChip(
+                                            link = link,
+                                            onClick = { onRelatedLinkClick(link) },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -596,30 +601,36 @@ fun GoalItem(
 ) {
     val goal = goalContent.goal
 
-    val parsedData =
-        remember(goal.text) {
-            parseTextAndExtractIcons(goal.text, emptyMap())
-        }
+    val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text, emptyMap()) }
 
-    Row(
-        modifier =
-            modifier
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        EnhancedCustomCheckbox(
-            checked = goal.completed,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.padding(start = 8.dp),
-        )
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EnhancedCustomCheckbox(
+                checked = goal.completed,
+                onCheckedChange = onCheckedChange,
+                modifier = Modifier.padding(start = 8.dp),
+            )
 
-        Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-        Column(
-            modifier =
-                Modifier
+            Column(
+                modifier = Modifier
                     .weight(1f)
                     .pointerInput(onClick, onLongClick) {
                         detectTapGestures(
@@ -628,111 +639,109 @@ fun GoalItem(
                         )
                     }
                     .padding(vertical = 6.dp),
-        ) {
-            Text(
-                text = parsedData.mainText,
-                style = MaterialTheme.typography.bodyLarge,
-                textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
-                color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            ) {
+                Text(
+                    text = parsedData.mainText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
+                    color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
 
-            val hasStatusContent =
-                (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                        (goal.reminderTime != null) ||
-                        (parsedData.icons.isNotEmpty()) ||
-                        (!goal.description.isNullOrBlank()) ||
-                        (!goal.relatedLinks.isNullOrEmpty())
+                val hasStatusContent =
+                    (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                            (goal.reminderTime != null) ||
+                            (parsedData.icons.isNotEmpty()) ||
+                            (!goal.description.isNullOrBlank()) ||
+                            (!goal.relatedLinks.isNullOrEmpty())
 
-            AnimatedVisibility(
-                visible = hasStatusContent,
-                enter =
-                    slideInVertically(
+                AnimatedVisibility(
+                    visible = hasStatusContent,
+                    enter = slideInVertically(
                         initialOffsetY = { height -> -height },
                         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                     ) + fadeIn(),
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        goal.reminderTime?.let { time ->
-                            EnhancedReminderBadge(
-                                reminderTime = time,
-                                currentTimeMillis = currentTimeMillis,
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            goal.reminderTime?.let { time ->
+                                EnhancedReminderBadge(
+                                    reminderTime = time,
+                                    currentTimeMillis = currentTimeMillis,
+                                )
+                            }
+
+                            EnhancedScoreStatusBadge(
+                                scoringStatus = goal.scoringStatus,
+                                displayScore = goal.displayScore,
                             )
-                        }
 
-                        EnhancedScoreStatusBadge(
-                            scoringStatus = goal.scoringStatus,
-                            displayScore = goal.displayScore,
-                        )
-
-                        parsedData.icons.forEachIndexed { index, icon ->
-                            key(icon) {
-                                var delayedVisible by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    delay(index * 50L)
-                                    delayedVisible = true
-                                }
-                                AnimatedVisibility(
-                                    visible = delayedVisible,
-                                    enter =
-                                        scaleIn(
+                            parsedData.icons.forEachIndexed { index, icon ->
+                                key(icon) {
+                                    var delayedVisible by remember { mutableStateOf(false) }
+                                    LaunchedEffect(Unit) {
+                                        delay(index * 50L)
+                                        delayedVisible = true
+                                    }
+                                    AnimatedVisibility(
+                                        visible = delayedVisible,
+                                        enter = scaleIn(
                                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                                         ) + fadeIn(),
-                                ) {
-                                    AnimatedContextEmoji(
-                                        emoji = icon,
-                                        modifier = Modifier.align(Alignment.CenterVertically),
-                                    )
+                                    ) {
+                                        AnimatedContextEmoji(
+                                            emoji = icon,
+                                            modifier = Modifier.align(Alignment.CenterVertically),
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        if (!goal.description.isNullOrBlank()) {
-                            NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                        }
+                            if (!goal.description.isNullOrBlank()) {
+                                NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
+                            }
 
-                        goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
-                            key(link.target + link.type?.name) {
-                                var delayedVisible by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    delay((parsedData.icons.size + index) * 50L)
-                                    delayedVisible = true
-                                }
-                                AnimatedVisibility(
-                                    visible = delayedVisible,
-                                    enter =
-                                        slideInHorizontally(
+                            goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
+                                key(link.target + link.type?.name) {
+                                    var delayedVisible by remember { mutableStateOf(false) }
+                                    LaunchedEffect(Unit) {
+                                        delay((parsedData.icons.size + index) * 50L)
+                                        delayedVisible = true
+                                    }
+                                    AnimatedVisibility(
+                                        visible = delayedVisible,
+                                        enter = slideInHorizontally(
                                             initialOffsetX = { fullWidth -> fullWidth },
                                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                                         ) + fadeIn(),
-                                ) {
-                                    EnhancedRelatedLinkChip(
-                                        link = link,
-                                        onClick = { },
-                                    )
+                                    ) {
+                                        EnhancedRelatedLinkChip(
+                                            link = link,
+                                            onClick = { },
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if (!goal.description.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = goal.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    maxLines = if (isSelected) Int.MAX_VALUE else 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                if (!goal.description.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = goal.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        maxLines = if (isSelected) Int.MAX_VALUE else 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

@@ -26,12 +26,11 @@ fun HandleDialogs(
         is DialogState.Hidden -> { /* Do nothing */ }
         is DialogState.AddProject -> {
             AddProjectDialog(
-                title = if (state.parentId == null) "Create new project" else "Create subproject",
+                title = if (state.parentId == null) "Створити новий проект" else "Створити підпроект",
                 onDismiss = { onEvent(MainScreenEvent.DismissDialog) },
+                // **FIX: Замість простого закриття, надсилаємо нову подію**
                 onConfirm = { name ->
-                    // In a full implementation, you would create a dedicated event
-                    // onEvent(MainScreenEvent.AddProjectConfirm(UUID.randomUUID().toString(), state.parentId, name))
-                    onEvent(MainScreenEvent.DismissDialog) // For now, just dismiss
+                    onEvent(MainScreenEvent.AddProjectConfirm(name, state.parentId))
                 },
             )
         }

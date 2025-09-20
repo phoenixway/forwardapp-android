@@ -31,7 +31,6 @@ sealed interface MainScreenEvent {
     // Події діалогів
     data object DismissDialog : MainScreenEvent
     data object AddNewProjectRequest : MainScreenEvent
-    data class AddSubprojectRequest(val parentProject: Project) : MainScreenEvent
     data class DeleteRequest(val project: Project) : MainScreenEvent
     data class MoveRequest(val project: Project) : MainScreenEvent
     data class DeleteConfirm(val project: Project) : MainScreenEvent
@@ -83,4 +82,8 @@ sealed interface MainScreenEvent {
     data object DismissWifiImportDialog : MainScreenEvent
     data class DesktopAddressChange(val address: String) : MainScreenEvent
     data class PerformWifiImport(val address: String) : MainScreenEvent
+
+    data class AddProjectConfirm(val name: String, val parentId: String?) : MainScreenEvent
+    data class AddSubprojectRequest(val parentProject: Project) : MainScreenEvent
+
 }
