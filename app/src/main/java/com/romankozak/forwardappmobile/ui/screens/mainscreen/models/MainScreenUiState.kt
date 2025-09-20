@@ -1,60 +1,86 @@
-// file: ui/screens/mainscreen/models/MainScreenUiState.kt
-
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
 
+import android.net.Uri
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
 /**
- * Єдина модель, що представляє весь стан головного екрану.
+ * Усі можливі дії користувача на головному екрані, що надсилаються з UI у ViewModel.
  */
-data class MainScreenUiState(
-    // Стан пошуку
-    val isSearchActive: Boolean = false,
-    val searchQuery: TextFieldValue = TextFieldValue(""),
-    val searchHistory: List<String> = emptyList(),
-    val searchResults: List<SearchResult> = emptyList(),
+sealed interface MainScreenEvent {
+    // Події пошуку
+    data class SearchQueryChanged(val query: TextFieldValue) : MainScreenEvent
+    data class SearchFromHistory(val query: String) : MainScreenEvent
+    data class GlobalSearchPerform(val query: String) : MainScreenEvent
+    data class SearchResultClick(val projectId: String) : MainScreenEvent
 
-    // Стан ієрархії та навігації
-    val projectHierarchy: ListHierarchyData = ListHierarchyData(),
-    val focusedProjectId: String? = null,
-    val currentBreadcrumbs: List<BreadcrumbItem> = emptyList(),
-    val areAnyProjectsExpanded: Boolean = false,
+    // Події ієрархії
+    data class ProjectClick(val projectId: String) : MainScreenEvent
+    data class ProjectMenuRequest(val project: Project) : MainScreenEvent
+    data class ToggleProjectExpanded(val project: Project) : MainScreenEvent
+    data class ProjectReorder(val fromId: String, val toId: String, val position: DropPosition) : MainScreenEvent
 
-    // Стан режимів планування
-    val planningMode: PlanningMode = PlanningMode.All,
-    val planningSettings: PlanningSettingsState = PlanningSettingsState(),
+    // Події навігації в ієрархії (хлібні крихти)
+    data class BreadcrumbNavigation(val breadcrumb: BreadcrumbItem) : MainScreenEvent
+    data object ClearBreadcrumbNavigation : MainScreenEvent
 
-    // Стан діалогів та нижніх панелей
-    val dialogState: DialogState = DialogState.Hidden,
-    val showRecentListsSheet: Boolean = false,
-    val isBottomNavExpanded: Boolean = false,
+    // Події режимів планування
+    data class PlanningModeChange(val mode: PlanningMode) : MainScreenEvent
 
-    // Дані для діалогів та панелей
-    val recentProjects: List<Project> = emptyList(),
-    val allContexts: List<UiContext> = emptyList(),
-    val listChooserFinalExpandedIds: Set<String> = emptySet(),
-    val filteredListHierarchyForDialog: ListHierarchyData = ListHierarchyData(),
+    // Події діалогів
+    data object DismissDialog : MainScreenEvent
+    data object AddNewProjectRequest : MainScreenEvent
+    data class AddSubprojectRequest(val parentProject: Project) : MainScreenEvent
+    data class DeleteRequest(val project: Project) : MainScreenEvent
+    data class MoveRequest(val project: Project) : MainScreenEvent
+    data class DeleteConfirm(val project: Project) : MainScreenEvent
+    data class MoveConfirm(val newParentId: String?) : MainScreenEvent
+    data class FullImportConfirm(val uri: Uri) : MainScreenEvent
+    data object ShowAboutDialog : MainScreenEvent
+    data class ImportFromFileRequest(val uri: Uri) : MainScreenEvent
 
+    // Події головної навігації (браузерної)
+    data object HomeClick : MainScreenEvent
+    data object BackClick : MainScreenEvent
+    data object ForwardClick : MainScreenEvent
+    data object HistoryClick : MainScreenEvent
+    data object HideHistory : MainScreenEvent
 
-    // Стан кастомної історії навігації
-    val canGoBack: Boolean = false,
-    val canGoForward: Boolean = false,
-    val showNavigationMenu: Boolean = false,
+    // Події нижньої панелі та модальних вікон
+    data class BottomNavExpandedChange(val isExpanded: Boolean) : MainScreenEvent
+    data object ShowRecentLists : MainScreenEvent
+    data object DismissRecentLists : MainScreenEvent
+    data class RecentProjectSelected(val projectId: String) : MainScreenEvent
+    data object DayPlanClick : MainScreenEvent
+    data class ContextSelected(val name: String) : MainScreenEvent
 
-    // Інший стан UI
-    val isProcessingReveal: Boolean = false,
-    val isReadyForFiltering: Boolean = false, // Make sure this field exists
+    // Загальні дії
+    data class EditRequest(val project: Project): MainScreenEvent
+    data object GoToSettings: MainScreenEvent
+    data object ShowSearchDialog: MainScreenEvent
+    data object DismissSearchDialog: MainScreenEvent
 
-    val obsidianVaultName: String = "", // Add this line
+    // Дії з меню
+    data object ShowWifiServerDialog: MainScreenEvent
+    data object ShowWifiImportDialog: MainScreenEvent
+    data object ExportToFile: MainScreenEvent
 
-    val appStatistics: AppStatistics = AppStatistics(),
-    val showWifiServerDialog: Boolean = false,
-    val wifiServerAddress: String? = null,
-    val showWifiImportDialog: Boolean = false,
-    val desktopAddress: String = "",
-    val showSearchDialog: Boolean = false
+    object NavigateToChat : MainScreenEvent
+    object NavigateToActivityTracker : MainScreenEvent
 
-)
+    data class SaveSettings(
+        val show: Boolean,
+        val daily: String,
+        val medium: String,
+        val long: String,
+        val vaultName: String
+    ) : MainScreenEvent
+
+    data class SaveAllContexts(val updatedContexts: List<UiContext>) : MainScreenEvent
+
+    data object DismissWifiServerDialog : MainScreenEvent
+    data object DismissWifiImportDialog : MainScreenEvent
+    data class DesktopAddressChange(val address: String) : MainScreenEvent
+    data class PerformWifiImport(val address: String) : MainScreenEvent
+}

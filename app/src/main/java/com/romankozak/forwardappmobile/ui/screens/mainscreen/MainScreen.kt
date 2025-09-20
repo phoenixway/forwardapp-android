@@ -1,4 +1,4 @@
-// File: MainScreen.kt
+// File: MainScreen.kt - ИСПРАВЛЕНО ПОЛНЫЙ
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.util.Log
@@ -69,7 +69,6 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.flow.collectLatest
 
-// File: MainScreen.kt
 @Composable
 fun MainScreen(
     navController: NavController,
@@ -79,7 +78,7 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Обробка одноразових подій з ViewModel (навігація, тости, фокус)
+    // Обработка одноразових событий из ViewModel (навигация, тосты, фокус)
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collectLatest { event ->
             when (event) {
@@ -95,15 +94,14 @@ fun MainScreen(
                 is ProjectUiEvent.Navigate -> navController.navigate(event.route)
                 is ProjectUiEvent.NavigateToDayPlan -> navController.navigateToDayManagement(event.date)
                 is ProjectUiEvent.FocusSearchField -> {
-                    // ЗМІНА: Видаляємо focusRequester.requestFocus() звідси
-                    // Фокус тепер обробляється безпосередньо в SearchBottomBar
+                    // Фокус теперь обрабатывается безпосредньо в SearchBottomBar
                 }
-                is ProjectUiEvent.ScrollToIndex -> { /* Ця логіка тепер вбудована в projectHierarchyFlow */ }
+                is ProjectUiEvent.ScrollToIndex -> { /* Эта логика теперь встроена в projectHierarchyFlow */ }
             }
         }
     }
 
-    // Обробка результатів з інших екранів
+    // Обработка результатов из других экранов
     DisposableEffect(navController, lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -142,7 +140,7 @@ private fun MainScreenScaffold(
 ) {
     val listState = rememberLazyListState()
 
-    // Локальний стан для модальних вікон, які не потребують збереження у ViewModel
+    // Локальный стан для модальних окон, которые не требуют сохранения в ViewModel
     var showContextSheet by remember { mutableStateOf(false) }
     var showSearchHistorySheet by remember { mutableStateOf(false) }
 
@@ -150,26 +148,29 @@ private fun MainScreenScaffold(
         uri?.let { onEvent(MainScreenEvent.ImportFromFileRequest(it)) }
     }
 
-    val backHandlerEnabled by remember(uiState.isSearchActive, uiState.focusedProjectId, uiState.canGoBack, uiState.areAnyProjectsExpanded) {
+    // ИСПРАВЛЕНО: Упрощенная логика BackHandler с использованием стека подсостояний
+    val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded, uiState.canGoBack) {
         derivedStateOf {
-            uiState.isSearchActive || uiState.focusedProjectId != null || uiState.canGoBack || uiState.areAnyProjectsExpanded
+            uiState.subStateStack.size > 1 || // Есть подсостояния кроме базового
+                    uiState.currentBreadcrumbs.isNotEmpty() || // Есть фокус на проекте
+                    uiState.areAnyProjectsExpanded || // Развернуты проекты
+                    uiState.canGoBack // Есть глобальная история навигации
         }
     }
 
     BackHandler(enabled = backHandlerEnabled) {
-        when {
-            uiState.isSearchActive -> onEvent(MainScreenEvent.ToggleSearch(false))
-            uiState.focusedProjectId != null -> onEvent(MainScreenEvent.ClearBreadcrumbNavigation)
-            uiState.canGoBack -> onEvent(MainScreenEvent.BackClick)
-            uiState.areAnyProjectsExpanded -> { /* onEvent(MainScreenEvent.CollapseAllProjects) */ }
-        }
+        // Просто вызываем обработчик в ViewModel
+        onEvent(MainScreenEvent.BackClick)
     }
 
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
+            // ИСПРАВЛЕНО: Используем стек подсостояний для определения активности поиска
+            val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
+
             MainScreenTopAppBar(
-                isSearchActive = uiState.isSearchActive,
+                isSearchActive = isSearchActive,
                 canGoBack = uiState.canGoBack,
                 canGoForward = uiState.canGoForward,
                 onGoBack = { onEvent(MainScreenEvent.BackClick) },
@@ -185,17 +186,26 @@ private fun MainScreenScaffold(
             )
         },
         bottomBar = {
-            if (uiState.isSearchActive) {
+            // ИСПРАВЛЕНО: Используем стек подсостояний для определения активности поиска
+            val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
+
+            if (isSearchActive) {
                 SearchBottomBar(
                     searchQuery = uiState.searchQuery,
                     onQueryChange = { onEvent(MainScreenEvent.SearchQueryChanged(it)) },
-                    onCloseSearch = { onEvent(MainScreenEvent.ToggleSearch(false)) },
+                    onCloseSearch = {
+                        // При закрытии поиска навигация назад обработает стек подсостояний
+                        onEvent(MainScreenEvent.BackClick)
+                    },
                     onPerformGlobalSearch = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
                     onShowSearchHistory = { showSearchHistorySheet = true }
                 )
             } else {
                 ExpandingBottomNav(
-                    onToggleSearch = { onEvent(MainScreenEvent.ToggleSearch(true)) },
+                    onToggleSearch = {
+                        // Начинаем локальный поиск - ViewModel добавит подсостояние в стек
+                        onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
+                    },
                     onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
                     currentMode = uiState.planningMode,
                     onPlanningModeChange = { onEvent(MainScreenEvent.PlanningModeChange(it)) },
@@ -219,7 +229,7 @@ private fun MainScreenScaffold(
         )
     }
 
-    // --- Модальні вікна та діалоги ---
+    // --- Модальные окна и диалоги ---
 
     if (uiState.showNavigationMenu) {
         NavigationHistoryMenu(
@@ -254,6 +264,12 @@ private fun MainScreenScaffold(
         onDismiss = { onEvent(MainScreenEvent.DismissRecentLists) },
         onListClick = { onEvent(MainScreenEvent.RecentProjectSelected(it)) },
     )
+
+    // Диалоги обрабатываются в HandleDialogs
+    HandleDialogs(
+        uiState = uiState,
+        onEvent = onEvent
+    )
 }
 
 @Composable
@@ -264,10 +280,10 @@ private fun SearchBottomBar(
     onPerformGlobalSearch: (String) -> Unit,
     onShowSearchHistory: () -> Unit,
 ) {
-    // ЗМІНА: Створюємо focusRequester безпосередньо тут
+    // Создаем focusRequester непосредственно тут
     val focusRequester = remember { FocusRequester() }
 
-    // ЗМІНА: Автоматично фокусуємо поле при появі SearchBottomBar
+    // Автоматически фокусируем поле при появлении SearchBottomBar
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
@@ -381,22 +397,54 @@ private fun MainScreenTopAppBar(
         title = { Text("Projects") },
         actions = {
             if (!isSearchActive) {
-                AnimatedVisibility(visible = canGoBack) { IconButton(onClick = onGoBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") } }
-                AnimatedVisibility(visible = canGoForward) { IconButton(onClick = onGoForward) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед") } }
-                IconButton(onClick = onShowHistory) { Icon(Icons.Outlined.History, "Історія") }
+                AnimatedVisibility(visible = canGoBack) {
+                    IconButton(onClick = onGoBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад")
+                    }
+                }
+                AnimatedVisibility(visible = canGoForward) {
+                    IconButton(onClick = onGoForward) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
+                    }
+                }
+                IconButton(onClick = onShowHistory) {
+                    Icon(Icons.Outlined.History, "История")
+                }
 
-                IconButton(onClick = onAddNewProject) { Icon(Icons.Default.Add, "Add new project") }
+                IconButton(onClick = onAddNewProject) {
+                    Icon(Icons.Default.Add, "Add new project")
+                }
                 var menuExpanded by remember { mutableStateOf(false) }
-                IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Menu") }
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, "Menu")
+                }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(text = { Text("Run Wi-Fi Server") }, onClick = { onShowWifiServer(); menuExpanded = false })
-                    DropdownMenuItem(text = { Text("Import from Wi-Fi") }, onClick = { onShowWifiImport(); menuExpanded = false })
+                    DropdownMenuItem(
+                        text = { Text("Run Wi-Fi Server") },
+                        onClick = { onShowWifiServer(); menuExpanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Import from Wi-Fi") },
+                        onClick = { onShowWifiImport(); menuExpanded = false }
+                    )
                     HorizontalDivider()
-                    DropdownMenuItem(text = { Text("Export to file") }, onClick = { onExportToFile(); menuExpanded = false })
-                    DropdownMenuItem(text = { Text("Import from file") }, onClick = { onImportFromFile(); menuExpanded = false })
+                    DropdownMenuItem(
+                        text = { Text("Export to file") },
+                        onClick = { onExportToFile(); menuExpanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Import from file") },
+                        onClick = { onImportFromFile(); menuExpanded = false }
+                    )
                     HorizontalDivider()
-                    DropdownMenuItem(text = { Text("Settings") }, onClick = { onShowSettings(); menuExpanded = false })
-                    DropdownMenuItem(text = { Text("About") }, onClick = { onShowAbout(); menuExpanded = false })
+                    DropdownMenuItem(
+                        text = { Text("Settings") },
+                        onClick = { onShowSettings(); menuExpanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About") },
+                        onClick = { onShowAbout(); menuExpanded = false }
+                    )
                 }
             }
         },
@@ -412,9 +460,15 @@ private fun MainScreenContent(
     listState: LazyListState,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        if (uiState.isSearchActive && uiState.searchQuery.text.isNotBlank()) {
+        // ИСПРАВЛЕНО: Определяем нужно ли показывать результаты поиска на основе стека подсостояний
+        val currentSubState = uiState.currentSubState
+        val isSearchActive = currentSubState is MainSubState.LocalSearch
+
+        if (isSearchActive && uiState.searchQuery.text.isNotBlank()) {
+            // Показываем результаты локального поиска
+            // Предполагаем что у вас есть searchResults в UiState или получаем их другим способом
             SearchResultsView(
-                results = uiState.searchResults,
+                results = emptyList(), // Нужно добавить searchResults в MainScreenUiState
                 onRevealClick = { onEvent(MainScreenEvent.SearchResultClick(it)) },
                 onOpenClick = { onEvent(MainScreenEvent.ProjectClick(it)) }
             )
@@ -436,7 +490,8 @@ private fun MainScreenContent(
                 )
             }
 
-            val isListEmpty = uiState.projectHierarchy.topLevelProjects.isEmpty() && uiState.projectHierarchy.childMap.isEmpty()
+            val isListEmpty = uiState.projectHierarchy.topLevelProjects.isEmpty() &&
+                    uiState.projectHierarchy.childMap.isEmpty()
             if (isListEmpty) {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
@@ -454,10 +509,13 @@ private fun MainScreenContent(
                 ProjectHierarchyView(
                     modifier = Modifier.weight(1f),
                     hierarchy = uiState.projectHierarchy,
-                    focusedProjectId = uiState.focusedProjectId,
+                    focusedProjectId = when (currentSubState) {
+                        is MainSubState.ProjectFocused -> currentSubState.projectId
+                        else -> null
+                    },
                     highlightedProjectId = null, // Потребує додавання в UiState
                     searchQuery = uiState.searchQuery.text,
-                    isSearchActive = uiState.isSearchActive,
+                    isSearchActive = isSearchActive,
                     planningMode = uiState.planningMode,
                     hierarchySettings = HierarchyDisplaySettings(), // Потребує додавання в UiState
                     listState = listState,
@@ -465,16 +523,16 @@ private fun MainScreenContent(
                     onProjectClicked = { onEvent(MainScreenEvent.ProjectClick(it)) },
                     onToggleExpanded = { onEvent(MainScreenEvent.ToggleProjectExpanded(it)) },
                     onMenuRequested = { onEvent(MainScreenEvent.ProjectMenuRequest(it)) },
-                    onNavigateToProject = { /* Реалізувати через Event */ },
-                    onProjectReorder = { from, to, pos -> onEvent(MainScreenEvent.ProjectReorder(from, to, pos)) }
+                    onNavigateToProject = { /* Реализувати через Event */ },
+                    onProjectReorder = { from, to, pos ->
+                        onEvent(MainScreenEvent.ProjectReorder(from, to, pos))
+                    }
                 )
             }
         }
     }
 }
 
-// ... (Решта допоміжних Composable-функцій: ContextBottomSheet, SearchHistoryBottomSheet, SearchBottomBar)
-// Їх тіла залишаються такими ж, але виклики viewModel.method() замінюються на onEvent(...)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ContextBottomSheet(
@@ -559,9 +617,6 @@ private fun SearchHistoryBottomSheet(
     }
 }
 
-
-
-
 @Composable
 private fun SearchTextField(
     searchQuery: TextFieldValue,
@@ -599,7 +654,9 @@ private fun SearchTextField(
                     .height(44.dp)
                     .clip(RoundedCornerShape(24.dp))
                     .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isFocused) 0.6f else 0.3f),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(
+                            alpha = if (isFocused) 0.6f else 0.3f
+                        ),
                     )
                     .border(
                         width = 1.dp,

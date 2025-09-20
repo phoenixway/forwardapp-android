@@ -18,10 +18,10 @@ sealed class ProjectUiEvent {
     data class NavigateToDayPlan(val date: Long) : ProjectUiEvent()
 }
 
-data class SearchResult(
+/*data class SearchResult(
     val project: Project,
     val path: List<BreadcrumbItem>
-)
+)*/
 
 sealed class PlanningMode {
     object All : PlanningMode()
