@@ -468,7 +468,7 @@ private fun MainScreenContent(
             // Показываем результаты локального поиска
             // Предполагаем что у вас есть searchResults в UiState или получаем их другим способом
             SearchResultsView(
-                results = emptyList(), // Нужно добавить searchResults в MainScreenUiState
+                results = uiState.searchResults, // Нужно добавить searchResults в MainScreenUiState
                 onRevealClick = { onEvent(MainScreenEvent.SearchResultClick(it)) },
                 onOpenClick = { onEvent(MainScreenEvent.ProjectClick(it)) }
             )
