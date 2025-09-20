@@ -1,3 +1,5 @@
+package com.romankozak.forwardappmobile.ui.screens.mainscreen.models
+
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 

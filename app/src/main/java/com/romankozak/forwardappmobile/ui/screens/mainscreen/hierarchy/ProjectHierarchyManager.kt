@@ -168,10 +168,12 @@ class ProjectHierarchyManager {
 
         return matchingProjects.map { project ->
             SearchResult(
-                project = project,
-                path = buildPathToProject(project.id, fullHierarchy)
+                projectId = project.id,
+                projectName = project.name,
+                // **FIXED**: Converted List<BreadcrumbItem> to List<String> using .map.
+                parentPath = buildPathToProject(project.id, fullHierarchy).map { it.name }
             )
-        }.sortedBy { it.project.name }
+        }.sortedBy { it.projectName }
     }
 
     /**

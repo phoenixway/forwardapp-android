@@ -5,18 +5,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.Project
 
-sealed class ProjectUiEvent {
-    data class NavigateToSyncScreenWithData(val json: String) : ProjectUiEvent()
-    data class NavigateToDetails(val projectId: String) : ProjectUiEvent()
-    data class NavigateToGlobalSearch(val query: String) : ProjectUiEvent()
-    object NavigateToSettings : ProjectUiEvent()
-    data class ShowToast(val message: String) : ProjectUiEvent()
-    data class ScrollToIndex(val index: Int) : ProjectUiEvent()
-    object FocusSearchField : ProjectUiEvent()
-    data class NavigateToEditProjectScreen(val projectId: String) : ProjectUiEvent()
-    data class Navigate(val route: String) : ProjectUiEvent()
-    data class NavigateToDayPlan(val date: Long) : ProjectUiEvent()
-}
 
 /*data class SearchResult(
     val project: Project,
@@ -35,16 +23,6 @@ data class AppStatistics(
     val goalCount: Int = 0
 )
 
-sealed class DialogState {
-    object Hidden : DialogState()
-    data class AddProject(val parentId: String?) : DialogState()
-    data class ContextMenu(val project: Project) : DialogState()
-    data class ConfirmDelete(val project: Project) : DialogState()
-    data class EditProject(val project: Project) : DialogState()
-    object AboutApp : DialogState()
-    data class ConfirmFullImport(val uri: Uri) : DialogState()
-}
-
 data class PlanningSettingsState(
     val showModes: Boolean = false,
     val dailyTag: String = "daily",
@@ -59,10 +37,18 @@ data class BreadcrumbItem(
 )
 
 data class HierarchyDisplaySettings(
+    // Properties for structure and layout (from ProjectUiModels.kt)
     val maxCollapsibleLevels: Int = 3,
     val useBreadcrumbsAfter: Int = 2,
-    val maxIndentation: Dp = 120.dp
+    val maxIndentation: Dp = 120.dp,
+
+    // Properties for content visibility (from MainSubState.kt)
+    val showCompletedProjects: Boolean = true,
+    val showProjectTags: Boolean = true,
+    val showProjectProgress: Boolean = false,
+    val compactMode: Boolean = false
 )
+
 
 enum class DropPosition { BEFORE, AFTER }
 
