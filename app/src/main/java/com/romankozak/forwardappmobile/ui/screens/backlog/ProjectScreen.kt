@@ -162,9 +162,24 @@ fun ProjectsScreen(
                 ModernInputPanel(
                     inputValue = uiState.inputValue,
                     inputMode = uiState.inputMode,
-                    onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
-                    onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
-                    onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
+                    onValueChange = {
+                        viewModel.inputHandler.onInputTextChanged(
+                            it,
+                            uiState.inputMode
+                        )
+                    },
+                    onSubmit = {
+                        viewModel.inputHandler.submitInput(
+                            uiState.inputValue,
+                            uiState.inputMode
+                        )
+                    },
+                    onInputModeSelected = {
+                        viewModel.inputHandler.onInputModeSelected(
+                            it,
+                            uiState.inputValue
+                        )
+                    },
                     onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
                     onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
                     onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
@@ -205,8 +220,8 @@ fun ProjectsScreen(
                     onToggleProjectManagement = viewModel::onToggleProjectManagement,
                     onExportProjectState = viewModel::onExportProjectStateRequest,
                     onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
-                    onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") }
-
+                    onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                    onCloseSearch = viewModel::onCloseSearch
                 )
             }
         },

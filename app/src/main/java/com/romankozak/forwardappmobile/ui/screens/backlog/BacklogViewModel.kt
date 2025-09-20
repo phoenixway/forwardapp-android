@@ -1153,26 +1153,47 @@ constructor(
 
     fun onBackPressed(): Boolean {
         Log.d(TAG, "onBackPressed TRIGGERED")
-        if (uiState.value.inputValue.text.isNotEmpty()) {
-            Log.d(TAG, "Action: Clearing input field.")
+
+        // **FIX 2: Оновлена, більш розумна логіка для системної кнопки "назад"**
+        // Якщо ми в режимі пошуку і є текст, перший клік "назад" стирає текст
+        if (uiState.value.inputMode == InputMode.SearchInList && uiState.value.inputValue.text.isNotEmpty()) {
+            Log.d(TAG, "Action: Clearing input field because we are in search mode.")
             inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
-            return true // Consumed back press
+            return true // Подія оброблена
         }
+        // Якщо ми в режимі пошуку і текст порожній, другий клік "назад" вимикає пошук
+        if (uiState.value.inputMode == InputMode.SearchInList) {
+            onCloseSearch()
+            return true // Подія оброблена
+        }
+
         if (isSelectionModeActive.value) {
             Log.d(TAG, "Action: Clearing selection.")
             selectionHandler.clearSelection()
-            return true // Consumed back press
+            return true // Подія оброблена
         }
         if (enhancedNavigationManager.canGoBack.value) {
             Log.d(TAG, "Action: Navigating back via EnhancedNavigationManager.")
             flushPendingMoves()
             enhancedNavigationManager.goBack()
-            return true // Consumed back press
+            return true // Подія оброблена
         }
 
         Log.d(TAG, "Action: No local actions or history, letting system handle back press.")
         flushPendingMoves()
-        return false // Let system handle the back press (e.g., pop the NavController)
+        return false // Дозволяємо системі обробити подію (напр. закрити екран)
+    }
+
+
+
+    fun onCloseSearch() {
+        Log.d(TAG, "Action: Closing local search.")
+        // Очищуємо пошуковий запит, текстове поле і повертаємо режим вводу за замовчуванням
+        updateInputState(
+            localSearchQuery = "",
+            inputValue = TextFieldValue(""),
+            inputMode = getInputModeForView(uiState.value.currentView)
+        )
     }
 
 }

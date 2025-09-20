@@ -1,12 +1,16 @@
 package com.romankozak.forwardappmobile.data.database.models
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class NavigationEntry(
     val type: NavigationType,
     val id: String, // Unique ID for the screen (e.g., projectId, "main", "search_query")
     val title: String, // Display title for the history menu (e.g., project name)
     val route: String, // The full route for Jetpack Navigation
     val timestamp: Long = System.currentTimeMillis()
-) {
+) : Parcelable {
     companion object {
         fun createMainScreen(): NavigationEntry {
             return NavigationEntry(
@@ -40,7 +44,8 @@ data class NavigationEntry(
 /**
  * Defines the types of screens that can be part of the navigation history.
  */
-enum class NavigationType {
+@Parcelize
+enum class NavigationType : Parcelable {
     MAIN_SCREEN,
     PROJECT_SCREEN,
     GLOBAL_SEARCH,
