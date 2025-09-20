@@ -1142,9 +1142,13 @@ constructor(
 
     fun onRevealInExplorer(currentProjectId: String) {
         if (currentProjectId.isEmpty()) return
-        viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.NavigateBackAndReveal(currentProjectId))
-        }
+
+        // **FIX: Використовуємо менеджер, щоб повернутися назад з результатом**
+        // Цей метод одночасно надсилає результат і виконує навігацію "назад".
+        enhancedNavigationManager.goBackWithResult(
+            key = "project_to_reveal",
+            value = currentProjectId
+        )
     }
 
     fun onBackPressed(): Boolean {

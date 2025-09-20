@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -97,6 +96,7 @@ fun ModernInputPanel(
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: () -> Unit,
     onAddProjectToDayPlan: () -> Unit,
+    onRevealInExplorer: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
@@ -216,6 +216,7 @@ fun ModernInputPanel(
                 isProjectManagementEnabled = isProjectManagementEnabled,
                 onToggleProjectManagement = onToggleProjectManagement,
                 onAddProjectToDayPlan = onAddProjectToDayPlan,
+                onRevealInExplorer = onRevealInExplorer
             )
 
             AnimatedVisibility(
@@ -562,6 +563,7 @@ private fun NavigationBar(
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: () -> Unit,
     onAddProjectToDayPlan: () -> Unit,
+    onRevealInExplorer: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -646,32 +648,15 @@ private fun NavigationBar(
                 )
             }
             IconButton(
-                onClick = onAddProjectToDayPlan,
+                onClick = onRevealInExplorer,
                 modifier = Modifier.size(40.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.EventAvailable,
-                    contentDescription = "Додати проект в план на сьогодні",
+                    imageVector = Icons.Outlined.Visibility,
+                    contentDescription = "Показати в ієрархії",
                     tint = contentColor,
                     modifier = Modifier.size(20.dp),
                 )
-            }
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + slideInHorizontally(),
-                exit = fadeOut() + slideOutHorizontally(),
-            ) {
-                IconButton(
-                    onClick = onRecentsClick,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        Icons.Default.Restore,
-                        contentDescription = stringResource(R.string.recents),
-                        tint = contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -839,6 +824,42 @@ private fun NavigationBar(
                                 shape = RoundedCornerShape(16.dp),
                             ),
                 ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text("Додати до плану на сьогодні")
+                        },
+                        onClick = {
+                            onAddProjectToDayPlan()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.EventAvailable,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Недавні проекти") },
+                        onClick = {
+                            onRecentsClick()
+                            onMenuExpandedChange(false)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Restore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    )
                     DropdownMenuItem(
                         text = {
                             Text(
