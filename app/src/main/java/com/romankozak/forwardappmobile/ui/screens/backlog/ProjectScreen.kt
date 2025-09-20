@@ -205,6 +205,8 @@ fun ProjectsScreen(
                     onToggleProjectManagement = viewModel::onToggleProjectManagement,
                     onExportProjectState = viewModel::onExportProjectStateRequest,
                     onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
+                    onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") }
+
                 )
             }
         },
