@@ -638,7 +638,9 @@ class MainScreenViewModel @Inject constructor(
         viewModelScope.launch {
             val project = _allProjectsFlat.value.find { it.id == projectId }
             if (project != null) {
-                popToSubState(MainSubState.Hierarchy)
+                // popToSubState(MainSubState.Hierarchy) // <-- ВИДАЛІТЬ ЦЕЙ РЯДОК
+
+                // Цей рядок залишається. Він відповідає за навігацію.
                 enhancedNavigationManager?.navigateToProject(projectId, project.name)
             }
         }
