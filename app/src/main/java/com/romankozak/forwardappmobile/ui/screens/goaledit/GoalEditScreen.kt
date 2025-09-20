@@ -9,6 +9,10 @@ import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -44,8 +48,11 @@ import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
+import com.romankozak.forwardappmobile.ui.components.SuggestionUtils
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagUtils
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.AnimatedTagCollection
 import com.romankozak.forwardappmobile.ui.utils.formatDate
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -54,7 +61,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private object Scales {
+object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
     val importance = (1..12).map { it.toFloat() }
     val impact = listOf(1f, 2f, 3f, 5f, 8f, 13f)
@@ -62,6 +69,11 @@ private object Scales {
     val risk = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
     val weights = (0..20).map { it * 0.1f }
     val costLabels = listOf("немає", "дуже низькі", "низькі", "середні", "високі", "дуже високі")
+}
+
+private enum class SuggestionType {
+    CONTEXT,
+    TAG
 }
 
 @Composable
@@ -107,29 +119,8 @@ fun GoalEditScreen(
     }
 
     val allContexts by viewModel.allContextNames.collectAsStateWithLifecycle()
-    var showSuggestions by remember { mutableStateOf(false) }
-    var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
+    val allTags by viewModel.allTags.collectAsStateWithLifecycle()
 
-    fun getCurrentWord(textValue: TextFieldValue): String? {
-        val cursorPosition = textValue.selection.start
-        if (cursorPosition == 0) return null
-        val textUpToCursor = textValue.text.substring(0, cursorPosition)
-        val lastSpaceIndex = textUpToCursor.lastIndexOf(' ')
-        val startIndex = if (lastSpaceIndex == -1) 0 else lastSpaceIndex + 1
-        val currentWord = textUpToCursor.substring(startIndex)
-        return currentWord.takeIf { it.startsWith("@") }
-    }
-
-    LaunchedEffect(uiState.goalText) {
-        val currentWord = getCurrentWord(uiState.goalText)
-        if (currentWord != null && currentWord.length > 1) {
-            val query = currentWord.substring(1)
-            filteredContexts = allContexts.filter { it.startsWith(query, ignoreCase = true) }
-            showSuggestions = filteredContexts.isNotEmpty()
-        } else {
-            showSuggestions = false
-        }
-    }
     Scaffold(
         modifier =
             Modifier
@@ -160,120 +151,13 @@ fun GoalEditScreen(
                 CircularProgressIndicator()
             }
         } else {
-            LazyColumn(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp),
-            ) {
-                item { Spacer(Modifier.height(4.dp)) }
-
-                item {
-                    Column {
-                        OutlinedTextField(
-                            value = uiState.goalText,
-                            onValueChange = viewModel::onTextChange,
-                            label = { Text("Назва цілі") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-
-                        SuggestionChipsRow(
-                            visible = showSuggestions,
-                            contexts = filteredContexts,
-                            onContextClick = { context ->
-                                val currentText = uiState.goalText.text
-                                val cursorPosition = uiState.goalText.selection.start
-
-                                val wordStart =
-                                    currentText
-                                        .substring(0, cursorPosition)
-                                        .lastIndexOf(' ')
-                                        .let { if (it == -1) 0 else it + 1 }
-                                        .takeIf { currentText.substring(it, cursorPosition).startsWith("@") }
-                                        ?: -1
-
-                                if (wordStart != -1) {
-                                    val textBefore = currentText.substring(0, wordStart)
-                                    val textAfter = currentText.substring(cursorPosition)
-                                    val newText = "$textBefore@$context $textAfter"
-                                    val newCursorPosition = textBefore.length + 1 + context.length + 1
-
-                                    viewModel.onTextChange(
-                                        TextFieldValue(
-                                            text = newText,
-                                            selection = TextRange(newCursorPosition),
-                                        ),
-                                    )
-                                }
-                                showSuggestions = false
-                            },
-                        )
-                    }
-                }
-
-                item {
-                    LimitedMarkdownEditor(
-                        value = uiState.goalDescription,
-                        onValueChange = viewModel::onDescriptionChange,
-                        maxHeight = 150.dp,
-                        onExpandClick = { viewModel.openDescriptionEditor() },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                item {
-                    RelatedLinksSection(
-                        relatedLinks = uiState.relatedLinks,
-                        onRemoveLink = viewModel::onRemoveLinkAssociation,
-                        onAddLink = viewModel::onAddLinkRequest,
-                        onAddWebLink = viewModel::onAddWebLinkRequest,
-                        onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
-                    )
-                }
-
-                item {
-                    ReminderSection(
-                        reminderTime = uiState.reminderTime,
-                        onSetReminder = viewModel::onSetReminder,
-                        onClearReminder = viewModel::onClearReminder,
-                    )
-                }
-
-                item {
-                    EvaluationSection(uiState = uiState, onViewModelAction = viewModel)
-                }
-
-                item {
-                    val createdAt = uiState.createdAt
-                    if (createdAt != null) {
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Створено: ${formatDate(createdAt)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            val updatedAt = uiState.updatedAt
-                            if (updatedAt != null && (updatedAt > createdAt + 1000)) {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = "Оновлено: ${formatDate(updatedAt)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            GoalEditScreenContent(
+                uiState = uiState,
+                viewModel = viewModel,
+                allContexts = allContexts,
+                allTags = allTags,
+                modifier = Modifier.padding(paddingValues)
+            )
         }
     }
 
@@ -287,334 +171,112 @@ fun GoalEditScreen(
 }
 
 @Composable
-private fun RelatedLinksSection(
-    relatedLinks: List<RelatedLink>,
-    onRemoveLink: (String) -> Unit,
-    onAddLink: () -> Unit,
-    onAddWebLink: () -> Unit,
-    onAddObsidianLink: () -> Unit,
+private fun GoalEditScreenContent(
+    uiState: GoalEditUiState,
+    viewModel: GoalEditViewModel,
+    allContexts: List<String>,
+    allTags: List<String>,
+    modifier: Modifier = Modifier
 ) {
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 16.dp),
+    ) {
+        item { Spacer(Modifier.height(4.dp)) }
+
+        // Enhanced text input with tag and context autocomplete
+        item {
+            EnhancedTextInputSection(
+                goalText = uiState.goalText,
+                onTextChange = viewModel::onTextChange,
+                allContexts = allContexts,
+                allTags = allTags,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        // Preview of parsed text and tags
+        item {
+            GoalTextPreview(
+                text = uiState.goalText.text,
+                onTagClick = { tag ->
+                    // Optional: Handle tag click (e.g., jump to tag in text)
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        // Description editor
+        item {
+            LimitedMarkdownEditor(
+                value = uiState.goalDescription,
+                onValueChange = viewModel::onDescriptionChange,
+                maxHeight = 150.dp,
+                onExpandClick = { viewModel.openDescriptionEditor() },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Пов'язані посилання", style = MaterialTheme.typography.titleMedium)
+            )
+        }
 
-                if (relatedLinks.isNotEmpty()) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                    ) {
-                        Text(
-                            text = relatedLinks.size.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
-                }
+        // Related links section
+        item {
+            RelatedLinksSection(
+                relatedLinks = uiState.relatedLinks,
+                onRemoveLink = viewModel::onRemoveLinkAssociation,
+                onAddLink = viewModel::onAddLinkRequest,
+                onAddWebLink = viewModel::onAddWebLinkRequest,
+                onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+            )
+        }
+
+        // Reminder section
+        item {
+            ReminderSection(
+                reminderTime = uiState.reminderTime,
+                onSetReminder = viewModel::onSetReminder,
+                onClearReminder = viewModel::onClearReminder,
+            )
+        }
+
+        // Evaluation section
+        item {
+            EvaluationSection(uiState = uiState, onViewModelAction = viewModel)
+        }
+
+        // Optional: Tag statistics (show only if there are tags in the system)
+        item {
+            if (allTags.isNotEmpty()) {
+                TagStatistics(
+                    allTags = allTags,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
+        }
 
-            if (relatedLinks.isNotEmpty()) {
-                LazyColumn(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 200.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(relatedLinks) { link ->
-                        LinkItem(
-                            link = link,
-                            onRemove = { onRemoveLink(link.target) },
-                            onClick = {  },
-                        )
-                    }
-                }
-            } else {
+        // Created/Updated timestamps
+        item {
+            val createdAt = uiState.createdAt
+            if (createdAt != null) {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Link,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(32.dp),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Ціль ще не має пов'язаних посилань",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-
-            AddLinksButtons(
-                onAddProjectLink = onAddLink,
-                onAddWebLink = onAddWebLink,
-                onAddObsidianLink = onAddObsidianLink,
-            )
-        }
-    }
-}
-
-@Composable
-private fun LinkItem(
-    link: RelatedLink,
-    onRemove: () -> Unit,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color =
-            when (link.type) {
-                LinkType.PROJECT -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                LinkType.URL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                null -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-            },
-        border =
-            BorderStroke(
-                1.dp,
-                when (link.type) {
-                    LinkType.PROJECT -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                    LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                    LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-                    null -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-
-                },
-            ),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(
-                    imageVector =
-                        when (link.type) {
-                            LinkType.PROJECT -> Icons.AutoMirrored.Filled.List
-                            LinkType.URL -> Icons.Default.Language
-                            LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
-                            null -> Icons.AutoMirrored.Filled.Note
-                        },
-                    contentDescription = null,
-                    tint =
-                        when (link.type) {
-                            LinkType.PROJECT -> MaterialTheme.colorScheme.primary
-                            LinkType.URL -> MaterialTheme.colorScheme.secondary
-                            LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary
-                            null -> MaterialTheme.colorScheme.tertiary
-                        },
-                    modifier = Modifier.size(20.dp),
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = link.displayName ?: link.target,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                    Text(
-                        text =
-                            when (link.type) {
-                                LinkType.PROJECT -> "Проект"
-                                LinkType.URL -> "Веб-посилання"
-                                LinkType.OBSIDIAN -> "Obsidian нотатка"
-                                null -> "broken"
-                            },
+                        text = "Створено: ${formatDate(createdAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
                     )
-                }
-            }
-
-            IconButton(
-                onClick = onRemove,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Видалити посилання",
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddLinksButtons(
-    onAddProjectLink: () -> Unit,
-    onAddWebLink: () -> Unit,
-    onAddObsidianLink: () -> Unit,
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (isExpanded) {
-            OutlinedButton(
-                onClick = onAddProjectLink,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.List,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize),
-                )
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text("Додати проект")
-            }
-
-            OutlinedButton(
-                onClick = onAddWebLink,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    Icons.Default.Language,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize),
-                )
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text("Додати веб-посилання")
-            }
-
-            OutlinedButton(
-                onClick = onAddObsidianLink,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Note,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize),
-                )
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text("Додати Obsidian нотатку")
-            }
-
-            TextButton(
-                onClick = { isExpanded = false },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Default.ExpandLess, contentDescription = null)
-                Spacer(Modifier.width(4.dp))
-                Text("Згорнути")
-            }
-        } else {
-            OutlinedButton(
-                onClick = { isExpanded = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize),
-                )
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text("Додати посилання")
-                Spacer(Modifier.weight(1f))
-                Icon(
-                    Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EvaluationSection(
-    uiState: GoalEditUiState,
-    onViewModelAction: GoalEditViewModel,
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { isExpanded = !isExpanded }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("Оцінка", style = MaterialTheme.typography.titleLarge)
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
-                )
-            }
-
-            AnimatedVisibility(visible = isExpanded) {
-                Column {
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                    Column(
-                        modifier = Modifier.padding(vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        ScoringStatusSelector(
-                            selectedStatus = uiState.scoringStatus,
-                            onStatusSelected = onViewModelAction::onScoringStatusChange,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
-
-                        if (uiState.scoringStatus == ScoringStatus.ASSESSED) {
-                            val rawScore = uiState.rawScore
-                            val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
-                            val balanceColor =
-                                when {
-                                    rawScore > 0.2 -> Color(0xFF2E7D32)
-                                    rawScore > -0.2 -> LocalContentColor.current
-                                    else -> Color(0xFFC62828)
-                                }
-                            Text(
-                                text = balanceText,
-                                color = balanceColor,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                            )
-                        }
-
-                        EvaluationTabs(
-                            uiState = uiState,
-                            onViewModelAction = onViewModelAction,
-                            isEnabled = uiState.isScoringEnabled,
+                    val updatedAt = uiState.updatedAt
+                    if (updatedAt != null && (updatedAt > createdAt + 1000)) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Оновлено: ${formatDate(updatedAt)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -623,280 +285,172 @@ private fun EvaluationSection(
     }
 }
 
+
 @Composable
-private fun ScoringStatusSelector(
-    selectedStatus: ScoringStatus,
-    onStatusSelected: (ScoringStatus) -> Unit,
-    modifier: Modifier = Modifier,
+private fun EnhancedTextInputSection(
+    goalText: TextFieldValue,
+    onTextChange: (TextFieldValue) -> Unit,
+    allContexts: List<String>,
+    allTags: List<String>,
+    modifier: Modifier = Modifier
 ) {
-    val statuses = ScoringStatus.entries.toTypedArray()
-    val labels =
-        mapOf(
-            ScoringStatus.NOT_ASSESSED to "Unset",
-            ScoringStatus.ASSESSED to "Set",
-            ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible",
+    var showSuggestions by remember { mutableStateOf(value = false) }
+    var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
+    var filteredTags by remember { mutableStateOf<List<String>>(emptyList()) }
+    var currentSuggestionType by remember { mutableStateOf<SuggestionType?>(null) }
+
+    // Enhanced suggestion logic - split into helper functions to reduce complexity
+    LaunchedEffect(goalText) {
+        val suggestionState = processSuggestions(
+            text = goalText.text,
+            cursorPosition = goalText.selection.start,
+            allContexts = allContexts,
+            allTags = allTags
         )
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-        statuses.forEachIndexed { index, status ->
-            SegmentedButton(
-                selected = selectedStatus == status,
-                onClick = { onStatusSelected(status) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = statuses.size),
-            ) {
-                Text(labels[status] ?: "")
-            }
-        }
+
+        filteredContexts = suggestionState.contexts
+        filteredTags = suggestionState.tags
+        currentSuggestionType = suggestionState.type
+        showSuggestions = suggestionState.shouldShow
     }
-}
 
-@Composable
-private fun EvaluationTabs(
-    uiState: GoalEditUiState,
-    onViewModelAction: GoalEditViewModel,
-    isEnabled: Boolean,
-) {
-    val tabTitles = listOf("Gain", "Loss", "Weights")
-    val pagerState = rememberPagerState { tabTitles.size }
-    val scope = rememberCoroutineScope()
-
-    Column(modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f)) {
-        TabRow(selectedTabIndex = pagerState.currentPage) {
-            tabTitles.forEachIndexed { index, title ->
-                Tab(
-                    enabled = isEnabled,
-                    selected = pagerState.currentPage == index,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                    text = { Text(title) },
-                )
-            }
-        }
-
-        HorizontalPager(
-            state = pagerState,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            userScrollEnabled = isEnabled,
-        ) { page ->
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                when (page) {
-                    0 -> {
-                        ParameterSlider(
-                            label = "Value importance",
-                            value = uiState.valueImportance,
-                            onValueChange = onViewModelAction::onValueImportanceChange,
-                            scale = Scales.importance,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Value gain impact",
-                            value = uiState.valueImpact,
-                            onValueChange = onViewModelAction::onValueImpactChange,
-                            scale = Scales.impact,
-                            enabled = isEnabled,
-                        )
-                    }
-                    1 -> {
-                        ParameterSlider(
-                            label = "Efforts",
-                            value = uiState.effort,
-                            onValueChange = onViewModelAction::onEffortChange,
-                            scale = Scales.effort,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Costs",
-                            value = uiState.cost,
-                            onValueChange = onViewModelAction::onCostChange,
-                            scale = Scales.cost,
-                            valueLabels = Scales.costLabels,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Risk",
-                            value = uiState.risk,
-                            onValueChange = onViewModelAction::onRiskChange,
-                            scale = Scales.risk,
-                            enabled = isEnabled,
-                        )
-                    }
-                    2 -> {
-                        ParameterSlider(
-                            label = "Efforts weight",
-                            value = uiState.weightEffort,
-                            onValueChange = onViewModelAction::onWeightEffortChange,
-                            scale = Scales.weights,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Costs weight",
-                            value = uiState.weightCost,
-                            onValueChange = onViewModelAction::onWeightCostChange,
-                            scale = Scales.weights,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Risk weight",
-                            value = uiState.weightRisk,
-                            onValueChange = onViewModelAction::onWeightRiskChange,
-                            scale = Scales.weights,
-                            enabled = isEnabled,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ParameterSlider(
-    label: String,
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    scale: List<Float>,
-    enabled: Boolean,
-    valueLabels: List<String>? = null,
-) {
-    val currentIndex = scale.indexOf(value).coerceAtLeast(0)
-    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        Row(
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = goalText,
+            onValueChange = onTextChange,
+            label = { Text("Назва цілі") },
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            val displayText =
-                when {
-                    valueLabels != null -> valueLabels.getOrElse(currentIndex) { value.toString() }
-                    scale == Scales.weights -> "x${"%.1f".format(value)}"
-                    else -> value.toInt().toString()
-                }
+            supportingText = createSupportingText(showSuggestions, currentSuggestionType)
+        )
+
+        SuggestionChipsRow(
+            visible = showSuggestions,
+            contexts = if (currentSuggestionType == SuggestionType.CONTEXT) filteredContexts else emptyList(),
+            tags = if (currentSuggestionType == SuggestionType.TAG) filteredTags else emptyList(),
+            onContextClick = { context ->
+                handleContextSelection(goalText, onTextChange, context)
+                showSuggestions = false
+            },
+            onTagClick = { tag ->
+                handleTagSelection(goalText, onTextChange, tag)
+                showSuggestions = false
+            }
+        )
+    }
+}
+
+// Data class to hold suggestion state
+private data class SuggestionState(
+    val contexts: List<String>,
+    val tags: List<String>,
+    val type: SuggestionType?,
+    val shouldShow: Boolean
+)
+
+// Helper function to process suggestions - reduces cognitive complexity
+private fun processSuggestions(
+    text: String,
+    cursorPosition: Int,
+    allContexts: List<String>,
+    allTags: List<String>
+): SuggestionState {
+    val currentWordInfo = SuggestionUtils.getCurrentWord(text, cursorPosition)
+        ?: return SuggestionState(emptyList(), emptyList(), null, false)
+
+    val (currentWord, _) = currentWordInfo
+
+    return when {
+        isContextQuery(currentWord) -> {
+            // Use non-null assertion since isContextQuery ensures it's not null.
+            val query = currentWord!!.substring(1)
+            val filtered = filterContexts(allContexts, query)
+            SuggestionState(filtered, emptyList(), SuggestionType.CONTEXT, filtered.isNotEmpty())
+        }
+        isTagQuery(currentWord) -> {
+            // Use non-null assertion since isTagQuery ensures it's not null.
+            val query = currentWord!!.substring(1)
+            val filtered = filterTags(allTags, query)
+            SuggestionState(emptyList(), filtered, SuggestionType.TAG, filtered.isNotEmpty())
+        }
+        else -> SuggestionState(emptyList(), emptyList(), null, false)
+    }
+}
+
+
+private fun isContextQuery(word: String?): Boolean =
+    word?.startsWith("@") == true && word.length > 1
+
+private fun isTagQuery(word: String?): Boolean =
+    word?.startsWith("#") == true && word.length > 1
+
+private fun filterContexts(contexts: List<String>, query: String): List<String> =
+    contexts.filter { it.startsWith(query, ignoreCase = true) }.take(5)
+
+private fun filterTags(tags: List<String>, query: String): List<String> =
+    tags.filter { tag ->
+        val tagWithoutSymbol = if (tag.startsWith("#")) tag.substring(1) else tag
+        tagWithoutSymbol.startsWith(query, ignoreCase = true)
+    }.take(5)
+
+@Composable
+private fun createSupportingText(
+    showSuggestions: Boolean,
+    currentSuggestionType: SuggestionType?
+): (@Composable () -> Unit)? {
+    return if (showSuggestions) {
+        {
             Text(
-                text = displayText,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                text = when (currentSuggestionType) {
+                    SuggestionType.CONTEXT -> "Доступні контексти (@)"
+                    SuggestionType.TAG -> "Доступні теги (#)"
+                    null -> ""
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Slider(
-            enabled = enabled,
-            value = currentIndex.toFloat(),
-            onValueChange = { newIndex ->
-                val roundedIndex = newIndex.roundToInt().coerceIn(0, scale.lastIndex)
-                onValueChange(scale[roundedIndex])
-            },
-            valueRange = 0f..scale.lastIndex.toFloat(),
-            steps = (scale.size - 2).coerceAtLeast(0),
-        )
-    }
+    } else null
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReminderSection(
-    reminderTime: Long?,
-    onSetReminder: (year: Int, month: Int, day: Int, hour: Int, minute: Int) -> Unit,
-    onClearReminder: () -> Unit,
+private fun handleContextSelection(
+    goalText: TextFieldValue,
+    onTextChange: (TextFieldValue) -> Unit,
+    context: String
 ) {
-    val context = LocalContext.current
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val replacementResult = SuggestionUtils.replaceCurrentWord(
+        goalText.text,
+        goalText.selection.start,
+        "@$context"
+    )
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-
-    val checkPermissionsAndShowDatePicker = {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            Toast.makeText(context, "Потрібен дозвіл на точні нагадування", Toast.LENGTH_LONG).show()
-            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).also {
-                context.startActivity(it)
-            }
-        } else {
-            showDatePicker = true
-        }
-    }
-
-    var showTimePicker by remember { mutableStateOf(false) }
-    val timePickerState = rememberTimePickerState()
-
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Нагадування", style = MaterialTheme.typography.titleMedium)
-
-            if (reminderTime != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(text = formatDateTime(reminderTime), style = MaterialTheme.typography.bodyLarge)
-                    Row {
-                        IconButton(onClick = { checkPermissionsAndShowDatePicker() }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Змінити нагадування")
-                        }
-                        IconButton(onClick = onClearReminder) {
-                            Icon(Icons.Default.Delete, contentDescription = "Видалити нагадування", tint = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-            } else {
-                OutlinedButton(onClick = { checkPermissionsAndShowDatePicker() }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.AlarmAdd, contentDescription = null)
-                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                    Text("Додати нагадування")
-                }
-            }
-        }
-    }
-
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDatePicker = false
-                    showTimePicker = true
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Скасувати") }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("Виберіть час") },
-            text = { TimePicker(state = timePickerState) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showTimePicker = false
-                        datePickerState.selectedDateMillis?.let { dateMillis ->
-                            val calendar = Calendar.getInstance().apply { timeInMillis = dateMillis }
-                            val year = calendar.get(Calendar.YEAR)
-                            val month = calendar.get(Calendar.MONTH)
-                            val day = calendar.get(Calendar.DAY_OF_MONTH)
-                            onSetReminder(year, month, day, timePickerState.hour, timePickerState.minute)
-                        }
-                    },
-                ) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Скасувати") }
-            },
+    replacementResult?.let { (newText, newCursorPosition) ->
+        onTextChange(
+            TextFieldValue(
+                text = newText,
+                selection = TextRange(newCursorPosition)
+            )
         )
     }
 }
 
-private fun formatDateTime(millis: Long): String {
-    val sdf = SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.getDefault())
-    return sdf.format(Date(millis))
+private fun handleTagSelection(
+    goalText: TextFieldValue,
+    onTextChange: (TextFieldValue) -> Unit,
+    tag: String
+) {
+    val tagToInsert = if (tag.startsWith("#")) tag else "#$tag"
+    val replacementResult = SuggestionUtils.replaceCurrentWord(
+        goalText.text,
+        goalText.selection.start,
+        tagToInsert
+    )
+
+    replacementResult?.let { (newText, newCursorPosition) ->
+        onTextChange(
+            TextFieldValue(
+                text = newText,
+                selection = TextRange(newCursorPosition)
+            )
+        )
+    }
 }
