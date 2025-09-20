@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -58,6 +59,8 @@ class MainScreenViewModel @Inject constructor(
         private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
         // Add a key to communicate the "came from global search" state
         private const val CAME_FROM_GLOBAL_SEARCH_KEY = "came_from_global_search"
+        private const val TAG = "MainScreenVM_DEBUG"
+        private const val SUB_STATE_STACK_KEY = "subStateStackKey"
     }
 
     var enhancedNavigationManager: EnhancedNavigationManager? = null
@@ -93,7 +96,14 @@ class MainScreenViewModel @Inject constructor(
     private val _listChooserFilterText = MutableStateFlow("")
     private val projectBeingMovedId = savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
 
+   // private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
+
+/*    private val _subStateStack = MutableStateFlow(
+        savedStateHandle.get<List<@JvmSuppressWildcards MainSubState>>(SUB_STATE_STACK_KEY) ?: listOf(MainSubState.Hierarchy)
+    )*/
+
     private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
+
 
     private fun initializeNavigationResultHandling() {
         enhancedNavigationManager?.let { navManager ->
@@ -140,21 +150,33 @@ class MainScreenViewModel @Inject constructor(
             }
         }
     }
-
     private fun pushSubState(subState: MainSubState) {
         val currentStack = _subStateStack.value
         if (currentStack.lastOrNull() != subState) {
             _subStateStack.value = currentStack + subState
+            Log.d(TAG, "pushSubState: $subState | New Stack: ${_subStateStack.value}")
         }
     }
 
     private fun popSubState(): MainSubState? {
         val currentStack = _subStateStack.value
         return if (currentStack.size > 1) {
+            val popped = currentStack.last()
             _subStateStack.value = currentStack.dropLast(1)
-            currentStack.last()
-        } else null
+            Log.d(TAG, "popSubState | Popped: $popped | New Stack: ${_subStateStack.value}")
+            popped
+        } else {
+            Log.w(TAG, "popSubState | Cannot pop. Stack has only one element.")
+            null
+        }
     }
+
+    private fun replaceCurrentSubState(newState: MainSubState) {
+        val currentStack = _subStateStack.value
+        _subStateStack.value = currentStack.dropLast(1) + newState
+        Log.d(TAG, "replaceCurrentSubState: $newState | New Stack: ${_subStateStack.value}")
+    }
+
 
     private fun popToSubState(targetState: MainSubState) {
         val currentStack = _subStateStack.value
@@ -166,10 +188,7 @@ class MainScreenViewModel @Inject constructor(
         }
     }
 
-    private fun replaceCurrentSubState(newState: MainSubState) {
-        val currentStack = _subStateStack.value
-        _subStateStack.value = currentStack.dropLast(1) + newState
-    }
+
 
     private fun isSearchActive(): Boolean {
         return _subStateStack.value.any { it is MainSubState.LocalSearch }
@@ -440,17 +459,16 @@ class MainScreenViewModel @Inject constructor(
     }
 
     fun onEvent(event: MainScreenEvent) {
+        Log.i(TAG, "onEvent: ${event.javaClass.simpleName}")
+
         when (event) {
             is MainScreenEvent.SearchQueryChanged -> {
                 searchAndNavigationManager.onSearchQueryChanged(event.query)
-                // Якщо ми ще не в режимі пошуку, перейти в нього.
                 if (!isSearchActive()) {
                     pushSubState(MainSubState.LocalSearch(event.query.text))
                 } else {
-                    // Якщо ми вже в режимі пошуку, оновити стан з новим запитом.
                     replaceCurrentSubState(MainSubState.LocalSearch(event.query.text))
                 }
-
             }
             is MainScreenEvent.SearchFromHistory -> {
                 pushSubState(MainSubState.LocalSearch(event.query))
@@ -585,47 +603,66 @@ class MainScreenViewModel @Inject constructor(
             is MainScreenEvent.PerformWifiImport -> wifiSyncManager.performWifiImport(event.address)
         }
     }
+// File: MainScreenViewModel.kt
+
     private fun handleBackNavigation() {
+        Log.d(TAG, "handleBackNavigation | Current Stack: ${_subStateStack.value}")
         val currentStack = _subStateStack.value
         when {
-            currentStack.size > 1 -> {
+            // **FIX 2: Додано обробку повернення зі стану фокусування**
+            currentStack.lastOrNull() is MainSubState.ProjectFocused -> {
+                Log.d(TAG, "handleBackNavigation -> Popping ProjectFocused state to return to search")
+                popSubState() // Повертаємось до попереднього стану (LocalSearch)
+                searchAndNavigationManager.clearNavigation() // Очищуємо "хлібні крихти"
+            }
+
+            currentStack.lastOrNull() is MainSubState.LocalSearch -> {
+                Log.d(TAG, "handleBackNavigation -> Popping LocalSearch state")
                 popSubState()
-                if (currentStack.last() is MainSubState.LocalSearch) {
-                    searchAndNavigationManager.onToggleSearch(false)
-                }
+                searchAndNavigationManager.onSearchQueryChanged(TextFieldValue(""))
             }
             uiState.value.currentBreadcrumbs.isNotEmpty() -> {
+                Log.d(TAG, "handleBackNavigation -> Clearing breadcrumbs")
                 searchAndNavigationManager.clearNavigation()
             }
             uiState.value.areAnyProjectsExpanded -> {
+                Log.d(TAG, "handleBackNavigation -> Collapsing all projects")
                 viewModelScope.launch {
                     actionsHandler.collapseAllProjects(_allProjectsFlat.value)
                 }
             }
             else -> {
+                Log.d(TAG, "handleBackNavigation -> Triggering global back")
                 enhancedNavigationManager?.goBack()
             }
         }
     }
 
+// File: MainScreenViewModel.kt
+
     private fun onSearchResultClick(projectId: String) {
+        Log.d(TAG, "onSearchResultClick: Revealing project $projectId in hierarchy.")
         if (_isProcessingReveal.value) return
         viewModelScope.launch {
             _isProcessingReveal.value = true
             try {
                 when (val result = searchAndNavigationManager.revealProjectInHierarchy(projectId)) {
                     is RevealResult.Success -> {
-                        replaceCurrentSubState(MainSubState.ProjectFocused(projectId))
-                        searchAndNavigationManager.onToggleSearch(false)
+                        // **FIX 1: Повертаємо виклик, що генерує "хлібні крихти"**
+                        // Цей метод оновлює внутрішній стан, але НЕ переходить на інший екран.
+                        searchAndNavigationManager.navigateToProject(result.projectId, uiState.value.projectHierarchy)
 
-                        if (result.shouldFocus) {
-                            searchAndNavigationManager.navigateToProject(result.projectId, uiState.value.projectHierarchy)
-                        } else {
-                            projectToRevealAndScroll = result.projectId
-                        }
+                        // Змінюємо стан UI, щоб показати Focused View
+                        replaceCurrentSubState(MainSubState.ProjectFocused(result.projectId))
+
+                        // Очищуємо поле пошуку, щоб побачити ієрархію
+                        searchAndNavigationManager.onSearchQueryChanged(TextFieldValue(""))
+
+                        // Готуємо ID для прокрутки до елемента
+                        projectToRevealAndScroll = result.projectId
                     }
                     is RevealResult.Failure -> {
-                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Не вдалося показати локацію"))
                     }
                 }
             } finally {
@@ -635,12 +672,10 @@ class MainScreenViewModel @Inject constructor(
     }
 
     private fun onProjectClicked(projectId: String) {
+        Log.d(TAG, "onProjectClicked: Navigating to project $projectId. SubStateStack should NOT be changed.")
         viewModelScope.launch {
             val project = _allProjectsFlat.value.find { it.id == projectId }
             if (project != null) {
-                // popToSubState(MainSubState.Hierarchy) // <-- ВИДАЛІТЬ ЦЕЙ РЯДОК
-
-                // Цей рядок залишається. Він відповідає за навігацію.
                 enhancedNavigationManager?.navigateToProject(projectId, project.name)
             }
         }
