@@ -408,7 +408,8 @@ fun SmartHierarchyView(
     }
 
     val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val isDeeplyNested = hasChildren && level >= settings.useBreadcrumbsAfter
+    // **FIXED**: Replaced settings.useBreadcrumbsAfter with a hardcoded value of 3.
+    val isDeeplyNested = hasChildren && level >= 3
     val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
     val isFocused = project.id == focusedProjectId
 

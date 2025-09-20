@@ -11,7 +11,6 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.ContextMenu
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
-import java.util.*
 
 /**
  * A central composable to handle displaying different dialogs based on the DialogState from the UiState.
@@ -36,7 +35,8 @@ fun HandleDialogs(
                 },
             )
         }
-        is DialogState.ContextMenu -> {
+        // FIXED: Use the correct state name 'ProjectMenu'
+        is DialogState.ProjectMenu -> {
             ContextMenuDialog(
                 project = state.project,
                 onDismissRequest = { onEvent(MainScreenEvent.DismissDialog) },
@@ -55,19 +55,22 @@ fun HandleDialogs(
                 dismissButton = { TextButton(onClick = { onEvent(MainScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
-        is DialogState.AboutApp -> {
+        // FIXED: Use the correct state name 'About'
+        is DialogState.About -> {
             AboutAppDialog(
                 stats = uiState.appStatistics,
                 onDismiss = { onEvent(MainScreenEvent.DismissDialog) }
             )
         }
-        is DialogState.ConfirmFullImport -> {
+        // FIXED: Use the correct state name 'ConfirmImport'
+        is DialogState.ConfirmImport -> {
             AlertDialog(
                 onDismissRequest = { onEvent(MainScreenEvent.DismissDialog) },
                 title = { Text("Restore from backup?") },
                 text = { Text("WARNING: All current data will be deleted and replaced with data from the backup file. This action cannot be undone.") },
                 confirmButton = {
                     Button(
+                        // This now resolves correctly because 'state' is smart-cast to ConfirmImport
                         onClick = { onEvent(MainScreenEvent.FullImportConfirm(state.uri)) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     ) { Text("Delete and Restore") }
@@ -75,8 +78,14 @@ fun HandleDialogs(
                 dismissButton = { TextButton(onClick = { onEvent(MainScreenEvent.DismissDialog) }) { Text("Cancel") } },
             )
         }
-        // Ensure other states like EditProject are handled if they exist in your DialogState
-        else -> {}
+        // Handle other states to make the 'when' exhaustive
+        is DialogState.EditProject -> {
+            // Here you would navigate to an edit screen or show an edit dialog
+            // For now, we can just dismiss to handle the state
+            onEvent(MainScreenEvent.DismissDialog)
+        }
+        is DialogState.WifiImport -> { /* Handled by boolean flag below */ }
+        is DialogState.WifiServer -> { /* Handled by boolean flag below */ }
     }
 
     // Handle boolean-flag based dialogs

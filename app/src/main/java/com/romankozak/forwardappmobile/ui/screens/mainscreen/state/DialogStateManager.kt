@@ -1,4 +1,4 @@
-// file: ui/screens/mainscreen/state/DialogStateManager.kt
+// file: ui/screens/mainscreen/state/DialogStateManager.kt - CORRECTED
 
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.state
 
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 /**
- * Керує станом усіх діалогових вікон на головному екрані.
+ * Manages the state of all dialogs on the main screen.
  */
 @ViewModelScoped
 class DialogStateManager @Inject constructor() {
@@ -29,7 +29,7 @@ class DialogStateManager @Inject constructor() {
     }
 
     fun onMenuRequested(project: Project) {
-        _dialogState.value = DialogState.ContextMenu(project)
+        _dialogState.value = DialogState.ProjectMenu(project)
     }
 
     fun onDeleteRequest(project: Project) {
@@ -37,11 +37,13 @@ class DialogStateManager @Inject constructor() {
     }
 
     fun onShowAboutDialog() {
-        _dialogState.value = DialogState.AboutApp
+        // FIXED: Used the correct state name 'About'.
+        _dialogState.value = DialogState.About
     }
 
     fun onImportFromFileRequested(uri: Uri) {
-        _dialogState.value = DialogState.ConfirmFullImport(uri)
+        // FIXED: Used the correct state name 'ConfirmImport'.
+        _dialogState.value = DialogState.ConfirmImport(uri)
     }
 
     fun dismissDialog() {

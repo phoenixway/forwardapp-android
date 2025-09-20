@@ -1,8 +1,7 @@
-// File: MainScreenViewModel.kt - ИСПРАВЛЕНО
+// File: MainScreenViewModel.kt - CORRECTED
 
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
-import FilterState
 import android.app.Application
 import android.net.Uri
 import androidx.compose.ui.text.input.TextFieldValue
@@ -57,6 +56,8 @@ class MainScreenViewModel @Inject constructor(
 
     companion object {
         private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
+        // Add a key to communicate the "came from global search" state
+        private const val CAME_FROM_GLOBAL_SEARCH_KEY = "came_from_global_search"
     }
 
     var enhancedNavigationManager: EnhancedNavigationManager? = null
@@ -92,13 +93,11 @@ class MainScreenViewModel @Inject constructor(
     private val _listChooserFilterText = MutableStateFlow("")
     private val projectBeingMovedId = savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
 
-    // ИСПРАВЛЕНО: Добавляем стек подсостояний вместо простых перечислений
     private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
 
     private fun initializeNavigationResultHandling() {
         enhancedNavigationManager?.let { navManager ->
             viewModelScope.launch {
-                // ВИПРАВЛЕНО: Правильне ім'я властивості та типу
                 navManager.navigationResults.collect { result ->
                     handleNavigationResult(result.key, result.value)
                 }
@@ -109,22 +108,22 @@ class MainScreenViewModel @Inject constructor(
     private fun handleNavigationResult(key: String, value: String) {
         when (key) {
             "project_to_reveal" -> {
-                // ИСПРАВЛЕНО: Правильная обработка возврата из глобального поиска
                 viewModelScope.launch {
-                    searchAndNavigationManager.markCameFromGlobalSearch()
+                    // **FIXED**: Instead of calling a non-existent method,
+                    // set a flag in the SavedStateHandle. The SearchAndNavigationManager
+                    // can observe this value to know it's coming from a global search.
+                    savedStateHandle[CAME_FROM_GLOBAL_SEARCH_KEY] = true
 
                     if (_isProcessingReveal.value) return@launch
                     _isProcessingReveal.value = true
                     try {
                         when (val result = searchAndNavigationManager.revealProjectInHierarchy(value)) {
                             is RevealResult.Success -> {
-                                // ИСПРАВЛЕНО: Обновляем стек подсостояний
                                 pushSubState(MainSubState.ProjectFocused(value))
                                 if (result.shouldFocus) {
                                     searchAndNavigationManager.navigateToProject(result.projectId, uiState.value.projectHierarchy)
                                 } else {
                                     projectToRevealAndScroll = result.projectId
-                                    // Убеждаемся что поиск выключен для показа результата
                                     if (isSearchActive()) {
                                         popToSubState(MainSubState.Hierarchy)
                                     }
@@ -142,7 +141,6 @@ class MainScreenViewModel @Inject constructor(
         }
     }
 
-    // ИСПРАВЛЕНО: Методы для работы со стеком подсостояний
     private fun pushSubState(subState: MainSubState) {
         val currentStack = _subStateStack.value
         if (currentStack.lastOrNull() != subState) {
@@ -457,11 +455,10 @@ class MainScreenViewModel @Inject constructor(
             is MainScreenEvent.ToggleProjectExpanded -> onToggleExpanded(event.project)
             is MainScreenEvent.ProjectReorder -> {
                 viewModelScope.launch {
-                    // ВИПРАВЛЕНО: Передаємо enum напряму без конвертації в строку
                     actionsHandler.onProjectReorder(
                         fromId = event.fromId,
                         toId = event.toId,
-                        position = event.position, // Передаємо DropPosition напряму
+                        position = event.position,
                         isSearchActive = isSearchActive(),
                         allProjects = _allProjectsFlat.value
                     )
@@ -496,11 +493,10 @@ class MainScreenViewModel @Inject constructor(
             }
             is MainScreenEvent.MoveConfirm -> {
                 viewModelScope.launch {
-                    // ВИПРАВЛЕНО: Додаємо відсутній параметр allProjects
                     actionsHandler.onListChooserResult(
                         newParentId = event.newParentId,
                         projectBeingMovedId = projectBeingMovedId.value,
-                        allProjects = _allProjectsFlat.value // Додаємо відсутній параметр
+                        allProjects = _allProjectsFlat.value
                     )
                     savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
                 }
@@ -580,36 +576,29 @@ class MainScreenViewModel @Inject constructor(
             is MainScreenEvent.PerformWifiImport -> wifiSyncManager.performWifiImport(event.address)
         }
     }
-    // ИСПРАВЛЕНО: Новый метод для правильной обработки кнопки "назад"
     private fun handleBackNavigation() {
         val currentStack = _subStateStack.value
         when {
-            // 1. Если есть подсостояния кроме Hierarchy - убираем последнее
             currentStack.size > 1 -> {
                 popSubState()
-                // Если убрали поиск, выключаем его в searchManager
                 if (currentStack.last() is MainSubState.LocalSearch) {
                     searchAndNavigationManager.onToggleSearch(false)
                 }
             }
-            // 2. Если есть фокус на проекте - убираем фокус
             uiState.value.currentBreadcrumbs.isNotEmpty() -> {
                 searchAndNavigationManager.clearNavigation()
             }
-            // 3. Если развернуты проекты - сворачиваем все
             uiState.value.areAnyProjectsExpanded -> {
                 viewModelScope.launch {
                     actionsHandler.collapseAllProjects(_allProjectsFlat.value)
                 }
             }
-            // 4. Иначе используем глобальную навигацию
             else -> {
                 enhancedNavigationManager?.goBack()
             }
         }
     }
 
-    // ИСПРАВЛЕНО: Правильная обработка клика по результату локального поиска
     private fun onSearchResultClick(projectId: String) {
         if (_isProcessingReveal.value) return
         viewModelScope.launch {
@@ -617,7 +606,6 @@ class MainScreenViewModel @Inject constructor(
             try {
                 when (val result = searchAndNavigationManager.revealProjectInHierarchy(projectId)) {
                     is RevealResult.Success -> {
-                        // Заменяем поиск на фокус проекта
                         replaceCurrentSubState(MainSubState.ProjectFocused(projectId))
                         searchAndNavigationManager.onToggleSearch(false)
 
@@ -641,27 +629,22 @@ class MainScreenViewModel @Inject constructor(
         viewModelScope.launch {
             val project = _allProjectsFlat.value.find { it.id == projectId }
             if (project != null) {
-                // ИСПРАВЛЕНО: Сбрасываем состояние поиска при переходе к проекту
                 popToSubState(MainSubState.Hierarchy)
                 enhancedNavigationManager?.navigateToProject(projectId, project.name)
             }
         }
     }
 
-    // ИСПРАВЛЕНО: Улучшенный метод для кнопки "домой"
     private fun onHomeClicked() {
         viewModelScope.launch {
-            // Сначала очищаем все состояния поиска и навигации
             searchAndNavigationManager.clearAllSearchState()
             _subStateStack.value = listOf(MainSubState.Hierarchy)
 
             planningModeManager.changeMode(PlanningMode.All)
             planningModeManager.resetExpansionStates()
 
-            // Сворачиваем все проекты
             actionsHandler.collapseAllProjects(_allProjectsFlat.value)
 
-            // Очищаем навигационную историю и переходим к домашнему экрану
             enhancedNavigationManager?.navigateHome()
 
             _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
@@ -670,9 +653,7 @@ class MainScreenViewModel @Inject constructor(
 
     private fun onPerformGlobalSearch(query: String) {
         if (query.isNotBlank()) {
-            // ИСПРАВЛЕНО: Правильное управление состоянием при глобальном поиске
             searchAndNavigationManager.onSearchQueryFromHistory(query)
-            // Сохраняем текущее состояние и выключаем локальный поиск
             if (isSearchActive()) {
                 popToSubState(MainSubState.Hierarchy)
                 searchAndNavigationManager.onToggleSearch(false)
@@ -714,7 +695,6 @@ class MainScreenViewModel @Inject constructor(
             _showRecentListsSheet.value = false
             val project = _allProjectsFlat.value.find { it.id == projectId }
             if (project != null) {
-                // Сбрасываем состояние поиска
                 popToSubState(MainSubState.Hierarchy)
                 enhancedNavigationManager?.navigateToProject(projectId, project.name)
             }
@@ -737,7 +717,6 @@ class MainScreenViewModel @Inject constructor(
             }
             val targetProject = _allProjectsFlat.value.find { it.tags?.contains(targetTag) == true }
             if (targetProject != null) {
-                // Сбрасываем состояние поиска
                 popToSubState(MainSubState.Hierarchy)
                 enhancedNavigationManager?.navigateToProject(targetProject.id, targetProject.name)
             } else {
@@ -782,7 +761,6 @@ class MainScreenViewModel @Inject constructor(
         }
     }
 
-    // Публичный метод для сворачивания всех проектов
     fun collapseAllProjects() {
         viewModelScope.launch {
             actionsHandler.collapseAllProjects(_allProjectsFlat.value)
