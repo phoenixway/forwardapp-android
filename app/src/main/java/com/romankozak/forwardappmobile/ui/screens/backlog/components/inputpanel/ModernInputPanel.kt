@@ -96,7 +96,9 @@ fun ModernInputPanel(
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: () -> Unit,
     onAddProjectToDayPlan: () -> Unit,
-    onRevealInExplorer: () -> Unit
+    onRevealInExplorer: () -> Unit,
+    onCloseSearch: () -> Unit
+
 ) {
     val focusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
@@ -216,6 +218,9 @@ fun ModernInputPanel(
                 isProjectManagementEnabled = isProjectManagementEnabled,
                 onToggleProjectManagement = onToggleProjectManagement,
                 onAddProjectToDayPlan = onAddProjectToDayPlan,
+                onCloseSearch = onCloseSearch,
+                inputMode = inputMode,
+
                 onRevealInExplorer = onRevealInExplorer
             )
 
@@ -563,7 +568,11 @@ private fun NavigationBar(
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: () -> Unit,
     onAddProjectToDayPlan: () -> Unit,
-    onRevealInExplorer: () -> Unit
+    onRevealInExplorer: () -> Unit,
+    onCloseSearch: () -> Unit,
+    inputMode: InputMode
+
+
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -587,34 +596,26 @@ private fun NavigationBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val backButtonAlpha by animateFloatAsState(
-                targetValue = if (canGoBack) 1f else 0.4f,
-                label = "backButtonAlpha",
-            )
 
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .alpha(backButtonAlpha)
-                        .clip(CircleShape)
-                        .combinedClickable(
-                            enabled = canGoBack,
-                            onClick = onBackClick,
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onRecentsClick()
-                            },
-                        ),
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                    tint = if (canGoBack) contentColor else contentColor.copy(alpha = 0.38f),
-                    modifier = Modifier.size(20.dp),
-                )
+            if (inputMode == InputMode.SearchInList) {
+                // Кнопка "Закрити" для режиму пошуку
+                IconButton(
+                    onClick = onCloseSearch,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Закрити пошук",
+                        tint = contentColor,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            } else {
+                // Стандартна кнопка "Назад" для інших режимів
+
             }
+
+
 
             val forwardButtonAlpha by animateFloatAsState(
                 targetValue = if (canGoForward) 1f else 0.4f,
