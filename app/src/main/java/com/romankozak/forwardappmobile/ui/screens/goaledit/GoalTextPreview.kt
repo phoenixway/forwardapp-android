@@ -8,8 +8,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagUtils
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.AnimatedTagCollection
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.AnimatedTagCollection
 
 @Composable
 fun GoalTextPreview(
