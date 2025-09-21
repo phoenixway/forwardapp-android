@@ -194,7 +194,6 @@ class MainScreenViewModel @Inject constructor(
     private fun isSearchActive(): Boolean {
         return _subStateStack.value.any { it is MainSubState.LocalSearch }
     }
-
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     private fun initializeAndCollectStates() {
         viewModelScope.launch(ioDispatcher) {
@@ -205,9 +204,15 @@ class MainScreenViewModel @Inject constructor(
             _isReadyForFiltering.value = true
         }
 
+        // OPTIMIZED: Дебаунс для search query з коротшою затримкою
         val debouncedSearchQueryText = searchAndNavigationManager.searchQuery
             .map { it.text }
-            .debounce(350L)
+            .debounce(200L) // Зменшено з 350L до 200L для швидшої реакції
+            .distinctUntilChanged()
+
+        // OPTIMIZED: Дебаунс для substate stack
+        val debouncedSubStateStack = _subStateStack
+            .debounce(50L) // Короткий дебаунс для батчингу UI оновлень
             .distinctUntilChanged()
 
         val planningSettingsState = combine(
@@ -223,7 +228,7 @@ class MainScreenViewModel @Inject constructor(
             listOf(
                 _allProjectsFlat,
                 debouncedSearchQueryText,
-                _subStateStack.map { stack -> stack.any { it is MainSubState.LocalSearch } },
+                debouncedSubStateStack.map { stack -> stack.any { it is MainSubState.LocalSearch } },
                 planningModeManager.planningMode,
                 planningSettingsState,
                 _isReadyForFiltering,
@@ -268,6 +273,7 @@ class MainScreenViewModel @Inject constructor(
             )
         )
 
+        // OPTIMIZED: Стабільний projectHierarchyFlow з кращим debouncing
         val projectHierarchyFlow = combine(
             filterStateFlow,
             planningModeManager.expandedInDailyMode,
@@ -281,28 +287,42 @@ class MainScreenViewModel @Inject constructor(
             val expandedMedium = values[2] as Set<String>
             val expandedLong = values[3] as Set<String>
             val isProcessingReveal = values[5] as Boolean
+
             val hierarchy = hierarchyManager.createProjectHierarchy(filterState, expandedDaily, expandedMedium, expandedLong)
+
+            // OPTIMIZED: Scroll logic з уникненням зайвих операцій
             val projectId = projectToRevealAndScroll
             if (projectId != null && !filterState.searchActive && !isProcessingReveal) {
-                val displayedProjects = flattenHierarchy(hierarchy.topLevelProjects, hierarchy.childMap)
-                val index = displayedProjects.indexOfFirst { it.id == projectId }
-                if (index != -1) {
-                    _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(index))
-                    projectToRevealAndScroll = null
+                viewModelScope.launch {
+                    val displayedProjects = flattenHierarchy(hierarchy.topLevelProjects, hierarchy.childMap)
+                    val index = displayedProjects.indexOfFirst { it.id == projectId }
+                    if (index != -1) {
+                        _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(index))
+                        projectToRevealAndScroll = null
+                    }
                 }
             }
             hierarchy
-        }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+        }
+            .flowOn(Dispatchers.Default)
+            .distinctUntilChanged() // OPTIMIZED: Уникаємо дублюючих емісій
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
 
+        // OPTIMIZED: Search results з кращим кешуванням
         val searchResultsFlow = combine(filterStateFlow, projectHierarchyFlow) { filterState, hierarchy ->
             if (filterState.searchActive && filterState.query.isNotBlank()) {
                 hierarchyManager.createSearchResults(filterState, hierarchy)
             } else {
                 emptyList()
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        }
+            .distinctUntilChanged() // OPTIMIZED: Уникаємо зайвих рекомпозицій
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-        val areAnyProjectsExpandedFlow = _allProjectsFlat.map { projects -> projects.any { it.isExpanded } }
+        // OPTIMIZED: Оптимізований flow для розгорнутих проектів
+        val areAnyProjectsExpandedFlow = _allProjectsFlat
+            .map { projects -> projects.any { it.isExpanded } }
+            .distinctUntilChanged() // OPTIMIZED: Емітимо тільки при зміні стану
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
         val listChooserFinalExpandedIdsFlow = combine(
@@ -315,7 +335,9 @@ class MainScreenViewModel @Inject constructor(
             val ancestorIds = mutableSetOf<String>()
             findAncestorsRecursive(movingId, projectLookup, ancestorIds, mutableSetOf())
             userExpanded + ancestorIds
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+        }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
         val filteredListHierarchyForDialogFlow = combine(
             _allProjectsFlat,
@@ -323,14 +345,19 @@ class MainScreenViewModel @Inject constructor(
             projectBeingMovedId
         ) { allProjects, filterText, movingId ->
             hierarchyManager.createFilteredListHierarchyForDialog(allProjects, filterText, movingId)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+        }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ListHierarchyData())
+
+        // OPTIMIZED: Статичні flows для рідко змінюваних даних
+        val staticAppStatisticsFlow = AppStatistics().let { flowOf(it) }
 
         viewModelScope.launch {
             val navManager = enhancedNavigationManager
             if (navManager == null) {
-                // Заглушки для состояний навигации
+                // OPTIMIZED: Заглушки для состояний навигации з searchResults
                 combine(
-                    _subStateStack, // 0
+                    debouncedSubStateStack, // 0 - використовуємо debounced версію
                     searchAndNavigationManager.searchQuery, // 1
                     searchAndNavigationManager.searchHistory, // 2
                     projectHierarchyFlow, // 3
@@ -348,12 +375,13 @@ class MainScreenViewModel @Inject constructor(
                     _isProcessingReveal, // 15
                     _isReadyForFiltering, // 16
                     settingsRepo.obsidianVaultNameFlow, // 17
-                    AppStatistics().let { flowOf(it) }, // 18 - як flow
+                    staticAppStatisticsFlow, // 18 - статичний flow
                     wifiSyncManager.showWifiServerDialog, // 19
                     wifiSyncManager.wifiServerAddress, // 20
                     wifiSyncManager.showWifiImportDialog, // 21
                     wifiSyncManager.desktopAddress, // 22
-                    _showSearchDialog // 23
+                    _showSearchDialog, // 23
+                    searchResultsFlow // 24 - ДОДАНО searchResults
                 ) { states ->
                     @Suppress("UNCHECKED_CAST")
                     MainScreenUiState(
@@ -383,12 +411,13 @@ class MainScreenViewModel @Inject constructor(
                         wifiServerAddress = states[20] as String?,
                         showWifiImportDialog = states[21] as Boolean,
                         desktopAddress = states[22] as String,
-                        showSearchDialog = states[23] as Boolean
+                        showSearchDialog = states[23] as Boolean,
+                        searchResults = states[24] as List<SearchResult> // ДОДАНО
                     )
                 }
             } else {
                 combine(
-                    _subStateStack, // 0
+                    debouncedSubStateStack, // 0 - використовуємо debounced версію
                     searchAndNavigationManager.searchQuery, // 1
                     searchAndNavigationManager.searchHistory, // 2
                     projectHierarchyFlow, // 3
@@ -409,14 +438,12 @@ class MainScreenViewModel @Inject constructor(
                     _isProcessingReveal, // 18
                     _isReadyForFiltering, // 19
                     settingsRepo.obsidianVaultNameFlow, // 20
-                    AppStatistics().let { flowOf(it) }, // 21 - як flow
+                    staticAppStatisticsFlow, // 21 - статичний flow
                     wifiSyncManager.showWifiServerDialog, // 22
                     wifiSyncManager.wifiServerAddress, // 23
                     wifiSyncManager.showWifiImportDialog, // 24
                     wifiSyncManager.desktopAddress, // 25
                     _showSearchDialog, // 26
-
-                    // VVVVVVVVVV  ОСЬ ТУТ ПОТРІБНО ДОДАТИ РЯДОК VVVVVVVVVV
                     searchResultsFlow // 27
                 ) { states ->
                     @Suppress("UNCHECKED_CAST")
@@ -448,14 +475,15 @@ class MainScreenViewModel @Inject constructor(
                         showWifiImportDialog = states[24] as Boolean,
                         desktopAddress = states[25] as String,
                         showSearchDialog = states[26] as Boolean,
-                        // Тепер цей рядок є правильним, оскільки є 28 джерел (індекси 0-27)
                         searchResults = states[27] as List<SearchResult>
-
                     )
                 }
-            }.collect { newState ->
-                _uiState.value = newState
             }
+                // OPTIMIZED: Додаємо distinctUntilChanged для уникнення зайвих UI оновлень
+                .distinctUntilChanged()
+                .collect { newState ->
+                    _uiState.value = newState
+                }
         }
     }
 
@@ -689,17 +717,50 @@ class MainScreenViewModel @Inject constructor(
 
     private fun onHomeClicked() {
         viewModelScope.launch {
-            searchAndNavigationManager.clearAllSearchState()
-            _subStateStack.value = listOf(MainSubState.Hierarchy)
+            // Prevent multiple rapid clicks
+            if (_isProcessingReveal.value) return@launch
+            _isProcessingReveal.value = true
 
-            planningModeManager.changeMode(PlanningMode.All)
-            planningModeManager.resetExpansionStates()
+            try {
+                // 1. Immediately update UI state to prevent flickering
+                withContext(Dispatchers.Main.immediate) {
+                    // Clear substate stack first to immediately show hierarchy
+                    _subStateStack.value = listOf(MainSubState.Hierarchy)
 
-            actionsHandler.collapseAllProjects(_allProjectsFlat.value)
+                    // Clear search state immediately
+                    searchAndNavigationManager.clearAllSearchState()
 
-            enhancedNavigationManager?.navigateHome()
+                    // Clear navigation breadcrumbs
+                    searchAndNavigationManager.clearNavigation()
+                }
 
-            _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
+                // 2. Batch all database operations
+                withContext(Dispatchers.IO) {
+                    val currentProjects = _allProjectsFlat.value
+                    val expandedProjects = currentProjects.filter { it.isExpanded }
+
+                    if (expandedProjects.isNotEmpty()) {
+                        // Collapse all projects in one batch operation
+                        val collapsedProjects = expandedProjects.map { it.copy(isExpanded = false) }
+                        projectRepository.updateProjects(collapsedProjects)
+                    }
+                }
+
+                // 3. Update planning mode without triggering additional recompositions
+                planningModeManager.changeMode(PlanningMode.All)
+                planningModeManager.resetExpansionStates()
+
+                // 4. Navigate home after state is stable
+                enhancedNavigationManager?.navigateHome()
+
+                // 5. Schedule scroll to top after next frame
+                withContext(Dispatchers.Main.immediate) {
+                    _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
+                }
+
+            } finally {
+                _isProcessingReveal.value = false
+            }
         }
     }
 
