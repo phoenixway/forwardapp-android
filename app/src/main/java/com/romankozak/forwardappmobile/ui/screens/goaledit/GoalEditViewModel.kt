@@ -108,6 +108,8 @@ constructor(
     }
 
     fun onListChooserResult(projectId: String) {
+        if (projectId.isBlank()) return
+
         val TAG = "NavResultDebug"
         Log.d(TAG, "[GoalEditViewModel] onListChooserResult: Екран повідомив про результат '$projectId'")
         Log.d(TAG, "[GoalEditViewModel] Current relatedLinks count: ${_uiState.value.relatedLinks.size}")

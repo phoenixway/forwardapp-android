@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 
@@ -142,37 +143,13 @@ fun SublistItemRow(
                 )
 
                 if (!sublist.tags.isNullOrEmpty()) {
-                    sublist.tags.filter { it.isNotBlank() }.forEachIndexed { index, tag ->
-                        key(tag) {
-                            var delayedVisible by remember { mutableStateOf(false) }
-                            LaunchedEffect(Unit) {
-                                kotlinx.coroutines.delay(index * 75L)
-                                delayedVisible = true
-                            }
-
-                            AnimatedVisibility(
-                                visible = delayedVisible,
-                                enter = slideInVertically(
-                                    initialOffsetY = { height -> -height },
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    )
-                                ) + fadeIn(),
-                            ) {
-                                // Надійна логіка, яка гарантує один '#' на початку
-                                val formattedTag = "#${tag.trim().trimStart('#')}"
-                                Log.d("SublistTagDebug", "Original Tag: ´$tag´ | Formatted Tag: ´$formattedTag´")
-
-                                EnhancedTagChip(
-                                    text = formattedTag,
-                                    onClick = { onTagClick(formattedTag) },
-                                    isDismissible = false,
-                                    tagType = TagType.HASHTAG,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
-                            }
-                        }
+                    sublist.tags.filter { it.isNotBlank() }.forEach { tag ->
+                        val formattedTag = "#${tag.trim().trimStart('#')}"
+                        ModernTagChip(
+                            text = formattedTag,
+                            onClick = { onTagClick(formattedTag) },
+                            tagType = TagType.PROJECT
+                        )
                     }
                 }
             }
