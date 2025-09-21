@@ -157,18 +157,17 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
         ) {
             val menu = actions.menuActions
             DropdownMenuItem(
-                text = { Text("Додати до плану на сьогодні") },
-                onClick = { actions.onAddProjectToDayPlan(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Outlined.EventAvailable, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-            )
-            // **FIX: Кнопка "Недавні" тепер тут не потрібна, оскільки вона на головній панелі**
-            // DropdownMenuItem(text = { Text("Недавні проекти") }, ... )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            DropdownMenuItem(
                 text = { Text(stringResource(R.string.edit_list)) },
                 onClick = { menu.onEditList(); actions.onMenuExpandedChange(false) },
                 leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
             )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            DropdownMenuItem(
+                text = { Text("Додати до плану на сьогодні") },
+                onClick = { actions.onAddProjectToDayPlan(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Outlined.EventAvailable, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+            )
+
             DropdownMenuItem(
                 text = { Text("Toggle realization support") },
                 onClick = { menu.onToggleProjectManagement(); actions.onMenuExpandedChange(false) },
@@ -218,12 +217,20 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                     leadingIcon = { Icon(Icons.Outlined.Assessment, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
                 )
             }
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.delete_list), color = MaterialTheme.colorScheme.error) },
                 onClick = { menu.onDeleteList(); actions.onMenuExpandedChange(false) },
                 leadingIcon = { Icon(Icons.Outlined.Delete, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) }
             )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            DropdownMenuItem(
+                text = { Text("Недавні проекти") },
+                onClick = { actions.onRecentsClick(); actions.onMenuExpandedChange(false) },
+                leadingIcon = { Icon(Icons.Outlined.Restore, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+            )
+
         }
     }
 }
