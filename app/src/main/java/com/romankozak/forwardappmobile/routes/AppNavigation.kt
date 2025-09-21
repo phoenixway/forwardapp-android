@@ -308,3 +308,4 @@ private fun NavGraphBuilder.mainGraph(
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)
     }
+}

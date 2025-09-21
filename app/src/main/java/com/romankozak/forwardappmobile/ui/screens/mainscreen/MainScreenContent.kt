@@ -169,7 +169,8 @@ internal fun OptimizedExpandingBottomNav(
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onAiChatClick: () -> Unit,
-    onActivityTrackerClick: () -> Unit
+    onActivityTrackerClick: () -> Unit,
+    onInsightsClick: () -> Unit
 ) {
     // OPTIMIZED: Кешуємо callbacks для запобігання зайвих рекомпозицій
     val stableOnHomeClick = remember { { onHomeClick() } }
@@ -191,6 +192,7 @@ internal fun OptimizedExpandingBottomNav(
         isExpanded = isExpanded,
         onExpandedChange = onExpandedChange,
         onAiChatClick = onAiChatClick,
-        onActivityTrackerClick = stableOnActivityTrackerClick
+        onActivityTrackerClick = stableOnActivityTrackerClick,
+        onInsightsClick = onInsightsClick
     )
 }

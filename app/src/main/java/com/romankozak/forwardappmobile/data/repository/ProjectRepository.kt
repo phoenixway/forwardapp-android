@@ -267,6 +267,12 @@ constructor(
         }
     }
 
+    suspend fun restoreListItems(items: List<ListItem>) {
+        if (items.isNotEmpty()) {
+            listItemDao.insertItems(items)
+        }
+    }
+
     suspend fun updateListItemsOrder(items: List<ListItem>) {
         if (items.isNotEmpty()) {
             listItemDao.updateItems(items)
