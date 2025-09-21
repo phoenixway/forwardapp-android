@@ -260,12 +260,13 @@ class BacklogViewModel @Inject constructor(
     private val _allContexts = MutableStateFlow<List<String>>(emptyList())
     val allContexts: StateFlow<List<String>> = _allContexts.asStateFlow()
 
-    private val _subprojectAttachments = MutableStateFlow<Map<String, List<RelatedLink>>>(emptyMap())
-    val subprojectAttachments: StateFlow<Map<String, List<RelatedLink>>> = _subprojectAttachments.asStateFlow()
-
     // Projects flow для UseCase
     private val _allProjects = projectRepository.getAllProjectsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val subprojectChildren: StateFlow<Map<String?, List<Project>>> = _allProjects.map { allProjects ->
+        allProjects.groupBy { it.parentId }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     // ВСІ ІСНУЮЧІ СТАНИ ЗАЛИШАЮТЬСЯ БЕЗ ЗМІН
     private var batchSaveJob: Job? = null
@@ -439,18 +440,7 @@ class BacklogViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            databaseContentStream.collect { dbContent ->
-                _listContent.value = dbContent
-
-                val subprojectIds = dbContent.filterIsInstance<ListItemContent.SublistItem>().map { it.project.id }
-                val attachmentsMap = mutableMapOf<String, List<RelatedLink>>()
-                for (subprojectId in subprojectIds) {
-                    val content = projectRepository.getProjectContentStream(subprojectId).first()
-                    val links = content.filterIsInstance<ListItemContent.LinkItem>().map { it.link.linkData }
-                    attachmentsMap[subprojectId] = links
-                }
-                _subprojectAttachments.value = attachmentsMap
-            }
+            databaseContentStream.collect { dbContent -> _listContent.value = dbContent }
         }
 
         viewModelScope.launch {
@@ -1455,6 +1445,12 @@ class BacklogViewModel @Inject constructor(
     fun onSubprojectClick(subproject: ListItemContent.SublistItem) {
         viewModelScope.launch {
             enhancedNavigationManager.navigateToProject(subproject.project.id, subproject.project.name)
+        }
+    }
+
+    fun onChildProjectClick(childProject: Project) {
+        viewModelScope.launch {
+            enhancedNavigationManager.navigateToProject(childProject.id, childProject.name)
         }
     }
 
