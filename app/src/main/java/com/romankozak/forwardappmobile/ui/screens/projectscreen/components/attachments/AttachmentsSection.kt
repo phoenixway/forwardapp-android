@@ -39,6 +39,7 @@ fun AttachmentsSection(
     onAddAttachment: (AttachmentType) -> Unit,
     onDeleteItem: (ListItemContent) -> Unit,
     onItemClick: (ListItemContent) -> Unit,
+    onCopyContentRequest: (ListItemContent) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -123,6 +124,9 @@ fun AttachmentsSection(
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onDeleteItem(content)
                                     },
+                                    onCopyContentRequest = { content ->
+                                        onCopyContentRequest(content)
+                                    }
                                 )
                             }
                         }
@@ -140,6 +144,7 @@ private fun AttachmentItemCard(
     item: ListItemContent,
     onItemClick: (ListItemContent) -> Unit,
     onDeleteItem: (ListItemContent) -> Unit,
+    onCopyContentRequest: (ListItemContent) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -165,13 +170,14 @@ private fun AttachmentItemCard(
         when (item) {
             is ListItemContent.LinkItem -> {
                 LinkItemRow(
-                    link = item.link.linkData,
+                    linkItem = item,
                     isSelected = false,
                     isHighlighted = false,
                     onClick = { onItemClick(item) },
                     onLongClick = { },
                     endAction = endAction,
                     onDelete = { onDeleteItem(item) },
+                    onCopyContentRequest = onCopyContentRequest,
                 )
             }
             else -> {}
@@ -225,7 +231,7 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            Divider()
+            HorizontalDivider()
             AttachmentTypeMenuItem(R.string.menu_add_list_shortcut, AttachmentType.SHORTCUT) { type ->
                 onAddAttachment(type)
                 showAddMenu = false

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -67,7 +68,7 @@ fun SwipeableListItem(
     onGoalTransportRequest: () -> Unit,
     onStartTrackingRequest: () -> Unit,
     onAddToDayPlanRequest: () -> Unit,
-    // onCopyContentRequest: () -> Unit, // <-- ВИДАЛЕНО ПАРАМЕТР
+    onCopyContentRequest: () -> Unit,
     content: @Composable () -> Unit,
     swipeEnabled: Boolean = true,
 ) {
@@ -221,7 +222,7 @@ fun SwipeableListItem(
                         scale = leftActionsScale,
                         onClick = { onGoalTransportRequest(); resetSwipe() },
                     )
-                    // <-- ВИДАЛЕНО КНОПКУ КОПІЮВАННЯ
+
                     SwipeActionButton(
                         icon = Icons.Default.PlayCircleOutline,
                         contentDescription = "Почати трекінг",

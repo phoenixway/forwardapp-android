@@ -76,7 +76,8 @@ internal fun NavControls(state: NavPanelState, actions: NavPanelActions, content
         NavigationButtons(
             contentColor = contentColor,
             onHomeClick = actions.onHomeClick,
-            onRevealInExplorer = actions.onRevealInExplorer
+            onRevealInExplorer = actions.onRevealInExplorer,
+            onRecentsClick = actions.onRecentsClick
         )
     }
 }
@@ -215,7 +216,8 @@ private fun BackForwardIcon(
 private fun NavigationButtons(
     contentColor: Color,
     onHomeClick: () -> Unit,
-    onRevealInExplorer: () -> Unit
+    onRevealInExplorer: () -> Unit,
+    onRecentsClick: () -> Unit
 ) {
     val homeIconColor by animateColorAsState(
         targetValue = contentColor.copy(alpha = 0.7f),
@@ -237,6 +239,18 @@ private fun NavigationButtons(
             modifier = Modifier
                 .size(20.dp)
                 .scale(homeIconScale)
+        )
+    }
+
+    IconButton(
+        onClick = onRecentsClick,
+        modifier = Modifier.size(40.dp)
+    ) {
+        Icon(
+            Icons.Outlined.Restore,
+            "Недавні",
+            tint = contentColor.copy(alpha = 0.7f),
+            modifier = Modifier.size(20.dp)
         )
     }
 

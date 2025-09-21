@@ -37,6 +37,7 @@ fun GoalTransportMenu(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
+    onCopyContentToClipboardRequest: () -> Unit,
     isGoalItem: Boolean
 ) {
     AnimatedVisibility(
@@ -122,6 +123,18 @@ fun GoalTransportMenu(
                             description = "Перемістити елемент в інший проект",
                             onClick = {
                                 onMoveInstanceRequest()
+                                onDismiss()
+                            },
+                        )
+
+                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                        TransportMenuItem(
+                            icon = Icons.Default.ContentCopy,
+                            title = "Копіювати текст",
+                            description = "Копіювати вміст елемента в буфер обміну",
+                            onClick = {
+                                onCopyContentToClipboardRequest()
                                 onDismiss()
                             },
                         )

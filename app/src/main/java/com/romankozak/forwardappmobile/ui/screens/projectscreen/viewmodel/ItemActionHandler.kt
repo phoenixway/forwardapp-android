@@ -41,6 +41,9 @@ constructor(
     private val _itemForTransportMenu = MutableStateFlow<ListItemContent?>(null)
     val itemForTransportMenu = _itemForTransportMenu.asStateFlow()
 
+    private val _onCopyContentToClipboard = MutableStateFlow<() -> Unit>({ /* no-op */ })
+    val onCopyContentToClipboard = _onCopyContentToClipboard.asStateFlow()
+
     fun onItemClick(item: ListItemContent) {
         if (resultListener.isSelectionModeActive()) {
             resultListener.toggleSelection(item.listItem.id)
@@ -113,7 +116,8 @@ constructor(
         }
     }
 
-    fun onGoalTransportInitiated(item: ListItemContent) {
+    fun onGoalTransportInitiated(item: ListItemContent, onCopyContentToClipboard: () -> Unit) {
+        _onCopyContentToClipboard.value = onCopyContentToClipboard
         if (item is ListItemContent.GoalItem || item is ListItemContent.SublistItem) {
             _itemForTransportMenu.value = item
             _showGoalTransportMenu.value = true

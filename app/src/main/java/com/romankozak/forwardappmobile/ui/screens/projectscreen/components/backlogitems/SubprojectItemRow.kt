@@ -60,8 +60,8 @@ private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SublistItemRow(
-    sublistContent: ListItemContent.SublistItem,
+fun SubprojectItemRow(
+    subprojectContent: ListItemContent.SublistItem,
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -70,7 +70,7 @@ fun SublistItemRow(
     onTagClick: (String) -> Unit = {},
     currentTimeMillis: Long,
 ) {
-    val sublist = sublistContent.project
+    val subproject = subprojectContent.project
 
     Row(
         modifier =
@@ -81,11 +81,11 @@ fun SublistItemRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         EnhancedCustomCheckbox(
-            checked = sublist.isCompleted,
+            checked = subproject.isCompleted,
             onCheckedChange = onCheckedChange,
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(
             modifier =
@@ -99,15 +99,15 @@ fun SublistItemRow(
                     },
         ) {
             val textColor =
-                if (sublist.isCompleted) {
+                if (subproject.isCompleted) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 }
-            val textDecoration = if (sublist.isCompleted) TextDecoration.LineThrough else null
+            val textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null
 
             Text(
-                text = sublist.name,
+                text = subproject.name,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -115,9 +115,9 @@ fun SublistItemRow(
                 textDecoration = textDecoration,
             )
 
-            val hasExtraContent = !sublist.tags.isNullOrEmpty() ||
-                    (sublist.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                    (sublist.reminderTime != null)
+            val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
+                    (subproject.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                    (subproject.reminderTime != null)
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -130,7 +130,7 @@ fun SublistItemRow(
                     modifier = Modifier.align(Alignment.CenterVertically)
                 )
 
-                sublist.reminderTime?.let { time ->
+                subproject.reminderTime?.let { time ->
                     EnhancedReminderBadge(
                         reminderTime = time,
                         currentTimeMillis = currentTimeMillis,
@@ -138,12 +138,12 @@ fun SublistItemRow(
                 }
 
                 EnhancedScoreStatusBadge(
-                    scoringStatus = sublist.scoringStatus,
-                    displayScore = sublist.displayScore
+                    scoringStatus = subproject.scoringStatus,
+                    displayScore = subproject.displayScore
                 )
 
-                if (!sublist.tags.isNullOrEmpty()) {
-                    sublist.tags.filter { it.isNotBlank() }.forEach { tag ->
+                if (!subproject.tags.isNullOrEmpty()) {
+                    subproject.tags.filter { it.isNotBlank() }.forEach { tag ->
                         val formattedTag = "#${tag.trim().trimStart('#')}"
                         ModernTagChip(
                             text = formattedTag,
@@ -154,7 +154,7 @@ fun SublistItemRow(
                 }
             }
 
-            if (!sublist.description.isNullOrBlank()) {
+            if (!subproject.description.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Surface(
@@ -163,7 +163,7 @@ fun SublistItemRow(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ) {
                     Text(
-                        text = sublist.description,
+                        text = subproject.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         maxLines = if (isSelected) Int.MAX_VALUE else 2,
