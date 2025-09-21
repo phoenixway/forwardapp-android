@@ -2,6 +2,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun NavControls(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
+    Log.d("NavControls_UI_DEBUG", "UI recomposing with canGoBack = ${state.canGoBack}")
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
