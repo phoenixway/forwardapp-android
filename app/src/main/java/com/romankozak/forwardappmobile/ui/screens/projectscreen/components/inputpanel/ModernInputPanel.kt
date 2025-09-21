@@ -356,7 +356,9 @@ fun ModernInputPanel(
     isViewModePanelVisible: Boolean,
     onToggleNavPanelMode: () -> Unit,
     onRevealInExplorer: () -> Unit,
-    onCloseSearch: () -> Unit
+    onCloseSearch: () -> Unit,
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit
 ) {
     val state = NavPanelState(
         canGoBack = canGoBack,
@@ -484,6 +486,18 @@ fun ModernInputPanel(
         border = BorderStroke(1.dp, panelColors.contentColor.copy(alpha = 0.1f)),
     ) {
         Column {
+            AnimatedVisibility(visible = suggestions.isNotEmpty()) {
+                Column {
+                    Divider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = panelColors.contentColor.copy(alpha = 0.12f)
+                    )
+                    AutocompleteSuggestions(
+                        suggestions = suggestions,
+                        onSuggestionClick = onSuggestionClick
+                    )
+                }
+            }
             NavigationBar(
                 state = state,
                 actions = actions,

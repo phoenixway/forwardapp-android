@@ -30,6 +30,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.Transfer
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputMode
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandlerResultListener
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxMarkdownHandler
@@ -253,6 +254,12 @@ class BacklogViewModel @Inject constructor(
     // ДОДАНО тільки один новий стан для захисту від multiple clicks
     private val _isProcessingHome = MutableStateFlow(false)
 
+    private val _allTags = MutableStateFlow<List<String>>(emptyList())
+    val allTags: StateFlow<List<String>> = _allTags.asStateFlow()
+
+    private val _allContexts = MutableStateFlow<List<String>>(emptyList())
+    val allContexts: StateFlow<List<String>> = _allContexts.asStateFlow()
+
     // Projects flow для UseCase
     private val _allProjects = projectRepository.getAllProjectsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -440,6 +447,108 @@ class BacklogViewModel @Inject constructor(
             withContext(Dispatchers.IO) {
                 contextHandler.initialize()
             }
+        }
+        loadAllTags()
+        loadAllContexts()
+    }
+
+    private fun loadAllTags() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val projects = projectRepository.getAllProjectsFlow().first()
+            val projectTags = projects.flatMap { it.tags ?: emptyList() }
+            val goalTags = mutableListOf<String>()
+            for (project in projects) {
+                val content = projectRepository.getProjectContentStream(project.id).first()
+                content.forEach { item ->
+                    if (item is ListItemContent.GoalItem) {
+                        goalTags.addAll(TagUtils.extractTags(item.goal.text).map { it.fullTag })
+                    }
+                }
+            }
+            withContext(Dispatchers.Main) {
+                _allTags.value = (projectTags + goalTags).distinct()
+            }
+        }
+    }
+
+    private fun loadAllContexts() {
+        viewModelScope.launch {
+            _allContexts.value = contextHandler.contextNamesFlow.first()
+        }
+    }
+
+    val autocompleteSuggestions = uiState.map { it.inputValue }.debounce(150).flatMapLatest { inputValue ->
+        val text = inputValue.text
+        val cursorPosition = inputValue.selection.start
+        if (text.isEmpty()) {
+            return@flatMapLatest flowOf(emptyList())
+        }
+
+        val wordInfo = getCurrentWordInfo(text, cursorPosition)
+        if (wordInfo != null) {
+            val (word, type) = wordInfo
+            if (word.length < 2) {
+                return@flatMapLatest flowOf(emptyList())
+            }
+            when (type) {
+                "#" -> {
+                    val filtered = _allTags.value.filter { tag ->
+                        tag.removePrefix("#").startsWith(word, ignoreCase = true)
+                    }.map { tag ->
+                        if (tag.startsWith("#")) tag else "#$tag"
+                    }
+                    flowOf(filtered)
+                }
+                "@" -> {
+                    val filtered = _allContexts.value.filter { it.startsWith(word, ignoreCase = true) }.map { "@$it" }
+                    flowOf(filtered)
+                }
+                else -> flowOf(emptyList())
+            }
+        } else {
+            flowOf(emptyList())
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private fun getCurrentWordInfo(text: String, cursorPosition: Int): Pair<String, String>? {
+        val textUpToCursor = text.substring(0, cursorPosition)
+        val lastAt = textUpToCursor.lastIndexOf('@')
+        val lastHash = textUpToCursor.lastIndexOf('#')
+
+        if (lastAt == -1 && lastHash == -1) {
+            return null
+        }
+
+        val (startIndex, prefix) = if (lastAt > lastHash) {
+            lastAt to "@"
+        } else {
+            lastHash to "#"
+        }
+
+        val word = textUpToCursor.substring(startIndex + 1)
+        if (word.contains(" ")) {
+            return null
+        }
+
+        return word to prefix
+    }
+
+    fun onSuggestionClick(suggestion: String) {
+        val currentText = uiState.value.inputValue.text
+        val cursorPosition = uiState.value.inputValue.selection.start
+        val (word, prefix) = getCurrentWordInfo(currentText, cursorPosition) ?: return
+
+        val startIndex = currentText.substring(0, cursorPosition).lastIndexOf(prefix)
+        val newText = currentText.substring(0, startIndex) + suggestion + " " + currentText.substring(cursorPosition)
+        val newCursorPosition = startIndex + suggestion.length + 1
+
+        _uiState.update {
+            it.copy(
+                inputValue = TextFieldValue(
+                    text = newText,
+                    selection = androidx.compose.ui.text.TextRange(newCursorPosition)
+                )
+            )
         }
     }
 

@@ -48,6 +48,7 @@ fun ProjectsScreen(
     // --- НОВА ЛОГІКА: Отримуємо стани для кнопок навігації з ViewModel ---
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
+    val suggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
 
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -222,7 +223,9 @@ fun ProjectsScreen(
                     onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
                     onCloseSearch = viewModel::onCloseSearch,
                     isViewModePanelVisible = uiState.isViewModePanelVisible,
-                    onToggleNavPanelMode = viewModel::onToggleNavPanelMode
+                    onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
+                    suggestions = suggestions,
+                    onSuggestionClick = viewModel::onSuggestionClick
                 )
             }
         },
