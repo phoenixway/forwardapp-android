@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
@@ -24,6 +25,7 @@ import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
+import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.TransferStatus
 import com.romankozak.forwardappmobile.ui.screens.backlog.components.attachments.AttachmentType
@@ -36,6 +38,7 @@ import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ItemActionHa
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.ProjectMarkdownExporter
 import com.romankozak.forwardappmobile.ui.screens.backlog.viewmodel.SelectionHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -213,9 +216,7 @@ constructor(
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
-class BacklogViewModel
-@Inject
-constructor(
+class BacklogViewModel @Inject constructor(
     private val application: Application,
     private val projectRepository: ProjectRepository,
     private val settingsRepository: SettingsRepository,
@@ -227,6 +228,9 @@ constructor(
     private val projectMarkdownExporter: ProjectMarkdownExporter,
     private val savedStateHandle: SavedStateHandle,
     private val dayManagementRepository: DayManagementRepository,
+    // ДОДАНО UseCase для домашньої навігації
+    private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel(),
     ItemActionHandler.ResultListener,
     InputHandler.ResultListener,
@@ -234,20 +238,27 @@ constructor(
     InboxHandlerResultListener,
     InboxMarkdownHandler.ResultListener,
     BacklogMarkdownHandlerResultListener {
+
     companion object {
         const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
+        private const val TAG = "BacklogVM_DEBUG"
     }
 
-    // --- ПОЧАТОК ЗМІН ---
-    // Тепер ViewModel отримує готовий менеджер, а не створює його
+    // ЗБЕРІГАЄМО існуючу структуру
     lateinit var enhancedNavigationManager: EnhancedNavigationManager
 
     val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
     val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
-    // --- КІНЕЦЬ ЗМІН ---
 
+    // ДОДАНО тільки один новий стан для захисту від multiple clicks
+    private val _isProcessingHome = MutableStateFlow(false)
+
+    // Projects flow для UseCase
+    private val _allProjects = projectRepository.getAllProjectsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ВСІ ІСНУЮЧІ СТАНИ ЗАЛИШАЮТЬСЯ БЕЗ ЗМІН
     private var batchSaveJob: Job? = null
-
     private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
     private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
     val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
@@ -258,35 +269,35 @@ constructor(
     val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, viewModelScope, this)
     val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, viewModelScope, this)
 
-    private val _uiState =
-        MutableStateFlow(
-            UiState(
-                goalToHighlight = savedStateHandle.get<String>("goalId"),
-                itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"),
-                inboxRecordToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight"),
-            ),
+    private val _uiState = MutableStateFlow(
+        UiState(
+            goalToHighlight = savedStateHandle.get<String>("goalId"),
+            itemToHighlight = savedStateHandle.get<String>("itemIdToHighlight"),
+            inboxRecordToHighlight = savedStateHandle.get<String>("inboxRecordIdToHighlight"),
         )
+    )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    val projectLogs: StateFlow<List<ProjectExecutionLog>> =
-        projectIdFlow
-            .flatMapLatest { id ->
-                if (id.isNotEmpty()) {
-                    projectRepository.getProjectLogsStream(id)
-                } else {
-                    flowOf(emptyList())
-                }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
 
-    val inputHandler =
-        InputHandler(
-            projectRepository,
-            viewModelScope,
-            projectIdFlow,
-            this,
-            reminderParser,
-            alarmScheduler,
-        )
+    val projectLogs: StateFlow<List<ProjectExecutionLog>> =
+        projectIdFlow.flatMapLatest { id ->
+            if (id.isNotEmpty()) {
+                projectRepository.getProjectLogsStream(id)
+            } else {
+                flowOf(emptyList())
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val inputHandler = InputHandler(
+        projectRepository,
+        viewModelScope,
+        projectIdFlow,
+        this,
+        reminderParser,
+        alarmScheduler,
+    )
 
     private val _refreshTrigger = MutableStateFlow(0)
 
@@ -294,8 +305,7 @@ constructor(
     val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
     val recentProjects: StateFlow<List<Project>> =
-        projectRepository
-            .getRecentProjects()
+        projectRepository.getRecentProjects()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val contextMarkerToEmojiMap: StateFlow<Map<String, String>> =
@@ -337,14 +347,12 @@ constructor(
                     projectRepository.getProjectContentStream(id).map { content ->
                         if (query.isNotBlank()) {
                             content.filter { itemContent ->
-                                val textToSearch =
-                                    when (itemContent) {
-                                        is ListItemContent.GoalItem -> itemContent.goal.text
-                                        is ListItemContent.SublistItem -> itemContent.project.name
-                                        is ListItemContent.LinkItem ->
-                                            itemContent.link.linkData.displayName
-                                                ?: itemContent.link.linkData.target
-                                    }
+                                val textToSearch = when (itemContent) {
+                                    is ListItemContent.GoalItem -> itemContent.goal.text
+                                    is ListItemContent.SublistItem -> itemContent.project.name
+                                    is ListItemContent.LinkItem ->
+                                        itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
+                                }
                                 textToSearch.contains(query, ignoreCase = true)
                             }
                         } else {
@@ -355,8 +363,7 @@ constructor(
             }
 
     val isSelectionModeActive: StateFlow<Boolean> =
-        _uiState
-            .map { it.selectedItemIds.isNotEmpty() }
+        _uiState.map { it.selectedItemIds.isNotEmpty() }
             .onEach { isActive -> Log.d(TAG, "СТАН: isSelectionModeActive змінився на: $isActive") }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -373,6 +380,7 @@ constructor(
         settingsRepository.desktopAddressFlow
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
+    // ВСЯ ІНІЦІАЛІЗАЦІЯ ЗАЛИШАЄТЬСЯ БЕЗ ЗМІН
     init {
         Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
 
@@ -382,10 +390,7 @@ constructor(
                     val isManagementEnabled = proj.isProjectManagementEnabled ?: false
                     val currentView = uiState.value.currentView
                     if (!isManagementEnabled && currentView == ProjectViewMode.DASHBOARD) {
-                        Log.d(
-                            TAG,
-                            "Inconsistency detected: Project management is OFF but view is DASHBOARD. Switching to BACKLOG.",
-                        )
+                        Log.d(TAG, "Inconsistency detected: Project management is OFF but view is DASHBOARD. Switching to BACKLOG.")
                         onProjectViewChange(ProjectViewMode.BACKLOG)
                     }
 
@@ -408,28 +413,29 @@ constructor(
         }
 
         viewModelScope.launch {
-            project
-                .filterNotNull()
+            project.filterNotNull()
                 .map { it.defaultViewModeName }
                 .distinctUntilChanged()
                 .collect { savedModeName ->
-                    val viewMode =
-                        try {
-                            ProjectViewMode.valueOf(savedModeName ?: ProjectViewMode.BACKLOG.name)
-                        } catch (e: Exception) {
-                            ProjectViewMode.BACKLOG
-                        }
+                    val viewMode = try {
+                        ProjectViewMode.valueOf(savedModeName ?: ProjectViewMode.BACKLOG.name)
+                    } catch (e: Exception) {
+                        ProjectViewMode.BACKLOG
+                    }
                     _uiState.update {
                         it.copy(currentView = viewMode, inputMode = getInputModeForView(viewMode))
                     }
                 }
         }
+
         viewModelScope.launch {
             databaseContentStream.collect { dbContent -> _listContent.value = dbContent }
         }
+
         viewModelScope.launch {
             projectIdFlow.filter { it.isNotEmpty() }.collect { id -> projectRepository.logProjectAccess(id) }
         }
+
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 contextHandler.initialize()
@@ -1124,8 +1130,69 @@ constructor(
     }
 
     fun onHomeClick() {
-        enhancedNavigationManager.navigateToMainScreen()
+        if (_isProcessingHome.value) {
+            Log.w(TAG, "Home click ignored - already processing")
+            return
+        }
+
+        viewModelScope.launch {
+            _isProcessingHome.value = true
+
+            try {
+                Log.d(TAG, "Starting home navigation with UseCase")
+
+                // Використовуємо спрощену версію UseCase з окремими callbacks
+                clearAndNavigateHomeUseCase(
+                    currentProjects = _allProjects.value,
+                    onSubStateCleared = {
+                        // Очищуємо backlog-специфічні стани
+                        Log.d(TAG, "Clearing backlog sub-states")
+                        _uiState.update {
+                            it.copy(
+                                selectedItemIds = emptySet(),
+                                localSearchQuery = "",
+                                inputValue = TextFieldValue(""),
+                                inputMode = getInputModeForView(it.currentView)
+                            )
+                        }
+                    },
+                    onNavigationCleared = {
+                        // Очищуємо navigation стани
+                        Log.d(TAG, "Clearing backlog navigation state")
+                        _uiState.update {
+                            it.copy(
+                                goalToHighlight = null,
+                                itemToHighlight = null,
+                                inboxRecordToHighlight = null,
+                                newlyAddedItemId = null
+                            )
+                        }
+                    },
+                    onNavigateHome = {
+                        Log.d(TAG, "Navigating to main screen")
+                        enhancedNavigationManager.navigateToMainScreen()
+                    },
+                    onScrollToTop = {
+                        Log.d(TAG, "Scrolling to top")
+                        viewModelScope.launch {
+                            _uiEventFlow.send(UiEvent.ScrollTo(0))
+                        }
+                    }
+                )
+
+                Log.d(TAG, "Home navigation completed successfully")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during home navigation", e)
+                viewModelScope.launch {
+                    _uiEventFlow.send(UiEvent.ShowSnackbar("Navigation error: ${e.message}"))
+                }
+            } finally {
+                _isProcessingHome.value = false
+            }
+        }
     }
+
 
     fun onForwardPressed() {
         enhancedNavigationManager.goForward()
