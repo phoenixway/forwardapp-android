@@ -293,8 +293,8 @@ private fun MainScreenTopAppBar(
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
 ) {
-    TopAppBar(
-        title = { Text("Projects") },
+    CenterAlignedTopAppBar(
+        title = { Text("Projects", fontWeight = FontWeight.Bold, fontSize = 22.sp) },
         actions = {
             if (!isSearchActive) {
                 AnimatedVisibility(visible = canGoBack) {
@@ -348,6 +348,13 @@ private fun MainScreenTopAppBar(
                 }
             }
         },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurface,
+            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        modifier = Modifier.shadow(4.dp)
     )
 }
 
