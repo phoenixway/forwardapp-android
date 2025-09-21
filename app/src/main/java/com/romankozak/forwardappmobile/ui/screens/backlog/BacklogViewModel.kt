@@ -1228,25 +1228,56 @@ class BacklogViewModel @Inject constructor(
 
     fun onBackPressed(): Boolean {
         Log.d(TAG, "onBackPressed TRIGGERED")
+        val state = uiState.value // Отримуємо стабільну копію стану для перевірок
 
-        // **FIX 2: Оновлена, більш розумна логіка для системної кнопки "назад"**
+        // --- НОВА ЛОГІКА: Спочатку закриваємо всі модальні вікна та панелі ---
+        if (state.showExportTransferDialog) {
+            onExportTransferDialogDismiss()
+            return true // Подія оброблена
+        }
+        if (state.recordForReminderDialog != null) {
+            onReminderDialogDismiss()
+            return true // Подія оброблена
+        }
+        if (state.showImportBacklogFromMarkdownDialog) {
+            onImportBacklogFromMarkdownDismiss()
+            return true // Подія оброблена
+        }
+        if (state.showImportFromMarkdownDialog) {
+            onImportFromMarkdownDismiss()
+            return true // Подія оброблена
+        }
+        if (state.showRecentProjectsSheet) {
+            inputHandler.onDismissRecentLists()
+            return true // Подія оброблена
+        }
+        if (state.showAddWebLinkDialog || state.showAddObsidianLinkDialog) {
+            inputHandler.onDismissLinkDialogs()
+            return true // Подія оброблена
+        }
+
+        // --- ІСНУЮЧА ЛОГІКА: Обробка станів екрана (пошук, вибір, історія) ---
+
         // Якщо ми в режимі пошуку і є текст, перший клік "назад" стирає текст
-        if (uiState.value.inputMode == InputMode.SearchInList && uiState.value.inputValue.text.isNotEmpty()) {
+        if (state.inputMode == InputMode.SearchInList && state.inputValue.text.isNotEmpty()) {
             Log.d(TAG, "Action: Clearing input field because we are in search mode.")
-            inputHandler.onInputTextChanged(TextFieldValue(""), uiState.value.inputMode)
+            inputHandler.onInputTextChanged(TextFieldValue(""), state.inputMode)
             return true // Подія оброблена
         }
         // Якщо ми в режимі пошуку і текст порожній, другий клік "назад" вимикає пошук
-        if (uiState.value.inputMode == InputMode.SearchInList) {
+        if (state.inputMode == InputMode.SearchInList) {
             onCloseSearch()
             return true // Подія оброблена
         }
 
+        // Якщо активний режим вибору, скасовуємо його
         if (isSelectionModeActive.value) {
             Log.d(TAG, "Action: Clearing selection.")
             selectionHandler.clearSelection()
             return true // Подія оброблена
         }
+
+        // Якщо є історія навігації, повертаємось назад по ній
         if (enhancedNavigationManager.canGoBack.value) {
             Log.d(TAG, "Action: Navigating back via EnhancedNavigationManager.")
             flushPendingMoves()
@@ -1258,7 +1289,6 @@ class BacklogViewModel @Inject constructor(
         flushPendingMoves()
         return false // Дозволяємо системі обробити подію (напр. закрити екран)
     }
-
 
 
     fun onCloseSearch() {

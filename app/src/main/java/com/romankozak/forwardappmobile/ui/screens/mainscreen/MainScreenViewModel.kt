@@ -18,7 +18,10 @@ import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
+import com.romankozak.forwardappmobile.ui.navigation.ClearCommand
+import com.romankozak.forwardappmobile.ui.navigation.ClearResult
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActionsHandler
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
@@ -429,7 +432,24 @@ class MainScreenViewModel @Inject constructor(
             is MainScreenEvent.PlanningModeChange -> onPlanningModeChange(event.mode)
 
             is MainScreenEvent.DismissDialog -> dialogStateManager.dismissDialog()
-            is MainScreenEvent.AddNewProjectRequest -> dialogStateManager.onAddNewProjectRequest()
+            is MainScreenEvent.AddNewProjectRequest -> {
+                // Перевіряємо, чи поточний стан є фокусуванням на проекті
+                val focusedState = uiState.value.currentSubState as? MainSubState.ProjectFocused
+                if (focusedState != null) {
+                    // Якщо так, шукаємо цей проект у загальному списку
+                    val parentProject = _allProjectsFlat.value.find { it.id == focusedState.projectId }
+                    if (parentProject != null) {
+                        // І викликаємо діалог для створення підпроекту
+                        dialogStateManager.onAddSubprojectRequest(parentProject)
+                    } else {
+                        // Якщо з якоїсь причини проект не знайдено, створюємо в корені
+                        dialogStateManager.onAddNewProjectRequest()
+                    }
+                } else {
+                    // Якщо фокусування немає, створюємо проект в корені, як і раніше
+                    dialogStateManager.onAddNewProjectRequest()
+                }
+            }
             is MainScreenEvent.AddSubprojectRequest -> dialogStateManager.onAddSubprojectRequest(event.parentProject)
             is MainScreenEvent.DeleteRequest -> dialogStateManager.onDeleteRequest(event.project)
             is MainScreenEvent.MoveRequest -> {
@@ -534,6 +554,8 @@ class MainScreenViewModel @Inject constructor(
                 dialogStateManager.dismissDialog()
             }
             is MainScreenEvent.CloseSearch -> onCloseSearch()
+            is MainScreenEvent.NavigateToProject -> onNavigateToProject(event.projectId)
+            is MainScreenEvent.CollapseAll -> onCollapseAll()
 
         }
     }
@@ -544,14 +566,14 @@ class MainScreenViewModel @Inject constructor(
         viewModelScope.launch {
             _isProcessingReveal.value = true
             try {
-                clearAndNavigateHomeUseCase.closeSearchAndNavigateHome(
-                    currentProjects = _allProjectsFlat.value,
-                    subStateStack = _subStateStack,
-                    searchAndNavigationManager = searchAndNavigationManager,
-                    planningModeManager = planningModeManager,
-                    enhancedNavigationManager = enhancedNavigationManager,
-                    uiEventChannel = _uiEventChannel
+                val result = clearAndNavigateHomeUseCase.execute(
+                    command = ClearCommand.CloseSearch,
+                    context = createClearContext()
                 )
+
+                if (result is ClearResult.Error) {
+                    _uiEventChannel.send(ProjectUiEvent.ShowToast("Помилка закриття пошуку: ${result.message}"))
+                }
             } finally {
                 _isProcessingReveal.value = false
             }
@@ -614,40 +636,26 @@ class MainScreenViewModel @Inject constructor(
     }
 
     private fun onHomeClicked() {
+        if (_isProcessingReveal.value) return
+
         viewModelScope.launch {
-            if (_isProcessingReveal.value) return@launch
             _isProcessingReveal.value = true
-
             try {
-                withContext(Dispatchers.Main.immediate) {
-                    _subStateStack.value = listOf(MainSubState.Hierarchy)
-                    searchAndNavigationManager.clearAllSearchState()
-                    searchAndNavigationManager.clearNavigation()
+                val result = clearAndNavigateHomeUseCase.execute(
+                    command = ClearCommand.Home,
+                    context = createClearContext()
+                )
+
+                // Обробка результату
+                if (result is ClearResult.Error) {
+                    _uiEventChannel.send(ProjectUiEvent.ShowToast("Помилка навігації: ${result.message}"))
                 }
-
-                withContext(ioDispatcher) {
-                    val currentProjects = _allProjectsFlat.value
-                    val expandedProjects = currentProjects.filter { it.isExpanded }
-                    if (expandedProjects.isNotEmpty()) {
-                        val collapsedProjects = expandedProjects.map { it.copy(isExpanded = false) }
-                        projectRepository.updateProjects(collapsedProjects)
-                    }
-                }
-
-                planningModeManager.changeMode(PlanningMode.All)
-                planningModeManager.resetExpansionStates()
-
-                enhancedNavigationManager?.navigateHome()
-
-                withContext(Dispatchers.Main.immediate) {
-                    _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
-                }
-
             } finally {
                 _isProcessingReveal.value = false
             }
         }
     }
+
 
     private fun onPerformGlobalSearch(query: String) {
         if (query.isNotBlank()) {
@@ -777,4 +785,66 @@ class MainScreenViewModel @Inject constructor(
                 allProjects = _allProjectsFlat.value
             )
         }
-    }}
+    }
+
+    private fun createClearContext() = createClearExecutionContext(
+        currentProjects = _allProjectsFlat.value,
+        subStateStack = _subStateStack,
+        searchAndNavigationManager = searchAndNavigationManager,
+        planningModeManager = planningModeManager,
+        enhancedNavigationManager = enhancedNavigationManager,
+        uiEventChannel = _uiEventChannel
+    )
+
+
+    // Новий метод для навігації до проєкту
+    private fun onNavigateToProject(projectId: String) {
+        if (_isProcessingReveal.value) return
+
+        viewModelScope.launch {
+            _isProcessingReveal.value = true
+            try {
+                val project = _allProjectsFlat.value.find { it.id == projectId }
+                val projectName = project?.name ?: "Unknown Project"
+
+                val result = clearAndNavigateHomeUseCase.execute(
+                    command = ClearCommand.NavigateToProject(projectId, projectName),
+                    context = createClearContext()
+                )
+
+                if (result is ClearResult.Error) {
+                    _uiEventChannel.send(ProjectUiEvent.ShowToast("Помилка навігації до проєкту: ${result.message}"))
+                }
+            } finally {
+                _isProcessingReveal.value = false
+            }
+        }
+    }
+
+    // Новий метод для згортання всіх проєктів
+    private fun onCollapseAll() {
+        if (_isProcessingReveal.value) return
+
+        viewModelScope.launch {
+            _isProcessingReveal.value = true
+            try {
+                val result = clearAndNavigateHomeUseCase.execute(
+                    command = ClearCommand.CollapseAll,
+                    context = createClearContext()
+                )
+
+                when (result) {
+                    is ClearResult.Success -> {
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Всі проєкти згорнуто"))
+                    }
+                    is ClearResult.Error -> {
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Помилка згортання: ${result.message}"))
+                    }
+                }
+            } finally {
+                _isProcessingReveal.value = false
+            }
+        }
+    }
+
+}
