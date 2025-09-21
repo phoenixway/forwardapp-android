@@ -297,7 +297,7 @@ class InputHandler(
     fun onDismissRecentLists() = resultListener.showRecentListsSheet(false)
 
     fun onRecentListSelected(projectId: String) {
-        resultListener.requestNavigation("project_detail_screen/$projectId")
+        resultListener.requestNavigation("goal_detail_screen/$projectId")
         onDismissRecentLists()
     }
 }
