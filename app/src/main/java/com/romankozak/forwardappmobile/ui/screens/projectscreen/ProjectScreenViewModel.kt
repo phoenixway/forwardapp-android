@@ -110,6 +110,7 @@ data class UiState(
     val inboxRecordToHighlight: String? = null,
     val needsStateRefresh: Boolean = false,
     val currentView: ProjectViewMode = ProjectViewMode.BACKLOG,
+    val isViewModePanelVisible: Boolean = false,
     val showRecentProjectsSheet: Boolean = false,
     val showImportFromMarkdownDialog: Boolean = false,
     val showImportBacklogFromMarkdownDialog: Boolean = false,
@@ -1322,6 +1323,10 @@ class BacklogViewModel @Inject constructor(
             inputValue = TextFieldValue(""),
             inputMode = getInputModeForView(uiState.value.currentView)
         )
+    }
+
+    fun onToggleNavPanelMode() {
+        _uiState.update { it.copy(isViewModePanelVisible = !it.isViewModePanelVisible) }
     }
 
     fun onSubprojectClick(subproject: ListItemContent.SublistItem) {
