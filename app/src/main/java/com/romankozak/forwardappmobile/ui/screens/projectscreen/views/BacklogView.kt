@@ -38,6 +38,7 @@ fun BacklogView(
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
+    val subprojectAttachments by viewModel.subprojectAttachments.collectAsStateWithLifecycle()
 
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -126,6 +127,7 @@ fun BacklogView(
                             )
                         }
                         is ListItemContent.SublistItem -> {
+                            val attachments = subprojectAttachments[content.project.id] ?: emptyList()
                             SubprojectItemRow(
                                 subprojectContent = content,
                                 isSelected = isSelected,
@@ -135,6 +137,8 @@ fun BacklogView(
                                     viewModel.onSubprojectCompletedChanged(content.project, isCompleted) // ВИПРАВЛЕНО
                                 },
                                 currentTimeMillis = currentTime,
+                                attachments = attachments,
+                                onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) }
                             )
                         }
                         else -> {

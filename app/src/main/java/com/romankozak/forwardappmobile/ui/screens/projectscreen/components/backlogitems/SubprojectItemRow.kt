@@ -24,7 +24,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.RelatedLinkChip
+import com.google.accompanist.flowlayout.FlowRow
+import com.google.accompanist.flowlayout.FlowRow
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -68,6 +72,8 @@ fun SubprojectItemRow(
     modifier: Modifier = Modifier,
     onCheckedChange: (Boolean) -> Unit,
     onTagClick: (String) -> Unit = {},
+    attachments: List<RelatedLink> = emptyList(),
+    onRelatedLinkClick: (RelatedLink) -> Unit = {},
     currentTimeMillis: Long,
 ) {
     val subproject = subprojectContent.project
@@ -170,6 +176,21 @@ fun SubprojectItemRow(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(8.dp)
                     )
+                }
+            }
+
+            if (attachments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                com.google.accompanist.flowlayout.FlowRow(
+                    mainAxisSpacing = 8.dp,
+                    crossAxisSpacing = 4.dp,
+                ) {
+                    attachments.forEach { link ->
+                        RelatedLinkChip(
+                            link = link,
+                            onClick = { onRelatedLinkClick(link) },
+                        )
+                    }
                 }
             }
         }
