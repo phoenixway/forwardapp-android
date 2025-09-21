@@ -35,12 +35,14 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEv
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
+import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 
 // **FIX 1: Створюємо константи для нового графа**
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
+const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 
 @Composable
 fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
@@ -302,4 +304,7 @@ private fun NavGraphBuilder.mainGraph(
     chatScreen(navController)
     dayManagementGraph(navController)
     dayPlanScreen(navController)
-}
+
+    composable(AI_INSIGHTS_ROUTE) {
+        AiInsightsScreen(navController = navController)
+    }

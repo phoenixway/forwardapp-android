@@ -67,6 +67,7 @@ sealed interface MainScreenEvent {
 
     object NavigateToChat : MainScreenEvent
     object NavigateToActivityTracker : MainScreenEvent
+    object NavigateToAiInsights : MainScreenEvent
 
     data class SaveSettings(
         val show: Boolean,
