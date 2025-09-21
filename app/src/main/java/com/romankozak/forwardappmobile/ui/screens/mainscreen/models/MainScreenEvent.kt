@@ -88,4 +88,8 @@ sealed interface MainScreenEvent {
 
     data object CloseSearch : MainScreenEvent
 
+    data class NavigateToProject(val projectId: String) : MainScreenEvent
+    data object CollapseAll : MainScreenEvent
+
+
 }
