@@ -470,7 +470,7 @@ fun GoalItem(
                 onCheckedChange = onToggle,
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column(
                 modifier = Modifier
@@ -628,7 +628,7 @@ fun GoalItem(
                 modifier = Modifier.padding(start = 8.dp),
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column(
                 modifier = Modifier
