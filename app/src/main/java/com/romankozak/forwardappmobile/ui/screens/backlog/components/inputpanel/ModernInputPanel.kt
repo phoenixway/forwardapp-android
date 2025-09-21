@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel
 
+import NavControls
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -58,7 +59,7 @@ private data class PanelColors(
     val inputFieldColor: Color,
 )
 
-private data class NavPanelState(
+data class NavPanelState(
     val canGoBack: Boolean,
     val canGoForward: Boolean,
     val isAttachmentsExpanded: Boolean,
@@ -68,7 +69,7 @@ private data class NavPanelState(
     val inputMode: InputMode
 )
 
-private data class NavPanelActions(
+data class NavPanelActions(
     val onBackClick: () -> Unit,
     val onForwardClick: () -> Unit,
     val onHomeClick: () -> Unit,
@@ -83,7 +84,7 @@ private data class NavPanelActions(
     val menuActions: OptionsMenuActions
 )
 
-private data class OptionsMenuActions(
+data class OptionsMenuActions(
     val onEditList: () -> Unit,
     val onToggleProjectManagement: () -> Unit,
     val onStartTrackingCurrentProject: () -> Unit,
@@ -96,70 +97,8 @@ private data class OptionsMenuActions(
     val onDeleteList: () -> Unit
 )
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun NavControls(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
-    val haptic = LocalHapticFeedback.current
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (state.inputMode == InputMode.SearchInList) {
-            IconButton(onClick = actions.onCloseSearch, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.Close, "Закрити пошук", tint = contentColor, modifier = Modifier.size(20.dp))
-            }
-        } else {
-            val backButtonAlpha by animateFloatAsState(if (state.canGoBack) 1f else 0.4f, label = "backAlpha")
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(40.dp)
-                    .alpha(backButtonAlpha)
-                    .clip(CircleShape)
-                    .combinedClickable(
-                        enabled = state.canGoBack,
-                        onClick = actions.onBackClick,
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            actions.onRecentsClick()
-                        }
-                    )
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                    tint = if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.38f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
 
-        val forwardButtonAlpha by animateFloatAsState(if (state.canGoForward) 1f else 0.4f, label = "forwardAlpha")
-        IconButton(onClick = actions.onForwardClick, enabled = state.canGoForward, modifier = Modifier.size(40.dp).alpha(forwardButtonAlpha)) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                stringResource(R.string.forward),
-                tint = if (state.canGoForward) contentColor else contentColor.copy(alpha = 0.38f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
 
-        IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Default.Home, stringResource(R.string.go_to_home_list), tint = contentColor, modifier = Modifier.size(20.dp))
-        }
-
-        IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Outlined.Visibility, "Показати в ієрархії", tint = contentColor, modifier = Modifier.size(20.dp))
-        }
-
-        // **FIX: Повертаємо кнопку "Недавні" сюди**
-        IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
-            Icon(
-                imageVector = Icons.Default.Restore,
-                contentDescription = "Недавні",
-                tint = contentColor,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
 
 @Composable
 private fun ViewModeToggle(

@@ -23,8 +23,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.EnhancedTagChip
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagType
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -34,7 +32,6 @@ private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
             .padding(2.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // Gradient background for modern look
         Box(
             modifier = Modifier
                 .size(22.dp)
@@ -120,7 +117,6 @@ fun SublistItemRow(
                     (sublist.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                     (sublist.reminderTime != null)
 
-            // Badges row with enhanced sublist icon always visible
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -128,12 +124,10 @@ fun SublistItemRow(
                     .fillMaxWidth()
                     .padding(top = if (hasExtraContent) 6.dp else 4.dp),
             ) {
-                // Always show the sublist icon
                 EnhancedSublistIconBadge(
                     modifier = Modifier.align(Alignment.CenterVertically)
                 )
 
-                // Reminder badge
                 sublist.reminderTime?.let { time ->
                     EnhancedReminderBadge(
                         reminderTime = time,
@@ -141,19 +135,17 @@ fun SublistItemRow(
                     )
                 }
 
-                // Score status badge
                 EnhancedScoreStatusBadge(
                     scoringStatus = sublist.scoringStatus,
                     displayScore = sublist.displayScore
                 )
 
-                // Enhanced tags with staggered animation
                 if (!sublist.tags.isNullOrEmpty()) {
-                    sublist.tags.forEachIndexed { index, tag ->
+                    sublist.tags.filter { it.isNotBlank() }.forEachIndexed { index, tag ->
                         key(tag) {
                             var delayedVisible by remember { mutableStateOf(false) }
                             LaunchedEffect(Unit) {
-                                kotlinx.coroutines.delay(index * 75L) // Staggered animation
+                                kotlinx.coroutines.delay(index * 75L)
                                 delayedVisible = true
                             }
 
@@ -167,9 +159,12 @@ fun SublistItemRow(
                                     )
                                 ) + fadeIn(),
                             ) {
+                                // Надійна логіка, яка гарантує один '#' на початку
+                                val formattedTag = "#${tag.trim().trimStart('#')}"
+
                                 EnhancedTagChip(
-                                    text = "#$tag",
-                                    onClick = { onTagClick("#$tag") },
+                                    text = formattedTag,
+                                    onClick = { onTagClick(formattedTag) },
                                     isDismissible = false,
                                     tagType = TagType.HASHTAG,
                                     modifier = Modifier.align(Alignment.CenterVertically)
@@ -180,7 +175,6 @@ fun SublistItemRow(
                 }
             }
 
-            // Description with better styling
             if (!sublist.description.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
 

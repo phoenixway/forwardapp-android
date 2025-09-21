@@ -204,79 +204,21 @@ class EnhancedNavigationManager(
             _navigationChannel.send(command)
         }
     }
-}
 
-// Composable для меню залишається тут, він не змінився
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NavigationHistoryMenu(
-    navManager: EnhancedNavigationManager,
-    onDismiss: () -> Unit
-) {
-    // ... тіло функції без змін
-    val history = remember { navManager.getNavigationHistory() }
-    val currentEntry by navManager.currentEntry.collectAsState()
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Історія навігації",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            LazyColumn {
-                itemsIndexed(history.reversed()) { reverseIndex, entry ->
-                    val actualIndex = history.size - 1 - reverseIndex
-                    val isCurrentEntry = entry == currentEntry
-
-                    ListItem(
-                        headlineContent = {
-                            Text(entry.title)
-                        },
-                        supportingContent = {
-                            Text(
-                                when (entry.type) {
-                                    NavigationType.MAIN_SCREEN -> "Головний екран"
-                                    NavigationType.PROJECT_SCREEN -> "Проект"
-                                    NavigationType.GLOBAL_SEARCH -> "Пошук"
-                                    else -> entry.type.name
-                                }
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = when (entry.type) {
-                                    NavigationType.MAIN_SCREEN -> Icons.Outlined.Home
-                                    NavigationType.PROJECT_SCREEN -> Icons.Outlined.Folder
-                                    NavigationType.GLOBAL_SEARCH -> Icons.Outlined.Search
-                                    else -> Icons.Outlined.Info
-                                },
-                                contentDescription = null
-                            )
-                        },
-                        trailingContent = {
-                            if (isCurrentEntry) {
-                                Icon(
-                                    imageVector = Icons.Outlined.RadioButtonChecked,
-                                    contentDescription = "Поточна сторінка",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .clickable(enabled = !isCurrentEntry) {
-                                navManager.navigateToHistoryEntry(actualIndex)
-                            }
-                            .alpha(if (isCurrentEntry) 0.6f else 1f)
-                    )
-                }
-            }
+    fun navigateHomeWithResult(key: String, value: String) {
+        // 1. Надсилаємо результат, як це робить goBackWithResult
+        scope.launch {
+            _navigationResults.emit(NavigationResult(key, value))
         }
+
+        // 2. Виконуємо логіку навігації на головний екран з navigateHome
+        historyManager.clearHistory()
+        val homeEntry = NavigationEntry.createMainScreen()
+        historyManager.addEntry(homeEntry)
+        sendNavigationCommand(NavigationCommand.Navigate("goal_lists_screen") {
+            popUpTo("goal_lists_screen") { inclusive = true }
+            launchSingleTop = true
+        })
     }
+
 }
