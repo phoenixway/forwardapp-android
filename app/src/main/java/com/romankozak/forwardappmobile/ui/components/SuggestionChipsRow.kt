@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.ui.components
 
-import android.R.attr.scaleY
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -18,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.EnhancedTagChip
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagType
 
 @Composable
 fun SuggestionChipsRow(

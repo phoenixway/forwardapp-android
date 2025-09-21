@@ -1145,10 +1145,18 @@ constructor(
 
         // **FIX: Використовуємо менеджер, щоб повернутися назад з результатом**
         // Цей метод одночасно надсилає результат і виконує навігацію "назад".
+/*
         enhancedNavigationManager.goBackWithResult(
             key = "project_to_reveal",
             value = currentProjectId
         )
+*/
+
+        enhancedNavigationManager.navigateHomeWithResult(
+            key = "project_to_reveal",
+            value = currentProjectId
+        )
+
     }
 
     fun onBackPressed(): Boolean {

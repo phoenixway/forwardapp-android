@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.EnhancedTagChip
+import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.TagType
 
 // Utility functions for tag handling
 object TagUtils {

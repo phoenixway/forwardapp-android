@@ -489,6 +489,7 @@ fun GoalItem(
                     onTagClick = onTagClick,
                     onTextClick = onItemClick,
                     onLongClick = onLongClick,
+                    maxLines = 4, // <-- Змінено
                     style = MaterialTheme.typography.bodySmall.copy(
                         lineHeight = 16.sp,
                         letterSpacing = 0.1.sp,
@@ -738,7 +739,7 @@ fun GoalItem(
                         text = goal.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        maxLines = if (isSelected) Int.MAX_VALUE else 1,
+                        maxLines = if (isSelected) 4 else 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }

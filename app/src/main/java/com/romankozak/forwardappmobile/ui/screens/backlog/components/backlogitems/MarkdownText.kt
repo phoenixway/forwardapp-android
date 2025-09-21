@@ -6,8 +6,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,11 +21,10 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.net.URLEncoder
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.InlineTagChip
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.TagType
 
 @Composable
 fun MarkdownText(
@@ -37,6 +36,7 @@ fun MarkdownText(
     onTagClick: (String) -> Unit = {},
     onTextClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     val context = LocalContext.current
     val linkColor = MaterialTheme.colorScheme.secondary
@@ -54,162 +54,117 @@ fun MarkdownText(
             )
         }
 
-    val listRegex = remember { Regex("^\\s*([*+-])\\s+(.*)") }
-
-    // Regex для markdown + тегів (#tag або @tag)
-    val inlineContentRegex = remember {
-        Regex(
-            "(\\*\\*|__)(.*?)\\1" +                // жирний
-                    "|(\\*|_)(.*?)\\3" +          // курсив
-                    "|(~~)(.*?)\\5" +             // закреслений
+    val (fullAnnotatedString, inlineContentMap) = remember(text, isCompleted) {
+        val inlineContentRegex = Regex(
+            "(\\*\\*|__)(.*?)\\1" +                // bold
+                    "|(\\*|_)(.*?)\\3" +          // italic
+                    "|(~~)(.*?)\\5" +             // strikethrough
                     "|(\\[\\[)(.*?)(?:\\|(.*?))?]]" + // Obsidian link
-                    "|([#@])(\\p{L}[\\p{L}0-9_-]*\\b)" // теги
+                    "|([#@])(\\p{L}[\\p{L}0-9_-]*\\b)" // tags
         )
-    }
 
-    // зберігаємо знайдені теги окремо
-    val foundTags = remember { mutableStateListOf<Pair<String, String>>() }
-    foundTags.clear()
-
-    Column(modifier = modifier) {
-        text.lines().forEach { line ->
-            val listMatch = listRegex.find(line)
-            val (content, isList) =
-                if (listMatch != null) {
-                    listMatch.destructured.component2() to true
-                } else {
-                    line to false
-                }
-
-            val annotatedLine = applyEnhancedInlineStyles(
-                content,
-                inlineContentRegex,
-                linkColor,
-                isCompleted,
-                onTagFound = { symbol, name ->
-                    foundTags.add(symbol to name)
-                }
-            )
-
-            val fullLine =
-                if (isList) {
-                    buildAnnotatedString {
-                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("• ") }
-                        append(annotatedLine)
-                    }
-                } else {
-                    annotatedLine
-                }
-
-            var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-
-            Text(
-                text = fullLine,
-                style = finalTextStyle.merge(MaterialTheme.typography.bodyLarge),
-                modifier = Modifier.pointerInput(Unit) {
-                    detectTapGestures(
-                        onLongPress = { onLongClick() },
-                        onTap = { pos ->
-                            layoutResult?.let { layout ->
-                                val offset = layout.getOffsetForPosition(pos)
-                                val obsidianLinkClicked =
-                                    annotatedLine.getStringAnnotations("OBSIDIAN_LINK", offset, offset)
-                                        .firstOrNull()
-
-                                when {
-                                    obsidianLinkClicked != null -> {
-                                        val noteName = obsidianLinkClicked.item
-                                        if (obsidianVaultName.isNotBlank()) {
-                                            try {
-                                                val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
-                                                val encodedFile = URLEncoder.encode(noteName, "UTF-8")
-                                                val uri = Uri.parse("obsidian://open?vault=$encodedVault&file=$encodedFile")
-                                                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                                            } catch (e: ActivityNotFoundException) {
-                                                Toast.makeText(context, "Obsidian не встановлено", Toast.LENGTH_SHORT).show()
-                                            } catch (e: Exception) {
-                                                Toast.makeText(context, "Помилка відкриття: ${e.message}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    }
-                                    else -> onTextClick()
-                                }
-                            }
-                        },
-                    )
-                },
-                onTextLayout = { layoutResult = it },
-            )
-        }
-
-        // показуємо всі знайдені теги окремо в рядку
-        if (foundTags.isNotEmpty()) {
-            FlowRow(modifier = Modifier.padding(top = 0.dp)) {
-                foundTags.forEach { (symbol, name) ->
-                    val fullTag = "$symbol$name"
-                    InlineTagChip(
-                        text = fullTag,
-                        tagType = if (symbol == "#") TagType.HASHTAG else TagType.PROJECT,
-                        onClick = { onTagClick(fullTag) },
-                        isInCompletedText = isCompleted,
-                        modifier = Modifier.padding(end = 6.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun applyEnhancedInlineStyles(
-    content: String,
-    regex: Regex,
-    linkColor: Color,
-    isCompleted: Boolean,
-    onTagFound: (String, String) -> Unit,
-): AnnotatedString {
-    return buildAnnotatedString {
+        val map = mutableMapOf<String, InlineTextContent>()
+        val builder = AnnotatedString.Builder()
         var lastIndex = 0
-        for (match in regex.findAll(content)) {
-            append(content.substring(lastIndex, match.range.first))
+
+        for (match in inlineContentRegex.findAll(text)) {
+            builder.append(text.substring(lastIndex, match.range.first))
 
             when {
-                match.groups[2] != null -> appendBoldText(match.groups[2]!!.value)
-                match.groups[4] != null -> appendItalicText(match.groups[4]!!.value)
-                match.groups[6] != null -> appendStrikethroughText(match.groups[6]!!.value)
-                match.groups[7] != null -> appendObsidianLink(
-                    match.groups[8]!!.value,
-                    match.groups[9]?.value,
-                    linkColor,
-                    isCompleted
-                )
+                match.groups[2] != null -> builder.withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append(match.groups[2]!!.value) }
+                match.groups[4] != null -> builder.withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) { append(match.groups[4]!!.value) }
+                match.groups[6] != null -> builder.withStyle(style = SpanStyle(textDecoration = TextDecoration.LineThrough)) { append(match.groups[6]!!.value) }
+                match.groups[7] != null -> {
+                    val linkTarget = match.groups[8]!!.value
+                    val linkText = match.groups[9]?.value
+                    builder.appendObsidianLink(linkTarget, linkText, linkColor, isCompleted)
+                }
                 match.groups[10] != null -> {
                     val symbol = match.groups[10]!!.value
                     val name = match.groups[11]!!.value
-                    // в текст не додаємо чіп, просто записуємо тег
-                    append(name)
-                    onTagFound(symbol, name)
+                    val fullTag = "$symbol$name"
+                    val tagId = "tag_${fullTag}_${match.range.first}"
+
+                    val tagPlaceholderWidth = (fullTag.length * 7 + 14).sp
+                    val tagPlaceholderHeight = 20.sp // <-- ЗМІНЕНО
+
+                    builder.appendInlineContent(tagId, fullTag)
+
+                    map[tagId] = InlineTextContent(
+                        placeholder = Placeholder(
+                            width = tagPlaceholderWidth,
+                            height = tagPlaceholderHeight,
+                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter // <-- ЗМІНЕНО
+                        )
+                    ) {
+                        InlineTagChip(
+                            text = fullTag,
+                            tagType = if (symbol == "#") TagType.HASHTAG else TagType.PROJECT,
+                            onClick = { onTagClick(fullTag) },
+                            isInCompletedText = isCompleted
+                        )
+                    }
                 }
             }
             lastIndex = match.range.last + 1
         }
 
-        if (lastIndex < content.length) {
-            append(content.substring(lastIndex))
+        if (lastIndex < text.length) {
+            builder.append(text.substring(lastIndex))
         }
+
+        builder.toAnnotatedString() to map
     }
-}
 
-private fun AnnotatedString.Builder.appendBoldText(text: String) {
-    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append(text) }
-}
+    Column(modifier = modifier) {
+        var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-private fun AnnotatedString.Builder.appendItalicText(text: String) {
-    withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) { append(text) }
-}
+        Text(
+            text = fullAnnotatedString,
+            style = finalTextStyle.merge(MaterialTheme.typography.bodyLarge),
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+            inlineContent = inlineContentMap,
+            modifier = Modifier.pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongClick() },
+                    onTap = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
+                            val obsidianLinkClicked =
+                                fullAnnotatedString.getStringAnnotations("OBSIDIAN_LINK", offset, offset)
+                                    .firstOrNull()
 
-private fun AnnotatedString.Builder.appendStrikethroughText(text: String) {
-    withStyle(style = SpanStyle(textDecoration = TextDecoration.LineThrough)) { append(text) }
+                            if (obsidianLinkClicked != null) {
+                                val noteName = obsidianLinkClicked.item
+                                if (obsidianVaultName.isNotBlank()) {
+                                    try {
+                                        val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
+                                        val encodedFile = URLEncoder.encode(noteName, "UTF-8")
+                                        val uri = Uri.parse("obsidian://open?vault=$encodedVault&file=$encodedFile")
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                    } catch (e: ActivityNotFoundException) {
+                                        Toast.makeText(context, "Obsidian not installed", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Error opening: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                val isClickOnTag = inlineContentMap.keys.any { tagId ->
+                                    val tagRange = fullAnnotatedString.getStringAnnotations(tagId, offset, offset).firstOrNull()
+                                    tagRange != null
+                                }
+                                if (!isClickOnTag) {
+                                    onTextClick()
+                                }
+                            }
+                        }
+                    },
+                )
+            },
+            onTextLayout = { layoutResult = it },
+        )
+    }
 }
 
 private fun AnnotatedString.Builder.appendObsidianLink(
