@@ -5,8 +5,12 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -27,18 +31,22 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.NavControls
 import kotlinx.coroutines.delay
 
 // region Refactored Data Classes & Components
@@ -57,7 +65,8 @@ data class NavPanelState(
     val menuExpanded: Boolean,
     val currentView: ProjectViewMode,
     val isProjectManagementEnabled: Boolean,
-    val inputMode: InputMode
+    val inputMode: InputMode,
+    val isViewModePanelVisible: Boolean
 )
 
 data class NavPanelActions(
@@ -72,6 +81,7 @@ data class NavPanelActions(
     val onToggleAttachments: () -> Unit,
     val onMenuExpandedChange: (Boolean) -> Unit,
     val onAddProjectToDayPlan: () -> Unit,
+    val onToggleNavPanelMode: () -> Unit,
     val menuActions: OptionsMenuActions
 )
 
@@ -87,9 +97,6 @@ data class OptionsMenuActions(
     val onExportProjectState: () -> Unit,
     val onDeleteList: () -> Unit
 )
-
-
-
 
 @Composable
 private fun ViewModeToggle(
@@ -143,98 +150,85 @@ private fun ViewModeToggle(
     }
 }
 
+private data class MenuItem(
+    val text: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+    val isVisible: Boolean = true,
+    val isDestructive: Boolean = false
+)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
     Box {
         IconButton(onClick = { actions.onMenuExpandedChange(true) }, modifier = Modifier.size(40.dp)) {
             Icon(Icons.Default.MoreVert, stringResource(R.string.more_options), tint = contentColor.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
         }
-        DropdownMenu(
-            expanded = state.menuExpanded,
-            onDismissRequest = { actions.onMenuExpandedChange(false) },
-            properties = PopupProperties(focusable = true),
-            modifier = Modifier.width(280.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(16.dp))
-        ) {
-            val menu = actions.menuActions
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.edit_list)) },
-                onClick = { menu.onEditList(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-            )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            DropdownMenuItem(
-                text = { Text("Додати до плану на сьогодні") },
-                onClick = { actions.onAddProjectToDayPlan(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Outlined.EventAvailable, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-            )
 
-            DropdownMenuItem(
-                text = { Text("Toggle realization support") },
-                onClick = { menu.onToggleProjectManagement(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Outlined.Construction, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-            )
-            DropdownMenuItem(
-                text = { Text("Start tracking current project") },
-                onClick = { menu.onStartTrackingCurrentProject(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Outlined.PlayCircle, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.share_list)) },
-                onClick = { menu.onShareList(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Default.Share, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.tertiary) }
-            )
+        if (state.menuExpanded) {
+            val sheetState = rememberModalBottomSheetState()
+            ModalBottomSheet(
+                onDismissRequest = { actions.onMenuExpandedChange(false) },
+                sheetState = sheetState,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                val menu = actions.menuActions
 
-            if (state.currentView == ProjectViewMode.INBOX) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                DropdownMenuItem(
-                    text = { Text("Імпортувати з Markdown") },
-                    onClick = { menu.onImportFromMarkdown(); actions.onMenuExpandedChange(false) },
-                    leadingIcon = { Icon(Icons.Default.Upload, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
-                )
-                DropdownMenuItem(
-                    text = { Text("Експортувати в Markdown") },
-                    onClick = { menu.onExportToMarkdown(); actions.onMenuExpandedChange(false) },
-                    leadingIcon = { Icon(Icons.Default.Download, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
-                )
+                // Hoist the stringResource calls outside of the remember block
+                val editListText = stringResource(R.string.edit_list)
+                val shareListText = stringResource(R.string.share_list)
+                val deleteListText = stringResource(R.string.delete_list)
+
+                val menuItems = remember(state.currentView, state.isProjectManagementEnabled) {
+                    listOf(
+                        MenuItem(editListText, Icons.Default.Edit, { menu.onEditList(); actions.onMenuExpandedChange(false) }),
+                        MenuItem("Додати до плану на сьогодні", Icons.Outlined.EventAvailable, { actions.onAddProjectToDayPlan(); actions.onMenuExpandedChange(false) }),
+                        MenuItem("Toggle realization support", Icons.Outlined.Construction, { menu.onToggleProjectManagement(); actions.onMenuExpandedChange(false) }),
+                        MenuItem("Start tracking current project", Icons.Outlined.PlayCircle, { menu.onStartTrackingCurrentProject(); actions.onMenuExpandedChange(false) }),
+                        MenuItem(shareListText, Icons.Default.Share, { menu.onShareList(); actions.onMenuExpandedChange(false) }),
+                        MenuItem("Імпортувати з Markdown", Icons.Default.Upload, { menu.onImportFromMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.INBOX),
+                        MenuItem("Експортувати в Markdown", Icons.Default.Download, { menu.onExportToMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.INBOX),
+                        MenuItem("Імпортувати беклог з Markdown", Icons.Default.Upload, { menu.onImportBacklogFromMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
+                        MenuItem("Експортувати беклог в Markdown", Icons.Default.Download, { menu.onExportBacklogToMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
+                        MenuItem("Експортувати історію і стан", Icons.Outlined.Assessment, { menu.onExportProjectState(); actions.onMenuExpandedChange(false) }, isVisible = state.isProjectManagementEnabled),
+                        MenuItem("Недавні проекти", Icons.Outlined.Restore, { actions.onRecentsClick(); actions.onMenuExpandedChange(false) }),
+                        MenuItem(deleteListText, Icons.Outlined.Delete, { menu.onDeleteList(); actions.onMenuExpandedChange(false) }, isDestructive = true),
+                    )
+                }
+
+
+
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 100.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.navigationBarsPadding()
+                ) {
+                    items(menuItems.filter { it.isVisible }) { item ->
+                        val color = if (item.isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                        Column(
+                            modifier = Modifier
+                                .clickable { item.onClick() }
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(item.icon, contentDescription = item.text, tint = color, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(item.text, textAlign = TextAlign.Center, color = color, fontSize = 12.sp, lineHeight = 14.sp)
+                        }
+                    }
+                }
             }
-            if (state.currentView == ProjectViewMode.BACKLOG) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                DropdownMenuItem(
-                    text = { Text("Імпортувати беклог з Markdown") },
-                    onClick = { menu.onImportBacklogFromMarkdown(); actions.onMenuExpandedChange(false) },
-                    leadingIcon = { Icon(Icons.Default.Upload, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
-                )
-                DropdownMenuItem(
-                    text = { Text("Експортувати беклог в Markdown") },
-                    onClick = { menu.onExportBacklogToMarkdown(); actions.onMenuExpandedChange(false) },
-                    leadingIcon = { Icon(Icons.Default.Download, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
-                )
-            }
-            if (state.isProjectManagementEnabled) {
-                DropdownMenuItem(
-                    text = { Text("Експортувати історію і стан") },
-                    onClick = { menu.onExportProjectState(); actions.onMenuExpandedChange(false) },
-                    leadingIcon = { Icon(Icons.Outlined.Assessment, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary) }
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.delete_list), color = MaterialTheme.colorScheme.error) },
-                onClick = { menu.onDeleteList(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Outlined.Delete, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) }
-            )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            DropdownMenuItem(
-                text = { Text("Недавні проекти") },
-                onClick = { actions.onRecentsClick(); actions.onMenuExpandedChange(false) },
-                leadingIcon = { Icon(Icons.Outlined.Restore, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-            )
-
         }
     }
 }
 
+// endregion
+
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun NavigationBar(
     state: NavPanelState,
@@ -246,23 +240,64 @@ private fun NavigationBar(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .animateContentSize(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            OptionsMenu(state = state, actions = actions, contentColor = contentColor)
+        // This group appears on the left when isViewModePanelVisible is true
+        AnimatedVisibility(
+            visible = state.isViewModePanelVisible,
+            enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
+            exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        imageVector = Icons.Outlined.Tune,
+                        contentDescription = "Перемкнути панель",
+                        tint = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                ViewModeToggle(
+                    currentView = state.currentView,
+                    isProjectManagementEnabled = state.isProjectManagementEnabled,
+                    onViewChange = actions.onViewChange,
+                    onInputModeSelected = actions.onInputModeSelected,
+                    contentColor = contentColor
+                )
+            }
+        }
+
+        // This group appears on the left when isViewModePanelVisible is false
+        AnimatedVisibility(
+            visible = !state.isViewModePanelVisible,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
             NavControls(state = state, actions = actions, contentColor = contentColor)
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ViewModeToggle(
-                currentView = state.currentView,
-                isProjectManagementEnabled = state.isProjectManagementEnabled,
-                onViewChange = actions.onViewChange,
-                onInputModeSelected = actions.onInputModeSelected,
-                contentColor = contentColor
-            )
+        Spacer(Modifier.weight(1f))
+
+        // This is the group on the right
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // The Tune button is only visible here when not in view mode
+            AnimatedVisibility(
+                visible = !state.isViewModePanelVisible,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        imageVector = Icons.Outlined.Tune,
+                        contentDescription = "Перемкнути панель",
+                        tint = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
             val attachmentIconColor by animateColorAsState(if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f), label = "attColor")
             val attachmentIconScale by animateFloatAsState(if (state.isAttachmentsExpanded) 1.2f else 1.0f, label = "attScale")
             IconButton(onClick = actions.onToggleAttachments, modifier = Modifier.size(40.dp)) {
@@ -273,11 +308,10 @@ private fun NavigationBar(
                     modifier = Modifier.size(20.dp).scale(attachmentIconScale)
                 )
             }
+            OptionsMenu(state = state, actions = actions, contentColor = contentColor)
         }
     }
 }
-
-// endregion
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -319,6 +353,8 @@ fun ModernInputPanel(
     isProjectManagementEnabled: Boolean,
     onToggleProjectManagement: () -> Unit,
     onAddProjectToDayPlan: () -> Unit,
+    isViewModePanelVisible: Boolean,
+    onToggleNavPanelMode: () -> Unit,
     onRevealInExplorer: () -> Unit,
     onCloseSearch: () -> Unit
 ) {
@@ -329,7 +365,8 @@ fun ModernInputPanel(
         menuExpanded = menuExpanded,
         currentView = currentView,
         isProjectManagementEnabled = isProjectManagementEnabled,
-        inputMode = inputMode
+        inputMode = inputMode,
+        isViewModePanelVisible = isViewModePanelVisible
     )
     val actions = NavPanelActions(
         onBackClick = onBackClick,
@@ -343,6 +380,7 @@ fun ModernInputPanel(
         onToggleAttachments = onToggleAttachments,
         onMenuExpandedChange = onMenuExpandedChange,
         onAddProjectToDayPlan = onAddProjectToDayPlan,
+        onToggleNavPanelMode = onToggleNavPanelMode,
         menuActions = OptionsMenuActions(
             onEditList = onEditList,
             onToggleProjectManagement = onToggleProjectManagement,
@@ -518,15 +556,9 @@ fun ModernInputPanel(
                             AnimatedContent(
                                 targetState = inputMode,
                                 transitionSpec = {
-                                    val slideIn =
-                                        slideInHorizontally(animationSpec = tween(250)) {
-                                            if (animationDirection == 1) it else -it
-                                        }
-                                    val slideOut =
-                                        slideOutHorizontally(animationSpec = tween(250)) {
-                                            if (animationDirection == 1) -it else it
-                                        }
-                                    (slideIn togetherWith slideOut).using(SizeTransform(clip = false))
+                                    val direction = if (animationDirection == 1) AnimatedContentTransitionScope.SlideDirection.Up else AnimatedContentTransitionScope.SlideDirection.Down
+                                    slideIntoContainer(direction) + fadeIn() togetherWith
+                                            slideOutOfContainer(direction) + fadeOut()
                                 },
                                 label = "mode_icon_animation",
                             ) { mode ->

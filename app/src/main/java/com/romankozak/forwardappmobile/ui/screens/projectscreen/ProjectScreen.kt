@@ -220,7 +220,9 @@ fun ProjectsScreen(
                     onExportProjectState = viewModel::onExportProjectStateRequest,
                     onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
                     onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
-                    onCloseSearch = viewModel::onCloseSearch
+                    onCloseSearch = viewModel::onCloseSearch,
+                    isViewModePanelVisible = uiState.isViewModePanelVisible,
+                    onToggleNavPanelMode = viewModel::onToggleNavPanelMode
                 )
             }
         },
