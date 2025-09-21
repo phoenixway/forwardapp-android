@@ -320,7 +320,9 @@ class MainScreenViewModel @Inject constructor(
                 val coreState = values[0] as CoreUiState
                 val dialogState = values[1] as DialogUiState
                 val expensiveCalcs = values[2] as ExpensiveCalculations
+                @Suppress("UNCHECKED_CAST")
                 val searchResults = values[3] as List<SearchResult>
+                @Suppress("UNCHECKED_CAST")
                 val searchHistory = values[4] as List<String>
                 val planningSettings = values[5] as PlanningSettingsState
 
