@@ -85,7 +85,7 @@ fun SubprojectItemRow(
             onCheckedChange = onCheckedChange,
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
         Column(
             modifier =

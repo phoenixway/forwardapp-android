@@ -250,7 +250,10 @@ private fun NavigationBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        NavControls(state = state, actions = actions, contentColor = contentColor)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            OptionsMenu(state = state, actions = actions, contentColor = contentColor)
+            NavControls(state = state, actions = actions, contentColor = contentColor)
+        }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ViewModeToggle(
@@ -270,7 +273,6 @@ private fun NavigationBar(
                     modifier = Modifier.size(20.dp).scale(attachmentIconScale)
                 )
             }
-            OptionsMenu(state = state, actions = actions, contentColor = contentColor)
         }
     }
 }
