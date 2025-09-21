@@ -322,7 +322,7 @@ internal fun ExpandingBottomNav(
     }
 }
 @Composable
-private fun ModernBottomNavButton(
+internal fun ModernBottomNavButton(
     text: String,
     icon: ImageVector,
     isSelected: Boolean = false,
