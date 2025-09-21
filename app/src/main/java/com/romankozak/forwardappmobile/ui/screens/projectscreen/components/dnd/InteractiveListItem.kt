@@ -37,13 +37,10 @@ fun InteractiveListItem(
     onSwipeStart: () -> Unit,
     onDelete: () -> Unit,
     onMoreActionsRequest: () -> Unit,
-    onCreateInstanceRequest: () -> Unit,
-    onMoveInstanceRequest: () -> Unit,
-    onCopyGoalRequest: () -> Unit,
-    onGoalTransportRequest: () -> Unit,
-    onCopyContentRequest: () -> Unit,
     onStartTrackingRequest: () -> Unit,
-    onAddToDayPlanRequest: () -> Unit, // <-- ДОДАНО НОВИЙ ПАРАМЕТР
+    onAddToDayPlanRequest: () -> Unit,
+    onShowGoalTransportMenu: (ListItemContent) -> Unit,
+    onCopyContentRequest: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
@@ -121,10 +118,10 @@ fun InteractiveListItem(
                 onSwipeStart = onSwipeStart,
                 onDelete = onDelete,
                 onMoreActionsRequest = onMoreActionsRequest,
-                onGoalTransportRequest = onGoalTransportRequest,
-               // onCopyContentRequest = onCopyContentRequest,
+                onGoalTransportRequest = { onShowGoalTransportMenu(item) },
                 onStartTrackingRequest = onStartTrackingRequest,
-                onAddToDayPlanRequest = onAddToDayPlanRequest, // <-- ПЕРЕДАЄМО ПАРАМЕТР ДАЛІ
+                onAddToDayPlanRequest = onAddToDayPlanRequest,
+                onCopyContentRequest = onCopyContentRequest,
                 backgroundColor = backgroundColor,
                 content = {
                     Row(
@@ -138,7 +135,7 @@ fun InteractiveListItem(
                             DragHandleIcon()
                         }
                     }
-                },
+                }
             )
         }
         val isTarget =

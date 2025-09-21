@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backl
 fun AttachmentItemRow(
     onDelete: () -> Unit,
     backgroundColor: Color,
+    onCopyContentRequest: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -23,7 +24,7 @@ fun AttachmentItemRow(
         onDelete = onDelete,
         onMoreActionsRequest = { },
         onGoalTransportRequest = { },
-        //onCopyContentRequest = { },
+        onCopyContentRequest = onCopyContentRequest,
         onStartTrackingRequest = { },
         backgroundColor = backgroundColor,
         content = content,

@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.UiState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SublistItemRow
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SubprojectItemRow
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.InteractiveListItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import kotlinx.coroutines.delay
@@ -65,6 +65,7 @@ fun BacklogView(
             onAddAttachment = { viewModel.onAddAttachment(it) },
             onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
             onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
+            onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) },
         )
 
         LazyColumn(
@@ -93,29 +94,17 @@ fun BacklogView(
                     onDelete = { viewModel.itemActionHandler.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                     onAddToDayPlanRequest = { viewModel.addItemToDailyPlan(content) },
-                    onCreateInstanceRequest = {
-                        viewModel.itemActionHandler.onGoalActionSelected(
-                            GoalActionType.CreateInstance,
-                            content,
+                    onShowGoalTransportMenu = { itemToTransport ->
+                        viewModel.itemActionHandler.onGoalTransportInitiated(
+                            itemToTransport,
+                            onCopyContentToClipboard = {
+                                viewModel.itemActionHandler.copyContentRequest(itemToTransport)
+                            }
                         )
                     },
-                    onMoveInstanceRequest = {
-                        viewModel.itemActionHandler.onGoalActionSelected(
-                            GoalActionType.MoveInstance,
-                            content,
-                        )
-                    },
-                    onCopyGoalRequest = {
-                        viewModel.itemActionHandler.onGoalActionSelected(
-                            GoalActionType.CopyGoal,
-                            content,
-                        )
-                    },
-                    modifier = Modifier,
-                    onGoalTransportRequest = { viewModel.itemActionHandler.onGoalTransportInitiated(content) },
-                    onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(content) },
                     onStartTrackingRequest = { viewModel.onStartTrackingRequest(content) },
-                ) {
+                    onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(content) },
+                ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
                             GoalItem(
@@ -137,8 +126,8 @@ fun BacklogView(
                             )
                         }
                         is ListItemContent.SublistItem -> {
-                            SublistItemRow(
-                                sublistContent = content,
+                            SubprojectItemRow(
+                                subprojectContent = content,
                                 isSelected = isSelected,
                                 onClick = { viewModel.itemActionHandler.onItemClick(content) },
                                 onLongClick = { viewModel.toggleSelection(content.listItem.id) }, // ВИПРАВЛЕНО

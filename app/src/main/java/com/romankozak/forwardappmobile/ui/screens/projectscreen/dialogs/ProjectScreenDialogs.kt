@@ -89,6 +89,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: П
                 viewModel.itemActionHandler.onItemActionSelected(GoalActionType.CopyGoal, item)
             }
         },
+        onCopyContentToClipboardRequest = viewModel.itemActionHandler.onCopyContentToClipboard.collectAsStateWithLifecycle().value,
         isGoalItem = itemForTransportMenu is ListItemContent.GoalItem
     )
 

@@ -18,16 +18,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 
 @Composable
 fun LinkItemRow(
-    link: RelatedLink,
+    linkItem: ListItemContent.LinkItem,
     isSelected: Boolean,
     isHighlighted: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onDelete: () -> Unit,
+    onCopyContentRequest: (ListItemContent) -> Unit,
     modifier: Modifier = Modifier,
     endAction: @Composable () -> Unit = {},
 ) {
@@ -42,6 +44,8 @@ fun LinkItemRow(
         label = "link_item_background",
     )
 
+    val link = linkItem.link.linkData
+
     SwipeableListItem(
         modifier = modifier,
         isDragging = false,
@@ -53,7 +57,7 @@ fun LinkItemRow(
         onDelete = onDelete,
         onMoreActionsRequest = {},
         onGoalTransportRequest = {},
-        //onCopyContentRequest = {},
+        onCopyContentRequest = { onCopyContentRequest(linkItem) },
         onStartTrackingRequest = {},
         backgroundColor = backgroundColor,
         content = {
@@ -69,17 +73,15 @@ fun LinkItemRow(
                         }.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val iconImageVector = when (link.type) {
+                    LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
+                    LinkType.URL -> Icons.Default.Language
+                    LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                    null -> Icons.Default.BrokenImage // Or any other default icon
+                    else -> Icons.Default.BrokenImage
+                }
                 Icon(
-                    imageVector =
-                        when (link.type) {
-                            LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
-                            LinkType.URL -> Icons.Default.Language
-                            LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
-
-                        null -> Icons.Default.BrokenImage // Or any other default icon
-                            else -> Icons.Default.BrokenImage
-
-                        },
+                    imageVector = iconImageVector,
                     contentDescription = "Link icon",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
