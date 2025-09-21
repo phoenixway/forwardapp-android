@@ -96,12 +96,25 @@ class EnhancedNavigationManager(
         sendNavigationCommand(NavigationCommand.Navigate("global_search_screen/$query"))
     }
 
-    fun goBack() {
+/*    fun goBack() {
         val entry = historyManager.goBack()
         if (entry != null) {
             navigateToEntry(entry)
         } else {
             // Якщо в історії немає куди йти, надсилаємо команду повернутися назад по системі
+            sendNavigationCommand(NavigationCommand.PopBackStack())
+        }
+    }*/
+
+    // file: ui/navigation/EnhancedNavigationManager.kt
+
+    fun goBack() {
+        // Перевіряємо, чи є куди повертатися в нашій кастомній історії
+        if (canGoBack.value) {
+            // Оновлюємо внутрішній стан нашої історії (це потрібно для роботи кнопки "Вперед")
+            historyManager.goBack()
+            // ✅ ВІДПРАВЛЯЄМО ПРАВИЛЬНУ КОМАНДУ ДЛЯ ПОВЕРНЕННЯ НАЗАД ПО СТЕКУ
+            // Ця команда просто закриває поточний екран, не відкриваючи новий.
             sendNavigationCommand(NavigationCommand.PopBackStack())
         }
     }

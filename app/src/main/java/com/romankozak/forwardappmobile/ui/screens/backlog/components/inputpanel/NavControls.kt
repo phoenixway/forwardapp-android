@@ -1,3 +1,5 @@
+// file: NavControls.kt
+
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.inputpanel
 
 import androidx.compose.animation.AnimatedVisibility
@@ -10,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MyLocation
@@ -32,56 +33,41 @@ internal fun NavControls(state: NavPanelState, actions: NavPanelActions, content
     ) {
         // Кнопка "Закрити пошук", видима лише в режимі пошуку
         AnimatedVisibility(visible = state.inputMode == InputMode.SearchInList) {
-            // Стиль як у інших неактивних кнопок
             val closeIconColor by animateColorAsState(contentColor.copy(alpha = 0.7f), label = "closeIconColor")
-            val closeIconScale by animateFloatAsState(1.0f, label = "closeIconScale")
             IconButton(onClick = actions.onCloseSearch, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Filled.Close,
                     "Закрити пошук",
                     tint = closeIconColor,
-                    modifier = Modifier.size(20.dp).scale(closeIconScale)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
 
-        // Кнопки "Назад/Вперед", видимі, коли пошук неактивний
+        // Кнопка "Назад", видима, коли пошук неактивний
         AnimatedVisibility(visible = state.inputMode != InputMode.SearchInList) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AnimatedVisibility(visible = state.canGoBack) {
-                    val backIconColor by animateColorAsState(if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.3f), label = "backIconColor")
-                    val backIconScale by animateFloatAsState(if (state.canGoBack) 1.2f else 1.0f, label = "backIconScale")
-                    IconButton(onClick = actions.onBackClick, enabled = state.canGoBack, modifier = Modifier.size(40.dp)) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            "Назад",
-                            tint = backIconColor,
-                            modifier = Modifier.size(20.dp).scale(backIconScale)
-                        )
-                    }
-                }
-                AnimatedVisibility(visible = state.canGoForward) {
-                    val forwardIconColor by animateColorAsState(if (state.canGoForward) contentColor else contentColor.copy(alpha = 0.3f), label = "forwardIconColor")
-                    val forwardIconScale by animateFloatAsState(if (state.canGoForward) 1.2f else 1.0f, label = "forwardIconScale")
-                    IconButton(onClick = actions.onForwardClick, enabled = state.canGoForward, modifier = Modifier.size(40.dp)) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            "Вперед",
-                            tint = forwardIconColor,
-                            modifier = Modifier.size(20.dp).scale(forwardIconScale)
-                        )
-                    }
+            AnimatedVisibility(visible = state.canGoBack) {
+                val backIconColor by animateColorAsState(if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.3f), label = "backIconColor")
+                val backIconScale by animateFloatAsState(if (state.canGoBack) 1.2f else 1.0f, label = "backIconScale")
+                IconButton(onClick = actions.onBackClick, enabled = state.canGoBack, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        "Назад",
+                        tint = backIconColor,
+                        modifier = Modifier.size(20.dp).scale(backIconScale)
+                    )
                 }
             }
         }
+
+        // ❌ Кнопку "Вперед" видалено
 
         // Відступ для візуального розділення
         Spacer(modifier = Modifier.width(8.dp))
 
         // Головні кнопки, які видно завжди
-        // Кнопка "Дім"
         val homeIconColor by animateColorAsState(contentColor.copy(alpha = 0.7f), label = "homeIconColor")
-        val homeIconScale by animateFloatAsState(1.0f, label = "homeIconScale") // Можна додати логіку для active state
+        val homeIconScale by animateFloatAsState(1.0f, label = "homeIconScale")
         IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
             Icon(
                 Icons.Filled.Home,
@@ -91,9 +77,8 @@ internal fun NavControls(state: NavPanelState, actions: NavPanelActions, content
             )
         }
 
-        // Кнопка "Показати у списку"
         val revealIconColor by animateColorAsState(contentColor.copy(alpha = 0.7f), label = "revealIconColor")
-        val revealIconScale by animateFloatAsState(1.0f, label = "revealIconScale") // Можна додати логіку для active state
+        val revealIconScale by animateFloatAsState(1.0f, label = "revealIconScale")
         IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
             Icon(
                 Icons.Filled.MyLocation,
