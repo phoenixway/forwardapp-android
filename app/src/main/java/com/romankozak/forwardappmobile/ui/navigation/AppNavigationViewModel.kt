@@ -1,3 +1,5 @@
+// Оновлений файл: ui/navigation/AppNavigationViewModel.kt
+
 package com.romankozak.forwardappmobile.ui.navigation
 
 import androidx.lifecycle.SavedStateHandle
@@ -14,11 +16,12 @@ class AppNavigationViewModel @Inject constructor(
     lateinit var navigationManager: EnhancedNavigationManager
         private set
 
-    // --- ЗМІНА: NavController більше не потрібен для ініціалізації ---
     fun initialize() {
         if (!::navigationManager.isInitialized) {
-            // Передаємо лише savedStateHandle та scope
             navigationManager = EnhancedNavigationManager(savedStateHandle, viewModelScope)
+            // ✅ ВИПРАВЛЕННЯ: Додаємо головний екран як початкову точку в історії.
+            // Параметр isInitial = true запобігає зайвій навігації, лише оновлюючи стан.
+            navigationManager.navigateToMainScreen(isInitial = true)
         }
     }
 }

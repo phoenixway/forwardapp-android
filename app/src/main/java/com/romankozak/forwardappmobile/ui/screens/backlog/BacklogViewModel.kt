@@ -475,9 +475,23 @@ class BacklogViewModel @Inject constructor(
             else -> InputMode.AddGoal
         }
 
+// Файл: ui/screens/backlog/BacklogViewModel.kt
+
     override fun requestNavigation(route: String) {
         viewModelScope.launch {
-            if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
+            // ✅ НОВА ЛОГІКА: Перевіряємо, чи маршрут веде на екран проекту
+            if (route.startsWith("goal_detail_screen/")) {
+                // Це перехід на інший проект, тому ми повинні зареєструвати його в історії
+                val projectId = route.substringAfter("goal_detail_screen/")
+
+                // Нам потрібно отримати ім'я проекту для коректного запису в історію
+                val projectName = withContext(ioDispatcher) {
+                    projectRepository.getProjectById(projectId)?.name ?: "Project"
+                }
+                enhancedNavigationManager.navigateToProject(projectId, projectName)
+
+            } else if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
+                // Ця логіка для обробки інших посилань залишається без змін
                 val target = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
                 val link =
                     listContent.value
@@ -488,11 +502,11 @@ class BacklogViewModel @Inject constructor(
                     _uiEventFlow.send(UiEvent.HandleLinkClick(link))
                 }
             } else {
+                // Для всіх інших маршрутів (напр. редагування цілі) використовуємо просту навігацію
                 _uiEventFlow.send(UiEvent.Navigate(route))
             }
         }
     }
-
     override fun showSnackbar(
         message: String,
         action: String?,
@@ -742,9 +756,19 @@ class BacklogViewModel @Inject constructor(
         }
     }
 
+// Файл: ui/screens/backlog/BacklogViewModel.kt
+
     fun onLinkItemClick(link: RelatedLink) {
         viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+            // ✅ ВИПРАВЛЕННЯ: Тепер перехід між проектами реєструється в історії
+            if (link.type == LinkType.PROJECT) {
+                // Використовуємо displayName як надійне джерело імені
+                val projectName = link.displayName ?: "Project"
+                enhancedNavigationManager.navigateToProject(link.target, projectName)
+            } else {
+                // Для інших типів посилань залишаємо стару логіку
+                _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+            }
         }
     }
 
@@ -1300,5 +1324,12 @@ class BacklogViewModel @Inject constructor(
             inputMode = getInputModeForView(uiState.value.currentView)
         )
     }
+
+    fun onSubprojectClick(subproject: ListItemContent.SublistItem) {
+        viewModelScope.launch {
+            enhancedNavigationManager.navigateToProject(subproject.project.id, subproject.project.name)
+        }
+    }
+
 
 }
