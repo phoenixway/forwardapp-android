@@ -38,7 +38,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -219,7 +221,8 @@ private fun MainScreenScaffold(
                     isExpanded = uiState.isBottomNavExpanded,
                     onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
                     onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
-                    onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) }
+                    onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
+                    onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) }
                 )
             }
         }
@@ -276,6 +279,34 @@ private fun MainScreenScaffold(
 }
 
 
+@Composable
+private fun NeonTitle(text: String, modifier: Modifier = Modifier) {
+    val backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    val borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+    val textColor = MaterialTheme.colorScheme.primary
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(backgroundColor)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(8.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+            ),
+            color = textColor,
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScreenTopAppBar(
@@ -293,8 +324,8 @@ private fun MainScreenTopAppBar(
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
 ) {
-    CenterAlignedTopAppBar(
-        title = { Text("Projects", fontWeight = FontWeight.Bold, fontSize = 22.sp) },
+    TopAppBar(
+        title = { NeonTitle("Projects") },
         actions = {
             if (!isSearchActive) {
                 AnimatedVisibility(visible = canGoBack) {
@@ -348,7 +379,7 @@ private fun MainScreenTopAppBar(
                 }
             }
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+        colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.primary,
             actionIconContentColor = MaterialTheme.colorScheme.onSurface,

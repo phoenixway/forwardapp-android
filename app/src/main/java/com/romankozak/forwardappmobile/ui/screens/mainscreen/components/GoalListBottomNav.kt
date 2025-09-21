@@ -145,7 +145,8 @@ internal fun ExpandingBottomNav(
     onExpandedChange: (Boolean) -> Unit,
     // --- NEW: Лямбди для навігації ---
     onAiChatClick: () -> Unit,
-    onActivityTrackerClick: () -> Unit
+    onActivityTrackerClick: () -> Unit,
+    onInsightsClick: () -> Unit
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -200,7 +201,7 @@ internal fun ExpandingBottomNav(
                     SmallBottomNavButton(
                         text = "Insights",
                         icon = Icons.Outlined.Lightbulb,
-                        onClick = { /* TODO: Handle Insights Click */ },
+                        onClick = onInsightsClick,
                     )
                     SmallBottomNavButton(
                         text = "AI-Chat",

@@ -24,6 +24,8 @@ import com.romankozak.forwardappmobile.ui.components.SuggestionUtils
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.utils.copyToClipboard
+import com.romankozak.forwardappmobile.ui.utils.formatDate
+import androidx.compose.material.icons.filled.ContentCopy
 
 object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
@@ -153,29 +155,25 @@ private fun GoalEditScreenContent(
         item { Spacer(Modifier.height(4.dp)) }
 
         item {
-            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    EnhancedTextInputSection(
-                        goalText = uiState.goalText,
-                        onTextChange = viewModel::onTextChange,
-                        allContexts = allContexts,
-                        allTags = allTags,
-                        modifier = Modifier.fillMaxWidth(),
-                        onCopy = {
-                            copyToClipboard(context, uiState.goalText.text, "Goal Text")
-                            Toast.makeText(context, "Goal text copied", Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    GoalTextPreview(
-                        text = uiState.goalText.text,
-                        onTagClick = { tag ->
-                            // Optional: Handle tag click (e.g., jump to tag in text)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+            EnhancedTextInputSection(
+                goalText = uiState.goalText,
+                onTextChange = viewModel::onTextChange,
+                allContexts = allContexts,
+                allTags = allTags,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                IconButton(onClick = {
+                    copyToClipboard(context, uiState.goalText.text, "Goal Text")
+                    Toast.makeText(context, "Goal text copied", Toast.LENGTH_SHORT).show()
+                }) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy goal text")
                 }
             }
+            HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
         }
 
         // Description editor
@@ -265,8 +263,7 @@ private fun EnhancedTextInputSection(
     onTextChange: (TextFieldValue) -> Unit,
     allContexts: List<String>,
     allTags: List<String>,
-    modifier: Modifier = Modifier,
-    onCopy: () -> Unit
+    modifier: Modifier = Modifier
 ) {
     var showSuggestions by remember { mutableStateOf(value = false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -289,19 +286,13 @@ private fun EnhancedTextInputSection(
     }
 
     Column(modifier = modifier) {
-        Row(verticalAlignment = Alignment.Top) {
-            OutlinedTextField(
-                value = goalText,
-                onValueChange = onTextChange,
-                label = { Text("Назва цілі") },
-                modifier = Modifier.weight(1f),
-                supportingText = createSupportingText(showSuggestions, currentSuggestionType)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(onClick = onCopy) {
-                Icon(Icons.Default.ContentCopy, contentDescription = "Copy goal text")
-            }
-        }
+        OutlinedTextField(
+            value = goalText,
+            onValueChange = onTextChange,
+            label = { Text("Назва цілі") },
+            modifier = Modifier.fillMaxWidth(),
+            supportingText = createSupportingText(showSuggestions, currentSuggestionType)
+        )
 
         SuggestionChipsRow(
             visible = showSuggestions,

@@ -162,7 +162,12 @@ constructor(
 
     fun undoDelete() {
         scope.launch {
-            resultListener.showSnackbar("Undo not implemented yet.", null)
+            recentlyDeletedItems?.let { itemsToRestore ->
+                val listItemsToRestore = itemsToRestore.map { it.listItem }
+                projectRepository.restoreListItems(listItemsToRestore)
+                resultListener.forceRefresh()
+            }
+            recentlyDeletedItems = null
         }
     }
 }

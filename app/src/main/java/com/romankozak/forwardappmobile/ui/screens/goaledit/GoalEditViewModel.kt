@@ -274,7 +274,7 @@ constructor(
                     .filter { it.type == LinkType.PROJECT }
                     .joinToString(",") { it.target }
             val title = URLEncoder.encode("Додати посилання на проект", "UTF-8")
-            _events.send(GoalEditEvent.Navigate("project_chooser_screen/$title?disabledIds=$disabledIds"))
+            _events.send(GoalEditEvent.Navigate("list_chooser_screen/$title?disabledIds=$disabledIds"))
         }
     }
 

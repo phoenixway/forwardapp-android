@@ -533,6 +533,12 @@ class MainScreenViewModel @Inject constructor(
                 }
             }
 
+            is MainScreenEvent.NavigateToAiInsights -> {
+                viewModelScope.launch {
+                    _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
+                }
+            }
+
             is MainScreenEvent.SaveSettings -> {
                 saveSettings(
                     show = event.show,
