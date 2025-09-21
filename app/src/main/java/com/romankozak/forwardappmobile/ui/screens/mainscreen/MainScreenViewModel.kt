@@ -539,43 +539,24 @@ class MainScreenViewModel @Inject constructor(
     }
 
     private fun onCloseSearch() {
+        if (_isProcessingReveal.value) return
+
         viewModelScope.launch {
-            if (_isProcessingReveal.value) return@launch
             _isProcessingReveal.value = true
-
             try {
-                clearAndNavigateHomeUseCase.invoke(
+                clearAndNavigateHomeUseCase.closeSearchAndNavigateHome(
                     currentProjects = _allProjectsFlat.value,
-                    onSubStateCleared = {
-                        // Очищаем стек подсостояний до базового состояния
-                        _subStateStack.value = listOf(MainSubState.Hierarchy)
-                    },
-                    onNavigationCleared = {
-                        // Очищаем все состояния поиска и навигации
-                        searchAndNavigationManager.clearAllSearchState()
-                        searchAndNavigationManager.clearNavigation()
-                    },
-                    onNavigateHome = {
-                        // Сбрасываем режим планирования и состояния расширения
-                        planningModeManager.changeMode(PlanningMode.All)
-                        planningModeManager.resetExpansionStates()
-
-                        // Навигируем домой через EnhancedNavigationManager
-                        enhancedNavigationManager?.navigateHome()
-                    },
-                    onScrollToTop = {
-                        // Прокручиваем к началу списка
-                        viewModelScope.launch {
-                            _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
-                        }
-                    }
+                    subStateStack = _subStateStack,
+                    searchAndNavigationManager = searchAndNavigationManager,
+                    planningModeManager = planningModeManager,
+                    enhancedNavigationManager = enhancedNavigationManager,
+                    uiEventChannel = _uiEventChannel
                 )
             } finally {
                 _isProcessingReveal.value = false
             }
         }
     }
-
     private fun handleBackNavigation() {
         val currentStack = _subStateStack.value
         when {
