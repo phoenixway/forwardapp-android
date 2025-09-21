@@ -86,4 +86,6 @@ sealed interface MainScreenEvent {
     data class AddProjectConfirm(val name: String, val parentId: String?) : MainScreenEvent
     data class AddSubprojectRequest(val parentProject: Project) : MainScreenEvent
 
+    data object CloseSearch : MainScreenEvent
+
 }
