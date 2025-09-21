@@ -198,7 +198,7 @@ private fun MainScreenScaffold(
                     onQueryChange = { onEvent(MainScreenEvent.SearchQueryChanged(it)) },
                     onCloseSearch = {
                         // При закрытии поиска навигация назад обработает стек подсостояний
-                        onEvent(MainScreenEvent.BackClick)
+                        onEvent(MainScreenEvent.CloseSearch)
                     },
                     onPerformGlobalSearch = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
                     onShowSearchHistory = { showSearchHistorySheet = true }
@@ -275,109 +275,6 @@ private fun MainScreenScaffold(
     )
 }
 
-@Composable
-private fun SearchBottomBar(
-    searchQuery: TextFieldValue,
-    onQueryChange: (TextFieldValue) -> Unit,
-    onCloseSearch: () -> Unit,
-    onPerformGlobalSearch: (String) -> Unit,
-    onShowSearchHistory: () -> Unit,
-) {
-    // Создаем focusRequester непосредственно тут
-    val focusRequester = remember { FocusRequester() }
-
-    // Автоматически фокусируем поле при появлении SearchBottomBar
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .imePadding(),
-        ) {
-            AnimatedVisibility(
-                visible = searchQuery.text.isNotBlank(),
-                enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
-                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onPerformGlobalSearch(searchQuery.text) },
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Search,
-                            contentDescription = "Perform global search",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Search everywhere for \"${searchQuery.text}\"",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .height(52.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onCloseSearch) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = "Close search",
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                SearchTextField(
-                    searchQuery = searchQuery,
-                    onQueryChange = onQueryChange,
-                    onPerformGlobalSearch = onPerformGlobalSearch,
-                    focusRequester = focusRequester,
-                    modifier = Modifier.weight(1f)
-                )
-
-                IconButton(onClick = onShowSearchHistory) {
-                    Icon(
-                        imageVector = Icons.Outlined.History,
-                        contentDescription = "Search history"
-                    )
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -540,7 +437,7 @@ private fun SearchHistoryBottomSheet(
 }
 
 @Composable
-private fun SearchTextField(
+fun SearchTextField(
     searchQuery: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
     onPerformGlobalSearch: (String) -> Unit,

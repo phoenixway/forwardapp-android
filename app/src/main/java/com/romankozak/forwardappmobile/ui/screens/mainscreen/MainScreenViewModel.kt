@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActionsHandler
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyManager
@@ -33,6 +34,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -52,7 +54,9 @@ class MainScreenViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val dialogStateManager: DialogStateManager,
     private val planningModeManager: PlanningModeManager,
-    private val actionsHandler: ProjectActionsHandler
+    private val actionsHandler: ProjectActionsHandler,
+    private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase
+
 ) : ViewModel() {
 
     companion object {
@@ -528,6 +532,46 @@ class MainScreenViewModel @Inject constructor(
             is MainScreenEvent.AddProjectConfirm -> {
                 onAddNewProjectConfirmed(event.name, event.parentId)
                 dialogStateManager.dismissDialog()
+            }
+            is MainScreenEvent.CloseSearch -> onCloseSearch()
+
+        }
+    }
+
+    private fun onCloseSearch() {
+        viewModelScope.launch {
+            if (_isProcessingReveal.value) return@launch
+            _isProcessingReveal.value = true
+
+            try {
+                clearAndNavigateHomeUseCase.invoke(
+                    currentProjects = _allProjectsFlat.value,
+                    onSubStateCleared = {
+                        // Очищаем стек подсостояний до базового состояния
+                        _subStateStack.value = listOf(MainSubState.Hierarchy)
+                    },
+                    onNavigationCleared = {
+                        // Очищаем все состояния поиска и навигации
+                        searchAndNavigationManager.clearAllSearchState()
+                        searchAndNavigationManager.clearNavigation()
+                    },
+                    onNavigateHome = {
+                        // Сбрасываем режим планирования и состояния расширения
+                        planningModeManager.changeMode(PlanningMode.All)
+                        planningModeManager.resetExpansionStates()
+
+                        // Навигируем домой через EnhancedNavigationManager
+                        enhancedNavigationManager?.navigateHome()
+                    },
+                    onScrollToTop = {
+                        // Прокручиваем к началу списка
+                        viewModelScope.launch {
+                            _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(0))
+                        }
+                    }
+                )
+            } finally {
+                _isProcessingReveal.value = false
             }
         }
     }
