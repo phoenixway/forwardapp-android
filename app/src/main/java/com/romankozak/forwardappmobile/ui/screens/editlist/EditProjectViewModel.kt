@@ -56,7 +56,7 @@ constructor(
                     it.copy(
                         project = loadedProject,
                         name = loadedProject.name,
-                        tags = loadedProject.tags ?: emptyList(),
+                        tags = loadedProject.tags?.filter { it.isNotBlank() } ?: emptyList(),
                         reminderTime = loadedProject.reminderTime,
                         scoringStatus = loadedProject.scoringStatus,
                         isScoringEnabled = loadedProject.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS,
@@ -82,7 +82,7 @@ constructor(
     }
 
     fun onTagsChange(newTags: List<String>) {
-        _uiState.update { it.copy(tags = newTags) }
+        _uiState.update { it.copy(tags = newTags.filter { it.isNotBlank() }) }
     }
 
     fun onSave(): Project? {

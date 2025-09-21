@@ -23,7 +23,7 @@ import com.romankozak.forwardappmobile.ui.components.SuggestionChipsRow
 import com.romankozak.forwardappmobile.ui.components.SuggestionUtils
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
-import com.romankozak.forwardappmobile.ui.utils.formatDate
+import com.romankozak.forwardappmobile.ui.utils.copyToClipboard
 
 object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
@@ -142,6 +142,7 @@ private fun GoalEditScreenContent(
     allTags: List<String>,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -151,26 +152,30 @@ private fun GoalEditScreenContent(
     ) {
         item { Spacer(Modifier.height(4.dp)) }
 
-        // Enhanced text input with tag and context autocomplete
         item {
-            EnhancedTextInputSection(
-                goalText = uiState.goalText,
-                onTextChange = viewModel::onTextChange,
-                allContexts = allContexts,
-                allTags = allTags,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Preview of parsed text and tags
-        item {
-            GoalTextPreview(
-                text = uiState.goalText.text,
-                onTagClick = { tag ->
-                    // Optional: Handle tag click (e.g., jump to tag in text)
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    EnhancedTextInputSection(
+                        goalText = uiState.goalText,
+                        onTextChange = viewModel::onTextChange,
+                        allContexts = allContexts,
+                        allTags = allTags,
+                        modifier = Modifier.fillMaxWidth(),
+                        onCopy = {
+                            copyToClipboard(context, uiState.goalText.text, "Goal Text")
+                            Toast.makeText(context, "Goal text copied", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    GoalTextPreview(
+                        text = uiState.goalText.text,
+                        onTagClick = { tag ->
+                            // Optional: Handle tag click (e.g., jump to tag in text)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
 
         // Description editor
@@ -181,6 +186,10 @@ private fun GoalEditScreenContent(
                 maxHeight = 150.dp,
                 onExpandClick = { viewModel.openDescriptionEditor() },
                 modifier = Modifier.fillMaxWidth(),
+                onCopy = {
+                    copyToClipboard(context, uiState.goalDescription.text, "Goal Description")
+                    Toast.makeText(context, "Goal description copied", Toast.LENGTH_SHORT).show()
+                }
             )
         }
 
@@ -256,7 +265,8 @@ private fun EnhancedTextInputSection(
     onTextChange: (TextFieldValue) -> Unit,
     allContexts: List<String>,
     allTags: List<String>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onCopy: () -> Unit
 ) {
     var showSuggestions by remember { mutableStateOf(value = false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -279,13 +289,19 @@ private fun EnhancedTextInputSection(
     }
 
     Column(modifier = modifier) {
-        OutlinedTextField(
-            value = goalText,
-            onValueChange = onTextChange,
-            label = { Text("Назва цілі") },
-            modifier = Modifier.fillMaxWidth(),
-            supportingText = createSupportingText(showSuggestions, currentSuggestionType)
-        )
+        Row(verticalAlignment = Alignment.Top) {
+            OutlinedTextField(
+                value = goalText,
+                onValueChange = onTextChange,
+                label = { Text("Назва цілі") },
+                modifier = Modifier.weight(1f),
+                supportingText = createSupportingText(showSuggestions, currentSuggestionType)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = onCopy) {
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy goal text")
+            }
+        }
 
         SuggestionChipsRow(
             visible = showSuggestions,

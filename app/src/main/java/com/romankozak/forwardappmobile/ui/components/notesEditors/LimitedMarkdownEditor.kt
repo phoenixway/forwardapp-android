@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +39,7 @@ fun LimitedMarkdownEditor(
     maxHeight: Dp,
     onExpandClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onCopy: () -> Unit
 ) {
     var isOverflowing by remember(value.text) { mutableStateOf(false) }
     val textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
@@ -74,11 +79,15 @@ fun LimitedMarkdownEditor(
                 )
             }
 
-            AnimatedVisibility(visible = isOverflowing) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onCopy) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy description")
+                }
+                AnimatedVisibility(visible = isOverflowing) {
                     TextButton(onClick = onExpandClick) {
                         Text("More...")
                     }

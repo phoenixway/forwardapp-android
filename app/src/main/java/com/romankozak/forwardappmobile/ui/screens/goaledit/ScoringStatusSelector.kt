@@ -19,9 +19,9 @@ fun ScoringStatusSelector(
     val statuses = ScoringStatus.entries.toTypedArray()
     val labels =
         mapOf(
-            ScoringStatus.NOT_ASSESSED to "Unset",
-            ScoringStatus.ASSESSED to "Set",
-            ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible",
+            ScoringStatus.NOT_ASSESSED to "Не задано",
+            ScoringStatus.ASSESSED to "Задано",
+            ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Неможливо",
         )
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         statuses.forEachIndexed { index, status ->
