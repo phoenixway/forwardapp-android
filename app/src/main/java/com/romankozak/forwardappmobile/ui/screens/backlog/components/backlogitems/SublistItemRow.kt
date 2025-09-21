@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -161,6 +162,7 @@ fun SublistItemRow(
                             ) {
                                 // Надійна логіка, яка гарантує один '#' на початку
                                 val formattedTag = "#${tag.trim().trimStart('#')}"
+                                Log.d("SublistTagDebug", "Original Tag: ´$tag´ | Formatted Tag: ´$formattedTag´")
 
                                 EnhancedTagChip(
                                     text = formattedTag,

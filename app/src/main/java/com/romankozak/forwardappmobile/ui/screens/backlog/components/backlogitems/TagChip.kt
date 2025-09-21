@@ -158,7 +158,7 @@ fun EnhancedTagChip(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Icon based on tag type
-                Icon(
+/*                Icon(
                     imageVector = when (tagType) {
                         TagType.HASHTAG -> Icons.Default.Tag
                         TagType.PROJECT -> Icons.Default.Tag
@@ -166,7 +166,7 @@ fun EnhancedTagChip(
                     contentDescription = null,
                     tint = colors.content,
                     modifier = Modifier.size(12.dp)
-                )
+                )*/
 
                 Text(
                     text = text,
