@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.screens.backlog.components.backlogitems.EnhancedReminderBadge
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedReminderBadge
 
 /**
  * Іконка для підсписку, аналогічна тій, що в беклозі.
