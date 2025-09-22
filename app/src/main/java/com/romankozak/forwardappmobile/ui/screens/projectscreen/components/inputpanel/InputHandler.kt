@@ -98,6 +98,7 @@ class InputHandler(
         fun addQuickRecord(text: String)
 
         fun addProjectComment(text: String)
+        fun createObsidianNote(noteName: String)
     }
 
     fun onInputTextChanged(
@@ -280,6 +281,15 @@ class InputHandler(
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
+    }
+
+    fun onAddObsidianLinkAndCreateNewConfirm(noteName: String) {
+        if (noteName.isBlank()) {
+            onDismissLinkDialogs()
+            return
+        }
+        resultListener.createObsidianNote(noteName)
+        onAddObsidianLinkConfirm(noteName)
     }
 
     fun onShowAddWebLinkDialog() = resultListener.updateDialogState(showAddWebLinkDialog = true)

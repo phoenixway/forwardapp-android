@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
@@ -61,6 +63,7 @@ fun AddWebLinkDialog(
 fun AddObsidianLinkDialog(
     onDismiss: () -> Unit,
     onConfirm: (noteName: String) -> Unit,
+    onCreateNew: (noteName: String) -> Unit,
 ) {
     var noteName by remember { mutableStateOf("") }
 
@@ -75,11 +78,21 @@ fun AddObsidianLinkDialog(
             )
         },
         confirmButton = {
-            TextButton(
-                onClick = { onConfirm(noteName) },
-                enabled = noteName.isNotBlank(),
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(stringResource(R.string.add))
+                TextButton(
+                    onClick = { onCreateNew(noteName) },
+                    enabled = noteName.isNotBlank(),
+                ) {
+                    Text("Створити та додати")
+                }
+                TextButton(
+                    onClick = { onConfirm(noteName) },
+                    enabled = noteName.isNotBlank(),
+                ) {
+                    Text(stringResource(R.string.add))
+                }
             }
         },
         dismissButton = {

@@ -48,6 +48,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: П
         AddObsidianLinkDialog(
             onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
             onConfirm = { noteName -> viewModel.inputHandler.onAddObsidianLinkConfirm(noteName) },
+            onCreateNew = { noteName -> viewModel.inputHandler.onAddObsidianLinkAndCreateNewConfirm(noteName) }
         )
     }
 
