@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.Remind
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
+import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
 
 // ВИПРАВЛЕНО: Додано необхідний імпорт
 
@@ -29,8 +30,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 @Composable
 fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: Правильний тип ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // ВИПРАВЛЕНО: Звертаємось до recordToEdit через inboxHandler
-    val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
+
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val itemForTransportMenu by viewModel.itemActionHandler.itemForTransportMenu.collectAsStateWithLifecycle()
@@ -51,14 +51,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: П
         )
     }
 
-    recordToEdit?.let { record ->
-        EditInboxRecordDialog(
-            record = record,
-            // ВИПРАВЛЕНО: Викликаємо методи з inboxHandler
-            onDismiss = { viewModel.inboxHandler.onInboxRecordEditDismiss() },
-            onConfirm = { newText -> viewModel.inboxHandler.onInboxRecordEditConfirm(newText) },
-        )
-    }
+
 
     if (goalActionState is GoalActionDialogState.AwaitingActionChoice) {
         val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent

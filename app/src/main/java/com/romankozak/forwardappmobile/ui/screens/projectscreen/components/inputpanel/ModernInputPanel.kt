@@ -570,12 +570,35 @@ fun ModernInputPanel(
                             AnimatedContent(
                                 targetState = inputMode,
                                 transitionSpec = {
-                                    val direction = if (animationDirection == 1) AnimatedContentTransitionScope.SlideDirection.Up else AnimatedContentTransitionScope.SlideDirection.Down
-                                    slideIntoContainer(direction) + fadeIn() togetherWith
-                                            slideOutOfContainer(direction) + fadeOut()
+                                    val initialIndex = modes.indexOf(initialState)
+                                    val targetIndex = modes.indexOf(targetState)
+                                    val forward = targetIndex > initialIndex
+
+                                    val direction =
+                                        if (forward) AnimatedContentTransitionScope.SlideDirection.Left
+                                        else AnimatedContentTransitionScope.SlideDirection.Right
+
+                                    slideIntoContainer(
+                                        direction,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    ) + fadeIn(animationSpec = tween(800)) togetherWith
+                                            slideOutOfContainer(
+                                                direction,
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                )
+                                            ) + fadeOut(animationSpec = tween(850))
                                 },
-                                label = "mode_icon_animation",
-                            ) { mode ->
+
+
+                                        label = "mode_icon_animation",
+
+
+                                ) { mode ->
                                 val icon =
                                     when (mode) {
                                         InputMode.AddGoal -> Icons.Outlined.Add
@@ -587,11 +610,14 @@ fun ModernInputPanel(
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = null,
-                                    modifier =
-                                        Modifier
-                                            .size(22.dp)
-                                            .graphicsLayer { rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f },
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .graphicsLayer {
+                                            rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
+                                        },
                                 )
+
+
                             }
                         }
                     }

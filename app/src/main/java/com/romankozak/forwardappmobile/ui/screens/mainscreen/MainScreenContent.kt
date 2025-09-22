@@ -55,6 +55,10 @@ fun MainScreenContent(
         uiState.searchQuery.text
     }
 
+    val isFocusMode = remember(uiState.currentBreadcrumbs) {
+        uiState.currentBreadcrumbs.isNotEmpty()
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         if (isSearchActive && searchQuery.isNotBlank()) {
             // OPTIMIZED: Используем key для стабільності
@@ -70,7 +74,7 @@ fun MainScreenContent(
             }
 
             AnimatedVisibility(
-                visible = showBreadcrumbs,
+                visible = showBreadcrumbs && !isFocusMode, // Hide when in focus mode
                 enter = expandVertically(tween(200)) + fadeIn(tween(200)),
                 exit = shrinkVertically(tween(150)) + fadeOut(tween(150))
             ) {
@@ -81,8 +85,7 @@ fun MainScreenContent(
                     onFocusedListMenuClick = { projectId ->
                         uiState.projectHierarchy.allProjects.find { it.id == projectId }
                             ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
-                    },
-                    onOpenAsProject = { onEvent(MainScreenEvent.ProjectClick(it)) }
+                    }
                 )
             }
 
@@ -114,6 +117,7 @@ fun MainScreenContent(
                 ProjectHierarchyView(
                     modifier = Modifier.weight(1f),
                     hierarchy = uiState.projectHierarchy,
+                    breadcrumbs = uiState.currentBreadcrumbs, // Pass breadcrumbs down
                     focusedProjectId = when (currentSubState) {
                         is MainSubState.ProjectFocused -> currentSubState.projectId
                         else -> null
@@ -125,6 +129,7 @@ fun MainScreenContent(
                     hierarchySettings = HierarchyDisplaySettings(),
                     listState = listState,
                     longDescendantsMap = emptyMap(),
+                    onEvent = onEvent, // Pass onEvent
                     onProjectClicked = { onEvent(MainScreenEvent.ProjectClick(it)) },
                     onToggleExpanded = { onEvent(MainScreenEvent.ToggleProjectExpanded(it)) },
                     onMenuRequested = { onEvent(MainScreenEvent.ProjectMenuRequest(it)) },
