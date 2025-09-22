@@ -82,6 +82,8 @@ sealed class UiEvent {
         val link: RelatedLink,
     ) : UiEvent()
 
+    data class OpenUri(val uri: String) : UiEvent()
+
     data object ScrollToLatestInboxRecord : UiEvent()
 
 }
@@ -895,6 +897,15 @@ class BacklogViewModel @Inject constructor(
         inputHandler.cleanup()
     }
 
+    override fun createObsidianNote(noteName: String) {
+        viewModelScope.launch {
+            val vaultName = settingsRepository.obsidianVaultNameFlow.first()
+            val encodedNoteName = URLEncoder.encode(noteName, "UTF-8")
+            val uri = "obsidian://new?vault=${vaultName}&name=${encodedNoteName}"
+            _uiEventFlow.send(UiEvent.OpenUri(uri))
+        }
+    }
+
     private var lastToggleTime = 0L
 
     fun toggleAttachmentsVisibility() {
@@ -1366,6 +1377,11 @@ class BacklogViewModel @Inject constructor(
     fun onBackPressed(): Boolean {
         Log.d(TAG, "onBackPressed TRIGGERED")
         val state = uiState.value // Отримуємо стабільну копію стану для перевірок
+
+        if (inboxHandler.recordToEdit.value != null) {
+            inboxHandler.onInboxRecordEditDismiss()
+            return true
+        }
 
         // --- НОВА ЛОГІКА: Спочатку закриваємо всі модальні вікна та панелі ---
         if (state.showExportTransferDialog) {

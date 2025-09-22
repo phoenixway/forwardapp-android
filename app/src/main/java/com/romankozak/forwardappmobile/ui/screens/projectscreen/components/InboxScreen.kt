@@ -97,12 +97,7 @@ fun InboxScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                /*contentPadding = PaddingValues(
-                    top = 12.dp,
-                    start = 12.dp,
-                    end = 12.dp
-                ),*/
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentPadding = PaddingValues(top = 10.dp, bottom = 10.dp),
             ) {
                 itemsIndexed(records, key = { _, item -> item.id }) { index, record ->
                     val isLast = index == records.lastIndex
@@ -185,20 +180,16 @@ fun InboxItemRow(
             }
         }
 
+/*
     LaunchedEffect(isExpanded) {
         if (isExpanded) {
             scope.launch {
-                //delay(200) // невелика затримка, щоб анімація висоти відпрацювала
-//                bringIntoViewRequester.bringIntoView()
-                //listState.animateScrollToItem(index, scrollOffset = -50)
-                /*delay(200)
-                listState.animateScrollBy(200f)*/
-
-
-
+                delay(200) // невелика затримка, щоб анімація висоти відпрацювала
+                listState.animateScrollToItem(index, scrollOffset = -50)
             }
         }
     }
+*/
 
 
 
@@ -213,6 +204,7 @@ fun InboxItemRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .animateContentSize()
             .border(
                 width = 1.dp,
