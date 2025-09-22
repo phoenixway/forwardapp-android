@@ -7,24 +7,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -59,21 +58,32 @@ fun FullScreenTextEditor(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding() // Apply IME padding to the whole box
         ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) 56.dp else 0.dp), // Add padding to avoid the editing panel
-                label = { Text("Текст запису") },
-            )
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) 90.dp else 0.dp)
+            ) {
+                TextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxSize(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                    ),
+                )
+            }
 
             if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) {
                 ListEditingPanel(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .imePadding(),
+                    modifier = Modifier.align(Alignment.BottomCenter),
                     value = value,
                     onValueChange = onValueChange
                 )
