@@ -231,14 +231,28 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
     composable(
-        route = "note_edit_screen/{listId}/{noteId}",
-        arguments =
-            listOf(
-                navArgument("listId") { type = NavType.StringType },
-                navArgument("noteId") { type = NavType.StringType },
-            ),
+        route = "note_edit_screen?projectId={projectId}&noteId={noteId}",
+        arguments = listOf(
+            navArgument("projectId") {
+                type = NavType.StringType
+                nullable = true
+            },
+            navArgument("noteId") {
+                type = NavType.StringType
+                nullable = true
+            }
+        )
     ) {
         NoteEditScreen(navController = navController)
+    }
+
+    composable(
+        route = "custom_list_screen/{listId}",
+        arguments = listOf(
+            navArgument("listId") { type = NavType.StringType }
+        )
+    ) {
+        CustomListScreen()
     }
 
     composable(

@@ -59,6 +59,10 @@ constructor(
                     resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
                 is ListItemContent.LinkItem ->
                     resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
+                is ListItemContent.NoteItem ->
+                    resultListener.requestNavigation("note_edit_screen?noteId=${item.note.id}")
+                is ListItemContent.CustomListItem ->
+                    resultListener.requestNavigation("custom_list_screen/${item.customList.id}")
             }
         }
     }

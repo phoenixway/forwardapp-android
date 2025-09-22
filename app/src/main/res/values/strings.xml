@@ -90,6 +90,7 @@
     <string name="add_attachment_description">Додати новий додаток</string>
     <string name="add_attachment_button">Додати додаток</string>
     <string name="attachment_type_note">Нотатку</string>
+    <string name="attachment_type_custom_list">Список</string>
     <string name="attachment_type_web_link">Веб-посилання</string>
     <string name="attachment_type_obsidian">Посилання Obsidian</string>
     <string name="attachment_type_list_link">Посилання на список</string>

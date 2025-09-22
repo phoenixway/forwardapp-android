@@ -871,6 +871,18 @@ class BacklogViewModel @Inject constructor(
         }
     }
 
+    fun onNoteItemClick(note: NoteEntity) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${note.id}"))
+        }
+    }
+
+    fun onCustomListItemClick(customList: CustomListEntity) {
+        viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${customList.id}"))
+        }
+    }
+
 // Файл: ui/screens/backlog/ProjectScreenViewModel.kt
 
     fun onLinkItemClick(link: RelatedLink) {
@@ -942,6 +954,17 @@ class BacklogViewModel @Inject constructor(
 
     fun onAddAttachment(type: AttachmentType) {
         when (type) {
+            AttachmentType.NOTE -> {
+                viewModelScope.launch {
+                    _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?projectId=${projectIdFlow.value}"))
+                }
+            }
+            AttachmentType.CUSTOM_LIST -> {
+                viewModelScope.launch {
+                    val newListId = projectRepository.createCustomList("New List", projectIdFlow.value)
+                    _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/$newListId"))
+                }
+            }
             AttachmentType.WEB_LINK -> inputHandler.onShowAddWebLinkDialog()
             AttachmentType.OBSIDIAN_LINK -> inputHandler.onShowAddObsidianLinkDialog()
             AttachmentType.LIST_LINK -> inputHandler.onAddListLinkRequest()

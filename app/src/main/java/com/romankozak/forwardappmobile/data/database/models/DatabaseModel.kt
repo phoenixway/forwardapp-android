@@ -79,7 +79,7 @@ class Converters {
 // --- ENUMS ---
 
 enum class ProjectViewMode { BACKLOG, INBOX, DASHBOARD }
-enum class ListItemType { GOAL, SUBLIST, LINK_ITEM }
+enum class ListItemType { GOAL, SUBLIST, LINK_ITEM, NOTE, CUSTOM_LIST }
 enum class LinkType { PROJECT, URL, OBSIDIAN }
 enum class ScoringStatus { NOT_ASSESSED, IMPOSSIBLE_TO_ASSESS, ASSESSED }
 enum class ProjectLogLevel { DETAILED, NORMAL }

@@ -35,8 +35,8 @@ fun GoalDetailContent(
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
 
     val displayList = remember(listContent, goalList?.isAttachmentsExpanded) {
-        val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
-        val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem }
+        val attachmentItems = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
+        val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
 
         if (goalList?.isAttachmentsExpanded == true) {
             attachmentItems + draggableItems
