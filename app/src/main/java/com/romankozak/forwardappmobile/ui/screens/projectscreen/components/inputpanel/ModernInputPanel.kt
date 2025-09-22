@@ -39,17 +39,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.PopupProperties
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.NavControls
 import kotlinx.coroutines.delay
 
-// region Refactored Data Classes & Components
+
 
 private data class PanelColors(
     val containerColor: Color,
@@ -66,7 +63,7 @@ data class NavPanelState(
     val currentView: ProjectViewMode,
     val isProjectManagementEnabled: Boolean,
     val inputMode: InputMode,
-    val isViewModePanelVisible: Boolean
+    val isViewModePanelVisible: Boolean,
 )
 
 data class NavPanelActions(
@@ -82,7 +79,7 @@ data class NavPanelActions(
     val onMenuExpandedChange: (Boolean) -> Unit,
     val onAddProjectToDayPlan: () -> Unit,
     val onToggleNavPanelMode: () -> Unit,
-    val menuActions: OptionsMenuActions
+    val menuActions: OptionsMenuActions,
 )
 
 data class OptionsMenuActions(
@@ -95,7 +92,7 @@ data class OptionsMenuActions(
     val onImportBacklogFromMarkdown: () -> Unit,
     val onExportBacklogToMarkdown: () -> Unit,
     val onExportProjectState: () -> Unit,
-    val onDeleteList: () -> Unit
+    val onDeleteList: () -> Unit,
 )
 
 @Composable
@@ -104,45 +101,49 @@ private fun ViewModeToggle(
     isProjectManagementEnabled: Boolean,
     onViewChange: (ProjectViewMode) -> Unit,
     onInputModeSelected: (InputMode) -> Unit,
-    contentColor: Color
+    contentColor: Color,
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = contentColor.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f))
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f)),
     ) {
         Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
-            val availableViews = ProjectViewMode.values().filter {
-                it != ProjectViewMode.DASHBOARD || isProjectManagementEnabled
-            }
+            val availableViews =
+                ProjectViewMode.values().filter {
+                    it != ProjectViewMode.DASHBOARD || isProjectManagementEnabled
+                }
             availableViews.forEach { viewMode ->
                 val isSelected = currentView == viewMode
                 IconButton(
                     onClick = {
                         onViewChange(viewMode)
-                        val newMode = when (viewMode) {
-                            ProjectViewMode.INBOX -> InputMode.AddQuickRecord
-                            ProjectViewMode.DASHBOARD -> InputMode.AddQuickRecord
-                            else -> InputMode.AddGoal
-                        }
+                        val newMode =
+                            when (viewMode) {
+                                ProjectViewMode.INBOX -> InputMode.AddQuickRecord
+                                ProjectViewMode.DASHBOARD -> InputMode.AddQuickRecord
+                                else -> InputMode.AddGoal
+                            }
                         onInputModeSelected(newMode)
                     },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(
-                            color = if (isSelected) contentColor.copy(alpha = 0.2f) else Color.Transparent,
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                    modifier =
+                        Modifier
+                            .size(36.dp)
+                            .background(
+                                color = if (isSelected) contentColor.copy(alpha = 0.2f) else Color.Transparent,
+                                shape = RoundedCornerShape(16.dp),
+                            ),
                 ) {
                     Icon(
-                        imageVector = when (viewMode) {
-                            ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
-                            ProjectViewMode.INBOX -> Icons.Outlined.Inbox
-                            ProjectViewMode.DASHBOARD -> Icons.Outlined.Dashboard
-                        },
+                        imageVector =
+                            when (viewMode) {
+                                ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
+                                ProjectViewMode.INBOX -> Icons.Outlined.Inbox
+                                ProjectViewMode.DASHBOARD -> Icons.Outlined.Dashboard
+                            },
                         contentDescription = viewMode.name,
                         modifier = Modifier.size(18.dp),
-                        tint = contentColor
+                        tint = contentColor,
                     )
                 }
             }
@@ -155,15 +156,24 @@ private data class MenuItem(
     val icon: ImageVector,
     val onClick: () -> Unit,
     val isVisible: Boolean = true,
-    val isDestructive: Boolean = false
+    val isDestructive: Boolean = false,
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
+private fun OptionsMenu(
+    state: NavPanelState,
+    actions: NavPanelActions,
+    contentColor: Color,
+) {
     Box {
         IconButton(onClick = { actions.onMenuExpandedChange(true) }, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Default.MoreVert, stringResource(R.string.more_options), tint = contentColor.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+            Icon(
+                Icons.Default.MoreVert,
+                stringResource(R.string.more_options),
+                tint = contentColor.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp),
+            )
         }
 
         if (state.menuExpanded) {
@@ -175,45 +185,81 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
             ) {
                 val menu = actions.menuActions
 
-                // Hoist the stringResource calls outside of the remember block
+                
                 val editListText = stringResource(R.string.edit_list)
                 val shareListText = stringResource(R.string.share_list)
                 val deleteListText = stringResource(R.string.delete_list)
 
-                val menuItems = remember(state.currentView, state.isProjectManagementEnabled) {
-                    listOf(
-                        MenuItem(editListText, Icons.Default.Edit, { menu.onEditList(); actions.onMenuExpandedChange(false) }),
-                        MenuItem("Додати до плану на сьогодні", Icons.Outlined.EventAvailable, { actions.onAddProjectToDayPlan(); actions.onMenuExpandedChange(false) }),
-                        MenuItem("Toggle realization support", Icons.Outlined.Construction, { menu.onToggleProjectManagement(); actions.onMenuExpandedChange(false) }),
-                        MenuItem("Start tracking current project", Icons.Outlined.PlayCircle, { menu.onStartTrackingCurrentProject(); actions.onMenuExpandedChange(false) }),
-                        MenuItem(shareListText, Icons.Default.Share, { menu.onShareList(); actions.onMenuExpandedChange(false) }),
-                        MenuItem("Імпортувати з Markdown", Icons.Default.Upload, { menu.onImportFromMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.INBOX),
-                        MenuItem("Експортувати в Markdown", Icons.Default.Download, { menu.onExportToMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.INBOX),
-                        MenuItem("Імпортувати беклог з Markdown", Icons.Default.Upload, { menu.onImportBacklogFromMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
-                        MenuItem("Експортувати беклог в Markdown", Icons.Default.Download, { menu.onExportBacklogToMarkdown(); actions.onMenuExpandedChange(false) }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
-                        MenuItem("Експортувати історію і стан", Icons.Outlined.Assessment, { menu.onExportProjectState(); actions.onMenuExpandedChange(false) }, isVisible = state.isProjectManagementEnabled),
-                        MenuItem("Недавні проекти", Icons.Outlined.Restore, { actions.onRecentsClick(); actions.onMenuExpandedChange(false) }),
-                        MenuItem(deleteListText, Icons.Outlined.Delete, { menu.onDeleteList(); actions.onMenuExpandedChange(false) }, isDestructive = true),
-                    )
-                }
-
-
+                val menuItems =
+                    remember(state.currentView, state.isProjectManagementEnabled) {
+                        listOf(
+                            MenuItem(editListText, Icons.Default.Edit, {
+                                menu.onEditList()
+                                actions.onMenuExpandedChange(false)
+                            }),
+                            MenuItem("Додати до плану на сьогодні", Icons.Outlined.EventAvailable, {
+                                actions.onAddProjectToDayPlan()
+                                actions.onMenuExpandedChange(false)
+                            }),
+                            MenuItem("Toggle realization support", Icons.Outlined.Construction, {
+                                menu.onToggleProjectManagement()
+                                actions.onMenuExpandedChange(false)
+                            }),
+                            MenuItem("Start tracking current project", Icons.Outlined.PlayCircle, {
+                                menu.onStartTrackingCurrentProject()
+                                actions.onMenuExpandedChange(false)
+                            }),
+                            MenuItem(shareListText, Icons.Default.Share, {
+                                menu.onShareList()
+                                actions.onMenuExpandedChange(false)
+                            }),
+                            MenuItem("Імпортувати з Markdown", Icons.Default.Upload, {
+                                menu.onImportFromMarkdown()
+                                actions.onMenuExpandedChange(false)
+                            }, isVisible = state.currentView == ProjectViewMode.INBOX),
+                            MenuItem("Експортувати в Markdown", Icons.Default.Download, {
+                                menu.onExportToMarkdown()
+                                actions.onMenuExpandedChange(false)
+                            }, isVisible = state.currentView == ProjectViewMode.INBOX),
+                            MenuItem("Імпортувати беклог з Markdown", Icons.Default.Upload, {
+                                menu.onImportBacklogFromMarkdown()
+                                actions.onMenuExpandedChange(false)
+                            }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
+                            MenuItem("Експортувати беклог в Markdown", Icons.Default.Download, {
+                                menu.onExportBacklogToMarkdown()
+                                actions.onMenuExpandedChange(false)
+                            }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
+                            MenuItem("Експортувати історію і стан", Icons.Outlined.Assessment, {
+                                menu.onExportProjectState()
+                                actions.onMenuExpandedChange(false)
+                            }, isVisible = state.isProjectManagementEnabled),
+                            MenuItem("Недавні проекти", Icons.Outlined.Restore, {
+                                actions.onRecentsClick()
+                                actions.onMenuExpandedChange(false)
+                            }),
+                            MenuItem(deleteListText, Icons.Outlined.Delete, {
+                                menu.onDeleteList()
+                                actions.onMenuExpandedChange(false)
+                            }, isDestructive = true),
+                        )
+                    }
 
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 100.dp),
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier.navigationBarsPadding()
+                    modifier = Modifier.navigationBarsPadding(),
                 ) {
                     items(menuItems.filter { it.isVisible }) { item ->
                         val color = if (item.isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         Column(
-                            modifier = Modifier
-                                .clickable { item.onClick() }
-                                .padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .clickable { item.onClick() }
+                                    .padding(8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            verticalArrangement = Arrangement.Center,
                         ) {
                             Icon(item.icon, contentDescription = item.text, tint = color, modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.height(8.dp))
@@ -226,7 +272,7 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
     }
 }
 
-// endregion
+
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -234,21 +280,22 @@ private fun NavigationBar(
     state: NavPanelState,
     actions: NavPanelActions,
     contentColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .animateContentSize(),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 52.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .animateContentSize(),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // This group appears on the left when isViewModePanelVisible is true
+        
         AnimatedVisibility(
             visible = state.isViewModePanelVisible,
             enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
-            exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start)
+            exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
@@ -256,7 +303,7 @@ private fun NavigationBar(
                         imageVector = Icons.Outlined.Tune,
                         contentDescription = "Перемкнути панель",
                         tint = contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
                 ViewModeToggle(
@@ -264,48 +311,51 @@ private fun NavigationBar(
                     isProjectManagementEnabled = state.isProjectManagementEnabled,
                     onViewChange = actions.onViewChange,
                     onInputModeSelected = actions.onInputModeSelected,
-                    contentColor = contentColor
+                    contentColor = contentColor,
                 )
             }
         }
 
-        // This group appears on the left when isViewModePanelVisible is false
+        
         AnimatedVisibility(
             visible = !state.isViewModePanelVisible,
             enter = fadeIn(),
-            exit = fadeOut()
+            exit = fadeOut(),
         ) {
             NavControls(state = state, actions = actions, contentColor = contentColor)
         }
 
         Spacer(Modifier.weight(1f))
 
-        // This is the group on the right
+        
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // The Tune button is only visible here when not in view mode
+            
             AnimatedVisibility(
                 visible = !state.isViewModePanelVisible,
                 enter = fadeIn(),
-                exit = fadeOut()
+                exit = fadeOut(),
             ) {
                 IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
                     Icon(
                         imageVector = Icons.Outlined.Tune,
                         contentDescription = "Перемкнути панель",
                         tint = contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
 
-            val attachmentIconColor by animateColorAsState(if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f), label = "attColor")
+            val attachmentIconColor by animateColorAsState(
+                if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
+                label = "attColor",
+            )
             val attachmentIconScale by animateFloatAsState(if (state.isAttachmentsExpanded) 1.2f else 1.0f, label = "attScale")
             IconButton(onClick = actions.onToggleAttachments, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Default.Attachment,
                     contentDescription = stringResource(R.string.toggle_attachments),
                     tint = attachmentIconColor,
-                    modifier = Modifier.size(20.dp).scale(attachmentIconScale)
+                    modifier = Modifier.size(20.dp).scale(attachmentIconScale),
                 )
             }
             OptionsMenu(state = state, actions = actions, contentColor = contentColor)
@@ -358,44 +408,47 @@ fun ModernInputPanel(
     onRevealInExplorer: () -> Unit,
     onCloseSearch: () -> Unit,
     suggestions: List<String>,
-    onSuggestionClick: (String) -> Unit
+    onSuggestionClick: (String) -> Unit,
 ) {
-    val state = NavPanelState(
-        canGoBack = canGoBack,
-        canGoForward = canGoForward,
-        isAttachmentsExpanded = isAttachmentsExpanded,
-        menuExpanded = menuExpanded,
-        currentView = currentView,
-        isProjectManagementEnabled = isProjectManagementEnabled,
-        inputMode = inputMode,
-        isViewModePanelVisible = isViewModePanelVisible
-    )
-    val actions = NavPanelActions(
-        onBackClick = onBackClick,
-        onForwardClick = onForwardClick,
-        onHomeClick = onHomeClick,
-        onRecentsClick = onRecentsClick,
-        onRevealInExplorer = onRevealInExplorer,
-        onCloseSearch = onCloseSearch,
-        onViewChange = onViewChange,
-        onInputModeSelected = onInputModeSelected,
-        onToggleAttachments = onToggleAttachments,
-        onMenuExpandedChange = onMenuExpandedChange,
-        onAddProjectToDayPlan = onAddProjectToDayPlan,
-        onToggleNavPanelMode = onToggleNavPanelMode,
-        menuActions = OptionsMenuActions(
-            onEditList = onEditList,
-            onToggleProjectManagement = onToggleProjectManagement,
-            onStartTrackingCurrentProject = onStartTrackingCurrentProject,
-            onShareList = onShareList,
-            onImportFromMarkdown = onImportFromMarkdown,
-            onExportToMarkdown = onExportToMarkdown,
-            onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-            onExportBacklogToMarkdown = onExportBacklogToMarkdown,
-            onExportProjectState = onExportProjectState,
-            onDeleteList = onDeleteList
+    val state =
+        NavPanelState(
+            canGoBack = canGoBack,
+            canGoForward = canGoForward,
+            isAttachmentsExpanded = isAttachmentsExpanded,
+            menuExpanded = menuExpanded,
+            currentView = currentView,
+            isProjectManagementEnabled = isProjectManagementEnabled,
+            inputMode = inputMode,
+            isViewModePanelVisible = isViewModePanelVisible,
         )
-    )
+    val actions =
+        NavPanelActions(
+            onBackClick = onBackClick,
+            onForwardClick = onForwardClick,
+            onHomeClick = onHomeClick,
+            onRecentsClick = onRecentsClick,
+            onRevealInExplorer = onRevealInExplorer,
+            onCloseSearch = onCloseSearch,
+            onViewChange = onViewChange,
+            onInputModeSelected = onInputModeSelected,
+            onToggleAttachments = onToggleAttachments,
+            onMenuExpandedChange = onMenuExpandedChange,
+            onAddProjectToDayPlan = onAddProjectToDayPlan,
+            onToggleNavPanelMode = onToggleNavPanelMode,
+            menuActions =
+                OptionsMenuActions(
+                    onEditList = onEditList,
+                    onToggleProjectManagement = onToggleProjectManagement,
+                    onStartTrackingCurrentProject = onStartTrackingCurrentProject,
+                    onShareList = onShareList,
+                    onImportFromMarkdown = onImportFromMarkdown,
+                    onExportToMarkdown = onExportToMarkdown,
+                    onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+                    onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+                    onExportProjectState = onExportProjectState,
+                    onDeleteList = onDeleteList,
+                ),
+        )
 
     val focusRequester = remember { FocusRequester() }
     val modes =
@@ -490,18 +543,18 @@ fun ModernInputPanel(
                 Column {
                     Divider(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        color = panelColors.contentColor.copy(alpha = 0.12f)
+                        color = panelColors.contentColor.copy(alpha = 0.12f),
                     )
                     AutocompleteSuggestions(
                         suggestions = suggestions,
-                        onSuggestionClick = onSuggestionClick
+                        onSuggestionClick = onSuggestionClick,
                     )
                 }
             }
             NavigationBar(
                 state = state,
                 actions = actions,
-                contentColor = panelColors.contentColor
+                contentColor = panelColors.contentColor,
             )
 
             AnimatedVisibility(
@@ -575,30 +628,31 @@ fun ModernInputPanel(
                                     val forward = targetIndex > initialIndex
 
                                     val direction =
-                                        if (forward) AnimatedContentTransitionScope.SlideDirection.Left
-                                        else AnimatedContentTransitionScope.SlideDirection.Right
+                                        if (forward) {
+                                            AnimatedContentTransitionScope.SlideDirection.Left
+                                        } else {
+                                            AnimatedContentTransitionScope.SlideDirection.Right
+                                        }
 
                                     slideIntoContainer(
                                         direction,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
+                                        animationSpec =
+                                            spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessLow,
+                                            ),
                                     ) + fadeIn(animationSpec = tween(800)) togetherWith
-                                            slideOutOfContainer(
-                                                direction,
-                                                animationSpec = spring(
+                                        slideOutOfContainer(
+                                            direction,
+                                            animationSpec =
+                                                spring(
                                                     dampingRatio = Spring.DampingRatioNoBouncy,
-                                                    stiffness = Spring.StiffnessLow
-                                                )
-                                            ) + fadeOut(animationSpec = tween(850))
+                                                    stiffness = Spring.StiffnessLow,
+                                                ),
+                                        ) + fadeOut(animationSpec = tween(850))
                                 },
-
-
-                                        label = "mode_icon_animation",
-
-
-                                ) { mode ->
+                                label = "mode_icon_animation",
+                            ) { mode ->
                                 val icon =
                                     when (mode) {
                                         InputMode.AddGoal -> Icons.Outlined.Add
@@ -610,14 +664,13 @@ fun ModernInputPanel(
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = null,
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .graphicsLayer {
-                                            rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
-                                        },
+                                    modifier =
+                                        Modifier
+                                            .size(22.dp)
+                                            .graphicsLayer {
+                                                rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
+                                            },
                                 )
-
-
                             }
                         }
                     }
@@ -686,10 +739,11 @@ fun ModernInputPanel(
                                                     InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
                                                     InputMode.AddProjectLog -> "Додати коментар до проекту..."
                                                 },
-                                            style = MaterialTheme.typography.bodyLarge.copy(
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                                                fontSize = 16.sp,
-                                            ),
+                                            style =
+                                                MaterialTheme.typography.bodyLarge.copy(
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                                    fontSize = 16.sp,
+                                                ),
                                         )
                                     }
                                     innerTextField()
@@ -734,10 +788,11 @@ fun ModernInputPanel(
                     enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
                     exit = fadeOut() + scaleOut(targetScale = 0.8f),
                 ) {
-                    val sendButtonBackgroundColor = when (inputMode) {
-                        InputMode.AddProjectLog -> MaterialTheme.colorScheme.onSecondary
-                        else -> panelColors.accentColor
-                    }
+                    val sendButtonBackgroundColor =
+                        when (inputMode) {
+                            InputMode.AddProjectLog -> MaterialTheme.colorScheme.onSecondary
+                            else -> panelColors.accentColor
+                        }
 
                     IconButton(
                         onClick = onSubmit,
@@ -775,7 +830,7 @@ fun ModernInputPanel(
             onAddListLinkClick = onAddListLinkClick,
             onShowAddWebLinkDialog = onShowAddWebLinkDialog,
             onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
-            onAddListShortcutClick = onAddListShortcutClick
+            onAddListShortcutClick = onAddListShortcutClick,
         )
     }
 }

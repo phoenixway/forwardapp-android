@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 
-
 @Composable
 fun EvaluationSection(
     uiState: GoalEditUiState,

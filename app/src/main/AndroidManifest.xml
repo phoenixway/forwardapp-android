@@ -12,6 +12,8 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:allowBackup="true"
         android:name=".ForwardAppMobileApplication"
@@ -38,7 +40,7 @@
         </activity>
 
         <receiver
-            android:name=".reminders.ReminderBroadcastReceiver"
+            android:name=".domain.reminders.ReminderBroadcastReceiver"
             android:enabled="true"/>
 
     </application>

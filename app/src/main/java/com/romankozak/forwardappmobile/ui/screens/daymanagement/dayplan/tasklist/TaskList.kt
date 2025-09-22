@@ -1,4 +1,4 @@
-// file: ui/screens/daymanagement/tasklist/TaskList.kt
+
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -26,16 +26,14 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedCustomCheckbox
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.CompactDayPlanHeader
-// Примітка: Переконайтесь, що CompactDayPlanHeader імпортується з правильного місця
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsGoalItem
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsSublistItem
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedCustomCheckbox
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -46,11 +44,11 @@ fun TaskList(
     onTaskLongPress: (DayTask) -> Unit,
     onTasksReordered: (List<DayTask>) -> Unit,
     onSublistClick: (projectId: String) -> Unit,
-    // --- НОВІ ПАРАМЕТРИ, ЩО ВИПРАВЛЯЮТЬ ПОМИЛКУ ---
+    
     onNavigateToPreviousDay: () -> Unit,
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var internalTasks by remember { mutableStateOf(tasks) }
@@ -66,31 +64,32 @@ fun TaskList(
         }.collect { currentTime = it }
     }
 
-    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        internalTasks = internalTasks.toMutableList().apply { add(to.index, removeAt(from.index)) }
-        onTasksReordered(internalTasks)
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-    }
+    val reorderableLazyListState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            internalTasks = internalTasks.toMutableList().apply { add(to.index, removeAt(from.index)) }
+            onTasksReordered(internalTasks)
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+        }
 
     LaunchedEffect(tasks) { internalTasks = tasks }
 
-    // --- ОНОВЛЕНА СТРУКТУРА: Додано Column для розміщення заголовка і списку ---
+    
     Column(modifier = modifier) {
-        // Розраховуємо статистику для заголовка
+        
         val completedTasks = tasks.count { it.completed }
         val totalTasks = tasks.size
 
-        // Додаємо заголовок з навігацією
+        
         CompactDayPlanHeader(
             dayPlan = dayPlan,
             completedTasks = completedTasks,
             totalTasks = totalTasks,
             onNavigateToPreviousDay = onNavigateToPreviousDay,
             onNavigateToNextDay = onNavigateToNextDay,
-            isNextDayNavigationEnabled = isNextDayNavigationEnabled
+            isNextDayNavigationEnabled = isNextDayNavigationEnabled,
         )
 
-        // Існуючий список завдань
+        
         LazyColumn(state = lazyListState) {
             items(items = internalTasks, key = { task -> task.id }) { task ->
                 ReorderableItem(reorderableLazyListState, key = task.id) { isDragging ->
@@ -98,19 +97,20 @@ fun TaskList(
 
                     Surface(
                         shadowElevation = elevation,
-                        modifier = Modifier.combinedClickable(
-                            onClick = {
-                                // ОБРОБКА КЛІКУ: Якщо це підсписок, викликаємо колбек
-                                if (task.taskType == ListItemType.SUBLIST) {
-                                    task.projectId?.let { onSublistClick(it) }
-                                }
-                            },
-                            onLongClick = { onTaskLongPress(task) }
-                        )
+                        modifier =
+                            Modifier.combinedClickable(
+                                onClick = {
+                                    
+                                    if (task.taskType == ListItemType.SUBLIST) {
+                                        task.projectId?.let { onSublistClick(it) }
+                                    }
+                                },
+                                onLongClick = { onTaskLongPress(task) },
+                            ),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp)
+                            modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                         ) {
                             EnhancedCustomCheckbox(
                                 checked = task.completed,
@@ -118,10 +118,10 @@ fun TaskList(
                             )
                             Spacer(Modifier.width(8.dp))
                             Box(modifier = Modifier.weight(1f)) {
-                                // ВИБІР РЕНДЕРУ ЗАЛЕЖНО ВІД ТИПУ
+                                
                                 when (task.taskType) {
                                     ListItemType.SUBLIST -> DayTaskAsSublistItem(task, currentTime)
-                                    else -> DayTaskAsGoalItem(task, currentTime) // GOAL або невизначений тип
+                                    else -> DayTaskAsGoalItem(task, currentTime)
                                 }
                             }
                             IconButton(

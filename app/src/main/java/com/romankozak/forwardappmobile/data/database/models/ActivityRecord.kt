@@ -36,9 +36,9 @@ data class ActivityRecord(
         get() = if (startTime != null && endTime != null) endTime - startTime else null
 }
 
-// ДОДАНО ЦЕЙ КЛАС для виправлення помилки компіляції
+
 @Fts4(contentEntity = ActivityRecord::class)
 @Entity(tableName = "activity_records_fts")
 data class ActivityRecordFts(
-    val text: String
+    val text: String,
 )

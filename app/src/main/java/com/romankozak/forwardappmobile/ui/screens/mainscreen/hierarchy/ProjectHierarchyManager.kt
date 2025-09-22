@@ -12,15 +12,12 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.findAncestors
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.fuzzyMatch
 
 class ProjectHierarchyManager {
-
-    /**
-     * Створює ієрархію проектів на основі поточного стану фільтрації
-     */
+    
     fun createProjectHierarchy(
         filterState: FilterState,
         expandedDaily: Set<String>?,
         expandedMedium: Set<String>?,
-        expandedLong: Set<String>?
+        expandedLong: Set<String>?,
     ): ListHierarchyData {
         return try {
             val (flatList, _, _, mode, settings) = filterState
@@ -31,8 +28,12 @@ class ProjectHierarchyManager {
             }
 
             createPlanningHierarchy(
-                flatList, mode, settings,
-                expandedDaily, expandedMedium, expandedLong
+                flatList,
+                mode,
+                settings,
+                expandedDaily,
+                expandedMedium,
+                expandedLong,
             )
         } catch (e: Exception) {
             Log.e("ProjectHierarchyManager", "Exception in createProjectHierarchy", e)
@@ -46,7 +47,7 @@ class ProjectHierarchyManager {
         return ListHierarchyData(
             allProjects = flatList,
             topLevelProjects = topLevel,
-            childMap = childMap
+            childMap = childMap,
         )
     }
 
@@ -56,22 +57,24 @@ class ProjectHierarchyManager {
         settings: PlanningSettingsState,
         expandedDaily: Set<String>?,
         expandedMedium: Set<String>?,
-        expandedLong: Set<String>?
+        expandedLong: Set<String>?,
     ): ListHierarchyData {
         val projectLookup = flatList.associateBy { it.id }
 
-        val targetTag = when (mode) {
-            PlanningMode.Daily -> settings.dailyTag
-            PlanningMode.Medium -> settings.mediumTag
-            PlanningMode.Long -> settings.longTag
-            else -> null
-        }
+        val targetTag =
+            when (mode) {
+                PlanningMode.Daily -> settings.dailyTag
+                PlanningMode.Medium -> settings.mediumTag
+                PlanningMode.Long -> settings.longTag
+                else -> null
+            }
 
-        val matchingProjects = if (targetTag != null) {
-            flatList.filter { it.tags?.contains(targetTag) == true }
-        } else {
-            emptyList()
-        }
+        val matchingProjects =
+            if (targetTag != null) {
+                flatList.filter { it.tags?.contains(targetTag) == true }
+            } else {
+                emptyList()
+            }
 
         val ancestorIds = mutableSetOf<String>()
         val visitedAncestors = mutableSetOf<String>()
@@ -81,35 +84,36 @@ class ProjectHierarchyManager {
 
         val visibleIds = ancestorIds + matchingProjects.map { it.id }
 
-        val currentExpandedState = when (mode) {
-            PlanningMode.Daily -> expandedDaily
-            PlanningMode.Medium -> expandedMedium
-            PlanningMode.Long -> expandedLong
-            else -> null
-        }
+        val currentExpandedState =
+            when (mode) {
+                PlanningMode.Daily -> expandedDaily
+                PlanningMode.Medium -> expandedMedium
+                PlanningMode.Long -> expandedLong
+                else -> null
+            }
 
         val shouldInitialize = currentExpandedState == null && matchingProjects.isNotEmpty()
         val currentExpandedIds = if (shouldInitialize) ancestorIds else (currentExpandedState ?: emptySet())
 
         val visibleProjects = flatList.filter { it.id in visibleIds }
-        val displayProjects = visibleProjects.map { project ->
-            project.copy(isExpanded = currentExpandedIds.contains(project.id))
-        }
-        val topLevel = displayProjects.filter {
-            it.parentId == null || it.parentId !in visibleIds
-        }.sortedBy { it.order }
+        val displayProjects =
+            visibleProjects.map { project ->
+                project.copy(isExpanded = currentExpandedIds.contains(project.id))
+            }
+        val topLevel =
+            displayProjects.filter {
+                it.parentId == null || it.parentId !in visibleIds
+            }.sortedBy { it.order }
         val childMap = displayProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
 
         return ListHierarchyData(
             allProjects = flatList,
             topLevelProjects = topLevel,
-            childMap = childMap
+            childMap = childMap,
         )
     }
 
-    /**
-     * Обчислює карту проектів з довгими нащадками
-     */
+    
     fun createLongDescendantsMap(allProjects: List<Project>): Map<String, Boolean> {
         if (allProjects.isEmpty()) return emptyMap()
 
@@ -118,8 +122,11 @@ class ProjectHierarchyManager {
         val memo = mutableMapOf<String, Boolean>()
         val characterLimit = 35
 
-        fun hasLongDescendantsRecursive(projectId: String, visitedInPath: Set<String>): Boolean {
-            // Перевіряємо на цикл
+        fun hasLongDescendantsRecursive(
+            projectId: String,
+            visitedInPath: Set<String>,
+        ): Boolean {
+            
             if (projectId in visitedInPath) {
                 return false
             }
@@ -147,55 +154,53 @@ class ProjectHierarchyManager {
         return resultMap
     }
 
-    /**
-     * Створює результати пошуку на основі фільтрів
-     */
+    
     fun createSearchResults(
         filterState: FilterState,
-        fullHierarchy: ListHierarchyData
+        fullHierarchy: ListHierarchyData,
     ): List<SearchResult> {
         if (!filterState.searchActive || filterState.query.isBlank()) {
             return emptyList()
         }
 
-        val matchingProjects = if (filterState.query.length > 3) {
-            filterState.flatList.filter { fuzzyMatch(filterState.query, it.name) }
-        } else {
-            filterState.flatList.filter {
-                it.name.contains(filterState.query, ignoreCase = true)
+        val matchingProjects =
+            if (filterState.query.length > 3) {
+                filterState.flatList.filter { fuzzyMatch(filterState.query, it.name) }
+            } else {
+                filterState.flatList.filter {
+                    it.name.contains(filterState.query, ignoreCase = true)
+                }
             }
-        }
 
         return matchingProjects.map { project ->
             SearchResult(
                 projectId = project.id,
                 projectName = project.name,
-                // **FIXED**: Converted List<BreadcrumbItem> to List<String> using .map.
-                parentPath = buildPathToProject(project.id, fullHierarchy).map { it.name }
+                
+                parentPath = buildPathToProject(project.id, fullHierarchy).map { it.name },
             )
         }.sortedBy { it.projectName }
     }
 
-    /**
-     * Створює ієрархію для діалогу вибору списку
-     */
+    
     fun createFilteredListHierarchyForDialog(
         allProjects: List<Project>,
         filterText: String,
-        movingId: String?
+        movingId: String?,
     ): ListHierarchyData {
         if (movingId == null) {
             return ListHierarchyData()
         }
 
-        val filteredProjects = if (filterText.isBlank()) {
-            allProjects
-        } else {
-            allProjects.filter {
-                it.name.contains(filterText, ignoreCase = true) ||
+        val filteredProjects =
+            if (filterText.isBlank()) {
+                allProjects
+            } else {
+                allProjects.filter {
+                    it.name.contains(filterText, ignoreCase = true) ||
                         fuzzyMatch(filterText, it.name)
+                }
             }
-        }
 
         val topLevel = filteredProjects.filter { it.parentId == null }.sortedBy { it.order }
         val childMap = filteredProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
@@ -203,7 +208,7 @@ class ProjectHierarchyManager {
         return ListHierarchyData(
             allProjects = filteredProjects,
             topLevelProjects = topLevel,
-            childMap = childMap
+            childMap = childMap,
         )
     }
 }

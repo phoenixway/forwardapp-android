@@ -25,6 +25,8 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 enum class AttachmentType {
+    NOTE,
+    CUSTOM_LIST,
     WEB_LINK,
     OBSIDIAN_LINK,
     LIST_LINK,
@@ -126,7 +128,7 @@ fun AttachmentsSection(
                                     },
                                     onCopyContentRequest = { content ->
                                         onCopyContentRequest(content)
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -184,14 +186,14 @@ private fun AttachmentItemCard(
                 NoteItemRow(
                     noteItem = item,
                     onClick = { onItemClick(item) },
-                    onDelete = { onDeleteItem(item) }
+                    onDelete = { onDeleteItem(item) },
                 )
             }
             is ListItemContent.CustomListItem -> {
                 CustomListItemRow(
                     customListItem = item,
                     onClick = { onItemClick(item) },
-                    onDelete = { onDeleteItem(item) }
+                    onDelete = { onDeleteItem(item) },
                 )
             }
             else -> {}

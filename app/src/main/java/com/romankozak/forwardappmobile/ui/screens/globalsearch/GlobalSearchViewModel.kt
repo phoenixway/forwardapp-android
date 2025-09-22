@@ -24,51 +24,54 @@ data class GlobalSearchUiState(
 
 @HiltViewModel
 class GlobalSearchViewModel
-@Inject
-constructor(
-    private val projectRepository: ProjectRepository,
-    private val settingsRepository: SettingsRepository,
-    savedStateHandle: SavedStateHandle,
-) : ViewModel() {
-    val query: String = savedStateHandle["query"] ?: ""
-    private val _uiState = MutableStateFlow(GlobalSearchUiState())
-    val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
+    @Inject
+    constructor(
+        private val projectRepository: ProjectRepository,
+        private val settingsRepository: SettingsRepository,
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        val query: String = savedStateHandle["query"] ?: ""
+        private val _uiState = MutableStateFlow(GlobalSearchUiState())
+        val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
 
-    lateinit var enhancedNavigationManager: EnhancedNavigationManager
+        lateinit var enhancedNavigationManager: EnhancedNavigationManager
 
-    val obsidianVaultName: StateFlow<String> =
-        settingsRepository.obsidianVaultNameFlow
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+        val obsidianVaultName: StateFlow<String> =
+            settingsRepository.obsidianVaultNameFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    init {
-        performSearch()
-    }
-
-    // --- ПОЧАТОК ЗМІН: Новий метод для "Відкрити локацію" ---
-    fun goBackToRevealProject(projectId: String) {
-        enhancedNavigationManager.goBackWithResult("project_to_reveal", projectId)
-    }
-    // --- КІНЕЦЬ ЗМІН ---
-
-    private fun performSearch() {
-        if (query.isBlank()) {
-            _uiState.update { it.copy(isLoading = false) }
-            return
+        init {
+            performSearch()
         }
 
-        viewModelScope.launch {
-            val results = projectRepository.searchGlobal("%$query%")
-            val distinctResults = results.distinctBy { it.uniqueId }
-            _uiState.update {
-                it.copy(results = distinctResults, isLoading = false)
+        
+        fun goBackToRevealProject(projectId: String) {
+            enhancedNavigationManager.goBackWithResult("project_to_reveal", projectId)
+        }
+        
+
+        private fun performSearch() {
+            if (query.isBlank()) {
+                _uiState.update { it.copy(isLoading = false) }
+                return
+            }
+
+            viewModelScope.launch {
+                val results = projectRepository.searchGlobal("%$query%")
+                val distinctResults = results.distinctBy { it.uniqueId }
+                _uiState.update {
+                    it.copy(results = distinctResults, isLoading = false)
+                }
+            }
+        }
+
+        fun navigateToProjectForResult(
+            projectId: String,
+            projectName: String?,
+        ) {
+            viewModelScope.launch {
+                val finalProjectName = projectName ?: projectRepository.getProjectById(projectId)?.name ?: "Project"
+                enhancedNavigationManager.navigateToProject(projectId, finalProjectName)
             }
         }
     }
-
-    fun navigateToProjectForResult(projectId: String, projectName: String?) {
-        viewModelScope.launch {
-            val finalProjectName = projectName ?: projectRepository.getProjectById(projectId)?.name ?: "Project"
-            enhancedNavigationManager.navigateToProject(projectId, finalProjectName)
-        }
-    }
-}

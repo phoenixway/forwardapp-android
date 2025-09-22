@@ -149,7 +149,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
                     PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
                     "GoalReminder:WakeLock",
                 ).apply {
-                    acquire(10 * 60 * 1000L) 
+                    acquire(10 * 60 * 1000L)
                 }
         Log.d(tag, "Wake lock acquired")
     }
@@ -283,7 +283,7 @@ fun DarkReminderLockScreen(
     onDismiss: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    var timeRemaining by remember { mutableStateOf(300) } 
+    var timeRemaining by remember { mutableStateOf(300) }
 
     LaunchedEffect(Unit) {
         while (timeRemaining > 0) {

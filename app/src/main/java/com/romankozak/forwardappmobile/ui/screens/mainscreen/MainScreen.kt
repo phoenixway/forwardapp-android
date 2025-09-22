@@ -1,4 +1,4 @@
-// File: MainScreen.kt - ИСПРАВЛЕНО ПОЛНЫЙ
+
 package com.romankozak.forwardappmobile.ui.screens.mainscreen
 
 import android.util.Log
@@ -16,7 +16,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,16 +37,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,23 +52,17 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
-import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.routes.navigateToDayManagement
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.SearchResultsView
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.BreadcrumbNavigation
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyView
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 private const val UI_TAG = "MainScreenUI_DEBUG"
-
 
 @Composable
 fun MainScreen(
@@ -83,7 +73,7 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Обработка одноразових событий из ViewModel (навигация, тосты, фокус)
+    
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collectLatest { event ->
             when (event) {
@@ -99,25 +89,26 @@ fun MainScreen(
                 is ProjectUiEvent.Navigate -> navController.navigate(event.route)
                 is ProjectUiEvent.NavigateToDayPlan -> navController.navigateToDayManagement(event.date)
                 is ProjectUiEvent.FocusSearchField -> {
-                    // Фокус теперь обрабатывается безпосредньо в SearchBottomBar
+                    
                 }
-                is ProjectUiEvent.ScrollToIndex -> { /* Эта логика теперь встроена в projectHierarchyFlow */ }
+                is ProjectUiEvent.ScrollToIndex -> { }
             }
         }
     }
 
-    // Обработка результатов из других экранов
+    
     DisposableEffect(navController, lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                navController.currentBackStackEntry
-                    ?.savedStateHandle
-                    ?.remove<String?>("list_chooser_result")
-                    ?.let { result ->
-                        viewModel.onEvent(MainScreenEvent.MoveConfirm(result))
-                    }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<String?>("list_chooser_result")
+                        ?.let { result ->
+                            viewModel.onEvent(MainScreenEvent.MoveConfirm(result))
+                        }
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -126,11 +117,11 @@ fun MainScreen(
         MainScreenScaffold(
             uiState = uiState,
             onEvent = viewModel::onEvent,
-            enhancedNavigationManager = navManager
+            enhancedNavigationManager = navManager,
         )
     } ?: Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator()
     }
@@ -141,37 +132,39 @@ fun MainScreen(
 private fun MainScreenScaffold(
     uiState: MainScreenUiState,
     onEvent: (MainScreenEvent) -> Unit,
-    enhancedNavigationManager: com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
+    enhancedNavigationManager: com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager,
 ) {
     val listState = rememberLazyListState()
 
-    // Локальный стан для модальних окон, которые не требуют сохранения в ViewModel
+    
     var showContextSheet by remember { mutableStateOf(false) }
     var showSearchHistorySheet by remember { mutableStateOf(false) }
 
-    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { onEvent(MainScreenEvent.ImportFromFileRequest(it)) }
-    }
+    val importLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onEvent(MainScreenEvent.ImportFromFileRequest(it)) }
+        }
 
     val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
         derivedStateOf {
-            val enabled = uiState.subStateStack.size > 1 ||
+            val enabled =
+                uiState.subStateStack.size > 1 ||
                     uiState.currentBreadcrumbs.isNotEmpty() ||
                     uiState.areAnyProjectsExpanded
-            Log.d(UI_TAG, "BackHandler enabled = $enabled") // Логуємо стан обробника
+            Log.d(UI_TAG, "BackHandler enabled = $enabled")
             enabled
         }
     }
 
     BackHandler(enabled = backHandlerEnabled) {
-        Log.i(UI_TAG, "Custom BackHandler INVOKED") // Логуємо виклик
+        Log.i(UI_TAG, "Custom BackHandler INVOKED")
         onEvent(MainScreenEvent.BackClick)
     }
 
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
-            // ИСПРАВЛЕНО: Используем стек подсостояний для определения активности поиска
+            
             val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
             val isFocusMode = uiState.currentBreadcrumbs.isNotEmpty()
 
@@ -189,11 +182,11 @@ private fun MainScreenScaffold(
                 onExportToFile = { onEvent(MainScreenEvent.ExportToFile) },
                 onImportFromFile = { importLauncher.launch("application/json") },
                 onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
-                onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) }
+                onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
             )
         },
         bottomBar = {
-            // ИСПРАВЛЕНО: Используем стек подсостояний для определения активности поиска
+            
             val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
 
             if (isSearchActive) {
@@ -201,16 +194,16 @@ private fun MainScreenScaffold(
                     searchQuery = uiState.searchQuery,
                     onQueryChange = { onEvent(MainScreenEvent.SearchQueryChanged(it)) },
                     onCloseSearch = {
-                        // При закрытии поиска навигация назад обработает стек подсостояний
+                        
                         onEvent(MainScreenEvent.CloseSearch)
                     },
                     onPerformGlobalSearch = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
-                    onShowSearchHistory = { showSearchHistorySheet = true }
+                    onShowSearchHistory = { showSearchHistorySheet = true },
                 )
             } else {
                 ExpandingBottomNav(
                     onToggleSearch = {
-                        // Начинаем локальный поиск - ViewModel добавит подсостояние в стек
+                        
                         onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
                     },
                     onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
@@ -224,25 +217,25 @@ private fun MainScreenScaffold(
                     onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
                     onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
                     onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
-                    onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) }
+                    onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
                 )
             }
-        }
+        },
     ) { paddingValues ->
         MainScreenContent(
             modifier = Modifier.padding(paddingValues),
             uiState = uiState,
             onEvent = onEvent,
-            listState = listState
+            listState = listState,
         )
     }
 
-    // --- Модальные окна и диалоги ---
+    
 
     if (uiState.showNavigationMenu) {
         NavigationHistoryMenu(
             navManager = enhancedNavigationManager,
-            onDismiss = { onEvent(MainScreenEvent.HideHistory) }
+            onDismiss = { onEvent(MainScreenEvent.HideHistory) },
         )
     }
 
@@ -253,7 +246,7 @@ private fun MainScreenScaffold(
         onContextSelected = {
             onEvent(MainScreenEvent.ContextSelected(it))
             showContextSheet = false
-        }
+        },
     )
 
     SearchHistoryBottomSheet(
@@ -263,7 +256,7 @@ private fun MainScreenScaffold(
         onHistoryClick = {
             onEvent(MainScreenEvent.SearchFromHistory(it))
             showSearchHistorySheet = false
-        }
+        },
     )
 
     RecentListsSheet(
@@ -273,37 +266,41 @@ private fun MainScreenScaffold(
         onListClick = { onEvent(MainScreenEvent.RecentProjectSelected(it)) },
     )
 
-    // Диалоги обрабатываются в HandleDialogs
+    
     HandleDialogs(
         uiState = uiState,
-        onEvent = onEvent
+        onEvent = onEvent,
     )
 }
 
-
 @Composable
-private fun NeonTitle(text: String, modifier: Modifier = Modifier) {
+private fun NeonTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
     val backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
     val borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
     val textColor = MaterialTheme.colorScheme.primary
 
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(backgroundColor)
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(8.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(backgroundColor)
+                .border(
+                    width = 1.dp,
+                    color = borderColor,
+                    shape = RoundedCornerShape(8.dp),
+                )
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-            ),
+            style =
+                MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
             color = textColor,
         )
     }
@@ -313,7 +310,7 @@ private fun NeonTitle(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun MainScreenTopAppBar(
     isSearchActive: Boolean,
-    isFocusMode: Boolean, // Add this parameter
+    isFocusMode: Boolean,
     canGoBack: Boolean,
     canGoForward: Boolean,
     onGoBack: () -> Unit,
@@ -345,7 +342,8 @@ private fun MainScreenTopAppBar(
                     Icon(Icons.Outlined.History, "История")
                 }
 
-                AnimatedVisibility(visible = !isFocusMode) { // Add this visibility wrapper
+                AnimatedVisibility(visible = !isFocusMode) {
+                    
                     IconButton(onClick = onAddNewProject) {
                         Icon(Icons.Default.Add, "Add new project")
                     }
@@ -357,43 +355,61 @@ private fun MainScreenTopAppBar(
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text("Run Wi-Fi Server") },
-                        onClick = { onShowWifiServer(); menuExpanded = false }
+                        onClick = {
+                            onShowWifiServer()
+                            menuExpanded = false
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("Import from Wi-Fi") },
-                        onClick = { onShowWifiImport(); menuExpanded = false }
+                        onClick = {
+                            onShowWifiImport()
+                            menuExpanded = false
+                        },
                     )
                     HorizontalDivider()
                     DropdownMenuItem(
                         text = { Text("Export to file") },
-                        onClick = { onExportToFile(); menuExpanded = false }
+                        onClick = {
+                            onExportToFile()
+                            menuExpanded = false
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("Import from file") },
-                        onClick = { onImportFromFile(); menuExpanded = false }
+                        onClick = {
+                            onImportFromFile()
+                            menuExpanded = false
+                        },
                     )
                     HorizontalDivider()
                     DropdownMenuItem(
                         text = { Text("Settings") },
-                        onClick = { onShowSettings(); menuExpanded = false }
+                        onClick = {
+                            onShowSettings()
+                            menuExpanded = false
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("About") },
-                        onClick = { onShowAbout(); menuExpanded = false }
+                        onClick = {
+                            onShowAbout()
+                            menuExpanded = false
+                        },
                     )
                 }
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.primary,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        modifier = Modifier.shadow(4.dp)
+        colors =
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.primary,
+                actionIconContentColor = MaterialTheme.colorScheme.onSurface,
+                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+        modifier = Modifier.shadow(4.dp),
     )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -401,7 +417,7 @@ private fun ContextBottomSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,
     contexts: List<UiContext>,
-    onContextSelected: (String) -> Unit
+    onContextSelected: (String) -> Unit,
 ) {
     if (showSheet) {
         ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -445,7 +461,7 @@ private fun SearchHistoryBottomSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,
     searchHistory: List<String>,
-    onHistoryClick: (String) -> Unit
+    onHistoryClick: (String) -> Unit,
 ) {
     if (showSheet) {
         ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -469,7 +485,7 @@ private fun SearchHistoryBottomSheet(
                                 leadingContent = {
                                     Icon(Icons.Outlined.History, contentDescription = "Search history item")
                                 },
-                                modifier = Modifier.clickable { onHistoryClick(query) }
+                                modifier = Modifier.clickable { onHistoryClick(query) },
                             )
                         }
                     }
@@ -485,7 +501,7 @@ fun SearchTextField(
     onQueryChange: (TextFieldValue) -> Unit,
     onPerformGlobalSearch: (String) -> Unit,
     focusRequester: FocusRequester,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -496,36 +512,40 @@ fun SearchTextField(
         onValueChange = onQueryChange,
         modifier = modifier.focusRequester(focusRequester),
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium,
-        ),
+        textStyle =
+            MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
+            ),
         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(
-            onSearch = {
-                if (searchQuery.text.isNotBlank()) {
-                    onPerformGlobalSearch(searchQuery.text)
-                }
-                focusManager.clearFocus()
-            },
-        ),
+        keyboardActions =
+            KeyboardActions(
+                onSearch = {
+                    if (searchQuery.text.isNotBlank()) {
+                        onPerformGlobalSearch(searchQuery.text)
+                    }
+                    focusManager.clearFocus()
+                },
+            ),
         interactionSource = interactionSource,
         decorationBox = { innerTextField ->
             Row(
-                modifier = Modifier
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(
-                            alpha = if (isFocused) 0.6f else 0.3f
-                        ),
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        shape = RoundedCornerShape(24.dp),
-                    )
-                    .padding(horizontal = 12.dp),
+                modifier =
+                    Modifier
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            color =
+                                MaterialTheme.colorScheme.surfaceVariant.copy(
+                                    alpha = if (isFocused) 0.6f else 0.3f,
+                                ),
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = RoundedCornerShape(24.dp),
+                        )
+                        .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(modifier = Modifier.weight(1f)) {

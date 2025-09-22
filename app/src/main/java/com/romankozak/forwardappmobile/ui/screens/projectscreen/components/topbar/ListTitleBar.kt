@@ -1,4 +1,4 @@
-// File: ListTitleBar.kt
+
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar
 
 import androidx.compose.animation.AnimatedVisibility
@@ -37,9 +37,9 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 
-// --- 👇 ПОЧАТОК ЗМІН: Новий окремий компонент для індикатора ---
 
-// --- 👆 КІНЕЦЬ ЗМІН ---
+
+
 
 @Composable
 internal fun getViewModeText(viewMode: ProjectViewMode): String =
@@ -84,6 +84,7 @@ private fun BriefStatusIndicator(
         )
     }
 }
+
 @Composable
 fun ListTitleBar(
     project: Project?,

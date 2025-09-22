@@ -37,7 +37,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
-import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.formatDuration

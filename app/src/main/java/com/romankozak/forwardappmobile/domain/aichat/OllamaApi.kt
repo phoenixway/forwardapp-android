@@ -39,7 +39,7 @@ data class OllamaChatResponse(
 @Serializable
 data class OllamaOptions(
     @SerialName("num_predict") val numPredict: Int? = null,
-    @SerialName("temperature") val temperature: Float? = null, 
+    @SerialName("temperature") val temperature: Float? = null,
 )
 
 @Serializable
@@ -60,7 +60,7 @@ data class OllamaChatRequest(
     val model: String,
     val messages: List<Message>,
     val stream: Boolean = false,
-    val options: OllamaOptions? = null, 
+    val options: OllamaOptions? = null,
 )
 
 interface OllamaApi {

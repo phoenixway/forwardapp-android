@@ -1,4 +1,4 @@
-// File: AppNavigation.kt - ПОВНА ВИПРАВЛЕНА ВЕРСІЯ
+
 
 package com.romankozak.forwardappmobile.routes
 
@@ -21,25 +21,27 @@ import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
+import com.romankozak.forwardappmobile.ui.screens.customlist.CustomListScreen
+import com.romankozak.forwardappmobile.ui.screens.customlist.CustomListEditScreen
 import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
+import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
-import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 
-// **FIX 1: Створюємо константи для нового графа**
+
 const val MAIN_GRAPH_ROUTE = "main_graph"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
@@ -72,30 +74,31 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
 
     NavHost(
         navController = navController,
-        // **FIX 2: Стартовим маршрутом стає наш новий граф**
+        
         startDestination = MAIN_GRAPH_ROUTE,
     ) {
-        // **FIX 3: Огортаємо всі екрани в батьківський граф**
+        
         navigation(
             startDestination = GOAL_LISTS_ROUTE,
-            route = MAIN_GRAPH_ROUTE
+            route = MAIN_GRAPH_ROUTE,
         ) {
             mainGraph(navController, syncDataViewModel, appNavigationViewModel)
         }
     }
 }
 
-// **FIX 4: Виносимо всі екрани в окрему функцію для чистоти**
+
 private fun NavGraphBuilder.mainGraph(
     navController: NavHostController,
     syncDataViewModel: SyncDataViewModel,
-    appNavigationViewModel: AppNavigationViewModel
+    appNavigationViewModel: AppNavigationViewModel,
 ) {
     composable(GOAL_LISTS_ROUTE) { backStackEntry ->
-        // **FIX 5: Отримуємо ViewModel, прив'язану до БАТЬКІВСЬКОГО ГРАФА**
-        val parentEntry = remember(backStackEntry) {
-            navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
-        }
+        
+        val parentEntry =
+            remember(backStackEntry) {
+                navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+            }
         val viewModel: MainScreenViewModel = hiltViewModel(parentEntry)
 
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
@@ -115,12 +118,22 @@ private fun NavGraphBuilder.mainGraph(
 
     composable(
         route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}",
-        arguments = listOf(
-            navArgument("listId") { type = NavType.StringType },
-            navArgument("goalId") { type = NavType.StringType; nullable = true },
-            navArgument("itemIdToHighlight") { type = NavType.StringType; nullable = true },
-            navArgument("inboxRecordIdToHighlight") { type = NavType.StringType; nullable = true }
-        )
+        arguments =
+            listOf(
+                navArgument("listId") { type = NavType.StringType },
+                navArgument("goalId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("itemIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("inboxRecordIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
     ) {
         val viewModel: BacklogViewModel = hiltViewModel()
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
@@ -141,10 +154,11 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable("settings_screen") { backStackEntry ->
-        // **FIX 6: Тут також отримуємо ViewModel від батьківського графа**
-        val parentEntry = remember(backStackEntry) {
-            navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
-        }
+        
+        val parentEntry =
+            remember(backStackEntry) {
+                navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+            }
         val goalListViewModel: MainScreenViewModel = hiltViewModel(parentEntry)
 
         val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
@@ -165,17 +179,18 @@ private fun NavGraphBuilder.mainGraph(
                         daily = dailyTag,
                         medium = mediumTag,
                         long = longTag,
-                        vaultName = newVaultName
-                    )
+                        vaultName = newVaultName,
+                    ),
                 )
             },
         )
     }
 
     composable("manage_contexts_screen") { backStackEntry ->
-        val parentEntry = remember(backStackEntry) {
-            navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
-        }
+        val parentEntry =
+            remember(backStackEntry) {
+                navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+            }
         val goalListViewModel: MainScreenViewModel = hiltViewModel(parentEntry)
 
         val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
@@ -220,7 +235,7 @@ private fun NavGraphBuilder.mainGraph(
             ),
     ) {
         EditProjectScreen(
-            navController = navController
+            navController = navController,
         )
     }
 
@@ -232,27 +247,46 @@ private fun NavGraphBuilder.mainGraph(
     }
     composable(
         route = "note_edit_screen?projectId={projectId}&noteId={noteId}",
-        arguments = listOf(
-            navArgument("projectId") {
-                type = NavType.StringType
-                nullable = true
-            },
-            navArgument("noteId") {
-                type = NavType.StringType
-                nullable = true
-            }
-        )
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("noteId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
     ) {
         NoteEditScreen(navController = navController)
     }
 
     composable(
         route = "custom_list_screen/{listId}",
-        arguments = listOf(
-            navArgument("listId") { type = NavType.StringType }
-        )
+        arguments =
+            listOf(
+                navArgument("listId") { type = NavType.StringType },
+            ),
     ) {
-        CustomListScreen()
+        CustomListScreen(viewModel = hiltViewModel(), onNavigateBack = { navController.popBackStack() })
+    }
+
+    composable(
+        route = "custom_list_edit_screen?projectId={projectId}&listId={listId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("listId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        CustomListEditScreen(navController = navController)
     }
 
     composable(

@@ -29,46 +29,51 @@ fun SuggestionChipsRow(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically(
-            initialOffsetY = { -it },
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            )
-        ) + fadeIn(),
-        exit = slideOutVertically(
-            targetOffsetY = { -it },
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            )
-        ) + fadeOut(),
-        modifier = modifier
+        enter =
+            slideInVertically(
+                initialOffsetY = { -it },
+                animationSpec =
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+            ) + fadeIn(),
+        exit =
+            slideOutVertically(
+                targetOffsetY = { -it },
+                animationSpec =
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+            ) + fadeOut(),
+        modifier = modifier,
     ) {
         LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp)
+            contentPadding = PaddingValues(horizontal = 4.dp),
         ) {
-            // Context suggestions (@contexts)
+            
             items(contexts.take(5), key = { "context_$it" }) { context ->
                 EnhancedSuggestionChip(
                     text = "@$context",
                     onClick = { onContextClick(context) },
                     icon = Icons.Default.Tag,
-                    chipType = SuggestionChipType.CONTEXT
+                    chipType = SuggestionChipType.CONTEXT,
                 )
             }
 
-            // Tag suggestions (#tags)
+            
             items(tags.take(5), key = { "tag_$it" }) { tag ->
                 EnhancedSuggestionChip(
                     text = tag,
                     onClick = { onTagClick(tag) },
                     icon = Icons.Default.Tag,
-                    chipType = if (tag.startsWith("#")) SuggestionChipType.HASHTAG else SuggestionChipType.PROJECT
+                    chipType = if (tag.startsWith("#")) SuggestionChipType.HASHTAG else SuggestionChipType.PROJECT,
                 )
             }
         }
@@ -78,7 +83,7 @@ fun SuggestionChipsRow(
 enum class SuggestionChipType {
     CONTEXT,
     HASHTAG,
-    PROJECT
+    PROJECT,
 }
 
 @Composable
@@ -91,36 +96,41 @@ private fun EnhancedSuggestionChip(
 ) {
     var isPressed by remember { mutableStateOf(false) }
 
-    val colors = when (chipType) {
-        SuggestionChipType.CONTEXT -> SuggestionChipColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            borderColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-        )
-        SuggestionChipType.HASHTAG -> SuggestionChipColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-        )
-        SuggestionChipType.PROJECT -> SuggestionChipColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            borderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-        )
-    }
+    val colors =
+        when (chipType) {
+            SuggestionChipType.CONTEXT ->
+                SuggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    borderColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
+                )
+            SuggestionChipType.HASHTAG ->
+                SuggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                )
+            SuggestionChipType.PROJECT ->
+                SuggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    borderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
+                )
+        }
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "suggestion_chip_scale"
+        label = "suggestion_chip_scale",
     )
 
     Surface(
         onClick = onClick,
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        },
+        modifier =
+            modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         shape = RoundedCornerShape(20.dp),
         color = colors.containerColor,
         border = androidx.compose.foundation.BorderStroke(1.dp, colors.borderColor),
@@ -129,20 +139,21 @@ private fun EnhancedSuggestionChip(
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = colors.contentColor,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(16.dp),
             )
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = colors.contentColor
+                style =
+                    MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                    ),
+                color = colors.contentColor,
             )
         }
     }
@@ -152,12 +163,15 @@ private fun EnhancedSuggestionChip(
 private data class SuggestionChipColors(
     val containerColor: androidx.compose.ui.graphics.Color,
     val contentColor: androidx.compose.ui.graphics.Color,
-    val borderColor: androidx.compose.ui.graphics.Color
+    val borderColor: androidx.compose.ui.graphics.Color,
 )
 
-// Helper functions for text parsing
+
 object SuggestionUtils {
-    fun getCurrentWord(text: String, cursorPosition: Int): Pair<String?, Int>? {
+    fun getCurrentWord(
+        text: String,
+        cursorPosition: Int,
+    ): Pair<String?, Int>? {
         if (cursorPosition <= 0 || cursorPosition > text.length) return null
 
         val textUpToCursor = text.substring(0, cursorPosition)
@@ -167,13 +181,15 @@ object SuggestionUtils {
 
         return if (currentWord.isNotEmpty() && (currentWord.startsWith("@") || currentWord.startsWith("#"))) {
             Pair(currentWord, startIndex)
-        } else null
+        } else {
+            null
+        }
     }
 
     fun replaceCurrentWord(
         originalText: String,
         cursorPosition: Int,
-        newWord: String
+        newWord: String,
     ): Pair<String, Int>? {
         val currentWordInfo = getCurrentWord(originalText, cursorPosition) ?: return null
         val (currentWord, startIndex) = currentWordInfo

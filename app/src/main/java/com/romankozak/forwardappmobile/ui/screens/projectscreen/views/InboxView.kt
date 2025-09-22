@@ -1,4 +1,4 @@
-// file: ui/screens/backlog/InboxView.kt
+
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.views
 
@@ -21,12 +21,12 @@ fun InboxView(
     Box(modifier = modifier) {
         InboxScreen(
             records = inboxRecords,
-            // ВИПРАВЛЕНО: Викликаємо методи через viewModel.inboxHandler
+            
             onDelete = viewModel.inboxHandler::deleteInboxRecord,
             onPromoteToGoal = viewModel.inboxHandler::promoteInboxRecordToGoal,
             onPromoteToAnotherList = viewModel.inboxHandler::onPromoteToAnotherList,
             onRecordClick = viewModel.inboxHandler::onInboxRecordEditRequest,
-            // Метод copyInboxRecordText залишився у ViewModel, тому тут все вірно
+            
             onCopy = { text -> viewModel.copyInboxRecordText(text) },
             listState = listState,
             highlightedRecordId = highlightedRecordId,

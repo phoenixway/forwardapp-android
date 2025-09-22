@@ -24,9 +24,9 @@ fun EditTaskDialog(
         title: String,
         description: String,
         duration: Long?,
-        priority: TaskPriority
+        priority: TaskPriority,
     ) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     var title by remember { mutableStateOf(task.title) }
     var description by remember { mutableStateOf(task.description ?: "") }
@@ -42,17 +42,18 @@ fun EditTaskDialog(
         title = {
             Text(
                 text = "Редагувати завдання",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
             )
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                // Title field
+                
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -62,7 +63,7 @@ fun EditTaskDialog(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Title,
-                            contentDescription = null
+                            contentDescription = null,
                         )
                     },
                     isError = title.isBlank(),
@@ -70,27 +71,28 @@ fun EditTaskDialog(
                         if (title.isBlank()) {
                             Text("Обов'язкове поле")
                         }
-                    }
+                    },
                 )
 
-                // Description field
+                
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Опис (необов'язково)") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 80.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 80.dp),
                     maxLines = 4,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Description,
-                            contentDescription = null
+                            contentDescription = null,
                         )
-                    }
+                    },
                 )
 
-                // Duration field
+                
                 OutlinedTextField(
                     value = durationText,
                     onValueChange = { newValue ->
@@ -105,26 +107,26 @@ fun EditTaskDialog(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.AccessTime,
-                            contentDescription = null
+                            contentDescription = null,
                         )
                     },
                     suffix = {
                         if (durationText.isNotBlank()) {
                             Text("хв")
                         }
-                    }
+                    },
                 )
 
-                // Priority selector
+                
                 Column {
                     Text(
                         text = "Пріоритет:",
                         style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         TaskPriority.values().forEach { taskPriority ->
                             val isSelected = priority == taskPriority
@@ -133,24 +135,27 @@ fun EditTaskDialog(
                                 label = {
                                     Text(
                                         text = taskPriority.getDisplayName(),
-                                        maxLines = 1
+                                        maxLines = 1,
                                     )
                                 },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = if (isSelected) {
-                                        MaterialTheme.colorScheme.primaryContainer
+                                colors =
+                                    AssistChipDefaults.assistChipColors(
+                                        containerColor =
+                                            if (isSelected) {
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.surface
+                                            },
+                                    ),
+                                border =
+                                    if (isSelected) {
+                                        BorderStroke(
+                                            2.dp,
+                                            MaterialTheme.colorScheme.primary,
+                                        )
                                     } else {
-                                        MaterialTheme.colorScheme.surface
-                                    }
-                                ),
-                                border = if (isSelected) {
-                                    BorderStroke(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary
-                                    )
-                                } else {
-                                    null
-                                }
+                                        null
+                                    },
                             )
                         }
                     }
@@ -163,7 +168,7 @@ fun EditTaskDialog(
                     val duration = durationText.toLongOrNull()
                     onConfirm(title, description, duration, priority)
                 },
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank(),
             ) {
                 Icon(Icons.Default.Done, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
@@ -173,11 +178,11 @@ fun EditTaskDialog(
         dismissButton = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(
                     onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
@@ -187,6 +192,6 @@ fun EditTaskDialog(
                     Text("Скасувати")
                 }
             }
-        }
+        },
     )
 }

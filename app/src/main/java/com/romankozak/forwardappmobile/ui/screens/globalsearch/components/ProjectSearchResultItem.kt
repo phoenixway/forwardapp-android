@@ -38,11 +38,12 @@ fun ProjectSearchResultItem(
     )
 
     Card(
-        modifier = Modifier.fillMaxWidth().scale(scale).clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = onClick,
-        ),
+        modifier =
+            Modifier.fillMaxWidth().scale(scale).clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp, pressedElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(16.dp),
@@ -50,7 +51,7 @@ fun ProjectSearchResultItem(
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 0.dp),
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
             ) {
                 Text(
                     text = result.project.name,
@@ -58,60 +59,73 @@ fun ProjectSearchResultItem(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
 
             if (result.pathSegments.isNotEmpty()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val pathText = result.pathSegments.joinToString(" → ")
                     Text(
                         text = pathText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ListAlt,
                             contentDescription = "Project",
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Project",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            style =
+                                MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                ),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onOpenInNavigation, modifier = Modifier.size(36.dp)) {
-                        Icon(imageVector = Icons.Default.Navigation, contentDescription = "Відкрити локацію", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                        Icon(
+                            imageVector = Icons.Default.Navigation,
+                            contentDescription = "Відкрити локацію",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                     IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Відкрити проєкт", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Відкрити проєкт",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
                 }
             }

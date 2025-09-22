@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.utils
 
+import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData // CORRECT IMPORT
 
 object HierarchyFilter {
     fun filter(

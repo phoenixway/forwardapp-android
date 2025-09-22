@@ -16,7 +16,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun EvaluationTabs(
     uiState: GoalEditUiState,

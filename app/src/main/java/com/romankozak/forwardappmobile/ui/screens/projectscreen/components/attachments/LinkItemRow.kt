@@ -17,7 +17,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.LinkType
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 
@@ -73,13 +72,14 @@ fun LinkItemRow(
                         }.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val iconImageVector = when (link.type) {
-                    LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
-                    LinkType.URL -> Icons.Default.Language
-                    LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
-                    null -> Icons.Default.BrokenImage // Or any other default icon
-                    else -> Icons.Default.BrokenImage
-                }
+                val iconImageVector =
+                    when (link.type) {
+                        LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
+                        LinkType.URL -> Icons.Default.Language
+                        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                        null -> Icons.Default.BrokenImage
+                        else -> Icons.Default.BrokenImage
+                    }
                 Icon(
                     imageVector = iconImageVector,
                     contentDescription = "Link icon",
@@ -100,9 +100,8 @@ fun LinkItemRow(
                                 LinkType.PROJECT -> "Посилання на список"
                                 LinkType.URL -> link.target
                                 LinkType.OBSIDIAN -> "Нотатка Obsidian"
-                                null -> "Broken" // Or any other default icon
+                                null -> "Broken"
                                 else -> "Broken"
-
                             },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

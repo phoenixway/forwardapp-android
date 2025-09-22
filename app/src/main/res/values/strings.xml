@@ -162,5 +162,8 @@
 
     <string name="search_everywhere_for">Шукати скрізь за запитом</string>
 
+    <string name="create_custom_list">Create custom list</string>
+    <string name="list_title">List title</string>
+
 
 </resources>

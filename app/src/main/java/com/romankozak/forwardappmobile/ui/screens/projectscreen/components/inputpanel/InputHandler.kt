@@ -98,6 +98,7 @@ class InputHandler(
         fun addQuickRecord(text: String)
 
         fun addProjectComment(text: String)
+
         fun createObsidianNote(noteName: String)
     }
 
@@ -222,7 +223,7 @@ class InputHandler(
                 resultListener.requestNavigation("global_search_screen/${URLEncoder.encode(originalText, "UTF-8")}")
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
             }
-            InputMode.SearchInList -> {  }
+            InputMode.SearchInList -> { }
             InputMode.AddProjectLog -> {
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
                 resultListener.addProjectComment(originalText)

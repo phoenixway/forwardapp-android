@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 private const val TAG = "GenerationService"
-private const val NOTIFICATION_ID = 11434 
+private const val NOTIFICATION_ID = 11434
 private const val NOTIFICATION_CHANNEL_ID = "generation_channel"
 
 @AndroidEntryPoint
@@ -65,7 +65,7 @@ class GenerationService : Service() {
                             .map { msg ->
                                 Message(
                                     role = if (msg.isFromUser) "user" else "assistant",
-                                    content = msg.text
+                                    content = msg.text,
                                 )
                             }
 
@@ -74,7 +74,7 @@ class GenerationService : Service() {
                     .generateChatResponseStream(ollamaUrl, smartModel, history, temperature)
                     .collect { chunk ->
                         fullResponse += chunk
-                        val currentMessage = chatRepo.getMessageById(assistantMessageId) 
+                        val currentMessage = chatRepo.getMessageById(assistantMessageId)
                         currentMessage?.let {
                             chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = true))
                         }

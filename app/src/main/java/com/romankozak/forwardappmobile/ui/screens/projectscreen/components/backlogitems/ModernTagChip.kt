@@ -22,7 +22,7 @@ fun ModernTagChip(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tagType: TagType = TagType.PROJECT // Default to PROJECT for subprojects
+    tagType: TagType = TagType.PROJECT,
 ) {
     val colors = getTagColors(tagType, false)
 
@@ -30,36 +30,42 @@ fun ModernTagChip(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         color = Color.Transparent,
-        border = BorderStroke(
-            width = 0.8.dp,
-            color = colors.borderStart.copy(alpha = 0.4f)
-        ),
-        onClick = onClick
+        border =
+            BorderStroke(
+                width = 0.8.dp,
+                color = colors.borderStart.copy(alpha = 0.4f),
+            ),
+        onClick = onClick,
     ) {
         Box(
-            modifier = Modifier
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            colors.backgroundStart,
-                            colors.backgroundEnd
-                        )
-                    )
-                )
+            modifier =
+                Modifier
+                    .background(
+                        brush =
+                            Brush.linearGradient(
+                                colors =
+                                    listOf(
+                                        colors.backgroundStart,
+                                        colors.backgroundEnd,
+                                    ),
+                            ),
+                    ),
         ) {
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp // Increased font size
-                ),
+                style =
+                    MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                    ),
                 color = colors.content,
-                modifier = Modifier.padding(
-                    horizontal = 8.dp, // A bit more padding
-                    vertical = 4.dp
-                ),
+                modifier =
+                    Modifier.padding(
+                        horizontal = 8.dp,
+                        vertical = 4.dp,
+                    ),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

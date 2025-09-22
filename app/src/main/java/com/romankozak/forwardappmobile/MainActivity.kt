@@ -55,10 +55,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ForwardAppMobileTheme {
-                Column {
-                    RequestAllPermissions()
-                    AppNavigation(syncDataViewModel = syncDataViewModel)
-                }
+                AppNavigation(syncDataViewModel = syncDataViewModel)
             }
         }
     }
@@ -113,6 +110,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RequestAllPermissions() {

@@ -1,4 +1,4 @@
-// file: ui/screens/backlog/ProjectScreen.kt
+
 
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
@@ -22,17 +22,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ExportTransferDialog
+import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.CreateCustomListDialog
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ExportTransferDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
-import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
 
 @Composable
 fun ProjectsScreen(
@@ -46,11 +48,21 @@ fun ProjectsScreen(
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val desktopAddress by viewModel.desktopAddress.collectAsStateWithLifecycle()
 
-    // --- НОВА ЛОГІКА: Отримуємо стани для кнопок навігації з ViewModel ---
+    
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val suggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(navController, lifecycleOwner) {
+        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("refresh_needed")?.observe(lifecycleOwner) { isRefreshNeeded ->
+            if (isRefreshNeeded) {
+                Log.d("CUSTOM_LIST_DEBUG", "'refresh_needed' event received")
+                viewModel.forceRefresh()
+                navController.currentBackStackEntry?.savedStateHandle?.remove<Boolean>("refresh_needed")
+            }
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -76,37 +88,46 @@ fun ProjectsScreen(
             initialText = recordToEdit!!.text,
             onSave = { newText -> viewModel.inboxHandler.onInboxRecordEditConfirm(newText) },
             onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() },
-            title = "Редагувати запис"
+            title = "Редагувати запис",
         )
     } else {
+        if (uiState.showCreateCustomListDialog) {
+            CreateCustomListDialog(
+                onDismiss = { viewModel.onDismissCreateCustomListDialog() },
+                onConfirm = { title -> viewModel.onCreateCustomList(title) }
+            )
+        }
+
         if (uiState.showExportTransferDialog) {
-            val transferUrl = remember(desktopAddress) {
-                val ip = desktopAddress
-                if (ip.isNotBlank() && !ip.startsWith("http")) {
-                    "http://$ip:8000"
-                } else {
-                    ip
+            val transferUrl =
+                remember(desktopAddress) {
+                    val ip = desktopAddress
+                    if (ip.isNotBlank() && !ip.startsWith("http")) {
+                        "http://$ip:8000"
+                    } else {
+                        ip
+                    }
                 }
-            }
 
             ExportTransferDialog(
                 onDismiss = { viewModel.onExportTransferDialogDismiss() },
                 onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
                 onTransfer = { url -> viewModel.onTransferBacklogViaWifi(url) },
                 desktopUrl = transferUrl,
-                transferStatus = uiState.transferStatus
+                transferStatus = uiState.transferStatus,
             )
         }
 
+        val dragDropState =
+            rememberSimpleDragDropState(
+                lazyListState = listState,
+                onMove = viewModel::moveItem,
+            )
 
-        val dragDropState = rememberSimpleDragDropState(
-            lazyListState = listState,
-            onMove = viewModel::moveItem,
-        )
-
-        val draggableItems = remember(listContent) {
-            listContent.filterNot { it is ListItemContent.LinkItem }
-        }
+        val draggableItems =
+            remember(listContent) {
+                listContent.filterNot { it is ListItemContent.LinkItem }
+            }
 
         GoalDetailEffects(
             navController = navController,
@@ -115,29 +136,29 @@ fun ProjectsScreen(
             listState = listState,
             inboxListState = inboxListState,
             dragDropState = dragDropState,
-            coroutineScope = coroutineScope
+            coroutineScope = coroutineScope,
         )
 
         GoalDetailDialogs(viewModel = viewModel)
 
-        // --- ОНОВЛЕННЯ: Універсальний BackHandler ---
-        // Видаляємо три окремі BackHandler і замінюємо їх одним,
-        // який делегує всю логіку ViewModel.
+        
+        
+        
         BackHandler(enabled = true) {
             val wasConsumed = viewModel.onBackPressed()
             if (!wasConsumed) {
-                // Якщо ViewModel не обробила подію (повернула false),
-                // дозволяємо стандартну поведінку (вихід з екрану).
+                
+                
                 navController.popBackStack()
             }
         }
 
-        // --- ВИДАЛЕНО: DisposableEffect більше не потрібен, flush робиться у viewModel.onBackPressed() ---
-        // DisposableEffect(Unit) {
-        //     onDispose {
-        //         viewModel.flushPendingMoves()
-        //     }
-        // }
+        
+        
+        
+        
+        
+        
 
         val reminderParseResult =
             if ((uiState.detectedReminderCalendar != null) &&
@@ -171,7 +192,7 @@ fun ProjectsScreen(
                     onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
                     onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
                     onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                    currentViewMode = uiState.currentView
+                    currentViewMode = uiState.currentView,
                 )
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -187,19 +208,19 @@ fun ProjectsScreen(
                         onValueChange = {
                             viewModel.inputHandler.onInputTextChanged(
                                 it,
-                                uiState.inputMode
+                                uiState.inputMode,
                             )
                         },
                         onSubmit = {
                             viewModel.inputHandler.submitInput(
                                 uiState.inputValue,
-                                uiState.inputMode
+                                uiState.inputMode,
                             )
                         },
                         onInputModeSelected = {
                             viewModel.inputHandler.onInputModeSelected(
                                 it,
-                                uiState.inputValue
+                                uiState.inputValue,
                             )
                         },
                         onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
@@ -207,14 +228,12 @@ fun ProjectsScreen(
                         onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
                         onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
                         onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
-
-                        // --- ОНОВЛЕННЯ: Логіка кнопок навігації ---
+                        
                         canGoBack = canGoBack,
-                        canGoForward = canGoForward, // Додано новий стан
+                        canGoForward = canGoForward,
                         onBackClick = { viewModel.onBackPressed() },
                         onForwardClick = { viewModel.onForwardPressed() },
                         onHomeClick = viewModel::onHomeClick,
-
                         isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
                         onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
                         onEditList = {
@@ -247,7 +266,7 @@ fun ProjectsScreen(
                         isViewModePanelVisible = uiState.isViewModePanelVisible,
                         onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                         suggestions = suggestions,
-                        onSuggestionClick = viewModel::onSuggestionClick
+                        onSuggestionClick = viewModel::onSuggestionClick,
                     )
                 }
             },
@@ -258,7 +277,7 @@ fun ProjectsScreen(
                 uiState = uiState,
                 listState = listState,
                 inboxListState = inboxListState,
-                dragDropState = dragDropState
+                dragDropState = dragDropState,
             )
         }
     }

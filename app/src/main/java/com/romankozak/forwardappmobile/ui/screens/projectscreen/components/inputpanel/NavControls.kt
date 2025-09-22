@@ -1,6 +1,6 @@
-// File: NavControls.kt
 
-// Corrected File: ui/screens/backlog/components/inputpanel/NavControls.kt
+
+
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel
 
@@ -55,21 +55,25 @@ import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun NavControls(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
+internal fun NavControls(
+    state: NavPanelState,
+    actions: NavPanelActions,
+    contentColor: Color,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         CloseSearchButton(
             isVisible = state.inputMode == InputMode.SearchInList,
             contentColor = contentColor,
-            onCloseSearch = actions.onCloseSearch
+            onCloseSearch = actions.onCloseSearch,
         )
 
         BackForwardButton(
             state = state,
             actions = actions,
-            contentColor = contentColor
+            contentColor = contentColor,
         )
 
         Spacer(modifier = Modifier.width(8.dp))
@@ -78,7 +82,7 @@ internal fun NavControls(state: NavPanelState, actions: NavPanelActions, content
             contentColor = contentColor,
             onHomeClick = actions.onHomeClick,
             onRevealInExplorer = actions.onRevealInExplorer,
-            onRecentsClick = actions.onRecentsClick
+            onRecentsClick = actions.onRecentsClick,
         )
     }
 }
@@ -87,22 +91,22 @@ internal fun NavControls(state: NavPanelState, actions: NavPanelActions, content
 private fun CloseSearchButton(
     isVisible: Boolean,
     contentColor: Color,
-    onCloseSearch: () -> Unit
+    onCloseSearch: () -> Unit,
 ) {
     AnimatedVisibility(visible = isVisible) {
         val closeIconColor by animateColorAsState(
             targetValue = contentColor.copy(alpha = 0.7f),
-            label = "closeIconColor"
+            label = "closeIconColor",
         )
         IconButton(
             onClick = onCloseSearch,
-            modifier = Modifier.size(40.dp)
+            modifier = Modifier.size(40.dp),
         ) {
             Icon(
                 Icons.Filled.Close,
                 "Закрити пошук",
                 tint = closeIconColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -112,9 +116,10 @@ private fun CloseSearchButton(
 private fun BackForwardButton(
     state: NavPanelState,
     actions: NavPanelActions,
-    contentColor: Color
+    contentColor: Color,
 ) {
-    val shouldShowButton = state.inputMode != InputMode.SearchInList &&
+    val shouldShowButton =
+        state.inputMode != InputMode.SearchInList &&
             (state.canGoBack || state.canGoForward)
 
     AnimatedVisibility(visible = shouldShowButton) {
@@ -129,48 +134,50 @@ private fun BackForwardButton(
         }
 
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .combinedClickable(
-                    enabled = state.canGoBack || state.canGoForward,
-                    onClick = { if (state.canGoBack) actions.onBackClick() },
-                    onLongClick = {
-                        if (state.canGoForward) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            showForwardIcon = true
-                            actions.onForwardClick()
-                        }
-                    },
-                    indication = ripple(bounded = false),
-                    interactionSource = remember { MutableInteractionSource() }
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .combinedClickable(
+                        enabled = state.canGoBack || state.canGoForward,
+                        onClick = { if (state.canGoBack) actions.onBackClick() },
+                        onLongClick = {
+                            if (state.canGoForward) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showForwardIcon = true
+                                actions.onForwardClick()
+                            }
+                        },
+                        indication = ripple(bounded = false),
+                        interactionSource = remember { MutableInteractionSource() },
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             BackForwardIcon(
                 state = state,
                 showForwardIcon = showForwardIcon,
-                contentColor = contentColor
+                contentColor = contentColor,
             )
 
-            // Forward Action Indicator - Fixed: Use Box-compatible AnimatedVisibility
+            
             if (state.canGoForward && !showForwardIcon) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = true,
                     modifier = Modifier.align(Alignment.BottomEnd),
                     enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
+                    exit = fadeOut() + scaleOut(),
                 ) {
                     Box(
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .size(6.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                            .border(
-                                width = 1.dp,
-                                color = contentColor.copy(alpha = 0.5f),
-                                shape = CircleShape
-                            )
+                        modifier =
+                            Modifier
+                                .padding(4.dp)
+                                .size(6.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                .border(
+                                    width = 1.dp,
+                                    color = contentColor.copy(alpha = 0.5f),
+                                    shape = CircleShape,
+                                ),
                     )
                 }
             }
@@ -182,33 +189,35 @@ private fun BackForwardButton(
 private fun BackForwardIcon(
     state: NavPanelState,
     showForwardIcon: Boolean,
-    contentColor: Color
+    contentColor: Color,
 ) {
     val iconColor by animateColorAsState(
         targetValue = if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.3f),
-        label = "backIconColor"
+        label = "backIconColor",
     )
     val iconScale by animateFloatAsState(
         targetValue = if (state.canGoBack) 1.2f else 1.0f,
-        label = "backIconScale"
+        label = "backIconScale",
     )
 
     AnimatedContent(
         targetState = showForwardIcon,
         transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "BackForwardIconAnimation"
+        label = "BackForwardIconAnimation",
     ) { isForward ->
         Icon(
-            imageVector = if (isForward) {
-                Icons.AutoMirrored.Filled.ArrowForward
-            } else {
-                Icons.AutoMirrored.Filled.ArrowBack
-            },
+            imageVector =
+                if (isForward) {
+                    Icons.AutoMirrored.Filled.ArrowForward
+                } else {
+                    Icons.AutoMirrored.Filled.ArrowBack
+                },
             contentDescription = "Назад (довге натискання - Вперед)",
-            modifier = Modifier
-                .size(20.dp)
-                .scale(if (isForward) 1.2f else iconScale),
-            tint = if (isForward) MaterialTheme.colorScheme.primary else iconColor
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .scale(if (isForward) 1.2f else iconScale),
+            tint = if (isForward) MaterialTheme.colorScheme.primary else iconColor,
         )
     }
 }
@@ -218,63 +227,65 @@ private fun NavigationButtons(
     contentColor: Color,
     onHomeClick: () -> Unit,
     onRevealInExplorer: () -> Unit,
-    onRecentsClick: () -> Unit
+    onRecentsClick: () -> Unit,
 ) {
     val homeIconColor by animateColorAsState(
         targetValue = contentColor.copy(alpha = 0.7f),
-        label = "homeIconColor"
+        label = "homeIconColor",
     )
     val homeIconScale by animateFloatAsState(
         targetValue = 1.0f,
-        label = "homeIconScale"
+        label = "homeIconScale",
     )
 
     IconButton(
         onClick = onHomeClick,
-        modifier = Modifier.size(40.dp)
+        modifier = Modifier.size(40.dp),
     ) {
         Icon(
             Icons.Filled.Home,
             "Дім",
             tint = homeIconColor,
-            modifier = Modifier
-                .size(20.dp)
-                .scale(homeIconScale)
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .scale(homeIconScale),
         )
     }
 
     IconButton(
         onClick = onRecentsClick,
-        modifier = Modifier.size(40.dp)
+        modifier = Modifier.size(40.dp),
     ) {
         Icon(
             Icons.Outlined.Restore,
             "Недавні",
             tint = contentColor.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
         )
     }
 
     val revealIconColor by animateColorAsState(
         targetValue = contentColor.copy(alpha = 0.7f),
-        label = "revealIconColor"
+        label = "revealIconColor",
     )
     val revealIconScale by animateFloatAsState(
         targetValue = 1.0f,
-        label = "revealIconScale"
+        label = "revealIconScale",
     )
 
     IconButton(
         onClick = onRevealInExplorer,
-        modifier = Modifier.size(40.dp)
+        modifier = Modifier.size(40.dp),
     ) {
         Icon(
             Icons.Filled.MyLocation,
             "Показати у списку",
             tint = revealIconColor,
-            modifier = Modifier
-                .size(20.dp)
-                .scale(revealIconScale)
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .scale(revealIconScale),
         )
     }
 }

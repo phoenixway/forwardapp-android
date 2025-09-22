@@ -46,7 +46,7 @@ fun ImportMarkdownDialog(
                         Modifier
                             .fillMaxWidth()
                             .height(200.dp),
-                    // ОНОВЛЕНО: placeholder тепер показує всі підтримувані формати
+                    
                     placeholder = { Text("- Звичайний запис\n* Інший запис\n- [ ] Невиконане завдання\n- [x] Виконане завдання") },
                 )
 

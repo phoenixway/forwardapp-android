@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 
-
 @Composable
 internal fun LinkItem(
     link: RelatedLink,
@@ -55,7 +54,6 @@ internal fun LinkItem(
                     LinkType.URL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                     LinkType.OBSIDIAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
                     null -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-
                 },
             ),
     ) {

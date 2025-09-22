@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 
-
 @Composable
 fun ScoringStatusSelector(
     selectedStatus: ScoringStatus,
@@ -33,7 +32,7 @@ fun ScoringStatusSelector(
             ) {
                 Text(
                     text = labels[status] ?: "",
-                    style = MaterialTheme.typography.labelMedium
+                    style = MaterialTheme.typography.labelMedium,
                 )
             }
         }

@@ -1,5 +1,5 @@
-// File: com/romankozak/forwardappmobile/ui/screens/mainscreen/HierarchyComponents.kt
-// ПОВНА ВЕРСІЯ З УСІМА ЗМІНАМИ
+
+
 
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
 
@@ -11,9 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,14 +40,16 @@ import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
-// --- Допоміжні функції для підсвічування ---
-private fun fuzzyMatchAndGetIndices(query: String, text: String): List<Int>? {
+
+private fun fuzzyMatchAndGetIndices(
+    query: String,
+    text: String,
+): List<Int>? {
     if (query.isBlank()) return emptyList()
     if (text.isBlank()) return null
     val lowerQuery = query.lowercase()
@@ -68,7 +68,10 @@ private fun fuzzyMatchAndGetIndices(query: String, text: String): List<Int>? {
 }
 
 @Composable
-internal fun highlightFuzzy(text: String, query: String): AnnotatedString {
+internal fun highlightFuzzy(
+    text: String,
+    query: String,
+): AnnotatedString {
     if (query.isBlank()) return AnnotatedString(text)
     val matchedIndices = remember(query, text) { fuzzyMatchAndGetIndices(query, text) }
     if (matchedIndices == null) return AnnotatedString(text)
@@ -78,11 +81,12 @@ internal fun highlightFuzzy(text: String, query: String): AnnotatedString {
         text.forEachIndexed { index, char ->
             if (index in indicesSet) {
                 withStyle(
-                    style = SpanStyle(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                    ),
+                    style =
+                        SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        ),
                 ) { append(char) }
             } else {
                 append(char)
@@ -92,7 +96,10 @@ internal fun highlightFuzzy(text: String, query: String): AnnotatedString {
 }
 
 @Composable
-internal fun highlightSubstring(text: String, query: String): AnnotatedString {
+internal fun highlightSubstring(
+    text: String,
+    query: String,
+): AnnotatedString {
     if (query.isBlank()) return AnnotatedString(text)
     val startIdx = text.indexOf(query, ignoreCase = true)
     if (startIdx == -1) return AnnotatedString(text)
@@ -100,11 +107,12 @@ internal fun highlightSubstring(text: String, query: String): AnnotatedString {
     return buildAnnotatedString {
         append(text.substring(0, startIdx))
         withStyle(
-            style = SpanStyle(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            )
+            style =
+                SpanStyle(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                ),
         ) {
             append(text.substring(startIdx, startIdx + query.length))
         }
@@ -128,14 +136,15 @@ fun ProjectRow(
     onFocusRequested: (project: Project) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
-    isFocused: Boolean = false
+    isFocused: Boolean = false,
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-            isFocused -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-            else -> Color.Transparent
-        },
+        targetValue =
+            when {
+                isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                isFocused -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                else -> Color.Transparent
+            },
         animationSpec = tween(durationMillis = 500),
         label = "Background Animation",
     )
@@ -143,38 +152,40 @@ fun ProjectRow(
     val indentation = (level * 24).dp
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(backgroundColor)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(backgroundColor),
     ) {
         if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(
                 thickness = 2.dp,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation)
+                modifier = Modifier.padding(start = indentation),
             )
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onProjectClick(project.id) }
-                .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                .padding(start = indentation)
-                .padding(vertical = 8.dp, horizontal = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onProjectClick(project.id) }
+                    .alpha(if (isCurrentlyDragging) 0.6f else 1f)
+                    .padding(start = indentation)
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                 if (hasChildren && !showFocusButton) {
                     IconButton(
                         onClick = { onToggleExpanded(project) },
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(32.dp),
                     ) {
                         Icon(
                             imageVector = if (project.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                             contentDescription = "Згорнути/Розгорнути",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
@@ -184,44 +195,54 @@ fun ProjectRow(
 
             Text(
                 text = displayName ?: AnnotatedString(project.name),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal
-                ),
-                color = if (isFocused) MaterialTheme.colorScheme.onSecondaryContainer
-                else MaterialTheme.colorScheme.onBackground
+                style =
+                    MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+                    ),
+                color =
+                    if (isFocused) {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onBackground
+                    },
             )
 
             AnimatedVisibility(
                 visible = showFocusButton,
                 enter = fadeIn(),
-                exit = fadeOut()
+                exit = fadeOut(),
             ) {
                 IconButton(
                     onClick = { onFocusRequested(project) },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(36.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.MoreHoriz,
                         contentDescription = if (isFocused) "Вийти з фокусу" else "Сфокусуватися",
-                        tint = if (isFocused) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint =
+                            if (isFocused) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                     )
                 }
             }
 
             IconButton(
                 onClick = { onMenuRequested(project) },
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "Дії з проектом",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -230,7 +251,7 @@ fun ProjectRow(
             HorizontalDivider(
                 thickness = 2.dp,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation)
+                modifier = Modifier.padding(start = indentation),
             )
         }
     }
@@ -243,7 +264,7 @@ fun BreadcrumbNavigation(
     onClearNavigation: () -> Unit,
     onFocusedListMenuClick: (String) -> Unit,
     onOpenAsProject: ((String) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (breadcrumbs.isEmpty()) return
 
@@ -258,37 +279,37 @@ fun BreadcrumbNavigation(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 1.dp
+        tonalElevation = 1.dp,
     ) {
         LazyRow(
             state = lazyRowState,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             item {
                 Row(
                     Modifier.clickable(onClick = onClearNavigation),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Home,
                         contentDescription = "Home",
                         modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "All",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp).padding(start = 4.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -298,21 +319,22 @@ fun BreadcrumbNavigation(
                 Surface(
                     modifier = Modifier.clickable { if (!isLast) onNavigate(item) },
                     shape = RoundedCornerShape(16.dp),
-                    color = if (isLast) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                    color = if (isLast) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(
-                            horizontal = 12.dp,
-                            vertical = 4.dp
-                        )
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 4.dp,
+                            ),
                     ) {
                         Text(
                             text = item.name,
                             style = MaterialTheme.typography.bodySmall,
                             color = if (isLast) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -322,13 +344,14 @@ fun BreadcrumbNavigation(
                         imageVector = Icons.Outlined.ChevronRight,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp).padding(horizontal = 4.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 fun SmartHierarchyView(
     project: Project,
@@ -346,23 +369,24 @@ fun SmartHierarchyView(
     onProjectClick: (String) -> Unit,
     onToggleExpanded: (Project) -> Unit,
     onMenuRequested: (Project) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit
+    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
 ) {
     val children = childMap[project.id]?.sortedBy { it.order } ?: emptyList()
     val hasChildren = children.isNotEmpty()
 
-    val displayName = if (isSearchActive && searchQuery.isNotEmpty()) {
-        if (searchQuery.length > 3) {
-            highlightFuzzy(text = project.name, query = searchQuery)
+    val displayName =
+        if (isSearchActive && searchQuery.isNotEmpty()) {
+            if (searchQuery.length > 3) {
+                highlightFuzzy(text = project.name, query = searchQuery)
+            } else {
+                highlightSubstring(text = project.name, query = searchQuery)
+            }
         } else {
-            highlightSubstring(text = project.name, query = searchQuery)
+            AnnotatedString(project.name)
         }
-    } else {
-        AnnotatedString(project.name)
-    }
 
     val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    // **FIXED**: Replaced settings.useBreadcrumbsAfter with a hardcoded value of 3.
+    
     val isDeeplyNested = hasChildren && level >= 3
     val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
     val isFocused = project.id == focusedProjectId
@@ -372,20 +396,23 @@ fun SmartHierarchyView(
             state = dragAndDropState,
             key = project.id,
             data = project,
-            dragAfterLongPress = true
+            dragAfterLongPress = true,
         ) {
             val draggedItemData = dragAndDropState.draggedItem?.data
-            val isDropAllowed = remember(draggedItemData, project) {
-                draggedItemData == null || (draggedItemData.parentId == project.parentId)
-            }
+            val isDropAllowed =
+                remember(draggedItemData, project) {
+                    draggedItemData == null || (draggedItemData.parentId == project.parentId)
+                }
 
             val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
-            val isHovered = remember(hoveredDropTargetKey, project.id) {
-                isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
-            }
-            val isDraggingDown = remember(hoveredDropTargetKey, project.id) {
-                isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
-            }
+            val isHovered =
+                remember(hoveredDropTargetKey, project.id) {
+                    isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
+                }
+            val isDraggingDown =
+                remember(hoveredDropTargetKey, project.id) {
+                    isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
+                }
 
             Box(modifier = Modifier.fillMaxWidth()) {
                 ProjectRow(
@@ -402,7 +429,7 @@ fun SmartHierarchyView(
                     displayName = displayName,
                     showFocusButton = shouldShowFocusButton,
                     onFocusRequested = { onNavigateToProject(it.id) },
-                    isFocused = isFocused
+                    isFocused = isFocused,
                 )
 
                 if (!isDragging) {
@@ -416,7 +443,9 @@ fun SmartHierarchyView(
                                         Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
                                             onProjectReorder(it.data.id, project.id, position)
                                         }
-                                    } else Modifier
+                                    } else {
+                                        Modifier
+                                    },
                                 )
                         }
                         Box(modifier = dropModifier(DropPosition.BEFORE))
@@ -444,7 +473,7 @@ fun SmartHierarchyView(
                         onProjectClick = onProjectClick,
                         onToggleExpanded = onToggleExpanded,
                         onMenuRequested = onMenuRequested,
-                        onProjectReorder = onProjectReorder
+                        onProjectReorder = onProjectReorder,
                     )
                 }
             }

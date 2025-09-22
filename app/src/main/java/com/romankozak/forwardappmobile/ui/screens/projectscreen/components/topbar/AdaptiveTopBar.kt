@@ -36,7 +36,7 @@ fun AdaptiveTopBar(
             Column(modifier = Modifier.statusBarsPadding()) {
                 ListTitleBar(
                     project = project?.copy(isProjectManagementEnabled = false),
-                    currentViewMode = currentViewMode
+                    currentViewMode = currentViewMode,
                 )
                 MultiSelectTopAppBar(
                     selectedCount = selectedCount,
@@ -52,7 +52,7 @@ fun AdaptiveTopBar(
         } else {
             ListTitleBar(
                 project = project,
-                currentViewMode = currentViewMode
+                currentViewMode = currentViewMode,
             )
         }
     }

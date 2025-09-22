@@ -12,38 +12,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/**
- * Проста модель даних для відображення підзавдання.
- */
+
 data class SubTaskDisplayData(val title: String, val isCompleted: Boolean)
 
-/**
- * Компонент для відображення списку підзавдань.
- * Цей компонент є презентаційним і не обробляє кліки.
- * @param subTasks Список підзавдань для відображення.
- */
+
 @Composable
 fun SublistComponent(
     subTasks: List<SubTaskDisplayData>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
         subTasks.forEach { subTask ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
             ) {
                 Checkbox(
                     checked = subTask.isCompleted,
-                    onCheckedChange = null // Компонент лише для читання
+                    onCheckedChange = null,
                 )
                 Text(
                     text = subTask.title,
                     modifier = Modifier.padding(start = 8.dp),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }

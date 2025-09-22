@@ -6,10 +6,11 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbIt
 
 private const val TAG = "SendDebug"
 
-/**
- * Перевіряє, чи відповідає текст пошуковому запиту методом "fuzzy match"
- */
-fun fuzzyMatch(query: String, text: String): Boolean {
+
+fun fuzzyMatch(
+    query: String,
+    text: String,
+): Boolean {
     if (query.isBlank()) return true
     if (text.isBlank()) return false
     val lowerQuery = query.lowercase()
@@ -25,9 +26,7 @@ fun fuzzyMatch(query: String, text: String): Boolean {
     return queryIndex == lowerQuery.length
 }
 
-/**
- * Рекурсивно знаходить всіх предків проекту
- */
+
 fun findAncestorsRecursive(
     projectId: String?,
     projectLookup: Map<String, Project>,
@@ -41,9 +40,7 @@ fun findAncestorsRecursive(
     }
 }
 
-/**
- * Рекурсивно знаходить всіх нащадків проекту для видалення
- */
+
 fun findDescendantsForDeletion(
     projectId: String,
     childMap: Map<String, List<Project>>,
@@ -54,10 +51,11 @@ fun findDescendantsForDeletion(
     return children + children.flatMap { findDescendantsForDeletion(it.id, childMap, visited) }
 }
 
-/**
- * Знаходить всіх нащадків проекту (повертає ID)
- */
-fun getDescendantIds(projectId: String, childMap: Map<String, List<Project>>): Set<String> {
+
+fun getDescendantIds(
+    projectId: String,
+    childMap: Map<String, List<Project>>,
+): Set<String> {
     val descendants = mutableSetOf<String>()
     val queue = ArrayDeque<String>()
     queue.add(projectId)
@@ -71,13 +69,17 @@ fun getDescendantIds(projectId: String, childMap: Map<String, List<Project>>): S
     return descendants
 }
 
-/**
- * Будує шлях від кореня до цільового проекту (хлібні крихти)
- */
-fun buildPathToProject(targetId: String, hierarchy: ListHierarchyData): List<BreadcrumbItem> {
+
+fun buildPathToProject(
+    targetId: String,
+    hierarchy: ListHierarchyData,
+): List<BreadcrumbItem> {
     val path = mutableListOf<BreadcrumbItem>()
 
-    fun findPath(projects: List<Project>, level: Int): Boolean {
+    fun findPath(
+        projects: List<Project>,
+        level: Int,
+    ): Boolean {
         val sortedProjects = projects.sortedBy { it.order }
         for (project in sortedProjects) {
             path.add(BreadcrumbItem(project.id, project.name, level))
@@ -93,12 +95,10 @@ fun buildPathToProject(targetId: String, hierarchy: ListHierarchyData): List<Bre
     return path.toList()
 }
 
-/**
- * Розгладжує ієрархію проектів у плаский список для відображення
- */
+
 fun flattenHierarchy(
     currentProjects: List<Project>,
-    projectMap: Map<String, List<Project>>
+    projectMap: Map<String, List<Project>>,
 ): List<Project> {
     val result = mutableListOf<Project>()
     for (project in currentProjects) {

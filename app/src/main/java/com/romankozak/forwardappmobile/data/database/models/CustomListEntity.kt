@@ -13,15 +13,16 @@ import java.util.UUID
             entity = Project::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index(value = ["projectId"])]
+    indices = [Index(value = ["projectId"])],
 )
 data class CustomListEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val projectId: String,
     var name: String,
     val createdAt: Long = System.currentTimeMillis(),
-    var updatedAt: Long = System.currentTimeMillis()
+    var updatedAt: Long = System.currentTimeMillis(),
+    val content: String? = null,
 )

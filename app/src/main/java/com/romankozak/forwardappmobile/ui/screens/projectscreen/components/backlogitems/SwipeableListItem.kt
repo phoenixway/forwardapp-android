@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -175,9 +174,19 @@ fun SwipeableListItem(
             remember(offset) {
                 when {
                     offset > 0 ->
-                        RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = SwipeConstants.CORNER_RADIUS, bottomEnd = SwipeConstants.CORNER_RADIUS)
+                        RoundedCornerShape(
+                            topStart = 0.dp,
+                            bottomStart = 0.dp,
+                            topEnd = SwipeConstants.CORNER_RADIUS,
+                            bottomEnd = SwipeConstants.CORNER_RADIUS,
+                        )
                     offset < 0 ->
-                        RoundedCornerShape(topStart = SwipeConstants.CORNER_RADIUS, bottomStart = SwipeConstants.CORNER_RADIUS, topEnd = 0.dp, bottomEnd = 0.dp)
+                        RoundedCornerShape(
+                            topStart = SwipeConstants.CORNER_RADIUS,
+                            bottomStart = SwipeConstants.CORNER_RADIUS,
+                            topEnd = 0.dp,
+                            bottomEnd = 0.dp,
+                        )
                     else -> RoundedCornerShape(SwipeConstants.CORNER_RADIUS)
                 }
             }
@@ -194,7 +203,7 @@ fun SwipeableListItem(
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
-            // Ліва панель дій
+            
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset > 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(start = 8.dp),
@@ -206,21 +215,30 @@ fun SwipeableListItem(
                         contentDescription = "Більше дій",
                         color = MaterialTheme.colorScheme.secondary,
                         scale = leftActionsScale,
-                        onClick = { onMoreActionsRequest(); resetSwipe() },
+                        onClick = {
+                            onMoreActionsRequest()
+                            resetSwipe()
+                        },
                     )
                     SwipeActionButton(
                         icon = Icons.Default.Today,
                         contentDescription = "Додати в план дня",
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         scale = leftActionsScale,
-                        onClick = { onAddToDayPlanRequest(); resetSwipe() },
+                        onClick = {
+                            onAddToDayPlanRequest()
+                            resetSwipe()
+                        },
                     )
                     SwipeActionButton(
                         icon = Icons.Default.Share,
                         contentDescription = "Share",
                         color = MaterialTheme.colorScheme.primary,
                         scale = leftActionsScale,
-                        onClick = { onGoalTransportRequest(); resetSwipe() },
+                        onClick = {
+                            onGoalTransportRequest()
+                            resetSwipe()
+                        },
                     )
 
                     SwipeActionButton(
@@ -228,12 +246,15 @@ fun SwipeableListItem(
                         contentDescription = "Почати трекінг",
                         color = MaterialTheme.colorScheme.inversePrimary,
                         scale = leftActionsScale,
-                        onClick = { onStartTrackingRequest(); resetSwipe() },
+                        onClick = {
+                            onStartTrackingRequest()
+                            resetSwipe()
+                        },
                     )
                 }
             }
 
-            // Права панель дій
+            
             if (swipeEnabled && !isDragging && !isAnyItemDragging && offset < 0) {
                 Row(
                     modifier = Modifier.matchParentSize().alpha(actionsAlpha).padding(end = 1.dp),
@@ -245,7 +266,10 @@ fun SwipeableListItem(
                         contentDescription = "Видалити",
                         color = MaterialTheme.colorScheme.error,
                         scale = rightActionsScale,
-                        onClick = { onDelete(); resetSwipe() },
+                        onClick = {
+                            onDelete()
+                            resetSwipe()
+                        },
                     )
                     SwipeActionButton(
                         icon = Icons.Default.DeleteForever,
@@ -257,7 +281,7 @@ fun SwipeableListItem(
                 }
             }
 
-            // Основний контент
+            
             Surface(
                 modifier =
                     Modifier

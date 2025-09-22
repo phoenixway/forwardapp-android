@@ -1,5 +1,5 @@
 
-// DatabaseModule.kt - Оновлений (додаємо provides для UseCase залежностей)
+
 package com.romankozak.forwardappmobile.di
 
 import android.content.Context
@@ -16,7 +16,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
     fun provideAppDatabase(
@@ -50,6 +49,7 @@ object DatabaseModule {
             MIGRATION_29_30,
             MIGRATION_30_31,
             MIGRATION_31_32,
+            MIGRATION_34_35,
         ).build()
 
     @Provides
@@ -87,4 +87,10 @@ object DatabaseModule {
 
     @Provides
     fun provideDailyMetricDao(db: AppDatabase): DailyMetricDao = db.dailyMetricDao()
+
+    @Provides
+    fun provideNoteDao(db: AppDatabase): NoteDao = db.noteDao()
+
+    @Provides
+    fun provideCustomListDao(db: AppDatabase): CustomListDao = db.customListDao()
 }

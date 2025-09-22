@@ -13,16 +13,16 @@ import java.util.UUID
             entity = CustomListEntity::class,
             parentColumns = ["id"],
             childColumns = ["listId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
             entity = CustomListItemEntity::class,
             parentColumns = ["id"],
             childColumns = ["parentId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index(value = ["listId"]), Index(value = ["parentId"])]
+    indices = [Index(value = ["listId"]), Index(value = ["parentId"])],
 )
 data class CustomListItemEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
@@ -32,5 +32,5 @@ data class CustomListItemEntity(
     var isCompleted: Boolean = false,
     var itemOrder: Long = 0,
     val createdAt: Long = System.currentTimeMillis(),
-    var updatedAt: Long = System.currentTimeMillis()
+    var updatedAt: Long = System.currentTimeMillis(),
 )

@@ -15,17 +15,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Управляє WiFi синхронізацією
- */
+
 class WifiSyncManager(
     private val syncRepository: SyncRepository,
     private val settingsRepository: SettingsRepository,
     private val application: Application,
     private val viewModelScope: CoroutineScope,
-    private val uiEventChannel: Channel<ProjectUiEvent>
+    private val uiEventChannel: Channel<ProjectUiEvent>,
 ) {
-
     private val wifiSyncServer = WifiSyncServer(syncRepository, application)
 
     private val _desktopAddress = MutableStateFlow("")

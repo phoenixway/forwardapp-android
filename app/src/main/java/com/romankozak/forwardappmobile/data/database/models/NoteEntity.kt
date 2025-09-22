@@ -13,10 +13,10 @@ import java.util.UUID
             entity = Project::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index(value = ["projectId"])]
+    indices = [Index(value = ["projectId"])],
 )
 data class NoteEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
@@ -24,5 +24,5 @@ data class NoteEntity(
     var title: String,
     var content: String,
     val createdAt: Long = System.currentTimeMillis(),
-    var updatedAt: Long = System.currentTimeMillis()
+    var updatedAt: Long = System.currentTimeMillis(),
 )

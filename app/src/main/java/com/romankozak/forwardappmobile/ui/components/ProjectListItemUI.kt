@@ -1,5 +1,5 @@
-// File: com/romankozak/forwardappmobile/ui/components/ProjectListItemUI.kt
-// ПОВНА ОНОВЛЕНА ВЕРСІЯ
+
+
 
 package com.romankozak.forwardappmobile.ui.components
 
@@ -55,25 +55,27 @@ fun ProjectRow(
     val indentation = (level * 24).dp
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(backgroundColor)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(backgroundColor),
     ) {
         if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = indentation))
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onListClick(list.id) }
-                .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                .padding(start = indentation)
-                .padding(vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onListClick(list.id) }
+                    .alpha(if (isCurrentlyDragging) 0.6f else 1f)
+                    .padding(start = indentation)
+                    .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Іконка розгортання/згортання
+            
             Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 if (hasChildren) {
                     IconButton(onClick = { onToggleExpanded(list) }) {
@@ -85,41 +87,40 @@ fun ProjectRow(
                 }
             }
 
-            // --- ЗМІНА: Логіка відображення тексту/іконки ---
+            
             Box(modifier = Modifier.weight(1f)) {
                 var textDidOverflow by remember(displayName) { mutableStateOf(false) }
 
                 if (textDidOverflow) {
-                    // Якщо текст не вміщується, показуємо іконку "..."
+                    
                     Icon(
                         imageVector = Icons.Default.MoreHoriz,
                         contentDescription = "Назва задовга: ${displayName?.text ?: list.name}",
-                        modifier = Modifier.padding(start = 4.dp)
+                        modifier = Modifier.padding(start = 4.dp),
                     )
                 } else {
-                    // Інакше показуємо текст і перевіряємо, чи він вміщується
+                    
                     Text(
                         text = displayName ?: AnnotatedString(list.name),
                         maxLines = 1,
-                        softWrap = false, // Важливо: забороняємо перенос на новий рядок
-                        overflow = TextOverflow.Clip, // Можна Clip або Visible, головне - не Ellipsis
+                        softWrap = false,
+                        overflow = TextOverflow.Clip,
                         style = MaterialTheme.typography.bodyLarge,
                         onTextLayout = { textLayoutResult ->
-                            // Оновлюємо стан, якщо текст "виліз" за межі
+                            
                             textDidOverflow = textLayoutResult.didOverflowWidth
-                        }
+                        },
                     )
                 }
             }
-            // --- Кінець змін ---
-
+            
 
             AnimatedVisibility(visible = showFocusButton, enter = fadeIn(), exit = fadeOut()) {
                 IconButton(onClick = { onFocusRequested(list) }) {
                     Icon(
                         imageVector = Icons.Outlined.OpenInNew,
                         contentDescription = "Сфокусуватися",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }

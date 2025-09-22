@@ -35,8 +35,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @Composable
@@ -46,34 +44,43 @@ private fun PlanningModeSelector(
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
 
-    val planningModes = remember {
-        listOf(
-            "All" to (Icons.AutoMirrored.Outlined.List to PlanningMode.All),
-            "Daily" to (Icons.Outlined.Today to PlanningMode.Daily),
-            "Medium" to (Icons.Outlined.QueryStats to PlanningMode.Medium),
-            "Long" to (Icons.Outlined.TrackChanges to PlanningMode.Long),
-        )
-    }
+    val planningModes =
+        remember {
+            listOf(
+                "All" to (Icons.AutoMirrored.Outlined.List to PlanningMode.All),
+                "Daily" to (Icons.Outlined.Today to PlanningMode.Daily),
+                "Medium" to (Icons.Outlined.QueryStats to PlanningMode.Medium),
+                "Long" to (Icons.Outlined.TrackChanges to PlanningMode.Long),
+            )
+        }
 
     val (currentText, currentData) = planningModes.first { it.second.second::class == currentMode::class }
     val (currentIcon, _) = currentData
 
     Box {
         val backgroundColor = if (isMenuExpanded) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f) else Color.Transparent
-        val contentColor = if (isMenuExpanded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        val contentColor =
+            if (isMenuExpanded) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(
+                    alpha = 0.8f,
+                )
+            }
 
         Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(backgroundColor)
-                .clickable { isMenuExpanded = true }
-                .padding(horizontal = 6.dp, vertical = 4.dp)
-                .widthIn(min = 50.dp),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(backgroundColor)
+                    .clickable { isMenuExpanded = true }
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                    .widthIn(min = 50.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.Center,
             ) {
                 Icon(
                     imageVector = currentIcon,
@@ -85,7 +92,7 @@ private fun PlanningModeSelector(
                     imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = "Expand",
                     tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(16.dp),
                 )
             }
 
@@ -109,9 +116,10 @@ private fun PlanningModeSelector(
                     text = "Режим планування",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
                 HorizontalDivider()
             }
@@ -130,7 +138,6 @@ private fun PlanningModeSelector(
     }
 }
 
-
 @Composable
 internal fun ExpandingBottomNav(
     onToggleSearch: (Boolean) -> Unit,
@@ -143,10 +150,10 @@ internal fun ExpandingBottomNav(
     onHomeClick: () -> Unit,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    // --- NEW: Лямбди для навігації ---
+    
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
-    onInsightsClick: () -> Unit
+    onInsightsClick: () -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -159,31 +166,33 @@ internal fun ExpandingBottomNav(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .pointerInput(Unit) {
-                    detectVerticalDragGestures { _, dragAmount ->
-                        if (dragAmount < -20 && !isExpanded) { // Swipe Up
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onExpandedChange(true)
-                        } else if (dragAmount > 20 && isExpanded) { // Swipe Down
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onExpandedChange(false)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            if (dragAmount < -20 && !isExpanded) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onExpandedChange(true)
+                            } else if (dragAmount > 20 && isExpanded) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onExpandedChange(false)
+                            }
                         }
-                    }
-                },
+                    },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Верхній ряд (Command Center)
+            
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(150)),
                 exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)) + fadeOut(tween(150)),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
@@ -206,7 +215,7 @@ internal fun ExpandingBottomNav(
                     SmallBottomNavButton(
                         text = "AI-Chat",
                         icon = Icons.Outlined.AutoAwesome,
-                        // --- UPDATED: Викликаємо лямбду замість navController ---
+                        
                         onClick = onAiChatClick,
                     )
 
@@ -221,12 +230,13 @@ internal fun ExpandingBottomNav(
                             expanded = showMoreMenu,
                             onDismissRequest = { showMoreMenu = false },
                             offset = DpOffset((-16).dp, (-8).dp),
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceContainer,
-                                    RoundedCornerShape(16.dp),
-                                )
-                                .clip(RoundedCornerShape(16.dp)),
+                            modifier =
+                                Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceContainer,
+                                        RoundedCornerShape(16.dp),
+                                    )
+                                    .clip(RoundedCornerShape(16.dp)),
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Global Search") },
@@ -234,7 +244,7 @@ internal fun ExpandingBottomNav(
                                 onClick = {
                                     onGlobalSearchClick()
                                     showMoreMenu = false
-                                }
+                                },
                             )
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             DropdownMenuItem(
@@ -251,9 +261,10 @@ internal fun ExpandingBottomNav(
                                         Column {
                                             Text(
                                                 "AI Inbox",
-                                                style = MaterialTheme.typography.bodyMedium.copy(
-                                                    fontWeight = FontWeight.Medium,
-                                                ),
+                                                style =
+                                                    MaterialTheme.typography.bodyMedium.copy(
+                                                        fontWeight = FontWeight.Medium,
+                                                    ),
                                             )
                                             Text(
                                                 "Messages from AI",
@@ -271,15 +282,16 @@ internal fun ExpandingBottomNav(
                 }
             }
 
-            // "Ручка" з анімованою стрілкою
+            
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(32.dp)
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onExpandedChange(!isExpanded)
-                    },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onExpandedChange(!isExpanded)
+                        },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
@@ -287,9 +299,10 @@ internal fun ExpandingBottomNav(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Surface(
-                        modifier = Modifier
-                            .width(32.dp)
-                            .height(4.dp),
+                        modifier =
+                            Modifier
+                                .width(32.dp)
+                                .height(4.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         shape = CircleShape,
                     ) {}
@@ -297,22 +310,24 @@ internal fun ExpandingBottomNav(
                         imageVector = Icons.Outlined.KeyboardArrowUp,
                         contentDescription = if (isExpanded) "Collapse" else "Expand",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .size(20.dp)
-                            .rotate(arrowRotation),
+                        modifier =
+                            Modifier
+                                .size(20.dp)
+                                .rotate(arrowRotation),
                     )
                 }
             }
 
-            // Нижній, основний ряд кнопок
+            
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                // --- UPDATED: Викликаємо лямбду замість navController ---
+                
                 ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = onActivityTrackerClick)
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
@@ -322,6 +337,7 @@ internal fun ExpandingBottomNav(
         }
     }
 }
+
 @Composable
 internal fun ModernBottomNavButton(
     text: String,
@@ -330,20 +346,27 @@ internal fun ModernBottomNavButton(
     onClick: () -> Unit,
 ) {
     val backgroundColor =
-        if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-        else Color.Transparent
+        if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+        } else {
+            Color.Transparent
+        }
 
     val contentColor =
-        if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        if (isSelected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        }
 
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-            .widthIn(min = 60.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(backgroundColor)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .widthIn(min = 60.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -372,20 +395,27 @@ private fun SmallBottomNavButton(
     onClick: () -> Unit,
 ) {
     val backgroundColor =
-        if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-        else Color.Transparent
+        if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+        } else {
+            Color.Transparent
+        }
 
     val contentColor =
-        if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        if (isSelected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        }
 
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 4.dp)
-            .widthIn(min = 50.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(backgroundColor)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 6.dp, vertical = 4.dp)
+                .widthIn(min = 50.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(

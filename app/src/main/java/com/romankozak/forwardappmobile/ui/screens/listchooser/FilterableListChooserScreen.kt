@@ -91,7 +91,7 @@ fun FilterableListChooserScreen(
                             },
                         transitionSpec = {
                             slideInVertically { -it } + fadeIn() with
-                                    slideOutVertically { it } + fadeOut()
+                                slideOutVertically { it } + fadeOut()
                         },
                     ) { titleText ->
                         Text(
@@ -172,7 +172,7 @@ fun FilterableListChooserScreen(
             targetState = isCreatingMode,
             transitionSpec = {
                 (slideInVertically { it } + fadeIn(tween(300)) + expandVertically()) with
-                        (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
+                    (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
             },
             modifier =
                 Modifier

@@ -20,10 +20,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// --- NEW: Результат операції "показати локацію" ---
+
 sealed class RevealResult {
-    // Успіх: повертає ID проекту та прапорець, чи потрібен фокус-режим
+    
     data class Success(val projectId: String, val shouldFocus: Boolean) : RevealResult()
+
     object Failure : RevealResult()
 }
 
@@ -32,24 +33,24 @@ class SearchAndNavigationManager(
     private val scope: CoroutineScope,
     private val savedStateHandle: SavedStateHandle,
     private val uiEventChannel: Channel<ProjectUiEvent>,
-    private val allProjectsFlat: StateFlow<List<Project>>
+    private val allProjectsFlat: StateFlow<List<Project>>,
 ) {
-
     companion object {
         private const val TAG = "SNM_DEBUG"
-        // --- NEW: Поріг глибини для активації фокус-режиму ---
-        // Якщо у проекта 2 або більше предків (тобто він на 3-му рівні або глибше),
-        // вмикається фокус-режим.
+
+        
+        
+        
         private const val FOCUS_DEPTH_THRESHOLD = 2
 
-        // Ключі для SavedStateHandle
+        
         private const val SEARCH_HISTORY_KEY = "search_history"
         private const val MAX_SEARCH_HISTORY = 10
         private const val ACTIVE_SEARCH_QUERY_TEXT_KEY = "active_search_query_text"
         private const val IS_SEARCH_ACTIVE_KEY = "is_search_active"
     }
 
-    // Прапорець, що блокує фільтрацію до завершення відновлення стану
+    
     private val _isPendingStateRestoration = MutableStateFlow(false)
     val isPendingStateRestoration = _isPendingStateRestoration.asStateFlow()
 
@@ -79,7 +80,7 @@ class SearchAndNavigationManager(
                 val savedQueryText = savedStateHandle.get<String>(ACTIVE_SEARCH_QUERY_TEXT_KEY) ?: ""
                 _searchQuery.value = TextFieldValue(savedQueryText, TextRange(savedQueryText.length))
                 _isSearchActive.value = true
-                delay(50) // Даємо UI час на оновлення
+                delay(50)
                 _isPendingStateRestoration.value = false
             }
         }
@@ -110,10 +111,7 @@ class SearchAndNavigationManager(
         onToggleSearch(true)
     }
 
-    /**
-     * --- NEW: Повністю очищує весь стан, пов'язаний з пошуком. ---
-     * Використовується для гарантованого повернення до початкового стану (напр. кнопка Home).
-     */
+    
     fun clearAllSearchState() {
         savedStateHandle[IS_SEARCH_ACTIVE_KEY] = false
         savedStateHandle[ACTIVE_SEARCH_QUERY_TEXT_KEY] = ""
@@ -121,14 +119,12 @@ class SearchAndNavigationManager(
         _isSearchActive.value = false
     }
 
-    /**
-     * --- ENHANCED: Функція "Показати локацію", яка вирішує, чи потрібен фокус-режим. ---
-     */
+    
     suspend fun revealProjectInHierarchy(projectId: String): RevealResult {
         Log.d(TAG, "Початок 'revealProjectInHierarchy' для ID: $projectId")
         return withContext(Dispatchers.IO) {
             try {
-                // 1. Негайно вимикаємо режим пошуку
+                
                 withContext(Dispatchers.Main.immediate) {
                     if (_isSearchActive.value) {
                         _isSearchActive.value = false
@@ -136,23 +132,24 @@ class SearchAndNavigationManager(
                     }
                 }
 
-                // 2. Шукаємо предків та визначаємо глибину
+                
                 val projectLookup = allProjectsFlat.value.associateBy { it.id }
                 val ancestorIds = mutableSetOf<String>()
                 findAncestorsRecursive(projectId, projectLookup, ancestorIds, mutableSetOf())
 
-                // 3. Вирішуємо, чи потрібен фокус-режим
+                
                 val shouldFocus = ancestorIds.size >= FOCUS_DEPTH_THRESHOLD
                 Log.d(TAG, "Глибина проекту: ${ancestorIds.size}. Потрібен фокус-режим: $shouldFocus")
 
-                // 4. Розгортаємо предків у БД, якщо потрібно
-                val projectsToExpand = ancestorIds
-                    .mapNotNull { projectLookup[it] }
-                    .filter { !it.isExpanded }
+                
+                val projectsToExpand =
+                    ancestorIds
+                        .mapNotNull { projectLookup[it] }
+                        .filter { !it.isExpanded }
 
                 if (projectsToExpand.isNotEmpty()) {
                     projectRepository.updateProjects(projectsToExpand.map { it.copy(isExpanded = true) })
-                    // **Критично**: Чекаємо, доки зміни з БД дійдуть до UI
+                    
                     allProjectsFlat.first { currentProjects ->
                         projectsToExpand.all { toExpand ->
                             currentProjects.find { it.id == toExpand.id }?.isExpanded == true
@@ -161,13 +158,12 @@ class SearchAndNavigationManager(
                     Log.d(TAG, "Всі предки гарантовано розгорнуті.")
                 }
 
-                // 5. Повністю очищуємо збережений стан пошуку
+                
                 withContext(Dispatchers.Main.immediate) {
                     clearAllSearchState()
                 }
 
                 RevealResult.Success(projectId, shouldFocus)
-
             } catch (e: Exception) {
                 Log.e(TAG, "Помилка в revealProjectInHierarchy", e)
                 RevealResult.Failure
@@ -175,11 +171,14 @@ class SearchAndNavigationManager(
         }
     }
 
-// file: ui/screens/mainscreen/navigation/SearchAndNavigationManager.kt
+    
 
-    fun navigateToProject(projectId: String, currentHierarchy: ListHierarchyData) {
+    fun navigateToProject(
+        projectId: String,
+        currentHierarchy: ListHierarchyData,
+    ) {
         scope.launch {
-            // Тепер функція працює з конкретним станом ієрархії, переданим їй
+            
             val path = buildPathToProject(projectId, currentHierarchy)
             currentBreadcrumbs.value = path
             focusedProjectId.value = projectId

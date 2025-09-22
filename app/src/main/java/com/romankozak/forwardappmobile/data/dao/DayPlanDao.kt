@@ -1,4 +1,4 @@
-// DayPlanDao.kt
+
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.*
@@ -30,7 +30,10 @@ interface DayPlanDao {
     fun getPlanForDate(dayStartMillis: Long): Flow<DayPlan?>
 
     @Query("SELECT * FROM day_plans WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")
-    fun getPlansForDateRange(startDate: Long, endDate: Long): Flow<List<DayPlan>>
+    fun getPlansForDateRange(
+        startDate: Long,
+        endDate: Long,
+    ): Flow<List<DayPlan>>
 
     @Query("SELECT * FROM day_plans ORDER BY date DESC LIMIT :limit")
     fun getRecentPlans(limit: Int = 30): Flow<List<DayPlan>>
@@ -42,13 +45,22 @@ interface DayPlanDao {
     fun getAllPlans(): Flow<List<DayPlan>>
 
     @Query("UPDATE day_plans SET status = :status, updatedAt = :updatedAt WHERE id = :planId")
-    suspend fun updatePlanStatus(planId: String, status: DayStatus, updatedAt: Long)
+    suspend fun updatePlanStatus(
+        planId: String,
+        status: DayStatus,
+        updatedAt: Long,
+    )
 
-    @Query("UPDATE day_plans SET totalCompletedMinutes = :minutes, completionPercentage = :percentage, updatedAt = :updatedAt WHERE id = :planId")
-    suspend fun updatePlanProgress(planId: String, minutes: Long, percentage: Float, updatedAt: Long)
+    @Query(
+        "UPDATE day_plans SET totalCompletedMinutes = :minutes, completionPercentage = :percentage, updatedAt = :updatedAt WHERE id = :planId",
+    )
+    suspend fun updatePlanProgress(
+        planId: String,
+        minutes: Long,
+        percentage: Float,
+        updatedAt: Long,
+    )
 
     @Query("SELECT * FROM day_plans WHERE id = :planId LIMIT 1")
     fun getPlanByIdStream(planId: String): Flow<DayPlan?>
-
 }
-

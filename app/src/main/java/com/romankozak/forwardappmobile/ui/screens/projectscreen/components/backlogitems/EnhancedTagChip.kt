@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 
-// Enhanced TagChip with modern gradient design
 @Composable
 fun EnhancedTagChip(
     text: String,
@@ -58,108 +57,110 @@ fun EnhancedTagChip(
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "tag_scale"
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessHigh,
+            ),
+        label = "tag_scale",
     )
 
     val elevation by animateDpAsState(
         targetValue = if (isPressed) 1.dp else 3.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "tag_elevation"
+        label = "tag_elevation",
     )
 
     val colors = getTagColors(tagType, isSelected)
 
     Surface(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .shadow(
-                elevation = elevation,
-                shape = RoundedCornerShape(16.dp),
-                clip = false
-            )
-            .semantics {
-                if (onClick != null) {
-                    role = Role.Button
-                    contentDescription = "Тег: $text"
+        modifier =
+            modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
                 }
-            },
+                .shadow(
+                    elevation = elevation,
+                    shape = RoundedCornerShape(16.dp),
+                    clip = false,
+                )
+                .semantics {
+                    if (onClick != null) {
+                        role = Role.Button
+                        contentDescription = "Тег: $text"
+                    }
+                },
         shape = RoundedCornerShape(16.dp),
         color = Color.Transparent,
-        border = BorderStroke(
-            width = 1.2.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    colors.borderStart,
-                    colors.borderEnd
-                )
-            )
-        ),
+        border =
+            BorderStroke(
+                width = 1.2.dp,
+                brush =
+                    Brush.linearGradient(
+                        colors =
+                            listOf(
+                                colors.borderStart,
+                                colors.borderEnd,
+                            ),
+                    ),
+            ),
         onClick = onClick ?: {},
         interactionSource = interactionSource,
         enabled = onClick != null,
     ) {
         Box(
-            modifier = Modifier
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            colors.backgroundStart,
-                            colors.backgroundEnd
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset.Infinite
-                    )
-                )
+            modifier =
+                Modifier
+                    .background(
+                        brush =
+                            Brush.linearGradient(
+                                colors =
+                                    listOf(
+                                        colors.backgroundStart,
+                                        colors.backgroundEnd,
+                                    ),
+                                start = Offset(0f, 0f),
+                                end = Offset.Infinite,
+                            ),
+                    ),
         ) {
             Row(
-                modifier = Modifier.padding(
-                    horizontal = 12.dp,
-                    vertical = 6.dp
-                ),
+                modifier =
+                    Modifier.padding(
+                        horizontal = 12.dp,
+                        vertical = 6.dp,
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                // Icon based on tag type
-                /*                Icon(
-                                    imageVector = when (tagType) {
-                                        TagType.HASHTAG -> Icons.Default.Tag
-                                        TagType.PROJECT -> Icons.Default.Tag
-                                    },
-                                    contentDescription = null,
-                                    tint = colors.content,
-                                    modifier = Modifier.size(12.dp)
-                                )*/
+                
+                
 
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.2.sp,
-                        fontSize = 12.sp
-                    ),
+                    style =
+                        MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.2.sp,
+                            fontSize = 12.sp,
+                        ),
                     color = colors.content,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
 
-                // Dismiss button
+                
                 if (isDismissible && onDismiss != null) {
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Видалити тег",
                             tint = colors.content.copy(alpha = 0.7f),
-                            modifier = Modifier.size(10.dp)
+                            modifier = Modifier.size(10.dp),
                         )
                     }
                 }

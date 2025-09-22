@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
@@ -386,7 +385,7 @@ private fun CustomDurationPicker(
 
                         IconButton(
                             onClick = {
-                                val newValue = minOf(1440, currentMinutes + 1) 
+                                val newValue = minOf(1440, currentMinutes + 1)
                                 onMinutesChanged(newValue.toString())
                             },
                             enabled = currentMinutes < 1440,

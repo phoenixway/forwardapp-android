@@ -97,12 +97,13 @@ fun EditProjectScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = PaddingValues(bottom = 16.dp),
             ) {
                 item {
                     OutlinedTextField(
@@ -124,16 +125,18 @@ fun EditProjectScreen(
                                 onValueChange = { currentTagInput = it },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
-                                keyboardOptions = KeyboardOptions.Default.copy(
-                                    capitalization = KeyboardCapitalization.None,
-                                    imeAction = ImeAction.Done,
-                                ),
-                                keyboardActions = KeyboardActions(onDone = {
-                                    if (currentTagInput.isNotBlank()) {
-                                        viewModel.onTagsChange(uiState.tags + currentTagInput.trim())
-                                        currentTagInput = ""
-                                    }
-                                }),
+                                keyboardOptions =
+                                    KeyboardOptions.Default.copy(
+                                        capitalization = KeyboardCapitalization.None,
+                                        imeAction = ImeAction.Done,
+                                    ),
+                                keyboardActions =
+                                    KeyboardActions(onDone = {
+                                        if (currentTagInput.isNotBlank()) {
+                                            viewModel.onTagsChange(uiState.tags + currentTagInput.trim())
+                                            currentTagInput = ""
+                                        }
+                                    }),
                                 label = { Text("Новий тег") },
                             )
                             Spacer(Modifier.width(8.dp))
@@ -164,7 +167,11 @@ fun EditProjectScreen(
                                 }
                             }
                         } else {
-                            Text("Теги ще не додані.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "Теги ще не додані.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -187,7 +194,6 @@ fun EditProjectScreen(
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

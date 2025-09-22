@@ -54,7 +54,7 @@ data class DesktopBackupData(
     val goals: Map<String, DesktopGoal>?,
     val goalLists: Map<String, DesktopGoalList>?,
     val goalInstances: Map<String, DesktopGoalInstance>?,
-    val notes: Map<String, DesktopNote>? = null, 
+    val notes: Map<String, DesktopNote>? = null,
 )
 
 data class DesktopBackupFile(

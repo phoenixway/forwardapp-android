@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ExampleUnitTest {

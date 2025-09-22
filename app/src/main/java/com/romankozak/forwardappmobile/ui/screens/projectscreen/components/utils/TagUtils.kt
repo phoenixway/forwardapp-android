@@ -14,11 +14,9 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedTagChip
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.TagType
 
-// Utility functions for tag handling
+
 object TagUtils {
-    /**
-     * Parse text and extract all tags
-     */
+    
     fun extractTags(text: String): List<ParsedTag> {
         val tagRegex = Regex("([#@])(\\p{L}[\\p{L}0-9_-]*\\b)")
         return tagRegex.findAll(text).map { match ->
@@ -27,22 +25,18 @@ object TagUtils {
             ParsedTag(
                 fullTag = "$symbol$name",
                 name = name,
-                type = if (symbol == "#") TagType.HASHTAG else TagType.PROJECT
+                type = if (symbol == "#") TagType.HASHTAG else TagType.PROJECT,
             )
         }.toList()
     }
 
-    /**
-     * Remove tags from text for clean display
-     */
+    
     fun removeTagsFromText(text: String): String {
         val tagRegex = Regex("([#@])(\\p{L}[\\p{L}0-9_-]*\\b)")
         return text.replace(tagRegex, "").replace(Regex("\\s+"), " ").trim()
     }
 
-    /**
-     * Get tag frequency from a list of texts
-     */
+    
     fun getTagFrequency(texts: List<String>): Map<String, Int> {
         return texts.flatMap { extractTags(it) }
             .groupBy { it.fullTag }
@@ -53,10 +47,10 @@ object TagUtils {
 data class ParsedTag(
     val fullTag: String,
     val name: String,
-    val type: TagType
+    val type: TagType,
 )
 
-// Animated tag collection component
+
 @Composable
 fun AnimatedTagCollection(
     tags: List<String>,
@@ -75,7 +69,7 @@ fun AnimatedTagCollection(
     LazyRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp)
+        contentPadding = PaddingValues(horizontal = 4.dp),
     ) {
         items(visibleTags, key = { it }) { tag ->
             var isVisible by remember { mutableStateOf(false) }
@@ -88,21 +82,23 @@ fun AnimatedTagCollection(
 
             AnimatedVisibility(
                 visible = isVisible,
-                enter = slideInHorizontally(
-                    initialOffsetX = { fullWidth -> fullWidth / 2 },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
-                ) + fadeIn() + scaleIn(initialScale = 0.8f),
-                exit = slideOutHorizontally() + fadeOut() + scaleOut()
+                enter =
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth / 2 },
+                        animationSpec =
+                            spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                            ),
+                    ) + fadeIn() + scaleIn(initialScale = 0.8f),
+                exit = slideOutHorizontally() + fadeOut() + scaleOut(),
             ) {
                 EnhancedTagChip(
                     text = tag,
                     onClick = { onTagClick(tag) },
                     isDismissible = false,
                     isSelected = tag in selectedTags,
-                    tagType = if (tag.startsWith("#")) TagType.HASHTAG else TagType.PROJECT
+                    tagType = if (tag.startsWith("#")) TagType.HASHTAG else TagType.PROJECT,
                 )
             }
         }
@@ -111,7 +107,7 @@ fun AnimatedTagCollection(
             item {
                 MoreTagsIndicator(
                     count = tags.size - maxVisibleTags,
-                    onClick = { /* Handle show more tags */ }
+                    onClick = {  },
                 )
             }
         }
@@ -128,42 +124,42 @@ fun AnimatedTagCollection(
 private fun MoreTagsIndicator(
     count: Int,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     EnhancedTagChip(
         text = "+$count",
         onClick = onClick,
         isDismissible = false,
         tagType = TagType.HASHTAG,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
 @Composable
 private fun AddTagButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     androidx.compose.material3.OutlinedButton(
         onClick = onClick,
         modifier = modifier,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
     ) {
         androidx.compose.material3.Icon(
             imageVector = androidx.compose.material.icons.Icons.Default.Add,
             contentDescription = "Додати тег",
-            modifier = Modifier.size(12.dp)
+            modifier = Modifier.size(12.dp),
         )
         Spacer(modifier = Modifier.width(4.dp))
         androidx.compose.material3.Text(
             text = "Тег",
-            style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
         )
     }
 }
 
-// Tag filtering and searching utilities
+
 @Composable
 fun TagSearchBar(
     query: String,
@@ -171,7 +167,7 @@ fun TagSearchBar(
     suggestions: List<String> = emptyList(),
     onSuggestionClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
-    placeholder: String = "Пошук тегів..."
+    placeholder: String = "Пошук тегів...",
 ) {
     Column(modifier = modifier) {
         androidx.compose.material3.OutlinedTextField(
@@ -183,29 +179,32 @@ fun TagSearchBar(
             leadingIcon = {
                 androidx.compose.material3.Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.Search,
-                    contentDescription = "Пошук"
+                    contentDescription = "Пошук",
                 )
             },
-            trailingIcon = if (query.isNotEmpty()) {
-                {
-                    androidx.compose.material3.IconButton(
-                        onClick = { onQueryChange("") }
-                    ) {
-                        androidx.compose.material3.Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Clear,
-                            contentDescription = "Очистити"
-                        )
+            trailingIcon =
+                if (query.isNotEmpty()) {
+                    {
+                        androidx.compose.material3.IconButton(
+                            onClick = { onQueryChange("") },
+                        ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Clear,
+                                contentDescription = "Очистити",
+                            )
+                        }
                     }
-                }
-            } else null,
+                } else {
+                    null
+                },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
 
         if (suggestions.isNotEmpty() && query.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 items(suggestions.take(5)) { suggestion ->
                     androidx.compose.material3.SuggestionChip(
@@ -213,9 +212,9 @@ fun TagSearchBar(
                         label = {
                             androidx.compose.material3.Text(
                                 suggestion,
-                                style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+                                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
                             )
-                        }
+                        },
                     )
                 }
             }
@@ -223,7 +222,7 @@ fun TagSearchBar(
     }
 }
 
-// Extension functions for tag operations
+
 fun List<String>.filterByTag(tag: String): List<String> {
     return filter { text ->
         TagUtils.extractTags(text).any { it.fullTag == tag }

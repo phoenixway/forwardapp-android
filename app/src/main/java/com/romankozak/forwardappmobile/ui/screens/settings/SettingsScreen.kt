@@ -1,4 +1,4 @@
-// SettingsScreen.kt
+
 
 package com.romankozak.forwardappmobile.ui.screens.settings
 
@@ -40,7 +40,7 @@ import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 
-// ... (getFileName та getFolderName залишаються без змін) ...
+
 fun getFileName(
     uri: Uri,
     context: Context,
@@ -78,7 +78,6 @@ fun getFolderName(
         uri.lastPathSegment ?: "Selected Folder"
     }
 
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
@@ -115,24 +114,24 @@ fun SettingsScreen(
         derivedStateOf {
             val planningIsDirty =
                 tempShowModes != planningSettings.showModes ||
-                        tempDailyTag != planningSettings.dailyTag ||
-                        tempMediumTag != planningSettings.mediumTag ||
-                        tempLongTag != planningSettings.longTag ||
-                        tempVaultName != initialVaultName
+                    tempDailyTag != planningSettings.dailyTag ||
+                    tempMediumTag != planningSettings.mediumTag ||
+                    tempLongTag != planningSettings.longTag ||
+                    tempVaultName != initialVaultName
 
-            // --- ПОЧАТОК ЗМІН ---
+            
             val viewModelIsDirty =
                 initialViewModelState?.let {
                     uiState.ollamaUrl != it.ollamaUrl ||
-                            uiState.fastModel != it.fastModel ||
-                            uiState.smartModel != it.smartModel ||
-                            uiState.nerModelUri != it.nerModelUri ||
-                            uiState.nerTokenizerUri != it.nerTokenizerUri ||
-                            uiState.nerLabelsUri != it.nerLabelsUri ||
-                            uiState.rolesFolderUri != it.rolesFolderUri ||
-                            uiState.desktopAddress != it.desktopAddress // <-- ДОДАНО ПЕРЕВІРКУ
+                        uiState.fastModel != it.fastModel ||
+                        uiState.smartModel != it.smartModel ||
+                        uiState.nerModelUri != it.nerModelUri ||
+                        uiState.nerTokenizerUri != it.nerTokenizerUri ||
+                        uiState.nerLabelsUri != it.nerLabelsUri ||
+                        uiState.rolesFolderUri != it.rolesFolderUri ||
+                        uiState.desktopAddress != it.desktopAddress
                 } ?: false
-            // --- КІНЕЦЬ ЗМІН ---
+            
 
             planningIsDirty || viewModelIsDirty
         }
@@ -261,7 +260,7 @@ fun SettingsScreen(
                     helper = "Exact vault name for link integration",
                     singleLine = true,
                 )
-                // --- ПОЧАТОК ЗМІН ---
+                
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Specify the base URL of your Wi-Fi server for backlog export.")
                 AnimatedTextField(
@@ -271,7 +270,7 @@ fun SettingsScreen(
                     helper = "e.g., http://192.168.1.5:8000",
                     singleLine = true,
                 )
-                // --- КІНЕЦЬ ЗМІН ---
+                
             }
 
             SettingsCard(
@@ -288,7 +287,8 @@ fun SettingsScreen(
         }
     }
 }
-// ... (решта файлу SettingsScreen.kt залишається без змін)
+
+
 @Composable
 private fun RolesSettingsCard(
     state: SettingsUiState,
@@ -509,7 +509,7 @@ private fun OllamaSettingsCard(
                     onModelSelected = onSmartModelSelect,
                 )
             }
-            ModelsState.Loading -> {  }
+            ModelsState.Loading -> { }
         }
     }
 }
@@ -525,8 +525,8 @@ private fun NerSettingsCard(
     val context = LocalContext.current
     val areAllFilesSelected =
         state.nerModelUri.isNotBlank() &&
-                state.nerTokenizerUri.isNotBlank() &&
-                state.nerLabelsUri.isNotBlank()
+            state.nerTokenizerUri.isNotBlank() &&
+            state.nerLabelsUri.isNotBlank()
 
     val modelLauncher =
         rememberLauncherForActivityResult(

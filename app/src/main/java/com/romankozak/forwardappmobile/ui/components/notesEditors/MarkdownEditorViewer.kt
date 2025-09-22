@@ -31,7 +31,7 @@ fun MarkdownEditorViewer(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     isEditMode: Boolean,
-    modifier: Modifier = Modifier, 
+    modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
 

@@ -1,29 +1,16 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
-import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DropPosition
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDisplaySettings
@@ -44,13 +31,13 @@ fun ProjectHierarchyView(
     hierarchySettings: HierarchyDisplaySettings,
     listState: LazyListState,
     longDescendantsMap: Map<String, Boolean>,
-    onEvent: (MainScreenEvent) -> Unit, // Add this
-    // Lambdas for events
+    onEvent: (MainScreenEvent) -> Unit,
+    
     onProjectClicked: (String) -> Unit,
     onToggleExpanded: (Project) -> Unit,
     onMenuRequested: (Project) -> Unit,
     onNavigateToProject: (String) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit
+    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
 ) {
     val dragAndDropState = rememberDragAndDropState<Project>()
 
@@ -72,11 +59,11 @@ fun ProjectHierarchyView(
                 searchQuery = searchQuery,
                 onNavigateToProject = onNavigateToProject,
                 longDescendantsMap = longDescendantsMap,
-                onEvent = onEvent, // Pass this
+                onEvent = onEvent,
                 onProjectClick = onProjectClicked,
                 onToggleExpanded = onToggleExpanded,
                 onMenuRequested = onMenuRequested,
-                onProjectReorder = onProjectReorder
+                onProjectReorder = onProjectReorder,
             )
         } else {
             LazyColumn(
@@ -97,11 +84,11 @@ fun ProjectHierarchyView(
                         onNavigateToProject = onNavigateToProject,
                         focusedProjectId = focusedProjectId,
                         longDescendantsMap = longDescendantsMap,
-                        // Pass lambdas
+                        
                         onProjectClick = onProjectClicked,
                         onToggleExpanded = onToggleExpanded,
                         onMenuRequested = onMenuRequested,
-                        onProjectReorder = onProjectReorder
+                        onProjectReorder = onProjectReorder,
                     )
                 }
             }

@@ -9,9 +9,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
-// Перерахування для відстеження статусу передачі
+
 enum class TransferStatus {
-    IDLE, IN_PROGRESS, SUCCESS, ERROR
+    IDLE,
+    IN_PROGRESS,
+    SUCCESS,
+    ERROR,
 }
 
 private const val TAG = "SendDebug"
@@ -22,38 +25,39 @@ fun ExportTransferDialog(
     onCopyToClipboard: () -> Unit,
     onTransfer: (url: String) -> Unit,
     desktopUrl: String,
-    transferStatus: TransferStatus
+    transferStatus: TransferStatus,
 ) {
     var url by remember { mutableStateOf(desktopUrl) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
+                modifier =
+                    Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
             ) {
                 Text(
                     "Експорт та передача",
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 16.dp),
                 )
 
-                // 1. Кнопка копіювання в буфер
+                
                 OutlinedButton(
                     onClick = onCopyToClipboard,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Копіювати беклог в буфер обміну")
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-                // 2. Секція передачі через Wi-Fi
+                
                 Text(
                     "Передача на сервер",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
 
                 OutlinedTextField(
@@ -61,27 +65,28 @@ fun ExportTransferDialog(
                     onValueChange = { url = it },
                     label = { Text("URL сервера") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    // Кнопка відправки
+                    
                     Button(
                         onClick = {
-                            // !!! ДОДАЙТЕ ЦЕЙ ЛОГ !!!
+                            
                             Log.d(TAG, "КРОК 1: Кнопка 'Відправити' в діалозі натиснута. URL: $url")
                             onTransfer(url)
-                        },                        enabled = transferStatus != TransferStatus.IN_PROGRESS && url.isNotBlank()
+                        },
+                        enabled = transferStatus != TransferStatus.IN_PROGRESS && url.isNotBlank(),
                     ) {
                         Text("Відправити")
                     }
 
-                    // 3. Індикатор статусу
+                    
                     Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                         when (transferStatus) {
                             TransferStatus.IN_PROGRESS -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
@@ -92,10 +97,10 @@ fun ExportTransferDialog(
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                // Кнопка закриття
+                
                 TextButton(
                     onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
+                    modifier = Modifier.align(Alignment.End),
                 ) {
                     Text("Закрити")
                 }

@@ -57,9 +57,8 @@ fun RelatedLinkChip(
             LinkType.PROJECT -> Icons.Default.ListAlt
             LinkType.URL -> Icons.Default.Link
             LinkType.OBSIDIAN -> Icons.Default.Book
-            null -> Icons.Default.BrokenImage // Or any other default icon
+            null -> Icons.Default.BrokenImage
             else -> Icons.Default.BrokenImage
-
         }
     Box(
         modifier =

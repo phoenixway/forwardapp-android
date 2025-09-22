@@ -33,9 +33,9 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEv
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
-// Виправлені UI компоненти для MainScreen.kt
 
-// OPTIMIZED: Remember состояние для предотвращения лишних рекомпозиций
+
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreenContent(
@@ -44,39 +44,44 @@ fun MainScreenContent(
     onEvent: (MainScreenEvent) -> Unit,
     listState: LazyListState,
 ) {
-    // OPTIMIZED: Remember состояние для предотвращения лишних рекомпозиций
-    val currentSubState = remember(uiState.subStateStack) {
-        uiState.currentSubState
-    }
-    val isSearchActive = remember(currentSubState) {
-        currentSubState is MainSubState.LocalSearch
-    }
-    val searchQuery = remember(uiState.searchQuery) {
-        uiState.searchQuery.text
-    }
+    
+    val currentSubState =
+        remember(uiState.subStateStack) {
+            uiState.currentSubState
+        }
+    val isSearchActive =
+        remember(currentSubState) {
+            currentSubState is MainSubState.LocalSearch
+        }
+    val searchQuery =
+        remember(uiState.searchQuery) {
+            uiState.searchQuery.text
+        }
 
-    val isFocusMode = remember(uiState.currentBreadcrumbs) {
-        uiState.currentBreadcrumbs.isNotEmpty()
-    }
+    val isFocusMode =
+        remember(uiState.currentBreadcrumbs) {
+            uiState.currentBreadcrumbs.isNotEmpty()
+        }
 
     Column(modifier = modifier.fillMaxSize()) {
         if (isSearchActive && searchQuery.isNotBlank()) {
-            // OPTIMIZED: Используем key для стабільності
+            
             SearchResultsView(
                 results = uiState.searchResults,
                 onRevealClick = { onEvent(MainScreenEvent.SearchResultClick(it)) },
-                onOpenClick = { onEvent(MainScreenEvent.ProjectClick(it)) }
+                onOpenClick = { onEvent(MainScreenEvent.ProjectClick(it)) },
             )
         } else {
-            // OPTIMIZED: Анімація тільки при реальних змінах
-            val showBreadcrumbs = remember(uiState.currentBreadcrumbs) {
-                uiState.currentBreadcrumbs.isNotEmpty()
-            }
+            
+            val showBreadcrumbs =
+                remember(uiState.currentBreadcrumbs) {
+                    uiState.currentBreadcrumbs.isNotEmpty()
+                }
 
             AnimatedVisibility(
-                visible = showBreadcrumbs && !isFocusMode, // Hide when in focus mode
+                visible = showBreadcrumbs && !isFocusMode,
                 enter = expandVertically(tween(200)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(150)) + fadeOut(tween(150))
+                exit = shrinkVertically(tween(150)) + fadeOut(tween(150)),
             ) {
                 BreadcrumbNavigation(
                     breadcrumbs = uiState.currentBreadcrumbs,
@@ -85,26 +90,28 @@ fun MainScreenContent(
                     onFocusedListMenuClick = { projectId ->
                         uiState.projectHierarchy.allProjects.find { it.id == projectId }
                             ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
-                    }
+                    },
                 )
             }
 
-            // OPTIMIZED: Remember для запобігання пересчетів
-            val isListEmpty = remember(uiState.projectHierarchy) {
-                uiState.projectHierarchy.topLevelProjects.isEmpty() &&
+            
+            val isListEmpty =
+                remember(uiState.projectHierarchy) {
+                    uiState.projectHierarchy.topLevelProjects.isEmpty() &&
                         uiState.projectHierarchy.childMap.isEmpty()
-            }
+                }
 
             if (isListEmpty) {
-                // OPTIMIZED: Мемоїзуємо текст
-                val emptyText = remember(uiState.planningMode, uiState.planningSettings) {
-                    when (uiState.planningMode) {
-                        is PlanningMode.Daily -> "No projects with tag '#${uiState.planningSettings.dailyTag}'"
-                        is PlanningMode.Medium -> "No projects with tag '#${uiState.planningSettings.mediumTag}'"
-                        is PlanningMode.Long -> "No projects with tag '#${uiState.planningSettings.longTag}'"
-                        else -> "Create your first project"
+                
+                val emptyText =
+                    remember(uiState.planningMode, uiState.planningSettings) {
+                        when (uiState.planningMode) {
+                            is PlanningMode.Daily -> "No projects with tag '#${uiState.planningSettings.dailyTag}'"
+                            is PlanningMode.Medium -> "No projects with tag '#${uiState.planningSettings.mediumTag}'"
+                            is PlanningMode.Long -> "No projects with tag '#${uiState.planningSettings.longTag}'"
+                            else -> "Create your first project"
+                        }
                     }
-                }
 
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
@@ -113,15 +120,16 @@ fun MainScreenContent(
                     Text(emptyText, style = MaterialTheme.typography.bodyLarge)
                 }
             } else {
-                // OPTIMIZED: Стабільні ключі для ProjectHierarchyView
+                
                 ProjectHierarchyView(
                     modifier = Modifier.weight(1f),
                     hierarchy = uiState.projectHierarchy,
-                    breadcrumbs = uiState.currentBreadcrumbs, // Pass breadcrumbs down
-                    focusedProjectId = when (currentSubState) {
-                        is MainSubState.ProjectFocused -> currentSubState.projectId
-                        else -> null
-                    },
+                    breadcrumbs = uiState.currentBreadcrumbs,
+                    focusedProjectId =
+                        when (currentSubState) {
+                            is MainSubState.ProjectFocused -> currentSubState.projectId
+                            else -> null
+                        },
                     highlightedProjectId = null,
                     searchQuery = searchQuery,
                     isSearchActive = isSearchActive,
@@ -129,38 +137,38 @@ fun MainScreenContent(
                     hierarchySettings = HierarchyDisplaySettings(),
                     listState = listState,
                     longDescendantsMap = emptyMap(),
-                    onEvent = onEvent, // Pass onEvent
+                    onEvent = onEvent,
                     onProjectClicked = { onEvent(MainScreenEvent.ProjectClick(it)) },
                     onToggleExpanded = { onEvent(MainScreenEvent.ToggleProjectExpanded(it)) },
                     onMenuRequested = { onEvent(MainScreenEvent.ProjectMenuRequest(it)) },
-                    onNavigateToProject = { /* Handled via Event */ },
+                    onNavigateToProject = {  },
                     onProjectReorder = { from, to, pos ->
                         onEvent(MainScreenEvent.ProjectReorder(from, to, pos))
-                    }
+                    },
                 )
             }
         }
     }
 }
 
-// OPTIMIZED: Стабільна кнопка Home без зайвих рекомпозицій
-// Використовує існуючу ModernBottomNavButton з GoalListBottomNav.kt
+
+
 @Composable
 private fun StableHomeButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
-    // Використовуємо існуючу функцію ModernBottomNavButton
+    
     ModernBottomNavButton(
         text = "Home",
         icon = Icons.Outlined.Home,
-        onClick = onClick
+        onClick = onClick,
     )
 }
 
-// ДОДАТКОВА ОПТИМІЗАЦІЯ: Стабільний ExpandingBottomNav з кешованими callbacks
+
 @Composable
 internal fun OptimizedExpandingBottomNav(
     onToggleSearch: (Boolean) -> Unit,
@@ -175,16 +183,16 @@ internal fun OptimizedExpandingBottomNav(
     onExpandedChange: (Boolean) -> Unit,
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
-    onInsightsClick: () -> Unit
+    onInsightsClick: () -> Unit,
 ) {
-    // OPTIMIZED: Кешуємо callbacks для запобігання зайвих рекомпозицій
+    
     val stableOnHomeClick = remember { { onHomeClick() } }
     val stableOnDayPlanClick = remember { { onDayPlanClick() } }
-    val stableOnToggleSearch = remember { onToggleSearch } // Повертає (Boolean) -> Unit
+    val stableOnToggleSearch = remember { onToggleSearch }
     val stableOnRecentsClick = remember { { onRecentsClick() } }
     val stableOnActivityTrackerClick = remember { { onActivityTrackerClick() } }
 
-    // Використовуємо оригінальну функцію з кешованими callbacks
+    
     ExpandingBottomNav(
         onToggleSearch = stableOnToggleSearch,
         onGlobalSearchClick = onGlobalSearchClick,
@@ -198,6 +206,6 @@ internal fun OptimizedExpandingBottomNav(
         onExpandedChange = onExpandedChange,
         onAiChatClick = onAiChatClick,
         onActivityTrackerClick = stableOnActivityTrackerClick,
-        onInsightsClick = onInsightsClick
+        onInsightsClick = onInsightsClick,
     )
 }
