@@ -125,22 +125,122 @@ object ListEditingLogic {
     // Block-level operations
 
     fun indentBlock(value: TextFieldValue): TextFieldValue {
-        // TODO: Implement
-        return value
+        return applyToBlock(value) { line -> "    " + line }
     }
 
     fun outdentBlock(value: TextFieldValue): TextFieldValue {
-        // TODO: Implement
-        return value
+        return applyToBlock(value) { line ->
+            if (line.startsWith("    ")) line.substring(4) else line
+        }
+    }
+
+    private fun applyToBlock(value: TextFieldValue, transform: (String) -> String): TextFieldValue {
+        val text = value.text
+        val cursorPosition = value.selection.start
+        val lines = text.lines().toMutableList()
+        val currentLineNumber = text.substring(0, cursorPosition).count { it == '\n' }
+
+        val blockLines = getBlockLines(text, currentLineNumber)
+        if (blockLines.isEmpty()) return value
+
+        val transformedBlock = blockLines.map(transform)
+
+        val blockStartLine = currentLineNumber
+
+        for (i in 0 until blockLines.size) {
+            lines[blockStartLine + i] = transformedBlock[i]
+        }
+
+        val newText = lines.joinToString("\n")
+        // This is a simplification; cursor position might not be perfectly preserved
+        val newCursorPosition = cursorPosition + (transformedBlock.first().length - blockLines.first().length)
+
+        return value.copy(text = newText, selection = TextRange(newCursorPosition.coerceIn(0, newText.length)))
     }
 
     fun moveBlockUp(value: TextFieldValue): TextFieldValue {
-        // TODO: Implement
-        return value
+        val text = value.text
+        val cursorPosition = value.selection.start
+        val lines = text.lines()
+        val currentLineNumber = text.substring(0, cursorPosition).count { it == '\n' }
+
+        val currentBlock = getBlockLines(text, currentLineNumber)
+        if (currentBlock.isEmpty() || currentLineNumber == 0) return value
+
+        val prevLineNumber = (currentLineNumber - 1).coerceAtLeast(0)
+        val prevBlock = getBlockLines(text, prevLineNumber)
+        if (prevBlock.isEmpty()) return value
+        
+        val mutableLines = lines.toMutableList()
+        mutableLines.subList(prevLineNumber, currentLineNumber + currentBlock.size -1).clear()
+        mutableLines.addAll(prevLineNumber, currentBlock)
+        mutableLines.addAll(prevLineNumber + currentBlock.size, prevBlock)
+
+        val newText = mutableLines.joinToString("\n")
+        val newCursorPosition = cursorPosition - prevBlock.joinToString("\n").length - 1
+
+        return value.copy(text = newText, selection = TextRange(newCursorPosition.coerceIn(0, newText.length)))
     }
 
     fun moveBlockDown(value: TextFieldValue): TextFieldValue {
-        // TODO: Implement
-        return value
+        val text = value.text
+        val cursorPosition = value.selection.start
+        val lines = text.lines()
+        val currentLineNumber = text.substring(0, cursorPosition).count { it == '\n' }
+
+        val currentBlock = getBlockLines(text, currentLineNumber)
+        if (currentBlock.isEmpty() || (currentLineNumber + currentBlock.size) >= lines.size) return value
+
+        val nextBlockStartLine = currentLineNumber + currentBlock.size
+        val nextBlock = getBlockLines(text, nextBlockStartLine)
+        if (nextBlock.isEmpty()) return value
+
+        val mutableLines = lines.toMutableList()
+        mutableLines.subList(currentLineNumber, nextBlockStartLine + nextBlock.size).clear()
+        mutableLines.addAll(currentLineNumber, nextBlock)
+        mutableLines.addAll(currentLineNumber + nextBlock.size, currentBlock)
+
+        val newText = mutableLines.joinToString("\n")
+        val newCursorPosition = cursorPosition + nextBlock.joinToString("\n").length + 1
+
+        return value.copy(text = newText, selection = TextRange(newCursorPosition.coerceIn(0, newText.length)))
+    }
+
+    // Clipboard operations
+
+    fun deleteLine(value: TextFieldValue): TextFieldValue {
+        val text = value.text
+        val cursorPosition = value.selection.start
+        val (lineStart, lineEnd) = getCurrentLineBounds(text, cursorPosition)
+        val newText = text.removeRange(lineStart, if (lineEnd < text.length) lineEnd + 1 else lineEnd)
+        val newCursorPosition = lineStart.coerceAtMost(newText.length)
+        return value.copy(text = newText, selection = TextRange(newCursorPosition))
+    }
+
+    fun getLineForClipboard(value: TextFieldValue): String {
+        val (lineStart, lineEnd) = getCurrentLineBounds(value.text, value.selection.start)
+        return value.text.substring(lineStart, lineEnd)
+    }
+
+    fun pasteLine(value: TextFieldValue, clipboardText: String): TextFieldValue {
+        val text = value.text
+        val cursorPosition = value.selection.start
+        val (lineStart, lineEnd) = getCurrentLineBounds(text, cursorPosition)
+        val currentLine = text.substring(lineStart, lineEnd)
+
+        val trimmedClipboard = clipboardText.trim()
+        val currentLineHasMarker = currentLine.trim().startsWith("- ")
+        val clipboardHasMarker = trimmedClipboard.startsWith("- ")
+
+        val textToInsert = if (currentLineHasMarker && clipboardHasMarker) {
+            trimmedClipboard.replaceFirst(Regex("^\\s*- "), "")
+        } else {
+            clipboardText
+        }
+
+        val newText = text.replaceRange(lineStart, lineEnd, textToInsert)
+        val newCursorPosition = lineStart + textToInsert.length
+
+        return value.copy(text = newText, selection = TextRange(newCursorPosition))
     }
 }

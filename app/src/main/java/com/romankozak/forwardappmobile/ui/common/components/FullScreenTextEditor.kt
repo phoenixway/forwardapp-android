@@ -32,19 +32,12 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FullScreenTextEditor(
-    initialText: String,
-    onSave: (String) -> Unit,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    onSave: () -> Unit,
     onCancel: () -> Unit,
     title: String,
 ) {
-    var text by remember(initialText) {
-        mutableStateOf(
-            TextFieldValue(
-                if (initialText.isEmpty()) "- " else initialText
-            )
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,7 +48,7 @@ fun FullScreenTextEditor(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { onSave(text.text) }) {
+                    TextButton(onClick = onSave) {
                         Text("Зберегти")
                     }
                 },
@@ -68,25 +61,8 @@ fun FullScreenTextEditor(
                 .padding(paddingValues)
         ) {
             OutlinedTextField(
-                value = text,
-                onValueChange = { newText ->
-                    val oldText = text
-                    text = newText
-
-                    // Handle Enter key
-                    if (newText.text.length > oldText.text.length && newText.text[oldText.selection.start] == '\n') {
-                        val lineStart = newText.text.lastIndexOf('\n', startIndex = oldText.selection.start - 1) + 1
-                        val previousLine = newText.text.substring(lineStart, oldText.selection.start)
-                        val leadingWhitespace = previousLine.takeWhile { it.isWhitespace() }
-                        val listMarker = previousLine.trim().substringBefore(' ') + " "
-
-                        if (previousLine.trim().startsWith("- ")) {
-                            val newCursorPos = newText.selection.start + leadingWhitespace.length + listMarker.length
-                            val finalText = newText.text.substring(0, newText.selection.start) + leadingWhitespace + listMarker + newText.text.substring(newText.selection.start)
-                            text = TextFieldValue(finalText, selection = TextRange(newCursorPos))
-                        }
-                    }
-                },
+                value = value,
+                onValueChange = onValueChange,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(bottom = if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) 56.dp else 0.dp), // Add padding to avoid the editing panel
@@ -98,8 +74,8 @@ fun FullScreenTextEditor(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .imePadding(),
-                    value = text,
-                    onValueChange = { text = it }
+                    value = value,
+                    onValueChange = onValueChange
                 )
             }
         }
