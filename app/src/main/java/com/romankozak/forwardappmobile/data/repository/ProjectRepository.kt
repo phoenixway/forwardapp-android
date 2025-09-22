@@ -7,6 +7,8 @@ import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.NoteDao
+import com.romankozak.forwardappmobile.data.dao.CustomListDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentProjectDao
 import com.romankozak.forwardappmobile.data.database.models.*
@@ -40,6 +42,7 @@ constructor(
     private val recentProjectDao: RecentProjectDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
+    private val noteDao: NoteDao,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val inboxRecordDao: InboxRecordDao,
     private val activityRepository: ActivityRepository,
@@ -143,6 +146,9 @@ constructor(
                     }
                     ListItemType.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId)?.let { link ->
                         ListItemContent.LinkItem(link, item)
+                    }
+                    ListItemType.NOTE -> noteDao.getNoteById(item.entityId)?.let { note ->
+                        ListItemContent.NoteItem(note, item)
                     }
                 }
             }
@@ -671,5 +677,79 @@ constructor(
         val timeTotal = allActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
 
         return ProjectTimeMetrics(timeToday = timeToday, timeTotal = timeTotal)
+    }
+
+    // Note functions
+    suspend fun getNoteById(noteId: String): NoteEntity? = noteDao.getNoteById(noteId)
+
+    fun getNotesForProject(projectId: String): Flow<List<NoteEntity>> = noteDao.getNotesForProject(projectId)
+
+    @Transaction
+    suspend fun saveNote(note: NoteEntity) {
+        val existingNote = noteDao.getNoteById(note.id)
+        if (existingNote == null) {
+            noteDao.insert(note)
+            // Also create a ListItem to make it appear in the project
+            val newListItem = ListItem(
+                id = UUID.randomUUID().toString(),
+                projectId = note.projectId,
+                itemType = ListItemType.NOTE,
+                entityId = note.id,
+                order = -System.currentTimeMillis()
+            )
+            listItemDao.insertItem(newListItem)
+        } else {
+            noteDao.update(note.copy(updatedAt = System.currentTimeMillis()))
+        }
+    }
+
+    @Transaction
+    suspend fun deleteNote(noteId: String) {
+        noteDao.deleteNoteById(noteId)
+        listItemDao.deleteItemByEntityId(noteId)
+    }
+
+    // Custom List functions
+    fun getCustomListsForProject(projectId: String): Flow<List<CustomListEntity>> = customListDao.getCustomListsForProject(projectId)
+
+    @Transaction
+    suspend fun createCustomList(name: String, projectId: String): String {
+        val newList = CustomListEntity(name = name, projectId = projectId)
+        customListDao.insertCustomList(newList)
+        // Also create a ListItem to make it appear in the project
+        val newListItem = ListItem(
+            id = UUID.randomUUID().toString(),
+            projectId = projectId,
+            itemType = ListItemType.CUSTOM_LIST,
+            entityId = newList.id,
+            order = -System.currentTimeMillis()
+        )
+        listItemDao.insertItem(newListItem)
+        return newList.id
+    }
+
+    @Transaction
+    suspend fun deleteCustomList(listId: String) {
+        customListDao.deleteCustomListById(listId)
+        listItemDao.deleteItemByEntityId(listId)
+    }
+    
+    fun getCustomListItems(listId: String): Flow<List<CustomListItemEntity>> = customListDao.getListItemsForList(listId)
+    
+    suspend fun saveCustomListItem(item: CustomListItemEntity) {
+        val existingItem = customListDao.getListItemById(item.id)
+        if (existingItem == null) {
+            customListDao.insertListItem(item)
+        } else {
+            customListDao.updateListItem(item.copy(updatedAt = System.currentTimeMillis()))
+        }
+    }
+    
+    suspend fun deleteCustomListItem(itemId: String) {
+        customListDao.deleteListItemById(itemId)
+    }
+    
+    suspend fun updateCustomListItems(items: List<CustomListItemEntity>) {
+        customListDao.updateListItems(items)
     }
 }

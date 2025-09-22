@@ -22,16 +22,21 @@ import com.romankozak.forwardappmobile.data.database.models.*
         DayPlan::class,
         DayTask::class,
         DailyMetric::class,
+        NoteEntity::class,
+        CustomListEntity::class,
+        CustomListItemEntity::class,
         // FTS (Full-Text Search) сутності
         GoalFts::class,
         ProjectFts::class,
-        ActivityRecordFts::class // <-- Додано відсутній клас
+        ActivityRecordFts::class,
+        NoteFts::class
     ],
-    version = 32,
+    version = 34,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),
-        // Додайте інші автоміграції, якщо вони потрібні
+        AutoMigration(from = 32, to = 33),
+        AutoMigration(from = 33, to = 34)
     ],
     exportSchema = true
 )
@@ -49,4 +54,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dayPlanDao(): DayPlanDao
     abstract fun dayTaskDao(): DayTaskDao
     abstract fun dailyMetricDao(): DailyMetricDao
+    abstract fun noteDao(): NoteDao
+    abstract fun customListDao(): CustomListDao
 }

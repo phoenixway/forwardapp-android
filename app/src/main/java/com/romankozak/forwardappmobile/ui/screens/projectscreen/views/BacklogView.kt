@@ -53,10 +53,10 @@ fun BacklogView(
     }
 
     val attachmentItems = remember(listContent) {
-        listContent.filterIsInstance<ListItemContent.LinkItem>()
+        listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
     }
     val draggableItems = remember(listContent) {
-        listContent.filterNot { it is ListItemContent.LinkItem }
+        listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
     }
 
     Column(modifier = modifier.fillMaxSize()) {

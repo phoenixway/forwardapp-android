@@ -60,4 +60,7 @@ interface ListItemDao {
 
     @Query("SELECT entityId FROM list_items WHERE project_id = :projectId AND itemType = 'GOAL'")
     suspend fun getGoalIdsForProject(projectId: String): List<String>
+
+    @Query("DELETE FROM list_items WHERE entityId = :entityId")
+    suspend fun deleteItemByEntityId(entityId: String)
 }

@@ -180,6 +180,20 @@ private fun AttachmentItemCard(
                     onCopyContentRequest = onCopyContentRequest,
                 )
             }
+            is ListItemContent.NoteItem -> {
+                NoteItemRow(
+                    noteItem = item,
+                    onClick = { onItemClick(item) },
+                    onDelete = { onDeleteItem(item) }
+                )
+            }
+            is ListItemContent.CustomListItem -> {
+                CustomListItemRow(
+                    customListItem = item,
+                    onClick = { onItemClick(item) },
+                    onDelete = { onDeleteItem(item) }
+                )
+            }
             else -> {}
         }
     }
@@ -214,11 +228,16 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
         DropdownMenu(
             expanded = showAddMenu,
             onDismissRequest = { showAddMenu = false },
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
         ) {
+            AttachmentTypeMenuItem(R.string.attachment_type_note, AttachmentType.NOTE) { type ->
+                onAddAttachment(type)
+                showAddMenu = false
+            }
+            AttachmentTypeMenuItem(R.string.attachment_type_custom_list, AttachmentType.CUSTOM_LIST) { type ->
+                onAddAttachment(type)
+                showAddMenu = false
+            }
             AttachmentTypeMenuItem(R.string.attachment_type_web_link, AttachmentType.WEB_LINK) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
@@ -236,7 +255,6 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            
         }
     }
 }
