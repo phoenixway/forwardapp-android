@@ -1,10 +1,13 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -24,35 +27,31 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 fun FocusedProjectHeader(
     project: Project,
     onMoreActionsClick: () -> Unit,
+    onProjectClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+            .padding(vertical = 4.dp, horizontal = 12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(vertical = 4.dp, horizontal = 12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = project.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                // TODO: Implement Add action if needed
-                // IconButton(onClick = { /* TODO: Handle add action */ }) {
-                //     Icon(Icons.Default.Add, contentDescription = "Add")
-                // }
-                IconButton(onClick = onMoreActionsClick) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More actions")
-                }
+            Spacer(modifier = Modifier.size(40.dp)) // Add spacer for alignment
+            Text(
+                text = project.name,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f).clickable(onClick = onProjectClick)
+            )
+            // TODO: Implement Add action if needed
+            // IconButton(onClick = { /* TODO: Handle add action */ }) {
+            //     Icon(Icons.Default.Add, contentDescription = "Add")
+            // }
+            IconButton(onClick = onMoreActionsClick) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More actions")
             }
         }
     }

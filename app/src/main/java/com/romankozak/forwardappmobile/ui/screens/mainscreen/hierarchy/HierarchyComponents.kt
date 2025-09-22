@@ -317,52 +317,6 @@ fun BreadcrumbNavigation(
                     }
                 }
 
-                if (isLast) {
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    if (onOpenAsProject != null) {
-                        Surface(
-                            modifier = Modifier.size(32.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            tonalElevation = 2.dp
-                        ) {
-                            IconButton(
-                                onClick = { onOpenAsProject(item.id) },
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.OpenInNew,
-                                    contentDescription = "Open as project",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    Surface(
-                        modifier = Modifier.size(32.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        tonalElevation = 2.dp
-                    ) {
-                        IconButton(
-                            onClick = { onFocusedListMenuClick(item.id) },
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Menu for ${item.name}",
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
                 if (!isLast) {
                     Icon(
                         imageVector = Icons.Outlined.ChevronRight,
@@ -492,73 +446,6 @@ fun SmartHierarchyView(
                         onMenuRequested = onMenuRequested,
                         onProjectReorder = onProjectReorder
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun FocusedListView(
-    focusedProjectId: String,
-    hierarchy: ListHierarchyData,
-    dragAndDropState: DragAndDropState<Project>,
-    isSearchActive: Boolean,
-    planningMode: PlanningMode,
-    highlightedProjectId: String?,
-    settings: HierarchyDisplaySettings,
-    searchQuery: String,
-    longDescendantsMap: Map<String, Boolean>,
-    onNavigateToProject: (String) -> Unit,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Project) -> Unit,
-    onMenuRequested: (Project) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit
-) {
-    val children = (hierarchy.childMap[focusedProjectId] ?: emptyList()).sortedBy { it.order }
-
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        if (children.isNotEmpty()) {
-            items(children, key = { it.id }) { child ->
-                SmartHierarchyView(
-                    project = child,
-                    childMap = hierarchy.childMap,
-                    level = 0,
-                    dragAndDropState = dragAndDropState,
-                    isSearchActive = isSearchActive,
-                    planningMode = planningMode,
-                    highlightedProjectId = highlightedProjectId,
-                    settings = settings,
-                    searchQuery = searchQuery,
-                    onNavigateToProject = onNavigateToProject,
-                    focusedProjectId = focusedProjectId,
-                    longDescendantsMap = longDescendantsMap,
-                    onProjectClick = onProjectClick,
-                    onToggleExpanded = onToggleExpanded,
-                    onMenuRequested = onMenuRequested,
-                    onProjectReorder = onProjectReorder
-                )
-            }
-        } else {
-            item(key = "empty_state") {
-                Box(
-                    modifier = Modifier.fillParentMaxSize().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Outlined.Inbox,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "No subprojects",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
             }
         }

@@ -173,9 +173,11 @@ private fun MainScreenScaffold(
         topBar = {
             // ИСПРАВЛЕНО: Используем стек подсостояний для определения активности поиска
             val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
+            val isFocusMode = uiState.currentBreadcrumbs.isNotEmpty()
 
             MainScreenTopAppBar(
                 isSearchActive = isSearchActive,
+                isFocusMode = isFocusMode,
                 canGoBack = uiState.canGoBack,
                 canGoForward = uiState.canGoForward,
                 onGoBack = { onEvent(MainScreenEvent.BackClick) },
@@ -311,6 +313,7 @@ private fun NeonTitle(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun MainScreenTopAppBar(
     isSearchActive: Boolean,
+    isFocusMode: Boolean, // Add this parameter
     canGoBack: Boolean,
     canGoForward: Boolean,
     onGoBack: () -> Unit,
@@ -342,8 +345,10 @@ private fun MainScreenTopAppBar(
                     Icon(Icons.Outlined.History, "История")
                 }
 
-                IconButton(onClick = onAddNewProject) {
-                    Icon(Icons.Default.Add, "Add new project")
+                AnimatedVisibility(visible = !isFocusMode) { // Add this visibility wrapper
+                    IconButton(onClick = onAddNewProject) {
+                        Icon(Icons.Default.Add, "Add new project")
+                    }
                 }
                 var menuExpanded by remember { mutableStateOf(false) }
                 IconButton(onClick = { menuExpanded = true }) {

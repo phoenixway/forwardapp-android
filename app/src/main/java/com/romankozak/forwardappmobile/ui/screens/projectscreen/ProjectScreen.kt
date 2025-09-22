@@ -32,6 +32,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.S
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
+import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
 
 @Composable
 fun ProjectsScreen(
@@ -57,197 +58,208 @@ fun ProjectsScreen(
     val coroutineScope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(value = false) }
 
-    if (uiState.showExportTransferDialog) {
-        val transferUrl = remember(desktopAddress) {
-            val ip = desktopAddress
-            if (ip.isNotBlank() && !ip.startsWith("http")) {
-                "http://$ip:8000"
-            } else {
-                ip
-            }
+    @Composable
+    fun rememberSimpleDragDropState(
+        lazyListState: LazyListState,
+        onMove: (Int, Int) -> Unit,
+    ): SimpleDragDropState {
+        val scope = rememberCoroutineScope()
+        return remember(lazyListState) {
+            SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
         }
+    }
 
-        ExportTransferDialog(
-            onDismiss = { viewModel.onExportTransferDialogDismiss() },
-            onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
-            onTransfer = { url -> viewModel.onTransferBacklogViaWifi(url) },
-            desktopUrl = transferUrl,
-            transferStatus = uiState.transferStatus
+    val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
+
+    if (recordToEdit != null) {
+        FullScreenTextEditor(
+            initialText = recordToEdit!!.text,
+            onSave = { newText -> viewModel.inboxHandler.onInboxRecordEditConfirm(newText) },
+            onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() },
+            title = "Редагувати запис"
         )
-    }
-
-
-    val dragDropState = rememberSimpleDragDropState(
-        lazyListState = listState,
-        onMove = viewModel::moveItem,
-    )
-
-    val draggableItems = remember(listContent) {
-        listContent.filterNot { it is ListItemContent.LinkItem }
-    }
-
-    GoalDetailEffects(
-        navController = navController,
-        viewModel = viewModel,
-        snackbarHostState = snackbarHostState,
-        listState = listState,
-        inboxListState = inboxListState,
-        dragDropState = dragDropState,
-        coroutineScope = coroutineScope
-    )
-
-    GoalDetailDialogs(viewModel = viewModel)
-
-    // --- ОНОВЛЕННЯ: Універсальний BackHandler ---
-    // Видаляємо три окремі BackHandler і замінюємо їх одним,
-    // який делегує всю логіку ViewModel.
-    BackHandler(enabled = true) {
-        val wasConsumed = viewModel.onBackPressed()
-        if (!wasConsumed) {
-            // Якщо ViewModel не обробила подію (повернула false),
-            // дозволяємо стандартну поведінку (вихід з екрану).
-            navController.popBackStack()
-        }
-    }
-
-    // --- ВИДАЛЕНО: DisposableEffect більше не потрібен, flush робиться у viewModel.onBackPressed() ---
-    // DisposableEffect(Unit) {
-    //     onDispose {
-    //         viewModel.flushPendingMoves()
-    //     }
-    // }
-
-    val reminderParseResult =
-        if ((uiState.detectedReminderCalendar != null) &&
-            (uiState.detectedReminderSuggestion != null) &&
-            (uiState.inputValue.text.isNotBlank())
-        ) {
-            ReminderParseResult(
-                originalText = uiState.inputValue.text,
-                calendar = uiState.detectedReminderCalendar,
-                suggestionText = uiState.detectedReminderSuggestion,
-                dateTimeEntities = emptyList(),
-                otherEntities = emptyList(),
-                success = true,
-                errorMessage = null,
-            )
-        } else {
-            null
-        }
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            AdaptiveTopBar(
-                isSelectionModeActive = isSelectionModeActive,
-                project = list,
-                selectedCount = uiState.selectedItemIds.size,
-                areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                onClearSelection = { viewModel.selectionHandler.clearSelection() },
-                onSelectAll = { viewModel.selectionHandler.selectAllItems() },
-                onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
-                onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
-                onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                currentViewMode = uiState.currentView
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            AnimatedVisibility(
-                visible = !isSelectionModeActive,
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
-            ) {
-                ModernInputPanel(
-                    inputValue = uiState.inputValue,
-                    inputMode = uiState.inputMode,
-                    onValueChange = {
-                        viewModel.inputHandler.onInputTextChanged(
-                            it,
-                            uiState.inputMode
-                        )
-                    },
-                    onSubmit = {
-                        viewModel.inputHandler.submitInput(
-                            uiState.inputValue,
-                            uiState.inputMode
-                        )
-                    },
-                    onInputModeSelected = {
-                        viewModel.inputHandler.onInputModeSelected(
-                            it,
-                            uiState.inputValue
-                        )
-                    },
-                    onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
-                    onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
-                    onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
-                    onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
-                    onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
-
-                    // --- ОНОВЛЕННЯ: Логіка кнопок навігації ---
-                    canGoBack = canGoBack,
-                    canGoForward = canGoForward, // Додано новий стан
-                    onBackClick = { viewModel.onBackPressed() },
-                    onForwardClick = { viewModel.onForwardPressed() },
-                    onHomeClick = viewModel::onHomeClick,
-
-                    isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
-                    onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
-                    onEditList = {
-                        Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
-                        menuExpanded = false
-                        Log.d("EDIT_PROJECT_DEBUG", "List id: ${list?.id}")
-                        navController.navigate("edit_list_screen/${list?.id}")
-                    },
-                    onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
-                    onDeleteList = { viewModel.deleteCurrentProject() },
-                    menuExpanded = menuExpanded,
-                    onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
-                    currentView = uiState.currentView,
-                    onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
-                    onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
-                    onExportToMarkdown = viewModel::onExportToMarkdownRequest,
-                    onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
-                    onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
-                    reminderParseResult = reminderParseResult,
-                    onClearReminder = viewModel::onClearReminder,
-                    isNerActive = uiState.nerState is NerState.Ready,
-                    onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
-                    isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
-                    modifier = Modifier.navigationBarsPadding().imePadding(),
-                    onToggleProjectManagement = viewModel::onToggleProjectManagement,
-                    onExportProjectState = viewModel::onExportProjectStateRequest,
-                    onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
-                    onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
-                    onCloseSearch = viewModel::onCloseSearch,
-                    isViewModePanelVisible = uiState.isViewModePanelVisible,
-                    onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
-                    suggestions = suggestions,
-                    onSuggestionClick = viewModel::onSuggestionClick
-                )
+    } else {
+        if (uiState.showExportTransferDialog) {
+            val transferUrl = remember(desktopAddress) {
+                val ip = desktopAddress
+                if (ip.isNotBlank() && !ip.startsWith("http")) {
+                    "http://$ip:8000"
+                } else {
+                    ip
+                }
             }
-        },
-    ) { paddingValues ->
-        GoalDetailContent(
-            modifier = Modifier.padding(paddingValues),
+
+            ExportTransferDialog(
+                onDismiss = { viewModel.onExportTransferDialogDismiss() },
+                onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
+                onTransfer = { url -> viewModel.onTransferBacklogViaWifi(url) },
+                desktopUrl = transferUrl,
+                transferStatus = uiState.transferStatus
+            )
+        }
+
+
+        val dragDropState = rememberSimpleDragDropState(
+            lazyListState = listState,
+            onMove = viewModel::moveItem,
+        )
+
+        val draggableItems = remember(listContent) {
+            listContent.filterNot { it is ListItemContent.LinkItem }
+        }
+
+        GoalDetailEffects(
+            navController = navController,
             viewModel = viewModel,
-            uiState = uiState,
+            snackbarHostState = snackbarHostState,
             listState = listState,
             inboxListState = inboxListState,
-            dragDropState = dragDropState
+            dragDropState = dragDropState,
+            coroutineScope = coroutineScope
         )
-    }
-}
 
-@Composable
-fun rememberSimpleDragDropState(
-    lazyListState: LazyListState,
-    onMove: (Int, Int) -> Unit,
-): SimpleDragDropState {
-    val scope = rememberCoroutineScope()
-    return remember(lazyListState) {
-        SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
+        GoalDetailDialogs(viewModel = viewModel)
+
+        // --- ОНОВЛЕННЯ: Універсальний BackHandler ---
+        // Видаляємо три окремі BackHandler і замінюємо їх одним,
+        // який делегує всю логіку ViewModel.
+        BackHandler(enabled = true) {
+            val wasConsumed = viewModel.onBackPressed()
+            if (!wasConsumed) {
+                // Якщо ViewModel не обробила подію (повернула false),
+                // дозволяємо стандартну поведінку (вихід з екрану).
+                navController.popBackStack()
+            }
+        }
+
+        // --- ВИДАЛЕНО: DisposableEffect більше не потрібен, flush робиться у viewModel.onBackPressed() ---
+        // DisposableEffect(Unit) {
+        //     onDispose {
+        //         viewModel.flushPendingMoves()
+        //     }
+        // }
+
+        val reminderParseResult =
+            if ((uiState.detectedReminderCalendar != null) &&
+                (uiState.detectedReminderSuggestion != null) &&
+                (uiState.inputValue.text.isNotBlank())
+            ) {
+                ReminderParseResult(
+                    originalText = uiState.inputValue.text,
+                    calendar = uiState.detectedReminderCalendar,
+                    suggestionText = uiState.detectedReminderSuggestion,
+                    dateTimeEntities = emptyList(),
+                    otherEntities = emptyList(),
+                    success = true,
+                    errorMessage = null,
+                )
+            } else {
+                null
+            }
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                AdaptiveTopBar(
+                    isSelectionModeActive = isSelectionModeActive,
+                    project = list,
+                    selectedCount = uiState.selectedItemIds.size,
+                    areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                    onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                    onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                    onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                    onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
+                    onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
+                    onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
+                    currentViewMode = uiState.currentView
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                AnimatedVisibility(
+                    visible = !isSelectionModeActive,
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut(),
+                ) {
+                    ModernInputPanel(
+                        inputValue = uiState.inputValue,
+                        inputMode = uiState.inputMode,
+                        onValueChange = {
+                            viewModel.inputHandler.onInputTextChanged(
+                                it,
+                                uiState.inputMode
+                            )
+                        },
+                        onSubmit = {
+                            viewModel.inputHandler.submitInput(
+                                uiState.inputValue,
+                                uiState.inputMode
+                            )
+                        },
+                        onInputModeSelected = {
+                            viewModel.inputHandler.onInputModeSelected(
+                                it,
+                                uiState.inputValue
+                            )
+                        },
+                        onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
+                        onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
+                        onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
+                        onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
+                        onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
+
+                        // --- ОНОВЛЕННЯ: Логіка кнопок навігації ---
+                        canGoBack = canGoBack,
+                        canGoForward = canGoForward, // Додано новий стан
+                        onBackClick = { viewModel.onBackPressed() },
+                        onForwardClick = { viewModel.onForwardPressed() },
+                        onHomeClick = viewModel::onHomeClick,
+
+                        isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
+                        onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                        onEditList = {
+                            Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
+                            menuExpanded = false
+                            Log.d("EDIT_PROJECT_DEBUG", "List id: ${list?.id}")
+                            navController.navigate("edit_list_screen/${list?.id}")
+                        },
+                        onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
+                        onDeleteList = { viewModel.deleteCurrentProject() },
+                        menuExpanded = menuExpanded,
+                        onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
+                        currentView = uiState.currentView,
+                        onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
+                        onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
+                        onExportToMarkdown = viewModel::onExportToMarkdownRequest,
+                        onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
+                        onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
+                        reminderParseResult = reminderParseResult,
+                        onClearReminder = viewModel::onClearReminder,
+                        isNerActive = uiState.nerState is NerState.Ready,
+                        onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
+                        isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
+                        modifier = Modifier.navigationBarsPadding().imePadding(),
+                        onToggleProjectManagement = viewModel::onToggleProjectManagement,
+                        onExportProjectState = viewModel::onExportProjectStateRequest,
+                        onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
+                        onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                        onCloseSearch = viewModel::onCloseSearch,
+                        isViewModePanelVisible = uiState.isViewModePanelVisible,
+                        onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
+                        suggestions = suggestions,
+                        onSuggestionClick = viewModel::onSuggestionClick
+                    )
+                }
+            },
+        ) { paddingValues ->
+            GoalDetailContent(
+                modifier = Modifier.padding(paddingValues),
+                viewModel = viewModel,
+                uiState = uiState,
+                listState = listState,
+                inboxListState = inboxListState,
+                dragDropState = dragDropState
+            )
+        }
     }
 }
