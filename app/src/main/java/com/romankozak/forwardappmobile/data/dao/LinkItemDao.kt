@@ -18,7 +18,7 @@ interface LinkItemDao {
     suspend fun getLinkItemById(id: String): LinkItemEntity?
 
     @Query("SELECT * FROM list_items")
-    suspend fun getAll(): List<ListItem> // Ймовірно, ця функція не потрібна тут, але залишаю її
+    suspend fun getAll(): List<ListItem>
 
     @Transaction
     @Query(
@@ -40,7 +40,7 @@ interface LinkItemDao {
     INNER JOIN projects p ON l.project_id = p.id
     INNER JOIN path_cte pc ON p.id = pc.id
     WHERE l.itemType = 'LINK_ITEM' AND li.link_data LIKE :query
-"""
+""",
     )
     suspend fun searchLinksGlobal(query: String): List<GlobalLinkSearchResult>
 

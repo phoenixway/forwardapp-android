@@ -1,4 +1,4 @@
-// File: ProjectStatusIndicator.kt
+
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar
 
 import androidx.compose.animation.*
@@ -37,7 +37,6 @@ private fun getStatusVisuals(status: ProjectStatus): StatusVisuals =
         ProjectStatus.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
     }
 
-
 @Composable
 fun ProjectStatusIndicator(
     status: ProjectStatus,
@@ -59,10 +58,10 @@ fun ProjectStatusIndicator(
             fadeIn(
                 animationSpec = tween(400, easing = EaseOut),
             ) +
-                    slideInVertically(
-                        animationSpec = tween(400, easing = EaseOut),
-                        initialOffsetY = { it / 3 },
-                    ),
+                slideInVertically(
+                    animationSpec = tween(400, easing = EaseOut),
+                    initialOffsetY = { it / 3 },
+                ),
         exit = fadeOut() + slideOutVertically(),
     ) {
         Row(
@@ -92,11 +91,12 @@ fun ProjectStatusIndicator(
                 ) {
                     Text(
                         text = "Status:",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 13.sp,
-                            letterSpacing = 0.1.sp,
-                        ),
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 13.sp,
+                                letterSpacing = 0.1.sp,
+                            ),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     )
                     Text(
@@ -106,11 +106,12 @@ fun ProjectStatusIndicator(
                     )
                     Text(
                         text = status.displayName,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 13.sp,
-                            letterSpacing = 0.1.sp,
-                        ),
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.sp,
+                                letterSpacing = 0.1.sp,
+                            ),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     )
                 }
@@ -121,9 +122,9 @@ fun ProjectStatusIndicator(
                         fadeIn(
                             animationSpec = tween(250, delayMillis = 100),
                         ) +
-                                expandVertically(
-                                    animationSpec = tween(250, delayMillis = 100),
-                                ),
+                            expandVertically(
+                                animationSpec = tween(250, delayMillis = 100),
+                            ),
                     exit = fadeOut() + shrinkVertically(),
                 ) {
                     Text(
@@ -139,9 +140,9 @@ fun ProjectStatusIndicator(
                 }
             }
 
-            // --- 👇 ПОЧАТОК ЗМІН ---
-            // Блок, що відображав режим виду, видалено
-            // --- 👆 КІНЕЦЬ ЗМІН ---
+            
+            
+            
 
             Box(
                 modifier =

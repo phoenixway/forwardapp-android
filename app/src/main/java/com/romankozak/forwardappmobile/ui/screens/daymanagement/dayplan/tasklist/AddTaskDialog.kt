@@ -1,4 +1,4 @@
-// AddTaskDialog.kt
+
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.foundation.BorderStroke
@@ -19,7 +19,7 @@ import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 fun AddTaskDialog(
     onDismissRequest: () -> Unit,
     onConfirm: (title: String, description: String, duration: Long?, priority: TaskPriority) -> Unit,
-    initialPriority: TaskPriority = TaskPriority.MEDIUM
+    initialPriority: TaskPriority = TaskPriority.MEDIUM,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -33,17 +33,18 @@ fun AddTaskDialog(
         title = {
             Text(
                 text = "Додати завдання",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
             )
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                // Title field
+                
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -53,7 +54,7 @@ fun AddTaskDialog(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Title,
-                            contentDescription = null
+                            contentDescription = null,
                         )
                     },
                     isError = title.isBlank(),
@@ -61,27 +62,28 @@ fun AddTaskDialog(
                         if (title.isBlank()) {
                             Text("Обов'язкове поле")
                         }
-                    }
+                    },
                 )
 
-                // Description field
+                
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Опис (необов'язково)") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 80.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 80.dp),
                     maxLines = 4,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Description,
-                            contentDescription = null
+                            contentDescription = null,
                         )
-                    }
+                    },
                 )
 
-                // Duration field
+                
                 OutlinedTextField(
                     value = durationText,
                     onValueChange = { newValue ->
@@ -96,27 +98,27 @@ fun AddTaskDialog(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.AccessTime,
-                            contentDescription = null
+                            contentDescription = null,
                         )
                     },
                     suffix = {
                         if (durationText.isNotBlank()) {
                             Text("хв")
                         }
-                    }
+                    },
                 )
 
-                // Priority selector
+                
                 Column {
                     Text(
                         text = "Пріоритет:",
                         style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
-                    // Переносимо кнопки на новий рядок, якщо не поміщаються
+                    
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         TaskPriority.values().forEach { taskPriority ->
                             val isSelected = priority == taskPriority
@@ -125,24 +127,27 @@ fun AddTaskDialog(
                                 label = {
                                     Text(
                                         text = taskPriority.getDisplayName(),
-                                        maxLines = 1
+                                        maxLines = 1,
                                     )
                                 },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = if (isSelected) {
-                                        MaterialTheme.colorScheme.primaryContainer
+                                colors =
+                                    AssistChipDefaults.assistChipColors(
+                                        containerColor =
+                                            if (isSelected) {
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.surface
+                                            },
+                                    ),
+                                border =
+                                    if (isSelected) {
+                                        BorderStroke(
+                                            2.dp,
+                                            MaterialTheme.colorScheme.primary,
+                                        )
                                     } else {
-                                        MaterialTheme.colorScheme.surface
-                                    }
-                                ),
-                                border = if (isSelected) {
-                                    BorderStroke(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary
-                                    )
-                                } else {
-                                    null
-                                }
+                                        null
+                                    },
                             )
                         }
                     }
@@ -156,7 +161,7 @@ fun AddTaskDialog(
                     onConfirm(title, description, duration, priority)
                 },
                 enabled = title.isNotBlank(),
-                modifier = Modifier.padding(end = 8.dp)
+                modifier = Modifier.padding(end = 8.dp),
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
@@ -165,10 +170,10 @@ fun AddTaskDialog(
         },
         dismissButton = {
             OutlinedButton(
-                onClick = onDismissRequest
+                onClick = onDismissRequest,
             ) {
                 Text("Скасувати")
             }
-        }
+        },
     )
 }

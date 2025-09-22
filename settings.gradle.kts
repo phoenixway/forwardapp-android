@@ -31,4 +31,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "ForwardAppMobile"
 include(":app")
-include(":ktlint-rules")

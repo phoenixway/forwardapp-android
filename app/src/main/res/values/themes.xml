@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ForwardAppMobile" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.ForwardAppMobile" parent="Theme.Material3.DayNight.NoActionBar" />
 
     <style name="Theme.ForwardAppMobile.LockScreen" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowNoTitle">true</item>

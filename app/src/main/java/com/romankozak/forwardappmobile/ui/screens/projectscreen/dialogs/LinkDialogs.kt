@@ -22,7 +22,7 @@ fun AddWebLinkDialog(
 ) {
     var url by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    val isUrlValid = url.isNotBlank() 
+    val isUrlValid = url.isNotBlank()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -79,7 +79,7 @@ fun AddObsidianLinkDialog(
         },
         confirmButton = {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 TextButton(
                     onClick = { onCreateNew(noteName) },

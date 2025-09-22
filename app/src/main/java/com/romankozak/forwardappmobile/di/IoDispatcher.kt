@@ -1,4 +1,4 @@
-// IoDispatcher.kt - Без змін, але додаємо ApplicationScope
+
 package com.romankozak.forwardappmobile.di
 
 import javax.inject.Qualifier

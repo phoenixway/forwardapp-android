@@ -1,4 +1,4 @@
-// Фінальна виправлена версія: ui/navigation/NavigationHistoryManager.kt
+
 
 package com.romankozak.forwardappmobile.ui.navigation
 
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 
 class NavigationHistoryManager(
     private val savedStateHandle: SavedStateHandle,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
     companion object {
         private const val HISTORY_KEY = "navigation_history"
@@ -38,8 +38,8 @@ class NavigationHistoryManager(
         var savedHistory = savedStateHandle.get<List<NavigationEntry>>(HISTORY_KEY) ?: emptyList()
         var savedIndex = savedStateHandle.get<Int>(INDEX_KEY) ?: -1
 
-        // ✅ ГОЛОВНЕ ВИПРАВЛЕННЯ:
-        // Якщо історія порожня, примусово додаємо головний екран як базу.
+        
+        
         if (savedHistory.isEmpty()) {
             savedHistory = listOf(NavigationEntry.createMainScreen())
             savedIndex = 0
@@ -59,7 +59,7 @@ class NavigationHistoryManager(
         }
     }
 
-    // ... (решта файлу залишається без змін, як у попередній версії)
+    
 
     private fun updateStates(caller: String) {
         val history = _history.value
@@ -85,12 +85,13 @@ class NavigationHistoryManager(
         _history.update { currentHistory ->
             val index = _currentIndex.value
 
-            val relevantHistory = if (index < currentHistory.size - 1) {
-                Log.d(TAG, "[addEntry] Обрізаємо майбутню історію. Індекс $index, розмір ${currentHistory.size}")
-                currentHistory.subList(0, index + 1).toList()
-            } else {
-                currentHistory
-            }
+            val relevantHistory =
+                if (index < currentHistory.size - 1) {
+                    Log.d(TAG, "[addEntry] Обрізаємо майбутню історію. Індекс $index, розмір ${currentHistory.size}")
+                    currentHistory.subList(0, index + 1).toList()
+                } else {
+                    currentHistory
+                }
 
             if (relevantHistory.lastOrNull()?.route == entry.route) {
                 Log.d(TAG, "[addEntry] Ігноруємо дублікат.")

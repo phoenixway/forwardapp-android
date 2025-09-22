@@ -5,17 +5,15 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Fts4
-import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
-import java.util.UUID
 
-// --- ЛОКАЛЬНИЙ КОНВЕРТЕР (БЕЗ @ProvidedTypeConverter) ---
-// Використовується тільки для поля `pathSegments`
+
+
 class PathSegmentsConverter {
     private val pathSeparator = " / "
 
@@ -30,8 +28,8 @@ class PathSegmentsConverter {
     }
 }
 
-// --- ГЛОБАЛЬНИЙ КОНВЕРТЕР ---
-// Реєструється в AppDatabase.kt для всіх загальних типів
+
+
 @TypeConverters(Converters::class)
 class Converters {
     private val gson = Gson()
@@ -76,16 +74,24 @@ class Converters {
     }
 }
 
-// --- ENUMS ---
+
 
 enum class ProjectViewMode { BACKLOG, INBOX, DASHBOARD }
+
 enum class ListItemType { GOAL, SUBLIST, LINK_ITEM, NOTE, CUSTOM_LIST }
+
 enum class LinkType { PROJECT, URL, OBSIDIAN }
+
 enum class ScoringStatus { NOT_ASSESSED, IMPOSSIBLE_TO_ASSESS, ASSESSED }
+
 enum class ProjectLogLevel { DETAILED, NORMAL }
+
 enum class ProjectLogEntryType { STATUS_CHANGE, COMMENT, AUTOMATIC, INSIGHT, MILESTONE }
+
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
+
 enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE }
+
 enum class TaskStatus { NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED, DEFERRED }
 
 enum class ProjectStatus(val displayName: String) {
@@ -97,10 +103,10 @@ enum class ProjectStatus(val displayName: String) {
     PAUSED("На паузі"),
 }
 
-// --- DATA CLASSES & ENTITIES ---
+
 
 data class RelatedLink(
-    val type: LinkType?, // Має бути
+    val type: LinkType?,
     val target: String,
     val displayName: String? = null,
 )
@@ -174,7 +180,17 @@ data class Project(
     @ColumnInfo(name = "scoring_status", defaultValue = "'NOT_ASSESSED'") val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
 )
 
-@Entity(tableName = "project_execution_logs", foreignKeys = [ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE)])
+@Entity(
+    tableName = "project_execution_logs",
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["projectId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
 data class ProjectExecutionLog(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val projectId: String,
@@ -184,7 +200,17 @@ data class ProjectExecutionLog(
     val details: String? = null,
 )
 
-@Entity(tableName = "inbox_records", foreignKeys = [ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE)])
+@Entity(
+    tableName = "inbox_records",
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["projectId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
 data class InboxRecord(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val projectId: String,
@@ -193,7 +219,17 @@ data class InboxRecord(
     @ColumnInfo(name = "item_order") val order: Long,
 )
 
-@Entity(tableName = "list_items", foreignKeys = [ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["project_id"], onDelete = ForeignKey.CASCADE)])
+@Entity(
+    tableName = "list_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["project_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
 data class ListItem(
     @PrimaryKey val id: String,
     @SerializedName(value = "projectId", alternate = ["listId"])
@@ -232,7 +268,7 @@ data class GlobalLinkSearchResult(
     val link: LinkItemEntity,
     val projectId: String,
     val projectName: String,
-    val listItemId: String, // Add this line
+    val listItemId: String,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )
@@ -254,12 +290,6 @@ data class GlobalProjectSearchResult(
 )
 
 
-/*data class GlobalSearchResult(
-    @Embedded
-    val goal: Goal,
-    val listId: String,
-    val listName: String,
-)*/
 
 sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
@@ -296,6 +326,4 @@ sealed class GlobalSearchResultItem {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "inbox_${record.id}"
     }
-
-
 }

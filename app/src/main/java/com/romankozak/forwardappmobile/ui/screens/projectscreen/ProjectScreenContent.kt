@@ -1,4 +1,4 @@
-// file: ui/screens/backlog/ProjectScreenContent.kt
+
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
 
@@ -21,29 +21,30 @@ private const val TAG = "BACKLOG_UI_DEBUG"
 @Composable
 fun GoalDetailContent(
     modifier: Modifier = Modifier,
-    viewModel: BacklogViewModel, // ВИПРАВЛЕНО: Правильний тип для ViewModel
+    viewModel: BacklogViewModel,
     uiState: UiState,
     listState: LazyListState,
     inboxListState: LazyListState,
     dragDropState: SimpleDragDropState,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    // ВИПРАВЛЕНО: Звертаємось до inboxRecords через inboxHandler
+    
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
 
-    val displayList = remember(listContent, goalList?.isAttachmentsExpanded) {
-        val attachmentItems = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
-        val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
+    val displayList =
+        remember(listContent, goalList?.isAttachmentsExpanded) {
+            val attachmentItems = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
+            val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
 
-        if (goalList?.isAttachmentsExpanded == true) {
-            attachmentItems + draggableItems
-        } else {
-            draggableItems
+            if (goalList?.isAttachmentsExpanded == true) {
+                attachmentItems + draggableItems
+            } else {
+                draggableItems
+            }
         }
-    }
 
     val calculatedSwipeEnabled = !isSelectionModeActive && !dragDropState.isDragging
     Log.v(
@@ -61,7 +62,7 @@ fun GoalDetailContent(
                 dragDropState = dragDropState,
                 listContent = listContent,
                 isAttachmentsExpanded = goalList?.isAttachmentsExpanded == true,
-                swipeEnabled = calculatedSwipeEnabled
+                swipeEnabled = calculatedSwipeEnabled,
             )
         }
         ProjectViewMode.INBOX -> {
@@ -70,7 +71,7 @@ fun GoalDetailContent(
                 viewModel = viewModel,
                 inboxRecords = inboxRecords,
                 listState = inboxListState,
-                highlightedRecordId = uiState.inboxRecordToHighlight
+                highlightedRecordId = uiState.inboxRecordToHighlight,
             )
         }
         ProjectViewMode.DASHBOARD -> {

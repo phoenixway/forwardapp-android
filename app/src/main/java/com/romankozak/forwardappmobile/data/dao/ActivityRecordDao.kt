@@ -77,7 +77,5 @@ interface ActivityRecordDao {
     @Query("SELECT * FROM activity_records WHERE id = :recordId")
     suspend fun findById(recordId: String): ActivityRecord?
 
-    /* @Insert(onConflict = OnConflictStrategy.REPLACE)
-        suspend fun insertAll(records: List<ActivityRecord>)*/
-
+    
 }

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Search
@@ -41,7 +40,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-
 @Composable
 fun SearchBottomBar(
     searchQuery: TextFieldValue,
@@ -50,26 +48,28 @@ fun SearchBottomBar(
     onPerformGlobalSearch: (String) -> Unit,
     onShowSearchHistory: () -> Unit,
 ) {
-    // Создаем focusRequester непосредственно тут
+    
     val focusRequester = remember { FocusRequester() }
 
-    // Автоматически фокусируем поле при появлении SearchBottomBar
+    
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 4.dp, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
         Column(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .imePadding(),
+            modifier =
+                Modifier
+                    .navigationBarsPadding()
+                    .imePadding(),
         ) {
             AnimatedVisibility(
                 visible = searchQuery.text.isNotBlank(),
@@ -77,19 +77,21 @@ fun SearchBottomBar(
                 exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150)),
             ) {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onPerformGlobalSearch(searchQuery.text) },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onPerformGlobalSearch(searchQuery.text) },
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .fillMaxWidth(),
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 12.dp)
+                                .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -112,13 +114,14 @@ fun SearchBottomBar(
             }
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .height(52.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .height(52.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // ИЗМЕНЕНО: Заменяем кнопку назад на кнопку закрытия поиска
+                
                 IconButton(onClick = onCloseSearch) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
@@ -133,13 +136,13 @@ fun SearchBottomBar(
                     onQueryChange = onQueryChange,
                     onPerformGlobalSearch = onPerformGlobalSearch,
                     focusRequester = focusRequester,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
 
                 IconButton(onClick = onShowSearchHistory) {
                     Icon(
                         imageVector = Icons.Outlined.History,
-                        contentDescription = "Search history"
+                        contentDescription = "Search history",
                     )
                 }
             }

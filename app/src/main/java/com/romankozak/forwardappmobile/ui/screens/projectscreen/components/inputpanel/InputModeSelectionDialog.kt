@@ -35,7 +35,7 @@ data class ActionItem(
     val icon: ImageVector,
     val color: Color,
     val isSelected: Boolean = false,
-    val action: () -> Unit
+    val action: () -> Unit,
 )
 
 @Composable
@@ -51,140 +51,154 @@ fun InputModeSelectionDialog(
 ) {
     val haptic = LocalHapticFeedback.current
 
-    val searchActions = listOf(
-        ActionItem(
-            title = "Пошук в списку",
-            icon = Icons.Outlined.Search,
-            color = MaterialTheme.colorScheme.primary,
-            isSelected = currentInputMode == InputMode.SearchInList,
-            action = {
-                onInputModeSelected(InputMode.SearchInList)
-                onDismiss()
-            }
-        ),
-        ActionItem(
-            title = "Глобальний пошук",
-            icon = Icons.Outlined.TravelExplore,
-            color = MaterialTheme.colorScheme.primary,
-            isSelected = currentInputMode == InputMode.SearchGlobal,
-            action = {
-                onInputModeSelected(InputMode.SearchGlobal)
-                onDismiss()
-            }
-        )
-    )
-
-    val linkActions = listOf(
-        ActionItem(
-            title = "Вкладений проект",
-            icon = Icons.Outlined.AccountTree,
-            color = MaterialTheme.colorScheme.secondary,
-            action = {
-                onAddListLinkClick()
-                onDismiss()
-            }
-        ),
-        ActionItem(
-            title = "Web посилання",
-            icon = Icons.Outlined.Public,
-            color = MaterialTheme.colorScheme.secondary,
-            action = {
-                onShowAddWebLinkDialog()
-                onDismiss()
-            }
-        ),
-        ActionItem(
-            title = "Obsidian нотатка",
-            icon = Icons.Outlined.DataObject,
-            color = MaterialTheme.colorScheme.secondary,
-            action = {
-                onShowAddObsidianLinkDialog()
-                onDismiss()
-            }
-        )
-    )
-
-    val addActions = buildList {
-        add(ActionItem(
-            title = "Nested project",
-            icon = Icons.Outlined.PlaylistAdd,
-            color = MaterialTheme.colorScheme.tertiary,
-            action = {
-                onAddListShortcutClick()
-                onDismiss()
-            }
-        ))
-        add(ActionItem(
-            title = "Ціль",
-            icon = Icons.Outlined.Add,
-            color = MaterialTheme.colorScheme.tertiary,
-            isSelected = currentInputMode == InputMode.AddGoal,
-            action = {
-                onInputModeSelected(InputMode.AddGoal)
-                onDismiss()
-            }
-        ))
-        add(ActionItem(
-            title = "Inbox record",
-            icon = Icons.Outlined.Inbox,
-            color = MaterialTheme.colorScheme.tertiary,
-            isSelected = currentInputMode == InputMode.AddQuickRecord,
-            action = {
-                onInputModeSelected(InputMode.AddQuickRecord)
-                onDismiss()
-            }
-        ))
-        if (isProjectManagementEnabled) {
-            add(ActionItem(
-                title = "Лог проекту",
-                icon = Icons.Outlined.PostAdd,
-                color = MaterialTheme.colorScheme.tertiary,
-                isSelected = currentInputMode == InputMode.AddProjectLog,
+    val searchActions =
+        listOf(
+            ActionItem(
+                title = "Пошук в списку",
+                icon = Icons.Outlined.Search,
+                color = MaterialTheme.colorScheme.primary,
+                isSelected = currentInputMode == InputMode.SearchInList,
                 action = {
-                    onInputModeSelected(InputMode.AddProjectLog)
+                    onInputModeSelected(InputMode.SearchInList)
                     onDismiss()
-                }
-            ))
+                },
+            ),
+            ActionItem(
+                title = "Глобальний пошук",
+                icon = Icons.Outlined.TravelExplore,
+                color = MaterialTheme.colorScheme.primary,
+                isSelected = currentInputMode == InputMode.SearchGlobal,
+                action = {
+                    onInputModeSelected(InputMode.SearchGlobal)
+                    onDismiss()
+                },
+            ),
+        )
+
+    val linkActions =
+        listOf(
+            ActionItem(
+                title = "Вкладений проект",
+                icon = Icons.Outlined.AccountTree,
+                color = MaterialTheme.colorScheme.secondary,
+                action = {
+                    onAddListLinkClick()
+                    onDismiss()
+                },
+            ),
+            ActionItem(
+                title = "Web посилання",
+                icon = Icons.Outlined.Public,
+                color = MaterialTheme.colorScheme.secondary,
+                action = {
+                    onShowAddWebLinkDialog()
+                    onDismiss()
+                },
+            ),
+            ActionItem(
+                title = "Obsidian нотатка",
+                icon = Icons.Outlined.DataObject,
+                color = MaterialTheme.colorScheme.secondary,
+                action = {
+                    onShowAddObsidianLinkDialog()
+                    onDismiss()
+                },
+            ),
+        )
+
+    val addActions =
+        buildList {
+            add(
+                ActionItem(
+                    title = "Nested project",
+                    icon = Icons.Outlined.PlaylistAdd,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    action = {
+                        onAddListShortcutClick()
+                        onDismiss()
+                    },
+                ),
+            )
+            add(
+                ActionItem(
+                    title = "Ціль",
+                    icon = Icons.Outlined.Add,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    isSelected = currentInputMode == InputMode.AddGoal,
+                    action = {
+                        onInputModeSelected(InputMode.AddGoal)
+                        onDismiss()
+                    },
+                ),
+            )
+            add(
+                ActionItem(
+                    title = "Inbox record",
+                    icon = Icons.Outlined.Inbox,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    isSelected = currentInputMode == InputMode.AddQuickRecord,
+                    action = {
+                        onInputModeSelected(InputMode.AddQuickRecord)
+                        onDismiss()
+                    },
+                ),
+            )
+            if (isProjectManagementEnabled) {
+                add(
+                    ActionItem(
+                        title = "Лог проекту",
+                        icon = Icons.Outlined.PostAdd,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        isSelected = currentInputMode == InputMode.AddProjectLog,
+                        action = {
+                            onInputModeSelected(InputMode.AddProjectLog)
+                            onDismiss()
+                        },
+                    ),
+                )
+            }
         }
-    }
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true
-        )
+        properties =
+            DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+            ),
     ) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .wrapContentHeight(),
+            modifier =
+                Modifier
+                    .fillMaxWidth(0.92f)
+                    .wrapContentHeight(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ActionGrid(
                     title = "Пошук",
                     items = searchActions,
-                    haptic = haptic
+                    haptic = haptic,
                 )
 
                 ActionGrid(
                     title = "Посилання",
                     items = linkActions,
-                    haptic = haptic
+                    haptic = haptic,
                 )
 
                 ActionGrid(
                     title = "Додавання",
                     items = addActions,
-                    haptic = haptic
+                    haptic = haptic,
                 )
             }
         }
@@ -195,24 +209,24 @@ fun InputModeSelectionDialog(
 private fun ActionGrid(
     title: String,
     items: List<ActionItem>,
-    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback
+    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            modifier = Modifier.padding(horizontal = 4.dp),
         )
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height((items.size + 2) / 3 * 100.dp) // Збільшено висоту для 2-рядкового тексту
+            modifier = Modifier.height((items.size + 2) / 3 * 100.dp),
         ) {
             items(items) { item ->
                 ActionGridItem(
@@ -220,7 +234,7 @@ private fun ActionGrid(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         item.action()
-                    }
+                    },
                 )
             }
         }
@@ -230,39 +244,43 @@ private fun ActionGrid(
 @Composable
 private fun ActionGridItem(
     item: ActionItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     var isPressed by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
-        targetValue = when {
-            isPressed -> 0.88f
-            item.isSelected -> 1.05f
-            else -> 1f
-        },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "item_scale"
+        targetValue =
+            when {
+                isPressed -> 0.88f
+                item.isSelected -> 1.05f
+                else -> 1f
+            },
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium,
+            ),
+        label = "item_scale",
     )
 
     val backgroundColor by animateColorAsState(
-        targetValue = when {
-            item.isSelected -> item.color.copy(alpha = 0.15f)
-            else -> Color.Transparent
-        },
+        targetValue =
+            when {
+                item.isSelected -> item.color.copy(alpha = 0.15f)
+                else -> Color.Transparent
+            },
         animationSpec = tween(200),
-        label = "item_background"
+        label = "item_background",
     )
 
     val iconColor by animateColorAsState(
-        targetValue = when {
-            item.isSelected -> item.color
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-        },
+        targetValue =
+            when {
+                item.isSelected -> item.color
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
         animationSpec = tween(200),
-        label = "icon_color"
+        label = "icon_color",
     )
 
     Surface(
@@ -270,36 +288,38 @@ private fun ActionGridItem(
             isPressed = true
             onClick()
         },
-        modifier = Modifier
-            .size(width = 80.dp, height = 100.dp) // Збільшено висоту для розміщення двох рядків тексту
-            .scale(scale),
+        modifier =
+            Modifier
+                .size(width = 80.dp, height = 100.dp)
+                .scale(scale),
         shape = RoundedCornerShape(16.dp),
         color = backgroundColor,
-        tonalElevation = if (item.isSelected) 3.dp else 0.dp
+        tonalElevation = if (item.isSelected) 3.dp else 0.dp,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(8.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (item.isSelected) {
-                            item.color.copy(alpha = 0.2f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        }
-                    )
+                modifier =
+                    Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (item.isSelected) {
+                                item.color.copy(alpha = 0.2f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            },
+                        ),
             ) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = null,
                     tint = iconColor,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
             }
 
@@ -308,18 +328,19 @@ private fun ActionGridItem(
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.labelMedium,
-                fontSize = 11.sp, // Трохи зменшено розмір шрифту
+                fontSize = 11.sp,
                 textAlign = TextAlign.Center,
-                maxLines = 2, // Дозволено 2 рядки
-                overflow = TextOverflow.Visible, // Показати весь текст
-                color = if (item.isSelected) {
-                    item.color
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                maxLines = 2,
+                overflow = TextOverflow.Visible,
+                color =
+                    if (item.isSelected) {
+                        item.color
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 fontWeight = if (item.isSelected) FontWeight.Medium else FontWeight.Normal,
-                lineHeight = 14.sp, // Встановлено висоту рядка для кращого відображення
-                modifier = Modifier.fillMaxWidth()
+                lineHeight = 14.sp,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

@@ -1,4 +1,4 @@
-// file: ui/screens/backlog/ProjectScreenDialogs.kt
+
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs
 
@@ -22,13 +22,12 @@ import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.Remind
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
-import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
 
-// ВИПРАВЛЕНО: Додано необхідний імпорт
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: Правильний тип ViewModel
+fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
@@ -48,11 +47,9 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: П
         AddObsidianLinkDialog(
             onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
             onConfirm = { noteName -> viewModel.inputHandler.onAddObsidianLinkConfirm(noteName) },
-            onCreateNew = { noteName -> viewModel.inputHandler.onAddObsidianLinkAndCreateNewConfirm(noteName) }
+            onCreateNew = { noteName -> viewModel.inputHandler.onAddObsidianLinkAndCreateNewConfirm(noteName) },
         )
     }
-
-
 
     if (goalActionState is GoalActionDialogState.AwaitingActionChoice) {
         val itemContent = (goalActionState as GoalActionDialogState.AwaitingActionChoice).itemContent
@@ -84,7 +81,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: П
             }
         },
         onCopyContentToClipboardRequest = viewModel.itemActionHandler.onCopyContentToClipboard.collectAsStateWithLifecycle().value,
-        isGoalItem = itemForTransportMenu is ListItemContent.GoalItem
+        isGoalItem = itemForTransportMenu is ListItemContent.GoalItem,
     )
 
     if (showRecentListsSheet) {
@@ -127,7 +124,12 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) { // ВИПРАВЛЕНО: П
         ReminderPickerDialog(
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,
-            onClearReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else { null },
+            onClearReminder =
+                if (record.reminderTime != null) {
+                    { viewModel.onClearReminder() }
+                } else {
+                    null
+                },
             currentReminderTime = record.reminderTime,
         )
     }

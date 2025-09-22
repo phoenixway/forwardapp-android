@@ -1,4 +1,4 @@
-// File: SearchResultsView.kt - CORRECTED
+
 
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
@@ -25,7 +25,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -39,7 +38,7 @@ fun SearchResultsView(
     onOpenClick: (String) -> Unit,
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(vertical = 8.dp)
+        contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         items(results, key = { it.projectId }) { result ->
             ListItem(
@@ -47,16 +46,16 @@ fun SearchResultsView(
                     Text(
                         text = result.projectName,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 },
                 supportingContent = {
                     FlowRow(
-                        // FIXED: Changed 'verticalAlignment' to 'verticalArrangement'
-                        // and used Arrangement.Center for the value.
+                        
+                        
                         verticalArrangement = Arrangement.Center,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
                     ) {
                         result.parentPath.forEachIndexed { index, breadcrumb ->
                             Text(
@@ -70,7 +69,7 @@ fun SearchResultsView(
                                     imageVector = Icons.Default.ChevronRight,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                         }
@@ -81,25 +80,26 @@ fun SearchResultsView(
                         IconButton(onClick = { onRevealClick(result.projectId) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Visibility,
-                                contentDescription = "Show in hierarchy"
+                                contentDescription = "Show in hierarchy",
                             )
                         }
                         IconButton(onClick = { onOpenClick(result.projectId) }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                                contentDescription = "Open project"
+                                contentDescription = "Open project",
                             )
                         }
                     }
                 },
-                modifier = Modifier
-                    .clickable { onOpenClick(result.projectId) },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                modifier =
+                    Modifier
+                        .clickable { onOpenClick(result.projectId) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
             )
         }
     }

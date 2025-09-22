@@ -11,8 +11,14 @@ import java.net.URLEncoder
 
 interface InboxHandlerResultListener {
     fun requestNavigation(route: String)
-    fun showSnackbar(message: String, action: String?)
+
+    fun showSnackbar(
+        message: String,
+        action: String?,
+    )
+
     fun scrollToListEnd()
+
     fun updateInputState(inputValue: TextFieldValue)
 }
 
@@ -65,13 +71,19 @@ class InboxHandler(
         }
     }
 
-    private fun promoteInboxRecordToGoal(record: InboxRecord, targetProjectId: String) {
+    private fun promoteInboxRecordToGoal(
+        record: InboxRecord,
+        targetProjectId: String,
+    ) {
         scope.launch(Dispatchers.IO) {
             projectRepository.promoteInboxRecordToGoal(record, targetProjectId)
         }
     }
 
-    private fun updateInboxRecordText(record: InboxRecord, newText: String) {
+    private fun updateInboxRecordText(
+        record: InboxRecord,
+        newText: String,
+    ) {
         scope.launch(Dispatchers.IO) {
             projectRepository.updateInboxRecord(record.copy(text = newText))
         }

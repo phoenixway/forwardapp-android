@@ -10,28 +10,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 
-/**
- * Відображає бейдж зі статусом оцінки завдання або цілі.
- * @param scoringStatus Статус оцінки (наприклад, не оцінено, в процесі).
- * @param displayScore Конкретне значення оцінки для відображення.
- */
+
 @Composable
 fun EnhancedScoreStatusBadge(
     scoringStatus: ScoringStatus,
-    displayScore: Double?
+    displayScore: Double?,
 ) {
-    // Implementation depends on your ScoringStatus enum
-    // This is a placeholder - adjust based on your actual implementation
+    
+    
     if (scoringStatus != ScoringStatus.NOT_ASSESSED) {
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.primaryContainer
+            color = MaterialTheme.colorScheme.primaryContainer,
         ) {
             Text(
                 text = displayScore?.toString() ?: scoringStatus.name,
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
     }

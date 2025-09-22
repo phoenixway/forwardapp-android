@@ -1,4 +1,4 @@
-// File: app/src/main/java/com/romankozak/forwardappmobile/ui/screens/daymanagement/DayAnalyticsScreen.kt
+
 
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics
 
@@ -35,18 +35,18 @@ import java.util.Locale
 private enum class AnalyticsTab(
     val title: String,
     val icon: ImageVector,
-    val description: String
+    val description: String,
 ) {
     OVERVIEW("Огляд", Icons.Default.PieChart, "Загальна статистика продуктивності"),
     TRENDS("Тренди", Icons.AutoMirrored.Filled.TrendingUp, "Аналіз тенденцій та покращень"),
-    DETAILS("Деталі", Icons.Default.BarChart, "Детальна аналітика та звіти")
+    DETAILS("Деталі", Icons.Default.BarChart, "Детальна аналітика та звіти"),
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DayAnalyticsScreen(
     modifier: Modifier = Modifier,
-    viewModel: DayAnalyticsViewModel = hiltViewModel()
+    viewModel: DayAnalyticsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tabs = AnalyticsTab.entries.toTypedArray()
@@ -57,7 +57,7 @@ fun DayAnalyticsScreen(
         TimeRangeSelector(
             selectedRange = uiState.selectedRange,
             onRangeSelected = viewModel::selectTimeRange,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
 
         TabRow(
@@ -68,9 +68,9 @@ fun DayAnalyticsScreen(
                 TabRowDefaults.PrimaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
                     height = 3.dp,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
-            }
+            },
         ) {
             tabs.forEachIndexed { index, tab ->
                 Tab(
@@ -85,25 +85,25 @@ fun DayAnalyticsScreen(
                             tab.title,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.labelMedium
+                            style = MaterialTheme.typography.labelMedium,
                         )
                     },
                     icon = {
                         Icon(
                             tab.icon,
                             contentDescription = tab.description,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                     },
                     selectedContentColor = MaterialTheme.colorScheme.primary,
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         ) { page ->
             when (tabs[page]) {
                 AnalyticsTab.OVERVIEW -> AnalyticsOverviewScreen(uiState)
@@ -119,14 +119,14 @@ fun DayAnalyticsScreen(
 private fun TimeRangeSelector(
     selectedRange: TimeRange,
     onRangeSelected: (TimeRange) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
-        modifier = modifier
+        modifier = modifier,
     ) {
         OutlinedTextField(
             readOnly = true,
@@ -134,11 +134,11 @@ private fun TimeRangeSelector(
             onValueChange = {},
             label = { Text("Період") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
         )
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
         ) {
             TimeRange.entries.forEach { range ->
                 DropdownMenuItem(
@@ -146,7 +146,7 @@ private fun TimeRangeSelector(
                     onClick = {
                         onRangeSelected(range)
                         expanded = false
-                    }
+                    },
                 )
             }
         }
@@ -156,23 +156,23 @@ private fun TimeRangeSelector(
 @Composable
 fun AnalyticsOverviewScreen(
     uiState: DayAnalyticsUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     when {
         uiState.isLoading -> {
             Box(
                 modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Завантаження аналітики...",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -180,29 +180,29 @@ fun AnalyticsOverviewScreen(
         uiState.error != null -> {
             Box(
                 modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         Icons.Outlined.ErrorOutline,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Помилка завантаження аналітики",
                         style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                     Text(
                         uiState.error,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -210,28 +210,28 @@ fun AnalyticsOverviewScreen(
         uiState.insights == null -> {
             Box(
                 modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         Icons.Outlined.InsertChart,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Недостатньо даних",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
                         "Створіть кілька планів дня, щоб побачити аналітику",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -240,7 +240,7 @@ fun AnalyticsOverviewScreen(
             LazyColumn(
                 modifier = modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
                     ProductivityOverviewCard(insights = uiState.insights)
@@ -262,29 +262,29 @@ fun AnalyticsOverviewScreen(
 @Composable
 private fun ProductivityOverviewCard(
     insights: WeeklyInsights,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(20.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     Icons.AutoMirrored.Outlined.TrendingUp,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     "Огляд продуктивності",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
 
@@ -292,22 +292,22 @@ private fun ProductivityOverviewCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 StatItem(
                     label = "Завдань створено",
                     value = insights.totalTasks.toString(),
-                    icon = Icons.AutoMirrored.Outlined.Assignment
+                    icon = Icons.AutoMirrored.Outlined.Assignment,
                 )
                 StatItem(
                     label = "Виконано",
                     value = insights.completedTasks.toString(),
-                    icon = Icons.Outlined.CheckCircle
+                    icon = Icons.Outlined.CheckCircle,
                 )
                 StatItem(
                     label = "Продуктивність",
                     value = "${(insights.averageCompletionRate * 100).toInt()}%",
-                    icon = Icons.Outlined.Percent
+                    icon = Icons.Outlined.Percent,
                 )
             }
         }
@@ -319,30 +319,30 @@ private fun StatItem(
     label: String,
     value: String,
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.primary,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             value,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             label,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -350,29 +350,29 @@ private fun StatItem(
 @Composable
 private fun TaskCompletionCard(
     insights: WeeklyInsights,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(20.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     Icons.Outlined.DonutSmall,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
+                    tint = MaterialTheme.colorScheme.secondary,
                 )
                 Text(
                     "Виконання завдань",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
 
@@ -380,9 +380,10 @@ private fun TaskCompletionCard(
 
             LinearProgressIndicator(
                 progress = { insights.averageCompletionRate },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(8.dp),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
@@ -395,7 +396,7 @@ private fun TaskCompletionCard(
             Text(
                 "$completedTasks з $totalTasks завдань виконано",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -404,29 +405,29 @@ private fun TaskCompletionCard(
 @Composable
 private fun TimeDistributionCard(
     insights: WeeklyInsights,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(20.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     Icons.Outlined.Schedule,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary
+                    tint = MaterialTheme.colorScheme.tertiary,
                 )
                 Text(
                     "Розподіл часу",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
 
@@ -434,17 +435,17 @@ private fun TimeDistributionCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 StatItem(
                     label = "Загальний час",
                     value = "${insights.totalActiveTime / 60}г ${insights.totalActiveTime % 60}хв",
-                    icon = Icons.Outlined.AccessTime
+                    icon = Icons.Outlined.AccessTime,
                 )
                 StatItem(
                     label = "Середньо на день",
                     value = insights.averageTasksPerDay.toInt().toString(),
-                    icon = Icons.Outlined.CalendarToday
+                    icon = Icons.Outlined.CalendarToday,
                 )
             }
         }
@@ -454,29 +455,29 @@ private fun TimeDistributionCard(
 @Composable
 private fun WeeklyTrendsCard(
     insights: WeeklyInsights,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(20.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     Icons.Outlined.ShowChart,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
+                    tint = MaterialTheme.colorScheme.secondary,
                 )
                 Text(
                     "Тренди тижня",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
 
@@ -485,15 +486,21 @@ private fun WeeklyTrendsCard(
             Text(
                 "Найпродуктивніший день: ${insights.bestDay?.date?.let { SimpleDateFormat("EEEE", Locale.getDefault()).format(Date(it)) } ?: "Немає даних"}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                "Поліпшення: ${if (insights.averageCompletionRate > 0.7) "Відмінна" else if (insights.averageCompletionRate > 0.5) "Хороша" else "Потребує покращення"} продуктивність",
+                "Поліпшення: ${if (insights.averageCompletionRate > 0.7) {
+                    "Відмінна"
+                } else if (insights.averageCompletionRate > 0.5) {
+                    "Хороша"
+                } else {
+                    "Потребує покращення"
+                }} продуктивність",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -503,27 +510,27 @@ private fun WeeklyTrendsCard(
 fun AnalyticsTrendsScreen() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.TrendingUp,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 "Аналітика трендів",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 "Функція буде доступна в наступних оновленнях",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
         }
     }
@@ -533,27 +540,27 @@ fun AnalyticsTrendsScreen() {
 fun AnalyticsDetailsScreen() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
                 Icons.Outlined.BarChart,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 "Детальна аналітика",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 "Функція буде доступна в наступних оновленнях",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
         }
     }

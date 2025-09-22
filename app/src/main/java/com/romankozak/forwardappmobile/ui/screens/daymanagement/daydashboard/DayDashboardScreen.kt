@@ -25,7 +25,7 @@ import kotlin.math.roundToInt
 @Composable
 fun DayDashboardScreen(
     dayPlanId: String,
-    viewModel: DayDashboardViewModel = hiltViewModel()
+    viewModel: DayDashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -35,62 +35,66 @@ fun DayDashboardScreen(
 
     Scaffold(
         topBar = {
-            // UI ОНОВЛЕННЯ: Заголовок став більш інформативним.
-            // Зайві кнопки навігації видалено, оскільки тепер є вкладки.
+            
+            
             TopAppBar(
                 title = {
                     val date = uiState.dayPlan?.date?.let { Date(it) }
-                    val formattedDate = date?.let {
-                        SimpleDateFormat("d MMMM yyyy", Locale("uk", "UA")).format(it)
-                    } ?: ""
+                    val formattedDate =
+                        date?.let {
+                            SimpleDateFormat("d MMMM yyyy", Locale("uk", "UA")).format(it)
+                        } ?: ""
                     Text("Дашборд за $formattedDate")
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
             }
         } else {
-            // UI ОНОВЛЕННЯ: Контент тепер організовано в інформативні картки.
+            
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ProgressCard(
                     tasksCompleted = uiState.tasksCompleted,
                     tasksTotal = uiState.tasksTotal,
-                    progress = uiState.progress
+                    progress = uiState.progress,
                 )
 
                 uiState.metrics?.let { metrics ->
                     MetricCard(
-                        icon = Icons.Outlined.Timer, // ВИПРАВЛЕНО: Замінено іконку на 'Timer'
+                        icon = Icons.Outlined.Timer,
                         label = "Активний час",
-                        value = "${metrics.totalActiveTime} хв"
+                        value = "${metrics.totalActiveTime} хв",
                     )
                 }
-
-
             }
         }
     }
 }
 
 @Composable
-fun ProgressCard(tasksCompleted: Int, tasksTotal: Int, progress: Float) {
+fun ProgressCard(
+    tasksCompleted: Int,
+    tasksTotal: Int,
+    progress: Float,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(Icons.Outlined.PieChart, contentDescription = "Прогрес")
                 Text("Прогрес дня", style = MaterialTheme.typography.titleLarge)
@@ -99,25 +103,29 @@ fun ProgressCard(tasksCompleted: Int, tasksTotal: Int, progress: Float) {
             LinearProgressIndicator(
                 progress = progress,
                 modifier = Modifier.fillMaxWidth().height(8.dp),
-                strokeCap = StrokeCap.Round
+                strokeCap = StrokeCap.Round,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "$tasksCompleted з $tasksTotal завдань виконано (${(progress * 100).roundToInt()}%)",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
 @Composable
-fun MetricCard(icon: ImageVector, label: String, value: String) {
+fun MetricCard(
+    icon: ImageVector,
+    label: String,
+    value: String,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(icon, contentDescription = label)

@@ -11,7 +11,6 @@ import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
@@ -20,7 +19,7 @@ class ActivityTrackerViewModel
     constructor(
         private val repository: ActivityRepository,
         private val alarmScheduler: AlarmScheduler,
-        private val savedStateHandle: SavedStateHandle, 
+        private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _inputText = MutableStateFlow("")
         val inputText = _inputText.asStateFlow()

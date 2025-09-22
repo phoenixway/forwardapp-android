@@ -26,6 +26,7 @@ class InboxMarkdownHandler(
 
         fun forceRefresh()
     }
+
     fun importFromMarkdown(
         markdownText: String,
         projectId: String,

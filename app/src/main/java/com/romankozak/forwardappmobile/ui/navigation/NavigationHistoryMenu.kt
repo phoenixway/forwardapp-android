@@ -29,28 +29,28 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.NavigationType
 
 
-// Composable для меню залишається тут, він не змінився
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationHistoryMenu(
     navManager: EnhancedNavigationManager,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
-    // ... тіло функції без змін
+    
     val history = remember { navManager.getNavigationHistory() }
     val currentEntry by navManager.currentEntry.collectAsState()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(16.dp),
         ) {
             Text(
                 text = "Історія навігації",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
             )
 
             LazyColumn {
@@ -69,18 +69,19 @@ fun NavigationHistoryMenu(
                                     NavigationType.PROJECT_SCREEN -> "Проект"
                                     NavigationType.GLOBAL_SEARCH -> "Пошук"
                                     else -> entry.type.name
-                                }
+                                },
                             )
                         },
                         leadingContent = {
                             Icon(
-                                imageVector = when (entry.type) {
-                                    NavigationType.MAIN_SCREEN -> Icons.Outlined.Home
-                                    NavigationType.PROJECT_SCREEN -> Icons.Outlined.Folder
-                                    NavigationType.GLOBAL_SEARCH -> Icons.Outlined.Search
-                                    else -> Icons.Outlined.Info
-                                },
-                                contentDescription = null
+                                imageVector =
+                                    when (entry.type) {
+                                        NavigationType.MAIN_SCREEN -> Icons.Outlined.Home
+                                        NavigationType.PROJECT_SCREEN -> Icons.Outlined.Folder
+                                        NavigationType.GLOBAL_SEARCH -> Icons.Outlined.Search
+                                        else -> Icons.Outlined.Info
+                                    },
+                                contentDescription = null,
                             )
                         },
                         trailingContent = {
@@ -88,15 +89,16 @@ fun NavigationHistoryMenu(
                                 Icon(
                                     imageVector = Icons.Outlined.RadioButtonChecked,
                                     contentDescription = "Поточна сторінка",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         },
-                        modifier = Modifier
-                            .clickable(enabled = !isCurrentEntry) {
-                                navManager.navigateToHistoryEntry(actualIndex)
-                            }
-                            .alpha(if (isCurrentEntry) 0.6f else 1f)
+                        modifier =
+                            Modifier
+                                .clickable(enabled = !isCurrentEntry) {
+                                    navManager.navigateToHistoryEntry(actualIndex)
+                                }
+                                .alpha(if (isCurrentEntry) 0.6f else 1f),
                     )
                 }
             }

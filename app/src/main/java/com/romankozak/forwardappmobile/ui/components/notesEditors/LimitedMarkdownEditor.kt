@@ -41,7 +41,7 @@ fun LimitedMarkdownEditor(
     maxHeight: Dp,
     onExpandClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onCopy: () -> Unit
+    onCopy: () -> Unit,
 ) {
     var isOverflowing by remember(value.text) { mutableStateOf(false) }
     val textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
@@ -84,7 +84,7 @@ fun LimitedMarkdownEditor(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onCopy) {
                     Icon(Icons.Default.ContentCopy, contentDescription = "Copy description")

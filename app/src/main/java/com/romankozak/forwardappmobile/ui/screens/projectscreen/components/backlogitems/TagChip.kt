@@ -9,17 +9,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.semantics.*
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun TagChip1(
@@ -64,8 +64,6 @@ fun TagChip1(
 }
 
 
-
-// Compact version for inline text
 @Composable
 fun InlineTagChip(
     text: String,
@@ -75,55 +73,65 @@ fun InlineTagChip(
     isInCompletedText: Boolean = false,
 ) {
     val colors = getTagColors(tagType, false)
-    val finalColors = if (isInCompletedText) {
-        colors.copy(
-            content = colors.content.copy(alpha = 0.6f),
-            backgroundStart = colors.backgroundStart.copy(alpha = 0.3f),
-            backgroundEnd = colors.backgroundEnd.copy(alpha = 0.3f)
-        )
-    } else colors
+    val finalColors =
+        if (isInCompletedText) {
+            colors.copy(
+                content = colors.content.copy(alpha = 0.6f),
+                backgroundStart = colors.backgroundStart.copy(alpha = 0.3f),
+                backgroundEnd = colors.backgroundEnd.copy(alpha = 0.3f),
+            )
+        } else {
+            colors
+        }
 
     Surface(
-        modifier = modifier
-            .semantics {
-                if (onClick != null) {
-                    role = Role.Button
-                    contentDescription = "Тег: $text"
-                }
-            },
+        modifier =
+            modifier
+                .semantics {
+                    if (onClick != null) {
+                        role = Role.Button
+                        contentDescription = "Тег: $text"
+                    }
+                },
         shape = RoundedCornerShape(8.dp),
         color = Color.Transparent,
-        border = BorderStroke(
-            width = 0.8.dp,
-            color = finalColors.borderStart.copy(alpha = 0.4f)
-        ),
-        onClick = onClick ?: {}
+        border =
+            BorderStroke(
+                width = 0.8.dp,
+                color = finalColors.borderStart.copy(alpha = 0.4f),
+            ),
+        onClick = onClick ?: {},
     ) {
         Box(
-            modifier = Modifier
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            finalColors.backgroundStart,
-                            finalColors.backgroundEnd
-                        )
-                    )
-                )
+            modifier =
+                Modifier
+                    .background(
+                        brush =
+                            Brush.linearGradient(
+                                colors =
+                                    listOf(
+                                        finalColors.backgroundStart,
+                                        finalColors.backgroundEnd,
+                                    ),
+                            ),
+                    ),
         ) {
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.15.sp,
-                    fontSize = 10.sp
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.15.sp,
+                        fontSize = 10.sp,
+                    ),
                 color = finalColors.content,
-                modifier = Modifier.padding(
-                    horizontal = 6.dp,
-                    vertical = 3.dp
-                ),
+                modifier =
+                    Modifier.padding(
+                        horizontal = 6.dp,
+                        vertical = 3.dp,
+                    ),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -131,7 +139,7 @@ fun InlineTagChip(
 
 enum class TagType {
     HASHTAG,
-    PROJECT
+    PROJECT,
 }
 
 @Stable
@@ -140,13 +148,13 @@ data class TagColors(
     val backgroundEnd: Color,
     val borderStart: Color,
     val borderEnd: Color,
-    val content: Color
+    val content: Color,
 )
 
 @Composable
 fun getTagColors(
     tagType: TagType,
-    isSelected: Boolean
+    isSelected: Boolean,
 ): TagColors {
     return when (tagType) {
         TagType.HASHTAG -> {
@@ -156,7 +164,7 @@ fun getTagColors(
                     backgroundEnd = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
                     borderStart = MaterialTheme.colorScheme.primary,
                     borderEnd = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    content = MaterialTheme.colorScheme.onPrimaryContainer
+                    content = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             } else {
                 TagColors(
@@ -164,7 +172,7 @@ fun getTagColors(
                     backgroundEnd = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
                     borderStart = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                     borderEnd = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                    content = MaterialTheme.colorScheme.primary
+                    content = MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -175,7 +183,7 @@ fun getTagColors(
                     backgroundEnd = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
                     borderStart = MaterialTheme.colorScheme.tertiary,
                     borderEnd = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f),
-                    content = MaterialTheme.colorScheme.onTertiaryContainer
+                    content = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             } else {
                 TagColors(
@@ -183,7 +191,7 @@ fun getTagColors(
                     backgroundEnd = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.1f),
                     borderStart = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
                     borderEnd = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
-                    content = MaterialTheme.colorScheme.tertiary
+                    content = MaterialTheme.colorScheme.tertiary,
                 )
             }
         }

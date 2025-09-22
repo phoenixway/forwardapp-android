@@ -22,6 +22,15 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE projectId = :projectId ORDER BY updatedAt DESC")
     fun getNotesForProject(projectId: String): Flow<List<NoteEntity>>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(notes: List<NoteEntity>)
+
+    @Query("DELETE FROM notes")
+    suspend fun deleteAll()
+
+    @Query("SELECT * FROM notes")
+    suspend fun getAll(): List<NoteEntity>
+
     @Query("DELETE FROM notes WHERE id = :noteId")
     suspend fun deleteNoteById(noteId: String)
 }

@@ -18,24 +18,25 @@ data class SubTask(val id: Int, val title: String, val isCompleted: Boolean)
 fun TaskSublist(
     subTasks: List<SubTask>,
     onSubTaskToggled: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
         subTasks.forEach { subTask ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSubTaskToggled(subTask.id) }
-                    .padding(vertical = 4.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onSubTaskToggled(subTask.id) }
+                        .padding(vertical = 4.dp),
             ) {
                 Checkbox(
                     checked = subTask.isCompleted,
-                    onCheckedChange = { onSubTaskToggled(subTask.id) }
+                    onCheckedChange = { onSubTaskToggled(subTask.id) },
                 )
                 Text(
                     text = subTask.title,
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = 8.dp),
                 )
             }
         }

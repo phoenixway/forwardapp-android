@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +26,6 @@ import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMark
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.utils.copyToClipboard
 import com.romankozak.forwardappmobile.ui.utils.formatDate
-import androidx.compose.material.icons.filled.ContentCopy
 
 object Scales {
     val effort = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
@@ -39,7 +39,7 @@ object Scales {
 
 private enum class SuggestionType {
     CONTEXT,
-    TAG
+    TAG,
 }
 
 @Composable
@@ -122,7 +122,7 @@ fun GoalEditScreen(
                 viewModel = viewModel,
                 allContexts = allContexts,
                 allTags = allTags,
-                modifier = Modifier.padding(paddingValues)
+                modifier = Modifier.padding(paddingValues),
             )
         }
     }
@@ -142,13 +142,14 @@ private fun GoalEditScreenContent(
     viewModel: GoalEditViewModel,
     allContexts: List<String>,
     allTags: List<String>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(bottom = 16.dp),
     ) {
@@ -160,11 +161,11 @@ private fun GoalEditScreenContent(
                 onTextChange = viewModel::onTextChange,
                 allContexts = allContexts,
                 allTags = allTags,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.End,
             ) {
                 IconButton(onClick = {
                     copyToClipboard(context, uiState.goalText.text, "Goal Text")
@@ -176,7 +177,7 @@ private fun GoalEditScreenContent(
             HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
         }
 
-        // Description editor
+        
         item {
             LimitedMarkdownEditor(
                 value = uiState.goalDescription,
@@ -187,11 +188,11 @@ private fun GoalEditScreenContent(
                 onCopy = {
                     copyToClipboard(context, uiState.goalDescription.text, "Goal Description")
                     Toast.makeText(context, "Goal description copied", Toast.LENGTH_SHORT).show()
-                }
+                },
             )
         }
 
-        // Related links section
+        
         item {
             RelatedLinksSection(
                 relatedLinks = uiState.relatedLinks,
@@ -202,7 +203,7 @@ private fun GoalEditScreenContent(
             )
         }
 
-        // Reminder section
+        
         item {
             ReminderSection(
                 reminderTime = uiState.reminderTime,
@@ -211,29 +212,30 @@ private fun GoalEditScreenContent(
             )
         }
 
-        // Evaluation section
+        
         item {
             EvaluationSection(uiState = uiState, onViewModelAction = viewModel)
         }
 
-        // Optional: Tag statistics (show only if there are tags in the system)
+        
         item {
             if (allTags.isNotEmpty()) {
                 TagStatistics(
                     allTags = allTags,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
 
-        // Created/Updated timestamps
+        
         item {
             val createdAt = uiState.createdAt
             if (createdAt != null) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
@@ -256,28 +258,28 @@ private fun GoalEditScreenContent(
     }
 }
 
-
 @Composable
 private fun EnhancedTextInputSection(
     goalText: TextFieldValue,
     onTextChange: (TextFieldValue) -> Unit,
     allContexts: List<String>,
     allTags: List<String>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var showSuggestions by remember { mutableStateOf(value = false) }
     var filteredContexts by remember { mutableStateOf<List<String>>(emptyList()) }
     var filteredTags by remember { mutableStateOf<List<String>>(emptyList()) }
     var currentSuggestionType by remember { mutableStateOf<SuggestionType?>(null) }
 
-    // Enhanced suggestion logic - split into helper functions to reduce complexity
+    
     LaunchedEffect(goalText) {
-        val suggestionState = processSuggestions(
-            text = goalText.text,
-            cursorPosition = goalText.selection.start,
-            allContexts = allContexts,
-            allTags = allTags
-        )
+        val suggestionState =
+            processSuggestions(
+                text = goalText.text,
+                cursorPosition = goalText.selection.start,
+                allContexts = allContexts,
+                allTags = allTags,
+            )
 
         filteredContexts = suggestionState.contexts
         filteredTags = suggestionState.tags
@@ -291,7 +293,7 @@ private fun EnhancedTextInputSection(
             onValueChange = onTextChange,
             label = { Text("Назва цілі") },
             modifier = Modifier.fillMaxWidth(),
-            supportingText = createSupportingText(showSuggestions, currentSuggestionType)
+            supportingText = createSupportingText(showSuggestions, currentSuggestionType),
         )
 
         SuggestionChipsRow(
@@ -305,40 +307,41 @@ private fun EnhancedTextInputSection(
             onTagClick = { tag ->
                 handleTagSelection(goalText, onTextChange, tag)
                 showSuggestions = false
-            }
+            },
         )
     }
 }
 
-// Data class to hold suggestion state
+
 private data class SuggestionState(
     val contexts: List<String>,
     val tags: List<String>,
     val type: SuggestionType?,
-    val shouldShow: Boolean
+    val shouldShow: Boolean,
 )
 
-// Helper function to process suggestions - reduces cognitive complexity
+
 private fun processSuggestions(
     text: String,
     cursorPosition: Int,
     allContexts: List<String>,
-    allTags: List<String>
+    allTags: List<String>,
 ): SuggestionState {
-    val currentWordInfo = SuggestionUtils.getCurrentWord(text, cursorPosition)
-        ?: return SuggestionState(emptyList(), emptyList(), null, false)
+    val currentWordInfo =
+        SuggestionUtils.getCurrentWord(text, cursorPosition)
+            ?: return SuggestionState(emptyList(), emptyList(), null, false)
 
     val (currentWord, _) = currentWordInfo
 
     return when {
         isContextQuery(currentWord) -> {
-            // Use non-null assertion since isContextQuery ensures it's not null.
+            
             val query = currentWord!!.substring(1)
             val filtered = filterContexts(allContexts, query)
             SuggestionState(filtered, emptyList(), SuggestionType.CONTEXT, filtered.isNotEmpty())
         }
         isTagQuery(currentWord) -> {
-            // Use non-null assertion since isTagQuery ensures it's not null.
+            
             val query = currentWord!!.substring(1)
             val filtered = filterTags(allTags, query)
             SuggestionState(emptyList(), filtered, SuggestionType.TAG, filtered.isNotEmpty())
@@ -347,17 +350,19 @@ private fun processSuggestions(
     }
 }
 
+private fun isContextQuery(word: String?): Boolean = word?.startsWith("@") == true && word.length > 1
 
-private fun isContextQuery(word: String?): Boolean =
-    word?.startsWith("@") == true && word.length > 1
+private fun isTagQuery(word: String?): Boolean = word?.startsWith("#") == true && word.length > 1
 
-private fun isTagQuery(word: String?): Boolean =
-    word?.startsWith("#") == true && word.length > 1
+private fun filterContexts(
+    contexts: List<String>,
+    query: String,
+): List<String> = contexts.filter { it.startsWith(query, ignoreCase = true) }.take(5)
 
-private fun filterContexts(contexts: List<String>, query: String): List<String> =
-    contexts.filter { it.startsWith(query, ignoreCase = true) }.take(5)
-
-private fun filterTags(tags: List<String>, query: String): List<String> =
+private fun filterTags(
+    tags: List<String>,
+    query: String,
+): List<String> =
     tags.filter { tag ->
         val tagWithoutSymbol = if (tag.startsWith("#")) tag.substring(1) else tag
         tagWithoutSymbol.startsWith(query, ignoreCase = true)
@@ -366,40 +371,44 @@ private fun filterTags(tags: List<String>, query: String): List<String> =
 @Composable
 private fun createSupportingText(
     showSuggestions: Boolean,
-    currentSuggestionType: SuggestionType?
+    currentSuggestionType: SuggestionType?,
 ): (@Composable () -> Unit)? {
     return if (showSuggestions) {
         {
             Text(
-                text = when (currentSuggestionType) {
-                    SuggestionType.CONTEXT -> "Доступні контексти (@)"
-                    SuggestionType.TAG -> "Доступні теги (#)"
-                    null -> ""
-                },
+                text =
+                    when (currentSuggestionType) {
+                        SuggestionType.CONTEXT -> "Доступні контексти (@)"
+                        SuggestionType.TAG -> "Доступні теги (#)"
+                        null -> ""
+                    },
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    } else null
+    } else {
+        null
+    }
 }
 
 private fun handleContextSelection(
     goalText: TextFieldValue,
     onTextChange: (TextFieldValue) -> Unit,
-    context: String
+    context: String,
 ) {
-    val replacementResult = SuggestionUtils.replaceCurrentWord(
-        goalText.text,
-        goalText.selection.start,
-        "@$context"
-    )
+    val replacementResult =
+        SuggestionUtils.replaceCurrentWord(
+            goalText.text,
+            goalText.selection.start,
+            "@$context",
+        )
 
     replacementResult?.let { (newText, newCursorPosition) ->
         onTextChange(
             TextFieldValue(
                 text = newText,
-                selection = TextRange(newCursorPosition)
-            )
+                selection = TextRange(newCursorPosition),
+            ),
         )
     }
 }
@@ -407,21 +416,22 @@ private fun handleContextSelection(
 private fun handleTagSelection(
     goalText: TextFieldValue,
     onTextChange: (TextFieldValue) -> Unit,
-    tag: String
+    tag: String,
 ) {
     val tagToInsert = if (tag.startsWith("#")) tag else "#$tag"
-    val replacementResult = SuggestionUtils.replaceCurrentWord(
-        goalText.text,
-        goalText.selection.start,
-        tagToInsert
-    )
+    val replacementResult =
+        SuggestionUtils.replaceCurrentWord(
+            goalText.text,
+            goalText.selection.start,
+            tagToInsert,
+        )
 
     replacementResult?.let { (newText, newCursorPosition) ->
         onTextChange(
             TextFieldValue(
                 text = newText,
-                selection = TextRange(newCursorPosition)
-            )
+                selection = TextRange(newCursorPosition),
+            ),
         )
     }
 }

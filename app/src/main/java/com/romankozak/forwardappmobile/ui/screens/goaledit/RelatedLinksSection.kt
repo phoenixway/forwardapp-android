@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 
-
 @Composable
 fun RelatedLinksSection(
     relatedLinks: List<RelatedLink>,
@@ -75,7 +74,7 @@ fun RelatedLinksSection(
                         LinkItem(
                             link = link,
                             onRemove = { onRemoveLink(link.target) },
-                            onClick = {  },
+                            onClick = { },
                         )
                     }
                 }

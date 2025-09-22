@@ -5,27 +5,31 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor // <-- Переконайтесь, що цей імпорт є
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 
 object RetrofitClient {
+    fun getInstance(
+        context: Context,
+        baseUrl: String,
+    ): ApiService {
+        
+        val logging =
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
 
-    fun getInstance(context: Context, baseUrl: String): ApiService {
-        // Створюємо логгер
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
-        // Створюємо клієнт і додаємо логгер
-        val httpClient = OkHttpClient.Builder()
-            .addInterceptor(logging) // <-- Цей рядок має бути тут
-            .build()
+        
+        val httpClient =
+            OkHttpClient.Builder()
+                .addInterceptor(logging)
+                .build()
 
         val json = Json { ignoreUnknownKeys = true }
 
         return Retrofit.Builder()
             .baseUrl(baseUrl)
-            .client(httpClient) // <-- Використовуємо клієнт з логгером
+            .client(httpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(ApiService::class.java)

@@ -1,4 +1,4 @@
-// file: ui/screens/daymanagement/tasklist/DayTaskItem.kt
+
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.animation.AnimatedVisibility
@@ -24,25 +24,25 @@ import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedReminderBadge
 
-/**
- * Іконка для підсписку, аналогічна тій, що в беклозі.
- */
+
 @Composable
 private fun SublistIconBadge(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .semantics { contentDescription = "Підсписок" }
-            .padding(2.dp),
+        modifier =
+            modifier
+                .semantics { contentDescription = "Підсписок" }
+                .padding(2.dp),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .size(20.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.SubdirectoryArrowRight,
@@ -57,17 +57,19 @@ private fun SublistIconBadge(modifier: Modifier = Modifier) {
 @Composable
 private fun ProjectLinkBadge(modifier: Modifier = Modifier) {
     Icon(
-        imageVector = Icons.Default.Topic, // <-- Нова іконка
+        imageVector = Icons.Default.Topic,
         contentDescription = "Прив'язано до проєкту",
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.size(18.dp)
+        modifier = modifier.size(18.dp),
     )
 }
 
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DayTaskAsGoalItem(task: DayTask, currentTimeMillis: Long) {
+fun DayTaskAsGoalItem(
+    task: DayTask,
+    currentTimeMillis: Long,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         DayPlanMarkdownText(
             text = task.title,
@@ -97,10 +99,12 @@ fun DayTaskAsGoalItem(task: DayTask, currentTimeMillis: Long) {
     }
 }
 
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DayTaskAsSublistItem(task: DayTask, currentTimeMillis: Long) {
+fun DayTaskAsSublistItem(
+    task: DayTask,
+    currentTimeMillis: Long,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = task.title,
@@ -132,18 +136,19 @@ fun DayTaskAsSublistItem(task: DayTask, currentTimeMillis: Long) {
     }
 }
 
-
-
 private fun hasStatusContent(task: DayTask): Boolean {
     return (task.priority != TaskPriority.NONE) ||
-            (task.reminderTime != null) ||
-            (!task.description.isNullOrBlank()) ||
-            (task.goalId != null) ||
-            (task.projectId != null)
+        (task.reminderTime != null) ||
+        (!task.description.isNullOrBlank()) ||
+        (task.goalId != null) ||
+        (task.projectId != null)
 }
 
 @Composable
-private fun FlowRowScope.RenderBadges(task: DayTask, currentTimeMillis: Long) {
+private fun FlowRowScope.RenderBadges(
+    task: DayTask,
+    currentTimeMillis: Long,
+) {
     task.reminderTime?.let { time ->
         EnhancedReminderBadge(
             reminderTime = time,
@@ -158,15 +163,12 @@ private fun FlowRowScope.RenderBadges(task: DayTask, currentTimeMillis: Long) {
             imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
             contentDescription = "Містить нотатку",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp).align(Alignment.CenterVertically)
+            modifier = Modifier.size(18.dp).align(Alignment.CenterVertically),
         )
     }
 }
 
-/**
- * --- ОНОВЛЕНИЙ КОМПОНЕНТ ---
- * Тепер "Критичний" та "Високий" пріоритети мають суцільний фон для кращої видимості.
- */
+
 @Composable
 private fun PriorityBadge(priority: TaskPriority) {
     when (priority) {
@@ -175,18 +177,18 @@ private fun PriorityBadge(priority: TaskPriority) {
             val contentColor = MaterialTheme.colorScheme.onError
             Surface(
                 shape = MaterialTheme.shapes.small,
-                color = backgroundColor
+                color = backgroundColor,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Flag,
                         contentDescription = "Пріоритет",
                         tint = contentColor,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(12.dp),
                     )
                     Text(
                         text = "Критичний",
@@ -201,18 +203,18 @@ private fun PriorityBadge(priority: TaskPriority) {
             val contentColor = MaterialTheme.colorScheme.onErrorContainer
             Surface(
                 shape = MaterialTheme.shapes.small,
-                color = backgroundColor
+                color = backgroundColor,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Flag,
                         contentDescription = "Пріоритет",
                         tint = contentColor,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(12.dp),
                     )
                     Text(
                         text = "Високий",
@@ -222,27 +224,28 @@ private fun PriorityBadge(priority: TaskPriority) {
                 }
             }
         }
-        else -> { // Для MEDIUM, LOW, NONE використовуємо старий, менш виразний стиль
-            val (color, text) = when (priority) {
-                TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary to "Середній"
-                TaskPriority.LOW -> MaterialTheme.colorScheme.tertiary to "Низький"
-                else -> MaterialTheme.colorScheme.onSurfaceVariant to "Без пріоритету"
-            }
+        else -> {
+            val (color, text) =
+                when (priority) {
+                    TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary to "Середній"
+                    TaskPriority.LOW -> MaterialTheme.colorScheme.tertiary to "Низький"
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant to "Без пріоритету"
+                }
             Surface(
                 shape = MaterialTheme.shapes.small,
                 color = color.copy(alpha = 0.1f),
-                border = BorderStroke(0.7.dp, color.copy(alpha = 0.3f))
+                border = BorderStroke(0.7.dp, color.copy(alpha = 0.3f)),
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Flag,
                         contentDescription = "Пріоритет",
                         tint = color,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(12.dp),
                     )
                     Text(
                         text = text,
@@ -261,6 +264,6 @@ private fun GoalLinkBadge(modifier: Modifier = Modifier) {
         imageVector = Icons.Default.TrackChanges,
         contentDescription = "Прив'язано до цілі",
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.size(18.dp)
+        modifier = modifier.size(18.dp),
     )
 }

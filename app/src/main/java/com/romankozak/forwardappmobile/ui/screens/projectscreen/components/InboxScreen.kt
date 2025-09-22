@@ -5,19 +5,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.CallMade
@@ -29,6 +26,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,7 +60,6 @@ fun InboxScreen(
 
     var lastItemHeight by remember { mutableStateOf(0) }
 
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize(),
@@ -77,19 +74,20 @@ fun InboxScreen(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
                         contentDescription = "Порожній інбокс",
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                     Text(
                         text = "Ваш інбокс порожній",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
+                        style =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                     )
                 }
             }
@@ -132,20 +130,19 @@ fun InboxScreen(
                         listState = listState,
                         index = index,
                         scope = scope,
-                        onHeightMeasured = if (isLast) { height -> lastItemHeight = height } else null
-
+                        onHeightMeasured = if (isLast) { height -> lastItemHeight = height } else null,
                     )
                 }
 
-                // 🔹 Невидимий контейнер внизу для коректного розкриття останнього елемента
+                
                 item {
-                    Spacer(modifier = Modifier.height(((lastItemHeight / 2)*0.45).dp))
+                    Spacer(modifier = Modifier.height(((lastItemHeight / 2) * 0.45).dp))
                 }
             }
-
         }
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun InboxItemRow(
@@ -159,8 +156,7 @@ fun InboxItemRow(
     listState: LazyListState,
     index: Int,
     scope: CoroutineScope,
-    onHeightMeasured: ((Int) -> Unit)? = null // 🔹 новий параметр
-
+    onHeightMeasured: ((Int) -> Unit)? = null,
 ) {
     val formatter =
         DateTimeFormatter
@@ -172,26 +168,15 @@ fun InboxItemRow(
     val focusRequester = remember { FocusRequester() }
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
-            LaunchedEffect(isHighlighted) {
-            if (isHighlighted) {
-                highlightActive = true
-                delay(2500L)
-                highlightActive = false
-            }
-        }
-
-/*
-    LaunchedEffect(isExpanded) {
-        if (isExpanded) {
-            scope.launch {
-                delay(200) // невелика затримка, щоб анімація висоти відпрацювала
-                listState.animateScrollToItem(index, scrollOffset = -50)
-            }
+    LaunchedEffect(isHighlighted) {
+        if (isHighlighted) {
+            highlightActive = true
+            delay(2500L)
+            highlightActive = false
         }
     }
-*/
 
-
+    
 
     val highlightColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
     val normalColor = MaterialTheme.colorScheme.surface
@@ -202,132 +187,138 @@ fun InboxItemRow(
     )
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .animateContentSize()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                shape = MaterialTheme.shapes.medium
-            )
-            .onGloballyPositioned { layoutCoordinates ->
-                onHeightMeasured?.invoke(layoutCoordinates.size.height) // передаємо висоту в px
-            },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .animateContentSize()
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                    shape = MaterialTheme.shapes.medium,
+                )
+                .onGloballyPositioned { layoutCoordinates ->
+                    onHeightMeasured?.invoke(layoutCoordinates.size.height)
+                },
         shape = MaterialTheme.shapes.medium,
         color = containerColor,
-        tonalElevation = 2.dp
+        tonalElevation = 2.dp,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .bringIntoViewRequester(bringIntoViewRequester) // 🔑 ось тут
-                .clickable { isExpanded = !isExpanded }
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .bringIntoViewRequester(bringIntoViewRequester)
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            // 1. Основний текст запису
+            
             Text(
                 text = record.text,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 16.sp,
-                    lineHeight = 24.sp
-                ),
+                style =
+                    MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
+                    ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = if (isExpanded) Int.MAX_VALUE else 3,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
-            // 2. Рядок під текстом з датою
+            
             AnimatedVisibility(visible = isExpanded) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = formatter.format(Instant.ofEpochMilli(record.createdAt)),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        ),
+                        style =
+                            MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            ),
                         maxLines = 1,
                     )
                 }
             }
 
-            // 3. Панель з кнопками дій
+            
             AnimatedVisibility(visible = isExpanded) {
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Ліва група кнопок
+                        
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SimpleIconButton(
                                 icon = Icons.Outlined.Edit,
                                 contentDescription = "Редагувати запис",
                                 onClick = onEdit,
-                                tint = MaterialTheme.colorScheme.secondary
+                                tint = MaterialTheme.colorScheme.secondary,
                             )
                             SimpleIconButton(
                                 icon = Icons.Outlined.MoveUp,
                                 contentDescription = "Перемістити до цілей",
                                 onClick = onPromoteToGoal,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                             SimpleIconButton(
                                 icon = Icons.Outlined.CallMade,
                                 contentDescription = "Перемістити до іншого списку",
                                 onClick = onPromoteToAnotherList,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
 
-                        // Права група кнопок
+                        
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SimpleIconButton(
                                 icon = Icons.Outlined.ContentCopy,
                                 contentDescription = "Скопіювати текст",
                                 onClick = onCopy,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                             SimpleIconButton(
                                 icon = Icons.Outlined.Delete,
                                 contentDescription = "Видалити запис",
                                 onClick = onDelete,
-                                tint = MaterialTheme.colorScheme.error
+                                tint = MaterialTheme.colorScheme.error,
                             )
                         }
                     }
                 }
             }
 
-            // 4. Іконка розгортання/згортання
+            
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.Center
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.Center,
             ) {
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
     }
 }
-
 
 @Composable
 fun SimpleIconButton(
@@ -335,21 +326,23 @@ fun SimpleIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     tint: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier
-            .size(36.dp)
-            .then(modifier),
-        colors = IconButtonDefaults.iconButtonColors(
-            contentColor = tint
-        )
+        modifier =
+            Modifier
+                .size(36.dp)
+                .then(modifier),
+        colors =
+            IconButtonDefaults.iconButtonColors(
+                contentColor = tint,
+            ),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
         )
     }
 }

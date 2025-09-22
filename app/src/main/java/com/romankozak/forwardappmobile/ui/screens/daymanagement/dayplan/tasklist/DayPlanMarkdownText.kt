@@ -1,4 +1,4 @@
-// file: ui/screens/daymanagement/tasklist/DayPlanMarkdownText.kt
+
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.material3.*
@@ -13,11 +13,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 
-/**
- * Спрощена версія MarkdownText спеціально для екрану Плану Дня.
- * Цей компонент НЕ обробляє кліки чи довгі натискання,
- * дозволяючи батьківським елементам повністю контролювати жести.
- */
+
 @Composable
 fun DayPlanMarkdownText(
     text: String,
@@ -46,10 +42,10 @@ fun DayPlanMarkdownText(
         remember {
             Regex(
                 "(\\*\\*|__)(.*?)\\1" +
-                        "|(\\*|_)(.*?)\\3" +
-                        "|(~~)(.*?)\\5" +
-                        "|(\\[\\[)(.*?)(?:\\|(.*?))?]]" +
-                        "|([#@])(\\p{L}[\\p{L}0-9_-]*\\b)",
+                    "|(\\*|_)(.*?)\\3" +
+                    "|(~~)(.*?)\\5" +
+                    "|(\\[\\[)(.*?)(?:\\|(.*?))?]]" +
+                    "|([#@])(\\p{L}[\\p{L}0-9_-]*\\b)",
             )
         }
 
@@ -76,8 +72,8 @@ fun DayPlanMarkdownText(
 
         Text(
             text = fullLine,
-            style = finalTextStyle, // Видалено merge для гнучкості
-            modifier = modifier
+            style = finalTextStyle,
+            modifier = modifier,
         )
     }
 }
@@ -115,11 +111,12 @@ private fun applyInlineStyles(
                         val tagSymbol = match.groups[10]!!.value
                         val tagName = match.groups[11]!!.value
                         val fullTag = "$tagSymbol$tagName"
-                        fullTag to SpanStyle(
-                            color = if (tagSymbol == "#") tagColor else projectColor,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                        )
+                        fullTag to
+                            SpanStyle(
+                                color = if (tagSymbol == "#") tagColor else projectColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                            )
                     }
                     else -> "" to SpanStyle()
                 }

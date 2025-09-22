@@ -1,4 +1,4 @@
-// File: AiInsightsScreen.kt
+
 
 package com.romankozak.forwardappmobile.ui.screens.insights
 
@@ -29,31 +29,34 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import java.util.UUID
 
-// ВИПРАВЛЕНО: Enum тепер має всі необхідні типи
+
 enum class MessageType {
     MOTIVATION,
     JOKE,
     INFO,
     WARNING,
-    ERROR
+    ERROR,
 }
 
-// ВИПРАВЛЕНО: Data class перейменовано на AiMessage і використовує правильний enum
+
 data class AiMessage(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
     val type: MessageType,
     val isRead: Boolean = false,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
 )
 
-// ВИПРАВЛЕНО: Додано список повідомлень, щоб уникнути помилки "Unresolved reference"
-val aiMessages = listOf(
-    AiMessage(text = "Success is not final, failure is not fatal: it is the courage to continue that counts.", type = MessageType.MOTIVATION),
-    AiMessage(text = "Why did the scarecrow win an award? Because he was outstanding in his field.", type = MessageType.JOKE),
-    AiMessage(text = "This is an informational message.", type = MessageType.INFO)
-)
 
+val aiMessages =
+    listOf(
+        AiMessage(
+            text = "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+            type = MessageType.MOTIVATION,
+        ),
+        AiMessage(text = "Why did the scarecrow win an award? Because he was outstanding in his field.", type = MessageType.JOKE),
+        AiMessage(text = "This is an informational message.", type = MessageType.INFO),
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,18 +69,19 @@ fun AiInsightsScreen(navController: NavController) {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
-                }
+                },
             )
-        }
+        },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Тепер цей блок працює, оскільки 'aiMessages' існує
+            
             items(aiMessages) { message ->
                 AiMessageCard(message = message)
             }
@@ -87,43 +91,45 @@ fun AiInsightsScreen(navController: NavController) {
 
 @Composable
 fun AiMessageCard(message: AiMessage) {
-    // Тепер цей блок працює, бо всі типи є в enum
-    val backgroundColor = when (message.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.tertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.errorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
-    }
-    val textColor = when (message.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.onPrimaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.onSecondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.onTertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.onErrorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
-    }
+    
+    val backgroundColor =
+        when (message.type) {
+            MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
+            MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
+            MessageType.INFO -> MaterialTheme.colorScheme.tertiaryContainer
+            MessageType.WARNING -> MaterialTheme.colorScheme.errorContainer
+            MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
+        }
+    val textColor =
+        when (message.type) {
+            MessageType.MOTIVATION -> MaterialTheme.colorScheme.onPrimaryContainer
+            MessageType.JOKE -> MaterialTheme.colorScheme.onSecondaryContainer
+            MessageType.INFO -> MaterialTheme.colorScheme.onTertiaryContainer
+            MessageType.WARNING -> MaterialTheme.colorScheme.onErrorContainer
+            MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
+        }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (message.type == MessageType.MOTIVATION) {
                 Icon(
                     imageVector = Icons.Default.Lightbulb,
                     contentDescription = "Motivation",
                     tint = textColor,
-                    modifier = Modifier.padding(end = 16.dp)
+                    modifier = Modifier.padding(end = 16.dp),
                 )
             }
-            // Тепер 'message.text' розпізнається коректно
+            
             Text(
                 text = message.text,
                 color = textColor,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Normal,
             )
         }
     }

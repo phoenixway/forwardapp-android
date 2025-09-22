@@ -7,5 +7,5 @@ import androidx.room.Fts4
 @Entity(tableName = "notes_fts")
 data class NoteFts(
     val title: String,
-    val content: String
+    val content: String,
 )

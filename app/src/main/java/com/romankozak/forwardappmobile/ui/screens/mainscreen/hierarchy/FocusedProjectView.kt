@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -50,7 +49,7 @@ fun FocusedProjectView(
     onProjectClick: (String) -> Unit,
     onToggleExpanded: (Project) -> Unit,
     onMenuRequested: (Project) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit
+    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
 ) {
     val focusedProject = hierarchy.allProjects.find { it.id == focusedProjectId }
     val children = (hierarchy.childMap[focusedProjectId] ?: emptyList()).sortedBy { it.order }
@@ -66,13 +65,13 @@ fun FocusedProjectView(
                         onFocusedListMenuClick = { projectId ->
                             hierarchy.allProjects.find { it.id == projectId }
                                 ?.let { onEvent(MainScreenEvent.ProjectMenuRequest(it)) }
-                        }
+                        },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     FocusedProjectHeader(
                         project = focusedProject,
                         onMoreActionsClick = { onMenuRequested(focusedProject) },
-                        onProjectClick = { onProjectClick(focusedProject.id) }
+                        onProjectClick = { onProjectClick(focusedProject.id) },
                     )
                 }
             }
@@ -95,27 +94,27 @@ fun FocusedProjectView(
                         onProjectClick = onProjectClick,
                         onToggleExpanded = onToggleExpanded,
                         onMenuRequested = onMenuRequested,
-                        onProjectReorder = onProjectReorder
+                        onProjectReorder = onProjectReorder,
                     )
                 }
             } else {
                 item(key = "empty_state") {
                     Box(
                         modifier = Modifier.fillParentMaxSize().padding(16.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 imageVector = Icons.Outlined.Inbox,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "No subprojects",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -123,7 +122,7 @@ fun FocusedProjectView(
             }
         }
     } else {
-        // Handle case where focused project is not found (should not happen)
+        
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Focused project not found.")
         }

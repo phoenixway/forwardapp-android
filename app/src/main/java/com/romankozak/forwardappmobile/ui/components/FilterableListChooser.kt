@@ -67,7 +67,6 @@ fun FilterableListChooser(
     }
 
     LaunchedEffect(isCreatingMode) {
-        
     }
 
     LaunchedEffect(Unit) {

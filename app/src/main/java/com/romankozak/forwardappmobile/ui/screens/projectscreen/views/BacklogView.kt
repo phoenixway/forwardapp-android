@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.UiState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
@@ -31,7 +30,7 @@ fun BacklogView(
     dragDropState: SimpleDragDropState,
     listContent: List<ListItemContent>,
     isAttachmentsExpanded: Boolean,
-    swipeEnabled: Boolean
+    swipeEnabled: Boolean,
 ) {
     Log.d("ATTACHMENT_DEBUG", "UI: BacklogView recomposing with isAttachmentsExpanded = $isAttachmentsExpanded")
 
@@ -52,12 +51,14 @@ fun BacklogView(
         }
     }
 
-    val attachmentItems = remember(listContent) {
-        listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
-    }
-    val draggableItems = remember(listContent) {
-        listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
-    }
+    val attachmentItems =
+        remember(listContent) {
+            listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
+        }
+    val draggableItems =
+        remember(listContent) {
+            listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
+        }
 
     Column(modifier = modifier.fillMaxSize()) {
         AttachmentsSection(
@@ -75,12 +76,12 @@ fun BacklogView(
         ) {
             itemsIndexed(
                 items = draggableItems,
-                key = { _, item -> item.listItem.id }, // ВИПРАВЛЕНО
+                key = { _, item -> item.listItem.id },
             ) { index, content ->
-                val isSelected = content.listItem.id in uiState.selectedItemIds // ВИПРАВЛЕНО
+                val isSelected = content.listItem.id in uiState.selectedItemIds
                 val isHighlighted =
-                    (uiState.itemToHighlight == content.listItem.id) || // ВИПРАВЛЕНО
-                            (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
+                    (uiState.itemToHighlight == content.listItem.id) ||
+                        (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
                 InteractiveListItem(
                     item = content,
@@ -89,9 +90,9 @@ fun BacklogView(
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
                     swipeEnabled = swipeEnabled,
-                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id), // ВИПРАВЛЕНО
-                    resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0, // ВИПРАВЛЕНО
-                    onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) }, // ВИПРАВЛЕНО
+                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id),
+                    resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0,
+                    onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) },
                     onDelete = { viewModel.itemActionHandler.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                     onAddToDayPlanRequest = { viewModel.addItemToDailyPlan(content) },
@@ -100,7 +101,7 @@ fun BacklogView(
                             itemToTransport,
                             onCopyContentToClipboard = {
                                 viewModel.itemActionHandler.copyContentRequest(itemToTransport)
-                            }
+                            },
                         )
                     },
                     onStartTrackingRequest = { viewModel.onStartTrackingRequest(content) },
@@ -118,7 +119,7 @@ fun BacklogView(
                                     )
                                 },
                                 onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                onLongClick = { viewModel.toggleSelection(content.listItem.id) }, // ВИПРАВЛЕНО
+                                onLongClick = { viewModel.toggleSelection(content.listItem.id) },
                                 onTagClick = { tag -> viewModel.onTagClicked(tag) },
                                 onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
@@ -132,13 +133,13 @@ fun BacklogView(
                                 subprojectContent = content,
                                 isSelected = isSelected,
                                 onClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                onLongClick = { viewModel.toggleSelection(content.listItem.id) }, // ВИПРАВЛЕНО
+                                onLongClick = { viewModel.toggleSelection(content.listItem.id) },
                                 onCheckedChange = { isCompleted ->
-                                    viewModel.onSubprojectCompletedChanged(content.project, isCompleted) // ВИПРАВЛЕНО
+                                    viewModel.onSubprojectCompletedChanged(content.project, isCompleted)
                                 },
                                 currentTimeMillis = currentTime,
                                 childProjects = children,
-                                onChildProjectClick = { child -> viewModel.onChildProjectClick(child) }
+                                onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
                             )
                         }
                         else -> {

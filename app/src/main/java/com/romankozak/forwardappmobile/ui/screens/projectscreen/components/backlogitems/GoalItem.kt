@@ -96,7 +96,7 @@ internal object ReminderTextUtil {
         target.timeInMillis = time
 
         return tomorrow.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
-                tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
+            tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
     }
 }
 
@@ -341,7 +341,7 @@ internal fun EnhancedRelatedLinkChip(
                         LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
                         LinkType.URL -> Icons.Default.Link
                         LinkType.OBSIDIAN -> Icons.Default.Book
-                        null -> Icons.Default.BrokenImage // Or any other default icon
+                        null -> Icons.Default.BrokenImage
                         else -> Icons.Default.BrokenImage
                     },
                 contentDescription = null,
@@ -363,6 +363,7 @@ internal fun EnhancedRelatedLinkChip(
         }
     }
 }
+
 @Composable
 fun AnimatedContextEmoji(
     emoji: String,
@@ -430,6 +431,7 @@ private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
         )
     }
 }
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GoalItem(
@@ -451,15 +453,17 @@ fun GoalItem(
         }
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            0.5.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
-        )
+        border =
+            BorderStroke(
+                0.5.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+            ),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -473,14 +477,15 @@ fun GoalItem(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(onItemClick, onLongClick) {
-                        detectTapGestures(
-                            onLongPress = { onLongClick() },
-                            onTap = { onItemClick() },
-                        )
-                    },
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .pointerInput(onItemClick, onLongClick) {
+                            detectTapGestures(
+                                onLongPress = { onLongClick() },
+                                onTap = { onItemClick() },
+                            )
+                        },
             ) {
                 MarkdownText(
                     text = parsedData.mainText,
@@ -489,28 +494,30 @@ fun GoalItem(
                     onTagClick = onTagClick,
                     onTextClick = onItemClick,
                     onLongClick = onLongClick,
-                    maxLines = 4, // <-- Змінено
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        lineHeight = 16.sp,
-                        letterSpacing = 0.1.sp,
-                        fontSize = 12.sp,
-                        fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
-                    ),
+                    maxLines = 4,
+                    style =
+                        MaterialTheme.typography.bodySmall.copy(
+                            lineHeight = 16.sp,
+                            letterSpacing = 0.1.sp,
+                            fontSize = 12.sp,
+                            fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                        ),
                 )
 
                 val hasStatusContent =
                     (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                            (goal.reminderTime != null) ||
-                            (parsedData.icons.isNotEmpty()) ||
-                            (!goal.description.isNullOrBlank()) ||
-                            (!goal.relatedLinks.isNullOrEmpty())
+                        (goal.reminderTime != null) ||
+                        (parsedData.icons.isNotEmpty()) ||
+                        (!goal.description.isNullOrBlank()) ||
+                        (!goal.relatedLinks.isNullOrEmpty())
 
                 AnimatedVisibility(
                     visible = hasStatusContent,
-                    enter = slideInVertically(
-                        initialOffsetY = { height -> -height },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
+                    enter =
+                        slideInVertically(
+                            initialOffsetY = { height -> -height },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        ) + fadeIn(),
                 ) {
                     Column {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -528,7 +535,7 @@ fun GoalItem(
 
                             EnhancedScoreStatusBadge(
                                 scoringStatus = goal.scoringStatus,
-                                displayScore = goal.displayScore
+                                displayScore = goal.displayScore,
                             )
 
                             parsedData.icons
@@ -542,11 +549,13 @@ fun GoalItem(
                                         }
                                         AnimatedVisibility(
                                             visible = delayedVisible,
-                                            enter = scaleIn(
-                                                animationSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy
-                                                ),
-                                            ) + fadeIn(),
+                                            enter =
+                                                scaleIn(
+                                                    animationSpec =
+                                                        spring(
+                                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                        ),
+                                                ) + fadeIn(),
                                         ) {
                                             AnimatedContextEmoji(
                                                 emoji = icon,
@@ -569,10 +578,11 @@ fun GoalItem(
                                     }
                                     AnimatedVisibility(
                                         visible = delayedVisible,
-                                        enter = slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> fullWidth },
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        ) + fadeIn(),
+                                        enter =
+                                            slideInHorizontally(
+                                                initialOffsetX = { fullWidth -> fullWidth },
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            ) + fadeIn(),
                                     ) {
                                         EnhancedRelatedLinkChip(
                                             link = link,
@@ -605,21 +615,24 @@ fun GoalItem(
     val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text, emptyMap()) }
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            0.5.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
-        )
+        border =
+            BorderStroke(
+                0.5.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+            ),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             EnhancedCustomCheckbox(
@@ -631,15 +644,16 @@ fun GoalItem(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(onClick, onLongClick) {
-                        detectTapGestures(
-                            onLongPress = { onLongClick() },
-                            onTap = { onClick() },
-                        )
-                    }
-                    .padding(vertical = 6.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .pointerInput(onClick, onLongClick) {
+                            detectTapGestures(
+                                onLongPress = { onLongClick() },
+                                onTap = { onClick() },
+                            )
+                        }
+                        .padding(vertical = 6.dp),
             ) {
                 Text(
                     text = parsedData.mainText,
@@ -652,17 +666,18 @@ fun GoalItem(
 
                 val hasStatusContent =
                     (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                            (goal.reminderTime != null) ||
-                            (parsedData.icons.isNotEmpty()) ||
-                            (!goal.description.isNullOrBlank()) ||
-                            (!goal.relatedLinks.isNullOrEmpty())
+                        (goal.reminderTime != null) ||
+                        (parsedData.icons.isNotEmpty()) ||
+                        (!goal.description.isNullOrBlank()) ||
+                        (!goal.relatedLinks.isNullOrEmpty())
 
                 AnimatedVisibility(
                     visible = hasStatusContent,
-                    enter = slideInVertically(
-                        initialOffsetY = { height -> -height },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    ) + fadeIn(),
+                    enter =
+                        slideInVertically(
+                            initialOffsetY = { height -> -height },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        ) + fadeIn(),
                 ) {
                     Column {
                         Spacer(modifier = Modifier.height(4.dp))
@@ -692,9 +707,10 @@ fun GoalItem(
                                     }
                                     AnimatedVisibility(
                                         visible = delayedVisible,
-                                        enter = scaleIn(
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        ) + fadeIn(),
+                                        enter =
+                                            scaleIn(
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            ) + fadeIn(),
                                     ) {
                                         AnimatedContextEmoji(
                                             emoji = icon,
@@ -717,10 +733,11 @@ fun GoalItem(
                                     }
                                     AnimatedVisibility(
                                         visible = delayedVisible,
-                                        enter = slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> fullWidth },
-                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        ) + fadeIn(),
+                                        enter =
+                                            slideInHorizontally(
+                                                initialOffsetX = { fullWidth -> fullWidth },
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            ) + fadeIn(),
                                     ) {
                                         EnhancedRelatedLinkChip(
                                             link = link,

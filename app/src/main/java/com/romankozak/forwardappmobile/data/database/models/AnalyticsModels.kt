@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.data.database.models
 
-// Data класи для аналітики, винесені з репозиторію
+
 data class DailyAnalytics(
     val dayPlan: DayPlan,
     val metric: DailyMetric?,
     val completionRate: Float,
-    val totalTimeSpent: Long
+    val totalTimeSpent: Long,
 )
 
 data class WeeklyInsights(
@@ -16,6 +16,5 @@ data class WeeklyInsights(
     val bestDay: DailyMetric?,
     val worstDay: DailyMetric?,
     val totalTasks: Int,
-    val completedTasks: Int
-
+    val completedTasks: Int,
 )

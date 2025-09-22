@@ -1,4 +1,4 @@
-// file: ui/screens/backlog/dialogs/GoalTransportMenu.kt
+
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs
 
@@ -38,7 +38,7 @@ fun GoalTransportMenu(
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
     onCopyContentToClipboardRequest: () -> Unit,
-    isGoalItem: Boolean
+    isGoalItem: Boolean,
 ) {
     AnimatedVisibility(
         visible = isVisible,
@@ -160,7 +160,8 @@ fun GoalTransportMenu(
         }
     }
 }
-// TransportMenuItem залишається без змін
+
+
 @Composable
 private fun TransportMenuItem(
     icon: ImageVector,

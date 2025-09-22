@@ -84,11 +84,12 @@ interface ProjectDao {
     INNER JOIN projects AS parent_project ON li.project_id = parent_project.id
     INNER JOIN path_cte pc ON subproject.id = pc.id
     WHERE li.itemType = 'SUBLIST' AND subproject.name LIKE :query
-    """
+    """,
     )
     suspend fun searchSubprojectsGlobal(query: String): List<GlobalSubprojectSearchResult>
 
-    @Query("""
+    @Query(
+        """
     WITH RECURSIVE path_cte(id, name, path) AS (
         SELECT id, name, name as path FROM projects WHERE parentId IS NULL
         UNION ALL
@@ -99,13 +100,16 @@ interface ProjectDao {
     FROM projects p
     JOIN path_cte pc ON p.id = pc.id
     WHERE p.name LIKE :query
-""") // <-- ВИДАЛЕНО "AND p.parentId IS NOT NULL"
+""",
+    )
     suspend fun searchProjectsGlobal(query: String): List<GlobalProjectSearchResult>
-
 
     @Query("DELETE FROM projects")
     suspend fun deleteAll()
 
     @Query("UPDATE projects SET default_view_mode = :viewModeName WHERE id = :projectId")
-    suspend fun updateViewMode(projectId: String, viewModeName: String)
+    suspend fun updateViewMode(
+        projectId: String,
+        viewModeName: String,
+    )
 }

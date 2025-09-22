@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CustomListDao {
-    // CustomListEntity methods
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCustomList(customList: CustomListEntity)
 
@@ -27,7 +27,7 @@ interface CustomListDao {
     @Query("DELETE FROM custom_lists WHERE id = :listId")
     suspend fun deleteCustomListById(listId: String)
 
-    // CustomListItemEntity methods
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertListItem(item: CustomListItemEntity)
 
@@ -36,7 +36,7 @@ interface CustomListDao {
 
     @Update
     suspend fun updateListItem(item: CustomListItemEntity)
-    
+
     @Update
     suspend fun updateListItems(items: List<CustomListItemEntity>)
 
@@ -48,7 +48,25 @@ interface CustomListDao {
 
     @Query("DELETE FROM custom_list_items WHERE id = :itemId")
     suspend fun deleteListItemById(itemId: String)
-    
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllCustomLists(lists: List<CustomListEntity>)
+
+    @Query("DELETE FROM custom_lists")
+    suspend fun deleteAllCustomLists()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllListItems(items: List<CustomListItemEntity>)
+
+    @Query("DELETE FROM custom_list_items")
+    suspend fun deleteAllListItems()
+
+    @Query("SELECT * FROM custom_lists")
+    suspend fun getAllCustomLists(): List<CustomListEntity>
+
+    @Query("SELECT * FROM custom_list_items")
+    suspend fun getAllListItems(): List<CustomListItemEntity>
+
     @Query("DELETE FROM custom_list_items WHERE id IN (:itemIds)")
     suspend fun deleteListItemsByIds(itemIds: List<String>)
 }

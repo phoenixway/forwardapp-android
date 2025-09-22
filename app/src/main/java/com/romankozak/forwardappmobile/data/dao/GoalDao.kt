@@ -57,9 +57,9 @@ JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
 JOIN projects p ON li.project_id = p.id
 JOIN path_cte pc ON p.id = pc.id
 WHERE g.text LIKE :query OR g.description LIKE :query
-"""
+""",
     )
-    // ВИПРАВЛЕНО: Змінено тип, що повертається, на GlobalGoalSearchResult
+    
     suspend fun searchGoalsGlobal(query: String): List<GlobalGoalSearchResult>
 
     @Query("SELECT COUNT(*) FROM goals")

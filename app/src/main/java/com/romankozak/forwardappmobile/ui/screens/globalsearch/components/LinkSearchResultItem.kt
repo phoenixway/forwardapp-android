@@ -225,7 +225,7 @@ private fun getLinkDisplayData(
                 actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
                 actionDescription = "Перейти до проекту",
             )
-        null -> // Handle the case where the link type is missing
+        null ->
             LinkDisplayData(
                 icon = Icons.Default.BrokenImage,
                 colors =
@@ -245,7 +245,7 @@ private fun getLinkTypeLabel(linkType: LinkType?): String =
         LinkType.URL -> "Attachment: web-url"
         LinkType.OBSIDIAN -> "Attachment: Obsidian note"
         LinkType.PROJECT -> "Attachment: link to project"
-        null -> "Attachment: Unknown" // Handle the null case
+        null -> "Attachment: Unknown"
     }
 
 private data class LinkDisplayData(

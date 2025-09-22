@@ -14,18 +14,18 @@ import com.google.accompanist.flowlayout.FlowRow
 fun AutocompleteSuggestions(
     suggestions: List<String>,
     onSuggestionClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (suggestions.isNotEmpty()) {
         FlowRow(
             modifier = modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             mainAxisSpacing = 8.dp,
-            crossAxisSpacing = 4.dp
+            crossAxisSpacing = 4.dp,
         ) {
             suggestions.forEach { suggestion ->
                 SuggestionChip(
                     onClick = { onSuggestionClick(suggestion) },
-                    label = { Text(suggestion) }
+                    label = { Text(suggestion) },
                 )
             }
         }

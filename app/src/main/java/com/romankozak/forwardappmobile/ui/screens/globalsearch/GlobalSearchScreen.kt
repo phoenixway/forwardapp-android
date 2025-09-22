@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.ui.screens.globalsearch
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
@@ -318,13 +317,13 @@ private fun SearchResultsContent(
                             ),
                         initialOffsetY = { it / 2 },
                     ) +
-                            fadeIn(
-                                animationSpec =
-                                    tween(
-                                        durationMillis = 300,
-                                        delayMillis = index * 40,
-                                    ),
-                            ),
+                        fadeIn(
+                            animationSpec =
+                                tween(
+                                    durationMillis = 300,
+                                    delayMillis = index * 40,
+                                ),
+                        ),
             ) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
@@ -530,7 +529,7 @@ private fun handleRelatedLinkClick(
                 }
             }
             else -> {
-                // Ignore other link types
+                
             }
         }
     } catch (e: Exception) {

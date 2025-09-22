@@ -1,11 +1,5 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -22,37 +16,38 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.clickable
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.RelatedLinkChip
-import com.google.accompanist.flowlayout.FlowRow
-import com.google.accompanist.flowlayout.FlowRow
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .semantics { contentDescription = "Підсписок" }
-            .padding(2.dp),
+        modifier =
+            modifier
+                .semantics { contentDescription = "Підсписок" }
+                .padding(2.dp),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .size(22.dp)
-                .background(
-                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                        )
+            modifier =
+                Modifier
+                    .size(22.dp)
+                    .background(
+                        brush =
+                            androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors =
+                                    listOf(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                                    ),
+                            ),
+                        shape = CircleShape,
                     ),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.SubdirectoryArrowRight,
@@ -123,19 +118,21 @@ fun SubprojectItemRow(
                 textDecoration = textDecoration,
             )
 
-            val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
+            val hasExtraContent =
+                !subproject.tags.isNullOrEmpty() ||
                     (subproject.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                     (subproject.reminderTime != null)
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = if (hasExtraContent) 6.dp else 4.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = if (hasExtraContent) 6.dp else 4.dp),
             ) {
                 EnhancedSublistIconBadge(
-                    modifier = Modifier.align(Alignment.CenterVertically)
+                    modifier = Modifier.align(Alignment.CenterVertically),
                 )
 
                 subproject.reminderTime?.let { time ->
@@ -147,7 +144,7 @@ fun SubprojectItemRow(
 
                 EnhancedScoreStatusBadge(
                     scoringStatus = subproject.scoringStatus,
-                    displayScore = subproject.displayScore
+                    displayScore = subproject.displayScore,
                 )
 
                 if (!subproject.tags.isNullOrEmpty()) {
@@ -156,7 +153,7 @@ fun SubprojectItemRow(
                         ModernTagChip(
                             text = formattedTag,
                             onClick = { onTagClick(formattedTag) },
-                            tagType = TagType.PROJECT
+                            tagType = TagType.PROJECT,
                         )
                     }
                 }
@@ -168,7 +165,7 @@ fun SubprojectItemRow(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 ) {
                     Text(
                         text = subproject.description,
@@ -176,7 +173,7 @@ fun SubprojectItemRow(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         maxLines = if (isSelected) Int.MAX_VALUE else 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(8.dp),
                     )
                 }
             }
@@ -188,11 +185,12 @@ fun SubprojectItemRow(
                     crossAxisSpacing = 4.dp,
                 ) {
                     childProjects.forEach { child ->
-                        val link = RelatedLink(
-                            type = LinkType.PROJECT,
-                            target = child.id,
-                            displayName = child.name
-                        )
+                        val link =
+                            RelatedLink(
+                                type = LinkType.PROJECT,
+                                target = child.id,
+                                displayName = child.name,
+                            )
                         RelatedLinkChip(
                             link = link,
                             onClick = { onChildProjectClick(child) },

@@ -6,6 +6,4 @@ import dagger.hilt.android.components.ViewModelComponent
 
 @Module
 @InstallIn(ViewModelComponent::class)
-object ViewModelModule {
-    // Тут можна додавати ViewModel-специфічні provides методи якщо потрібно
-}
+object ViewModelModule

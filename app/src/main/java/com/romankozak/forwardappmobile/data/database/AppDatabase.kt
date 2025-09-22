@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
 
 @Database(
     entities = [
-        // Основні сутності
+        
         Goal::class,
         Project::class,
         ListItem::class,
@@ -25,35 +25,48 @@ import com.romankozak.forwardappmobile.data.database.models.*
         NoteEntity::class,
         CustomListEntity::class,
         CustomListItemEntity::class,
-        // FTS (Full-Text Search) сутності
+        
         GoalFts::class,
         ProjectFts::class,
         ActivityRecordFts::class,
-        NoteFts::class
+        NoteFts::class,
     ],
-    version = 34,
+    version = 35,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),
         AutoMigration(from = 32, to = 33),
-        AutoMigration(from = 33, to = 34)
+        AutoMigration(from = 33, to = 34),
     ],
-    exportSchema = true
+    exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
+
     abstract fun goalDao(): GoalDao
+
     abstract fun listItemDao(): ListItemDao
+
     abstract fun activityRecordDao(): ActivityRecordDao
+
     abstract fun recentProjectDao(): RecentProjectDao
+
     abstract fun linkItemDao(): LinkItemDao
+
     abstract fun inboxRecordDao(): InboxRecordDao
+
     abstract fun chatDao(): ChatDao
+
     abstract fun projectManagementDao(): ProjectManagementDao
+
     abstract fun dayPlanDao(): DayPlanDao
+
     abstract fun dayTaskDao(): DayTaskDao
+
     abstract fun dailyMetricDao(): DailyMetricDao
+
     abstract fun noteDao(): NoteDao
+
     abstract fun customListDao(): CustomListDao
 }

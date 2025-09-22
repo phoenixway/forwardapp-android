@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.ui.components.notesEditors
 
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -15,7 +14,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
@@ -68,7 +66,7 @@ fun MinimalCoreEditor(
                 } catch (e: Exception) {
                     val approximateLineHeight = 20.dp
                     val lineHeightPx = with(density) { approximateLineHeight.toPx() }
-                    val approximateLine = cursorOffset.toFloat() / 50 
+                    val approximateLine = cursorOffset.toFloat() / 50
                     val approximateY = approximateLine * lineHeightPx
 
                     if (approximateY > scrollState.value + containerHeight - 100) {

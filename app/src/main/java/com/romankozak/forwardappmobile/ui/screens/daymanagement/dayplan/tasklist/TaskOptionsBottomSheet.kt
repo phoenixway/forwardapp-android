@@ -1,4 +1,4 @@
-// TaskOptionsBottomSheet.kt
+
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist
 
 import androidx.compose.foundation.clickable
@@ -17,14 +17,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-// EnhancedScoreStatusBadge тепер імпортується з нового файлу, хоча в цьому компоненті він не використовувався.
-// Якщо він знадобиться тут у майбутньому, достатньо буде просто його викликати.
+
+
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// TaskOptionsBottomSheet.kt
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskOptionsBottomSheet(
@@ -32,20 +32,21 @@ fun TaskOptionsBottomSheet(
     onDismiss: () -> Unit,
     onEdit: (DayTask) -> Unit,
     onDelete: (DayTask) -> Unit,
-    onSetReminder: (DayTask) -> Unit
+    onSetReminder: (DayTask) -> Unit,
 ) {
     ModalBottomSheet(
-        onDismissRequest = onDismiss
+        onDismissRequest = onDismiss,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
         ) {
             Text(
                 text = task.title,
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
             )
 
             ListItem(
@@ -53,13 +54,14 @@ fun TaskOptionsBottomSheet(
                 leadingContent = {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = null
+                        contentDescription = null,
                     )
                 },
-                modifier = Modifier.clickable {
-                    onEdit(task)
-                   // onDismiss()
-                }
+                modifier =
+                    Modifier.clickable {
+                        onEdit(task)
+                        
+                    },
             )
 
             ListItem(
@@ -67,13 +69,14 @@ fun TaskOptionsBottomSheet(
                 leadingContent = {
                     Icon(
                         Icons.Default.Alarm,
-                        contentDescription = null
+                        contentDescription = null,
                     )
                 },
-                modifier = Modifier.clickable {
-                    onSetReminder(task)
-                    onDismiss()
-                }
+                modifier =
+                    Modifier.clickable {
+                        onSetReminder(task)
+                        onDismiss()
+                    },
             )
 
             ListItem(
@@ -82,13 +85,14 @@ fun TaskOptionsBottomSheet(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
                     )
                 },
-                modifier = Modifier.clickable {
-                    onDelete(task)
-                    onDismiss()
-                }
+                modifier =
+                    Modifier.clickable {
+                        onDelete(task)
+                        onDismiss()
+                    },
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -96,43 +100,45 @@ fun TaskOptionsBottomSheet(
     }
 }
 
-// Extension function for TaskPriority
-fun TaskPriority.getDisplayName(): String = when (this) {
-    TaskPriority.CRITICAL -> "Критичний"
-    TaskPriority.HIGH -> "Високий"
-    TaskPriority.MEDIUM -> "Середній"
-    TaskPriority.LOW -> "Низький"
-    TaskPriority.NONE -> "Без пріоритету"
-}
 
-// EnhancedScoreStatusBadge було ВИДАЛЕНО звідси і перенесено до GoalComponent.kt
+fun TaskPriority.getDisplayName(): String =
+    when (this) {
+        TaskPriority.CRITICAL -> "Критичний"
+        TaskPriority.HIGH -> "Високий"
+        TaskPriority.MEDIUM -> "Середній"
+        TaskPriority.LOW -> "Низький"
+        TaskPriority.NONE -> "Без пріоритету"
+    }
+
+
 
 @Composable
 private fun TaskInfoHeader(
     task: DayTask,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
         Text(
             text = "Опції завдання",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Інформація про завдання
+        
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             ) {
                 Text(
                     text = task.title,
@@ -140,7 +146,7 @@ private fun TaskInfoHeader(
                     fontWeight = FontWeight.Medium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 task.description?.takeIf { it.isNotBlank() }?.let { description ->
@@ -150,77 +156,78 @@ private fun TaskInfoHeader(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 
-                // Метаінформація
+                
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Пріоритет
+                    
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
                             Icons.Default.Flag,
                             contentDescription = "Пріоритет",
                             modifier = Modifier.size(14.dp),
-                            tint = getPriorityColor(task.priority)
+                            tint = getPriorityColor(task.priority),
                         )
                         Text(
                             text = task.priority.getDisplayName(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
 
-                    // Тривалість
+                    
                     task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { duration ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
                                 Icons.Default.Schedule,
                                 contentDescription = "Тривалість",
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
-                                text = "${duration} хв",
+                                text = "$duration хв",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
 
-                    // Термін виконання
+                    
                     task.dueTime?.let { dueTimestamp ->
-                        val formattedTime = remember(dueTimestamp) {
-                            val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
-                            Instant.ofEpochMilli(dueTimestamp)
-                                .atZone(ZoneId.systemDefault())
-                                .format(formatter)
-                        }
+                        val formattedTime =
+                            remember(dueTimestamp) {
+                                val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+                                Instant.ofEpochMilli(dueTimestamp)
+                                    .atZone(ZoneId.systemDefault())
+                                    .format(formatter)
+                            }
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
                                 Icons.Default.AccessTime,
                                 contentDescription = "Термін",
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
                                 text = "до $formattedTime",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -239,49 +246,52 @@ private fun OptionItem(
     modifier: Modifier = Modifier,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     enabled: Boolean = true,
-    isDangerous: Boolean = false
+    isDangerous: Boolean = false,
 ) {
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
-        color = if (isDangerous) {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        }
+        color =
+            if (isDangerous) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            },
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (enabled) contentColor else contentColor.copy(alpha = 0.5f),
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = if (enabled) contentColor else contentColor.copy(alpha = 0.5f)
+                    color = if (enabled) contentColor else contentColor.copy(alpha = 0.5f),
                 )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (enabled) {
-                        contentColor.copy(alpha = 0.7f)
-                    } else {
-                        contentColor.copy(alpha = 0.3f)
-                    }
+                    color =
+                        if (enabled) {
+                            contentColor.copy(alpha = 0.7f)
+                        } else {
+                            contentColor.copy(alpha = 0.3f)
+                        },
                 )
             }
         }
@@ -296,4 +306,5 @@ private fun getPriorityColor(priority: TaskPriority): Color {
         TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary
         TaskPriority.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
         TaskPriority.NONE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-    }}
+    } 
+}
