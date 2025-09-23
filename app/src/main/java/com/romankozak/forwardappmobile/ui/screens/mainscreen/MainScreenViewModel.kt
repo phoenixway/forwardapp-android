@@ -439,7 +439,11 @@ class MainScreenViewModel
                     }
                 }
 
-                is MainScreenEvent.BreadcrumbNavigation -> searchAndNavigationManager.navigateToBreadcrumb(event.breadcrumb)
+is MainScreenEvent.BreadcrumbNavigation -> {
+    searchAndNavigationManager.navigateToBreadcrumb(event.breadcrumb)
+    // This line ensures the UI's focus state is updated to the new project.
+    replaceCurrentSubState(MainSubState.ProjectFocused(event.breadcrumb.id))
+}
                 is MainScreenEvent.ClearBreadcrumbNavigation -> {
                     searchAndNavigationManager.clearNavigation()
                     popToSubState(MainSubState.Hierarchy)
