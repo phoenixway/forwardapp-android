@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.routes
 
 import android.util.Log
@@ -21,8 +19,7 @@ import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.ui.screens.customlist.CustomListScreen
-import com.romankozak.forwardappmobile.ui.screens.customlist.CustomListEditScreen
+import com.romankozak.forwardappmobile.ui.screens.customlist.UnifiedCustomListScreen
 import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
@@ -245,6 +242,7 @@ private fun NavGraphBuilder.mainGraph(
             onSyncComplete = { navController.popBackStack() },
         )
     }
+    
     composable(
         route = "note_edit_screen?projectId={projectId}&noteId={noteId}",
         arguments =
@@ -262,16 +260,39 @@ private fun NavGraphBuilder.mainGraph(
         NoteEditScreen(navController = navController)
     }
 
+    // Об'єднаний екран для перегляду/редагування існуючого списку
     composable(
         route = "custom_list_screen/{listId}",
-        arguments =
-            listOf(
-                navArgument("listId") { type = NavType.StringType },
-            ),
-    ) {
-        CustomListScreen(viewModel = hiltViewModel(), onNavigateBack = { navController.popBackStack() })
+        arguments = listOf(
+            navArgument("listId") { type = NavType.StringType }
+        ),
+    ) { backStackEntry ->
+        val listId = backStackEntry.arguments?.getString("listId")
+        
+        UnifiedCustomListScreen(
+            navController = navController,
+            listId = listId,
+            projectId = null
+        )
     }
 
+    // Об'єднаний екран для створення нового списку
+    composable(
+        route = "custom_list_create_screen/{projectId}",
+        arguments = listOf(
+            navArgument("projectId") { type = NavType.StringType }
+        ),
+    ) { backStackEntry ->
+        val projectId = backStackEntry.arguments?.getString("projectId")
+        
+        UnifiedCustomListScreen(
+            navController = navController,
+            listId = null,
+            projectId = projectId
+        )
+    }
+
+    // Залишаємо старий роут для зворотної сумісності, але переспрямовуємо на новий
     composable(
         route = "custom_list_edit_screen?projectId={projectId}&listId={listId}",
         arguments =
@@ -285,8 +306,15 @@ private fun NavGraphBuilder.mainGraph(
                     nullable = true
                 },
             ),
-    ) {
-        CustomListEditScreen(navController = navController)
+    ) { backStackEntry ->
+        val projectId = backStackEntry.arguments?.getString("projectId")
+        val listId = backStackEntry.arguments?.getString("listId")
+        
+        UnifiedCustomListScreen(
+            navController = navController,
+            listId = listId,
+            projectId = projectId
+        )
     }
 
     composable(
