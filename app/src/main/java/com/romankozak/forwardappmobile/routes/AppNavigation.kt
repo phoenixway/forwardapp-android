@@ -271,8 +271,6 @@ private fun NavGraphBuilder.mainGraph(
         
         UnifiedCustomListScreen(
             navController = navController,
-            listId = listId,
-            projectId = null
         )
     }
 
@@ -287,8 +285,6 @@ private fun NavGraphBuilder.mainGraph(
         
         UnifiedCustomListScreen(
             navController = navController,
-            listId = null,
-            projectId = projectId
         )
     }
 
@@ -312,8 +308,6 @@ private fun NavGraphBuilder.mainGraph(
         
         UnifiedCustomListScreen(
             navController = navController,
-            listId = listId,
-            projectId = projectId
         )
     }
 
