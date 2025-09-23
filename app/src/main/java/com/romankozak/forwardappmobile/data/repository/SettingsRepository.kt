@@ -49,6 +49,10 @@ class SettingsRepository
             val NER_MODEL_URI_KEY = stringPreferencesKey("ner_model_uri")
             val NER_TOKENIZER_URI_KEY = stringPreferencesKey("ner_tokenizer_uri")
             val NER_LABELS_URI_KEY = stringPreferencesKey("ner_labels_uri")
+
+            val LIGHT_THEME_NAME = stringPreferencesKey("light_theme_name")
+            val DARK_THEME_NAME = stringPreferencesKey("dark_theme_name")
+            val THEME_MODE = stringPreferencesKey("theme_mode")
         }
 
         object ContextKeys {
@@ -410,4 +414,20 @@ class SettingsRepository
                 settings[isBottomNavExpandedKey] = isExpanded
             }
         }
+
+        val themeSettings: Flow<com.romankozak.forwardappmobile.ui.theme.ThemeSettings> = context.dataStore.data
+        .map { preferences ->
+            val lightThemeName = com.romankozak.forwardappmobile.ui.theme.ThemeName.valueOf(preferences[LIGHT_THEME_NAME] ?: com.romankozak.forwardappmobile.ui.theme.ThemeName.DEFAULT.name)
+            val darkThemeName = com.romankozak.forwardappmobile.ui.theme.ThemeName.valueOf(preferences[DARK_THEME_NAME] ?: com.romankozak.forwardappmobile.ui.theme.ThemeName.DEFAULT.name)
+            val themeMode = com.romankozak.forwardappmobile.ui.theme.ThemeMode.valueOf(preferences[THEME_MODE] ?: com.romankozak.forwardappmobile.ui.theme.ThemeMode.SYSTEM.name)
+            com.romankozak.forwardappmobile.ui.theme.ThemeSettings(lightThemeName, darkThemeName, themeMode)
+        }
+
+    suspend fun saveThemeSettings(settings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings) {
+        context.dataStore.edit { preferences ->
+            preferences[LIGHT_THEME_NAME] = settings.lightThemeName.name
+            preferences[DARK_THEME_NAME] = settings.darkThemeName.name
+            preferences[THEME_MODE] = settings.themeMode.name
+        }
+    }
     }

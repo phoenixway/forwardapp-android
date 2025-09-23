@@ -1,14 +1,12 @@
 package com.romankozak.forwardappmobile.ui.screens.customlist
 
+import android.app.Activity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -24,15 +22,23 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -50,6 +56,31 @@ fun UnifiedCustomListScreen(
   navController: NavController,
   viewModel: UnifiedCustomListViewModel = hiltViewModel(),
 ) {
+  // Колір TopAppBar, який буде під прозорим рядком стану
+  val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
+  val view = LocalView.current
+  val isDarkTheme = isSystemInDarkTheme()
+
+  if (!view.isInEditMode) {
+    // LaunchedEffect для налаштування Edge-to-Edge. Виконується один раз.
+    LaunchedEffect(Unit) {
+      val window = (view.context as Activity).window
+      // Дозволяє додатку малювати під системними панелями
+      WindowCompat.setDecorFitsSystemWindows(window, false)
+
+      // Робимо системні панелі прозорими
+      window.statusBarColor = Color.Transparent.toArgb()
+      window.navigationBarColor = Color.Transparent.toArgb()
+
+      // Налаштовуємо колір іконок системних панелей для контрасту
+      val insetsController = WindowCompat.getInsetsController(window, view)
+      // Іконки рядка стану: світлі на темному фоні, темні на світлому
+      insetsController.isAppearanceLightStatusBars = topBarContainerColor.luminance() > 0.5
+      // Іконки панелі навігації: залежать від теми
+      insetsController.isAppearanceLightNavigationBars = !isDarkTheme
+    }
+  }
+
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   var screenMode by remember {
     mutableStateOf(if (viewModel.isNewList) ScreenMode.CREATE else ScreenMode.VIEW)
@@ -59,7 +90,6 @@ fun UnifiedCustomListScreen(
   val titleFocusRequester = remember { FocusRequester() }
   val contentFocusRequester = remember { FocusRequester() }
 
-  // Анімовані кольори для smooth transition
   val animatedBackgroundColor by
     animateColorAsState(
       targetValue =
@@ -73,22 +103,16 @@ fun UnifiedCustomListScreen(
 
   LaunchedEffect(screenMode) { viewModel.onToggleEditMode(screenMode != ScreenMode.VIEW) }
 
-  LaunchedEffect(Unit) { 
-    viewModel.events.collect { event ->
+  LaunchedEffect(Unit) {
+    viewModel.events.collect { event: UnifiedCustomListEvent ->
       when (event) {
         is UnifiedCustomListEvent.NavigateBack -> {
           navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
           navController.popBackStack()
         }
-        is UnifiedCustomListEvent.ShowError -> {
-          // TODO: Показати снекбар з помилкою
-        }
-        is UnifiedCustomListEvent.ShowSuccess -> {
-          // TODO: Показати снекбар з успіхом
-        }
-        is UnifiedCustomListEvent.AutoSaved -> {
-          // TODO: Показати невеликий індикатор автозбереження
-        }
+        is UnifiedCustomListEvent.ShowError -> {}
+        is UnifiedCustomListEvent.ShowSuccess -> {}
+        is UnifiedCustomListEvent.AutoSaved -> {}
       }
     }
   }
@@ -102,7 +126,8 @@ fun UnifiedCustomListScreen(
   }
 
   Scaffold(
-    modifier = Modifier.safeDrawingPadding().background(animatedBackgroundColor),
+    // Прибираємо Modifier.safeDrawingPadding() звідси
+    modifier = Modifier.background(animatedBackgroundColor),
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
     topBar = {
       EnhancedTopAppBar(
@@ -120,6 +145,8 @@ fun UnifiedCustomListScreen(
     },
     bottomBar = {
       AnimatedVisibility(
+        // Додаємо відступ для панелі навігації
+        modifier = Modifier.navigationBarsPadding(),
         visible = screenMode != ScreenMode.VIEW,
         enter =
           slideInVertically(
@@ -138,6 +165,10 @@ fun UnifiedCustomListScreen(
           onDeIndentLine = viewModel::onDeIndentLine,
           onMoveLineUp = viewModel::onMoveLineUp,
           onMoveLineDown = viewModel::onMoveLineDown,
+          onDeleteLine = viewModel::onDeleteLine,
+          onCopyLine = viewModel::onCopyLine,
+          onCutLine = viewModel::onCutLine,
+          onPasteLine = viewModel::onPasteLine,
           onToggleBullet = viewModel::onToggleBullet,
           onToggleNumbered = viewModel::onToggleNumbered,
           onToggleChecklist = viewModel::onToggleChecklist,
@@ -160,12 +191,15 @@ fun UnifiedCustomListScreen(
           text = { Text("Створити") },
           containerColor = MaterialTheme.colorScheme.primaryContainer,
           contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-          modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+          // Додаємо відступ для панелі навігації
+          modifier = Modifier.navigationBarsPadding().clip(RoundedCornerShape(16.dp)),
         )
       }
     },
   ) { paddingValues ->
-    Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(animatedBackgroundColor)) {
+    Box(
+      modifier = Modifier.padding(paddingValues).fillMaxSize().background(animatedBackgroundColor)
+    ) {
       when (screenMode) {
         ScreenMode.CREATE,
         ScreenMode.EDIT_EXISTING -> {
@@ -184,15 +218,6 @@ fun UnifiedCustomListScreen(
           )
         }
       }
-
-      // Показати помилку якщо є
-      uiState.error?.let { error ->
-        LaunchedEffect(error) {
-          // TODO: Показати снекбар
-        }
-      }
-
-      // Індикатор завантаження
       if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
           Card(
@@ -217,7 +242,7 @@ fun UnifiedCustomListScreen(
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // -> Corrected
 @Composable
 private fun EnhancedTopAppBar(
   screenMode: ScreenMode,
@@ -229,6 +254,7 @@ private fun EnhancedTopAppBar(
   onSave: () -> Unit,
 ) {
   Card(
+    // 1. Прибираємо відступ звідси. Тепер Card малюється під системним рядком.
     modifier = Modifier.fillMaxWidth(),
     shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -302,334 +328,202 @@ private fun EnhancedTopAppBar(
               }
             }
           }
-          ScreenMode.CREATE -> {
-            // FAB обробляє збереження
-          }
+          ScreenMode.CREATE -> {}
         }
       },
-      colors =
-        TopAppBarDefaults.topAppBarColors(
-          containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
+      colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+      // 2. Додаємо insets сюди. Тепер вміст TopAppBar має правильний відступ.
+      windowInsets = WindowInsets.statusBars,
     )
   }
 }
 
 @Composable
 private fun CreateEditContent(
-    uiState: UnifiedCustomListUiState,
-    viewModel: UnifiedCustomListViewModel,
-    titleFocusRequester: FocusRequester,
-    contentFocusRequester: FocusRequester,
+  uiState: UnifiedCustomListUiState,
+  viewModel: UnifiedCustomListViewModel,
+  titleFocusRequester: FocusRequester,
+  contentFocusRequester: FocusRequester,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Заголовок
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            BasicTextField(
-                value = uiState.title,
-                onValueChange = viewModel::onTitleChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-                    .focusRequester(titleFocusRequester),
-                textStyle = TextStyle(
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+  Column(modifier = Modifier.fillMaxSize().imePadding().navigationBarsPadding()) {
+    Card(
+      modifier = Modifier.fillMaxWidth().padding(16.dp),
+      colors =
+        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+      BasicTextField(
+        value = uiState.title,
+        onValueChange = viewModel::onTitleChange,
+        modifier = Modifier.fillMaxWidth().padding(20.dp).focusRequester(titleFocusRequester),
+        textStyle =
+          TextStyle(
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+          ),
+        singleLine = true,
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        decorationBox = { innerTextField ->
+          if (uiState.title.isEmpty()) {
+            Text(
+              text = "Enter list title...",
+              style =
+                TextStyle(
+                  fontSize = 24.sp,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 ),
-                singleLine = true,
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                decorationBox = { innerTextField ->
-                    if (uiState.title.isEmpty()) {
-                        Text(
-                            text = "Enter list title...",
-                            style = TextStyle(
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                        )
-                    }
-                    innerTextField()
-                }
             )
-        }
-
-        // Контент
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 2.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            val content = uiState.content
-            val text = content.text
-            val selection = content.selection
-            val lines = text.lines()
-
-            val textUpToCursor = text.take(selection.start)
-            val cursorLineIndex = textUpToCursor.count { it == '\n' }
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                verticalArrangement = Arrangement.Top
-            ) {
-                var i = 0
-                while (i < lines.size) {
-                    val line = lines[i]
-                    val indent = line.takeWhile { it.isWhitespace() }.length
-                    val nextIndent = if (i + 1 < lines.size) lines[i + 1].takeWhile { it.isWhitespace() }.length else -1
-                    val isParent = nextIndent > indent && line.isNotBlank()
-                    val isCollapsed = uiState.collapsedLines.contains(i)
-
-                    val lineIndex = i
-                    // Основний рядок
-                    item(key = "line_$lineIndex") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Spacer(modifier = Modifier.width((indent * 16).dp))
-                            // Індикатор згортання
-                            if (isParent) {
-                                val icon = if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.KeyboardArrowDown
-                                IconButton(
-                                    onClick = { viewModel.onToggleFold(lineIndex) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = if (isCollapsed) "Expand" else "Collapse"
-                                    )
-                                }
-                            } else {
-                                Spacer(modifier = Modifier.width(24.dp))
-                            }
-
-                            // Редагований текст
-                            val valueForField = if (lineIndex == cursorLineIndex) {
-                                val lineStartOffset = lines.take(lineIndex).sumOf { it.length + 1 }
-                                val selectionInLine = TextRange(
-                                    (selection.start - lineStartOffset).coerceIn(0, line.length),
-                                    (selection.end - lineStartOffset).coerceIn(0, line.length)
-                                )
-                                TextFieldValue(line, selectionInLine)
-                            } else {
-                                TextFieldValue(line)
-                            }
-
-                            BasicTextField(
-                                value = valueForField,
-                                onValueChange = { newValue ->
-                                    val mutable = lines.toMutableList()
-                                    if (lineIndex < mutable.size) {
-                                        mutable[lineIndex] = newValue.text
-                                        val newText = mutable.joinToString("\n")
-
-                                        val startOfLineOffset = lines.take(lineIndex).sumOf { it.length + 1 }
-                                        val newSelection = TextRange(
-                                            start = startOfLineOffset + newValue.selection.start,
-                                            end = startOfLineOffset + newValue.selection.end
-                                        )
-                                        viewModel.onContentChange(TextFieldValue(text = newText, selection = newSelection))
-                                    }
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .focusRequester(contentFocusRequester),
-                                textStyle = TextStyle(
-                                    fontSize = 16.sp,
-                                    lineHeight = 24.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                decorationBox = { innerTextField ->
-                                    if (line.isEmpty()) {
-                                        Text(
-                                            text = "…",
-                                            style = TextStyle(
-                                                fontSize = 16.sp,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                                            )
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            )
-                        }
-                    }
-
-                    // Якщо рядок згорнутий — додаємо індикатор кількості прихованих
-                    if (isCollapsed) {
-                        val hiddenCount = countHiddenLines(lines, i, indent)
-                        if (hiddenCount > 0) {
-                            item(key = "collapsed_$i") {
-                                Text(
-                                    text = "... $hiddenCount collapsed items",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier
-                                        .padding(start = (32 + indent * 16).dp, top = 2.dp, bottom = 2.dp)
-                                )
-                            }
-                        }
-
-                        // Пропускаємо дочірні рядки
-                        while (i + 1 < lines.size &&
-                            (lines[i + 1].isBlank() || lines[i + 1].takeWhile { it.isWhitespace() }.length > indent)
-                        ) {
-                            i++
-                        }
-                    }
-
-                    i++
-                }
-            }
-        }
+          }
+          innerTextField()
+        },
+      )
     }
+
+    Card(
+      modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp, vertical = 2.dp),
+      colors =
+        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+      val textColor = MaterialTheme.colorScheme.onSurface
+      BasicTextField(
+        value = uiState.content,
+        onValueChange = { newValue ->
+          val oldValue = uiState.content
+          if (
+            newValue.text.length > oldValue.text.length &&
+              newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
+          ) {
+            viewModel.onEnter(newValue)
+          } else {
+            viewModel.onContentChange(newValue)
+          }
+        },
+        modifier = Modifier.fillMaxSize().focusRequester(contentFocusRequester),
+        textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        visualTransformation = ListVisualTransformation(uiState.collapsedLines, textColor),
+        decorationBox = { innerTextField ->
+          Row(Modifier.padding(vertical = 16.dp)) {
+            Gutter(
+              lines = uiState.content.text.lines(),
+              collapsedLines = uiState.collapsedLines,
+              onToggleFold = viewModel::onToggleFold,
+            )
+            Box(modifier = Modifier.padding(start = 16.dp)) { innerTextField() }
+          }
+        },
+      )
+    }
+  }
 }
 
-
 @Composable
-private fun FoldingGutter(
-  lines: List<String>,
-  collapsedLines: Set<Int>,
-  onToggleFold: (Int) -> Unit,
-) {
-  LazyColumn(
-    modifier = Modifier.width(48.dp).padding(PaddingValues(top = 16.dp, start = 8.dp, end = 4.dp)),
-    verticalArrangement = Arrangement.spacedBy(0.dp),
-  ) {
-    itemsIndexed(lines) { index, line ->
+private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: (Int) -> Unit) {
+  val focusManager = LocalFocusManager.current
+  Column(modifier = Modifier.width(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    lines.forEachIndexed { index, line ->
       val indent = line.takeWhile { it.isWhitespace() }.length
-      val nextLineIndent =
-        if (index + 1 < lines.size) {
-          lines[index + 1].takeWhile { it.isWhitespace() }.length
-        } else -1
-      val isParent = nextLineIndent > indent && !line.isBlank()
+      val nextIndent =
+        if (index + 1 < lines.size) lines[index + 1].takeWhile { it.isWhitespace() }.length else -1
+      val isParent = nextIndent > indent && line.isNotBlank()
 
       Box(modifier = Modifier.height(24.dp), contentAlignment = Alignment.Center) {
         if (isParent) {
           val isCollapsed = collapsedLines.contains(index)
           val icon =
-            if (isCollapsed) {
-              Icons.Default.ChevronRight
-            } else {
-              Icons.Default.KeyboardArrowDown
-            }
-
-          FilledTonalIconButton(
-            onClick = { onToggleFold(index) },
-            modifier = Modifier.size(20.dp),
-            colors =
-              IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-              ),
-          ) {
-            Icon(
-              imageVector = icon,
-              contentDescription = if (isCollapsed) "Розгорнути" else "Згорнути",
-              modifier = Modifier.size(12.dp),
-            )
-          }
+            if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.KeyboardArrowDown
+          Icon(
+            imageVector = icon,
+            contentDescription = if (isCollapsed) "Expand" else "Collapse",
+            modifier =
+              Modifier.size(16.dp).clickable {
+                focusManager.clearFocus()
+                onToggleFold(index)
+              },
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
         }
       }
     }
   }
 }
 
-// Клас для візуальної трансформації складання
-private class FoldingVisualTransformation(
-    private val collapsedLines: Set<Int>,
+private class ListVisualTransformation(
+  private val collapsedLines: Set<Int>,
+  private val textColor: Color,
 ) : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        if (collapsedLines.isEmpty()) {
-            return TransformedText(text, OffsetMapping.Identity)
+  override fun filter(text: AnnotatedString): TransformedText {
+    val originalText = text.text
+    val lines = originalText.lines()
+    val visibleLines = mutableListOf<IndexedValue<String>>()
+
+    var i = 0
+    while (i < lines.size) {
+      val line = lines[i]
+      visibleLines.add(IndexedValue(i, line))
+      if (collapsedLines.contains(i)) {
+        val indent = line.takeWhile { it.isWhitespace() }.length
+        i++
+        while (
+          i < lines.size &&
+            (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
+        ) {
+          i++
         }
-
-        val originalText = text.text
-        val lines = originalText.lines()
-        val transformedText = StringBuilder()
-        
-        val originalToTransformed = IntArray(originalText.length + 1)
-        val transformedToOriginal = mutableListOf<Int>()
-
-        var i = 0
-        var originalOffset = 0
-        var transformedOffset = 0
-
-        while (i < lines.size) {
-            val line = lines[i] 
-            
-            transformedText.append(line)
-
-            for (k in 0..line.length) {
-                if (originalOffset + k < originalToTransformed.size) {
-                    originalToTransformed[originalOffset + k] = transformedOffset + k
-                }
-                transformedToOriginal.add(originalOffset + k)
-            }
-
-            originalOffset += line.length
-            transformedOffset += line.length
-
-            if (i < lines.size - 1) {
-                transformedText.append('\n')
-                if (originalOffset < originalToTransformed.size) {
-                    originalToTransformed[originalOffset] = transformedOffset
-                }
-                transformedToOriginal.add(originalOffset)
-                originalOffset++
-                transformedOffset++
-            }
-
-            if (collapsedLines.contains(i)) {
-                val indent = line.takeWhile { it.isWhitespace() }.length
-                val mapTo = if (transformedOffset > 0) transformedOffset - 1 else 0
-                i++
-                while (i < lines.size && (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)) {
-                    val collapsedLine = lines[i]
-                    
-                    for (k in 0..collapsedLine.length) {
-                        if (originalOffset + k < originalToTransformed.size) {
-                            originalToTransformed[originalOffset + k] = mapTo
-                        }
-                    }
-                    originalOffset += collapsedLine.length
-                    if (i < lines.size - 1) {
-                        originalOffset++
-                    }
-                    i++
-                }
-            } else {
-                i++
-            }
-        }
-
-        val offsetMapping = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int {
-                return if (offset < originalToTransformed.size) originalToTransformed[offset] else transformedText.length
-            }
-
-            override fun transformedToOriginal(offset: Int): Int {
-                return transformedToOriginal.getOrElse(offset) { originalText.length }
-            }
-        }
-
-        return TransformedText(AnnotatedString(transformedText.toString()), offsetMapping)
+      } else {
+        i++
+      }
     }
+
+    val transformedText = buildAnnotatedString {
+      visibleLines.forEachIndexed { visibleIndex, (_, line) ->
+        withStyle(style = SpanStyle(color = textColor)) { append(line) }
+        if (visibleIndex < visibleLines.size - 1) {
+          append("\n")
+        }
+      }
+    }
+
+    val offsetMapping =
+      object : OffsetMapping {
+        override fun originalToTransformed(offset: Int): Int {
+          if (offset <= 0) return 0
+          val prefix = originalText.substring(0, offset)
+          val parts = prefix.lines()
+          val originalLineIndex = parts.size - 1
+          val charInLine = parts.lastOrNull()?.length ?: 0
+
+          var transformedLineStart = 0
+          var found = false
+          for (v in visibleLines) {
+            if (v.index == originalLineIndex) {
+              found = true
+              break
+            }
+            transformedLineStart += v.value.length + 1
+          }
+          if (!found) return transformedText.length
+          return (transformedLineStart + charInLine).coerceIn(0, transformedText.length)
+        }
+
+        override fun transformedToOriginal(offset: Int): Int {
+          if (offset <= 0) return 0
+          val prefix = transformedText.substring(0, offset)
+          val parts = prefix.lines()
+          val transformedLineIndex = parts.size - 1
+          val charInLine = parts.lastOrNull()?.length ?: 0
+          if (transformedLineIndex >= visibleLines.size) return originalText.length
+          val originalLineIndex = visibleLines[transformedLineIndex].index
+          val originalLineStart = lines.take(originalLineIndex).sumOf { it.length + 1 }
+          return (originalLineStart + charInLine).coerceIn(0, originalText.length)
+        }
+      }
+
+    return TransformedText(transformedText, offsetMapping)
+  }
 }
 
 @Composable
@@ -639,15 +533,9 @@ private fun ViewContent(
   onContentClick: () -> Unit,
 ) {
   Column(
-    modifier =
-      Modifier
-        .fillMaxSize()
-        .clickable(onClick = onContentClick)
-        .verticalScroll(rememberScrollState())
-        .padding(16.dp),
-    verticalArrangement = Arrangement.spacedBy(12.dp),
+    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+    verticalArrangement = Arrangement.spacedBy(4.dp),
   ) {
-    // Заголовок
     Card(
       modifier = Modifier.fillMaxWidth(),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -665,15 +553,13 @@ private fun ViewContent(
 
     Spacer(modifier = Modifier.height(8.dp))
 
-    // Контент списку - використовуємо Column замість LazyColumn для правильного позиціонування
     Card(
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier.fillMaxWidth().clickable { onContentClick() },
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
       elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
       shape = RoundedCornerShape(12.dp),
     ) {
       if (uiState.content.text.isBlank()) {
-        // Пусте повідомлення
         Column(
           modifier = Modifier.fillMaxWidth().padding(48.dp),
           horizontalAlignment = Alignment.CenterHorizontally,
@@ -698,315 +584,43 @@ private fun ViewContent(
           )
         }
       } else {
-        Column(
-          modifier = Modifier.padding(16.dp),
-          verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          // Обробляємо рядки послідовно без LazyColumn
-          processLinesForView(
-            lines = uiState.content.text.lines(),
-            collapsedLines = uiState.collapsedLines,
-            onToggleFold = viewModel::onToggleFold,
-          )
-        }
-      }
-    }
+        val annotatedString = buildAnnotatedString {
+          val lines = uiState.content.text.lines()
+          var i = 0
+          while (i < lines.size) {
+            val line = lines[i]
+            val indent = line.takeWhile { it.isWhitespace() }.length
+            val isCollapsed = uiState.collapsedLines.contains(i)
 
-    // Додаткова інформація
-    if (uiState.content.text.isNotBlank()) {
-      Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-          CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-          ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(8.dp),
-      ) {
-        Row(
-          modifier = Modifier.fillMaxWidth().padding(16.dp),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Text(
-            text = "Всього елементів: ${uiState.toolbarState.totalItems}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-
-          val collapsedCount = uiState.collapsedLines.size
-          if (collapsedCount > 0) {
-            Surface(
-              shape = RoundedCornerShape(12.dp),
-              color = MaterialTheme.colorScheme.secondaryContainer,
+            withStyle(
+              style =
+                SpanStyle(background = if (isCollapsed) Color.LightGray else Color.Transparent)
             ) {
-              Text(
-                text = "$collapsedCount згорнуто",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-              )
+              append(line)
             }
-          }
-        }
-      }
-    }
-  }
-}
+            append("\n")
 
-@Composable
-private fun processLinesForView(
-  lines: List<String>,
-  collapsedLines: Set<Int>,
-  onToggleFold: (Int) -> Unit,
-) {
-  var i = 0
-  while (i < lines.size) {
-    val line = lines[i]
-    if (line.isBlank() && i == lines.size - 1) {
-      i++
-      continue
-    }
-
-    val indent = line.takeWhile { it.isWhitespace() }.length
-    val nextLineIndent =
-      if (i + 1 < lines.size) {
-        lines[i + 1].takeWhile { it.isWhitespace() }.length
-      } else -1
-    val isParent = nextLineIndent > indent && !line.isBlank()
-    val isCollapsed = collapsedLines.contains(i)
-
-    // Анімований елемент списку
-    AnimatedVisibility(
-      visible = true,
-      enter = slideInVertically() + fadeIn(),
-      exit = slideOutVertically() + fadeOut(),
-    ) {
-      EnhancedListItem(
-        text = line.trimStart(),
-        indent = indent,
-        isParent = isParent,
-        isCollapsed = isCollapsed,
-        lineIndex = i,
-        onClick =
-          if (isParent) {
-            { onToggleFold(i) }
-          } else null,
-      )
-    }
-
-    if (isCollapsed) {
-      // Додаємо індикатор згорнутих елементів
-      val hiddenCount = countHiddenLines(lines, i, indent)
-      if (hiddenCount > 0) {
-        Surface(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .padding(start = (32 + indent * 16).dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
-          shape = RoundedCornerShape(8.dp),
-          color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-        ) {
-          Text(
-            text = "... $hiddenCount згорнутих елементів",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-          )
-        }
-      }
-
-      // Пропускаємо згорнуті рядки
-      i++
-      while (
-        i < lines.size &&
-          (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
-      ) {
-        i++
-      }
-    } else {
-      i++
-    }
-  }
-}
-
-private fun countHiddenLines(lines: List<String>, parentIndex: Int, parentIndent: Int): Int {
-  var count = 0
-  var i = parentIndex + 1
-  while (
-    i < lines.size &&
-      (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > parentIndent)
-  ) {
-    if (lines[i].isNotBlank()) count++
-    i++
-  }
-  return count
-}
-
-@Composable
-private fun EnhancedListItem(
-  text: String,
-  indent: Int,
-  isParent: Boolean,
-  isCollapsed: Boolean,
-  lineIndex: Int,
-  onClick: (() -> Unit)?,
-) {
-  val animatedBackgroundColor by
-    animateColorAsState(
-      targetValue =
-        when {
-          isParent && isCollapsed -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
-          isParent -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-          else -> Color.Transparent
-        },
-      animationSpec = tween(300),
-      label = "background",
-    )
-
-  Row(
-    modifier =
-      Modifier
-        .fillMaxWidth()
-        .padding(start = (indent * 16).dp)
-        .let { modifier ->
-          if (onClick != null) {
-            modifier.clickable(onClick = onClick)
-          } else {
-            modifier
-          }
-        }
-        .background(
-          color = animatedBackgroundColor,
-          shape = RoundedCornerShape(
-            topStart = 12.dp,
-            topEnd = 12.dp,
-            bottomStart = if (isCollapsed) 12.dp else 8.dp,
-            bottomEnd = if (isCollapsed) 12.dp else 8.dp,
-          )
-        )
-        .padding(horizontal = 16.dp, vertical = if (isParent) 16.dp else 12.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
-  ) {
-      // Індикатор типу елементу
-      if (isParent) {
-        val icon =
-          if (isCollapsed) {
-            Icons.Default.ChevronRight
-          } else {
-            Icons.Default.KeyboardArrowDown
-          }
-
-        Surface(
-          shape = RoundedCornerShape(8.dp),
-          color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-          modifier = Modifier.size(32.dp),
-        ) {
-          Icon(
-            imageVector = icon,
-            contentDescription = if (isCollapsed) "Розгорнути" else "Згорнути",
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.fillMaxSize().padding(6.dp),
-          )
-        }
-      } else {
-        // Маркер для звичайних елементів
-        Box(modifier = Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-          when {
-            text.startsWith("• ") -> {
-              Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(8.dp),
-              ) {}
-            }
-            text.matches(Regex("^[0-9]+\\..*")) -> {
-              Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(20.dp),
+            if (isCollapsed) {
+              i++
+              while (
+                i < lines.size &&
+                  (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
               ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                  Text(
-                    text = text.takeWhile { it.isDigit() },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSecondary,
-                    fontWeight = FontWeight.Bold,
-                  )
-                }
+                i++
               }
-            }
-            text.startsWith("☐ ") -> {
-              Icon(
-                imageVector = Icons.Default.CheckBoxOutlineBlank,
-                contentDescription = "Не виконано",
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
-              )
-            }
-            text.startsWith("☑ ") -> {
-              Icon(
-                imageVector = Icons.Default.CheckBox,
-                contentDescription = "Виконано",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-              )
-            }
-            else -> {
-              Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.size(6.dp),
-              ) {}
+            } else {
+              i++
             }
           }
         }
-      }
-
-      // Текст елементу
-      val displayText =
-        when {
-          text.startsWith("• ") -> text.removePrefix("• ")
-          text.startsWith("☐ ") -> text.removePrefix("☐ ")
-          text.startsWith("☑ ") -> text.removePrefix("☑ ")
-            text.matches(Regex("^[0-9]+\\. .*")) -> text.replaceFirst(Regex("^[0-9]+\\. "), "")
-          else -> text
-        }
-
-      Text(
-        text = displayText,
-        style =
-          when {
-            isParent -> MaterialTheme.typography.titleMedium
-            else -> MaterialTheme.typography.bodyLarge
-          },
-        color =
-          when {
-            isParent && isCollapsed -> MaterialTheme.colorScheme.onTertiaryContainer
-            isParent -> MaterialTheme.colorScheme.onSecondaryContainer
-            text.startsWith("☑ ") -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-          },
-        fontWeight = if (isParent) FontWeight.SemiBold else FontWeight.Normal,
-        textDecoration = if (text.startsWith("☑ ")) TextDecoration.LineThrough else null,
-        modifier = Modifier.weight(1f),
-      )
-
-      // Додаткові індикатори
-      if (isCollapsed) {
-        Surface(
-          shape = RoundedCornerShape(6.dp),
-          color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-        ) {
-          Text(
-            text = "...",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-          )
-        }
+        Text(
+          text = annotatedString,
+          modifier = Modifier.padding(16.dp),
+          style = TextStyle(lineHeight = 20.sp),
+        )
       }
     }
+    // Додатковий відступ знизу, щоб контент не ховався за панеллю навігації
+    Spacer(modifier = Modifier.navigationBarsPadding())
+  }
 }

@@ -1,12 +1,12 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
@@ -25,30 +25,26 @@ fun AdaptiveTopBar(
     onMoreActions: (GoalActionType) -> Unit,
     currentViewMode: ProjectViewMode? = null,
     modifier: Modifier = Modifier,
+    windowInsets: WindowInsets = WindowInsets.statusBars,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp,
-        shadowElevation = if (isSelectionModeActive) 4.dp else 1.dp,
-        modifier = modifier.statusBarsPadding(),
-    ) {
+    val topPadding = windowInsets.asPaddingValues().calculateTopPadding()
+
+    Column(modifier = modifier.padding(top = topPadding)) {
         if (isSelectionModeActive) {
-            Column(modifier = Modifier.statusBarsPadding()) {
-                ListTitleBar(
-                    project = project?.copy(isProjectManagementEnabled = false),
-                    currentViewMode = currentViewMode,
-                )
-                MultiSelectTopAppBar(
-                    selectedCount = selectedCount,
-                    areAllSelected = areAllSelected,
-                    onClearSelection = onClearSelection,
-                    onSelectAll = onSelectAll,
-                    onDelete = onDelete,
-                    onMoreActions = onMoreActions,
-                    onMarkAsComplete = onMarkAsComplete,
-                    onMarkAsIncomplete = onMarkAsIncomplete,
-                )
-            }
+            ListTitleBar(
+                project = project?.copy(isProjectManagementEnabled = false),
+                currentViewMode = currentViewMode,
+            )
+            MultiSelectTopAppBar(
+                selectedCount = selectedCount,
+                areAllSelected = areAllSelected,
+                onClearSelection = onClearSelection,
+                onSelectAll = onSelectAll,
+                onDelete = onDelete,
+                onMoreActions = onMoreActions,
+                onMarkAsComplete = onMarkAsComplete,
+                onMarkAsIncomplete = onMarkAsIncomplete,
+            )
         } else {
             ListTitleBar(
                 project = project,

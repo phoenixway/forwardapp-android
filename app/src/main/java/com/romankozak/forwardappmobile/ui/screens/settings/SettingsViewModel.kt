@@ -28,6 +28,7 @@ data class SettingsUiState(
     val nerState: NerState = NerState.NotInitialized,
     val rolesFolderUri: String = "",
     val desktopAddress: String = "",
+    val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
 )
 
 @HiltViewModel
@@ -35,6 +36,7 @@ class SettingsViewModel
     @Inject
     constructor(
         private val settingsRepo: SettingsRepository,
+
         private val ollamaService: OllamaService,
         private val nerManager: NerManager,
     ) : ViewModel() {
@@ -60,18 +62,20 @@ class SettingsViewModel
                         settingsRepo.nerLabelsUriFlow,
                         settingsRepo.rolesFolderUriFlow,
                         settingsRepo.desktopAddressFlow,
+                        settingsRepo.themeSettings,
                     )
                 combine(settingsFlows) { values ->
                     _uiState.update {
                         it.copy(
-                            ollamaUrl = values[0],
-                            fastModel = values[1],
-                            smartModel = values[2],
-                            nerModelUri = values[3],
-                            nerTokenizerUri = values[4],
-                            nerLabelsUri = values[5],
-                            rolesFolderUri = values[6],
-                            desktopAddress = values[7],
+                            ollamaUrl = values[0] as String,
+                            fastModel = values[1] as String,
+                            smartModel = values[2] as String,
+                            nerModelUri = values[3] as String,
+                            nerTokenizerUri = values[4] as String,
+                            nerLabelsUri = values[5] as String,
+                            rolesFolderUri = values[6] as String,
+                            desktopAddress = values[7] as String,
+                            themeSettings = values[8] as com.romankozak.forwardappmobile.ui.theme.ThemeSettings,
                         )
                     }
                 }.collect {
@@ -147,6 +151,18 @@ class SettingsViewModel
             _uiState.update { it.copy(rolesFolderUri = uri.toString()) }
         }
 
+        fun onLightThemeSelected(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+            _uiState.update { it.copy(themeSettings = it.themeSettings.copy(lightThemeName = themeName)) }
+        }
+
+        fun onDarkThemeSelected(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+            _uiState.update { it.copy(themeSettings = it.themeSettings.copy(darkThemeName = themeName)) }
+        }
+
+        fun onThemeModeSelected(themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) {
+            _uiState.update { it.copy(themeSettings = it.themeSettings.copy(themeMode = themeMode)) }
+        }
+
         fun saveSettings() {
             viewModelScope.launch {
                 val currentState = _uiState.value
@@ -160,7 +176,7 @@ class SettingsViewModel
                 settingsRepo.saveRolesFolderUri(currentState.rolesFolderUri)
                 
                 settingsRepo.saveDesktopAddress(currentState.desktopAddress)
-                
+                settingsRepo.saveThemeSettings(currentState.themeSettings)
             }
         }
     }

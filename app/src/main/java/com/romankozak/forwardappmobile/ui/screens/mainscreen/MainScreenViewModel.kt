@@ -46,6 +46,7 @@ class MainScreenViewModel
 constructor(
   private val projectRepository: ProjectRepository,
   private val settingsRepo: SettingsRepository,
+
   private val application: Application,
   private val syncRepo: SyncRepository,
   private val contextHandler: ContextHandler,
@@ -76,6 +77,13 @@ constructor(
 
   private val _uiState = MutableStateFlow(MainScreenUiState())
   val uiState: StateFlow<MainScreenUiState> = _uiState.asStateFlow()
+
+  val themeSettings: kotlinx.coroutines.flow.StateFlow<com.romankozak.forwardappmobile.ui.theme.ThemeSettings> = settingsRepo.themeSettings
+      .stateIn(
+          scope = viewModelScope,
+          started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
+          initialValue = com.romankozak.forwardappmobile.ui.theme.ThemeSettings()
+      )
 
   private val _uiEventChannel = Channel<ProjectUiEvent>()
   val uiEventFlow = _uiEventChannel.receiveAsFlow()
@@ -603,6 +611,9 @@ constructor(
       is MainScreenEvent.CloseSearch -> onCloseSearch()
       is MainScreenEvent.NavigateToProject -> onNavigateToProject(event.projectId)
       is MainScreenEvent.CollapseAll -> onCollapseAll()
+      is MainScreenEvent.UpdateLightTheme -> updateLightTheme(event.themeName)
+      is MainScreenEvent.UpdateDarkTheme -> updateDarkTheme(event.themeName)
+      is MainScreenEvent.UpdateThemeMode -> updateThemeMode(event.themeMode)
     }
   }
 
@@ -893,5 +904,29 @@ constructor(
         _isProcessingReveal.value = false
       }
     }
+  }
+
+  private fun updateLightTheme(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+      viewModelScope.launch {
+          settingsRepo.saveThemeSettings(
+              themeSettings.value.copy(lightThemeName = themeName)
+          )
+      }
+  }
+
+  private fun updateDarkTheme(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+      viewModelScope.launch {
+          settingsRepo.saveThemeSettings(
+              themeSettings.value.copy(darkThemeName = themeName)
+          )
+      }
+  }
+
+  private fun updateThemeMode(themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) {
+      viewModelScope.launch {
+          settingsRepo.saveThemeSettings(
+              themeSettings.value.copy(themeMode = themeMode)
+          )
+      }
   }
 }

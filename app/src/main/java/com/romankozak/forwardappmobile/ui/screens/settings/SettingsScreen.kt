@@ -129,7 +129,8 @@ fun SettingsScreen(
                         uiState.nerTokenizerUri != it.nerTokenizerUri ||
                         uiState.nerLabelsUri != it.nerLabelsUri ||
                         uiState.rolesFolderUri != it.rolesFolderUri ||
-                        uiState.desktopAddress != it.desktopAddress
+                        uiState.desktopAddress != it.desktopAddress ||
+                        uiState.themeSettings != it.themeSettings
                 } ?: false
             
 
@@ -199,6 +200,13 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             PermissionsSettingsCard()
+
+            ThemeSettingsCard(
+                themeSettings = uiState.themeSettings,
+                onThemeModeSelected = viewModel::onThemeModeSelected,
+                onLightThemeSelected = viewModel::onLightThemeSelected,
+                onDarkThemeSelected = viewModel::onDarkThemeSelected,
+            )
 
             OllamaSettingsCard(
                 state = uiState,
@@ -771,4 +779,102 @@ private fun AnimatedTextField(
                 .background(backgroundColor)
                 .onFocusChanged { isFocused = it.isFocused },
     )
+}
+
+@Composable
+private fun ThemeSettingsCard(
+    themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings,
+    onThemeModeSelected: (com.romankozak.forwardappmobile.ui.theme.ThemeMode) -> Unit,
+    onLightThemeSelected: (com.romankozak.forwardappmobile.ui.theme.ThemeName) -> Unit,
+    onDarkThemeSelected: (com.romankozak.forwardappmobile.ui.theme.ThemeName) -> Unit,
+) {
+    SettingsCard(
+        title = "Theme",
+        icon = Icons.Default.Palette,
+    ) {
+        ThemeModeSelector(
+            selectedMode = themeSettings.themeMode,
+            onModeSelected = onThemeModeSelected
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        ThemePicker(
+            label = "Light Theme",
+            themes = com.romankozak.forwardappmobile.ui.theme.ThemeManager.themes.map { it.name },
+            selectedTheme = themeSettings.lightThemeName,
+            onThemeSelected = onLightThemeSelected
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        ThemePicker(
+            label = "Dark Theme",
+            themes = com.romankozak.forwardappmobile.ui.theme.ThemeManager.themes.map { it.name },
+            selectedTheme = themeSettings.darkThemeName,
+            onThemeSelected = onDarkThemeSelected
+        )
+    }
+}
+
+@Composable
+private fun ThemeModeSelector(
+    selectedMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode,
+    onModeSelected: (com.romankozak.forwardappmobile.ui.theme.ThemeMode) -> Unit
+) {
+    Column {
+        Text("Appearance", style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            com.romankozak.forwardappmobile.ui.theme.ThemeMode.values().forEach { mode ->
+                FilterChip(
+                    selected = selectedMode == mode,
+                    onClick = { onModeSelected(mode) },
+                    label = { Text(mode.name) }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemePicker(
+    label: String,
+    themes: List<com.romankozak.forwardappmobile.ui.theme.ThemeName>,
+    selectedTheme: com.romankozak.forwardappmobile.ui.theme.ThemeName,
+    onThemeSelected: (com.romankozak.forwardappmobile.ui.theme.ThemeName) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Text(label, style = MaterialTheme.typography.titleMedium)
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedTheme.displayName,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                themes.forEach { theme ->
+                    DropdownMenuItem(
+                        text = { Text(theme.displayName) },
+                        onClick = {
+                            onThemeSelected(theme)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
 }
