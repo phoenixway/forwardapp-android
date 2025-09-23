@@ -144,17 +144,7 @@ fun UnifiedCustomListScreen(
       )
     },
     bottomBar = {
-      AnimatedVisibility(
-        // Додаємо відступ для панелі навігації
-        modifier = Modifier.navigationBarsPadding(),
-        visible = screenMode != ScreenMode.VIEW,
-        enter =
-          slideInVertically(
-            initialOffsetY = { it },
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-          ) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(),
-      ) {
+      Box(modifier = Modifier.navigationBarsPadding()) {
         EnhancedListToolbar(
           state = uiState.toolbarState,
           onIndentBlock = viewModel::onIndentBlock,
@@ -280,12 +270,7 @@ private fun EnhancedTopAppBar(
           }
           Column {
             Text(
-              text =
-                when (screenMode) {
-                  ScreenMode.CREATE -> "Новий список"
-                  ScreenMode.EDIT_EXISTING -> "Редагування"
-                  ScreenMode.VIEW -> title.ifEmpty { "Список" }
-                },
+              text = "Список",
               style = MaterialTheme.typography.headlineSmall,
               fontWeight = FontWeight.SemiBold,
             )
@@ -381,12 +366,6 @@ private fun CreateEditContent(
       )
     }
 
-    Card(
-      modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp, vertical = 2.dp),
-      colors =
-        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
       val textColor = MaterialTheme.colorScheme.onSurface
       BasicTextField(
         value = uiState.content,
@@ -401,7 +380,7 @@ private fun CreateEditContent(
             viewModel.onContentChange(newValue)
           }
         },
-        modifier = Modifier.fillMaxSize().focusRequester(contentFocusRequester),
+        modifier = Modifier.fillMaxSize().focusRequester(contentFocusRequester).padding(horizontal = 16.dp, vertical = 2.dp),
         textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         visualTransformation = ListVisualTransformation(uiState.collapsedLines, textColor),
@@ -416,7 +395,6 @@ private fun CreateEditContent(
           }
         },
       )
-    }
   }
 }
 
