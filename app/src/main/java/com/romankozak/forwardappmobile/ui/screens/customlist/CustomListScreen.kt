@@ -317,132 +317,168 @@ private fun EnhancedTopAppBar(
 
 @Composable
 private fun CreateEditContent(
-  uiState: UnifiedCustomListUiState,
-  viewModel: UnifiedCustomListViewModel,
-  titleFocusRequester: FocusRequester,
-  contentFocusRequester: FocusRequester,
+    uiState: UnifiedCustomListUiState,
+    viewModel: UnifiedCustomListViewModel,
+    titleFocusRequester: FocusRequester,
+    contentFocusRequester: FocusRequester,
 ) {
-  val foldingVisualTransformation =
-    remember(uiState.collapsedLines) {
-      FoldingVisualTransformation(uiState.collapsedLines)
-    }
-
-  Column(modifier = Modifier.fillMaxSize()) {
-    // Поле заголовка з покращеним дизайном
-    Card(
-      modifier = Modifier.fillMaxWidth().padding(16.dp),
-      colors =
-        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-      BasicTextField(
-        value = uiState.title,
-        onValueChange = viewModel::onTitleChange,
-        modifier = Modifier.fillMaxWidth().padding(20.dp).focusRequester(titleFocusRequester),
-        textStyle =
-          TextStyle(
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-          ),
-        singleLine = true,
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        decorationBox = { innerTextField ->
-          if (uiState.title.isEmpty()) {
-            Text(
-              text = "Введіть назву списку...",
-              style =
-                TextStyle(
-                  fontSize = 24.sp,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Заголовок
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            BasicTextField(
+                value = uiState.title,
+                onValueChange = viewModel::onTitleChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+                    .focusRequester(titleFocusRequester),
+                textStyle = TextStyle(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 ),
-            )
-          }
-          innerTextField()
-        },
-      )
-    }
-
-    // Контент з покращеним редактором
-    Card(
-      modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
-      colors =
-        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-      Row(modifier = Modifier.fillMaxSize()) {
-        // Панель складання/розгортання
-        FoldingGutter(
-          lines = uiState.content.text.lines(),
-          collapsedLines = uiState.collapsedLines,
-          onToggleFold = viewModel::onToggleFold,
-        )
-
-        // Основний редактор
-        BasicTextField(
-          value = uiState.content,
-          onValueChange = { newTfv ->
-            val oldText = uiState.content.text
-            val newText = newTfv.text
-            val newSelection = newTfv.selection
-
-            var finalTfv = newTfv
-
-            // Check for single character insertion, which is a newline
-            if (newText.length == oldText.length + 1 && newSelection.collapsed && newSelection.start > 0) {
-                val insertedCharIndex = newSelection.start - 1
-                if (newText[insertedCharIndex] == '\n') {
-                    val lineBreakPos = insertedCharIndex
-                    // Find the start of the line where newline was inserted
-                    val prevLineStart = oldText.lastIndexOf('\n', if (lineBreakPos > 0) lineBreakPos - 1 else -1).let { if (it == -1) 0 else it + 1 }
-                    val prevLine = oldText.substring(prevLineStart, lineBreakPos)
-                    
-                    val trimmedPrevLine = prevLine.trimStart()
-                    if (trimmedPrevLine.startsWith("• ")) {
-                        val indent = prevLine.takeWhile { it.isWhitespace() }
-                        val newBullet = "$indent• "
-                        
-                        val textBefore = newText.substring(0, lineBreakPos + 1)
-                        val textAfter = newText.substring(lineBreakPos + 1)
-                        
-                        val finalText = textBefore + newBullet + textAfter
-                        finalTfv = newTfv.copy(
-                            text = finalText,
-                            selection = TextRange(newSelection.start + newBullet.length)
+                singleLine = true,
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                decorationBox = { innerTextField ->
+                    if (uiState.title.isEmpty()) {
+                        Text(
+                            text = "Enter list title...",
+                            style = TextStyle(
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
                         )
                     }
+                    innerTextField()
+                }
+            )
+        }
+
+        // Контент
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.Top
+            ) {
+                val lines = uiState.content.text.lines()
+                var i = 0
+                while (i < lines.size) {
+                    val line = lines[i]
+                    val indent = line.takeWhile { it.isWhitespace() }.length
+                    val nextIndent = if (i + 1 < lines.size) lines[i + 1].takeWhile { it.isWhitespace() }.length else -1
+                    val isParent = nextIndent > indent && line.isNotBlank()
+                    val isCollapsed = uiState.collapsedLines.contains(i)
+
+val lineIndex = i
+                    // Основний рядок
+                    item(key = "line_$lineIndex") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+.padding(
+    start = (indent * 16).dp,
+    top = 2.dp,
+    end = 0.dp,
+    bottom = 2.dp
+),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Індикатор згортання
+                            if (isParent) {
+                                val icon = if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.KeyboardArrowDown
+                                IconButton(
+                                    onClick = { viewModel.onToggleFold(lineIndex) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = if (isCollapsed) "Expand" else "Collapse"
+                                    )
+                                }
+                            } else {
+                                Spacer(modifier = Modifier.width(24.dp))
+                            }
+
+                            // Редагований текст
+                            BasicTextField(
+                                value = TextFieldValue(line),
+                                onValueChange = { newValue ->
+                                    val mutable = lines.toMutableList()
+                                    if (lineIndex < mutable.size) {
+                                        mutable[lineIndex] = newValue.text
+                                        viewModel.onContentChange(TextFieldValue(mutable.joinToString("\n")))
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(contentFocusRequester),
+                                textStyle = TextStyle(
+                                    fontSize = 16.sp,
+                                    lineHeight = 24.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                decorationBox = { innerTextField ->
+                                    if (line.isEmpty()) {
+                                        Text(
+                                            text = "…",
+                                            style = TextStyle(
+                                                fontSize = 16.sp,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                            )
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            )
+                        }
+                    }
+
+                    // Якщо рядок згорнутий — додаємо індикатор кількості прихованих
+                    if (isCollapsed) {
+                        val hiddenCount = countHiddenLines(lines, i, indent)
+                        if (hiddenCount > 0) {
+                            item(key = "collapsed_$i") {
+                                Text(
+                                    text = "... $hiddenCount collapsed items",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier
+                                        .padding(start = (32 + indent * 16).dp, top = 2.dp, bottom = 2.dp)
+                                )
+                            }
+                        }
+
+                        // Пропускаємо дочірні рядки
+                        while (i + 1 < lines.size &&
+                            (lines[i + 1].isBlank() || lines[i + 1].takeWhile { it.isWhitespace() }.length > indent)
+                        ) {
+                            i++
+                        }
+                    }
+
+                    i++
                 }
             }
-            viewModel.onContentChange(finalTfv)
-          },
-          visualTransformation = foldingVisualTransformation,
-          modifier = Modifier.fillMaxSize().padding(16.dp).focusRequester(contentFocusRequester),
-          textStyle =
-            TextStyle(
-              fontSize = 16.sp,
-              lineHeight = 24.sp,
-              color = MaterialTheme.colorScheme.onSurface,
-            ),
-          cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-          decorationBox = { innerTextField ->
-            if (uiState.content.text.isEmpty()) {
-              Text(
-                text = "Почніть вводити ваш список...",
-                style =
-                  TextStyle(
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                  ),
-              )
-            }
-            innerTextField()
-          },
-        )
-      }
+        }
     }
-  }
 }
+
 
 @Composable
 private fun FoldingGutter(
@@ -451,7 +487,7 @@ private fun FoldingGutter(
   onToggleFold: (Int) -> Unit,
 ) {
   LazyColumn(
-    modifier = Modifier.width(48.dp).padding(top = 16.dp, start = 8.dp, end = 4.dp),
+    modifier = Modifier.width(48.dp).padding(PaddingValues(top = 16.dp, start = 8.dp, end = 4.dp)),
     verticalArrangement = Arrangement.spacedBy(0.dp),
   ) {
     itemsIndexed(lines) { index, line ->
