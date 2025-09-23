@@ -369,13 +369,20 @@ private fun CreateEditContent(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
+            val content = uiState.content
+            val text = content.text
+            val selection = content.selection
+            val lines = text.lines()
+
+            val textUpToCursor = text.take(selection.start)
+            val cursorLineIndex = textUpToCursor.count { it == '\n' }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(8.dp),
                 verticalArrangement = Arrangement.Top
             ) {
-                val lines = uiState.content.text.lines()
                 var i = 0
                 while (i < lines.size) {
                     val line = lines[i]
@@ -384,20 +391,16 @@ private fun CreateEditContent(
                     val isParent = nextIndent > indent && line.isNotBlank()
                     val isCollapsed = uiState.collapsedLines.contains(i)
 
-val lineIndex = i
+                    val lineIndex = i
                     // Основний рядок
                     item(key = "line_$lineIndex") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-.padding(
-    start = (indent * 16).dp,
-    top = 2.dp,
-    end = 0.dp,
-    bottom = 2.dp
-),
+                                .padding(vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Spacer(modifier = Modifier.width((indent * 16).dp))
                             // Індикатор згортання
                             if (isParent) {
                                 val icon = if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.KeyboardArrowDown
@@ -415,13 +418,31 @@ val lineIndex = i
                             }
 
                             // Редагований текст
+                            val valueForField = if (lineIndex == cursorLineIndex) {
+                                val lineStartOffset = lines.take(lineIndex).sumOf { it.length + 1 }
+                                val selectionInLine = TextRange(
+                                    (selection.start - lineStartOffset).coerceIn(0, line.length),
+                                    (selection.end - lineStartOffset).coerceIn(0, line.length)
+                                )
+                                TextFieldValue(line, selectionInLine)
+                            } else {
+                                TextFieldValue(line)
+                            }
+
                             BasicTextField(
-                                value = TextFieldValue(line),
+                                value = valueForField,
                                 onValueChange = { newValue ->
                                     val mutable = lines.toMutableList()
                                     if (lineIndex < mutable.size) {
                                         mutable[lineIndex] = newValue.text
-                                        viewModel.onContentChange(TextFieldValue(mutable.joinToString("\n")))
+                                        val newText = mutable.joinToString("\n")
+
+                                        val startOfLineOffset = lines.take(lineIndex).sumOf { it.length + 1 }
+                                        val newSelection = TextRange(
+                                            start = startOfLineOffset + newValue.selection.start,
+                                            end = startOfLineOffset + newValue.selection.end
+                                        )
+                                        viewModel.onContentChange(TextFieldValue(text = newText, selection = newSelection))
                                     }
                                 },
                                 modifier = Modifier
