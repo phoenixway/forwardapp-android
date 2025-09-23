@@ -23,5 +23,6 @@ sealed interface ProjectUiEvent {
 
     data object FocusSearchField : ProjectUiEvent
 
+    data class OpenUri(val uri: String) : ProjectUiEvent
     data class ScrollToIndex(val index: Int) : ProjectUiEvent
 }

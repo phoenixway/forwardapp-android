@@ -91,6 +91,18 @@ fun MainScreen(
                 is ProjectUiEvent.FocusSearchField -> {
                     
                 }
+                is ProjectUiEvent.OpenUri -> {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.uri))
+                    navController.context.startActivity(intent)
+                }
+                is ProjectUiEvent.OpenUri -> {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.uri))
+                    navController.context.startActivity(intent)
+                }
+                is ProjectUiEvent.OpenUri -> {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.uri))
+                    navController.context.startActivity(intent)
+                }
                 is ProjectUiEvent.ScrollToIndex -> { }
             }
         }
@@ -261,9 +273,9 @@ private fun MainScreenScaffold(
 
     RecentListsSheet(
         showSheet = uiState.showRecentListsSheet,
-        recentLists = uiState.recentProjects,
+        recentItems = uiState.recentItems,
         onDismiss = { onEvent(MainScreenEvent.DismissRecentLists) },
-        onListClick = { onEvent(MainScreenEvent.RecentProjectSelected(it)) },
+        onItemClick = { onEvent(MainScreenEvent.RecentItemSelected(it)) },
     )
 
     

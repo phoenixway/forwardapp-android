@@ -70,7 +70,7 @@ sealed interface MainScreenEvent {
 
     data object DismissRecentLists : MainScreenEvent
 
-    data class RecentProjectSelected(val projectId: String) : MainScreenEvent
+    data class RecentItemSelected(val item: com.romankozak.forwardappmobile.data.database.models.RecentItem) : MainScreenEvent
 
     data object DayPlanClick : MainScreenEvent
 

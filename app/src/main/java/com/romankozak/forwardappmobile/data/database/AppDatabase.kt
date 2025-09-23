@@ -25,18 +25,20 @@ import com.romankozak.forwardappmobile.data.database.models.*
         NoteEntity::class,
         CustomListEntity::class,
         CustomListItemEntity::class,
+        RecentItem::class,
         
         GoalFts::class,
         ProjectFts::class,
         ActivityRecordFts::class,
         NoteFts::class,
     ],
-    version = 35,
+    version = 36,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 9, to = 10),
         AutoMigration(from = 32, to = 33),
         AutoMigration(from = 33, to = 34),
+        AutoMigration(from = 35, to = 36)
     ],
     exportSchema = true,
 )
@@ -69,4 +71,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
 
     abstract fun customListDao(): CustomListDao
+
+    abstract fun recentItemDao(): RecentItemDao
 }

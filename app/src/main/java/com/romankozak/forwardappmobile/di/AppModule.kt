@@ -93,4 +93,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCustomListDao(db: AppDatabase): CustomListDao = db.customListDao()
+
+    @Provides
+    fun provideRecentItemDao(db: AppDatabase): RecentItemDao = db.recentItemDao()
 }
