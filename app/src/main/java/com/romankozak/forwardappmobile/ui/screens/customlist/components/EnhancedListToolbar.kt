@@ -62,6 +62,10 @@ fun EnhancedListToolbar(
   onDeIndentLine: () -> Unit,
   onMoveLineUp: () -> Unit,
   onMoveLineDown: () -> Unit,
+  onDeleteLine: () -> Unit,
+  onCopyLine: () -> Unit,
+  onCutLine: () -> Unit,
+  onPasteLine: () -> Unit,
   // Other actions
   onToggleBullet: () -> Unit,
   onToggleNumbered: () -> Unit = {},
@@ -83,195 +87,210 @@ fun EnhancedListToolbar(
       shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
       Column(modifier = Modifier.padding(12.dp)) {
-        // Статистика та індикатор режиму
-        Row(
-          modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
+
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-          // Статистика
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-          ) {
-            Icon(
-              imageVector = Icons.AutoMirrored.Filled.ListAlt,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.size(16.dp),
-            )
-            Text(
-              text = "${state.totalItems} пунктів",
-              style = MaterialTheme.typography.labelMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+              // Форматування
+              ToolbarSection(title = "Формат") {
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.FormatListBulleted,
+                  description = "Маркери",
+                  isActive = state.formatMode == ListFormatMode.BULLET,
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onToggleBullet()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Filled.FormatListNumbered,
+                  description = "Нумерація",
+                  isActive = state.formatMode == ListFormatMode.NUMBERED,
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onToggleNumbered()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Default.TaskAlt, // альтернатива для чекліста
+                  description = "Чекліст",
+                  isActive = state.formatMode == ListFormatMode.CHECKLIST,
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onToggleChecklist()
+                  },
+                )
+              }
 
-          // Індикатор поточного режиму форматування
-          Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.padding(horizontal = 4.dp),
-          ) {
-            Text(
-              text =
-                when (state.formatMode) {
-                  ListFormatMode.BULLET -> "Маркери"
-                  ListFormatMode.NUMBERED -> "Нумерація"
-                  ListFormatMode.CHECKLIST -> "Чекліст"
-                  ListFormatMode.PLAIN -> "Простий"
-                },
-              style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-              color = MaterialTheme.colorScheme.onPrimaryContainer,
-              modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-          }
-        }
+              VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+              )
 
-        HorizontalDivider(
-          modifier = Modifier.padding(vertical = 8.dp),
-          color = MaterialTheme.colorScheme.outlineVariant,
-        )
+              // Відступи
+              ToolbarSection(title = "Відступи") {
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
+                  description = "Збільшити відступ",
+                  enabled = state.canIndent,
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onIndentLine()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
+                  description = "Зменшити відступ",
+                  enabled = state.canDeIndent,
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onDeIndentLine()
+                  },
+                )
+              }
 
-        Row(
-          modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-          // Форматування
-          ToolbarSection(title = "Формат") {
-            EnhancedToolbarButton(
-              icon = Icons.AutoMirrored.Filled.FormatListBulleted,
-              description = "Маркери",
-              isActive = state.formatMode == ListFormatMode.BULLET,
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onToggleBullet()
-              },
-            )
-            EnhancedToolbarButton(
-              icon = Icons.Filled.FormatListNumbered,
-              description = "Нумерація",
-              isActive = state.formatMode == ListFormatMode.NUMBERED,
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onToggleNumbered()
-              },
-            )
-            EnhancedToolbarButton(
-              icon = Icons.Default.TaskAlt, // альтернатива для чекліста
-              description = "Чекліст",
-              isActive = state.formatMode == ListFormatMode.CHECKLIST,
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onToggleChecklist()
-              },
-            )
-          }
+              VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+              )
 
-          VerticalDivider(
-            modifier = Modifier.height(40.dp),
-            color = MaterialTheme.colorScheme.outlineVariant,
-          )
+              // Переміщення
+              ToolbarSection(title = "Рядки") {
+                EnhancedToolbarButton(
+                  icon = Icons.Default.KeyboardArrowUp,
+                  description = "Рядок вгору",
+                  enabled = state.canMoveUp,
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onMoveLineUp()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Default.KeyboardArrowDown,
+                  description = "Рядок вниз",
+                  enabled = state.canMoveDown,
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onMoveLineDown()
+                  },
+                )
+              }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
 
-          // Відступи
-          ToolbarSection(title = "Відступи") {
-            EnhancedToolbarButton(
-              icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
-              description = "Збільшити відступ",
-              enabled = state.canIndent,
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onIndentLine()
-              },
-            )
-            EnhancedToolbarButton(
-              icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
-              description = "Зменшити відступ",
-              enabled = state.canDeIndent,
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onDeIndentLine()
-              },
-            )
-          }
+              // Дії з блоками
+              ToolbarSection(title = "Блоки") {
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
+                  description = "Відступ блоку",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onIndentBlock()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
+                  description = "Зняти відступ блоку",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onDeIndentBlock()
+                  },
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                EnhancedToolbarButton(
+                  icon = Icons.Default.KeyboardDoubleArrowUp,
+                  description = "Блок вгору",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onMoveBlockUp()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Default.KeyboardDoubleArrowDown,
+                  description = "Блок вниз",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onMoveBlockDown()
+                  },
+                )
+              }
 
-          VerticalDivider(
-            modifier = Modifier.height(40.dp),
-            color = MaterialTheme.colorScheme.outlineVariant,
-          )
+              VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+              )
+              
+              ToolbarSection(title = "Редагування") {
+                EnhancedToolbarButton(
+                  icon = Icons.Default.DeleteOutline,
+                  description = "Видалити рядок",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onDeleteLine()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Default.ContentCopy,
+                  description = "Копіювати рядок",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onCopyLine()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Default.ContentCut,
+                  description = "Вирізати рядок",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onCutLine()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Default.ContentPaste,
+                  description = "Вставити рядок",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onPasteLine()
+                  },
+                )
+              }
 
-          // Переміщення
-          ToolbarSection(title = "Переміщення") {
-            EnhancedToolbarButton(
-              icon = Icons.Default.KeyboardArrowUp,
-              description = "Перемістити вгору",
-              enabled = state.canMoveUp,
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onMoveLineUp()
-              },
-            )
-            EnhancedToolbarButton(
-              icon = Icons.Default.KeyboardArrowDown,
-              description = "Перемістити вниз",
-              enabled = state.canMoveDown,
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onMoveLineDown()
-              },
-            )
-          }
+              VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+              )
 
-          VerticalDivider(
-            modifier = Modifier.height(40.dp),
-            color = MaterialTheme.colorScheme.outlineVariant,
-          )
-
-          // Дії з блоками
-          ToolbarSection(title = "Блоки") {
-            EnhancedToolbarButton(
-              icon = Icons.Default.ExpandLess,
-              description = "Блок вгору",
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onMoveBlockUp()
-              },
-            )
-            EnhancedToolbarButton(
-              icon = Icons.Default.ExpandMore,
-              description = "Блок вниз",
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onMoveBlockDown()
-              },
-            )
-          }
-
-          VerticalDivider(
-            modifier = Modifier.height(40.dp),
-            color = MaterialTheme.colorScheme.outlineVariant,
-          )
-
-          // Скасування/Повтор
-          ToolbarSection(title = "Історія") {
-            EnhancedToolbarButton(
-              icon = Icons.AutoMirrored.Filled.Undo,
-              description = "Скасувати",
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onUndo()
-              },
-            )
-            EnhancedToolbarButton(
-              icon = Icons.AutoMirrored.Filled.Redo,
-              description = "Повторити",
-              onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onRedo()
-              },
-            )
-          }
+              // Скасування/Повтор
+              ToolbarSection(title = "Історія") {
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.Undo,
+                  description = "Скасувати",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onUndo()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.Redo,
+                  description = "Повторити",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onRedo()
+                  },
+                )
+              }
+            }
         }
       }
     }
@@ -280,19 +299,12 @@ fun EnhancedListToolbar(
 
 @Composable
 private fun ToolbarSection(title: String, content: @Composable RowScope.() -> Unit) {
-  Column(
-    horizontalAlignment = Alignment.CenterHorizontally,
+  Row(
     modifier = Modifier.padding(horizontal = 4.dp),
-  ) {
-    Text(
-      text = title,
-      style = MaterialTheme.typography.labelSmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      fontSize = 10.sp,
-      modifier = Modifier.padding(bottom = 4.dp),
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), content = content)
-  }
+    horizontalArrangement = Arrangement.spacedBy(2.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    content = content
+  )
 }
 
 @Composable

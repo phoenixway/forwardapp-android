@@ -4,6 +4,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
 
+import android.app.Activity
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -12,34 +13,60 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ExportTransferDialog
+import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
-import androidx.compose.ui.text.input.TextFieldValue
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ExportTransferDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
-import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
 
 @Composable
 fun ProjectsScreen(
     navController: NavController,
     viewModel: BacklogViewModel = hiltViewModel(),
 ) {
+    val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
+    val view = LocalView.current
+    val isDarkTheme = isSystemInDarkTheme()
+
+    if (!view.isInEditMode) {
+        LaunchedEffect(Unit) {
+            val window = (view.context as Activity).window
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !isDarkTheme
+            insetsController.isAppearanceLightNavigationBars = !isDarkTheme
+        }
+    }
+
     Log.d("ViewModelInitTest", "ProjectsScreen: Спроба створити GoalDetailViewModel. Результат: $viewModel")
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
@@ -47,11 +74,9 @@ fun ProjectsScreen(
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val desktopAddress by viewModel.desktopAddress.collectAsStateWithLifecycle()
 
-    // --- НОВА ЛОГІКА: Отримуємо стани для кнопок навігації з ViewModel ---
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val suggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
-
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -111,7 +136,6 @@ fun ProjectsScreen(
             )
         }
 
-
         val dragDropState = rememberSimpleDragDropState(
             lazyListState = listState,
             onMove = viewModel::moveItem,
@@ -133,24 +157,12 @@ fun ProjectsScreen(
 
         GoalDetailDialogs(viewModel = viewModel)
 
-        // --- ОНОВЛЕННЯ: Універсальний BackHandler ---
-        // Видаляємо три окремі BackHandler і замінюємо їх одним,
-        // який делегує всю логіку ViewModel.
         BackHandler(enabled = true) {
             val wasConsumed = viewModel.onBackPressed()
             if (!wasConsumed) {
-                // Якщо ViewModel не обробила подію (повернула false),
-                // дозволяємо стандартну поведінку (вихід з екрану).
                 navController.popBackStack()
             }
         }
-
-        // --- ВИДАЛЕНО: DisposableEffect більше не потрібен, flush робиться у viewModel.onBackPressed() ---
-        // DisposableEffect(Unit) {
-        //     onDispose {
-        //         viewModel.flushPendingMoves()
-        //     }
-        // }
 
         val reminderParseResult =
             if ((uiState.detectedReminderCalendar != null) &&
@@ -172,20 +184,34 @@ fun ProjectsScreen(
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                AdaptiveTopBar(
-                    isSelectionModeActive = isSelectionModeActive,
-                    project = list,
-                    selectedCount = uiState.selectedItemIds.size,
-                    areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                    onClearSelection = { viewModel.selectionHandler.clearSelection() },
-                    onSelectAll = { viewModel.selectionHandler.selectAllItems() },
-                    onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                    onMoreActions = { actionType -> viewModel.selectionHandler.onBulkActionRequest(actionType, uiState.selectedItemIds) },
-                    onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
-                    onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                    currentViewMode = uiState.currentView
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
+                ) {
+                    AdaptiveTopBar(
+                        isSelectionModeActive = isSelectionModeActive,
+                        project = list,
+                        selectedCount = uiState.selectedItemIds.size,
+                        areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                        onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                        onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                        onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                        onMoreActions = { actionType ->
+                            viewModel.selectionHandler.onBulkActionRequest(
+                                actionType,
+                                uiState.selectedItemIds
+                            )
+                        },
+                        onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
+                        onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
+                        currentViewMode = uiState.currentView,
+                        windowInsets = WindowInsets.statusBars,
+                    )
+                }
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
@@ -220,14 +246,11 @@ fun ProjectsScreen(
                         onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
                         onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
                         onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
-
-                        // --- ОНОВЛЕННЯ: Логіка кнопок навігації ---
                         canGoBack = canGoBack,
-                        canGoForward = canGoForward, // Додано новий стан
+                        canGoForward = canGoForward,
                         onBackClick = { viewModel.onBackPressed() },
                         onForwardClick = { viewModel.onForwardPressed() },
                         onHomeClick = viewModel::onHomeClick,
-
                         isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
                         onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
                         onEditList = {
@@ -251,7 +274,9 @@ fun ProjectsScreen(
                         isNerActive = uiState.nerState is NerState.Ready,
                         onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
                         isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
-                        modifier = Modifier.navigationBarsPadding().imePadding(),
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .imePadding(),
                         onToggleProjectManagement = viewModel::onToggleProjectManagement,
                         onExportProjectState = viewModel::onExportProjectStateRequest,
                         onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
