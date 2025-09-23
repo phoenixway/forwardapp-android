@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
+package com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
