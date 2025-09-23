@@ -24,7 +24,7 @@ data class MainScreenUiState(
     val showRecentListsSheet: Boolean = false,
     val isBottomNavExpanded: Boolean = false,
     
-    val recentProjects: List<Project> = emptyList(),
+    val recentItems: List<com.romankozak.forwardappmobile.data.database.models.RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
     val listChooserFinalExpandedIds: Set<String> = emptySet(),
     val filteredListHierarchyForDialog: ListHierarchyData = ListHierarchyData(),

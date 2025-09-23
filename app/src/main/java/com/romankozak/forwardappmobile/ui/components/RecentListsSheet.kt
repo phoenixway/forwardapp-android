@@ -18,9 +18,9 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 @Composable
 fun RecentListsSheet(
     showSheet: Boolean,
-    recentLists: List<Project>,
+    recentItems: List<com.romankozak.forwardappmobile.data.database.models.RecentItem>,
     onDismiss: () -> Unit,
-    onListClick: (String) -> Unit,
+    onItemClick: (com.romankozak.forwardappmobile.data.database.models.RecentItem) -> Unit,
 ) {
     if (showSheet) {
         ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -30,7 +30,7 @@ fun RecentListsSheet(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
-                if (recentLists.isEmpty()) {
+                if (recentItems.isEmpty()) {
                     Text(
                         text = "Історія порожня.",
                         modifier = Modifier.padding(16.dp),
@@ -38,11 +38,11 @@ fun RecentListsSheet(
                     )
                 } else {
                     LazyColumn {
-                        items(recentLists, key = { it.id }) { list ->
+                        items(recentItems, key = { it.id }) { item ->
                             ListItem(
-                                headlineContent = { Text(list.name) },
+                                headlineContent = { Text(item.displayName) },
                                 leadingContent = { Icon(Icons.Outlined.History, contentDescription = null) },
-                                modifier = Modifier.clickable { onListClick(list.id) },
+                                modifier = Modifier.clickable { onItemClick(item) },
                             )
                         }
                     }

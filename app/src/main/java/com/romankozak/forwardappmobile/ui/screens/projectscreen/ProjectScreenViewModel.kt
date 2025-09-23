@@ -325,8 +325,8 @@ class BacklogViewModel
         private val _uiEventFlow = Channel<UiEvent>()
         val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
-        val recentProjects: StateFlow<List<Project>> =
-            projectRepository.getRecentProjects()
+        val recentItems: StateFlow<List<RecentItem>> =
+            projectRepository.getRecentItems()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> =
@@ -893,12 +893,14 @@ class BacklogViewModel
 
         fun onNoteItemClick(note: NoteEntity) {
             viewModelScope.launch {
+                projectRepository.logNoteAccess(note)
                 _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${note.id}"))
             }
         }
 
         fun onCustomListItemClick(customList: CustomListEntity) {
             viewModelScope.launch {
+                projectRepository.logCustomListAccess(customList)
                 _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${customList.id}"))
             }
         }
@@ -907,13 +909,13 @@ class BacklogViewModel
 
         fun onLinkItemClick(link: RelatedLink) {
             viewModelScope.launch {
-                
                 if (link.type == LinkType.PROJECT) {
-                    
                     val projectName = link.displayName ?: "Project"
                     enhancedNavigationManager.navigateToProject(link.target, projectName)
                 } else {
-                    
+                    if (link.type == LinkType.OBSIDIAN) {
+                        projectRepository.logObsidianLinkAccess(link)
+                    }
                     _uiEventFlow.send(UiEvent.HandleLinkClick(link))
                 }
             }
@@ -1340,43 +1342,9 @@ class BacklogViewModel
                 try {
                     Log.d(TAG, "Starting home navigation with UseCase")
 
-                    
-                    clearAndNavigateHomeUseCase(
-                        currentProjects = _allProjects.value,
-                        onSubStateCleared = {
-                            
-                            Log.d(TAG, "Clearing backlog sub-states")
-                            _uiState.update {
-                                it.copy(
-                                    selectedItemIds = emptySet(),
-                                    localSearchQuery = "",
-                                    inputValue = TextFieldValue(""),
-                                    inputMode = getInputModeForView(it.currentView),
-                                )
-                            }
-                        },
-                        onNavigationCleared = {
-                            
-                            Log.d(TAG, "Clearing backlog navigation state")
-                            _uiState.update {
-                                it.copy(
-                                    goalToHighlight = null,
-                                    itemToHighlight = null,
-                                    inboxRecordToHighlight = null,
-                                    newlyAddedItemId = null,
-                                )
-                            }
-                        },
-                        onNavigateHome = {
-                            Log.d(TAG, "Navigating to main screen")
-                            enhancedNavigationManager.navigateToMainScreen()
-                        },
-                        onScrollToTop = {
-                            Log.d(TAG, "Scrolling to top")
-                            viewModelScope.launch {
-                                _uiEventFlow.send(UiEvent.ScrollTo(0))
-                            }
-                        },
+                    clearAndNavigateHomeUseCase.execute(
+                        command = com.romankozak.forwardappmobile.ui.navigation.ClearCommand.Home,
+                        context = createClearExecutionContext()
                     )
 
                     Log.d(TAG, "Home navigation completed successfully")
@@ -1389,6 +1357,17 @@ class BacklogViewModel
                     _isProcessingHome.value = false
                 }
             }
+        }
+
+        private fun createClearExecutionContext(): com.romankozak.forwardappmobile.ui.navigation.ClearExecutionContext {
+            return com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext(
+                currentProjects = _allProjects.value,
+                subStateStack = MutableStateFlow(listOf(com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState.Hierarchy)),
+                searchAndNavigationManager = com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.SearchAndNavigationManager(projectRepository, viewModelScope, savedStateHandle, Channel<com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent>(), _allProjects),
+                planningModeManager = com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager(),
+                enhancedNavigationManager = enhancedNavigationManager,
+                uiEventChannel = Channel<com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent>()
+            )
         }
 
         fun onForwardPressed() {
