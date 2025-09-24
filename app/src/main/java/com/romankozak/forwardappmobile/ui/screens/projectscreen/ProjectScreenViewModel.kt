@@ -1482,6 +1482,26 @@ class BacklogViewModel
             }
         }
 
+        fun onRecentItemClick(item: RecentItem) {
+            viewModelScope.launch {
+                when (item.type) {
+                    RecentItemType.PROJECT -> {
+                        enhancedNavigationManager.navigateToProject(item.target, item.displayName)
+                    }
+                    RecentItemType.NOTE -> {
+                        _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
+                    }
+                    RecentItemType.CUSTOM_LIST -> {
+                        _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))
+                    }
+                    RecentItemType.OBSIDIAN_LINK -> {
+                        val link = RelatedLink(type = LinkType.OBSIDIAN, target = item.target, displayName = item.displayName)
+                        _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+                    }
+                }
+            }
+        }
+
             fun onChildProjectClick(childProject: Project) {
                 viewModelScope.launch {
                     enhancedNavigationManager.navigateToProject(childProject.id, childProject.name)
