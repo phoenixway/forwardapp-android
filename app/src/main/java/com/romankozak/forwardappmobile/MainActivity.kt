@@ -26,6 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
@@ -45,16 +48,25 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var projectRepository: ProjectRepository
 
+    @Inject
+    lateinit var settingsRepository: com.romankozak.forwardappmobile.data.repository.SettingsRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.navigationBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+
 
         Log.d(tag, "MainActivity: onCreate called")
         handleReminderIntent(intent)
         checkAndLogMissedDays()
 
         setContent {
-            ForwardAppMobileTheme {
+            val themeSettings by settingsRepository.themeSettings.collectAsState(initial = com.romankozak.forwardappmobile.ui.theme.ThemeSettings())
+            ForwardAppMobileTheme(themeSettings = themeSettings) {
                 AppNavigation(syncDataViewModel = syncDataViewModel)
             }
         }

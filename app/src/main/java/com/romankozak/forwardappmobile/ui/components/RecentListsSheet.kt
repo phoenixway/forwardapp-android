@@ -8,6 +8,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Note
+import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,9 +22,9 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 @Composable
 fun RecentListsSheet(
     showSheet: Boolean,
-    recentLists: List<Project>,
+    recentItems: List<com.romankozak.forwardappmobile.data.database.models.RecentItem>,
     onDismiss: () -> Unit,
-    onListClick: (String) -> Unit,
+    onItemClick: (com.romankozak.forwardappmobile.data.database.models.RecentItem) -> Unit,
 ) {
     if (showSheet) {
         ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -30,7 +34,7 @@ fun RecentListsSheet(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
-                if (recentLists.isEmpty()) {
+                if (recentItems.isEmpty()) {
                     Text(
                         text = "Історія порожня.",
                         modifier = Modifier.padding(16.dp),
@@ -38,11 +42,19 @@ fun RecentListsSheet(
                     )
                 } else {
                     LazyColumn {
-                        items(recentLists, key = { it.id }) { list ->
+                        items(recentItems, key = { it.id }) { item ->
                             ListItem(
-                                headlineContent = { Text(list.name) },
-                                leadingContent = { Icon(Icons.Outlined.History, contentDescription = null) },
-                                modifier = Modifier.clickable { onListClick(list.id) },
+                                headlineContent = { Text(item.displayName) },
+                                leadingContent = {
+                                    val icon = when (item.type) {
+                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> Icons.Outlined.Folder
+                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> Icons.Outlined.Note
+                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> Icons.Outlined.List
+                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
+                                    }
+                                    Icon(icon, contentDescription = null)
+                                },
+                                modifier = Modifier.clickable { onItemClick(item) },
                             )
                         }
                     }

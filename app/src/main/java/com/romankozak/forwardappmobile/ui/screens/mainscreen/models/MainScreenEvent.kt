@@ -70,7 +70,7 @@ sealed interface MainScreenEvent {
 
     data object DismissRecentLists : MainScreenEvent
 
-    data class RecentProjectSelected(val projectId: String) : MainScreenEvent
+    data class RecentItemSelected(val item: com.romankozak.forwardappmobile.data.database.models.RecentItem) : MainScreenEvent
 
     data object DayPlanClick : MainScreenEvent
 
@@ -125,4 +125,8 @@ sealed interface MainScreenEvent {
     data class NavigateToProject(val projectId: String) : MainScreenEvent
 
     data object CollapseAll : MainScreenEvent
+
+    data class UpdateLightTheme(val themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) : MainScreenEvent
+    data class UpdateDarkTheme(val themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) : MainScreenEvent
+    data class UpdateThemeMode(val themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) : MainScreenEvent
 }

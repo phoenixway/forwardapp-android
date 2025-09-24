@@ -4,6 +4,10 @@ package com.romankozak.forwardappmobile.data.database.models
 
 import com.google.gson.annotations.SerializedName
 
+data class RecentProjectEntry(
+    val projectId: String,
+    val timestamp: Long
+)
 
 data class FullAppBackup(
     @SerializedName("database")

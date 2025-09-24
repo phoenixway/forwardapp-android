@@ -25,7 +25,8 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database",
-        ).addMigrations(
+        ).fallbackToDestructiveMigration()
+         .addMigrations(
             MIGRATION_8_9,
             MIGRATION_10_11,
             MIGRATION_11_12,
@@ -50,6 +51,7 @@ object DatabaseModule {
             MIGRATION_30_31,
             MIGRATION_31_32,
             MIGRATION_34_35,
+            MIGRATION_35_36,
         ).build()
 
     @Provides
@@ -63,9 +65,6 @@ object DatabaseModule {
 
     @Provides
     fun provideActivityRecordDao(db: AppDatabase): ActivityRecordDao = db.activityRecordDao()
-
-    @Provides
-    fun provideRecentProjectDao(db: AppDatabase): RecentProjectDao = db.recentProjectDao()
 
     @Provides
     fun provideLinkItemDao(db: AppDatabase): LinkItemDao = db.linkItemDao()
@@ -93,4 +92,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCustomListDao(db: AppDatabase): CustomListDao = db.customListDao()
+
+    @Provides
+    fun provideRecentItemDao(db: AppDatabase): RecentItemDao = db.recentItemDao()
 }

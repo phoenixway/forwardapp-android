@@ -48,6 +48,20 @@ class ItemActionHandler
             if (resultListener.isSelectionModeActive()) {
                 resultListener.toggleSelection(item.listItem.id)
             } else {
+                scope.launch {
+                    when (item) {
+                        is ListItemContent.NoteItem -> projectRepository.logNoteAccess(item.note)
+                        is ListItemContent.CustomListItem -> projectRepository.logCustomListAccess(item.customList)
+                        is ListItemContent.SublistItem -> projectRepository.logProjectAccess(item.project.id)
+                        is ListItemContent.LinkItem -> {
+                            if (item.link.linkData.type == com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN) {
+                                projectRepository.logObsidianLinkAccess(item.link.linkData)
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+
                 val currentProjectId = projectIdFlow.value
                 when (item) {
                     is ListItemContent.GoalItem ->

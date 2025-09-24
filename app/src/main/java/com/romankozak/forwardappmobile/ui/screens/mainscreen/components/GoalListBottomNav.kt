@@ -202,12 +202,6 @@ internal fun ExpandingBottomNav(
                     )
 
                     SmallBottomNavButton(
-                        text = "Contexts",
-                        icon = Icons.Outlined.Style,
-                        onClick = onContextsClick,
-                    )
-
-                    SmallBottomNavButton(
                         text = "Insights",
                         icon = Icons.Outlined.Lightbulb,
                         onClick = onInsightsClick,
@@ -328,7 +322,7 @@ internal fun ExpandingBottomNav(
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 
-                ModernBottomNavButton(text = "Track", icon = Icons.Outlined.Timeline, onClick = onActivityTrackerClick)
+                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
@@ -339,7 +333,7 @@ internal fun ExpandingBottomNav(
 }
 
 @Composable
-internal fun ModernBottomNavButton(
+fun ModernBottomNavButton(
     text: String,
     icon: ImageVector,
     isSelected: Boolean = false,

@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActionsHandler
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.SearchAndNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.DialogStateManager
@@ -46,6 +47,7 @@ class MainScreenViewModel
 constructor(
   private val projectRepository: ProjectRepository,
   private val settingsRepo: SettingsRepository,
+
   private val application: Application,
   private val syncRepo: SyncRepository,
   private val contextHandler: ContextHandler,
@@ -76,6 +78,13 @@ constructor(
 
   private val _uiState = MutableStateFlow(MainScreenUiState())
   val uiState: StateFlow<MainScreenUiState> = _uiState.asStateFlow()
+
+  val themeSettings: kotlinx.coroutines.flow.StateFlow<com.romankozak.forwardappmobile.ui.theme.ThemeSettings> = settingsRepo.themeSettings
+      .stateIn(
+          scope = viewModelScope,
+          started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
+          initialValue = com.romankozak.forwardappmobile.ui.theme.ThemeSettings()
+      )
 
   private val _uiEventChannel = Channel<ProjectUiEvent>()
   val uiEventFlow = _uiEventChannel.receiveAsFlow()
@@ -299,12 +308,12 @@ constructor(
     val expensiveCalculationsFlow =
       combine(
           _allProjectsFlat,
-          projectRepository.getRecentProjects(),
+          projectRepository.getRecentItems(),
           contextHandler.allContextsFlow,
-        ) { allProjects, recentProjects, contexts ->
+        ) { allProjects, recentItems, contexts ->
           ExpensiveCalculations(
             areAnyProjectsExpanded = allProjects.any { it.isExpanded },
-            recentProjects = recentProjects,
+            recentItems = recentItems,
             allContexts = contexts,
           )
         }
@@ -374,7 +383,7 @@ constructor(
             dialogState = dialogState.dialogState,
             showRecentListsSheet = dialogState.showRecentListsSheet,
             isBottomNavExpanded = dialogState.isBottomNavExpanded,
-            recentProjects = expensiveCalcs.recentProjects,
+            recentItems = expensiveCalcs.recentItems,
             allContexts = expensiveCalcs.allContexts,
             searchResults = searchResults,
             showSearchDialog = dialogState.showSearchDialog,
@@ -415,7 +424,7 @@ constructor(
 
   data class ExpensiveCalculations(
     val areAnyProjectsExpanded: Boolean = false,
-    val recentProjects: List<Project> = emptyList(),
+    val recentItems: List<com.romankozak.forwardappmobile.data.database.models.RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
   )
 
@@ -542,7 +551,7 @@ constructor(
       is MainScreenEvent.BottomNavExpandedChange -> onBottomNavExpandedChange(event.isExpanded)
       is MainScreenEvent.ShowRecentLists -> _showRecentListsSheet.value = true
       is MainScreenEvent.DismissRecentLists -> _showRecentListsSheet.value = false
-      is MainScreenEvent.RecentProjectSelected -> onRecentProjectSelected(event.projectId)
+      is MainScreenEvent.RecentItemSelected -> onRecentItemSelected(event.item)
       is MainScreenEvent.DayPlanClick -> onDayPlanClicked()
       is MainScreenEvent.ContextSelected -> onContextSelected(event.name)
 
@@ -569,7 +578,8 @@ constructor(
       }
       is MainScreenEvent.NavigateToActivityTracker -> {
         viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.Navigate("activity_tracker_screen"))
+          val today = System.currentTimeMillis()
+          _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "TRACK"))
         }
       }
 
@@ -603,6 +613,10 @@ constructor(
       is MainScreenEvent.CloseSearch -> onCloseSearch()
       is MainScreenEvent.NavigateToProject -> onNavigateToProject(event.projectId)
       is MainScreenEvent.CollapseAll -> onCollapseAll()
+      is MainScreenEvent.UpdateLightTheme -> updateLightTheme(event.themeName)
+      is MainScreenEvent.UpdateDarkTheme -> updateDarkTheme(event.themeName)
+      is MainScreenEvent.UpdateThemeMode -> updateThemeMode(event.themeMode)
+      else -> {}
     }
   }
 
@@ -744,21 +758,37 @@ constructor(
     }
   }
 
-  private fun onRecentProjectSelected(projectId: String) {
+  private fun onRecentItemSelected(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
     viewModelScope.launch {
-      _showRecentListsSheet.value = false
-      val project = _allProjectsFlat.value.find { it.id == projectId }
-      if (project != null) {
-        popToSubState(MainSubState.Hierarchy)
-        enhancedNavigationManager?.navigateToProject(projectId, project.name)
-      }
+        _showRecentListsSheet.value = false
+        when (item.type) {
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
+                val project = _allProjectsFlat.value.find { it.id == item.target }
+                if (project != null) {
+                    popToSubState(MainSubState.Hierarchy)
+                    enhancedNavigationManager?.navigateToProject(item.target, project.name)
+                }
+            }
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
+                _uiEventChannel.send(ProjectUiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
+            }
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
+                _uiEventChannel.send(ProjectUiEvent.Navigate("custom_list_screen/${item.target}"))
+            }
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
+                val vaultName = settingsRepo.obsidianVaultNameFlow.first()
+                val encodedNoteName = java.net.URLEncoder.encode(item.target, "UTF-8")
+                val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"
+                _uiEventChannel.send(ProjectUiEvent.OpenUri(uri))
+            }
+        }
     }
   }
 
   private fun onDayPlanClicked() {
     viewModelScope.launch {
       val today = System.currentTimeMillis()
-      _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today))
+      _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "PLAN"))
     }
   }
 
@@ -893,5 +923,29 @@ constructor(
         _isProcessingReveal.value = false
       }
     }
+  }
+
+  private fun updateLightTheme(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+      viewModelScope.launch {
+          settingsRepo.saveThemeSettings(
+              themeSettings.value.copy(lightThemeName = themeName)
+          )
+      }
+  }
+
+  private fun updateDarkTheme(themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) {
+      viewModelScope.launch {
+          settingsRepo.saveThemeSettings(
+              themeSettings.value.copy(darkThemeName = themeName)
+          )
+      }
+  }
+
+  private fun updateThemeMode(themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) {
+      viewModelScope.launch {
+          settingsRepo.saveThemeSettings(
+              themeSettings.value.copy(themeMode = themeMode)
+          )
+      }
   }
 }

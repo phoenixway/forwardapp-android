@@ -1,5 +1,4 @@
-
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
 import TaskList
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -8,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -33,6 +32,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayPlanBottomNav
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.EditTaskDialog
@@ -104,7 +104,7 @@ private fun EmptyTasksState(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "Натисніть кнопку '+', щоб додати перше завдання",
+            text = "Натисніть кнопку '+'/Додати перше завдання",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -126,7 +126,7 @@ fun CompactDayPlanHeader(
     val formattedDate =
         remember(dayPlan?.date) {
             dayPlan?.date?.let { dateMillis ->
-                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale("uk", "UA"))
+                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale("uk"))
                 Instant.ofEpochMilli(dateMillis)
                     .atZone(ZoneId.systemDefault())
                     .format(formatter)
@@ -137,7 +137,6 @@ fun CompactDayPlanHeader(
             modifier
                 .fillMaxWidth()
                 .offset(y = (-10).dp),
-        
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
@@ -259,9 +258,9 @@ fun DayPlanScreen(
     dayPlanId: String,
     modifier: Modifier = Modifier,
     viewModel: DayPlanViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit,
     onNavigateToProject: (projectId: String) -> Unit,
     onNavigateToBacklog: (task: DayTask) -> Unit,
+    addTaskTrigger: Int,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
@@ -270,6 +269,12 @@ fun DayPlanScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(addTaskTrigger) {
+        if (addTaskTrigger > 0) {
+            viewModel.openAddTaskDialog()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.tasksUpdated.collect {
@@ -289,83 +294,52 @@ fun DayPlanScreen(
         viewModel.loadDataForPlan(dayPlanId)
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = {
-            SnackbarHost(
-                hostState = snackbarHostState,
-                snackbar = { snackbarData ->
-                    Snackbar(
-                        snackbarData = snackbarData,
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                },
-            )
-        },
-        bottomBar = {
-            BottomAppBar(
-                modifier = Modifier.height(56.dp),
-                actions = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.Home,
-                            contentDescription = "На головну",
-                        )
-                    }
-                },
-                floatingActionButton = {
-                    SmallFloatingActionButton(
-                        onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.openAddTaskDialog()
-                        },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation(),
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Додати завдання")
-                    }
-                },
-            )
-        },
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            when {
-                uiState.isLoading -> LoadingState()
-                uiState.error != null && uiState.tasks.isEmpty() -> {
-                    ErrorState(
-                        error = uiState.error!!,
-                        onRetry = { viewModel.loadDataForPlan(dayPlanId) },
-                    )
-                }
-                else -> {
-                    val tasks = uiState.tasks
-                    TaskList(
-                        tasks = tasks,
-                        dayPlan = uiState.dayPlan,
-                        onToggleTask = { taskId ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.toggleTaskCompletion(taskId)
-                        },
-                        onTaskLongPress = { task ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.selectTask(task)
-                        },
-                        onTasksReordered = { reorderedList ->
-                            uiState.dayPlan?.let { dayPlan ->
-                                viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                            }
-                        },
-                        onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
-                        onNavigateToNextDay = { viewModel.navigateToNextDay() },
-                        isNextDayNavigationEnabled = !uiState.isToday,
-                        onSublistClick = onNavigateToProject,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+    Box(modifier = modifier.fillMaxSize()) {
+        when {
+            uiState.isLoading -> LoadingState()
+            uiState.error != null && uiState.tasks.isEmpty() -> {
+                ErrorState(
+                    error = uiState.error!!,
+                    onRetry = { viewModel.loadDataForPlan(dayPlanId) },
+                )
+            }
+            else -> {
+                val tasks = uiState.tasks
+                TaskList(
+                    tasks = tasks,
+                    dayPlan = uiState.dayPlan,
+                    onToggleTask = { taskId ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.toggleTaskCompletion(taskId)
+                    },
+                    onTaskLongPress = { task ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.selectTask(task)
+                    },
+                    onTasksReordered = { reorderedList ->
+                        uiState.dayPlan?.let { dayPlan ->
+                            viewModel.updateTasksOrder(dayPlan.id, reorderedList)
+                        }
+                    },
+                    onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
+                    onNavigateToNextDay = { viewModel.navigateToNextDay() },
+                    isNextDayNavigationEnabled = !uiState.isToday,
+                    onSublistClick = onNavigateToProject,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            snackbar = { snackbarData ->
+                Snackbar(
+                    snackbarData = snackbarData,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 
     if (isAddTaskDialogOpen) {
@@ -384,7 +358,6 @@ fun DayPlanScreen(
             onDismiss = viewModel::clearSelectedTask,
             onEdit = {
                 viewModel.openEditTaskDialog()
-                
             },
             onDelete = { taskToDelete ->
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -425,7 +398,6 @@ fun DayPlanScreen(
         )
     }
 
-    
     if (showReminderDialog && selectedTask != null) {
         ReminderPickerDialog(
             onDismiss = {
@@ -541,21 +513,17 @@ fun TaskOptionsBottomSheet(
             ListItem(
                 headlineContent = { Text("Редагувати") },
                 leadingContent = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                
                 modifier =
                     Modifier.clickable {
                         onEdit()
-                        
                     },
             )
             ListItem(
                 headlineContent = { Text("Встановити нагадування") },
                 leadingContent = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
-                
                 modifier =
                     Modifier.clickable {
                         onSetReminder()
-                        
                     },
             )
             if (showAddToTodayOption) {
@@ -572,7 +540,7 @@ fun TaskOptionsBottomSheet(
             if (task.projectId != null || task.goalId != null) {
                 ListItem(
                     headlineContent = { Text("Показати в беклозі проекту") },
-                    leadingContent = { Icon(Icons.Outlined.ListAlt, contentDescription = null) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = null) },
                     modifier =
                         Modifier.clickable {
                             onShowInBacklog(task)
