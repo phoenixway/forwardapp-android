@@ -220,6 +220,9 @@ class BacklogMarkdownHandler
         }
     }
 
+private val ActivityRecord.isOngoing: Boolean
+    get() = this.startTime != null && this.endTime == null
+
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class BacklogViewModel
@@ -341,6 +344,13 @@ class BacklogViewModel
         val tagToContextNameMap: StateFlow<Map<String, String>> =
             contextHandler.tagToContextNameMap
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+        val lastOngoingActivity: StateFlow<ActivityRecord?> =
+            activityRepository
+                .getLogStream()
+                .map { log ->
+                    log.firstOrNull { it.isOngoing }
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
         val currentProjectContextMarker: StateFlow<String?> =
             combine(project, tagToContextNameMap) { proj, tagMap ->
@@ -1160,6 +1170,22 @@ class BacklogViewModel
                 onReminderDialogDismiss()
                 showSnackbar("Нагадування скасовано", null)
             }
+
+        fun stopOngoingActivity() {
+            viewModelScope.launch {
+                lastOngoingActivity.value?.let {
+                    activityRepository.endLastActivity(System.currentTimeMillis())
+                }
+            }
+        }
+
+        fun setReminderForOngoingActivity() {
+            viewModelScope.launch {
+                lastOngoingActivity.value?.let {
+                    _uiState.update { it.copy(recordForReminderDialog = lastOngoingActivity.value) }
+                }
+            }
+        }
 
         fun onStartTrackingCurrentProject() {
             val currentProjectId = projectIdFlow.value
