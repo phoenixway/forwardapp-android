@@ -8,6 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
+import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
@@ -47,6 +51,8 @@ class MainScreenViewModel
 constructor(
   private val projectRepository: ProjectRepository,
   private val settingsRepo: SettingsRepository,
+  private val activityRepository: ActivityRepository,
+  private val alarmScheduler: AlarmScheduler,
 
   private val application: Application,
   private val syncRepo: SyncRepository,
@@ -78,6 +84,13 @@ constructor(
 
   private val _uiState = MutableStateFlow(MainScreenUiState())
   val uiState: StateFlow<MainScreenUiState> = _uiState.asStateFlow()
+
+  val lastOngoingActivity: StateFlow<com.romankozak.forwardappmobile.data.database.models.ActivityRecord?> =
+      activityRepository
+          .getLogStream()
+          .map { log ->
+              log.firstOrNull { it.startTime != null && it.endTime == null }
+          }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
   val themeSettings: kotlinx.coroutines.flow.StateFlow<com.romankozak.forwardappmobile.ui.theme.ThemeSettings> = settingsRepo.themeSettings
       .stateIn(
@@ -791,6 +804,45 @@ constructor(
       _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "PLAN"))
     }
   }
+
+  fun stopOngoingActivity() {
+      viewModelScope.launch {
+          lastOngoingActivity.value?.let {
+              activityRepository.endLastActivity(System.currentTimeMillis())
+          }
+      }
+  }
+
+  fun setReminderForOngoingActivity() {
+      viewModelScope.launch {
+          lastOngoingActivity.value?.let {
+              _uiState.update { it.copy(recordForReminderDialog = lastOngoingActivity.value) }
+          }
+      }
+  }
+
+  fun onReminderDialogDismiss() {
+      _uiState.update { it.copy(recordForReminderDialog = null) }
+  }
+
+  fun onSetReminder(timestamp: Long) =
+      viewModelScope.launch {
+          val record = _uiState.value.recordForReminderDialog ?: return@launch
+
+          val updatedRecord = record.copy(reminderTime = timestamp)
+          activityRepository.updateRecord(updatedRecord)
+          alarmScheduler.scheduleForActivityRecord(updatedRecord)
+          onReminderDialogDismiss()
+      }
+
+  fun onClearReminder() =
+      viewModelScope.launch {
+          val record = _uiState.value.recordForReminderDialog ?: return@launch
+          val updatedRecord = record.copy(reminderTime = null)
+          activityRepository.updateRecord(updatedRecord)
+          alarmScheduler.cancelForActivityRecord(record)
+          onReminderDialogDismiss()
+      }
 
   private fun onContextSelected(name: String) {
     viewModelScope.launch {
