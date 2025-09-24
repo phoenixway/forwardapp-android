@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -205,6 +206,7 @@ private fun MainScreenScaffold(
                     onReminderClick = { viewModel.setReminderForOngoingActivity() },
                     onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) }
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
 
                 if (isSearchActive) {
@@ -636,6 +638,7 @@ private fun InProgressIndicator(
                 }
             }
             val timeString = formatElapsedTime(elapsedTime)
+            val context = androidx.compose.ui.platform.LocalContext.current
 
             Surface(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onIndicatorClick),
@@ -659,6 +662,14 @@ private fun InProgressIndicator(
                     }
                     IconButton(onClick = onStopClick) {
                         Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
+                    }
+                    IconButton(onClick = { 
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        val uri = android.net.Uri.fromParts("package", context.packageName, null)
+                        intent.data = uri
+                        context.startActivity(intent)
+                    }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Налаштування")
                     }
                 }
             }

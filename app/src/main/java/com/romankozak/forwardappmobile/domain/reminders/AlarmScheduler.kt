@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
@@ -19,6 +20,8 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.provider.Settings
+
 
 @Singleton
 class AlarmScheduler
@@ -154,32 +157,44 @@ class AlarmScheduler
             Log.i(tag, "AlarmScheduler: Alarm for requestCode: $requestCode was cancelled.")
         }
 
-        private fun checkPermissions(): Boolean {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val notificationPermission =
-                    ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.POST_NOTIFICATIONS,
-                    )
-                if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
-                    Log.e(tag, "AlarmScheduler: POST_NOTIFICATIONS permission not granted")
-                    return false
-                }
+    private fun checkPermissions(): Boolean {
+        // Перевірка дозволу на сповіщення для Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val notificationPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+            if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
+                Log.e(tag, "AlarmScheduler: POST_NOTIFICATIONS permission not granted")
+                Toast.makeText(context, "Please grant notification permission to schedule reminders.", Toast.LENGTH_LONG).show()
+                return false
             }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (!alarmManager.canScheduleExactAlarms()) {
-                    Log.e(tag, "AlarmScheduler: Cannot schedule exact alarms. Permission denied.")
-                    Log.e(tag, "AlarmScheduler: User needs to grant SCHEDULE_EXACT_ALARM permission in system settings")
-                    return false
-                }
-            }
-
-            checkBatteryOptimization()
-
-            Log.i(tag, "AlarmScheduler: All permissions are granted")
-            return true
         }
+
+        // Перевірка дозволу на точні будильники для Android 12+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.e(tag, "AlarmScheduler: Cannot schedule exact alarms. Permission denied.")
+                Log.e(tag, "AlarmScheduler: User needs to grant SCHEDULE_EXACT_ALARM permission in system settings")
+                Toast.makeText(context, "Please grant permission to schedule exact alarms.", Toast.LENGTH_LONG).show()
+                return false
+            }
+        }
+
+        // Перевірка дозволу на показ поверх інших додатків для Android 12+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!Settings.canDrawOverlays(context)) {
+                Log.e(tag, "AlarmScheduler: Cannot draw over other apps. Permission denied.")
+                Toast.makeText(context, "Please grant permission to display over other apps.", Toast.LENGTH_LONG).show()
+                return false
+            }
+        }
+
+        checkBatteryOptimization()
+
+        Log.i(tag, "AlarmScheduler: All permissions are granted")
+        return true
+    }
 
         private fun checkBatteryOptimization() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
