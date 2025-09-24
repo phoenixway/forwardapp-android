@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
@@ -125,7 +126,7 @@ fun CompactDayPlanHeader(
     val formattedDate =
         remember(dayPlan?.date) {
             dayPlan?.date?.let { dateMillis ->
-                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale("uk", "UA"))
+                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale("uk"))
                 Instant.ofEpochMilli(dateMillis)
                     .atZone(ZoneId.systemDefault())
                     .format(formatter)
@@ -257,11 +258,9 @@ fun DayPlanScreen(
     dayPlanId: String,
     modifier: Modifier = Modifier,
     viewModel: DayPlanViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit,
     onNavigateToProject: (projectId: String) -> Unit,
     onNavigateToBacklog: (task: DayTask) -> Unit,
-    onNavigateToAnalytics: () -> Unit,
-    onNavigateToDashboard: () -> Unit,
+    addTaskTrigger: Int,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
@@ -270,6 +269,12 @@ fun DayPlanScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(addTaskTrigger) {
+        if (addTaskTrigger > 0) {
+            viewModel.openAddTaskDialog()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.tasksUpdated.collect {
@@ -289,68 +294,52 @@ fun DayPlanScreen(
         viewModel.loadDataForPlan(dayPlanId)
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = {
-            SnackbarHost(
-                hostState = snackbarHostState,
-                snackbar = { snackbarData ->
-                    Snackbar(
-                        snackbarData = snackbarData,
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                },
-            )
-        },
-        bottomBar = {
-            DayPlanBottomNav(
-                onHomeClick = onNavigateBack,
-                onAddTaskClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    viewModel.openAddTaskDialog()
-                },
-                onAnalyticsClick = onNavigateToAnalytics,
-                onDashboardClick = onNavigateToDashboard
-            )
-        },
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            when {
-                uiState.isLoading -> LoadingState()
-                uiState.error != null && uiState.tasks.isEmpty() -> {
-                    ErrorState(
-                        error = uiState.error!!,
-                        onRetry = { viewModel.loadDataForPlan(dayPlanId) },
-                    )
-                }
-                else -> {
-                    val tasks = uiState.tasks
-                    TaskList(
-                        tasks = tasks,
-                        dayPlan = uiState.dayPlan,
-                        onToggleTask = { taskId ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.toggleTaskCompletion(taskId)
-                        },
-                        onTaskLongPress = { task ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.selectTask(task)
-                        },
-                        onTasksReordered = { reorderedList ->
-                            uiState.dayPlan?.let { dayPlan ->
-                                viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                            }
-                        },
-                        onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
-                        onNavigateToNextDay = { viewModel.navigateToNextDay() },
-                        isNextDayNavigationEnabled = !uiState.isToday,
-                        onSublistClick = onNavigateToProject,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+    Box(modifier = modifier.fillMaxSize()) {
+        when {
+            uiState.isLoading -> LoadingState()
+            uiState.error != null && uiState.tasks.isEmpty() -> {
+                ErrorState(
+                    error = uiState.error!!,
+                    onRetry = { viewModel.loadDataForPlan(dayPlanId) },
+                )
+            }
+            else -> {
+                val tasks = uiState.tasks
+                TaskList(
+                    tasks = tasks,
+                    dayPlan = uiState.dayPlan,
+                    onToggleTask = { taskId ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.toggleTaskCompletion(taskId)
+                    },
+                    onTaskLongPress = { task ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.selectTask(task)
+                    },
+                    onTasksReordered = { reorderedList ->
+                        uiState.dayPlan?.let { dayPlan ->
+                            viewModel.updateTasksOrder(dayPlan.id, reorderedList)
+                        }
+                    },
+                    onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
+                    onNavigateToNextDay = { viewModel.navigateToNextDay() },
+                    isNextDayNavigationEnabled = !uiState.isToday,
+                    onSublistClick = onNavigateToProject,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            snackbar = { snackbarData ->
+                Snackbar(
+                    snackbarData = snackbarData,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 
     if (isAddTaskDialogOpen) {
@@ -551,7 +540,7 @@ fun TaskOptionsBottomSheet(
             if (task.projectId != null || task.goalId != null) {
                 ListItem(
                     headlineContent = { Text("Показати в беклозі проекту") },
-                    leadingContent = { Icon(Icons.Outlined.ListAlt, contentDescription = null) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = null) },
                     modifier =
                         Modifier.clickable {
                             onShowInBacklog(task)

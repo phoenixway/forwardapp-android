@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.outlined.*
@@ -49,9 +50,6 @@ fun DayAnalyticsScreen(
     viewModel: DayAnalyticsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val tabs = AnalyticsTab.entries.toTypedArray()
-    val pagerState = rememberPagerState(initialPage = 0) { tabs.size }
-    val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxSize()) {
         TimeRangeSelector(
@@ -59,58 +57,7 @@ fun DayAnalyticsScreen(
             onRangeSelected = viewModel::selectTimeRange,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
-
-        TabRow(
-            selectedTabIndex = pagerState.currentPage,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            indicator = { tabPositions ->
-                TabRowDefaults.PrimaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                    height = 3.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            },
-        ) {
-            tabs.forEachIndexed { index, tab ->
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
-                        }
-                    },
-                    text = {
-                        Text(
-                            tab.title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    },
-                    icon = {
-                        Icon(
-                            tab.icon,
-                            contentDescription = tab.description,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    },
-                    selectedContentColor = MaterialTheme.colorScheme.primary,
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            when (tabs[page]) {
-                AnalyticsTab.OVERVIEW -> AnalyticsOverviewScreen(uiState)
-                AnalyticsTab.TRENDS -> AnalyticsTrendsScreen()
-                AnalyticsTab.DETAILS -> AnalyticsDetailsScreen()
-            }
-        }
+        AnalyticsOverviewScreen(uiState)
     }
 }
 
@@ -470,7 +417,7 @@ private fun WeeklyTrendsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
-                    Icons.Outlined.ShowChart,
+                    Icons.AutoMirrored.Outlined.ShowChart,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.secondary,
                 )
