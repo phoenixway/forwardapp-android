@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 36,
-    "identityHash": "7478e8fc3551950a3aec7d5c08b674b3",
+    "identityHash": "f0491ee685a395e8f5902fccac22e812",
     "entities": [
       {
         "tableName": "goals",
@@ -547,44 +547,6 @@
           }
         ],
         "foreignKeys": []
-      },
-      {
-        "tableName": "recent_project_entries",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`project_id` TEXT NOT NULL, `last_accessed` INTEGER NOT NULL, PRIMARY KEY(`project_id`), FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
-        "fields": [
-          {
-            "fieldPath": "projectId",
-            "columnName": "project_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "lastAccessed",
-            "columnName": "last_accessed",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "project_id"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": [
-          {
-            "table": "projects",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "project_id"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
-          }
-        ]
       },
       {
         "tableName": "link_items",
@@ -1746,7 +1708,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7478e8fc3551950a3aec7d5c08b674b3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f0491ee685a395e8f5902fccac22e812')"
     ]
   }
 }

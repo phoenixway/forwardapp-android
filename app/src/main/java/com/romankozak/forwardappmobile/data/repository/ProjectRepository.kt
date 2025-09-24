@@ -33,7 +33,6 @@ class ProjectRepository
 constructor(
     private val goalDao: GoalDao,
     private val projectDao: ProjectDao,
-    private val recentProjectDao: RecentProjectDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
     private val noteDao: NoteDao,
@@ -410,7 +409,6 @@ constructor(
     }
 
     suspend fun logProjectAccess(projectId: String) {
-        recentProjectDao.logAccess(RecentProjectEntry(projectId = projectId, lastAccessed = System.currentTimeMillis()))
         val project = getProjectById(projectId)
         if (project != null) {
             val recentItem = RecentItem(

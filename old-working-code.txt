@@ -100,19 +100,79 @@ val MIGRATION_34_35 = object : Migration(34, 35) {
         db.execSQL("ALTER TABLE custom_lists ADD COLUMN content TEXT")
     }
 }
+package com.romankozak.forwardappmobile.data.database
 
-val MIGRATION_35_36 = object : Migration(35, 36) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("DROP TABLE IF EXISTS recent_project_entries")
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS `recent_items` (
-                `id` TEXT NOT NULL, 
-                `type` TEXT NOT NULL, 
-                `lastAccessed` INTEGER NOT NULL, 
-                `displayName` TEXT NOT NULL, 
-                `target` TEXT NOT NULL, 
-                PRIMARY KEY(`id`)
-            )
-        """)
-    }
+import androidx.room.AutoMigration
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.models.*
+
+@Database(
+    entities = [
+        
+        Goal::class,
+        Project::class,
+        ListItem::class,
+        ActivityRecord::class,
+        RecentProjectEntry::class,
+        LinkItemEntity::class,
+        InboxRecord::class,
+        ChatMessageEntity::class,
+        ProjectExecutionLog::class,
+        DayPlan::class,
+        DayTask::class,
+        DailyMetric::class,
+        NoteEntity::class,
+        CustomListEntity::class,
+        CustomListItemEntity::class,
+        RecentItem::class,
+        
+        GoalFts::class,
+        ProjectFts::class,
+        ActivityRecordFts::class,
+        NoteFts::class,
+    ],
+    version = 36,
+    autoMigrations = [
+        AutoMigration(from = 7, to = 8),
+        AutoMigration(from = 9, to = 10),
+        AutoMigration(from = 32, to = 33),
+        AutoMigration(from = 33, to = 34),
+        AutoMigration(from = 35, to = 36)
+    ],
+    exportSchema = true,
+)
+@TypeConverters(Converters::class, DailyPlanConverters::class)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun projectDao(): ProjectDao
+
+    abstract fun goalDao(): GoalDao
+
+    abstract fun listItemDao(): ListItemDao
+
+    abstract fun activityRecordDao(): ActivityRecordDao
+
+    abstract fun recentProjectDao(): RecentProjectDao
+
+    abstract fun linkItemDao(): LinkItemDao
+
+    abstract fun inboxRecordDao(): InboxRecordDao
+
+    abstract fun chatDao(): ChatDao
+
+    abstract fun projectManagementDao(): ProjectManagementDao
+
+    abstract fun dayPlanDao(): DayPlanDao
+
+    abstract fun dayTaskDao(): DayTaskDao
+
+    abstract fun dailyMetricDao(): DailyMetricDao
+
+    abstract fun noteDao(): NoteDao
+
+    abstract fun customListDao(): CustomListDao
+
+    abstract fun recentItemDao(): RecentItemDao
 }

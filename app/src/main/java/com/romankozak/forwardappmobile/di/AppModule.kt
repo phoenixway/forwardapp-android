@@ -50,6 +50,7 @@ object DatabaseModule {
             MIGRATION_30_31,
             MIGRATION_31_32,
             MIGRATION_34_35,
+            MIGRATION_35_36,
         ).build()
 
     @Provides
@@ -63,9 +64,6 @@ object DatabaseModule {
 
     @Provides
     fun provideActivityRecordDao(db: AppDatabase): ActivityRecordDao = db.activityRecordDao()
-
-    @Provides
-    fun provideRecentProjectDao(db: AppDatabase): RecentProjectDao = db.recentProjectDao()
 
     @Provides
     fun provideLinkItemDao(db: AppDatabase): LinkItemDao = db.linkItemDao()
