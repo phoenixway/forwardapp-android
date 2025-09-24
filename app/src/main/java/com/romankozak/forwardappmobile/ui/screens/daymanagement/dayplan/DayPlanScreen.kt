@@ -1,5 +1,4 @@
-
-package com.romankozak.forwardappmobile.ui.screens.daymanagement
+package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
 import TaskList
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -15,7 +14,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -33,6 +31,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemType
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayPlanBottomNav
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.EditTaskDialog
@@ -104,7 +103,7 @@ private fun EmptyTasksState(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "Натисніть кнопку '+', щоб додати перше завдання",
+            text = "Натисніть кнопку '+'/Додати перше завдання",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -137,7 +136,6 @@ fun CompactDayPlanHeader(
             modifier
                 .fillMaxWidth()
                 .offset(y = (-10).dp),
-        
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
@@ -262,6 +260,8 @@ fun DayPlanScreen(
     onNavigateBack: () -> Unit,
     onNavigateToProject: (projectId: String) -> Unit,
     onNavigateToBacklog: (task: DayTask) -> Unit,
+    onNavigateToAnalytics: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
@@ -304,29 +304,14 @@ fun DayPlanScreen(
             )
         },
         bottomBar = {
-            BottomAppBar(
-                modifier = Modifier.height(56.dp),
-                actions = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.Home,
-                            contentDescription = "На головну",
-                        )
-                    }
+            DayPlanBottomNav(
+                onHomeClick = onNavigateBack,
+                onAddTaskClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    viewModel.openAddTaskDialog()
                 },
-                floatingActionButton = {
-                    SmallFloatingActionButton(
-                        onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.openAddTaskDialog()
-                        },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation(),
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Додати завдання")
-                    }
-                },
+                onAnalyticsClick = onNavigateToAnalytics,
+                onDashboardClick = onNavigateToDashboard
             )
         },
     ) { paddingValues ->
@@ -384,7 +369,6 @@ fun DayPlanScreen(
             onDismiss = viewModel::clearSelectedTask,
             onEdit = {
                 viewModel.openEditTaskDialog()
-                
             },
             onDelete = { taskToDelete ->
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -425,7 +409,6 @@ fun DayPlanScreen(
         )
     }
 
-    
     if (showReminderDialog && selectedTask != null) {
         ReminderPickerDialog(
             onDismiss = {
@@ -541,21 +524,17 @@ fun TaskOptionsBottomSheet(
             ListItem(
                 headlineContent = { Text("Редагувати") },
                 leadingContent = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                
                 modifier =
                     Modifier.clickable {
                         onEdit()
-                        
                     },
             )
             ListItem(
                 headlineContent = { Text("Встановити нагадування") },
                 leadingContent = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
-                
                 modifier =
                     Modifier.clickable {
                         onSetReminder()
-                        
                     },
             )
             if (showAddToTodayOption) {
