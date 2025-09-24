@@ -17,14 +17,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,10 +25,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -106,6 +101,7 @@ fun ProjectsScreen(
     val list by viewModel.project.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
     val desktopAddress by viewModel.desktopAddress.collectAsStateWithLifecycle()
+    val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
 
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
@@ -166,6 +162,20 @@ fun ProjectsScreen(
                 onTransfer = { url -> viewModel.onTransferBacklogViaWifi(url) },
                 desktopUrl = transferUrl,
                 transferStatus = uiState.transferStatus
+            )
+        }
+
+        uiState.recordForReminderDialog?.let { record ->
+            com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog(
+                onDismiss = viewModel::onReminderDialogDismiss,
+                onSetReminder = viewModel::onSetReminder,
+                onClearReminder = 
+                    if (record.reminderTime != null) {
+                        { viewModel.onClearReminder() }
+                    } else {
+                        null
+                    },
+                currentReminderTime = record.reminderTime,
             )
         }
 
@@ -248,83 +258,94 @@ fun ProjectsScreen(
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
-                AnimatedVisibility(
-                    visible = !isSelectionModeActive,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut(),
-                ) {
-                    ModernInputPanel(
-                        inputValue = uiState.inputValue,
-                        inputMode = uiState.inputMode,
-                        onValueChange = {
-                            viewModel.inputHandler.onInputTextChanged(
-                                it,
-                                uiState.inputMode
-                            )
-                        },
-                        onSubmit = {
-                            viewModel.inputHandler.submitInput(
-                                uiState.inputValue,
-                                uiState.inputMode
-                            )
-                        },
-                        onInputModeSelected = {
-                            viewModel.inputHandler.onInputModeSelected(
-                                it,
-                                uiState.inputValue
-                            )
-                        },
-                        onRecentsClick = {
-                            Log.d("Recents_Debug", "onRecentsClick called from ProjectScreen")
-                            viewModel.inputHandler.onShowRecentLists()
-                        },
-                        onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
-                        onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
-                        onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
-                        onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
-                        canGoBack = canGoBack,
-                        canGoForward = canGoForward,
-                        onBackClick = { viewModel.onBackPressed() },
-                        onForwardClick = { viewModel.onForwardPressed() },
-                        onHomeClick = viewModel::onHomeClick,
-                        isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
-                        onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
-                        onEditList = {
-                            Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
-                            menuExpanded = false
-                            Log.d("EDIT_PROJECT_DEBUG", "List id: ${list?.id}")
-                            navController.navigate("edit_list_screen/${list?.id}")
-                        },
-                        onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
-                        onDeleteList = { viewModel.deleteCurrentProject() },
-                        menuExpanded = menuExpanded,
-                        onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
-                        currentView = uiState.currentView,
-                        onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
-                        onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
-                        onExportToMarkdown = viewModel::onExportToMarkdownRequest,
-                        onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
-                        onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
-                        reminderParseResult = reminderParseResult,
-                        onClearReminder = viewModel::onClearReminder,
-                        isNerActive = uiState.nerState is NerState.Ready,
-                        onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
-                        isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
-                        modifier = Modifier
-                            .navigationBarsPadding()
-                            .imePadding(),
-                        onToggleProjectManagement = viewModel::onToggleProjectManagement,
-                        onExportProjectState = viewModel::onExportProjectStateRequest,
-                        onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
-                        onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
-                        onCloseSearch = viewModel::onCloseSearch,
-                        isViewModePanelVisible = uiState.isViewModePanelVisible,
-                        onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
-                        suggestions = suggestions,
-                        onSuggestionClick = viewModel::onSuggestionClick
+                Column {
+                    InProgressIndicator(
+                        ongoingActivity = lastOngoingActivity,
+                        onStopClick = viewModel::stopOngoingActivity,
+                        onReminderClick = viewModel::setReminderForOngoingActivity,
+                        onIndicatorClick = {
+                            val today = System.currentTimeMillis()
+                            navController.navigate("day_plan_screen/$today?startTab=TRACK")
+                        }
                     )
+                    AnimatedVisibility(
+                        visible = !isSelectionModeActive,
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut(),
+                    ) {
+                        ModernInputPanel(
+                            inputValue = uiState.inputValue,
+                            inputMode = uiState.inputMode,
+                            onValueChange = {
+                                viewModel.inputHandler.onInputTextChanged(
+                                    it,
+                                    uiState.inputMode
+                                )
+                            },
+                            onSubmit = {
+                                viewModel.inputHandler.submitInput(
+                                    uiState.inputValue,
+                                    uiState.inputMode
+                                )
+                            },
+                            onInputModeSelected = {
+                                viewModel.inputHandler.onInputModeSelected(
+                                    it,
+                                    uiState.inputValue
+                                )
+                            },
+                            onRecentsClick = {
+                                Log.d("Recents_Debug", "onRecentsClick called from ProjectScreen")
+                                viewModel.inputHandler.onShowRecentLists()
+                            },
+                            onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
+                            onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
+                            onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
+                            onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
+                            canGoBack = canGoBack,
+                            canGoForward = canGoForward,
+                            onBackClick = { viewModel.onBackPressed() },
+                            onForwardClick = { viewModel.onForwardPressed() },
+                            onHomeClick = viewModel::onHomeClick,
+                            isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
+                            onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                            onEditList = {
+                                Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
+                                menuExpanded = false
+                                Log.d("EDIT_PROJECT_DEBUG", "List id: ${list?.id}")
+                                navController.navigate("edit_list_screen/${list?.id}")
+                            },
+                            onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
+                            onDeleteList = { viewModel.deleteCurrentProject() },
+                            menuExpanded = menuExpanded,
+                            onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
+                            currentView = uiState.currentView,
+                            onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
+                            onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
+                            onExportToMarkdown = viewModel::onExportToMarkdownRequest,
+                            onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
+                            onExportBacklogToMarkdown = viewModel::onExportBacklogRequest,
+                            reminderParseResult = reminderParseResult,
+                            onClearReminder = viewModel::onClearReminder,
+                            isNerActive = uiState.nerState is NerState.Ready,
+                            onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
+                            isProjectManagementEnabled = list?.isProjectManagementEnabled == true,
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .imePadding(),
+                            onToggleProjectManagement = viewModel::onToggleProjectManagement,
+                            onExportProjectState = viewModel::onExportProjectStateRequest,
+                            onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
+                            onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
+                            onCloseSearch = viewModel::onCloseSearch,
+                            isViewModePanelVisible = uiState.isViewModePanelVisible,
+                            onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
+                            suggestions = suggestions,
+                            onSuggestionClick = viewModel::onSuggestionClick
+                        )
+                    }
                 }
-            },
+            }
         ) { paddingValues ->
             Log.d("Recents_Debug", "Scaffold content composed")
             
@@ -338,5 +359,69 @@ fun ProjectsScreen(
                 dragDropState = dragDropState
             )
         }
+    }
+}
+
+@Composable
+private fun InProgressIndicator(
+    ongoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
+    onStopClick: () -> Unit,
+    onReminderClick: () -> Unit,
+    onIndicatorClick: () -> Unit
+) {
+    AnimatedVisibility(
+        visible = ongoingActivity != null,
+        enter = fadeIn() + slideInVertically(),
+        exit = fadeOut() + slideOutVertically(),
+    ) {
+        if (ongoingActivity != null) {
+            var elapsedTime by remember { mutableLongStateOf(System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)) }
+
+            LaunchedEffect(key1 = ongoingActivity.id) {
+                while (true) {
+                    elapsedTime = System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)
+                    kotlinx.coroutines.delay(1000L)
+                }
+            }
+            val timeString = formatElapsedTime(elapsedTime)
+
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onIndicatorClick),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = ongoingActivity.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = onReminderClick) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Встановити нагадування")
+                    }
+                    IconButton(onClick = onStopClick) {
+                        Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun formatElapsedTime(elapsedTime: Long): String {
+    val hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(elapsedTime)
+    val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(elapsedTime) % 60
+    val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60
+    return if (hours > 0) {
+        String.format(java.util.Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 }
