@@ -407,7 +407,7 @@ private fun NavigationBar(
             .fillMaxWidth()
             .heightIn(min = 52.dp)
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .animateContentSize(),
+            ,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // --- LEFT SIDE ---
@@ -424,12 +424,24 @@ private fun NavigationBar(
         }
 
         // Only in Nav Mode
-        AnimatedVisibility(visible = !state.isViewModePanelVisible, enter = fadeIn(), exit = fadeOut()) {
+        AnimatedVisibility(
+            visible = !state.isViewModePanelVisible,
+            enter = slideInHorizontally(animationSpec = tween(400, easing = LinearOutSlowInEasing), initialOffsetX = { it }) + fadeIn(animationSpec = tween(400)),
+            exit = slideOutHorizontally(animationSpec = tween(400, easing = FastOutLinearInEasing), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(400)),
+        ) {
             Row {
                 IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
                     Icon(
                         Icons.Outlined.Restore,
                         "Недавні",
+                        tint = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        Icons.Filled.MyLocation,
+                        "Показати у списку",
                         tint = contentColor.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp),
                     )
@@ -440,8 +452,8 @@ private fun NavigationBar(
         // Only in View Mode
         AnimatedVisibility(
             visible = state.isViewModePanelVisible,
-            enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
-            exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End),
+            enter = slideInHorizontally(animationSpec = tween(400, easing = LinearOutSlowInEasing), initialOffsetX = { it }) + fadeIn(animationSpec = tween(400)),
+            exit = slideOutHorizontally(animationSpec = tween(400, easing = FastOutLinearInEasing), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(400)),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
@@ -465,38 +477,35 @@ private fun NavigationBar(
         Spacer(Modifier.weight(1f))
 
         // --- RIGHT SIDE ---
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Tune button in nav mode
-            AnimatedVisibility(
-                visible = !state.isViewModePanelVisible,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.Tune,
-                        contentDescription = "Перемкнути панель",
-                        tint = contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-
-            val attachmentIconColor by animateColorAsState(
-                if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
-                label = "attColor",
-            )
-            val attachmentIconScale by animateFloatAsState(if (state.isAttachmentsExpanded) 1.2f else 1.0f, label = "attScale")
-            IconButton(onClick = actions.onToggleAttachments, modifier = Modifier.size(40.dp)) {
+        AnimatedVisibility(
+            visible = !state.isViewModePanelVisible,
+            enter = slideInHorizontally(animationSpec = tween(400, easing = LinearOutSlowInEasing), initialOffsetX = { it }) + fadeIn(animationSpec = tween(400)),
+            exit = slideOutHorizontally(animationSpec = tween(400, easing = FastOutLinearInEasing), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(400)),
+        ) {
+            IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
                 Icon(
-                    imageVector = Icons.Default.Attachment,
-                    contentDescription = stringResource(R.string.toggle_attachments),
-                    tint = attachmentIconColor,
-                    modifier = Modifier.size(20.dp).scale(attachmentIconScale),
+                    imageVector = Icons.Outlined.Tune,
+                    contentDescription = "Перемкнути панель",
+                    tint = contentColor.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
                 )
             }
-            OptionsMenu(state = state, actions = actions, contentColor = contentColor)
         }
+
+        val attachmentIconColor by animateColorAsState(
+            if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
+            label = "attColor",
+        )
+        val attachmentIconScale by animateFloatAsState(if (state.isAttachmentsExpanded) 1.2f else 1.0f, label = "attScale")
+        IconButton(onClick = actions.onToggleAttachments, modifier = Modifier.size(40.dp)) {
+            Icon(
+                imageVector = Icons.Default.Attachment,
+                contentDescription = stringResource(R.string.toggle_attachments),
+                tint = attachmentIconColor,
+                modifier = Modifier.size(20.dp).scale(attachmentIconScale),
+            )
+        }
+        OptionsMenu(state = state, actions = actions, contentColor = contentColor)
     }
 }
 

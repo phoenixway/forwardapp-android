@@ -14,6 +14,10 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +26,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -45,6 +51,33 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.input
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ExportTransferDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecentProjectsSheet(
+    viewModel: BacklogViewModel,
+    onDismiss: () -> Unit
+) {
+    val recentItems by viewModel.recentItems.collectAsStateWithLifecycle()
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        if (recentItems.isEmpty()) {
+            Text("No recent items", modifier = Modifier.padding(16.dp))
+        } else {
+            LazyColumn(modifier = Modifier.navigationBarsPadding()) {
+                items(recentItems, key = { it.id }) { item ->
+                    ListItem(
+                        headlineContent = { Text(item.displayName) },
+                        modifier = Modifier.clickable {
+                            viewModel.onRecentItemClick(item)
+                            onDismiss()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun ProjectsScreen(
@@ -241,7 +274,10 @@ fun ProjectsScreen(
                                 uiState.inputValue
                             )
                         },
-                        onRecentsClick = { viewModel.inputHandler.onShowRecentLists() },
+                        onRecentsClick = {
+                            Log.d("Recents_Debug", "onRecentsClick called from ProjectScreen")
+                            viewModel.inputHandler.onShowRecentLists()
+                        },
                         onAddListLinkClick = { viewModel.inputHandler.onAddListLinkRequest() },
                         onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
                         onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
@@ -290,6 +326,9 @@ fun ProjectsScreen(
                 }
             },
         ) { paddingValues ->
+            Log.d("Recents_Debug", "Scaffold content composed")
+            
+
             GoalDetailContent(
                 modifier = Modifier.padding(paddingValues),
                 viewModel = viewModel,
