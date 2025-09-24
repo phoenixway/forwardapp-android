@@ -55,7 +55,7 @@ import androidx.compose.material3.ripple
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
-
+// ------------------- STATE ---------------------
 
 private data class PanelColors(
     val containerColor: Color,
@@ -103,6 +103,8 @@ data class OptionsMenuActions(
     val onExportProjectState: () -> Unit,
     val onDeleteList: () -> Unit,
 )
+
+// ------------------- VIEW TOGGLE ---------------------
 
 @Composable
 private fun ViewModeToggle(
@@ -160,6 +162,8 @@ private fun ViewModeToggle(
     }
 }
 
+// ------------------- MENU ---------------------
+
 private data class MenuItem(
     val text: String,
     val icon: ImageVector,
@@ -168,7 +172,7 @@ private data class MenuItem(
     val isDestructive: Boolean = false,
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OptionsMenu(
     state: NavPanelState,
@@ -177,12 +181,26 @@ private fun OptionsMenu(
 ) {
     Box {
         IconButton(onClick = { actions.onMenuExpandedChange(true) }, modifier = Modifier.size(40.dp)) {
-            Icon(
-                Icons.Default.MoreVert,
-                stringResource(R.string.more_options),
-                tint = contentColor.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp),
-            )
+            AnimatedContent(
+                targetState = state.inputMode,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "OptionsMenuIconAnimation",
+            ) { mode ->
+                val icon = when (mode) {
+                    InputMode.SearchInList -> Icons.Default.Close
+                    else -> Icons.Default.MoreVert
+                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = if (mode == InputMode.SearchInList) {
+                        "Закрити пошук"
+                    } else {
+                        stringResource(R.string.more_options)
+                    },
+                    tint = contentColor.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
 
         if (state.menuExpanded) {
@@ -193,8 +211,6 @@ private fun OptionsMenu(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 val menu = actions.menuActions
-
-                
                 val editListText = stringResource(R.string.edit_list)
                 val shareListText = stringResource(R.string.share_list)
                 val deleteListText = stringResource(R.string.delete_list)
@@ -203,52 +219,40 @@ private fun OptionsMenu(
                     remember(state.currentView, state.isProjectManagementEnabled) {
                         listOf(
                             MenuItem(editListText, Icons.Default.Edit, {
-                                menu.onEditList()
-                                actions.onMenuExpandedChange(false)
+                                menu.onEditList(); actions.onMenuExpandedChange(false)
                             }),
                             MenuItem("Додати до плану на сьогодні", Icons.Outlined.EventAvailable, {
-                                actions.onAddProjectToDayPlan()
-                                actions.onMenuExpandedChange(false)
+                                actions.onAddProjectToDayPlan(); actions.onMenuExpandedChange(false)
                             }),
                             MenuItem("Toggle realization support", Icons.Outlined.Construction, {
-                                menu.onToggleProjectManagement()
-                                actions.onMenuExpandedChange(false)
+                                menu.onToggleProjectManagement(); actions.onMenuExpandedChange(false)
                             }),
                             MenuItem("Start tracking current project", Icons.Outlined.PlayCircle, {
-                                menu.onStartTrackingCurrentProject()
-                                actions.onMenuExpandedChange(false)
+                                menu.onStartTrackingCurrentProject(); actions.onMenuExpandedChange(false)
                             }),
                             MenuItem(shareListText, Icons.Default.Share, {
-                                menu.onShareList()
-                                actions.onMenuExpandedChange(false)
+                                menu.onShareList(); actions.onMenuExpandedChange(false)
                             }),
                             MenuItem("Імпортувати з Markdown", Icons.Default.Upload, {
-                                menu.onImportFromMarkdown()
-                                actions.onMenuExpandedChange(false)
+                                menu.onImportFromMarkdown(); actions.onMenuExpandedChange(false)
                             }, isVisible = state.currentView == ProjectViewMode.INBOX),
                             MenuItem("Експортувати в Markdown", Icons.Default.Download, {
-                                menu.onExportToMarkdown()
-                                actions.onMenuExpandedChange(false)
+                                menu.onExportToMarkdown(); actions.onMenuExpandedChange(false)
                             }, isVisible = state.currentView == ProjectViewMode.INBOX),
                             MenuItem("Імпортувати беклог з Markdown", Icons.Default.Upload, {
-                                menu.onImportBacklogFromMarkdown()
-                                actions.onMenuExpandedChange(false)
+                                menu.onImportBacklogFromMarkdown(); actions.onMenuExpandedChange(false)
                             }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
                             MenuItem("Експортувати беклог в Markdown", Icons.Default.Download, {
-                                menu.onExportBacklogToMarkdown()
-                                actions.onMenuExpandedChange(false)
+                                menu.onExportBacklogToMarkdown(); actions.onMenuExpandedChange(false)
                             }, isVisible = state.currentView == ProjectViewMode.BACKLOG),
                             MenuItem("Експортувати історію і стан", Icons.Outlined.Assessment, {
-                                menu.onExportProjectState()
-                                actions.onMenuExpandedChange(false)
+                                menu.onExportProjectState(); actions.onMenuExpandedChange(false)
                             }, isVisible = state.isProjectManagementEnabled),
                             MenuItem("Недавні проекти", Icons.Outlined.Restore, {
-                                actions.onRecentsClick()
-                                actions.onMenuExpandedChange(false)
+                                actions.onRecentsClick(); actions.onMenuExpandedChange(false)
                             }),
                             MenuItem(deleteListText, Icons.Outlined.Delete, {
-                                menu.onDeleteList()
-                                actions.onMenuExpandedChange(false)
+                                menu.onDeleteList(); actions.onMenuExpandedChange(false)
                             }, isDestructive = true),
                         )
                     }
@@ -263,10 +267,7 @@ private fun OptionsMenu(
                     items(menuItems.filter { it.isVisible }) { item ->
                         val color = if (item.isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         Column(
-                            modifier =
-                                Modifier
-                                    .clickable { item.onClick() }
-                                    .padding(8.dp),
+                            modifier = Modifier.clickable { item.onClick() }.padding(8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
@@ -281,7 +282,7 @@ private fun OptionsMenu(
     }
 }
 
-
+// ------------------- BACK/FORWARD ---------------------
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -290,9 +291,8 @@ private fun BackForwardButton(
     actions: NavPanelActions,
     contentColor: Color,
 ) {
-    val shouldShowButton =
-        state.inputMode != InputMode.SearchInList &&
-            (state.canGoBack || state.canGoForward)
+    val shouldShowButton = state.inputMode != InputMode.SearchInList &&
+        (state.canGoBack || state.canGoForward)
 
     AnimatedVisibility(visible = shouldShowButton) {
         val haptic = LocalHapticFeedback.current
@@ -306,23 +306,22 @@ private fun BackForwardButton(
         }
 
         Box(
-            modifier =
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .combinedClickable(
-                        enabled = state.canGoBack || state.canGoForward,
-                        onClick = { if (state.canGoBack) actions.onBackClick() },
-                        onLongClick = {
-                            if (state.canGoForward) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                showForwardIcon = true
-                                actions.onForwardClick()
-                            }
-                        },
-                        indication = ripple(bounded = false),
-                        interactionSource = remember { MutableInteractionSource() },
-                    ),
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .combinedClickable(
+                    enabled = state.canGoBack || state.canGoForward,
+                    onClick = { if (state.canGoBack) actions.onBackClick() },
+                    onLongClick = {
+                        if (state.canGoForward) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showForwardIcon = true
+                            actions.onForwardClick()
+                        }
+                    },
+                    indication = ripple(bounded = false),
+                    interactionSource = remember { MutableInteractionSource() },
+                ),
             contentAlignment = Alignment.Center,
         ) {
             BackForwardIcon(
@@ -332,23 +331,22 @@ private fun BackForwardButton(
             )
 
             if (state.canGoForward && !showForwardIcon) {
-                androidx.compose.animation.AnimatedVisibility(
+                AnimatedVisibility(
                     visible = true,
                     modifier = Modifier.align(Alignment.BottomEnd),
                     enter = fadeIn() + scaleIn(),
                     exit = fadeOut() + scaleOut(),
                 ) {
                     Box(
-                        modifier =
-                            Modifier
-                                .padding(4.dp)
-                                .size(6.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                .border(
-                                    width = 1.dp,
-                                    color = contentColor.copy(alpha = 0.5f),
-                                    shape = CircleShape,
-                                ),
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .size(6.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            .border(
+                                width = 1.dp,
+                                color = contentColor.copy(alpha = 0.5f),
+                                shape = CircleShape,
+                            ),
                     )
                 }
             }
@@ -377,21 +375,21 @@ private fun BackForwardIcon(
         label = "BackForwardIconAnimation",
     ) { isForward ->
         Icon(
-            imageVector =
-                if (isForward) {
-                    Icons.AutoMirrored.Filled.ArrowForward
-                } else {
-                    Icons.AutoMirrored.Filled.ArrowBack
-                },
+            imageVector = if (isForward) {
+                Icons.AutoMirrored.Filled.ArrowForward
+            } else {
+                Icons.AutoMirrored.Filled.ArrowBack
+            },
             contentDescription = "Назад (довге натискання - Вперед)",
-            modifier =
-                Modifier
-                    .size(20.dp)
-                    .scale(if (isForward) 1.2f else iconScale),
+            modifier = Modifier
+                .size(20.dp)
+                .scale(if (isForward) 1.2f else iconScale),
             tint = if (isForward) MaterialTheme.colorScheme.primary else iconColor,
         )
     }
 }
+
+// ------------------- NAV BAR ---------------------
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -402,18 +400,15 @@ private fun NavigationBar(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier =
-        modifier
+        modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            ,
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // --- LEFT SIDE ---
-
-        // Always visible
         BackForwardButton(state, actions, contentColor)
+
         IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
             Icon(
                 Icons.Filled.Home,
@@ -423,39 +418,60 @@ private fun NavigationBar(
             )
         }
 
-        // Only in Nav Mode
-        AnimatedVisibility(
-            visible = !state.isViewModePanelVisible,
-            enter = slideInHorizontally(animationSpec = tween(400, easing = LinearOutSlowInEasing), initialOffsetX = { it }) + fadeIn(animationSpec = tween(400)),
-            exit = slideOutHorizontally(animationSpec = tween(400, easing = FastOutLinearInEasing), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(400)),
-        ) {
-            Row {
-                IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
-                    Icon(
-                        Icons.Outlined.Restore,
-                        "Недавні",
-                        tint = contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp),
-                    )
+        AnimatedContent(
+            targetState = state.isViewModePanelVisible,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "NavBarLeftAnimation",
+        ) { isViewMode ->
+            if (!isViewMode) {
+                Row {
+                    IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            Icons.Outlined.Restore,
+                            "Недавні",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            Icons.Filled.MyLocation,
+                            "Показати у списку",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
-                IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
-                    Icon(
-                        Icons.Filled.MyLocation,
-                        "Показати у списку",
-                        tint = contentColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp),
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = Icons.Outlined.Tune,
+                            contentDescription = "Перемкнути панель",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    ViewModeToggle(
+                        currentView = state.currentView,
+                        isProjectManagementEnabled = state.isProjectManagementEnabled,
+                        onViewChange = actions.onViewChange,
+                        onInputModeSelected = actions.onInputModeSelected,
+                        contentColor = contentColor,
                     )
                 }
             }
         }
 
-        // Only in View Mode
-        AnimatedVisibility(
-            visible = state.isViewModePanelVisible,
-            enter = slideInHorizontally(animationSpec = tween(400, easing = LinearOutSlowInEasing), initialOffsetX = { it }) + fadeIn(animationSpec = tween(400)),
-            exit = slideOutHorizontally(animationSpec = tween(400, easing = FastOutLinearInEasing), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(400)),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.weight(1f))
+
+        // --- RIGHT SIDE ---
+        AnimatedContent(
+            targetState = state.isViewModePanelVisible,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "NavBarRightAnimation",
+        ) { isViewMode ->
+            if (!isViewMode) {
                 IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
                     Icon(
                         imageVector = Icons.Outlined.Tune,
@@ -464,31 +480,6 @@ private fun NavigationBar(
                         modifier = Modifier.size(20.dp),
                     )
                 }
-                ViewModeToggle(
-                    currentView = state.currentView,
-                    isProjectManagementEnabled = state.isProjectManagementEnabled,
-                    onViewChange = actions.onViewChange,
-                    onInputModeSelected = actions.onInputModeSelected,
-                    contentColor = contentColor,
-                )
-            }
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        // --- RIGHT SIDE ---
-        AnimatedVisibility(
-            visible = !state.isViewModePanelVisible,
-            enter = slideInHorizontally(animationSpec = tween(400, easing = LinearOutSlowInEasing), initialOffsetX = { it }) + fadeIn(animationSpec = tween(400)),
-            exit = slideOutHorizontally(animationSpec = tween(400, easing = FastOutLinearInEasing), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(400)),
-        ) {
-            IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.Outlined.Tune,
-                    contentDescription = "Перемкнути панель",
-                    tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp),
-                )
             }
         }
 
@@ -496,7 +487,11 @@ private fun NavigationBar(
             if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
             label = "attColor",
         )
-        val attachmentIconScale by animateFloatAsState(if (state.isAttachmentsExpanded) 1.2f else 1.0f, label = "attScale")
+        val attachmentIconScale by animateFloatAsState(
+            if (state.isAttachmentsExpanded) 1.2f else 1.0f,
+            label = "attScale",
+        )
+
         IconButton(onClick = actions.onToggleAttachments, modifier = Modifier.size(40.dp)) {
             Icon(
                 imageVector = Icons.Default.Attachment,
@@ -505,9 +500,56 @@ private fun NavigationBar(
                 modifier = Modifier.size(20.dp).scale(attachmentIconScale),
             )
         }
+
         OptionsMenu(state = state, actions = actions, contentColor = contentColor)
     }
 }
+
+// ------------------- NER INDICATOR ---------------------
+
+@Composable
+private fun NerIndicator(
+    isActive: Boolean,
+    hasText: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = isActive && hasText,
+        modifier = modifier,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+    ) {
+        val infiniteTransition = rememberInfiniteTransition(label = "ner_indicator_transition")
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "ner_indicator_scale",
+        )
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.7f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 800),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "ner_indicator_alpha",
+        )
+
+        Icon(
+            imageVector = Icons.Default.AutoAwesome,
+            contentDescription = "Smart recognition active",
+            tint = MaterialTheme.colorScheme.tertiary.copy(alpha = alpha),
+            modifier = Modifier
+                .size(18.dp)
+                .scale(scale),
+        )
+    }
+}
+
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -582,18 +624,18 @@ fun ModernInputPanel(
             onAddProjectToDayPlan = onAddProjectToDayPlan,
             onToggleNavPanelMode = onToggleNavPanelMode,
             menuActions =
-                OptionsMenuActions(
-                    onEditList = onEditList,
-                    onToggleProjectManagement = onToggleProjectManagement,
-                    onStartTrackingCurrentProject = onStartTrackingCurrentProject,
-                    onShareList = onShareList,
-                    onImportFromMarkdown = onImportFromMarkdown,
-                    onExportToMarkdown = onExportToMarkdown,
-                    onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
-                    onExportBacklogToMarkdown = onExportBacklogToMarkdown,
-                    onExportProjectState = onExportProjectState,
-                    onDeleteList = onDeleteList,
-                ),
+            OptionsMenuActions(
+                onEditList = onEditList,
+                onToggleProjectManagement = onToggleProjectManagement,
+                onStartTrackingCurrentProject = onStartTrackingCurrentProject,
+                onShareList = onShareList,
+                onImportFromMarkdown = onImportFromMarkdown,
+                onExportToMarkdown = onExportToMarkdown,
+                onImportBacklogFromMarkdown = onImportBacklogFromMarkdown,
+                onExportBacklogToMarkdown = onExportBacklogToMarkdown,
+                onExportProjectState = onExportProjectState,
+                onDeleteList = onDeleteList,
+            ),
         )
 
     val focusRequester = remember { FocusRequester() }
@@ -675,9 +717,9 @@ fun ModernInputPanel(
 
     Surface(
         modifier =
-            modifier
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .fillMaxWidth(),
+        modifier
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         shadowElevation = 0.dp,
         tonalElevation = 0.dp,
@@ -727,9 +769,9 @@ fun ModernInputPanel(
 
             Row(
                 modifier =
-                    Modifier
-                        .defaultMinSize(minHeight = 64.dp)
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                Modifier
+                    .defaultMinSize(minHeight = 64.dp)
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 Box {
@@ -739,31 +781,31 @@ fun ModernInputPanel(
                         color = panelColors.contentColor.copy(alpha = 0.1f),
                         contentColor = panelColors.contentColor,
                         modifier =
-                            Modifier
-                                .size(48.dp)
-                                .scale(buttonScale)
-                                .pointerInput(inputMode) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { isPressed = true },
-                                        onDragEnd = {
-                                            isPressed = false
-                                            val threshold = 50f
-                                            when {
-                                                dragOffset > threshold -> {
-                                                    animationDirection = -1
-                                                    val prevIndex = ((currentModeIndex - 1) + modes.size) % modes.size
-                                                    onInputModeSelected(modes[prevIndex])
-                                                }
-                                                dragOffset < -threshold -> {
-                                                    animationDirection = 1
-                                                    val nextIndex = (currentModeIndex + 1) % modes.size
-                                                    onInputModeSelected(modes[nextIndex])
-                                                }
+                        Modifier
+                            .size(48.dp)
+                            .scale(buttonScale)
+                            .pointerInput(inputMode) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { isPressed = true },
+                                    onDragEnd = {
+                                        isPressed = false
+                                        val threshold = 50f
+                                        when {
+                                            dragOffset > threshold -> {
+                                                animationDirection = -1
+                                                val prevIndex = ((currentModeIndex - 1) + modes.size) % modes.size
+                                                onInputModeSelected(modes[prevIndex])
                                             }
-                                            dragOffset = 0f
-                                        },
-                                    ) { _, dragAmount -> dragOffset += dragAmount }
-                                },
+                                            dragOffset < -threshold -> {
+                                                animationDirection = 1
+                                                val nextIndex = (currentModeIndex + 1) % modes.size
+                                                onInputModeSelected(modes[nextIndex])
+                                            }
+                                        }
+                                        dragOffset = 0f
+                                    },
+                                ) { _, dragAmount -> dragOffset += dragAmount }
+                            },
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                             AnimatedContent(
@@ -783,19 +825,19 @@ fun ModernInputPanel(
                                     slideIntoContainer(
                                         direction,
                                         animationSpec =
-                                            spring(
-                                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                                stiffness = Spring.StiffnessLow,
-                                            ),
+                                        spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessLow,
+                                        ),
                                     ) + fadeIn(animationSpec = tween(800)) togetherWith
-                                        slideOutOfContainer(
-                                            direction,
-                                            animationSpec =
+                                            slideOutOfContainer(
+                                                direction,
+                                                animationSpec =
                                                 spring(
                                                     dampingRatio = Spring.DampingRatioNoBouncy,
                                                     stiffness = Spring.StiffnessLow,
                                                 ),
-                                        ) + fadeOut(animationSpec = tween(850))
+                                            ) + fadeOut(animationSpec = tween(850))
                                 },
                                 label = "mode_icon_animation",
                             ) { mode ->
@@ -811,11 +853,11 @@ fun ModernInputPanel(
                                     imageVector = icon,
                                     contentDescription = null,
                                     modifier =
-                                        Modifier
-                                            .size(22.dp)
-                                            .graphicsLayer {
-                                                rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
-                                            },
+                                    Modifier
+                                        .size(22.dp)
+                                        .graphicsLayer {
+                                            rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
+                                        },
                                 )
                             }
                         }
@@ -823,12 +865,12 @@ fun ModernInputPanel(
 
                     Box(
                         modifier =
-                            Modifier
-                                .align(Alignment.TopEnd)
-                                .size(8.dp)
-                                .background(color = panelColors.accentColor, shape = CircleShape)
-                                .padding(1.dp)
-                                .background(color = panelColors.contentColor.copy(alpha = 0.3f), shape = CircleShape),
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .size(8.dp)
+                            .background(color = panelColors.accentColor, shape = CircleShape)
+                            .padding(1.dp)
+                            .background(color = panelColors.contentColor.copy(alpha = 0.3f), shape = CircleShape),
                     )
                 }
 
@@ -836,10 +878,10 @@ fun ModernInputPanel(
 
                 Surface(
                     modifier =
-                        Modifier
-                            .weight(1f)
-                            .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
-                            .defaultMinSize(minHeight = 44.dp),
+                    Modifier
+                        .weight(1f)
+                        .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
+                        .defaultMinSize(minHeight = 44.dp),
                     shape = RoundedCornerShape(20.dp),
                     color = panelColors.inputFieldColor,
                     border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
@@ -849,16 +891,16 @@ fun ModernInputPanel(
                         value = inputValue,
                         onValueChange = onValueChange,
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 12.dp)
-                                .focusRequester(focusRequester),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
+                            .focusRequester(focusRequester),
                         textStyle =
-                            MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Normal,
-                            ),
+                        MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                        ),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
                         singleLine = false,
@@ -866,9 +908,9 @@ fun ModernInputPanel(
                         decorationBox = { innerTextField ->
                             Row(
                                 modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Box(
@@ -878,18 +920,18 @@ fun ModernInputPanel(
                                     if (inputValue.text.isEmpty()) {
                                         Text(
                                             text =
-                                                when (inputMode) {
-                                                    InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
-                                                    InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
-                                                    InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
-                                                    InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
-                                                    InputMode.AddProjectLog -> "Додати коментар до проекту..."
-                                                },
+                                            when (inputMode) {
+                                                InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                                                InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
+                                                InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
+                                                InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
+                                                InputMode.AddProjectLog -> "Додати коментар до проекту..."
+                                            },
                                             style =
-                                                MaterialTheme.typography.bodyLarge.copy(
-                                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                                                    fontSize = 16.sp,
-                                                ),
+                                            MaterialTheme.typography.bodyLarge.copy(
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                                fontSize = 16.sp,
+                                            ),
                                         )
                                     }
                                     innerTextField()
@@ -943,19 +985,19 @@ fun ModernInputPanel(
                     IconButton(
                         onClick = onSubmit,
                         modifier =
-                            Modifier
-                                .size(44.dp)
-                                .background(color = sendButtonBackgroundColor, shape = CircleShape),
+                        Modifier
+                            .size(44.dp)
+                            .background(color = sendButtonBackgroundColor, shape = CircleShape),
                         colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor =
-                                    when (inputMode) {
-                                        InputMode.AddGoal, InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
-                                        InputMode.SearchInList -> MaterialTheme.colorScheme.onPrimary
-                                        InputMode.SearchGlobal -> MaterialTheme.colorScheme.onTertiary
-                                        InputMode.AddProjectLog -> MaterialTheme.colorScheme.primary
-                                    },
-                            ),
+                        IconButtonDefaults.iconButtonColors(
+                            contentColor =
+                            when (inputMode) {
+                                InputMode.AddGoal, InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
+                                InputMode.SearchInList -> MaterialTheme.colorScheme.onPrimary
+                                InputMode.SearchGlobal -> MaterialTheme.colorScheme.onTertiary
+                                InputMode.AddProjectLog -> MaterialTheme.colorScheme.primary
+                            },
+                        ),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
@@ -977,52 +1019,6 @@ fun ModernInputPanel(
             onShowAddWebLinkDialog = onShowAddWebLinkDialog,
             onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
             onAddListShortcutClick = onAddListShortcutClick,
-        )
-    }
-}
-
-@Composable
-private fun NerIndicator(
-    isActive: Boolean,
-    hasText: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    AnimatedVisibility(
-        visible = isActive && hasText,
-        modifier = modifier,
-        enter = fadeIn() + scaleIn(),
-        exit = fadeOut() + scaleOut(),
-    ) {
-        val infiniteTransition = rememberInfiniteTransition(label = "ner_indicator_transition")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.2f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-            label = "ner_indicator_scale",
-        )
-        val alpha by infiniteTransition.animateFloat(
-            initialValue = 0.7f,
-            targetValue = 1f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(durationMillis = 800),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-            label = "ner_indicator_alpha",
-        )
-
-        Icon(
-            imageVector = Icons.Default.AutoAwesome,
-            contentDescription = "Smart recognition active",
-            tint = MaterialTheme.colorScheme.tertiary.copy(alpha = alpha),
-            modifier =
-                Modifier
-                    .size(18.dp)
-                    .scale(scale),
         )
     }
 }
