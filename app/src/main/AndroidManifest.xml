@@ -13,6 +13,11 @@
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+0
 
     <application
         android:allowBackup="true"
@@ -43,6 +48,16 @@ android:theme="@style/Theme.Cyberpunk.Day"
         <receiver
             android:name=".domain.reminders.ReminderBroadcastReceiver"
             android:enabled="true"/>
+
+        <activity
+            android:name=".domain.reminders.ReminderLockScreenActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
 
     </application>
 
