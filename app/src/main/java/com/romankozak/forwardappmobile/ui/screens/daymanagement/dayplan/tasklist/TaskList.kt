@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.ListItemType
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.CompactDayPlanHeader
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsGoalItem
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsSublistItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedCustomCheckbox

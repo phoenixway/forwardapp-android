@@ -16,12 +16,13 @@ sealed interface ProjectUiEvent {
 
     data class Navigate(val route: String) : ProjectUiEvent
 
-    data class NavigateToDayPlan(val date: Long) : ProjectUiEvent
+    data class NavigateToDayPlan(val date: Long, val startTab: String? = null) : ProjectUiEvent
 
     
     data class ShowToast(val message: String) : ProjectUiEvent
 
     data object FocusSearchField : ProjectUiEvent
 
+    data class OpenUri(val uri: String) : ProjectUiEvent
     data class ScrollToIndex(val index: Int) : ProjectUiEvent
 }

@@ -33,8 +33,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val itemForTransportMenu by viewModel.itemActionHandler.itemForTransportMenu.collectAsStateWithLifecycle()
-    val showRecentListsSheet = uiState.showRecentProjectsSheet
-    val recentLists by viewModel.recentProjects.collectAsStateWithLifecycle()
+    val recentItems by viewModel.recentItems.collectAsStateWithLifecycle()
 
     if (uiState.showAddWebLinkDialog) {
         AddWebLinkDialog(
@@ -84,7 +83,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
         isGoalItem = itemForTransportMenu is ListItemContent.GoalItem,
     )
 
-    if (showRecentListsSheet) {
+    if (uiState.showRecentProjectsSheet) {
         ModalBottomSheet(onDismissRequest = { viewModel.inputHandler.onDismissRecentLists() }) {
             Column(
                 modifier = Modifier.navigationBarsPadding().padding(bottom = 16.dp),
@@ -95,10 +94,10 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 LazyColumn {
-                    items(recentLists, key = { it.id }) { list: Project ->
+                    items(recentItems, key = { it.id }) { item ->
                         ListItem(
-                            headlineContent = { Text(list.name) },
-                            modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(list.id) },
+                            headlineContent = { Text(item.displayName) },
+                            modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(item) },
                         )
                     }
                 }

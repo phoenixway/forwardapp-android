@@ -1,6 +1,6 @@
 <resources>
-    <style name="Theme.Cyberpunk.Day" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Основні кольори -->
+    <style name="Theme.Cyberpunk.Night" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Основні кольори для нічного режиму -->
         <item name="colorPrimary">@color/cyber_primary</item>
         <item name="colorPrimaryVariant">@color/cyber_primary_variant</item>
         <item name="colorSecondary">@color/cyber_secondary</item>

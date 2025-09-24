@@ -307,8 +307,21 @@ class InputHandler(
 
     fun onDismissRecentLists() = resultListener.showRecentListsSheet(false)
 
-    fun onRecentListSelected(projectId: String) {
-        resultListener.requestNavigation("goal_detail_screen/$projectId")
+    fun onRecentListSelected(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+        when (item.type) {
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
+                resultListener.requestNavigation("goal_detail_screen/${item.target}")
+            }
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
+                resultListener.requestNavigation("note_edit_screen?noteId=${item.target}")
+            }
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
+                resultListener.requestNavigation("custom_list_screen/${item.target}")
+            }
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
+                resultListener.createObsidianNote(item.target)
+            }
+        }
         onDismissRecentLists()
     }
 }

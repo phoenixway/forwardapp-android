@@ -1,0 +1,28 @@
+--- a/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/customlist/UnifiedCustomListViewModel.kt
++++ b/app/src/main/java/com/romankozak/forwardappmobile/ui/screens/customlist/UnifiedCustomListViewModel.kt
+@@ -190,20 +190,20 @@
+     fun onIndent() {
+         val content = _uiState.value.content
+         getCurrentLineInfo(content)?.let { line ->
+-            val newText = content.text.replaceRange(line.startIndex, line.startIndex, "  ")
+-            val newSelection = content.selection.start + 2
++            val newText = content.text.replaceRange(line.startIndex, line.startIndex, "    ")
++            val newSelection = content.selection.start + 4
+             updateContent(TextFieldValue(newText, TextRange(newSelection)))
+         }
+     }
+ 
+     /** Зменшує відступ поточного рядка */
+     fun onDeIndent() {
+         val content = _uiState.value.content
+         getCurrentLineInfo(content)?.let { line ->
+-            if (line.text.startsWith("  ")) {
+-                val newText = content.text.replaceRange(line.startIndex, line.startIndex + 2, "")
+-                val newSelection = content.selection.start - 2
++            if (line.text.startsWith("    ")) {
++                val newText = content.text.replaceRange(line.startIndex, line.startIndex + 4, "")
++                val newSelection = content.selection.start - 4
+                 updateContent(TextFieldValue(newText, TextRange(newSelection.coerceAtLeast(0))))
+             }
+         }
+     }
