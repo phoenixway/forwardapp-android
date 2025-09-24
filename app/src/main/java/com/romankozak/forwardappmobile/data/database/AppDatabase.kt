@@ -32,6 +32,10 @@ import com.romankozak.forwardappmobile.data.database.models.*
         NoteFts::class,
     ],
     version = 36,
+    autoMigrations = [
+        AutoMigration(from = 32, to = 33),
+        AutoMigration(from = 33, to = 34)
+    ],
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
