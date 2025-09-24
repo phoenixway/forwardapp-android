@@ -43,6 +43,7 @@ data class MainScreenUiState(
     val desktopAddress: String = "",
     val showSearchDialog: Boolean = false,
     val searchResults: List<SearchResult> = emptyList(),
+    val recordForReminderDialog: com.romankozak.forwardappmobile.data.database.models.ActivityRecord? = null,
 ) {
     val currentSubState: MainSubState
         get() = subStateStack.last()
