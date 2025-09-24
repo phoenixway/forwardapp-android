@@ -87,17 +87,9 @@ fun MainScreen(
                 is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
                 is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("edit_list_screen/${event.projectId}")
                 is ProjectUiEvent.Navigate -> navController.navigate(event.route)
-                is ProjectUiEvent.NavigateToDayPlan -> navController.navigateToDayManagement(event.date)
+                is ProjectUiEvent.NavigateToDayPlan -> navController.navigateToDayManagement(event.date.toString(), event.startTab)
                 is ProjectUiEvent.FocusSearchField -> {
                     
-                }
-                is ProjectUiEvent.OpenUri -> {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.uri))
-                    navController.context.startActivity(intent)
-                }
-                is ProjectUiEvent.OpenUri -> {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.uri))
-                    navController.context.startActivity(intent)
                 }
                 is ProjectUiEvent.OpenUri -> {
                     val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.uri))

@@ -578,7 +578,8 @@ constructor(
       }
       is MainScreenEvent.NavigateToActivityTracker -> {
         viewModelScope.launch {
-          _uiEventChannel.send(ProjectUiEvent.Navigate("activity_tracker_screen"))
+          val today = System.currentTimeMillis()
+          _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "TRACK"))
         }
       }
 
@@ -787,7 +788,7 @@ constructor(
   private fun onDayPlanClicked() {
     viewModelScope.launch {
       val today = System.currentTimeMillis()
-      _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today))
+      _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "PLAN"))
     }
   }
 

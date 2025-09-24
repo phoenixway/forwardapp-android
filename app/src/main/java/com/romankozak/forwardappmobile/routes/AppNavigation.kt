@@ -373,7 +373,7 @@ private fun NavGraphBuilder.mainGraph(
     }
     chatScreen(navController)
     dayManagementGraph(navController)
-    dayPlanScreen(navController)
+    dayManagementScreen(navController)
 
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)

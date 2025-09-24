@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -94,13 +95,19 @@ fun DayManagementBottomNav(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
+                                ModernBottomNavButton(
+                    text = "Track",
+                    icon = Icons.Outlined.Timeline,
+                    isSelected = currentTab == DayManagementTab.TRACK,
+                    onClick = { onTabSelected(DayManagementTab.TRACK) }
+                )
                 ModernBottomNavButton(
                     text = "Plan",
                     icon = Icons.AutoMirrored.Outlined.ListAlt,
                     isSelected = currentTab == DayManagementTab.PLAN,
                     onClick = { onTabSelected(DayManagementTab.PLAN) }
                 )
+                ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(
                     text = "Dashboard",
                     icon = Icons.Outlined.Dashboard,
