@@ -1,4 +1,3 @@
-
 package com.romankozak.forwardappmobile.ui.screens.daymanagement
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -8,12 +7,12 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,13 +22,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
 
-private enum class DayManagementTab(
+enum class DayManagementTab(
     val title: String,
     val icon: ImageVector,
     val description: String,
@@ -51,8 +51,8 @@ fun DayManagementScreen(
     val pagerState = rememberPagerState(initialPage = 0) { tabs.size }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var addTaskTrigger by remember { mutableStateOf(0) }
 
-    
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
             snackbarHostState.showSnackbar(
@@ -96,12 +96,32 @@ fun DayManagementScreen(
                 },
             )
         },
+        bottomBar = {
+            if (uiState.dayPlanId != null) {
+                DayManagementBottomNav(
+                    currentTab = tabs[pagerState.currentPage],
+                    onTabSelected = { tab ->
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(tab.ordinal)
+                        }
+                    },
+                    onHomeClick = { mainNavController.popBackStack() }
+                )
+            }
+        },
+        floatingActionButton = {
+            if (pagerState.currentPage == DayManagementTab.PLAN.ordinal && uiState.dayPlanId != null) {
+                FloatingActionButton(onClick = { addTaskTrigger++ }) {
+                    Icon(Icons.Default.Add, contentDescription = "Додати завдання")
+                }
+            }
+        }
     ) { innerPadding ->
         Box(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
             when {
                 uiState.isLoading -> {
@@ -117,38 +137,38 @@ fun DayManagementScreen(
 
                 else -> {
                     val planId = uiState.dayPlanId!!
-                    DayPlanScreen(
-                        dayPlanId = planId,
-                        onNavigateBack = { mainNavController.navigateUp() },
-                        onNavigateToProject = { projectId ->
-                            mainNavController.navigate("goal_detail_screen/$projectId")
-                        },
-                        onNavigateToBacklog = { task ->
-                            task.projectId?.let { id ->
-                                mainNavController.navigate("goal_detail_screen/$id")
-                            }
-                        },
-                        onNavigateToAnalytics = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(DayManagementTab.ANALYTICS.ordinal)
-                            }
-                        },
-                        onNavigateToDashboard = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(DayManagementTab.DASHBOARD.ordinal)
-                            }
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        when (tabs[page]) {
+                            DayManagementTab.PLAN -> DayPlanScreen(
+                                dayPlanId = planId,
+                                onNavigateToProject = { projectId ->
+                                    mainNavController.navigate("goal_detail_screen/$projectId")
+                                },
+                                onNavigateToBacklog = { task ->
+                                    task.projectId?.let { id ->
+                                        mainNavController.navigate("goal_detail_screen/$id")
+                                    }
+                                },
+                                addTaskTrigger = addTaskTrigger
+                            )
+                            DayManagementTab.DASHBOARD -> DayDashboardScreen(
+                                dayPlanId = planId
+                            )
+                            DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
                         }
-                    )
+                    }
                 }
             }
 
-            
             if (uiState.isLoading && uiState.dayPlanId != null) {
                 LinearProgressIndicator(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter),
+                    Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
@@ -190,9 +210,9 @@ private fun ErrorContent(
 ) {
     Column(
         modifier =
-            modifier
-                .fillMaxSize()
-                .padding(24.dp),
+        modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -226,9 +246,9 @@ private fun ErrorContent(
         Button(
             onClick = onRetry,
             colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                ),
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+            ),
         ) {
             Icon(
                 Icons.Default.Refresh,

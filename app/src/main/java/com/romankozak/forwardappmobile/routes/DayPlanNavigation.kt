@@ -23,19 +23,15 @@ fun NavGraphBuilder.dayPlanScreen(navController: NavController) {
 
         DayPlanScreen(
             dayPlanId = dayPlanId,
-            onNavigateBack = { navController.popBackStack() },
-            
             onNavigateToProject = { projectId ->
                 navController.navigate("goal_detail_screen/$projectId")
             },
-            
             onNavigateToBacklog = { task ->
                 task.projectId?.let { id ->
                     navController.navigate("goal_detail_screen/$id")
                 }
             },
-            onNavigateToAnalytics = {},
-            onNavigateToDashboard = {}
+            addTaskTrigger = 0
         )
     }
 }
