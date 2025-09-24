@@ -24,7 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
+import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 import kotlinx.coroutines.launch
 
 private enum class DayManagementTab(
@@ -113,81 +115,30 @@ fun DayManagementScreen(
                     )
                 }
 
-                uiState.dayPlanId != null -> {
+                else -> {
                     val planId = uiState.dayPlanId!!
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        TabRow(
-                            selectedTabIndex = pagerState.currentPage,
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.primary,
-                            divider = @Composable {
-                                HorizontalDivider(
-                                    thickness = 0.5.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                )
-                            },
-                            indicator = { tabPositions ->
-                                TabRowDefaults.PrimaryIndicator(
-                                    modifier =
-                                        Modifier
-                                            .tabIndicatorOffset(tabPositions[pagerState.currentPage])
-                                            .padding(horizontal = 16.dp),
-                                    height = 3.dp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            },
-                        ) {
-                            tabs.forEachIndexed { index, tab ->
-                                val selected = pagerState.currentPage == index
-                                
-                                Tab(
-                                    selected = selected,
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(index)
-                                        }
-                                    },
-                                    text = {
-                                        Text(
-                                            text = tab.title,
-                                            style =
-                                                MaterialTheme.typography.labelLarge.copy(
-                                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                                ),
-                                        )
-                                    },
-                                    selectedContentColor = MaterialTheme.colorScheme.primary,
-                                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                    DayPlanScreen(
+                        dayPlanId = planId,
+                        onNavigateBack = { mainNavController.navigateUp() },
+                        onNavigateToProject = { projectId ->
+                            mainNavController.navigate("goal_detail_screen/$projectId")
+                        },
+                        onNavigateToBacklog = { task ->
+                            task.projectId?.let { id ->
+                                mainNavController.navigate("goal_detail_screen/$id")
+                            }
+                        },
+                        onNavigateToAnalytics = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(DayManagementTab.ANALYTICS.ordinal)
+                            }
+                        },
+                        onNavigateToDashboard = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(DayManagementTab.DASHBOARD.ordinal)
                             }
                         }
-
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize(),
-                        ) { page ->
-                            when (tabs[page]) {
-                                DayManagementTab.PLAN ->
-                                    DayPlanScreen(
-                                        dayPlanId = planId,
-                                        onNavigateBack = { mainNavController.navigateUp() },
-                                        onNavigateToProject = { projectId ->
-                                            mainNavController.navigate("goal_detail_screen/$projectId")
-                                        },
-                                        onNavigateToBacklog = { task ->
-                                            task.projectId?.let { id ->
-                                                mainNavController.navigate("goal_detail_screen/$id")
-                                            }
-                                        },
-                                    )
-                                DayManagementTab.DASHBOARD ->
-                                    DayDashboardScreen(
-                                        dayPlanId = planId,
-                                    )
-                                DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
-                            }
-                        }
-                    }
+                    )
                 }
             }
 

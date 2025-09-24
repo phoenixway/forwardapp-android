@@ -6,7 +6,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayPlanScreen
+import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 
 
 const val DAY_PLAN_ROUTE = "day_plan_screen"
@@ -29,16 +30,12 @@ fun NavGraphBuilder.dayPlanScreen(navController: NavController) {
             },
             
             onNavigateToBacklog = { task ->
-                
-                
-                
                 task.projectId?.let { id ->
                     navController.navigate("goal_detail_screen/$id")
                 }
-                
-                
-                
             },
+            onNavigateToAnalytics = {},
+            onNavigateToDashboard = {}
         )
     }
 }
