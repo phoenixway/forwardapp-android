@@ -37,12 +37,12 @@ debug-cycle: install-debug start-debug
 # ============== RELEASE ЦИКЛ ==============
 
 # Зібрати release APK
-release:
+build-release:
 	@echo "🚀  Збираю release APK..."
 	@./gradlew :app:assembleRelease
 
 # Встановити release APK
-install: release
+install: build-release
 	@echo "📦  Встановлюю release APK (пріоритет ARM64)..."
 	@if [ -f app/build/outputs/apk/release/app-arm64-v8a-release.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
@@ -112,22 +112,69 @@ clean:
 	@./gradlew clean
 	@echo "✅  Проєкт очищено."
 
-## Показати цю довідку
+
+# ==============================================================================
+# Git Workflow Targets
+# ==============================================================================
+
+## Створює нову feature-гілку від актуальної версії dev.
+## Використання: make feature-start NAME=my-new-feature
+feature-start:
+	@# Перевіряємо, чи передано ім'я гілки
+	@[ -n "$(NAME)" ] || (echo "❌ Помилка: Вкажіть ім'я гілки. Приклад: make feature-start NAME=my-feature"; exit 1)
+	@echo "🔄  Оновлюю dev..."
+	@git checkout dev
+	@git pull origin dev
+	@echo "🌱  Створюю нову гілку feature/$(NAME)..."
+	@git checkout -b feature/$(NAME)
+
+## Синхронізує поточну гілку з останніми змінами з dev.
+feature-sync:
+	@echo "🔄  Оновлюю dev..."
+	@git checkout dev
+	@git pull origin dev
+	@# Використовуйте git branch --show-current для отримання назви поточної гілки
+	@CURRENT_BRANCH=$$(git branch --show-current); \
+	echo "↩️  Повертаюсь на гілку $$CURRENT_BRANCH..."; \
+	git checkout $$CURRENT_BRANCH; \
+	echo "🧬  Роблю rebase з dev..."; \
+	git rebase dev
+
+## Готує новий реліз: зливає dev в main і створює тег.
+## Використання: make release VERSION=1.2.3
+release:
+	@# Перевіряємо, чи передано версію
+	@[ -n "$(VERSION)" ] || (echo "❌ Помилка: Вкажіть версію. Приклад: make release VERSION=1.2.3"; exit 1)
+	@echo "🚀  Починаю реліз версії $(VERSION)..."
+	@# Переходимо на main і оновлюємо її
+	@git checkout main
+	@git pull origin main
+	@# Зливаємо dev
+	@echo "🧬  Зливаю dev в main..."
+	@git merge dev --no-ff -m "Merge branch 'dev' for release $(VERSION)"
+	@# Створюємо тег
+	@echo "🔖  Створюю тег v$(VERSION)..."
+	@git tag -a v$(VERSION) -m "Release version $(VERSION)"
+	@# Пушимо main і теги
+	@echo "📤  Пушу main і теги на сервер..."
+	@git push origin main
+	@git push origin v$(VERSION)
+	@echo "✅  Реліз v$(VERSION) завершено! Не забудьте створити реліз на GitHub/GitLab."
+	@git checkout dev
+
+# Оновлюємо довідку
 help:
 	@echo "Доступні команди:"
 	@echo "---"
 	@echo "  make debug-cycle    - (Найчастіша команда) Зібрати, встановити та запустити DEBUG версію."
 	@echo "  make all            - Зібрати, встановити та запустити RELEASE версію."
 	@echo ""
-	@echo "  make install-debug  - Зібрати та встановити DEBUG."
-	@echo "  make start-debug    - Запустити DEBUG."
-	@echo "  make stop-debug     - Зупинити DEBUG."
-	@echo "  make logcat-debug   - Показати логи для DEBUG."
-	@echo ""
-	@echo "  make install        - Зібрати та встановити RELEASE."
-	@echo "  make start          - Запустити RELEASE."
-	@echo "  make stop           - Зупинити RELEASE."
-	@echo "  make logcat         - Показати логи для RELEASE."
-	@echo ""
 	@echo "  make clean          - Очистити проєкт."
+	@echo ""
 	@echo "  make help           - Показати цю довідку."
+	@echo "---"
+	@echo "Git команди:"
+	@echo "  make feature-start NAME=<name> - Створити нову feature-гілку."
+	@echo "  make feature-sync              - Оновити поточну гілку з dev."
+	@echo "  make release VERSION=<x.y.z>   - Створити новий реліз."
+

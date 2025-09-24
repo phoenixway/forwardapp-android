@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
@@ -34,6 +36,7 @@ enum class DayManagementTab(
     val icon: ImageVector,
     val description: String,
 ) {
+    TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
     PLAN("План", Icons.AutoMirrored.Filled.ListAlt, "Створити та керувати завданнями"),
     DASHBOARD("Дашборд", Icons.Default.Dashboard, "Переглянути прогрес дня"),
     ANALYTICS("Аналітика", Icons.Default.Assessment, "Статистика та аналіз продуктивності"),
@@ -45,10 +48,14 @@ fun DayManagementScreen(
     mainNavController: NavController,
     viewModel: DayManagementViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
+    startTab: String? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tabs = DayManagementTab.entries.toTypedArray()
-    val pagerState = rememberPagerState(initialPage = 0) { tabs.size }
+    val initialPage = remember(startTab) {
+        tabs.indexOfFirst { it.name == startTab }.coerceAtLeast(0)
+    }
+    val pagerState = rememberPagerState(initialPage = initialPage) { tabs.size }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var addTaskTrigger by remember { mutableStateOf(0) }
@@ -142,6 +149,7 @@ fun DayManagementScreen(
                         modifier = Modifier.fillMaxSize()
                     ) { page ->
                         when (tabs[page]) {
+                            DayManagementTab.TRACK -> ActivityTrackerScreen(navController = mainNavController)
                             DayManagementTab.PLAN -> DayPlanScreen(
                                 dayPlanId = planId,
                                 onNavigateToProject = { projectId ->
