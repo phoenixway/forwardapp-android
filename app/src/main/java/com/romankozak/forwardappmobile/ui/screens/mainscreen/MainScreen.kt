@@ -27,7 +27,11 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -71,6 +75,7 @@ fun MainScreen(
     viewModel: MainScreenViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     
@@ -122,6 +127,8 @@ fun MainScreen(
             uiState = uiState,
             onEvent = viewModel::onEvent,
             enhancedNavigationManager = navManager,
+            lastOngoingActivity = lastOngoingActivity,
+            viewModel = viewModel
         )
     } ?: Box(
         modifier = Modifier.fillMaxSize(),
@@ -137,6 +144,8 @@ private fun MainScreenScaffold(
     uiState: MainScreenUiState,
     onEvent: (MainScreenEvent) -> Unit,
     enhancedNavigationManager: com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager,
+    lastOngoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
+    viewModel: MainScreenViewModel,
 ) {
     val listState = rememberLazyListState()
 
@@ -190,39 +199,47 @@ private fun MainScreenScaffold(
             )
         },
         bottomBar = {
-            
-            val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
+            Column {
+                InProgressIndicator(
+                    ongoingActivity = lastOngoingActivity,
+                    onStopClick = { viewModel.stopOngoingActivity() },
+                    onReminderClick = { viewModel.setReminderForOngoingActivity() },
+                    onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) }
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
 
-            if (isSearchActive) {
-                SearchBottomBar(
-                    searchQuery = uiState.searchQuery,
-                    onQueryChange = { onEvent(MainScreenEvent.SearchQueryChanged(it)) },
-                    onCloseSearch = {
-                        
-                        onEvent(MainScreenEvent.CloseSearch)
-                    },
-                    onPerformGlobalSearch = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
-                    onShowSearchHistory = { showSearchHistorySheet = true },
-                )
-            } else {
-                ExpandingBottomNav(
-                    onToggleSearch = {
-                        
-                        onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
-                    },
-                    onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
-                    currentMode = uiState.planningMode,
-                    onPlanningModeChange = { onEvent(MainScreenEvent.PlanningModeChange(it)) },
-                    onContextsClick = { showContextSheet = true },
-                    onRecentsClick = { onEvent(MainScreenEvent.ShowRecentLists) },
-                    onDayPlanClick = { onEvent(MainScreenEvent.DayPlanClick) },
-                    onHomeClick = { onEvent(MainScreenEvent.HomeClick) },
-                    isExpanded = uiState.isBottomNavExpanded,
-                    onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
-                    onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
-                    onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
-                    onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
-                )
+                if (isSearchActive) {
+                    SearchBottomBar(
+                        searchQuery = uiState.searchQuery,
+                        onQueryChange = { onEvent(MainScreenEvent.SearchQueryChanged(it)) },
+                        onCloseSearch = {
+                            
+                            onEvent(MainScreenEvent.CloseSearch)
+                        },
+                        onPerformGlobalSearch = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
+                        onShowSearchHistory = { showSearchHistorySheet = true },
+                    )
+                } else {
+                    ExpandingBottomNav(
+                        onToggleSearch = {
+                            
+                            onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
+                        },
+                        onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
+                        currentMode = uiState.planningMode,
+                        onPlanningModeChange = { onEvent(MainScreenEvent.PlanningModeChange(it)) },
+                        onContextsClick = { showContextSheet = true },
+                        onRecentsClick = { onEvent(MainScreenEvent.ShowRecentLists) },
+                        onDayPlanClick = { onEvent(MainScreenEvent.DayPlanClick) },
+                        onHomeClick = { onEvent(MainScreenEvent.HomeClick) },
+                        isExpanded = uiState.isBottomNavExpanded,
+                        onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
+                        onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
+                        onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
+                        onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
+                    )
+                }
             }
         },
     ) { paddingValues ->
@@ -275,6 +292,20 @@ private fun MainScreenScaffold(
         uiState = uiState,
         onEvent = onEvent,
     )
+
+    uiState.recordForReminderDialog?.let { record ->
+        com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog(
+            onDismiss = { viewModel.onReminderDialogDismiss() },
+            onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
+            onClearReminder = 
+                if (record.reminderTime != null) {
+                    { viewModel.onClearReminder() }
+                } else {
+                    null
+                },
+            currentReminderTime = record.reminderTime,
+        )
+    }
 }
 
 @Composable
@@ -583,4 +614,77 @@ fun SearchTextField(
             }
         },
     )
+}
+
+@Composable
+private fun InProgressIndicator(
+    ongoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
+    onStopClick: () -> Unit,
+    onReminderClick: () -> Unit,
+    onIndicatorClick: () -> Unit
+) {
+    AnimatedVisibility(
+        visible = ongoingActivity != null,
+        enter = fadeIn() + slideInVertically(),
+        exit = fadeOut() + slideOutVertically(),
+    ) {
+        if (ongoingActivity != null) {
+            var elapsedTime by remember { mutableLongStateOf(System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)) }
+
+            LaunchedEffect(key1 = ongoingActivity.id) {
+                while (true) {
+                    elapsedTime = System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)
+                    kotlinx.coroutines.delay(1000L)
+                }
+            }
+            val timeString = formatElapsedTime(elapsedTime)
+            val context = androidx.compose.ui.platform.LocalContext.current
+
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onIndicatorClick),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = ongoingActivity.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = onReminderClick) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Встановити нагадування")
+                    }
+                    IconButton(onClick = onStopClick) {
+                        Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
+                    }
+                    IconButton(onClick = { 
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        val uri = android.net.Uri.fromParts("package", context.packageName, null)
+                        intent.data = uri
+                        context.startActivity(intent)
+                    }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Налаштування")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun formatElapsedTime(elapsedTime: Long): String {
+    val hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(elapsedTime)
+    val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(elapsedTime) % 60
+    val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60
+    return if (hours > 0) {
+        String.format(java.util.Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    }
 }

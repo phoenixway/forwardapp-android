@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
 
 @Database(
     entities = [
-        
+        ConversationEntity::class,
         Goal::class,
         Project::class,
         ListItem::class,
@@ -25,17 +25,16 @@ import com.romankozak.forwardappmobile.data.database.models.*
         CustomListEntity::class,
         CustomListItemEntity::class,
         RecentItem::class,
-        
+        ConversationFolderEntity::class,
+        RecurringTask::class,
+
         GoalFts::class,
         ProjectFts::class,
         ActivityRecordFts::class,
         NoteFts::class,
+        RecurringTaskFts::class,
     ],
-    version = 36,
-    autoMigrations = [
-        AutoMigration(from = 32, to = 33),
-        AutoMigration(from = 33, to = 34)
-    ],
+    version = 40,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -54,6 +53,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun chatDao(): ChatDao
 
+    abstract fun conversationFolderDao(): ConversationFolderDao
+
     abstract fun projectManagementDao(): ProjectManagementDao
 
     abstract fun dayPlanDao(): DayPlanDao
@@ -67,4 +68,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun customListDao(): CustomListDao
 
     abstract fun recentItemDao(): RecentItemDao
+
+    abstract fun recurringTaskDao(): RecurringTaskDao
 }

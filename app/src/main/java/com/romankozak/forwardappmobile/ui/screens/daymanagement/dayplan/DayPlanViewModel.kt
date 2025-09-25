@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
 import com.romankozak.forwardappmobile.data.database.models.NewTaskParameters
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
@@ -27,6 +28,8 @@ data class DayPlanUiState(
     val isToday: Boolean = true,
 )
 
+enum class EditingMode { SINGLE, ALL_INSTANCES }
+
 @HiltViewModel
 class DayPlanViewModel
     @Inject
@@ -41,6 +44,14 @@ class DayPlanViewModel
 
         private val _selectedTask = MutableStateFlow<DayTask?>(null)
         val selectedTask: StateFlow<DayTask?> = _selectedTask.asStateFlow()
+
+        private val _showDeleteConfirmationDialog = MutableStateFlow<DayTask?>(null)
+        val showDeleteConfirmationDialog: StateFlow<DayTask?> = _showDeleteConfirmationDialog.asStateFlow()
+
+        private val _showEditConfirmationDialog = MutableStateFlow<DayTask?>(null)
+        val showEditConfirmationDialog: StateFlow<DayTask?> = _showEditConfirmationDialog.asStateFlow()
+
+        private var editingMode: EditingMode = EditingMode.SINGLE
 
         
         private var currentPlanId: String? = null
@@ -118,6 +129,7 @@ class DayPlanViewModel
             description: String,
             duration: Long?,
             priority: TaskPriority,
+            recurrenceRule: RecurrenceRule?
         ) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
@@ -131,44 +143,33 @@ class DayPlanViewModel
                         return@launch
                     }
 
-                    val currentTasks = _uiState.value.tasks
-                    val maxOrder = currentTasks.maxOfOrNull { it.order } ?: 0L
-
-                    
-                    val newTask =
-                        DayTask(
-                            id = UUID.randomUUID().toString(),
-                            dayPlanId = dayPlanId,
+                    if (recurrenceRule != null) {
+                        dayManagementRepository.addRecurringTask(
                             title = trimmedTitle,
                             description = trimmedDescription,
+                            duration = duration,
                             priority = priority,
-                            order = maxOrder + 1,
-                            completed = false,
-                            createdAt = System.currentTimeMillis(),
+                            recurrenceRule = recurrenceRule,
+                            dayPlanId = dayPlanId
                         )
-
-                    
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            tasks = sortTasksWithOrder(currentState.tasks + newTask),
+                    } else {
+                        val currentTasks = _uiState.value.tasks
+                        val maxOrder = currentTasks.maxOfOrNull { it.order } ?: 0L
+                        dayManagementRepository.addTaskToDayPlan(
+                            NewTaskParameters(
+                                dayPlanId = dayPlanId,
+                                title = trimmedTitle,
+                                description = trimmedDescription,
+                                estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
+                                priority = priority,
+                                order = maxOrder + 1,
+                            ),
                         )
                     }
 
                     
-                    
-                    dayManagementRepository.addTaskToDayPlan(
-                        NewTaskParameters(
-                            dayPlanId = dayPlanId,
-                            title = trimmedTitle,
-                            description = trimmedDescription,
-                            estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
-                            priority = priority,
-                            order = newTask.order,
-                        ),
-                    )
-
-                    
                     dismissAddTaskDialog()
+                    loadDataForPlan(dayPlanId)
                 } catch (e: Exception) {
                     _uiState.update {
                         it.copy(
@@ -177,6 +178,62 @@ class DayPlanViewModel
                         )
                     }
                 }
+            }
+        }
+
+        fun onEditTaskClicked(task: DayTask) {
+            if (task.recurringTaskId != null) {
+                _showEditConfirmationDialog.value = task
+            } else {
+                editingMode = EditingMode.SINGLE
+                openEditTaskDialog()
+            }
+        }
+
+        fun dismissEditConfirmationDialog() {
+            _showEditConfirmationDialog.value = null
+        }
+
+        fun editSingleInstanceOfRecurringTask(task: DayTask) {
+            viewModelScope.launch(Dispatchers.IO) {
+                dayManagementRepository.detachFromRecurrence(task.id)
+                dismissEditConfirmationDialog()
+                editingMode = EditingMode.SINGLE
+                openEditTaskDialog()
+            }
+        }
+
+        fun editAllFutureInstancesOfRecurringTask(task: DayTask) {
+            dismissEditConfirmationDialog()
+            editingMode = EditingMode.ALL_INSTANCES
+            openEditTaskDialog()
+        }
+
+        fun onDeleteTaskClicked(task: DayTask) {
+            if (task.recurringTaskId != null) {
+                _showDeleteConfirmationDialog.value = task
+            } else {
+                deleteTask(task.dayPlanId, task.id)
+            }
+        }
+
+        fun dismissDeleteConfirmationDialog() {
+            _showDeleteConfirmationDialog.value = null
+        }
+
+        fun deleteSingleInstanceOfRecurringTask(task: DayTask) {
+            viewModelScope.launch(Dispatchers.IO) {
+                dayManagementRepository.deleteTask(task.id)
+                dismissDeleteConfirmationDialog()
+            }
+        }
+
+        fun deleteAllFutureInstancesOfRecurringTask(task: DayTask) {
+            viewModelScope.launch(Dispatchers.IO) {
+                task.recurringTaskId?.let {
+                    dayManagementRepository.deleteAllFutureInstancesOfRecurringTask(it, task.dayPlanId)
+                }
+                dismissDeleteConfirmationDialog()
             }
         }
 
@@ -257,6 +314,7 @@ class DayPlanViewModel
                             }
                             .collect { dayPlan ->
                                 dayPlan?.let {
+                                    dayManagementRepository.generateRecurringTasksForDate(it.date)
                                     _uiState.update { currentState ->
                                         currentState.copy(
                                             dayPlan = dayPlan,
@@ -473,11 +531,23 @@ class DayPlanViewModel
             duration: Long?,
             priority: TaskPriority,
         ) {
-            viewModelScope.launch {
-                dayManagementRepository.updateTask(taskId, title, description, priority, duration)
+            viewModelScope.launch(Dispatchers.IO) {
+                val task = selectedTask.value ?: return@launch
+
+                if (editingMode == EditingMode.ALL_INSTANCES && task.recurringTaskId != null) {
+                    dayManagementRepository.splitRecurringTask(
+                        originalTask = task,
+                        newTitle = title,
+                        newDescription = description,
+                        newPriority = priority,
+                        newDuration = duration
+                    )
+                } else {
+                    dayManagementRepository.updateTask(taskId, title, description, priority, duration)
+                }
                 dismissEditTaskDialog()
                 clearSelectedTask()
-                
+                loadDataForPlan(task.dayPlanId)
             }
         }
 

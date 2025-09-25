@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
@@ -13,6 +15,13 @@
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+
 
     <application
         android:allowBackup="true"
@@ -43,6 +52,20 @@ android:theme="@style/Theme.Cyberpunk.Day"
         <receiver
             android:name=".domain.reminders.ReminderBroadcastReceiver"
             android:enabled="true"/>
+
+        <service
+            android:name=".domain.aichat.GenerationService"
+            android:foregroundServiceType="dataSync" />
+
+        <activity
+            android:name=".domain.reminders.ReminderLockScreenActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
 
     </application>
 
