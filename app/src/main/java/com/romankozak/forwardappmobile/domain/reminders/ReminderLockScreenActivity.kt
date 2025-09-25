@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.domain.reminders
 
 import android.app.KeyguardManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
@@ -76,29 +77,23 @@ class ReminderLockScreenActivity : ComponentActivity() {
             return
         }
 
-        // Якщо активна активність для іншої цілі, закриваємо її
-        if (isActive && currentGoalId != goalId) {
-            Log.d(tag, "Replacing existing activity with new goal: $goalId")
+        // Якщо це команда на закриття
+        if (intent.action == "ACTION_CLOSE") {
+            Log.d(tag, "Received close command in onCreate")
+            finishSafely()
+            return
         }
 
         isActive = true
         currentGoalId = goalId
 
-        // Перевіряємо, чи це команда закриття
-        if (intent.getStringExtra("ACTION") == "CLOSE") {
-            Log.d(tag, "Received close command")
-            finishSafely()
-            return
-        }
-
         Log.d(tag, "ReminderLockScreenActivity created for goal: $goalId")
 
         // Скасовуємо сповіщення при запуску активності
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        val notificationId = 1000 + goalId.hashCode() // Використовуємо ту ж логіку що й в BroadcastReceiver
-        notificationManager.cancel(notificationId)
+        cancelNotification(goalId)
 
         setupLockScreenFlags()
+        acquireWakeLock()
 
         val goalText = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT) ?: "Ваша мета"
         val goalDescription = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION)
@@ -135,51 +130,39 @@ class ReminderLockScreenActivity : ComponentActivity() {
                 }
             },
         )
-
-        window.addFlags(
-            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD,
-        )
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
 
-        // If this is a close command
-        if (intent.getStringExtra("ACTION") == "CLOSE") {
+        // Якщо це команда на закриття
+        if (intent.action == "ACTION_CLOSE") {
             Log.d(tag, "Received close command via onNewIntent")
             finishSafely()
             return
         }
 
+        // Оновлюємо UI з даними нового нагадування
         val newGoalId = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID)
-        if (newGoalId != null && newGoalId != currentGoalId) {
-            Log.d(tag, "New intent for different goal, updating current goal from $currentGoalId to $newGoalId")
-            currentGoalId = newGoalId
-        }
+        Log.d(tag, "New intent for a goal, re-creating the activity to display: $newGoalId")
+        recreate()
     }
 
     private fun setupLockScreenFlags() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
-
-            val keyguardManager = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
-            keyguardManager.requestDismissKeyguard(this, null)
         } else {
             @Suppress("DEPRECATION")
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD,
+                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
             )
         }
 
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON,
+            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -198,7 +181,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
                     PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
                     "GoalReminder:WakeLock",
                 ).apply {
-                    acquire(10 * 60 * 1000L)
+                    acquire(10 * 60 * 1000L) // 10 хвилин
                 }
         Log.d(tag, "Wake lock acquired")
     }
@@ -265,31 +248,32 @@ class ReminderLockScreenActivity : ComponentActivity() {
 
         Log.d(tag, "Alarm sound and vibration stopped")
     }
+    
+    private fun commonFinishActions(goalId: String) {
+        stopAlarmSoundAndVibration()
+        cancelNotification(goalId)
+        finishSafely()
+    }
 
     private fun handleComplete(goalId: String) {
         Log.d(tag, "Goal completed: $goalId")
-        stopAlarmSoundAndVibration()
-        cancelAllNotifications(goalId)
-        finishSafely()
+        commonFinishActions(goalId)
     }
 
     private fun handleSnooze(goalId: String) {
         Log.d(tag, "Goal snoozed: $goalId")
-        stopAlarmSoundAndVibration()
-        cancelAllNotifications(goalId)
-        finishSafely()
+        commonFinishActions(goalId)
     }
 
     private fun handleDismiss(goalId: String) {
         Log.d(tag, "Goal dismissed: $goalId")
-        stopAlarmSoundAndVibration()
-        cancelAllNotifications(goalId)
-        finishSafely()
+        commonFinishActions(goalId)
     }
 
-    private fun cancelAllNotifications(goalId: String) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        val notificationId = 1000 + goalId.hashCode()
+    private fun cancelNotification(goalId: String) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        // ✅ ВИПРАВЛЕНО: Використовуємо правильний ID для скасування
+        val notificationId = goalId.hashCode()
         notificationManager.cancel(notificationId)
         Log.d(tag, "Cancelled notification with ID: $notificationId")
     }
@@ -299,7 +283,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
             if (!isFinishing && !isDestroyed) {
                 isActive = false
                 currentGoalId = null
-                finish()
+                finishAndRemoveTask()
             }
         } catch (e: Exception) {
             Log.e(tag, "Error finishing activity", e)
@@ -309,8 +293,16 @@ class ReminderLockScreenActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isActive = false
-        currentGoalId = null
+        if (currentGoalId == intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID)) {
+             currentGoalId = null
+        }
         stopAlarmSoundAndVibration()
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+                Log.d(tag, "Wake lock released in onDestroy")
+            }
+        }
         Log.d(tag, "ReminderLockScreenActivity destroyed")
     }
 

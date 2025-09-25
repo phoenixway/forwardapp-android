@@ -177,6 +177,8 @@ class ActivityTrackerViewModel
             viewModelScope.launch {
                 val record = _recordForReminder.value ?: return@launch
 
+                alarmScheduler.cancelForActivityRecord(record)
+
                 val updatedRecord = record.copy(reminderTime = timestamp)
                 repository.updateRecord(updatedRecord)
 
