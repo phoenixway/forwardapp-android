@@ -829,6 +829,8 @@ constructor(
       viewModelScope.launch {
           val record = _uiState.value.recordForReminderDialog ?: return@launch
 
+          alarmScheduler.cancelForActivityRecord(record)
+
           val updatedRecord = record.copy(reminderTime = timestamp)
           activityRepository.updateRecord(updatedRecord)
           alarmScheduler.scheduleForActivityRecord(updatedRecord)
