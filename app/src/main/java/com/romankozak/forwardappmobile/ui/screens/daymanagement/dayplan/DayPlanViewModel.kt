@@ -186,6 +186,30 @@ class DayPlanViewModel
             }
         }
 
+        fun addGoalAsRecurringTask(goalId: String, dayPlanId: String, recurrenceRule: RecurrenceRule) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val goal = dayManagementRepository.getGoal(goalId) ?: return@launch
+                    dayManagementRepository.addRecurringTask(
+                        title = goal.text,
+                        description = goal.description,
+                        duration = null, // Goals don't have duration
+                        priority = TaskPriority.MEDIUM, // Or map from goal importance
+                        recurrenceRule = recurrenceRule,
+                        dayPlanId = dayPlanId,
+                        goalId = goalId
+                    )
+                } catch (e: Exception) {
+                     _uiState.update {
+                        it.copy(
+                            error = "Помилка при додаванні повторюваної цілі: ${e.localizedMessage}",
+                            isLoading = false,
+                        )
+                    }
+                }
+            }
+        }
+
         fun onEditTaskClicked(task: DayTask) {
             if (task.recurringTaskId != null) {
                 _showEditConfirmationDialog.value = task
