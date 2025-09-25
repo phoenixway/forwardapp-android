@@ -263,6 +263,24 @@ class ChatViewModel
             }
         }
 
+        fun stopGeneration() {
+            viewModelScope.launch {
+                val streamingMessage = _uiState.value.messages.find { it.isStreaming }
+                if (streamingMessage != null) {
+                    chatRepo.updateMessage(
+                        streamingMessage.copy(
+                            text = streamingMessage.text + "\n\n[Generation stopped by user]",
+                            isStreaming = false,
+                            isError = true
+                        ).toEntity()
+                    )
+                }
+
+                val serviceIntent = Intent(context, GenerationService::class.java)
+                context.stopService(serviceIntent)
+            }
+        }
+
         fun startNewChat() {
             viewModelScope.launch {
                 chatRepo.clearChat()

@@ -212,7 +212,7 @@ fun ChatScreen(
                             DropdownMenuItem(
                                 text = { Text("Settings") },
                                 onClick = {
-                                    navController.navigate("settings_graph")
+                                    navController.navigate("settings_screen")
                                     showMenu = false
                                 },
                             )
@@ -273,6 +273,7 @@ fun ChatScreen(
                     viewModel.sendMessage()
                     keyboardController?.hide()
                 },
+                onStopClick = viewModel::stopGeneration,
                 isLoading = uiState.messages.any { it.isStreaming },
                 roleTitle = uiState.roleTitle,
                 temperature = uiState.temperature,
@@ -727,6 +728,7 @@ fun ChatInput(
     value: String,
     onValueChange: (String) -> Unit,
     onSendClick: () -> Unit,
+    onStopClick: () -> Unit,
     isLoading: Boolean,
     roleTitle: String,
     temperature: Float,
@@ -812,13 +814,20 @@ fun ChatInput(
                     },
                 ) { loading ->
                     if (loading) {
-                        CircularProgressIndicator(
-                            modifier =
-                                Modifier
-                                    .size(48.dp)
-                                    .padding(12.dp),
-                            strokeWidth = 2.dp,
-                        )
+                        IconButton(
+                            onClick = onStopClick,
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Stop,
+                                contentDescription = "Stop",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     } else {
                         IconButton(
                             onClick = onSendClick,
