@@ -11,7 +11,7 @@ plugins {
     //id("com.google.devtools.ksp")
     id("kotlin-parcelize")
 
-    id("io.gitlab.arturbosch.detekt")
+    //id("io.gitlab.arturbosch.detekt")
 
 }
 
