@@ -160,6 +160,7 @@ fun DayManagementScreen(
                                         mainNavController.navigate("goal_detail_screen/$id")
                                     }
                                 },
+                                onNavigateToSettings = { mainNavController.navigate("settings_screen") },
                                 addTaskTrigger = addTaskTrigger
                             )
                             DayManagementTab.DASHBOARD -> DayDashboardScreen(

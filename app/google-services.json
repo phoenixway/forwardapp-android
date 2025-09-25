@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "351110222843",
+    "project_id": "romankozak-forwardapp",
+    "storage_bucket": "romankozak-forwardapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:351110222843:android:6c6ec00fc6ea1b133a715e",
+        "android_client_info": {
+          "package_name": "com.romankozak.forwardappmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHKL_0MYcZOcqLyQvD4T5ArFSCrqtwPEU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:351110222843:android:4cb371a53457b9003a715e",
+        "android_client_info": {
+          "package_name": "com.romankozak.forwardappmobile.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHKL_0MYcZOcqLyQvD4T5ArFSCrqtwPEU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

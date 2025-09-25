@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
@@ -144,6 +146,7 @@ class DayPlanViewModel
                     }
 
                     if (recurrenceRule != null) {
+                        Firebase.crashlytics.log("Adding recurring task: ${trimmedTitle}")
                         dayManagementRepository.addRecurringTask(
                             title = trimmedTitle,
                             description = trimmedDescription,
@@ -153,6 +156,7 @@ class DayPlanViewModel
                             dayPlanId = dayPlanId
                         )
                     } else {
+                        Firebase.crashlytics.log("Adding single task: ${trimmedTitle}")
                         val currentTasks = _uiState.value.tasks
                         val maxOrder = currentTasks.maxOfOrNull { it.order } ?: 0L
                         dayManagementRepository.addTaskToDayPlan(
@@ -241,6 +245,7 @@ class DayPlanViewModel
             dayPlanId: String,
             taskId: String,
         ) {
+            Firebase.crashlytics.log("Deleting task with id: $taskId from plan: $dayPlanId")
             viewModelScope.launch {
                 try {
                     dayManagementRepository.deleteTask(taskId)
