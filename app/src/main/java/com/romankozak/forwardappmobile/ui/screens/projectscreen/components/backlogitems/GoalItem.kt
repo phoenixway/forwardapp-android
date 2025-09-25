@@ -218,6 +218,7 @@ fun EnhancedCustomCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -258,7 +259,7 @@ fun EnhancedCustomCheckbox(
                 .clip(RoundedCornerShape(4.dp))
                 .background(animatedColor)
                 .border(1.dp, animatedBorderColor, RoundedCornerShape(4.dp))
-                .clickable {
+                .clickable(enabled = enabled) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onCheckedChange(!checked)
                 }

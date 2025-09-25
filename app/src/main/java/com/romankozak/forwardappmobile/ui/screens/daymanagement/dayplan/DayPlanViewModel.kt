@@ -7,6 +7,7 @@ import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.data.database.models.RecurrenceFrequency
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
 import com.romankozak.forwardappmobile.data.database.models.NewTaskParameters
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
@@ -265,15 +266,28 @@ class DayPlanViewModel
 
         fun toggleTaskCompletion(taskId: String) {
             viewModelScope.launch {
+                val task = _uiState.value.tasks.find { it.id == taskId } ?: return@launch
+
+                if (task.recurringTaskId != null) {
+                    val recurringTask = dayManagementRepository.getRecurringTask(task.recurringTaskId)
+                    if (recurringTask?.recurrenceRule?.frequency == RecurrenceFrequency.HOURLY) {
+                        val intervalMillis = recurringTask.recurrenceRule.interval * 60 * 60 * 1000
+                        val nextOccurrence = System.currentTimeMillis() + intervalMillis
+                        dayManagementRepository.updateTaskNextOccurrence(taskId, nextOccurrence)
+                        loadDataForPlan(task.dayPlanId) // Refresh data
+                        return@launch
+                    }
+                }
+
                 try {
                     
                     _uiState.update { currentState ->
                         val updatedTasks =
-                            currentState.tasks.map { task ->
-                                if (task.id == taskId) {
-                                    task.copy(completed = !task.completed)
+                            currentState.tasks.map { t ->
+                                if (t.id == taskId) {
+                                    t.copy(completed = !t.completed)
                                 } else {
-                                    task
+                                    t
                                 }
                             }
                         currentState.copy(

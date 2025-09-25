@@ -114,9 +114,11 @@ fun TaskList(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                         ) {
+                            val isEnabled = task.nextOccurrenceTime == null || task.nextOccurrenceTime <= currentTime
                             EnhancedCustomCheckbox(
                                 checked = task.completed,
                                 onCheckedChange = { onToggleTask(task.id) },
+                                enabled = isEnabled
                             )
                             Spacer(Modifier.width(8.dp))
                             Box(modifier = Modifier.weight(1f)) {

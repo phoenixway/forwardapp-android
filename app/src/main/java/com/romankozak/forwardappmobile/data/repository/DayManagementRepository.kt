@@ -119,7 +119,11 @@ class DayManagementRepository
                     estimatedDurationMinutes = duration,
                     taskType = ListItemType.GOAL,
                 )
-                addTaskToDayPlan(taskParams).copy(recurringTaskId = recurringTask.id).also { dayTaskDao.update(it) }
+                val dayTask = addTaskToDayPlan(taskParams).copy(
+                    recurringTaskId = recurringTask.id,
+                    nextOccurrenceTime = if (recurrenceRule.frequency == RecurrenceFrequency.HOURLY) System.currentTimeMillis() else null
+                )
+                dayTaskDao.update(dayTask)
             }
         }
 
@@ -549,9 +553,21 @@ class DayManagementRepository
             }
         }
 
+        suspend fun getRecurringTask(id: String): RecurringTask? {
+            return withContext(ioDispatcher) {
+                recurringTaskDao.getById(id)
+            }
+        }
+
         suspend fun detachFromRecurrence(taskId: String) {
             withContext(ioDispatcher) {
                 dayTaskDao.detachFromRecurrence(taskId)
+            }
+        }
+
+        suspend fun updateTaskNextOccurrence(taskId: String, nextOccurrenceTime: Long) {
+            withContext(ioDispatcher) {
+                dayTaskDao.updateNextOccurrenceTime(taskId, nextOccurrenceTime)
             }
         }
 
