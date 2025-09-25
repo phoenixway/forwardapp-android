@@ -139,3 +139,41 @@ val MIGRATION_35_36 = object : Migration(35, 36) {
         """)
     }
 }
+
+val MIGRATION_37_38 = object : Migration(37, 38) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `conversation_folders` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)")
+        db.execSQL("ALTER TABLE `conversations` ADD COLUMN `folderId` INTEGER")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_conversations_folderId` ON `conversations` (`folderId`)")
+    }
+}
+
+val MIGRATION_36_37 = object : Migration(36, 37) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `conversations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `creationTimestamp` INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `chat_messages` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversationId` INTEGER NOT NULL, `text` TEXT NOT NULL, `isFromUser` INTEGER NOT NULL, `isError` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `isStreaming` INTEGER NOT NULL, FOREIGN KEY(`conversationId`) REFERENCES `conversations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_chat_messages_conversationId` ON `chat_messages` (`conversationId`)")
+    }
+}
+
+// Migrations.kt
+
+val MIGRATION_38_39 = object : Migration(38, 39) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // --- ВИПРАВЛЕННЯ ДЛЯ ТАБЛИЦІ 'chat_messages' (з попереднього кроку) ---
+        try {
+            db.execSQL("ALTER TABLE `chat_messages` ADD COLUMN `conversationId` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_chat_messages_conversationId` ON `chat_messages` (`conversationId`)")
+        } catch (e: Exception) {
+            println("Migration 38-39: Failed to add 'conversationId' column, likely already exists. ${e.message}")
+        }
+
+        // --- НОВЕ ВИПРАВЛЕННЯ ДЛЯ ТАБЛИЦІ 'conversations' ---
+        try {
+            db.execSQL("ALTER TABLE `conversations` ADD COLUMN `folderId` INTEGER")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_conversations_folderId` ON `conversations` (`folderId`)")
+        } catch (e: Exception) {
+            println("Migration 38-39: Failed to add 'folderId' column, likely already exists. ${e.message}")
+        }
+    }
+}
