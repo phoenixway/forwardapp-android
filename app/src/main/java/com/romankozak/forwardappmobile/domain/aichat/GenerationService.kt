@@ -57,6 +57,12 @@ class GenerationService : Service() {
                 val temperature = settingsRepo.temperatureFlow.first()
                 val historyEntities = chatRepo.getChatHistory().first()
 
+                Log.d(TAG, "--- Ollama Request ---")
+                Log.d(TAG, "URL: $ollamaUrl")
+                Log.d(TAG, "Model: $smartModel")
+                Log.d(TAG, "System Prompt: $systemPrompt")
+                Log.d(TAG, "Temperature: $temperature")
+
                 val systemMessage = Message(role = "system", content = systemPrompt)
                 val history =
                     listOf(systemMessage) +
@@ -68,17 +74,25 @@ class GenerationService : Service() {
                                     content = msg.text,
                                 )
                             }
+                Log.d(TAG, "History Size: ${history.size}")
+                Log.d(TAG, "History Content: ${history.joinToString { it.role + ": " + it.content.take(50) + "..." }}")
 
                 var fullResponse = ""
-                ollamaService
-                    .generateChatResponseStream(ollamaUrl, smartModel, history, temperature)
-                    .collect { chunk ->
-                        fullResponse += chunk
-                        val currentMessage = chatRepo.getMessageById(assistantMessageId)
-                        currentMessage?.let {
-                            chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = true))
+                try {
+                    ollamaService
+                        .generateChatResponseStream(ollamaUrl, smartModel, history, temperature)
+                        .collect { chunk ->
+                            fullResponse += chunk
+                            val currentMessage = chatRepo.getMessageById(assistantMessageId)
+                            currentMessage?.let {
+                                chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = true))
+                            }
                         }
-                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error during ollamaService.generateChatResponseStream call", e)
+                    throw e // Re-throw to be caught by the outer block
+                }
+
 
                 chatRepo.getMessageById(assistantMessageId)?.let {
                     chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = false))
