@@ -129,4 +129,5 @@ sealed interface MainScreenEvent {
     data class UpdateLightTheme(val themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) : MainScreenEvent
     data class UpdateDarkTheme(val themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) : MainScreenEvent
     data class UpdateThemeMode(val themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) : MainScreenEvent
+    data object GoToReminders : MainScreenEvent
 }

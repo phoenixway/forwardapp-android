@@ -14,8 +14,18 @@ import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class ReminderBroadcastReceiver : BroadcastReceiver() {
+
+    @Inject
+    lateinit var alarmScheduler: AlarmScheduler
+
     companion object {
         const val EXTRA_GOAL_ID = "EXTRA_GOAL_ID"
         const val EXTRA_GOAL_TEXT = "EXTRA_GOAL_TEXT"
@@ -274,12 +284,18 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             }
         }
     }
+
     private fun handleSnoozeAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal snoozed via notification: $goalId")
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(getNotificationId(goalId))
+
+        // Snooze the reminder
+        CoroutineScope(Dispatchers.IO).launch {
+            alarmScheduler.snooze(goalId)
+        }
 
         // Закриваємо активність
         if (ReminderLockScreenActivity.isActive) {

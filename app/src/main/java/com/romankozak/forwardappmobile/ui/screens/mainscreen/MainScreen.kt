@@ -196,6 +196,7 @@ private fun MainScreenScaffold(
                 onImportFromFile = { importLauncher.launch("application/json") },
                 onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
                 onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
+                onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
             )
         },
         bottomBar = {
@@ -358,6 +359,7 @@ private fun MainScreenTopAppBar(
     onImportFromFile: () -> Unit,
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
+    onShowReminders: () -> Unit,
 ) {
     TopAppBar(
         title = { NeonTitle("Projects") },
@@ -429,6 +431,14 @@ private fun MainScreenTopAppBar(
                         text = { Text("About") },
                         onClick = {
                             onShowAbout()
+                            menuExpanded = false
+                        },
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("Reminders") },
+                        onClick = {
+                            onShowReminders()
                             menuExpanded = false
                         },
                     )

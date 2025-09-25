@@ -39,6 +39,9 @@ interface GoalDao {
     @Query("SELECT * FROM goals")
     suspend fun getAll(): List<Goal>
 
+    @Query("SELECT * FROM goals")
+    fun getAllGoalsFlow(): Flow<List<Goal>>
+
     @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%'")
     fun searchGoalsByText(query: String): Flow<List<Goal>>
 

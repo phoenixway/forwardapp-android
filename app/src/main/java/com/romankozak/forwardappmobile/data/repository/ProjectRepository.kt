@@ -530,6 +530,8 @@ constructor(
 
     suspend fun getAllProjects(): List<Project> = projectDao.getAll()
 
+    fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllGoalsFlow()
+
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
     suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
