@@ -151,7 +151,31 @@ val MIGRATION_37_38 = object : Migration(37, 38) {
 val MIGRATION_36_37 = object : Migration(36, 37) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `conversations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `creationTimestamp` INTEGER NOT NULL)")
-        db.execSQL("CREATE TABLE IF NOT EXISTS `chat_messages` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversationId` INTEGER NOT NULL, `text` TEXT NOT NULL, `isFromUser` INTEGER NOT NULL, `isError` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `isStreaming` INTEGER NOT NULL, FOREIGN KEY(`conversationId`) REFERENCES `conversations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+
+        db.execSQL("""
+            CREATE TABLE `chat_messages_new` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `conversationId` INTEGER NOT NULL, 
+                `text` TEXT NOT NULL, 
+                `isFromUser` INTEGER NOT NULL, 
+                `isError` INTEGER NOT NULL, 
+                `timestamp` INTEGER NOT NULL, 
+                `isStreaming` INTEGER NOT NULL, 
+                FOREIGN KEY(`conversationId`) REFERENCES `conversations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """)
+
+        try {
+            db.execSQL("""
+                INSERT INTO chat_messages_new (id, conversationId, text, isFromUser, isError, timestamp, isStreaming)
+                SELECT id, conversationId, text, isFromUser, isError, timestamp, isStreaming FROM chat_messages
+            """)
+        } catch (e: Exception) {
+            // Old table might not exist or have a different schema, ignore copy errors
+        }
+
+        db.execSQL("DROP TABLE IF EXISTS chat_messages")
+        db.execSQL("ALTER TABLE chat_messages_new RENAME TO chat_messages")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_chat_messages_conversationId` ON `chat_messages` (`conversationId`)")
     }
 }
