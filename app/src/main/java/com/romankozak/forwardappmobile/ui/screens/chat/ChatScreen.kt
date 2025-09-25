@@ -172,13 +172,11 @@ fun ChatScreen(
         drawerState = drawerState,
         drawerContent = {
             ConversationDrawer(
-                conversations = uiState.conversationsWithLastMessage,
-                folders = uiState.folders,
+                drawerItems = uiState.drawerItems,
                 onConversationClick = {
                     viewModel.setCurrentConversation(it)
                     coroutineScope.launch { drawerState.close() }
-                },
-                viewModel = viewModel
+                }
             )
         }
     ) {

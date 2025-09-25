@@ -11,7 +11,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.romankozak.forwardappmobile.data.database.models.ConversationEntity
-import com.romankozak.forwardappmobile.data.database.models.ConversationWithLastMessage
+import com.romankozak.forwardappmobile.ui.screens.chat.DrawerItem
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -38,7 +38,7 @@ private const val TAG = "AI_CHAT_DEBUG"
 
 data class ChatUiState(
     val currentConversation: ConversationEntity? = null,
-    val conversationsWithLastMessage: List<ConversationWithLastMessage> = emptyList(),
+    val drawerItems: List<DrawerItem> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
     val systemPrompt: String = "",
@@ -47,7 +47,6 @@ data class ChatUiState(
     val rolesHierarchy: List<RoleItem> = emptyList(),
     val smartModel: String = "",
     val availableModels: ModelsState = ModelsState.Loading,
-    val folders: List<com.romankozak.forwardappmobile.data.database.models.ConversationFolderEntity> = emptyList(),
 )
 
 @HiltViewModel
@@ -68,11 +67,17 @@ constructor(
 
     init {
         viewModelScope.launch {
-            chatRepo.getConversationsWithLastMessage().collectLatest { conversations ->
-                _uiState.update { it.copy(conversationsWithLastMessage = conversations) }
+            chatRepo.getDrawerItems().collectLatest { drawerItems ->
+                _uiState.update { it.copy(drawerItems = drawerItems) }
                 if (uiState.value.currentConversation == null) {
-                    conversations.firstOrNull()?.conversation?.let { setCurrentConversation(it.id) }
-                        ?: startNewChat()
+                    // Find the first conversation in the drawer items to set as current
+                    val firstConversation = drawerItems.firstNotNullOfOrNull { item ->
+                        when (item) {
+                            is DrawerItem.Conversation -> item.conversationWithLastMessage.conversation
+                            is DrawerItem.Folder -> item.conversations.firstOrNull()?.conversation
+                        }
+                    }
+                    firstConversation?.let { setCurrentConversation(it.id) } ?: startNewChat()
                 }
             }
         }
@@ -110,24 +115,6 @@ constructor(
                     )
                 }
             }.collect{}
-        }
-
-        viewModelScope.launch {
-            chatRepo.getAllFolders().collectLatest { folders ->
-                _uiState.update { it.copy(folders = folders) }
-            }
-        }
-    }
-
-    fun createFolder(folderName: String) {
-        viewModelScope.launch {
-            chatRepo.createFolder(folderName)
-        }
-    }
-
-    fun addConversationToFolder(conversationId: Long, folderId: Long) {
-        viewModelScope.launch {
-            chatRepo.addConversationToFolder(conversationId, folderId)
         }
     }
 

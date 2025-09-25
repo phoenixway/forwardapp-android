@@ -4,20 +4,12 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 @Entity(
     tableName = "conversations",
-    foreignKeys = [
-        ForeignKey(
-            entity = ConversationFolderEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["folderId"],
-            onDelete = ForeignKey.SET_NULL
-        )
-    ],
-    indices = [Index(value = ["folderId"])]
-)
-data class ConversationEntity(
+    indices = [Index(value = ["folderId"])] // <-- ADD THIS LINE
+)data class ConversationEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     var title: String,

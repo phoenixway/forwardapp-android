@@ -32,7 +32,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         ActivityRecordFts::class,
         NoteFts::class,
     ],
-    version = 38,
+    version = 39,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)

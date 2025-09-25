@@ -43,6 +43,14 @@ interface ChatDao {
     @Query("SELECT * FROM conversations ORDER BY creationTimestamp DESC")
     fun getConversationsWithLastMessage(): Flow<List<ConversationWithLastMessage>>
 
+    @Transaction
+    @Query("SELECT * FROM conversations WHERE folderId = :folderId ORDER BY creationTimestamp DESC")
+    fun getConversationsWithLastMessageByFolder(folderId: Long): Flow<List<ConversationWithLastMessage>>
+
+    @Transaction
+    @Query("SELECT * FROM conversations WHERE folderId IS NULL ORDER BY creationTimestamp DESC")
+    fun getConversationsWithLastMessageWithoutFolder(): Flow<List<ConversationWithLastMessage>>
+
     @Update
     suspend fun updateConversation(conversation: ConversationEntity)
 
