@@ -177,3 +177,54 @@ val MIGRATION_38_39 = object : Migration(38, 39) {
         }
     }
 }
+
+val MIGRATION_39_40 = object : Migration(39, 40) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // 1. Create the new recurring_tasks table
+        db.execSQL("CREATE TABLE IF NOT EXISTS `recurring_tasks` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `duration` INTEGER, `priority` TEXT NOT NULL, `frequency` TEXT NOT NULL, `interval` INTEGER NOT NULL, `daysOfWeek` TEXT, `startDate` INTEGER NOT NULL, `endDate` INTEGER, PRIMARY KEY(`id`))")
+        
+        // 2. Create the FTS table for it
+        db.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS `recurring_tasks_fts` USING FTS4(`title`, `description`, content=`recurring_tasks`)")
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_recurring_tasks_fts_BEFORE_UPDATE BEFORE UPDATE ON `recurring_tasks` BEGIN DELETE FROM `recurring_tasks_fts` WHERE `docid`=OLD.`rowid`; END")
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_recurring_tasks_fts_BEFORE_DELETE BEFORE DELETE ON `recurring_tasks` BEGIN DELETE FROM `recurring_tasks_fts` WHERE `docid`=OLD.`rowid`; END")
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_recurring_tasks_fts_AFTER_UPDATE AFTER UPDATE ON `recurring_tasks` BEGIN INSERT INTO `recurring_tasks_fts`(`docid`, `title`, `description`) VALUES (NEW.`rowid`, NEW.`title`, NEW.`description`); END")
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_recurring_tasks_fts_AFTER_INSERT AFTER INSERT ON `recurring_tasks` BEGIN INSERT INTO `recurring_tasks_fts`(`docid`, `title`, `description`) VALUES (NEW.`rowid`, NEW.`title`, NEW.`description`); END")
+
+        // 3. Recreate day_tasks table
+        db.execSQL("""
+            CREATE TABLE `day_tasks_new` (
+                `id` TEXT NOT NULL, `dayPlanId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, 
+                `goalId` TEXT, `projectId` TEXT, `activityRecordId` TEXT, `recurringTaskId` TEXT, `taskType` TEXT, 
+                `entityId` TEXT, `order` INTEGER NOT NULL, `priority` TEXT NOT NULL, `status` TEXT NOT NULL, 
+                `completed` INTEGER NOT NULL, `scheduledTime` INTEGER, `estimatedDurationMinutes` INTEGER, 
+                `actualDurationMinutes` INTEGER, `reminderTime` INTEGER, `dueTime` INTEGER, 
+                `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, 
+                `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, 
+                `location` TEXT, `tags` TEXT, `notes` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, 
+                `completedAt` INTEGER, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+                FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, 
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, 
+                FOREIGN KEY(`activityRecordId`) REFERENCES `activity_records`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, 
+                FOREIGN KEY(`recurringTaskId`) REFERENCES `recurring_tasks`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+        """)
+
+        db.execSQL("""
+            INSERT INTO day_tasks_new (id, dayPlanId, title, description, goalId, projectId, activityRecordId, taskType, entityId, `order`, priority, status, completed, scheduledTime, estimatedDurationMinutes, actualDurationMinutes, reminderTime, dueTime, valueImportance, valueImpact, effort, cost, risk, location, tags, notes, createdAt, updatedAt, completedAt)
+            SELECT id, dayPlanId, title, description, goalId, projectId, activityRecordId, taskType, entityId, `order`, priority, status, completed, scheduledTime, estimatedDurationMinutes, actualDurationMinutes, reminderTime, dueTime, valueImportance, valueImpact, effort, cost, risk, location, tags, notes, createdAt, updatedAt, completedAt FROM day_tasks
+        """)
+
+        db.execSQL("DROP TABLE day_tasks")
+
+        db.execSQL("ALTER TABLE day_tasks_new RENAME TO day_tasks")
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_dayPlanId` ON `day_tasks` (`dayPlanId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_goalId` ON `day_tasks` (`goalId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_projectId` ON `day_tasks` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_activityRecordId` ON `day_tasks` (`activityRecordId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_scheduledTime` ON `day_tasks` (`scheduledTime`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_recurringTaskId` ON `day_tasks` (`recurringTaskId`)")
+    }
+}

@@ -14,17 +14,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 
+import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.RecurrencePickerDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(
     onDismissRequest: () -> Unit,
-    onConfirm: (title: String, description: String, duration: Long?, priority: TaskPriority) -> Unit,
+    onConfirm: (title: String, description: String, duration: Long?, priority: TaskPriority, recurrenceRule: RecurrenceRule?) -> Unit,
     initialPriority: TaskPriority = TaskPriority.MEDIUM,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var durationText by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(initialPriority) }
+    var recurrenceRule by remember { mutableStateOf<RecurrenceRule?>(null) }
+    var showRecurrencePicker by remember { mutableStateOf(false) }
+
+    if (showRecurrencePicker) {
+        RecurrencePickerDialog(
+            onDismiss = { showRecurrencePicker = false },
+            onConfirm = { rule ->
+                recurrenceRule = rule
+                showRecurrencePicker = false
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -108,6 +123,10 @@ fun AddTaskDialog(
                     },
                 )
 
+                Button(onClick = { showRecurrencePicker = true }) {
+                    Text(text = recurrenceRule?.let { "Повторення: ${it.frequency.name}" } ?: "Без повторення")
+                }
+
                 
                 Column {
                     Text(
@@ -158,7 +177,7 @@ fun AddTaskDialog(
             FilledTonalButton(
                 onClick = {
                     val duration = durationText.toLongOrNull()
-                    onConfirm(title, description, duration, priority)
+                    onConfirm(title, description, duration, priority, recurrenceRule)
                 },
                 enabled = title.isNotBlank(),
                 modifier = Modifier.padding(end = 8.dp),

@@ -90,7 +90,18 @@ enum class ProjectLogEntryType { STATUS_CHANGE, COMMENT, AUTOMATIC, INSIGHT, MIL
 
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
 
-enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE }
+enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL, NONE;
+
+    fun getDisplayName(): String {
+        return when (this) {
+            LOW -> "Низький"
+            MEDIUM -> "Середній"
+            HIGH -> "Високий"
+            CRITICAL -> "Критичний"
+            NONE -> "Немає"
+        }
+    }
+}
 
 enum class TaskStatus { NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED, DEFERRED }
 

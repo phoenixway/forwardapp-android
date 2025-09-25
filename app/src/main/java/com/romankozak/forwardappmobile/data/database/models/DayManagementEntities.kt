@@ -70,6 +70,12 @@ data class DayPlan(
             childColumns = ["activityRecordId"],
             onDelete = ForeignKey.SET_NULL,
         ),
+        ForeignKey(
+            entity = RecurringTask::class,
+            parentColumns = ["id"],
+            childColumns = ["recurringTaskId"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
     ],
     indices = [
         Index("dayPlanId"),
@@ -77,6 +83,7 @@ data class DayPlan(
         Index("projectId"),
         Index("activityRecordId"),
         Index("scheduledTime"),
+        Index("recurringTaskId"),
     ],
 )
 data class DayTask(
@@ -88,6 +95,7 @@ data class DayTask(
     val goalId: String? = null,
     val projectId: String? = null,
     val activityRecordId: String? = null,
+    val recurringTaskId: String? = null,
     
     val taskType: ListItemType? = null,
     val entityId: String? = null,
@@ -174,5 +182,15 @@ class DailyPlanConverters {
         if (json == null) return null
         val type = object : TypeToken<Map<String, Float>>() {}.type
         return Gson().fromJson(json, type)
+    }
+
+    @TypeConverter
+    fun fromDayOfWeekList(days: List<java.time.DayOfWeek>?): String? {
+        return days?.joinToString(",") { it.name }
+    }
+
+    @TypeConverter
+    fun toDayOfWeekList(data: String?): List<java.time.DayOfWeek>? {
+        return data?.split(",")?.map { java.time.DayOfWeek.valueOf(it) }
     }
 }
