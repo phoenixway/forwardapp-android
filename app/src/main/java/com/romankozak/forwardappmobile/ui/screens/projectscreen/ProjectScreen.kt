@@ -408,6 +408,15 @@ private fun InProgressIndicator(
                     IconButton(onClick = onStopClick) {
                         Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
                     }
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    IconButton(onClick = { 
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        val uri = android.net.Uri.fromParts("package", context.packageName, null)
+                        intent.data = uri
+                        context.startActivity(intent)
+                    }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Налаштування")
+                    }
                 }
             }
         }

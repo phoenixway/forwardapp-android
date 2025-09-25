@@ -76,9 +76,13 @@ fun ChatScreen(
     var showRoleSelectorDialog by remember { mutableStateOf(false) }
     var showTemperatureDialog by remember { mutableStateOf(false) }
     var showModelSelectorDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+    var showEditTitleDialog by remember { mutableStateOf(false) }
 
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
@@ -99,14 +103,12 @@ fun ChatScreen(
         }
     }
 
-    val backgroundBrush =
-        Brush.verticalGradient(
-            colors =
-                listOf(
-                    MaterialTheme.colorScheme.surface,
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                ),
-        )
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.surface,
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        ),
+    )
 
     if (showRoleSelectorDialog) {
         RoleSelectorDialog(
@@ -142,149 +144,195 @@ fun ChatScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.SmartToy,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text(uiState.roleTitle, fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                            if (uiState.messages.any { it.isStreaming }) {
-                                Text(
-                                    "Typing...",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    if (showDeleteConfirmationDialog) {
+        DeleteConfirmationDialog(
+            onConfirm = {
+                uiState.currentConversation?.let { viewModel.deleteConversation(it.id) }
+                showDeleteConfirmationDialog = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Chat deleted")
+                }
+            },
+            onDismiss = { showDeleteConfirmationDialog = false }
+        )
+    }
+
+    if (showEditTitleDialog) {
+        EditTitleDialog(
+            currentTitle = uiState.currentConversation?.title ?: "",
+            onDismiss = { showEditTitleDialog = false },
+            onSave = { newTitle ->
+                viewModel.updateConversationTitle(newTitle)
+                showEditTitleDialog = false
+            }
+        )
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ConversationDrawer(
+                drawerItems = uiState.drawerItems,
+                onConversationClick = {
+                    viewModel.setCurrentConversation(it)
+                    coroutineScope.launch { drawerState.close() }
+                }
+            )
+        }
+    ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.SmartToy,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(uiState.currentConversation?.title ?: "Chat", fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                                if (uiState.messages.any { it.isStreaming }) {
+                                    Text(
+                                        "Typing...",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showEditTitleDialog = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit title")
+                        }
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("New Chat") },
+                                    onClick = {
+                                        viewModel.startNewChat()
+                                        showMenu = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete Chat") },
+                                    onClick = {
+                                        showDeleteConfirmationDialog = true
+                                        showMenu = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Change Role") },
+                                    onClick = {
+                                        showRoleSelectorDialog = true
+                                        showMenu = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Export Chat") },
+                                    onClick = {
+                                        val chatText = viewModel.exportChat()
+                                        val sendIntent =
+                                            Intent().apply {
+                                                action = Intent.ACTION_SEND
+                                                putExtra(Intent.EXTRA_TEXT, chatText)
+                                                type = "text/plain"
+                                            }
+                                        val shareIntent = Intent.createChooser(sendIntent, null)
+                                        context.startActivity(shareIntent)
+                                        showMenu = false
+                                    },
+                                )
+                                Divider()
+                                DropdownMenuItem(
+                                    text = { Text("Settings") },
+                                    onClick = {
+                                        navController.navigate("settings_screen")
+                                        showMenu = false
+                                    },
                                 )
                             }
                         }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("New Chat") },
-                                onClick = {
-                                    viewModel.startNewChat()
-                                    showMenu = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Change Role") },
-                                onClick = {
-                                    showRoleSelectorDialog = true
-                                    showMenu = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Export Chat") },
-                                onClick = {
-                                    val chatText = viewModel.exportChat()
-                                    val sendIntent =
-                                        Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, chatText)
-                                            type = "text/plain"
-                                        }
-                                    val shareIntent = Intent.createChooser(sendIntent, null)
-                                    context.startActivity(shareIntent)
-                                    showMenu = false
-                                },
-                            )
-                            Divider()
-                            DropdownMenuItem(
-                                text = { Text("Settings") },
-                                onClick = {
-                                    navController.navigate("settings_graph")
-                                    showMenu = false
-                                },
-                            )
-                        }
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     ),
-            )
-        },
-    ) { paddingValues ->
-        Column(
-            modifier =
-                Modifier
+                )
+            },
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
                     .fillMaxSize()
                     .background(backgroundBrush)
                     .padding(paddingValues)
                     .imePadding(),
-        ) {
-            LazyColumn(
-                state = listState,
-                modifier =
-                    Modifier
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
-            ) {
-                if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
-                    item { EmptyStateMessage() }
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
+                ) {
+                    if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
+                        item { EmptyStateMessage() }
+                    }
+
+                    itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
+                        val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
+                        val isLastMessage = index == uiState.messages.lastIndex
+
+                        MessageBubble(
+                            message = message,
+                            isLastAssistantMessage = isLastAssistantMessage,
+                            bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null,
+                            onCopyToClipboard = { text ->
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("chat_message", text)
+                                clipboard.setPrimaryClip(clip)
+                            },
+                            onRegenerate = viewModel::regenerateLastResponse,
+                            onTranslate = { viewModel.translateMessage(message.id) },
+                        )
+                    }
                 }
 
-                itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
-                    val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
-                    val isLastMessage = index == uiState.messages.lastIndex
-
-                    MessageBubble(
-                        message = message,
-                        isLastAssistantMessage = isLastAssistantMessage,
-                        bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null,
-                        onCopyToClipboard = { text ->
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("chat_message", text)
-                            clipboard.setPrimaryClip(clip)
-                        },
-                        onRegenerate = viewModel::regenerateLastResponse,
-                        onTranslate = { viewModel.translateMessage(message.id) },
-                    )
-                }
+                ChatInput(
+                    value = userInput,
+                    onValueChange = viewModel::onUserInputChange,
+                    onSendClick = {
+                        viewModel.sendMessage()
+                        keyboardController?.hide()
+                    },
+                    onStopClick = viewModel::stopGeneration,
+                    isLoading = uiState.messages.any { it.isStreaming },
+                    roleTitle = uiState.roleTitle,
+                    temperature = uiState.temperature,
+                    modelName = uiState.smartModel,
+                    onModelClick = {
+                        viewModel.loadAvailableModels()
+                        showModelSelectorDialog = true
+                    },
+                    onRoleClick = { showRoleSelectorDialog = true },
+                    onTemperatureClick = { showTemperatureDialog = true },
+                    modifier = Modifier.shadow(8.dp),
+                )
             }
-
-            ChatInput(
-                value = userInput,
-                onValueChange = viewModel::onUserInputChange,
-                onSendClick = {
-                    viewModel.sendMessage()
-                    keyboardController?.hide()
-                },
-                isLoading = uiState.messages.any { it.isStreaming },
-                roleTitle = uiState.roleTitle,
-                temperature = uiState.temperature,
-                modelName = uiState.smartModel,
-                onModelClick = {
-                    viewModel.loadAvailableModels()
-                    showModelSelectorDialog = true
-                },
-                onRoleClick = { showRoleSelectorDialog = true },
-                onTemperatureClick = { showTemperatureDialog = true },
-                modifier = Modifier.shadow(8.dp),
-            )
         }
     }
 }
@@ -312,10 +360,9 @@ fun MessageBubble(
         ) {
             if (!isUser) {
                 Surface(
-                    modifier =
-                        Modifier
-                            .size(32.dp)
-                            .padding(bottom = 8.dp),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
@@ -332,23 +379,21 @@ fun MessageBubble(
             }
 
             Surface(
-                modifier =
-                    Modifier
-                        .widthIn(max = 280.dp)
-                        .clip(
-                            RoundedCornerShape(
-                                topStart = if (isUser) 20.dp else 4.dp,
-                                topEnd = if (isUser) 4.dp else 20.dp,
-                                bottomStart = 20.dp,
-                                bottomEnd = 20.dp,
-                            ),
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = if (isUser) 20.dp else 4.dp,
+                            topEnd = if (isUser) 4.dp else 20.dp,
+                            bottomStart = 20.dp,
+                            bottomEnd = 20.dp,
                         ),
-                color =
-                    when {
-                        message.isError -> MaterialTheme.colorScheme.errorContainer
-                        isUser -> MaterialTheme.colorScheme.primaryContainer
-                        else -> MaterialTheme.colorScheme.surface
-                    },
+                    ),
+                color = when {
+                    message.isError -> MaterialTheme.colorScheme.errorContainer
+                    isUser -> MaterialTheme.colorScheme.primaryContainer
+                    else -> MaterialTheme.colorScheme.surface
+                },
                 tonalElevation = if (isUser) 0.dp else 1.dp,
             ) {
                 Column(
@@ -358,12 +403,11 @@ fun MessageBubble(
                         Text(
                             text = if (message.text.isBlank() && message.isStreaming) "..." else message.text,
                             modifier = Modifier.weight(1f, fill = false),
-                            color =
-                                when {
-                                    message.isError -> MaterialTheme.colorScheme.onErrorContainer
-                                    isUser -> MaterialTheme.colorScheme.onPrimaryContainer
-                                    else -> MaterialTheme.colorScheme.onSurface
-                                },
+                            color = when {
+                                message.isError -> MaterialTheme.colorScheme.onErrorContainer
+                                isUser -> MaterialTheme.colorScheme.onPrimaryContainer
+                                else -> MaterialTheme.colorScheme.onSurface
+                            },
                             fontSize = 15.sp,
                             lineHeight = 20.sp,
                         )
@@ -397,9 +441,7 @@ fun MessageBubble(
                             )
                             if (!message.isError && !isUser) {
                                 Spacer(modifier = Modifier.width(8.dp))
-                                IconButton(onClick = {
-                                    onCopyToClipboard(message.text)
-                                }, modifier = Modifier.size(28.dp)) {
+                                IconButton(onClick = { onCopyToClipboard(message.text) }, modifier = Modifier.size(28.dp)) {
                                     Icon(
                                         Icons.Default.ContentCopy,
                                         "Copy",
@@ -438,10 +480,9 @@ fun MessageBubble(
             if (isUser) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
-                    modifier =
-                        Modifier
-                            .size(32.dp)
-                            .padding(bottom = 8.dp),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.tertiaryContainer,
                 ) {
@@ -453,11 +494,10 @@ fun MessageBubble(
         }
         bringIntoViewRequester?.let {
             Box(
-                modifier =
-                    Modifier
-                        .height(1.dp)
-                        .fillMaxWidth()
-                        .bringIntoViewRequester(it),
+                modifier = Modifier
+                    .height(1.dp)
+                    .fillMaxWidth()
+                    .bringIntoViewRequester(it),
             )
         }
     }
@@ -479,17 +519,15 @@ fun RoleSelectorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 200.dp, max = 500.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 200.dp, max = 500.dp),
         ) {
             Column {
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (backStack.isNotEmpty()) {
@@ -509,10 +547,9 @@ fun RoleSelectorDialog(
                 Divider()
                 if (roles.isEmpty()) {
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -523,10 +560,9 @@ fun RoleSelectorDialog(
                     }
                 } else if (currentItems.isEmpty()) {
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -536,7 +572,7 @@ fun RoleSelectorDialog(
                     }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(items = currentItems, key = { it.path }) { item ->
+                        items(currentItems, key = { it.path }) { item ->
                             when (item) {
                                 is RoleFolder -> {
                                     ListItem(
@@ -552,12 +588,7 @@ fun RoleSelectorDialog(
                                 }
                                 is RoleFile -> {
                                     ListItem(
-                                        headlineContent = {
-                                            Text(
-                                                item.name,
-                                                fontWeight = FontWeight.Medium,
-                                            )
-                                        },
+                                        headlineContent = { Text(item.name, fontWeight = FontWeight.Medium) },
                                         supportingContent = {
                                             Text(
                                                 item.prompt.take(100) + if (item.prompt.length > 100) "..." else "",
@@ -591,17 +622,15 @@ fun ModelSelectorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 200.dp, max = 500.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 200.dp, max = 500.dp),
         ) {
             Column {
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -632,8 +661,7 @@ fun ModelSelectorDialog(
                                 Text("No models found", modifier = Modifier.padding(16.dp))
                             } else {
                                 LazyColumn {
-                                    items(modelsState.models.size, key = { modelsState.models[it] }) { index ->
-                                        val model = modelsState.models[index]
+                                    items(modelsState.models) { model ->
                                         ListItem(
                                             headlineContent = { Text(model) },
                                             modifier = Modifier.clickable { onModelSelected(model) },
@@ -670,7 +698,7 @@ fun TemperatureDialog(
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    text = String.format("%.2f", temp),
+                    text = String.format(Locale.US, "%.2f", temp),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     fontWeight = FontWeight.Bold,
@@ -703,22 +731,20 @@ fun StreamingIndicator() {
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(1000),
-                repeatMode = RepeatMode.Reverse,
-            ),
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse,
+        ),
         label = "alpha",
     )
 
     Box(
-        modifier =
-            Modifier
-                .size(8.dp)
-                .background(
-                    MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-                    RoundedCornerShape(4.dp),
-                ),
+        modifier = Modifier
+            .size(8.dp)
+            .background(
+                MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                RoundedCornerShape(4.dp),
+            ),
     )
 }
 
@@ -727,6 +753,7 @@ fun ChatInput(
     value: String,
     onValueChange: (String) -> Unit,
     onSendClick: () -> Unit,
+    onStopClick: () -> Unit,
     isLoading: Boolean,
     roleTitle: String,
     temperature: Float,
@@ -745,10 +772,9 @@ fun ChatInput(
             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
         ) {
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 InputChip(
@@ -762,7 +788,7 @@ fun ChatInput(
                     onClick = onModelClick,
                     label = {
                         Text(
-                            modelName.split(":")[0],
+                            modelName.substringBefore(':'),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -773,7 +799,7 @@ fun ChatInput(
 
                 InputChip(
                     onClick = onTemperatureClick,
-                    label = { Text(String.format("%.1f", temperature)) },
+                    label = { Text(String.format(Locale.US, "%.1f", temperature)) },
                     icon = Icons.Default.Thermostat,
                 )
             }
@@ -787,19 +813,17 @@ fun ChatInput(
                     onValueChange = onValueChange,
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Напишіть повідомлення...") },
-                    keyboardOptions =
-                        KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Sentences,
-                            imeAction = ImeAction.Send,
-                        ),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Send,
+                    ),
                     keyboardActions = KeyboardActions(onSend = { if (value.isNotBlank()) onSendClick() }),
                     enabled = !isLoading,
                     shape = RoundedCornerShape(24.dp),
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    ),
                     maxLines = 4,
                 )
 
@@ -808,27 +832,29 @@ fun ChatInput(
                     label = "send_button",
                     transitionSpec = {
                         slideInHorizontally { it } + fadeIn() togetherWith
-                            slideOutHorizontally { -it } + fadeOut()
+                                slideOutHorizontally { -it } + fadeOut()
                     },
                 ) { loading ->
                     if (loading) {
-                        CircularProgressIndicator(
-                            modifier =
-                                Modifier
-                                    .size(48.dp)
-                                    .padding(12.dp),
-                            strokeWidth = 2.dp,
-                        )
+                        IconButton(
+                            onClick = onStopClick,
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        ) {
+                            Icon(Icons.Default.Stop, contentDescription = "Stop", modifier = Modifier.size(24.dp))
+                        }
                     } else {
                         IconButton(
                             onClick = onSendClick,
                             enabled = value.isNotBlank(),
                             modifier = Modifier.size(48.dp),
-                            colors =
-                                IconButtonDefaults.iconButtonColors(
-                                    containerColor = if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                    contentColor = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Send,
@@ -878,10 +904,9 @@ private fun InputChip(
 @Composable
 fun EmptyStateMessage() {
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -907,6 +932,39 @@ fun EmptyStateMessage() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 20.sp,
         )
+    }
+}
+
+@Composable
+fun EditTitleDialog(
+    currentTitle: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var newTitle by remember { mutableStateOf(currentTitle) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text("Edit Title", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = newTitle,
+                    onValueChange = { newTitle = it },
+                    label = { Text("New title") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = { onSave(newTitle) }) { Text("Save") }
+                }
+            }
+        }
     }
 }
 

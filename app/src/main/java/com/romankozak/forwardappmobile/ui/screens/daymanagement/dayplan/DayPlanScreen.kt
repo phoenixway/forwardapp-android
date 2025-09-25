@@ -269,6 +269,26 @@ fun DayPlanScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
+    val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
+    val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
+
+    if (taskToEdit != null) {
+        EditRecurringTaskDialog(
+            task = taskToEdit!!,
+            onDismiss = { viewModel.dismissEditConfirmationDialog() },
+            onConfirmEditSingle = { viewModel.editSingleInstanceOfRecurringTask(it) },
+            onConfirmEditAll = { viewModel.editAllFutureInstancesOfRecurringTask(it) }
+        )
+    }
+
+    if (taskToDelete != null) {
+        DeleteRecurringTaskDialog(
+            task = taskToDelete!!,
+            onDismiss = { viewModel.dismissDeleteConfirmationDialog() },
+            onConfirmDeleteSingle = { viewModel.deleteSingleInstanceOfRecurringTask(it) },
+            onConfirmDeleteAll = { viewModel.deleteAllFutureInstancesOfRecurringTask(it) }
+        )
+    }
 
     LaunchedEffect(addTaskTrigger) {
         if (addTaskTrigger > 0) {
@@ -345,8 +365,8 @@ fun DayPlanScreen(
     if (isAddTaskDialogOpen) {
         AddTaskDialog(
             onDismissRequest = viewModel::dismissAddTaskDialog,
-            onConfirm = { title, description, duration, priority ->
-                viewModel.addTask(dayPlanId, title, description, duration, priority)
+            onConfirm = { title, description, duration, priority, recurrenceRule ->
+                viewModel.addTask(dayPlanId, title, description, duration, priority, recurrenceRule)
             },
             initialPriority = TaskPriority.MEDIUM,
         )
@@ -357,11 +377,11 @@ fun DayPlanScreen(
             task = task,
             onDismiss = viewModel::clearSelectedTask,
             onEdit = {
-                viewModel.openEditTaskDialog()
+                viewModel.onEditTaskClicked(task)
             },
             onDelete = { taskToDelete ->
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.deleteTask(dayPlanId, taskToDelete.id)
+                viewModel.onDeleteTaskClicked(taskToDelete)
             },
             onSetReminder = { showReminderDialog = true },
             showAddToTodayOption = !uiState.isToday,
@@ -420,6 +440,66 @@ fun DayPlanScreen(
 }
 
 @Composable
+fun EditRecurringTaskDialog(
+    task: DayTask,
+    onDismiss: () -> Unit,
+    onConfirmEditSingle: (DayTask) -> Unit,
+    onConfirmEditAll: (DayTask) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Редагувати повторюване завдання?") },
+        text = { Text("Ви хочете редагувати тільки це завдання, чи це і всі наступні?") },
+        confirmButton = {
+            Column {
+                Button(onClick = { onConfirmEditSingle(task) }) {
+                    Text("Тільки це завдання")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { onConfirmEditAll(task) }) {
+                    Text("Це і всі наступні")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+        }
+    )
+}
+
+@Composable
+fun DeleteRecurringTaskDialog(
+    task: DayTask,
+    onDismiss: () -> Unit,
+    onConfirmDeleteSingle: (DayTask) -> Unit,
+    onConfirmDeleteAll: (DayTask) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Видалити повторюване завдання?") },
+        text = { Text("Ви хочете видалити тільки це завдання, чи це і всі наступні?") },
+        confirmButton = {
+            Column {
+                Button(onClick = { onConfirmDeleteSingle(task) }) {
+                    Text("Тільки це завдання")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { onConfirmDeleteAll(task) }) {
+                    Text("Це і всі наступні")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+        }
+    )
+}
+
+@Composable
 private fun LoadingState(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
@@ -472,6 +552,14 @@ fun TaskGoalItem(
                         isSelected = false,
                         modifier = Modifier.fillMaxWidth(),
                         currentTimeMillis = System.currentTimeMillis(),
+                    )
+                }
+                if (task.recurringTaskId != null) {
+                    Icon(
+                        imageVector = Icons.Outlined.Repeat,
+                        contentDescription = "Повторюване завдання",
+                        modifier = Modifier.size(16.dp).padding(start = 4.dp),
+                        tint = MaterialTheme.colorScheme.outline
                     )
                 }
             }
