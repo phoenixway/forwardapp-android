@@ -42,9 +42,10 @@ class GenerationService : Service() {
         startForeground(NOTIFICATION_ID, createNotification())
 
         val assistantMessageId = intent?.getLongExtra("assistantMessageId", -1L) ?: -1L
+        val conversationId = intent?.getLongExtra("conversationId", -1L) ?: -1L
 
-        if (assistantMessageId == -1L) {
-            Log.e(TAG, "Invalid assistantMessageId. Stopping service.")
+        if (assistantMessageId == -1L || conversationId == -1L) {
+            Log.e(TAG, "Invalid assistantMessageId or conversationId. Stopping service.")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -55,7 +56,7 @@ class GenerationService : Service() {
                 val smartModel = settingsRepo.ollamaSmartModelFlow.first()
                 val systemPrompt = settingsRepo.systemPromptFlow.first()
                 val temperature = settingsRepo.temperatureFlow.first()
-                val historyEntities = chatRepo.getChatHistory().first()
+                val historyEntities = chatRepo.getChatHistory(conversationId).first()
 
                 Log.d(TAG, "--- Ollama Request ---")
                 Log.d(TAG, "URL: $ollamaUrl")
@@ -83,9 +84,9 @@ class GenerationService : Service() {
                         .generateChatResponseStream(ollamaUrl, smartModel, history, temperature)
                         .collect { chunk ->
                             fullResponse += chunk
-                            val currentMessage = chatRepo.getMessageById(assistantMessageId)
+                            val currentMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
                             currentMessage?.let {
-                                chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = true))
+                                chatRepo.addMessage(it.copy(text = fullResponse, isStreaming = true))
                             }
                         }
                 } catch (e: Exception) {
@@ -93,14 +94,15 @@ class GenerationService : Service() {
                     throw e // Re-throw to be caught by the outer block
                 }
 
-
-                chatRepo.getMessageById(assistantMessageId)?.let {
-                    chatRepo.updateMessage(it.copy(text = fullResponse, isStreaming = false))
+                val finalMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
+                finalMessage?.let {
+                    chatRepo.addMessage(it.copy(text = fullResponse, isStreaming = false))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error during streaming generation", e)
-                chatRepo.getMessageById(assistantMessageId)?.let {
-                    chatRepo.updateMessage(
+                val errorMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
+                errorMessage?.let {
+                    chatRepo.addMessage(
                         it.copy(
                             text = "Error: ${e.message ?: "Unknown error"}",
                             isError = true,
