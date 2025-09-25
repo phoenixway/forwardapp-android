@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.database.models
 import java.time.DayOfWeek
 
 enum class RecurrenceFrequency {
+    HOURLY,
     DAILY,
     WEEKLY,
     MONTHLY,

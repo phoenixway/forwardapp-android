@@ -124,6 +124,7 @@ data class DayTask(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
     val completedAt: Long? = null,
+    val nextOccurrenceTime: Long? = null,
 )
 
 

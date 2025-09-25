@@ -15,7 +15,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 
 import com.romankozak.forwardappmobile.data.database.models.RecurrenceRule
-import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.RecurrencePickerDialog
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.AdvancedRecurrencePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +32,7 @@ fun AddTaskDialog(
     var showRecurrencePicker by remember { mutableStateOf(false) }
 
     if (showRecurrencePicker) {
-        RecurrencePickerDialog(
+        AdvancedRecurrencePickerDialog(
             onDismiss = { showRecurrencePicker = false },
             onConfirm = { rule ->
                 recurrenceRule = rule

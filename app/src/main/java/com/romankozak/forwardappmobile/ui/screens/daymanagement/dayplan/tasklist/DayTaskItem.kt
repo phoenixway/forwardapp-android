@@ -139,6 +139,7 @@ fun DayTaskAsSublistItem(
 private fun hasStatusContent(task: DayTask): Boolean {
     return (task.priority != TaskPriority.NONE) ||
         (task.reminderTime != null) ||
+        (task.nextOccurrenceTime != null) ||
         (!task.description.isNullOrBlank()) ||
         (task.goalId != null) ||
         (task.projectId != null)
@@ -149,6 +150,13 @@ private fun FlowRowScope.RenderBadges(
     task: DayTask,
     currentTimeMillis: Long,
 ) {
+    task.nextOccurrenceTime?.let { time ->
+        if (time > currentTimeMillis) {
+            val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+            val nextTime = formatter.format(java.util.Date(time))
+            Text("Наступне о $nextTime", style = MaterialTheme.typography.labelSmall)
+        }
+    }
     task.reminderTime?.let { time ->
         EnhancedReminderBadge(
             reminderTime = time,
