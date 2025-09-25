@@ -50,10 +50,14 @@ object DatabaseModule {
             MIGRATION_30_31,
             MIGRATION_31_32,
             MIGRATION_32_33,
+            MIGRATION_33_34, // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
+
             MIGRATION_34_35,
             MIGRATION_35_36,
             MIGRATION_36_37,
             MIGRATION_37_38,
+            MIGRATION_38_39 // <--- ДОДАЙТЕ НОВУ МІГРАЦІЮ СЮДИ
+
         ).build()
 
     @Provides

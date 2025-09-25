@@ -1,15 +1,18 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ChatDao
+import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.database.models.ChatMessageEntity
 import com.romankozak.forwardappmobile.data.database.models.ConversationEntity
+import com.romankozak.forwardappmobile.data.database.models.ConversationFolderEntity
 import com.romankozak.forwardappmobile.data.database.models.ConversationWithLastMessage
+import com.romankozak.forwardappmobile.ui.screens.chat.DrawerItem
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
-
-import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
-import com.romankozak.forwardappmobile.data.database.models.ConversationFolderEntity
 
 @Singleton
 class ChatRepository
@@ -39,6 +42,31 @@ constructor(
 
     fun getConversationsWithLastMessage(): Flow<List<ConversationWithLastMessage>> = chatDao.getConversationsWithLastMessage()
 
+    fun getDrawerItems(): Flow<List<DrawerItem>> {
+        return conversationFolderDao.getAllFolders().flatMapLatest { folders ->
+            val folderFlows: List<Flow<DrawerItem.Folder>> = folders.map { folder ->
+                chatDao.getConversationsWithLastMessageByFolder(folder.id).map { conversations ->
+                    DrawerItem.Folder(folder, conversations)
+                }
+            }
+            val conversationsFlow: Flow<List<DrawerItem.Conversation>> = chatDao.getConversationsWithLastMessageWithoutFolder().map { conversations ->
+                conversations.map { DrawerItem.Conversation(it) }
+            }
+
+            if (folderFlows.isNotEmpty()) {
+                combine(folderFlows) { folderItemsArray: Array<DrawerItem.Folder> ->
+                    folderItemsArray.toList()
+                }.flatMapLatest { combinedFolderItems: List<DrawerItem.Folder> ->
+                    conversationsFlow.map { conversationItems: List<DrawerItem.Conversation> ->
+                        combinedFolderItems + conversationItems
+                    }
+                }
+            } else {
+                conversationsFlow.map { it } // Ensure it's a Flow<List<DrawerItem>>
+            }
+        }
+    }
+
     suspend fun updateConversation(conversation: ConversationEntity) {
         chatDao.updateConversation(conversation)
     }
@@ -46,8 +74,6 @@ constructor(
     suspend fun deleteConversation(id: Long) {
         chatDao.deleteConversationAndMessages(id)
     }
-
-    // File: data/repository/ChatRepository.kt
 
     suspend fun deleteLastAssistantMessage(conversationId: Long) {
         chatDao.getLastAssistantMessageForConversation(conversationId)?.let { message ->

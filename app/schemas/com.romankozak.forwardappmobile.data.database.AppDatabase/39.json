@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 38,
-    "identityHash": "92646e028fd6c2c9ac7da45a5b1a69de",
+    "version": 39,
+    "identityHash": "352093d9da7db5c8d04da9fc6b89c48d",
     "entities": [
       {
         "tableName": "conversations",
@@ -39,7 +39,17 @@
             "id"
           ]
         },
-        "indices": [],
+        "indices": [
+          {
+            "name": "index_conversations_folderId",
+            "unique": false,
+            "columnNames": [
+              "folderId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversations_folderId` ON `${TABLE_NAME}` (`folderId`)"
+          }
+        ],
         "foreignKeys": []
       },
       {
@@ -1800,7 +1810,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '92646e028fd6c2c9ac7da45a5b1a69de')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '352093d9da7db5c8d04da9fc6b89c48d')"
     ]
   }
 }
