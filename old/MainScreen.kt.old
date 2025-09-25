@@ -175,8 +175,7 @@ fun MainScreen(
                     navController.navigate(event.route)
                 }
                 is ProjectUiEvent.NavigateToDayPlan -> {
-                    navController.navigateToDayManagement(event.date)
-                }
+                navController.navigateToDayManagement(event.date, event.startTab)                }
             }
         }
     }

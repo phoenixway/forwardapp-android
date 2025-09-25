@@ -57,6 +57,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.viewinterop.AndroidView
+import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 
 private const val TAG = "AI_CHAT_DEBUG"
 
@@ -83,6 +89,13 @@ fun ChatScreen(
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var showMatrixSplash by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        delay(1200)
+        showMatrixSplash = false
+    }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
@@ -168,171 +181,184 @@ fun ChatScreen(
         )
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ConversationDrawer(
-                drawerItems = uiState.drawerItems,
-                onConversationClick = {
-                    viewModel.setCurrentConversation(it)
-                    coroutineScope.launch { drawerState.close() }
-                }
-            )
-        }
-    ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.SmartToy,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(uiState.currentConversation?.title ?: "Chat", fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                                if (uiState.messages.any { it.isStreaming }) {
-                                    Text(
-                                        "Typing...",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Box(modifier = Modifier.fillMaxSize()) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ConversationDrawer(
+                    drawerItems = uiState.drawerItems,
+                    onConversationClick = {
+                        viewModel.setCurrentConversation(it)
+                        coroutineScope.launch { drawerState.close() }
+                    }
+                )
+            }
+        ) {
+            Scaffold(
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.SmartToy,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(uiState.currentConversation?.title ?: "Chat", fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                                    if (uiState.messages.any { it.isStreaming }) {
+                                        Text(
+                                            "Typing...",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { showEditTitleDialog = true }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit title")
+                            }
+                            Box {
+                                IconButton(onClick = { showMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                                }
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("New Chat") },
+                                        onClick = {
+                                            viewModel.startNewChat()
+                                            showMenu = false
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete Chat") },
+                                        onClick = {
+                                            showDeleteConfirmationDialog = true
+                                            showMenu = false
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Change Role") },
+                                        onClick = {
+                                            showRoleSelectorDialog = true
+                                            showMenu = false
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Export Chat") },
+                                        onClick = {
+                                            val chatText = viewModel.exportChat()
+                                            val sendIntent =
+                                                Intent().apply {
+                                                    action = Intent.ACTION_SEND
+                                                    putExtra(Intent.EXTRA_TEXT, chatText)
+                                                    type = "text/plain"
+                                                }
+                                            val shareIntent = Intent.createChooser(sendIntent, null)
+                                            context.startActivity(shareIntent)
+                                            showMenu = false
+                                        },
+                                    )
+                                    Divider()
+                                    DropdownMenuItem(
+                                        text = { Text("Settings") },
+                                        onClick = {
+                                            navController.navigate("settings_screen")
+                                            showMenu = false
+                                        },
                                     )
                                 }
                             }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { showEditTitleDialog = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit title")
-                        }
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false },
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("New Chat") },
-                                    onClick = {
-                                        viewModel.startNewChat()
-                                        showMenu = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Delete Chat") },
-                                    onClick = {
-                                        showDeleteConfirmationDialog = true
-                                        showMenu = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Change Role") },
-                                    onClick = {
-                                        showRoleSelectorDialog = true
-                                        showMenu = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Export Chat") },
-                                    onClick = {
-                                        val chatText = viewModel.exportChat()
-                                        val sendIntent =
-                                            Intent().apply {
-                                                action = Intent.ACTION_SEND
-                                                putExtra(Intent.EXTRA_TEXT, chatText)
-                                                type = "text/plain"
-                                            }
-                                        val shareIntent = Intent.createChooser(sendIntent, null)
-                                        context.startActivity(shareIntent)
-                                        showMenu = false
-                                    },
-                                )
-                                Divider()
-                                DropdownMenuItem(
-                                    text = { Text("Settings") },
-                                    onClick = {
-                                        navController.navigate("settings_screen")
-                                        showMenu = false
-                                    },
-                                )
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                )
-            },
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(backgroundBrush)
-                    .padding(paddingValues)
-                    .imePadding(),
-            ) {
-                LazyColumn(
-                    state = listState,
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                    )
+                },
+            ) { paddingValues ->
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
+                        .fillMaxSize()
+                        .background(backgroundBrush)
+                        .padding(paddingValues)
+                        .imePadding(),
                 ) {
-                    if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
-                        item { EmptyStateMessage() }
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
+                    ) {
+                        if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
+                            item { EmptyStateMessage() }
+                        }
+
+                        itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
+                            val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
+                            val isLastMessage = index == uiState.messages.lastIndex
+
+                            MessageBubble(
+                                message = message,
+                                isLastAssistantMessage = isLastAssistantMessage,
+                                bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null,
+                                onCopyToClipboard = { text ->
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("chat_message", text)
+                                    clipboard.setPrimaryClip(clip)
+                                },
+                                onRegenerate = viewModel::regenerateLastResponse,
+                                onTranslate = { viewModel.translateMessage(message.id) },
+                            )
+                        }
                     }
 
-                    itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
-                        val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
-                        val isLastMessage = index == uiState.messages.lastIndex
-
-                        MessageBubble(
-                            message = message,
-                            isLastAssistantMessage = isLastAssistantMessage,
-                            bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null,
-                            onCopyToClipboard = { text ->
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("chat_message", text)
-                                clipboard.setPrimaryClip(clip)
-                            },
-                            onRegenerate = viewModel::regenerateLastResponse,
-                            onTranslate = { viewModel.translateMessage(message.id) },
-                        )
-                    }
+                    ChatInput(
+                        value = userInput,
+                        onValueChange = viewModel::onUserInputChange,
+                        onSendClick = {
+                            viewModel.sendMessage()
+                            keyboardController?.hide()
+                        },
+                        onStopClick = viewModel::stopGeneration,
+                        isLoading = uiState.messages.any { it.isStreaming },
+                        roleTitle = uiState.roleTitle,
+                        temperature = uiState.temperature,
+                        modelName = uiState.smartModel,
+                        onModelClick = {
+                            viewModel.loadAvailableModels()
+                            showModelSelectorDialog = true
+                        },
+                        onRoleClick = { showRoleSelectorDialog = true },
+                        onTemperatureClick = { showTemperatureDialog = true },
+                        modifier = Modifier.shadow(8.dp),
+                    )
                 }
-
-                ChatInput(
-                    value = userInput,
-                    onValueChange = viewModel::onUserInputChange,
-                    onSendClick = {
-                        viewModel.sendMessage()
-                        keyboardController?.hide()
-                    },
-                    onStopClick = viewModel::stopGeneration,
-                    isLoading = uiState.messages.any { it.isStreaming },
-                    roleTitle = uiState.roleTitle,
-                    temperature = uiState.temperature,
-                    modelName = uiState.smartModel,
-                    onModelClick = {
-                        viewModel.loadAvailableModels()
-                        showModelSelectorDialog = true
-                    },
-                    onRoleClick = { showRoleSelectorDialog = true },
-                    onTemperatureClick = { showTemperatureDialog = true },
-                    modifier = Modifier.shadow(8.dp),
-                )
             }
+        }
+        AnimatedVisibility(
+            visible = showMatrixSplash,
+            exit = fadeOut(animationSpec = tween(300))
+        ) {
+            AndroidView(
+                factory = { context ->
+                    MatrixRainView(context)
+                },
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }

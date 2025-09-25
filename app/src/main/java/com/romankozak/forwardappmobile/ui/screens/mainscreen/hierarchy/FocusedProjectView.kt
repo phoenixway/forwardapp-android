@@ -30,7 +30,11 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDis
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
-@OptIn(ExperimentalFoundationApi::class)
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun FocusedProjectView(
   focusedProjectId: String,
@@ -49,7 +53,10 @@ fun FocusedProjectView(
   onToggleExpanded: (Project) -> Unit,
   onMenuRequested: (Project) -> Unit,
   onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-) {
+  sharedTransitionScope: SharedTransitionScope,
+  animatedVisibilityScope: AnimatedVisibilityScope,
+
+  ) {
   val focusedProject = hierarchy.allProjects.find { it.id == focusedProjectId }
   val children = (hierarchy.childMap[focusedProjectId] ?: emptyList()).sortedBy { it.order }
 
@@ -95,7 +102,10 @@ fun FocusedProjectView(
             onToggleExpanded = onToggleExpanded,
             onMenuRequested = onMenuRequested,
             onProjectReorder = onProjectReorder,
-          )
+            sharedTransitionScope =  sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope,
+
+            )
         }
       } else {
         item(key = "empty_state") {

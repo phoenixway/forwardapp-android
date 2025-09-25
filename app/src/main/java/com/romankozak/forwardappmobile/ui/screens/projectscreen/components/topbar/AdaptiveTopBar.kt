@@ -11,6 +11,8 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 
+import androidx.compose.animation.AnimatedVisibilityScope
+
 @Composable
 fun AdaptiveTopBar(
     isSelectionModeActive: Boolean,

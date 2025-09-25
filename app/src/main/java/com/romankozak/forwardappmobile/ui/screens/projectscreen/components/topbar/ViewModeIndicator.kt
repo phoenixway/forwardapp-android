@@ -1,3 +1,4 @@
+/*
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar
 
 import androidx.compose.foundation.background
@@ -68,3 +69,4 @@ public fun ViewModeIndicator(
         )
     }
 }
+*/

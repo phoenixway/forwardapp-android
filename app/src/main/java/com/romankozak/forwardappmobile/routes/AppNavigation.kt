@@ -7,6 +7,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -43,6 +46,7 @@ const val MAIN_GRAPH_ROUTE = "main_graph"
 const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
     val navController = rememberNavController()
@@ -69,29 +73,37 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
         }
     }
 
-    NavHost(
-        navController = navController,
-        
-        startDestination = MAIN_GRAPH_ROUTE,
-    ) {
-        
-        navigation(
-            startDestination = GOAL_LISTS_ROUTE,
-            route = MAIN_GRAPH_ROUTE,
+    SharedTransitionLayout {
+        NavHost(
+            navController = navController,
+            startDestination = MAIN_GRAPH_ROUTE,
         ) {
-            mainGraph(navController, syncDataViewModel, appNavigationViewModel)
+            // Єдиний граф верхнього рівня, як у вашій структурі
+            navigation(
+                startDestination = GOAL_LISTS_ROUTE,
+                route = MAIN_GRAPH_ROUTE,
+            ) {
+                mainGraph(
+                    navController,
+                    syncDataViewModel,
+                    appNavigationViewModel,
+                    this@SharedTransitionLayout
+                )
+            }
         }
     }
 }
 
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 private fun NavGraphBuilder.mainGraph(
     navController: NavHostController,
     syncDataViewModel: SyncDataViewModel,
     appNavigationViewModel: AppNavigationViewModel,
+    sharedTransitionScope: SharedTransitionScope,
 ) {
     composable(GOAL_LISTS_ROUTE) { backStackEntry ->
-        
+
         val parentEntry =
             remember(backStackEntry) {
                 navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
@@ -110,6 +122,8 @@ private fun NavGraphBuilder.mainGraph(
             navController = navController,
             syncDataViewModel = syncDataViewModel,
             viewModel = viewModel,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this
         )
     }
 
@@ -131,10 +145,20 @@ private fun NavGraphBuilder.mainGraph(
                     nullable = true
                 },
             ),
-    ) {
+    ) { backStackEntry -> // Add backStackEntry here
         val viewModel: BacklogViewModel = hiltViewModel()
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
-        ProjectsScreen(navController = navController, viewModel = viewModel)
+
+        // FIX: Extract the 'listId' argument from the route and assign it to a variable.
+        val projectId = backStackEntry.arguments?.getString("listId")
+
+        ProjectsScreen(
+            navController = navController,
+            viewModel = viewModel,
+            projectId = projectId, // Now 'projectId' is a resolved reference.
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this
+        )
     }
 
     composable(
@@ -151,7 +175,7 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable("settings_screen") { backStackEntry ->
-        
+
         val parentEntry =
             remember(backStackEntry) {
                 navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
@@ -242,7 +266,7 @@ private fun NavGraphBuilder.mainGraph(
             onSyncComplete = { navController.popBackStack() },
         )
     }
-    
+
     composable(
         route = "note_edit_screen?projectId={projectId}&noteId={noteId}",
         arguments =
@@ -268,7 +292,7 @@ private fun NavGraphBuilder.mainGraph(
         ),
     ) { backStackEntry ->
         val listId = backStackEntry.arguments?.getString("listId")
-        
+
         UnifiedCustomListScreen(
             navController = navController,
         )
@@ -282,7 +306,7 @@ private fun NavGraphBuilder.mainGraph(
         ),
     ) { backStackEntry ->
         val projectId = backStackEntry.arguments?.getString("projectId")
-        
+
         UnifiedCustomListScreen(
             navController = navController,
         )
@@ -305,7 +329,7 @@ private fun NavGraphBuilder.mainGraph(
     ) { backStackEntry ->
         val projectId = backStackEntry.arguments?.getString("projectId")
         val listId = backStackEntry.arguments?.getString("listId")
-        
+
         UnifiedCustomListScreen(
             navController = navController,
         )
