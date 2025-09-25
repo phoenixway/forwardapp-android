@@ -629,6 +629,9 @@ constructor(
       is MainScreenEvent.UpdateLightTheme -> updateLightTheme(event.themeName)
       is MainScreenEvent.UpdateDarkTheme -> updateDarkTheme(event.themeName)
       is MainScreenEvent.UpdateThemeMode -> updateThemeMode(event.themeMode)
+      is MainScreenEvent.GoToReminders -> {
+        viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
+      }
       else -> {}
     }
   }

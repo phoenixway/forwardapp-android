@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -28,6 +29,7 @@ class AlarmScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val projectRepository: ProjectRepository,
     ) : AlarmSchedulerInterface {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
         private val tag = "ReminderFlow"
@@ -274,5 +276,17 @@ class AlarmScheduler
         fun cancelForTask(task: DayTask) {
             Log.d(tag, "AlarmScheduler: cancelForTask() called for task ID: ${task.id}")
             cancelAlarm(task.id.hashCode())
+        }
+
+        suspend fun snooze(goalId: String) {
+            Log.d(tag, "AlarmScheduler: snooze() called for goal ID: $goalId")
+            val goal = projectRepository.getGoalById(goalId)
+            if (goal != null) {
+                val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
+                val snoozedGoal = goal.copy(reminderTime = snoozeTime)
+                schedule(snoozedGoal)
+            } else {
+                Log.e(tag, "AlarmScheduler: Goal with ID $goalId not found for snoozing.")
+            }
         }
     }

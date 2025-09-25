@@ -378,4 +378,8 @@ private fun NavGraphBuilder.mainGraph(
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)
     }
+
+    composable("reminders_screen") {
+        com.romankozak.forwardappmobile.ui.screens.reminders.RemindersScreen(navController = navController)
+    }
 }
