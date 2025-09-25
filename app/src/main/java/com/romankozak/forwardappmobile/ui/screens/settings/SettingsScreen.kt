@@ -292,6 +292,15 @@ fun SettingsScreen(
                     colors = ButtonDefaults.outlinedButtonColors(),
                 )
             }
+
+            SettingsCard(
+                title = "Debug Options",
+                icon = Icons.Default.BugReport,
+            ) {
+                Button(onClick = { throw RuntimeException("Test Crash from Settings") }) {
+                    Text("Test Crash")
+                }
+            }
         }
     }
 }

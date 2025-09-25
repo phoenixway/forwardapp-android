@@ -10,9 +10,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DragHandle
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -120,6 +127,7 @@ fun CompactDayPlanHeader(
     onNavigateToPreviousDay: () -> Unit,
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
@@ -179,6 +187,12 @@ fun CompactDayPlanHeader(
                                     alpha = 0.38f,
                                 )
                             },
+                    )
+                }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = "Налаштування",
                     )
                 }
             }
@@ -260,6 +274,7 @@ fun DayPlanScreen(
     viewModel: DayPlanViewModel = hiltViewModel(),
     onNavigateToProject: (projectId: String) -> Unit,
     onNavigateToBacklog: (task: DayTask) -> Unit,
+    onNavigateToSettings: () -> Unit,
     addTaskTrigger: Int,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -345,6 +360,7 @@ fun DayPlanScreen(
                     onNavigateToNextDay = { viewModel.navigateToNextDay() },
                     isNextDayNavigationEnabled = !uiState.isToday,
                     onSublistClick = onNavigateToProject,
+                    onSettingsClick = onNavigateToSettings,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -556,7 +572,7 @@ fun TaskGoalItem(
                 }
                 if (task.recurringTaskId != null) {
                     Icon(
-                        imageVector = Icons.Outlined.Repeat,
+                        imageVector = Icons.Filled.Repeat,
                         contentDescription = "Повторюване завдання",
                         modifier = Modifier.size(16.dp).padding(start = 4.dp),
                         tint = MaterialTheme.colorScheme.outline

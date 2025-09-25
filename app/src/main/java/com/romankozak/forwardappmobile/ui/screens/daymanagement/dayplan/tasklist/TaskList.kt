@@ -48,6 +48,7 @@ fun TaskList(
     onNavigateToPreviousDay: () -> Unit,
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -87,6 +88,7 @@ fun TaskList(
             onNavigateToPreviousDay = onNavigateToPreviousDay,
             onNavigateToNextDay = onNavigateToNextDay,
             isNextDayNavigationEnabled = isNextDayNavigationEnabled,
+            onSettingsClick = onSettingsClick,
         )
 
         

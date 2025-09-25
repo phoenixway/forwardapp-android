@@ -11,6 +11,9 @@ plugins {
     //id("com.google.devtools.ksp")
     id("kotlin-parcelize")
 
+    alias(libs.plugins.google.services.plugin)
+    alias(libs.plugins.firebase.crashlytics.plugin)
+
     //id("io.gitlab.arturbosch.detekt")
 
 }
@@ -111,6 +114,11 @@ dependencies {
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
 
     // Основні Compose бібліотеки
     implementation(libs.androidx.ui)
