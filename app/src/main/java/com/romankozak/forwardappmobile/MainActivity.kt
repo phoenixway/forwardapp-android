@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeSettings by settingsRepository.themeSettings.collectAsState(initial = com.romankozak.forwardappmobile.ui.theme.ThemeSettings())
             ForwardAppMobileTheme(themeSettings = themeSettings) {
+                // Вся навігація тепер інкапсульована тут
                 AppNavigation(syncDataViewModel = syncDataViewModel)
             }
         }
@@ -123,6 +124,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Функція RequestAllPermissions залишається без змін, тому я її опускаю для стислості.
+// Вона має бути тут у вашому фінальному файлі.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RequestAllPermissions() {

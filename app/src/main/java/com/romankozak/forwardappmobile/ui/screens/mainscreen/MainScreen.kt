@@ -66,13 +66,21 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.flow.collectLatest
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.core.net.toUri
+
 private const val UI_TAG = "MainScreenUI_DEBUG"
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MainScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
     viewModel: MainScreenViewModel = hiltViewModel(),
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
@@ -92,12 +100,13 @@ fun MainScreen(
                 is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
                 is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("edit_list_screen/${event.projectId}")
                 is ProjectUiEvent.Navigate -> navController.navigate(event.route)
-                is ProjectUiEvent.NavigateToDayPlan -> navController.navigateToDayManagement(event.date.toString(), event.startTab)
+                is ProjectUiEvent.NavigateToDayPlan ->
+                    navController.navigateToDayManagement(event.date, event.startTab)
                 is ProjectUiEvent.FocusSearchField -> {
                     
                 }
                 is ProjectUiEvent.OpenUri -> {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.uri))
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, event.uri.toUri())
                     navController.context.startActivity(intent)
                 }
                 is ProjectUiEvent.ScrollToIndex -> { }
@@ -128,7 +137,9 @@ fun MainScreen(
             onEvent = viewModel::onEvent,
             enhancedNavigationManager = navManager,
             lastOngoingActivity = lastOngoingActivity,
-            viewModel = viewModel
+            viewModel = viewModel,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope,
         )
     } ?: Box(
         modifier = Modifier.fillMaxSize(),
@@ -138,7 +149,7 @@ fun MainScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 private fun MainScreenScaffold(
     uiState: MainScreenUiState,
@@ -146,10 +157,11 @@ private fun MainScreenScaffold(
     enhancedNavigationManager: com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager,
     lastOngoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
     viewModel: MainScreenViewModel,
+    // FIX: Added the missing parameters to the function signature
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val listState = rememberLazyListState()
-
-    
     var showContextSheet by remember { mutableStateOf(false) }
     var showSearchHistorySheet by remember { mutableStateOf(false) }
 
@@ -162,8 +174,8 @@ private fun MainScreenScaffold(
         derivedStateOf {
             val enabled =
                 uiState.subStateStack.size > 1 ||
-                    uiState.currentBreadcrumbs.isNotEmpty() ||
-                    uiState.areAnyProjectsExpanded
+                        uiState.currentBreadcrumbs.isNotEmpty() ||
+                        uiState.areAnyProjectsExpanded
             Log.d(UI_TAG, "BackHandler enabled = $enabled")
             enabled
         }
@@ -177,7 +189,6 @@ private fun MainScreenScaffold(
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
-            
             val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
             val isFocusMode = uiState.currentBreadcrumbs.isNotEmpty()
 
@@ -215,7 +226,6 @@ private fun MainScreenScaffold(
                         searchQuery = uiState.searchQuery,
                         onQueryChange = { onEvent(MainScreenEvent.SearchQueryChanged(it)) },
                         onCloseSearch = {
-                            
                             onEvent(MainScreenEvent.CloseSearch)
                         },
                         onPerformGlobalSearch = { onEvent(MainScreenEvent.GlobalSearchPerform(it)) },
@@ -224,7 +234,6 @@ private fun MainScreenScaffold(
                 } else {
                     ExpandingBottomNav(
                         onToggleSearch = {
-                            
                             onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
                         },
                         onGlobalSearchClick = { onEvent(MainScreenEvent.ShowSearchDialog) },
@@ -249,10 +258,11 @@ private fun MainScreenScaffold(
             uiState = uiState,
             onEvent = onEvent,
             listState = listState,
+            // Pass the scopes down to the content
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope
         )
     }
-
-    
 
     if (uiState.showNavigationMenu) {
         NavigationHistoryMenu(
@@ -288,7 +298,6 @@ private fun MainScreenScaffold(
         onItemClick = { onEvent(MainScreenEvent.RecentItemSelected(it)) },
     )
 
-    
     HandleDialogs(
         uiState = uiState,
         onEvent = onEvent,
@@ -298,7 +307,7 @@ private fun MainScreenScaffold(
         com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
-            onClearReminder = 
+            onClearReminder =
                 if (record.reminderTime != null) {
                     { viewModel.onClearReminder() }
                 } else {

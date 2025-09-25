@@ -1,5 +1,3 @@
-// file: ui/screens/backlog/ProjectScreen.kt
-
 @file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
@@ -7,12 +5,10 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen
 import android.app.Activity
 import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
@@ -27,7 +23,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -46,38 +44,17 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.input
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ExportTransferDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun RecentProjectsSheet(
-    viewModel: BacklogViewModel,
-    onDismiss: () -> Unit
-) {
-    val recentItems by viewModel.recentItems.collectAsStateWithLifecycle()
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        if (recentItems.isEmpty()) {
-            Text("No recent items", modifier = Modifier.padding(16.dp))
-        } else {
-            LazyColumn(modifier = Modifier.navigationBarsPadding()) {
-                items(recentItems, key = { it.id }) { item ->
-                    ListItem(
-                        headlineContent = { Text(item.displayName) },
-                        modifier = Modifier.clickable {
-                            viewModel.onRecentItemClick(item)
-                            onDismiss()
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ProjectsScreen(
     navController: NavController,
     viewModel: BacklogViewModel = hiltViewModel(),
+    // Додаємо projectId та скоупи для анімації
+    projectId: String?,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
     val view = LocalView.current
@@ -95,7 +72,26 @@ fun ProjectsScreen(
         }
     }
 
-    Log.d("ViewModelInitTest", "ProjectsScreen: Спроба створити GoalDetailViewModel. Результат: $viewModel")
+    // Ідея №1: Фон із картки. Анімуємо колір фону.
+    val targetBackgroundColor = MaterialTheme.colorScheme.surface
+    val animatedBackgroundColor by animateColorAsState(
+        targetValue = targetBackgroundColor,
+        animationSpec = tween(600), // Тривалість анімації фону
+        label = "background_color_animation"
+    )
+
+    // Ідея №2: Кіберпанкове світіння
+    val transition = rememberInfiniteTransition(label = "glow_transition")
+    val glow by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.03f, // Невелике збільшення для ефекту пульсації
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow_scale"
+    )
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val list by viewModel.project.collectAsStateWithLifecycle()
@@ -169,7 +165,7 @@ fun ProjectsScreen(
             com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog(
                 onDismiss = viewModel::onReminderDialogDismiss,
                 onSetReminder = viewModel::onSetReminder,
-                onClearReminder = 
+                onClearReminder =
                     if (record.reminderTime != null) {
                         { viewModel.onClearReminder() }
                     } else {
@@ -226,34 +222,53 @@ fun ProjectsScreen(
             }
 
         Scaffold(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(animatedBackgroundColor),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
-                ) {
-                    AdaptiveTopBar(
-                        isSelectionModeActive = isSelectionModeActive,
-                        project = list,
-                        selectedCount = uiState.selectedItemIds.size,
-                        areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                        onClearSelection = { viewModel.selectionHandler.clearSelection() },
-                        onSelectAll = { viewModel.selectionHandler.selectAllItems() },
-                        onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                        onMoreActions = { actionType ->
-                            viewModel.selectionHandler.onBulkActionRequest(
-                                actionType,
-                                uiState.selectedItemIds
+                with(sharedTransitionScope) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .sharedElement(
+                                // FIX 1: Changed parameter name from 'state' to 'sharedContentState'
+                                sharedContentState = rememberSharedContentState(key = "project-card-$projectId"), // FIX 2: Removed redundant curly braces
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                boundsTransform = { initialBounds, targetBounds ->
+                                    tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                                }
+                           //     boundsTransform = MaterialContainerTransform()
+
                             )
-                        },
-                        onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
-                        onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                        currentViewMode = uiState.currentView,
-                        windowInsets = WindowInsets.statusBars,
-                    )
+                            .graphicsLayer {
+                                scaleX = glow
+                                scaleY = glow
+                            },
+                        shape = RoundedCornerShape(0.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
+                    ) {
+                        AdaptiveTopBar(
+                            isSelectionModeActive = isSelectionModeActive,
+                            project = list,
+                            selectedCount = uiState.selectedItemIds.size,
+                            areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                            onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                            onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                            onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                            onMoreActions = { actionType ->
+                                viewModel.selectionHandler.onBulkActionRequest(
+                                    actionType,
+                                    uiState.selectedItemIds
+                                )
+                            },
+                            onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
+                            onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
+                            currentViewMode = uiState.currentView,
+                            windowInsets = WindowInsets.statusBars,
+                        )
+                    }
                 }
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -347,11 +362,12 @@ fun ProjectsScreen(
                 }
             }
         ) { paddingValues ->
-            Log.d("Recents_Debug", "Scaffold content composed")
-            
-
+            // ВИДАЛЕНО: Тимчасові вкладки та текст
+            // ЗАМІНЕНО: Ефект "глітч" застосовано до GoalDetailContent
             GoalDetailContent(
-                modifier = Modifier.padding(paddingValues),
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .glitch(trigger = uiState.currentView), // Анімація при зміні вигляду
                 viewModel = viewModel,
                 uiState = uiState,
                 listState = listState,
@@ -361,6 +377,28 @@ fun ProjectsScreen(
         }
     }
 }
+
+// Модифікатор для Glitch-ефекту
+fun Modifier.glitch(trigger: Any): Modifier = composed {
+    var glitchAmount by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(key1 = trigger) {
+        val glitchDuration = 150L
+        val startTime = withFrameNanos { it }
+
+        while (withFrameNanos { it } < startTime + (glitchDuration * 1_000_000)) {
+            glitchAmount = (Math.random() * 10 - 5).toFloat()
+            delay(40) // Маленька затримка між "кадрами" глітчу
+        }
+        glitchAmount = 0f
+    }
+
+    this.graphicsLayer {
+        translationX = glitchAmount
+        translationY = (Math.random() * glitchAmount - glitchAmount / 2).toFloat()
+    }
+}
+
 
 @Composable
 private fun InProgressIndicator(
@@ -386,7 +424,9 @@ private fun InProgressIndicator(
             val timeString = formatElapsedTime(elapsedTime)
 
             Surface(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onIndicatorClick),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onIndicatorClick),
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
             ) {
                 Row(
@@ -409,7 +449,7 @@ private fun InProgressIndicator(
                         Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
                     }
                     val context = androidx.compose.ui.platform.LocalContext.current
-                    IconButton(onClick = { 
+                    IconButton(onClick = {
                         val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                         val uri = android.net.Uri.fromParts("package", context.packageName, null)
                         intent.data = uri
@@ -432,5 +472,32 @@ private fun formatElapsedTime(elapsedTime: Long): String {
         String.format(java.util.Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    }
+}
+
+// RecentProjectsSheet залишається без змін
+@Composable
+private fun RecentProjectsSheet(
+    viewModel: BacklogViewModel,
+    onDismiss: () -> Unit
+) {
+    val recentItems by viewModel.recentItems.collectAsStateWithLifecycle()
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        if (recentItems.isEmpty()) {
+            Text("No recent items", modifier = Modifier.padding(16.dp))
+        } else {
+            LazyColumn(modifier = Modifier.navigationBarsPadding()) {
+                items(recentItems, key = { it.id }) { item ->
+                    ListItem(
+                        headlineContent = { Text(item.displayName) },
+                        modifier = Modifier.clickable {
+                            viewModel.onRecentItemClick(item)
+                            onDismiss()
+                        }
+                    )
+                }
+            }
+        }
     }
 }

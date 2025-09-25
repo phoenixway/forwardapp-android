@@ -19,6 +19,14 @@ fun NavGraphBuilder.dayManagementGraph(navController: NavController) {
 }
 
 
-fun NavController.navigateToDayManagement(date: Long) {
-    this.navigate("$DAY_MANAGEMENT_ROUTE/$date")
+// File: DayManagementNavigation.kt
+
+fun NavController.navigateToDayManagement(date: Long, startTab: String? = null) {
+    // Формуємо маршрут, додаючи startTab як query-параметр, якщо він існує
+    val route = if (startTab != null) {
+        "$DAY_MANAGEMENT_ROUTE/$date?startTab=$startTab"
+    } else {
+        "$DAY_MANAGEMENT_ROUTE/$date"
+    }
+    this.navigate(route)
 }

@@ -181,6 +181,7 @@ dependencies {
 
     // Additional libraries
     implementation(libs.accompanist.flowlayout)
+
     implementation(libs.reorderable)
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
@@ -240,6 +241,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 // Адаптер для Retrofit, щоб він працював з KotlinX Serialization
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    /*implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.ui:ui")*/
 
-
+    implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.ui:ui")
 }

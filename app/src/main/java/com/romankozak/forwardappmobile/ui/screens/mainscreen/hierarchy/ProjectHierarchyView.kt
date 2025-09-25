@@ -17,7 +17,11 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.HierarchyDis
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
-@OptIn(ExperimentalFoundationApi::class)
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun ProjectHierarchyView(
     modifier: Modifier = Modifier,
@@ -38,6 +42,8 @@ fun ProjectHierarchyView(
     onMenuRequested: (Project) -> Unit,
     onNavigateToProject: (String) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val dragAndDropState = rememberDragAndDropState<Project>()
 
@@ -64,6 +70,8 @@ fun ProjectHierarchyView(
                 onToggleExpanded = onToggleExpanded,
                 onMenuRequested = onMenuRequested,
                 onProjectReorder = onProjectReorder,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope,
             )
         } else {
             LazyColumn(
@@ -84,7 +92,8 @@ fun ProjectHierarchyView(
                         onNavigateToProject = onNavigateToProject,
                         focusedProjectId = focusedProjectId,
                         longDescendantsMap = longDescendantsMap,
-                        
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
                         onProjectClick = onProjectClicked,
                         onToggleExpanded = onToggleExpanded,
                         onMenuRequested = onMenuRequested,

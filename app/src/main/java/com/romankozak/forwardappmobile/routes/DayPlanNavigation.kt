@@ -30,11 +30,3 @@ fun NavGraphBuilder.dayManagementScreen(navController: NavController) {
     }
 }
 
-fun NavController.navigateToDayManagement(dayPlanId: String, startTab: String? = null) {
-    val route = if (startTab != null) {
-        "$DAY_PLAN_ROUTE/$dayPlanId?$START_TAB_ARG=$startTab"
-    } else {
-        "$DAY_PLAN_ROUTE/$dayPlanId"
-    }
-    this.navigate(route)
-}

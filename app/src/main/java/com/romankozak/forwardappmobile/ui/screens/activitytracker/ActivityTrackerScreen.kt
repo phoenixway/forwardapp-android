@@ -45,6 +45,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.viewinterop.AndroidView
+import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 
 private val ActivityRecord.isTimeless: Boolean
     get() = this.startTime == null
@@ -67,92 +73,112 @@ fun ActivityTrackerScreen(
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            ActivityTrackerTopAppBar(
-                onNavigateBack = { navController.popBackStack() },
-                onClearLogRequest = { showClearConfirmDialog = true },
-                onExportRequest = {
-                    val markdown = exportLogToMarkdown(log)
-                    copyToClipboard(context, markdown)
-                },
-            )
-        },
-        bottomBar = {
-            Column(
-                modifier =
+    var showMatrixSplash by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        delay(1200)
+        showMatrixSplash = false
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                ActivityTrackerTopAppBar(
+                    onNavigateBack = { navController.popBackStack() },
+                    onClearLogRequest = { showClearConfirmDialog = true },
+                    onExportRequest = {
+                        val markdown = exportLogToMarkdown(log)
+                        copyToClipboard(context, markdown)
+                    },
+                )
+            },
+            bottomBar = {
+                Column(
+                    modifier =
                     Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .imePadding(),
-            ) {
-                InProgressIndicator(
-                    ongoingActivity = lastOngoingActivity,
-                )
-                ActivityInputBar(
-                    text = inputText,
-                    isActivityOngoing = lastOngoingActivity != null,
-                    onTextChange = viewModel::onInputTextChanged,
-                    onToggleStartStop = viewModel::onToggleStartStop,
-                    onTimelessClick = viewModel::onTimelessRecordClick,
+                ) {
+                    InProgressIndicator(
+                        ongoingActivity = lastOngoingActivity,
+                    )
+                    ActivityInputBar(
+                        text = inputText,
+                        isActivityOngoing = lastOngoingActivity != null,
+                        onTextChange = viewModel::onInputTextChanged,
+                        onToggleStartStop = viewModel::onToggleStartStop,
+                        onTimelessClick = viewModel::onTimelessRecordClick,
+                    )
+                }
+            },
+        ) { paddingValues ->
+            ActivityLog(
+                log = log,
+                modifier = Modifier.padding(paddingValues),
+                onEdit = viewModel::onEditRequest,
+                onRestart = viewModel::onRestartActivity,
+                onDelete = viewModel::onDeleteRequest,
+                onSetReminder = viewModel::onSetReminder,
+            )
+
+            editingRecord?.let { recordToEdit ->
+                EditRecordDialog(
+                    record = recordToEdit,
+                    onDismiss = viewModel::onEditDialogDismiss,
+                    onConfirm = viewModel::onRecordUpdated,
+                    isLastTimedRecord = isEditingLastTimedRecord,
                 )
             }
-        },
-    ) { paddingValues ->
-        ActivityLog(
-            log = log,
-            modifier = Modifier.padding(paddingValues),
-            onEdit = viewModel::onEditRequest,
-            onRestart = viewModel::onRestartActivity,
-            onDelete = viewModel::onDeleteRequest,
-            onSetReminder = viewModel::onSetReminder,
-        )
 
-        editingRecord?.let { recordToEdit ->
-            EditRecordDialog(
-                record = recordToEdit,
-                onDismiss = viewModel::onEditDialogDismiss,
-                onConfirm = viewModel::onRecordUpdated,
-                isLastTimedRecord = isEditingLastTimedRecord,
-            )
-        }
+            recordToDelete?.let { record ->
+                AlertDialog(
+                    onDismissRequest = viewModel::onDeleteDismiss,
+                    title = { Text("Видалити запис?") },
+                    text = { Text("Ви впевнені, що хочете видалити запис: \"${record.text}\"?") },
+                    confirmButton = { Button(onClick = viewModel::onDeleteConfirm) { Text("Видалити") } },
+                    dismissButton = { TextButton(onClick = viewModel::onDeleteDismiss) { Text("Скасувати") } },
+                )
+            }
 
-        recordToDelete?.let { record ->
-            AlertDialog(
-                onDismissRequest = viewModel::onDeleteDismiss,
-                title = { Text("Видалити запис?") },
-                text = { Text("Ви впевнені, що хочете видалити запис: \"${record.text}\"?") },
-                confirmButton = { Button(onClick = viewModel::onDeleteConfirm) { Text("Видалити") } },
-                dismissButton = { TextButton(onClick = viewModel::onDeleteDismiss) { Text("Скасувати") } },
-            )
-        }
+            if (showClearConfirmDialog) {
+                AlertDialog(
+                    onDismissRequest = { showClearConfirmDialog = false },
+                    title = { Text("Очистити лог?") },
+                    text = { Text("Ви впевнені, що хочете видалити всі записи? Цю дію неможливо буде скасувати.") },
+                    confirmButton = {
+                        Button(onClick = {
+                            viewModel.onClearLogConfirm()
+                            showClearConfirmDialog = false
+                        }) { Text("Видалити") }
+                    },
+                    dismissButton = { TextButton(onClick = { showClearConfirmDialog = false }) { Text("Скасувати") } },
+                )
+            }
 
-        if (showClearConfirmDialog) {
-            AlertDialog(
-                onDismissRequest = { showClearConfirmDialog = false },
-                title = { Text("Очистити лог?") },
-                text = { Text("Ви впевнені, що хочете видалити всі записи? Цю дію неможливо буде скасувати.") },
-                confirmButton = {
-                    Button(onClick = {
-                        viewModel.onClearLogConfirm()
-                        showClearConfirmDialog = false
-                    }) { Text("Видалити") }
-                },
-                dismissButton = { TextButton(onClick = { showClearConfirmDialog = false }) { Text("Скасувати") } },
-            )
-        }
-
-        recordForReminder?.let { record ->
-            ReminderPickerDialog(
-                onDismiss = viewModel::onReminderDialogDismiss,
-                onSetReminder = viewModel::onSetReminder,
-                onClearReminder =
+            recordForReminder?.let { record ->
+                ReminderPickerDialog(
+                    onDismiss = viewModel::onReminderDialogDismiss,
+                    onSetReminder = viewModel::onSetReminder,
+                    onClearReminder =
                     if (record.reminderTime != null) {
                         { viewModel.onClearReminder() }
                     } else {
                         null
                     },
-                currentReminderTime = record.reminderTime,
+                    currentReminderTime = record.reminderTime,
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = showMatrixSplash,
+            exit = fadeOut(animationSpec = tween(300))
+        ) {
+            AndroidView(
+                factory = { context ->
+                    MatrixRainView(context)
+                },
+                modifier = Modifier.fillMaxSize()
             )
         }
     }

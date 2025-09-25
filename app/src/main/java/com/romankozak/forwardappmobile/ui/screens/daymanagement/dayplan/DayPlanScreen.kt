@@ -49,6 +49,14 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.viewinterop.AndroidView
+import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -287,6 +295,13 @@ fun DayPlanScreen(
     val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
     val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
 
+    var showMatrixSplash by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        delay(1200)
+        showMatrixSplash = false
+    }
+
     if (taskToEdit != null) {
         EditRecurringTaskDialog(
             task = taskToEdit!!,
@@ -330,52 +345,66 @@ fun DayPlanScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        when {
-            uiState.isLoading -> LoadingState()
-            uiState.error != null && uiState.tasks.isEmpty() -> {
-                ErrorState(
-                    error = uiState.error!!,
-                    onRetry = { viewModel.loadDataForPlan(dayPlanId) },
-                )
+        Box(modifier = modifier.fillMaxSize()) {
+            when {
+                uiState.isLoading -> LoadingState()
+                uiState.error != null && uiState.tasks.isEmpty() -> {
+                    ErrorState(
+                        error = uiState.error!!,
+                        onRetry = { viewModel.loadDataForPlan(dayPlanId) },
+                    )
+                }
+                else -> {
+                    val tasks = uiState.tasks
+                    TaskList(
+                        tasks = tasks,
+                        dayPlan = uiState.dayPlan,
+                        onToggleTask = { taskId ->
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.toggleTaskCompletion(taskId)
+                        },
+                        onTaskLongPress = { task ->
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.selectTask(task)
+                        },
+                        onTasksReordered = { reorderedList ->
+                            uiState.dayPlan?.let { dayPlan ->
+                                viewModel.updateTasksOrder(dayPlan.id, reorderedList)
+                            }
+                        },
+                        onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
+                        onNavigateToNextDay = { viewModel.navigateToNextDay() },
+                        isNextDayNavigationEnabled = !uiState.isToday,
+                        onSublistClick = onNavigateToProject,
+                        onSettingsClick = onNavigateToSettings,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
-            else -> {
-                val tasks = uiState.tasks
-                TaskList(
-                    tasks = tasks,
-                    dayPlan = uiState.dayPlan,
-                    onToggleTask = { taskId ->
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.toggleTaskCompletion(taskId)
-                    },
-                    onTaskLongPress = { task ->
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.selectTask(task)
-                    },
-                    onTasksReordered = { reorderedList ->
-                        uiState.dayPlan?.let { dayPlan ->
-                            viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                        }
-                    },
-                    onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
-                    onNavigateToNextDay = { viewModel.navigateToNextDay() },
-                    isNextDayNavigationEnabled = !uiState.isToday,
-                    onSublistClick = onNavigateToProject,
-                    onSettingsClick = onNavigateToSettings,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            snackbar = { snackbarData ->
-                Snackbar(
-                    snackbarData = snackbarData,
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+
+        AnimatedVisibility(
+            visible = showMatrixSplash,
+            exit = fadeOut(animationSpec = tween(300))
+        ) {
+            AndroidView(
+                factory = { context ->
+                    MatrixRainView(context)
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 
     if (isAddTaskDialogOpen) {

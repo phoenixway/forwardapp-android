@@ -36,13 +36,21 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 
 
-@OptIn(ExperimentalFoundationApi::class)
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+
+
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun MainScreenContent(
     modifier: Modifier = Modifier,
     uiState: MainScreenUiState,
     onEvent: (MainScreenEvent) -> Unit,
     listState: LazyListState,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     
     val currentSubState =
@@ -138,6 +146,8 @@ fun MainScreenContent(
                     listState = listState,
                     longDescendantsMap = emptyMap(),
                     onEvent = onEvent,
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope,
                     onProjectClicked = { onEvent(MainScreenEvent.ProjectClick(it)) },
                     onToggleExpanded = { onEvent(MainScreenEvent.ToggleProjectExpanded(it)) },
                     onMenuRequested = { onEvent(MainScreenEvent.ProjectMenuRequest(it)) },
