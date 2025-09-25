@@ -258,3 +258,10 @@ val MIGRATION_40_41 = object : Migration(40, 41) {
         db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `nextOccurrenceTime` INTEGER")
     }
 }
+
+val MIGRATION_41_42 = object : Migration(41, 42) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `recurring_tasks` ADD COLUMN `goalId` TEXT")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_recurring_tasks_goalId` ON `recurring_tasks` (`goalId`)")
+    }
+}

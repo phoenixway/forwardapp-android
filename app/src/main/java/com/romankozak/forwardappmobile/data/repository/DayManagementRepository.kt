@@ -97,13 +97,15 @@ class DayManagementRepository
             duration: Long?,
             priority: TaskPriority,
             recurrenceRule: RecurrenceRule,
-            dayPlanId: String
+            dayPlanId: String,
+            goalId: String? = null
         ) {
             withContext(ioDispatcher) {
                 val dayPlan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
                 val recurringTask = RecurringTask(
                     title = title,
                     description = description,
+                    goalId = goalId,
                     duration = duration?.toInt(),
                     priority = priority,
                     recurrenceRule = recurrenceRule,
@@ -116,6 +118,7 @@ class DayManagementRepository
                     title = title,
                     description = description,
                     priority = priority,
+                    goalId = goalId,
                     estimatedDurationMinutes = duration,
                     taskType = ListItemType.GOAL,
                 )
@@ -493,10 +496,32 @@ class DayManagementRepository
                         if (shouldGenerateTaskForDate(recurringTask, date)) {
                             val existingTask = dayTaskDao.findByRecurringIdAndDate(recurringTask.id, dayPlan.id)
                             if (existingTask == null) {
+
+                                val title: String
+                                val description: String?
+                                val goalId: String?
+
+                                if (recurringTask.goalId != null) {
+                                    val goal = goalDao.getGoalById(recurringTask.goalId)
+                                    if (goal != null) {
+                                        title = goal.text
+                                        description = goal.description
+                                        goalId = goal.id
+                                    } else {
+                                        // Goal was deleted, skip this occurrence
+                                        return@forEach
+                                    }
+                                } else {
+                                    title = recurringTask.title
+                                    description = recurringTask.description
+                                    goalId = null
+                                }
+
                                 val taskParams = NewTaskParameters(
                                     dayPlanId = dayPlan.id,
-                                    title = recurringTask.title,
-                                    description = recurringTask.description,
+                                    title = title,
+                                    description = description,
+                                    goalId = goalId,
                                     priority = recurringTask.priority,
                                     estimatedDurationMinutes = recurringTask.duration?.toLong(),
                                     taskType = ListItemType.GOAL,
@@ -556,6 +581,12 @@ class DayManagementRepository
         suspend fun getRecurringTask(id: String): RecurringTask? {
             return withContext(ioDispatcher) {
                 recurringTaskDao.getById(id)
+            }
+        }
+
+        suspend fun getGoal(id: String): Goal? {
+            return withContext(ioDispatcher) {
+                goalDao.getGoalById(id)
             }
         }
 
