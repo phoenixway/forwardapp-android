@@ -1,5 +1,9 @@
 package com.romankozak.forwardappmobile.ui.screens.customlist
 
+import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.util.Log
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -40,6 +44,7 @@ data class UnifiedCustomListUiState(
 
 @HiltViewModel
 class UnifiedCustomListViewModel @Inject constructor(
+    private val application: Application,
     private val projectRepository: ProjectRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -72,6 +77,7 @@ class UnifiedCustomListViewModel @Inject constructor(
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, isNewList = false) }
                 projectRepository.getCustomListById(listId)?.let { list ->
+                    projectRepository.updateCustomList(list.copy(updatedAt = System.currentTimeMillis()))
                     val content = TextFieldValue(list.content ?: "")
                     _uiState.update {
                         it.copy(
@@ -274,7 +280,13 @@ class UnifiedCustomListViewModel @Inject constructor(
         val cur = _uiState.value.content
         val (_, lineIndex) = findLineStartAndIndex(cur.text, cur.selection.start)
         val lines = cur.text.lines()
-        if (lineIndex < lines.size) clipboard = lines[lineIndex]
+        if (lineIndex < lines.size) {
+            val lineToCopy = lines[lineIndex]
+            clipboard = lineToCopy
+            val clipboardManager = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("line", lineToCopy)
+            clipboardManager.setPrimaryClip(clip)
+        }
     }
 
     fun onCutLine() {
@@ -283,13 +295,23 @@ class UnifiedCustomListViewModel @Inject constructor(
     }
 
     fun onPasteLine() {
-        if (clipboard.isEmpty()) return
+        val clipboardManager = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipData = clipboardManager.primaryClip
+        val pasteText = if (clipData != null && clipData.itemCount > 0) {
+            clipData.getItemAt(0)?.text?.toString()
+        } else {
+            null
+        }
+
+        val textToPaste = pasteText ?: clipboard // Fallback to internal clipboard
+        if (textToPaste.isEmpty()) return
+
         val cur = _uiState.value.content
-        val (lineStart, _) = findLineStartAndIndex(cur.text, cur.selection.start)
-        val insertion = clipboard
-        val newText =
-            cur.text.substring(0, lineStart) + insertion + "\n" + cur.text.substring(lineStart)
-        val newSel = TextRange(lineStart + insertion.length + 1)
+        val selectionStart = cur.selection.start
+        val selectionEnd = cur.selection.end
+        val newText = cur.text.replaceRange(selectionStart, selectionEnd, textToPaste)
+        val newSel = TextRange(selectionStart + textToPaste.length)
+        
         onContentChange(TextFieldValue(newText, selection = newSel))
     }
 
@@ -399,24 +421,22 @@ class UnifiedCustomListViewModel @Inject constructor(
         return Pair(lineStart, lineIndex)
     }
 
-    private fun detectListMarker(linePrefix: String): String {
-        val trimmed = linePrefix.trimStart()
-        val numberRegex = Regex("^(\\d+)\\.")
+   private fun detectListMarker(linePrefix: String): String {
+    val trimmed = linePrefix.trimStart()
+    val numberRegex = Regex("""^(\d+)\.""")
 
-        return when {
-            trimmed.startsWith("•") -> "•"
-            trimmed.startsWith("☐") -> "☐"
-            trimmed.startsWith("☑") -> "☑"
-            numberRegex.containsMatchIn(trimmed) -> {
-                val match = numberRegex.find(trimmed)
-                val num = match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
-                "${num + 1}."
-            }
-
-            else -> ""
+    return when {
+        trimmed.startsWith("•") -> "•"
+        trimmed.startsWith("☐") -> "☐"
+        trimmed.startsWith("☑") -> "☑"
+        numberRegex.containsMatchIn(trimmed) -> {
+            val match = numberRegex.find(trimmed)
+            val num = match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+            "${num + 1}."
         }
+        else -> ""
     }
-
+}
 
     private fun shiftSelectionAfterInsert(
         old: TextFieldValue,
@@ -467,26 +487,27 @@ class UnifiedCustomListViewModel @Inject constructor(
         return listOf(canIndent, canDeIndent, canMoveUp, canMoveDown)
     }
 
-    private fun detectFormatMode(lines: List<String>): ListFormatMode {
-        val nonEmptyLines = lines.filter { it.isNotBlank() }
-        if (nonEmptyLines.isEmpty()) return ListFormatMode.BULLET
+private fun detectFormatMode(lines: List<String>): ListFormatMode {
+    val nonEmptyLines = lines.filter { it.isNotBlank() }
+    if (nonEmptyLines.isEmpty()) return ListFormatMode.BULLET
 
-        val bulletCount = nonEmptyLines.count { it.trimStart().startsWith("•") }
-        val numberedCount = nonEmptyLines.count { line ->
-            val trimmed = line.trimStart()
-            trimmed.matches(Regex("^\\d+\\.\\s.*"))
-        }
-        val checklistCount = nonEmptyLines.count { line ->
-            val trimmed = line.trimStart()
-            trimmed.startsWith("☐") || trimmed.startsWith("☑")
-        }
-
-        return when {
-            checklistCount > nonEmptyLines.size / 2 -> ListFormatMode.CHECKLIST
-            numberedCount > nonEmptyLines.size / 2 -> ListFormatMode.NUMBERED
-            bulletCount > nonEmptyLines.size / 2 -> ListFormatMode.BULLET
-            else -> ListFormatMode.PLAIN
-        }
+    val bulletCount = nonEmptyLines.count { it.trimStart().startsWith("•") }
+    val numberedCount = nonEmptyLines.count { line ->
+        val trimmed = line.trimStart()
+        trimmed.matches(Regex("""^\d+\.\s.*"""))
     }
+    val checklistCount = nonEmptyLines.count { line ->
+        val trimmed = line.trimStart()
+        trimmed.startsWith("☐") || trimmed.startsWith("☑")
+    }
+
+    return when {
+        checklistCount > nonEmptyLines.size / 2 -> ListFormatMode.CHECKLIST
+        numberedCount > nonEmptyLines.size / 2 -> ListFormatMode.NUMBERED
+        bulletCount > nonEmptyLines.size / 2 -> ListFormatMode.BULLET
+        else -> ListFormatMode.PLAIN
+    }
+}
+
 
 }

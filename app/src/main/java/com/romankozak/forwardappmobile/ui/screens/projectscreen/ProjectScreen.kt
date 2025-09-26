@@ -13,6 +13,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Note
+import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -475,7 +479,7 @@ private fun formatElapsedTime(elapsedTime: Long): String {
     }
 }
 
-// RecentProjectsSheet залишається без змін
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecentProjectsSheet(
     viewModel: BacklogViewModel,
@@ -484,18 +488,38 @@ private fun RecentProjectsSheet(
     val recentItems by viewModel.recentItems.collectAsStateWithLifecycle()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        if (recentItems.isEmpty()) {
-            Text("No recent items", modifier = Modifier.padding(16.dp))
-        } else {
-            LazyColumn(modifier = Modifier.navigationBarsPadding()) {
-                items(recentItems, key = { it.id }) { item ->
-                    ListItem(
-                        headlineContent = { Text(item.displayName) },
-                        modifier = Modifier.clickable {
-                            viewModel.onRecentItemClick(item)
-                            onDismiss()
-                        }
-                    )
+        Column(Modifier.navigationBarsPadding()) {
+            Text(
+                text = "Нещодавно відкриті",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+            if (recentItems.isEmpty()) {
+                Text(
+                    text = "Історія порожня.",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                LazyColumn {
+                    items(recentItems, key = { it.id }) { item ->
+                        ListItem(
+                            headlineContent = { Text(item.displayName) },
+                            leadingContent = {
+                                val icon = when (item.type) {
+                                    com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> Icons.Outlined.Folder
+                                    com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> Icons.Outlined.Note
+                                    com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> Icons.Outlined.List
+                                    com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
+                                }
+                                Icon(icon, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable {
+                                viewModel.onRecentItemClick(item)
+                                onDismiss()
+                            },
+                        )
+                    }
                 }
             }
         }

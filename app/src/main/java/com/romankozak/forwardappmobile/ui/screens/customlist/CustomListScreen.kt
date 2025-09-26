@@ -48,23 +48,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.customlist.components.EnhancedListToolbar
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-
 
 enum class ScreenMode {
   CREATE,
@@ -103,33 +95,23 @@ fun UnifiedCustomListScreen(
   navController: NavController,
   viewModel: UnifiedCustomListViewModel = hiltViewModel(),
 ) {
-  var showEditTitleDialog by remember { mutableStateOf(false) }
   var isToolbarVisible by remember { mutableStateOf(true) }
-  // Колір TopAppBar, який буде під прозорим рядком стану
   val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
   val view = LocalView.current
   val isDarkTheme = isSystemInDarkTheme()
 
-
-
   if (!view.isInEditMode) {
-    // LaunchedEffect для налаштування Edge-to-Edge. Виконується один раз.
     LaunchedEffect(Unit) {
       val window = (view.context as Activity).window
-      // Дозволяє додатку малювати під системними панелями
       WindowCompat.setDecorFitsSystemWindows(window, false)
 
-      // Робимо системні панелі прозорими
       @Suppress("DEPRECATION")
       window.statusBarColor = Color.Transparent.toArgb()
       @Suppress("DEPRECATION")
       window.navigationBarColor = Color.Transparent.toArgb()
 
-      // Налаштовуємо колір іконок системних панелей для контрасту
       val insetsController = WindowCompat.getInsetsController(window, view)
-      // Іконки рядка стану: світлі на темному фоні, темні на світлому
       insetsController.isAppearanceLightStatusBars = topBarContainerColor.luminance() > 0.5
-      // Іконки панелі навігації: залежать від теми
       insetsController.isAppearanceLightNavigationBars = !isDarkTheme
     }
   }
@@ -140,7 +122,6 @@ fun UnifiedCustomListScreen(
   }
 
   val keyboardController = LocalSoftwareKeyboardController.current
-  val titleFocusRequester = remember { FocusRequester() }
   val contentFocusRequester = remember { FocusRequester() }
 
   val animatedBackgroundColor by
@@ -153,7 +134,6 @@ fun UnifiedCustomListScreen(
       animationSpec = tween(300),
       label = "background_color",
     )
-
 
   val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
@@ -175,26 +155,13 @@ fun UnifiedCustomListScreen(
 
   LaunchedEffect(screenMode) {
     when (screenMode) {
-      ScreenMode.CREATE -> contentFocusRequester.requestFocus()
-      ScreenMode.EDIT_EXISTING -> contentFocusRequester.requestFocus()
+      ScreenMode.CREATE, ScreenMode.EDIT_EXISTING -> contentFocusRequester.requestFocus()
       ScreenMode.VIEW -> keyboardController?.hide()
     }
   }
 
-  if (showEditTitleDialog) {
-    EditTitleDialog(
-        currentTitle = uiState.title,
-        onDismiss = { showEditTitleDialog = false },
-        onSave = { newTitle ->
-            viewModel.onTitleChange(newTitle)
-            showEditTitleDialog = false
-        }
-    )
-  }
-
   Scaffold(
     modifier = Modifier.background(animatedBackgroundColor).imePadding(),
-    // прибрав contentWindowInsets, воно не потрібне тут
     topBar = {
       EnhancedTopAppBar(
         screenMode = screenMode,
@@ -207,8 +174,6 @@ fun UnifiedCustomListScreen(
           viewModel.onSave()
           screenMode = ScreenMode.VIEW
         },
-        onEditTitle = { showEditTitleDialog = true },
-
       )
     },
     bottomBar = {
@@ -282,7 +247,7 @@ fun UnifiedCustomListScreen(
             viewModel = viewModel,
             contentFocusRequester = contentFocusRequester,
             bringIntoViewRequester = bringIntoViewRequester,
-            isToolbarVisible = isToolbarVisible, // <-- Додайте цей рядок
+            isToolbarVisible = isToolbarVisible,
           )
         }
         ScreenMode.VIEW -> {
@@ -327,7 +292,6 @@ private fun EnhancedTopAppBar(
   onNavigateBack: () -> Unit,
   onEdit: () -> Unit,
   onSave: () -> Unit,
-  onEditTitle: () -> Unit,
 ) {
   Card(
     modifier = Modifier.fillMaxWidth(),
@@ -381,11 +345,6 @@ private fun EnhancedTopAppBar(
         }
       },
       actions = {
-        if (screenMode != ScreenMode.CREATE) {
-            IconButton(onClick = onEditTitle) {
-                Icon(Icons.Default.Tune, contentDescription = "Властивості")
-            }
-        }
         when (screenMode) {
           ScreenMode.VIEW -> {
             IconButton(onClick = onEdit) {
@@ -414,9 +373,6 @@ private fun EnhancedTopAppBar(
   }
 }
 
-// CustomListScreen.kt
-
-
 @Composable
 private fun CreateEditContent(
   uiState: UnifiedCustomListUiState,
@@ -434,7 +390,6 @@ private fun CreateEditContent(
       val layoutResult = textLayoutResult ?: return@LaunchedEffect
       val cursorRect = layoutResult.getCursorRect(uiState.content.selection.start)
 
-      // Add some vertical padding to the cursor rectangle
       val paddedRect = cursorRect.copy(
           top = (cursorRect.top - 150).coerceAtLeast(0f),
           bottom = (cursorRect.bottom + 150)
@@ -454,7 +409,7 @@ private fun CreateEditContent(
     modifier = Modifier
       .fillMaxSize()
       .verticalScroll(scrollState)
-      .padding(horizontal = 16.dp)
+      .padding(start = 16.dp, end = 16.dp, top = 16.dp)
   ) {
     Gutter(
       lines = uiState.content.text.lines(),
@@ -463,19 +418,29 @@ private fun CreateEditContent(
       lineHeight = 24.sp
     )
 
-    BasicTextField(
-      value = uiState.content,
-      onValueChange = { newValue ->
+   BasicTextField(
+    value = uiState.content,
+    onValueChange = { newValue ->
+        val firstLine = newValue.text.lines().firstOrNull() ?: ""
+        Log.d("TitleFormation", "Original first line: '$firstLine'")
+val markerRegex = Regex(
+    """^(\s*)(\*|•|\d+\.|\[\s*x?\])\s*""",
+    RegexOption.IGNORE_CASE
+)
+        val title = firstLine.replaceFirst(markerRegex, "").trim()
+        Log.d("TitleFormation", "Cleaned title: '$title'")
+        viewModel.onTitleChange(title)
+
         val oldValue = uiState.content
         if (
-          newValue.text.length > oldValue.text.length &&
-          newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
+            newValue.text.length > oldValue.text.length &&
+            newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
         ) {
           viewModel.onEnter(newValue)
         } else {
           viewModel.onContentChange(newValue)
         }
-      },
+    },
       onTextLayout = { result ->
         textLayoutResult = result
       },
@@ -506,6 +471,7 @@ private fun CreateEditContent(
     )
   }
 }
+
 @Composable
 private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: (Int) -> Unit, lineHeight: TextUnit) {
   val focusManager = LocalFocusManager.current
@@ -570,12 +536,23 @@ private class ListVisualTransformation(
       visibleLines.forEachIndexed { visibleIndex, indexedValue ->
         val (_, line) = indexedValue
 
-        val bulletRegex = Regex("""^(\s*)\*\s(.*)""")
-        val numberedRegex = Regex("""^(\s*)(\d+)\.\s(.*)""")
-        val checkedRegex = Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
-        val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
+val headingRegex   = Regex("""^(\s*)(#+\s)(.*)""")
+val bulletRegex    = Regex("""^(\s*)\*\s(.*)""")
+val numberedRegex  = Regex("""^(\s*)(\d+)\.\s(.*)""")
+val checkedRegex   = Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
+val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
+
+
 
         var matched = false
+
+        if (!matched) headingRegex.find(line)?.let {
+          val (indent, hashes, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append(hashes) }
+          withStyle(SpanStyle(color = textColor, fontWeight = FontWeight.Bold)) { append(content) }
+          matched = true
+        }
 
         if (!matched) bulletRegex.find(line)?.let {
           val (indent, content) = it.destructured
@@ -665,131 +642,70 @@ private fun ViewContent(
     modifier = Modifier
       .fillMaxSize()
       .verticalScroll(rememberScrollState())
+      .clickable { onContentClick() }
       .padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(4.dp),
   ) {
-    Card(
-      modifier = Modifier.fillMaxWidth(),
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-      elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-      shape = RoundedCornerShape(16.dp),
-    ) {
-      Text(
-        text = uiState.title.ifEmpty { "Без назви" },
-        style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onPrimaryContainer,
-        modifier = Modifier.padding(24.dp),
-      )
-    }
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    Card(
-      modifier = Modifier
-        .fillMaxWidth()
-        .clickable { onContentClick() },
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-      shape = RoundedCornerShape(12.dp),
-    ) {
-      if (uiState.content.text.isBlank()) {
-        Column(
-          modifier = Modifier.fillMaxWidth().padding(48.dp),
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-          Icon(
-            imageVector = Icons.Default.EditNote,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.size(64.dp),
-          )
-          Text(
-            text = "Список порожній",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-          )
-          Text(
-            text = "Натисніть щоб додати елементи",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-          )
-        }
-      } else {
-        val annotatedString = buildAnnotatedString {
-          val lines = uiState.content.text.lines()
-          var i = 0
-          while (i < lines.size) {
-            val line = lines[i]
-            val indent = line.takeWhile { it.isWhitespace() }.length
-            val isCollapsed = uiState.collapsedLines.contains(i)
-
-            withStyle(
-              style =
-                SpanStyle(background = if (isCollapsed) Color.LightGray else Color.Transparent)
-            ) {
-              append(line)
-            }
-            append("\n")
-
-            if (isCollapsed) {
-              i++
-              while (
-                i < lines.size &&
-                  (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
-              ) {
-                i++
-              }
-            } else {
-              i++
-            }
-          }
-        }
+    if (uiState.content.text.isBlank()) {
+      Column(
+        modifier = Modifier.fillMaxWidth().padding(48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+      ) {
+        Icon(
+          imageVector = Icons.Default.EditNote,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+          modifier = Modifier.size(64.dp),
+        )
         Text(
-          text = annotatedString,
-          modifier = Modifier.padding(16.dp),
-          style = TextStyle(lineHeight = 20.sp),
+          text = "Список порожній",
+          style = MaterialTheme.typography.titleLarge,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          fontWeight = FontWeight.Medium,
+        )
+        Text(
+          text = "Натисніть щоб додати елементи",
+          style = MaterialTheme.typography.bodyLarge,
+          color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         )
       }
+    } else {
+      val annotatedString = buildAnnotatedString {
+        val lines = uiState.content.text.lines()
+        var i = 0
+        while (i < lines.size) {
+          val line = lines[i]
+          val indent = line.takeWhile { it.isWhitespace() }.length
+          val isCollapsed = uiState.collapsedLines.contains(i)
+
+          withStyle(
+            style =
+              SpanStyle(background = if (isCollapsed) Color.LightGray else Color.Transparent)
+          ) {
+            append(line)
+          }
+          append("\n")
+
+          if (isCollapsed) {
+            i++
+            while (
+              i < lines.size &&
+                (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
+            ) {
+              i++
+            }
+          } else {
+            i++
+          }
+        }
+      }
+      Text(
+        text = annotatedString,
+        style = TextStyle(lineHeight = 20.sp),
+      )
     }
     // Додатковий відступ знизу, щоб контент не ховався за панеллю навігації
     Spacer(modifier = Modifier.navigationBarsPadding())
   }
-}
-
-@Composable
-private fun EditTitleDialog(
-    currentTitle: String,
-    onDismiss: () -> Unit,
-    onSave: (String) -> Unit
-) {
-    var text by remember(currentTitle) { mutableStateOf(currentTitle) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Редагувати заголовок") },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Заголовок списку") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(text) },
-                enabled = text.isNotBlank()
-            ) {
-                Text("Зберегти")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Скасувати")
-            }
-        }
-    )
 }
