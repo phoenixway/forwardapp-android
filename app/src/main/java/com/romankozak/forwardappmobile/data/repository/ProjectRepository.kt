@@ -336,6 +336,10 @@ constructor(
 
     suspend fun updateProject(project: Project) {
         projectDao.update(project)
+        val recentItem = recentItemDao.getRecentItemById(project.id)
+        if (recentItem != null) {
+            recentItemDao.logAccess(recentItem.copy(displayName = project.name))
+        }
     }
 
     suspend fun updateProjects(projects: List<Project>): Int = if (projects.isNotEmpty()) projectDao.update(projects) else 0
@@ -781,6 +785,10 @@ constructor(
             listItemDao.insertItem(newListItem)
         } else {
             noteDao.update(note.copy(updatedAt = System.currentTimeMillis()))
+            val recentItem = recentItemDao.getRecentItemById(note.id)
+            if (recentItem != null) {
+                recentItemDao.logAccess(recentItem.copy(displayName = note.title))
+            }
         }
     }
 
@@ -853,6 +861,10 @@ constructor(
     suspend fun updateCustomList(list: CustomListEntity) {
         Log.d(TAG, "updateCustomList called with list: $list")
         customListDao.updateCustomList(list)
+        val recentItem = recentItemDao.getRecentItemById(list.id)
+        if (recentItem != null) {
+            recentItemDao.logAccess(recentItem.copy(displayName = list.name))
+        }
         Log.d(TAG, "updateCustomList finished")
     }
 }
