@@ -303,7 +303,10 @@ class InputHandler(
 
     fun onAddListShortcutRequest() = resultListener.setPendingAction(GoalActionType.ADD_LIST_SHORTCUT)
 
-    fun onShowRecentLists() = resultListener.showRecentListsSheet(true)
+    fun onShowRecentLists() {
+        Log.d("Recents_Debug", "InputHandler: onShowRecentLists() called. Calling listener.")
+        resultListener.showRecentListsSheet(true)
+    }
 
     fun onDismissRecentLists() = resultListener.showRecentListsSheet(false)
 
