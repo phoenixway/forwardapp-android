@@ -753,6 +753,7 @@ class BacklogViewModel
         }
 
         override fun showRecentListsSheet(show: Boolean) {
+            Log.d("Recents_Debug", "BacklogViewModel: showRecentListsSheet($show) called. Updating UI state.")
             _uiState.update { it.copy(showRecentProjectsSheet = show) }
         }
 

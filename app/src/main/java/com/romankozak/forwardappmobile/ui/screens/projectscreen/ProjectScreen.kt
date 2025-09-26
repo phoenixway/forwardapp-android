@@ -200,6 +200,8 @@ fun ProjectsScreen(
 
         GoalDetailDialogs(viewModel = viewModel)
 
+
+
         BackHandler(enabled = true) {
             val wasConsumed = viewModel.onBackPressed()
             if (!wasConsumed) {
