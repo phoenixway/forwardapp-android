@@ -166,20 +166,7 @@ internal fun ExpandingBottomNav(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures { _, dragAmount ->
-                            if (dragAmount < -20 && !isExpanded) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onExpandedChange(true)
-                            } else if (dragAmount > 20 && isExpanded) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onExpandedChange(false)
-                            }
-                        }
-                    },
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             
@@ -292,14 +279,6 @@ internal fun ExpandingBottomNav(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Surface(
-                        modifier =
-                            Modifier
-                                .width(32.dp)
-                                .height(4.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        shape = CircleShape,
-                    ) {}
                     Icon(
                         imageVector = Icons.Outlined.KeyboardArrowUp,
                         contentDescription = if (isExpanded) "Collapse" else "Expand",
@@ -321,12 +300,11 @@ internal fun ExpandingBottomNav(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                
-                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
+                ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.CalendarViewDay, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
-                ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
+                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
             }
         }
     }
