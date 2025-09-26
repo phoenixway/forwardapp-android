@@ -296,6 +296,7 @@ private fun MainScreenScaffold(
         recentItems = uiState.recentItems,
         onDismiss = { onEvent(MainScreenEvent.DismissRecentLists) },
         onItemClick = { onEvent(MainScreenEvent.RecentItemSelected(it)) },
+        onPinClick = { onEvent(MainScreenEvent.RecentItemPinClick(it)) }
     )
 
     HandleDialogs(

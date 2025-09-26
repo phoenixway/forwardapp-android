@@ -72,6 +72,8 @@ sealed interface MainScreenEvent {
 
     data class RecentItemSelected(val item: com.romankozak.forwardappmobile.data.database.models.RecentItem) : MainScreenEvent
 
+    data class RecentItemPinClick(val item: com.romankozak.forwardappmobile.data.database.models.RecentItem) : MainScreenEvent
+
     data object DayPlanClick : MainScreenEvent
 
     data class ContextSelected(val name: String) : MainScreenEvent

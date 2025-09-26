@@ -1,30 +1,40 @@
 package com.romankozak.forwardappmobile.ui.components
 
+import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Note
-import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Note
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.Project
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun RecentListsSheet(
     showSheet: Boolean,
     recentItems: List<com.romankozak.forwardappmobile.data.database.models.RecentItem>,
     onDismiss: () -> Unit,
     onItemClick: (com.romankozak.forwardappmobile.data.database.models.RecentItem) -> Unit,
+    onPinClick: (com.romankozak.forwardappmobile.data.database.models.RecentItem) -> Unit,
 ) {
     if (showSheet) {
         ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -41,25 +51,91 @@ fun RecentListsSheet(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 } else {
+                    val groupedItems = recentItems.groupBy { it.isPinned }
                     LazyColumn {
-                        items(recentItems, key = { it.id }) { item ->
-                            ListItem(
-                                headlineContent = { Text(item.displayName) },
-                                leadingContent = {
-                                    val icon = when (item.type) {
-                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> Icons.Outlined.Folder
-                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> Icons.Outlined.Note
-                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> Icons.Outlined.List
-                                        com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
-                                    }
-                                    Icon(icon, contentDescription = null)
-                                },
-                                modifier = Modifier.clickable { onItemClick(item) },
-                            )
+                        groupedItems[true]?.let { pinnedItems ->
+                            stickyHeader {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Text(
+                                        text = "Закріплені",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                            items(pinnedItems, key = { "pinned-${it.id}" }) { item ->
+                                RecentItemRow(item, onItemClick, onPinClick)
+                            }
+                        }
+
+                        groupedItems[false]?.let { unpinnedItems ->
+                             stickyHeader {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Text(
+                                        text = "Недавні",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                            items(unpinnedItems, key = { "unpinned-${it.id}" }) { item ->
+                                RecentItemRow(item, onItemClick, onPinClick)
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RecentItemRow(
+    item: com.romankozak.forwardappmobile.data.database.models.RecentItem,
+    onItemClick: (com.romankozak.forwardappmobile.data.database.models.RecentItem) -> Unit,
+    onPinClick: (com.romankozak.forwardappmobile.data.database.models.RecentItem) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clickable {
+                    Log.d("RecentItemClick", "onItemClick triggered for ${item.displayName}")
+                    onItemClick(item)
+                },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val icon = when (item.type) {
+                com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> Icons.Outlined.Folder
+                com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> Icons.Outlined.Note
+                com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> Icons.Outlined.List
+                com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
+            }
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(16.dp))
+            Text(item.displayName)
+        }
+        IconButton(onClick = {
+            Log.d("RecentItemClick", "onPinClick triggered for ${item.displayName}")
+            onPinClick(item)
+        }, modifier = Modifier.clickable {}) {
+            Icon(
+                imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                contentDescription = "Pin",
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

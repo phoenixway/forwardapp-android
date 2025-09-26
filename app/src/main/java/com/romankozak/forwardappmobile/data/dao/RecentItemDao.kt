@@ -19,6 +19,10 @@ interface RecentItemDao {
     @Query("SELECT * FROM recent_items ORDER BY isPinned DESC, lastAccessed DESC LIMIT :limit")
     fun getRecentItems(limit: Int): Flow<List<RecentItem>>
 
+    @Query("SELECT * FROM recent_items WHERE id = :id")
+    suspend fun getRecentItemById(id: String): RecentItem?
+
+
     @Query("DELETE FROM recent_items")
     suspend fun deleteAll()
 }
