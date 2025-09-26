@@ -1531,6 +1531,12 @@ class BacklogViewModel
             }
         }
 
+        fun onPinRecentItem(item: RecentItem) {
+            viewModelScope.launch {
+                projectRepository.updateRecentItem(item.copy(isPinned = !item.isPinned))
+            }
+        }
+
             fun onChildProjectClick(childProject: Project) {
                 viewModelScope.launch {
                     enhancedNavigationManager.navigateToProject(childProject.id, childProject.name)

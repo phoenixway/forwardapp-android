@@ -461,6 +461,10 @@ constructor(
         recentItemDao.logAccess(recentItem)
     }
 
+    suspend fun updateRecentItem(item: RecentItem) {
+        recentItemDao.logAccess(item)
+    }
+
     @Transaction
     suspend fun moveProject(
         projectToMove: Project,
