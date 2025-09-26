@@ -35,6 +35,7 @@ data class UnifiedCustomListUiState(
     val isLoading: Boolean = false,
     val isEditing: Boolean = false,
     val isNewList: Boolean = true,
+    val currentLine: Int? = null,
 )
 
 @HiltViewModel
@@ -42,6 +43,11 @@ class UnifiedCustomListViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    companion object {
+        private const val INDENT_STRING = "      " // 6 spaces
+        private const val INDENT_LENGTH = 6
+    }
 
     private val _uiState = MutableStateFlow(UnifiedCustomListUiState())
     val uiState: StateFlow<UnifiedCustomListUiState> = _uiState.asStateFlow()
@@ -197,15 +203,15 @@ class UnifiedCustomListViewModel @Inject constructor(
     fun onIndentLine() {
         val cur = _uiState.value.content
         val (lineStart, _) = findLineStartAndIndex(cur.text, cur.selection.start)
-        val newText = cur.text.substring(0, lineStart) + "    " + cur.text.substring(lineStart)
-        val newSelection = shiftSelectionAfterInsert(cur, lineStart, 4)
+        val newText = cur.text.substring(0, lineStart) + INDENT_STRING + cur.text.substring(lineStart)
+        val newSelection = shiftSelectionAfterInsert(cur, lineStart, INDENT_LENGTH)
         onContentChange(TextFieldValue(newText, selection = newSelection))
     }
 
     fun onDeIndentLine() {
         val cur = _uiState.value.content
         val (lineStart, _) = findLineStartAndIndex(cur.text, cur.selection.start)
-        val removeCount = if (cur.text.substring(lineStart).startsWith("    ")) 4 else 0
+        val removeCount = if (cur.text.substring(lineStart).startsWith(INDENT_STRING)) INDENT_LENGTH else 0
         if (removeCount > 0) {
             val newText = cur.text.removeRange(lineStart, lineStart + removeCount)
             val newSelection = shiftSelectionAfterRemove(cur, lineStart, removeCount)
@@ -352,6 +358,9 @@ class UnifiedCustomListViewModel @Inject constructor(
     private fun computeToolbarState(content: TextFieldValue, isEditing: Boolean): ListToolbarState {
         val text = content.text
         val cursorPosition = content.selection.start
+        val (_, lineIndex) = findLineStartAndIndex(text, cursorPosition)
+        _uiState.update { it.copy(currentLine = lineIndex) }
+
         val (canIndent, canDeIndent, canMoveUp, canMoveDown) = calculateCapabilities(
             text,
             cursorPosition
@@ -451,7 +460,7 @@ class UnifiedCustomListViewModel @Inject constructor(
         val lines = text.lines()
 
         val canIndent = true
-        val canDeIndent = lines.getOrNull(lineIndex)?.startsWith("    ") ?: false
+        val canDeIndent = lines.getOrNull(lineIndex)?.startsWith(INDENT_STRING) ?: false
         val canMoveUp = lineIndex > 0
         val canMoveDown = lineIndex < lines.size - 1
 

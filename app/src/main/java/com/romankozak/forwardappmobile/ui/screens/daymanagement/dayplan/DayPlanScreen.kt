@@ -53,6 +53,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -275,6 +276,7 @@ fun DayTask.toListItem(): ListItem {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DayPlanScreen(
     dayPlanId: String,
@@ -297,11 +299,20 @@ fun DayPlanScreen(
 
     var showMatrixSplash by remember { mutableStateOf(true) }
     var matrixView by remember { mutableStateOf<MatrixRainView?>(null) }
+    var isContentReady by remember { mutableStateOf(false) }
 
+    // Enhanced timing with content preparation
     LaunchedEffect(Unit) {
-        delay(400) // Show matrix effect longer
-        matrixView?.startFadeOut() // Start fade out animation
-        delay(300) // Wait for fade out to complete
+        // Pre-load content
+        delay(100)
+        isContentReady = true
+
+        // Show matrix longer, then smooth fade
+        delay(600)
+        matrixView?.startFadeOut()
+
+        // Wait for fade to complete
+        delay(500)
         showMatrixSplash = false
     }
 
@@ -348,63 +359,73 @@ fun DayPlanScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Box(modifier = modifier.fillMaxSize()) {
-            when {
-                uiState.isLoading -> LoadingState()
-                uiState.error != null && uiState.tasks.isEmpty() -> {
-                    ErrorState(
-                        error = uiState.error!!,
-                        onRetry = { viewModel.loadDataForPlan(dayPlanId) },
-                    )
+        // Main content with conditional visibility for smoother transition
+        AnimatedVisibility(
+            visible = isContentReady,
+            enter = fadeIn(animationSpec = tween(300, delayMillis = 400)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    uiState.isLoading -> LoadingState()
+                    uiState.error != null && uiState.tasks.isEmpty() -> {
+                        ErrorState(
+                            error = uiState.error!!,
+                            onRetry = { viewModel.loadDataForPlan(dayPlanId) },
+                        )
+                    }
+                    else -> {
+                        val tasks = uiState.tasks
+                        TaskList(
+                            tasks = tasks,
+                            dayPlan = uiState.dayPlan,
+                            onToggleTask = { taskId ->
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.toggleTaskCompletion(taskId)
+                            },
+                            onTaskLongPress = { task ->
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.selectTask(task)
+                            },
+                            onTasksReordered = { reorderedList ->
+                                uiState.dayPlan?.let { dayPlan ->
+                                    viewModel.updateTasksOrder(dayPlan.id, reorderedList)
+                                }
+                            },
+                            onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
+                            onNavigateToNextDay = { viewModel.navigateToNextDay() },
+                            isNextDayNavigationEnabled = !uiState.isToday,
+                            onSublistClick = onNavigateToProject,
+                            onSettingsClick = onNavigateToSettings,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
-                else -> {
-                    val tasks = uiState.tasks
-                    TaskList(
-                        tasks = tasks,
-                        dayPlan = uiState.dayPlan,
-                        onToggleTask = { taskId ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.toggleTaskCompletion(taskId)
-                        },
-                        onTaskLongPress = { task ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.selectTask(task)
-                        },
-                        onTasksReordered = { reorderedList ->
-                            uiState.dayPlan?.let { dayPlan ->
-                                viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                            }
-                        },
-                        onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
-                        onNavigateToNextDay = { viewModel.navigateToNextDay() },
-                        isNextDayNavigationEnabled = !uiState.isToday,
-                        onSublistClick = onNavigateToProject,
-                        onSettingsClick = onNavigateToSettings,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    snackbar = { snackbarData ->
+                        Snackbar(
+                            snackbarData = snackbarData,
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
-            SnackbarHost(
-                hostState = snackbarHostState,
-                snackbar = { snackbarData ->
-                    Snackbar(
-                        snackbarData = snackbarData,
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
 
-        // Enhanced Matrix splash screen
+        // Enhanced Matrix splash screen with better integration
         AnimatedVisibility(
             visible = showMatrixSplash,
             exit = fadeOut(animationSpec = tween(300))
         ) {
             AndroidView(
                 factory = { context ->
-                    MatrixRainView(context).also { matrixView = it }
+                    MatrixRainView(context).also { view ->
+                        matrixView = view
+                    }
                 },
                 modifier = Modifier.fillMaxSize()
             )
