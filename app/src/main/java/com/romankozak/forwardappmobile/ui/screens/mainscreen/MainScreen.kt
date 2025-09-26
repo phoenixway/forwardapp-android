@@ -14,6 +14,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -371,6 +373,7 @@ private fun MainScreenTopAppBar(
     onShowAbout: () -> Unit,
     onShowReminders: () -> Unit,
 ) {
+    var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
         title = { NeonTitle("Projects") },
         actions = {
@@ -462,7 +465,24 @@ private fun MainScreenTopAppBar(
                 actionIconContentColor = MaterialTheme.colorScheme.onSurface,
                 navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
             ),
-        modifier = Modifier.shadow(4.dp),
+        modifier = Modifier
+            .shadow(4.dp)
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        swipeState += dragAmount
+                    },
+                    onDragEnd = {
+                        if (swipeState > 50) {
+                            onGoBack()
+                        } else if (swipeState < -50) {
+                            onGoForward()
+                        }
+                        swipeState = 0f
+                    }
+                )
+            }
     )
 }
 
