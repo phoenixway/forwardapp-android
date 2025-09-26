@@ -71,8 +71,6 @@ fun EnhancedListToolbar(
   onPasteLine: () -> Unit,
   // Other actions
   onToggleBullet: () -> Unit,
-  onToggleNumbered: () -> Unit = {},
-  onToggleChecklist: () -> Unit = {},
   onUndo: () -> Unit = {},
   onRedo: () -> Unit = {},
   onToggleVisibility: () -> Unit = {},
@@ -127,24 +125,6 @@ fun EnhancedListToolbar(
                   onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onToggleBullet()
-                  },
-                )
-                EnhancedToolbarButton(
-                  icon = Icons.Filled.FormatListNumbered,
-                  description = "Нумерація",
-                  isActive = state.formatMode == ListFormatMode.NUMBERED,
-                  onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onToggleNumbered()
-                  },
-                )
-                EnhancedToolbarButton(
-                  icon = Icons.Default.TaskAlt, // альтернатива для чекліста
-                  description = "Чекліст",
-                  isActive = state.formatMode == ListFormatMode.CHECKLIST,
-                  onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onToggleChecklist()
                   },
                 )
               }

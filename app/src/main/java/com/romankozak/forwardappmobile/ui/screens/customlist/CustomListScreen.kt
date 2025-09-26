@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.customlist
 
 import android.app.Activity
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -48,6 +49,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.customlist.components.EnhancedListToolbar
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 
 enum class ScreenMode {
@@ -94,6 +110,8 @@ fun UnifiedCustomListScreen(
   val view = LocalView.current
   val isDarkTheme = isSystemInDarkTheme()
 
+
+
   if (!view.isInEditMode) {
     // LaunchedEffect для налаштування Edge-to-Edge. Виконується один раз.
     LaunchedEffect(Unit) {
@@ -136,6 +154,9 @@ fun UnifiedCustomListScreen(
       label = "background_color",
     )
 
+
+  val bringIntoViewRequester = remember { BringIntoViewRequester() }
+
   LaunchedEffect(screenMode) { viewModel.onToggleEditMode(screenMode != ScreenMode.VIEW) }
 
   LaunchedEffect(Unit) {
@@ -154,7 +175,7 @@ fun UnifiedCustomListScreen(
 
   LaunchedEffect(screenMode) {
     when (screenMode) {
-      ScreenMode.CREATE -> titleFocusRequester.requestFocus()
+      ScreenMode.CREATE -> contentFocusRequester.requestFocus()
       ScreenMode.EDIT_EXISTING -> contentFocusRequester.requestFocus()
       ScreenMode.VIEW -> keyboardController?.hide()
     }
@@ -217,8 +238,6 @@ fun UnifiedCustomListScreen(
                 onCutLine = viewModel::onCutLine,
                 onPasteLine = viewModel::onPasteLine,
                 onToggleBullet = viewModel::onToggleBullet,
-                onToggleNumbered = viewModel::onToggleNumbered,
-                onToggleChecklist = viewModel::onToggleChecklist,
                 onUndo = viewModel::onUndo,
                 onRedo = viewModel::onRedo,
                 onToggleVisibility = { isToolbarVisible = false },
@@ -261,8 +280,9 @@ fun UnifiedCustomListScreen(
           CreateEditContent(
             uiState = uiState,
             viewModel = viewModel,
-            titleFocusRequester = titleFocusRequester,
             contentFocusRequester = contentFocusRequester,
+            bringIntoViewRequester = bringIntoViewRequester,
+            isToolbarVisible = isToolbarVisible, // <-- Додайте цей рядок
           )
         }
         ScreenMode.VIEW -> {
@@ -338,6 +358,8 @@ private fun EnhancedTopAppBar(
               text = title.ifEmpty { "Новий список" },
               style = MaterialTheme.typography.headlineSmall,
               fontWeight = FontWeight.SemiBold,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
             )
             if (screenMode == ScreenMode.VIEW && totalItems > 0) {
               Text(
@@ -392,51 +414,98 @@ private fun EnhancedTopAppBar(
   }
 }
 
+// CustomListScreen.kt
+
+
 @Composable
 private fun CreateEditContent(
   uiState: UnifiedCustomListUiState,
   viewModel: UnifiedCustomListViewModel,
-  titleFocusRequester: FocusRequester,
   contentFocusRequester: FocusRequester,
+  bringIntoViewRequester: BringIntoViewRequester,
+  isToolbarVisible: Boolean,
 ) {
-  Column(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val accentColor = MaterialTheme.colorScheme.primary
+  val scrollState = rememberScrollState()
+  val coroutineScope = rememberCoroutineScope()
+  var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+  LaunchedEffect(uiState.content.selection, textLayoutResult, isToolbarVisible) {
+      if (!isToolbarVisible) return@LaunchedEffect
+      val layoutResult = textLayoutResult ?: return@LaunchedEffect
+      val cursorRect = layoutResult.getCursorRect(uiState.content.selection.start)
+
+      // Add some vertical padding to the cursor rectangle
+      val paddedRect = cursorRect.copy(
+          top = (cursorRect.top - 150).coerceAtLeast(0f),
+          bottom = (cursorRect.bottom + 150)
+      )
+
+      coroutineScope.launch {
+          delay(350) // Wait for animations
+          bringIntoViewRequester.bringIntoView(paddedRect)
+      }
+  }
+
+  val highlightColor = MaterialTheme.colorScheme.surfaceVariant
+  val textColor = MaterialTheme.colorScheme.onSurface
+  val accentColor = MaterialTheme.colorScheme.primary
+
+  Row(
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(scrollState)
+      .padding(horizontal = 16.dp)
+  ) {
+    Gutter(
+      lines = uiState.content.text.lines(),
+      collapsedLines = uiState.collapsedLines,
+      onToggleFold = viewModel::onToggleFold,
+      lineHeight = 24.sp
+    )
+
     BasicTextField(
       value = uiState.content,
       onValueChange = { newValue ->
         val oldValue = uiState.content
         if (
           newValue.text.length > oldValue.text.length &&
-            newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
+          newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
         ) {
           viewModel.onEnter(newValue)
         } else {
           viewModel.onContentChange(newValue)
         }
       },
+      onTextLayout = { result ->
+        textLayoutResult = result
+      },
       modifier = Modifier
-        .fillMaxSize()
+        .padding(start = 16.dp)
+        .weight(1f)
+        .fillMaxHeight()
         .focusRequester(contentFocusRequester)
-        .padding(horizontal = 16.dp, vertical = 2.dp),
+        .bringIntoViewRequester(bringIntoViewRequester)
+        .drawBehind {
+          uiState.currentLine?.let { line ->
+            textLayoutResult?.let { layoutResult ->
+              if (line < layoutResult.lineCount) {
+                val top = layoutResult.getLineTop(line)
+                val bottom = layoutResult.getLineBottom(line)
+                drawRect(
+                  color = highlightColor,
+                  topLeft = Offset(0f, top),
+                  size = Size(size.width, bottom - top)
+                )
+              }
+            }
+          }
+        },
       textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
       cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
       visualTransformation = ListVisualTransformation(uiState.collapsedLines, textColor, accentColor),
-      decorationBox = { innerTextField ->
-        Row(Modifier.padding(vertical = 16.dp)) {
-          Gutter(
-            lines = uiState.content.text.lines(),
-            collapsedLines = uiState.collapsedLines,
-            onToggleFold = viewModel::onToggleFold,
-            lineHeight = 24.sp
-          )
-          Box(modifier = Modifier.padding(start = 16.dp)) { innerTextField() }
-        }
-      },
     )
   }
 }
-
 @Composable
 private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: (Int) -> Unit, lineHeight: TextUnit) {
   val focusManager = LocalFocusManager.current
