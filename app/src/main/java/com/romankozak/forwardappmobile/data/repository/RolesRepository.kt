@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
+import androidx.core.net.toUri
 import com.romankozak.forwardappmobile.domain.aichat.RoleFile
 import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
@@ -33,7 +34,7 @@ class RolesRepository
                             emit(emptyList())
                         } else {
                             try {
-                                val uri = Uri.parse(uriString)
+                                val uri = uriString.toUri()
                                 val childrenUri =
                                     DocumentsContract.buildChildDocumentsUriUsingTree(
                                         uri,

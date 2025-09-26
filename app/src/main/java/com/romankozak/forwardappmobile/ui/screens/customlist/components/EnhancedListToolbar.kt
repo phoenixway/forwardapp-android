@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -45,6 +46,8 @@ data class ListToolbarState(
   val canDeIndent: Boolean = false,
   val canMoveUp: Boolean = true,
   val canMoveDown: Boolean = true,
+      val canUndo: Boolean = false,
+    val canRedo: Boolean = false
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,6 +75,7 @@ fun EnhancedListToolbar(
   onToggleChecklist: () -> Unit = {},
   onUndo: () -> Unit = {},
   onRedo: () -> Unit = {},
+  onToggleVisibility: () -> Unit = {},
 ) {
   val haptics = LocalHapticFeedback.current
 
@@ -86,11 +90,27 @@ fun EnhancedListToolbar(
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
       shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
-      Column(modifier = Modifier.padding(12.dp)) {
-
+      Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+      ) {
+        Box(
+          modifier = Modifier
+            .height(24.dp)
+            .fillMaxWidth()
+            .clickable(onClick = onToggleVisibility),
+          contentAlignment = Alignment.Center
+        ) {
+          Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = "Сховати тулбар",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+          )
+        }
 
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
@@ -182,6 +202,31 @@ fun EnhancedListToolbar(
                   },
                 )
               }
+
+              VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+              )
+
+              // Скасування/Повтор
+              ToolbarSection(title = "Історія") {
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.Undo,
+                  description = "Скасувати",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onUndo()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.AutoMirrored.Filled.Redo,
+                  description = "Повторити",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onRedo()
+                  },
+                )
+              }
             }
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -262,31 +307,6 @@ fun EnhancedListToolbar(
                   onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onPasteLine()
-                  },
-                )
-              }
-
-              VerticalDivider(
-                modifier = Modifier.height(40.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
-              )
-
-              // Скасування/Повтор
-              ToolbarSection(title = "Історія") {
-                EnhancedToolbarButton(
-                  icon = Icons.AutoMirrored.Filled.Undo,
-                  description = "Скасувати",
-                  onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onUndo()
-                  },
-                )
-                EnhancedToolbarButton(
-                  icon = Icons.AutoMirrored.Filled.Redo,
-                  description = "Повторити",
-                  onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onRedo()
                   },
                 )
               }

@@ -5,6 +5,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -99,7 +100,7 @@ fun GoalDetailEffects(
                     handleRelatedLinkClick(event.link, obsidianVaultName, localContext, navController)
                 }
                 is UiEvent.OpenUri -> {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(event.uri))
+                    val intent = Intent(Intent.ACTION_VIEW, event.uri.toUri())
                     localContext.startActivity(intent)
                 }
                 is UiEvent.ResetSwipeState -> viewModel.onSwipeStateReset(event.itemId)

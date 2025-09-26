@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.LinkType
@@ -19,7 +20,7 @@ fun handleRelatedLinkClick(
     try {
         when (link.type) {
             LinkType.URL -> {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link.target))
+                val intent = Intent(Intent.ACTION_VIEW, link.target.toUri())
                 context.startActivity(intent)
             }
             LinkType.PROJECT -> {
@@ -30,7 +31,7 @@ fun handleRelatedLinkClick(
                     val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
                     val encodedFile = URLEncoder.encode(link.target, "UTF-8")
                     val obsidianUri = "obsidian://open?vault=$encodedVault&file=$encodedFile"
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(obsidianUri))
+                    val intent = Intent(Intent.ACTION_VIEW, obsidianUri.toUri())
                     context.startActivity(intent)
                 } else {
                     Toast.makeText(context, context.getString(R.string.error_obsidian_vault_not_set), Toast.LENGTH_LONG).show()

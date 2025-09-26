@@ -13,6 +13,7 @@ import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -350,7 +351,7 @@ private fun FileSelector(
     val displayName =
         remember(selectedFileUri) {
             if (selectedFileUri.isNotBlank()) {
-                val uri = Uri.parse(selectedFileUri)
+                val uri = selectedFileUri.toUri()
                 if (isFolder) getFolderName(uri, context) else getFileName(uri, context)
             } else {
                 "Not selected"

@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -93,7 +94,7 @@ fun ChatScreen(
     var showMatrixSplash by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        delay(1200)
+        delay(480)
         showMatrixSplash = false
     }
 
@@ -271,7 +272,7 @@ fun ChatScreen(
                                             showMenu = false
                                         },
                                     )
-                                    Divider()
+                                    HorizontalDivider()
                                     DropdownMenuItem(
                                         text = { Text("Settings") },
                                         onClick = {
@@ -444,7 +445,7 @@ fun MessageBubble(
                     }
 
                     message.translatedText?.let {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
                             text = it,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -570,7 +571,7 @@ fun RoleSelectorDialog(
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
-                Divider()
+                HorizontalDivider()
                 if (roles.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -623,7 +624,7 @@ fun RoleSelectorDialog(
                                         },
                                         leadingContent = {
                                             Icon(
-                                                Icons.Default.Article,
+                                                Icons.AutoMirrored.Filled.Article,
                                                 contentDescription = "Role file",
                                             )
                                         },
@@ -668,7 +669,7 @@ fun ModelSelectorDialog(
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
-                Divider()
+                HorizontalDivider()
 
                 Box(
                     modifier = Modifier.weight(1f),
