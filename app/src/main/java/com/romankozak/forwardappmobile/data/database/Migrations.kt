@@ -238,7 +238,8 @@ val MIGRATION_39_40 = object : Migration(39, 40) {
         db.execSQL("""
             INSERT INTO day_tasks_new (id, dayPlanId, title, description, goalId, projectId, activityRecordId, taskType, entityId, `order`, priority, status, completed, scheduledTime, estimatedDurationMinutes, actualDurationMinutes, reminderTime, dueTime, valueImportance, valueImpact, effort, cost, risk, location, tags, notes, createdAt, updatedAt, completedAt)
             SELECT id, dayPlanId, title, description, goalId, projectId, activityRecordId, taskType, entityId, `order`, priority, status, completed, scheduledTime, estimatedDurationMinutes, actualDurationMinutes, reminderTime, dueTime, valueImportance, valueImpact, effort, cost, risk, location, tags, notes, createdAt, updatedAt, completedAt FROM day_tasks
-        """)
+        """
+        )
 
         db.execSQL("DROP TABLE day_tasks")
 
@@ -263,5 +264,34 @@ val MIGRATION_41_42 = object : Migration(41, 42) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `recurring_tasks` ADD COLUMN `goalId` TEXT")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_recurring_tasks_goalId` ON `recurring_tasks` (`goalId`)")
+    }
+}
+
+val MIGRATION_42_43 = object : Migration(42, 43) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Create a new table with the desired schema
+        database.execSQL("""
+            CREATE TABLE recent_items_new (
+                id TEXT NOT NULL, 
+                type TEXT NOT NULL, 
+                lastAccessed INTEGER NOT NULL, 
+                displayName TEXT NOT NULL, 
+                target TEXT NOT NULL, 
+                isPinned INTEGER NOT NULL DEFAULT 0, 
+                PRIMARY KEY(id)
+            )
+        """.trimIndent())
+
+        // Copy the data from the old table to the new table
+        database.execSQL("""
+            INSERT INTO recent_items_new (id, type, lastAccessed, displayName, target)
+            SELECT id, type, lastAccessed, displayName, target FROM recent_items
+        """.trimIndent())
+
+        // Remove the old table
+        database.execSQL("DROP TABLE recent_items")
+
+        // Rename the new table to the original table name
+        database.execSQL("ALTER TABLE recent_items_new RENAME TO recent_items")
     }
 }
