@@ -565,6 +565,7 @@ constructor(
       is MainScreenEvent.ShowRecentLists -> _showRecentListsSheet.value = true
       is MainScreenEvent.DismissRecentLists -> _showRecentListsSheet.value = false
       is MainScreenEvent.RecentItemSelected -> onRecentItemSelected(event.item)
+      is MainScreenEvent.RecentItemPinClick -> toggleRecentItemPin(event.item)
       is MainScreenEvent.DayPlanClick -> onDayPlanClicked()
       is MainScreenEvent.ContextSelected -> onContextSelected(event.name)
 
@@ -798,6 +799,13 @@ constructor(
                 _uiEventChannel.send(ProjectUiEvent.OpenUri(uri))
             }
         }
+    }
+  }
+
+  private fun toggleRecentItemPin(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
+    viewModelScope.launch {
+        val updatedItem = item.copy(isPinned = !item.isPinned)
+        projectRepository.updateRecentItem(updatedItem)
     }
   }
 

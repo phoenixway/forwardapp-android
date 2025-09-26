@@ -411,13 +411,18 @@ constructor(
     suspend fun logProjectAccess(projectId: String) {
         val project = getProjectById(projectId)
         if (project != null) {
-            val recentItem = RecentItem(
-                id = project.id,
-                type = RecentItemType.PROJECT,
-                lastAccessed = System.currentTimeMillis(),
-                displayName = project.name,
-                target = project.id
-            )
+            val existingItem = recentItemDao.getRecentItemById(project.id)
+            val recentItem = if (existingItem != null) {
+                existingItem.copy(lastAccessed = System.currentTimeMillis())
+            } else {
+                RecentItem(
+                    id = project.id,
+                    type = RecentItemType.PROJECT,
+                    lastAccessed = System.currentTimeMillis(),
+                    displayName = project.name,
+                    target = project.id
+                )
+            }
             Log.d("Recents_Debug", "Logging project access: $recentItem")
             recentItemDao.logAccess(recentItem)
         }
@@ -426,37 +431,52 @@ constructor(
     fun getRecentItems(limit: Int = 20): Flow<List<RecentItem>> = recentItemDao.getRecentItems(limit)
 
     suspend fun logNoteAccess(note: NoteEntity) {
-        val recentItem = RecentItem(
-            id = note.id,
-            type = RecentItemType.NOTE,
-            lastAccessed = System.currentTimeMillis(),
-            displayName = note.title,
-            target = note.id
-        )
+        val existingItem = recentItemDao.getRecentItemById(note.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = note.id,
+                type = RecentItemType.NOTE,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = note.title,
+                target = note.id
+            )
+        }
         Log.d("Recents_Debug", "Logging note access: $recentItem")
         recentItemDao.logAccess(recentItem)
     }
 
     suspend fun logCustomListAccess(customList: CustomListEntity) {
-        val recentItem = RecentItem(
-            id = customList.id,
-            type = RecentItemType.CUSTOM_LIST,
-            lastAccessed = System.currentTimeMillis(),
-            displayName = customList.name,
-            target = customList.id
-        )
+        val existingItem = recentItemDao.getRecentItemById(customList.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = customList.id,
+                type = RecentItemType.CUSTOM_LIST,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = customList.name,
+                target = customList.id
+            )
+        }
         Log.d("Recents_Debug", "Logging custom list access: $recentItem")
         recentItemDao.logAccess(recentItem)
     }
 
     suspend fun logObsidianLinkAccess(link: RelatedLink) {
-        val recentItem = RecentItem(
-            id = link.target,
-            type = RecentItemType.OBSIDIAN_LINK,
-            lastAccessed = System.currentTimeMillis(),
-            displayName = link.displayName ?: link.target,
-            target = link.target
-        )
+        val existingItem = recentItemDao.getRecentItemById(link.target)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = link.target,
+                type = RecentItemType.OBSIDIAN_LINK,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = link.displayName ?: link.target,
+                target = link.target
+            )
+        }
         Log.d("Recents_Debug", "Logging obsidian link access: $recentItem")
         recentItemDao.logAccess(recentItem)
     }
