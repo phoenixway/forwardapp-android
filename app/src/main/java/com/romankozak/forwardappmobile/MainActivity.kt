@@ -38,6 +38,7 @@ import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import androidx.core.net.toUri
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -232,7 +233,7 @@ private fun RequestAllPermissions() {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                     val intent =
                                         Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                            data = Uri.parse("package:${context.packageName}")
+                                            data = "package:${context.packageName}".toUri()
                                         }
                                     alarmSettingsLauncher.launch(intent)
                                 }

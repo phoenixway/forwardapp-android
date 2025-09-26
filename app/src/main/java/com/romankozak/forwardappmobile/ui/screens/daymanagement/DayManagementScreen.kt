@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
@@ -23,13 +22,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 
 enum class DayManagementTab(
     val title: String,
@@ -77,32 +85,7 @@ fun DayManagementScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Керування днем") },
-                navigationIcon = {
-                    IconButton(onClick = { mainNavController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад",
-                        )
-                    }
-                },
-                actions = {
-                    if (uiState.dayPlanId != null) {
-                        IconButton(
-                            onClick = { viewModel.retryLoading() },
-                            enabled = !uiState.isLoading,
-                        ) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Оновити",
-                            )
-                        }
-                    }
-                },
-            )
-        },
+
         bottomBar = {
             if (uiState.dayPlanId != null) {
                 DayManagementBottomNav(
@@ -183,6 +166,35 @@ fun DayManagementScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun NeonTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+) {
+    val backgroundColor = color.copy(alpha = 0.1f)
+    val textColor = color
+
+    Box(
+        modifier =
+            modifier
+                .shadow(elevation = 2.dp, shape = RoundedCornerShape(8.dp), ambientColor = color)
+                .clip(RoundedCornerShape(8.dp))
+                .background(backgroundColor)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style =
+                MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
+            color = textColor,
+        )
     }
 }
 

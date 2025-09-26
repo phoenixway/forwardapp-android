@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.customlist
 
+import android.util.Log
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
@@ -58,7 +59,8 @@ class UnifiedCustomListViewModel @Inject constructor(
     init {
         val listId: String? = savedStateHandle["listId"]
         if (listId == null) {
-            _uiState.update { it.copy(isNewList = true, content = TextFieldValue("• ", selection = TextRange(2)))
+            _uiState.update {
+                it.copy(isNewList = true, content = TextFieldValue("• ", selection = TextRange(2)))
             }
         } else {
             viewModelScope.launch {
@@ -70,7 +72,7 @@ class UnifiedCustomListViewModel @Inject constructor(
                             title = list.name,
                             content = content,
                             isLoading = false,
-                            toolbarState = computeToolbarState(content)
+                            toolbarState = computeToolbarState(content, false)
                         )
                     }
                     pushUndo(content)
@@ -80,7 +82,13 @@ class UnifiedCustomListViewModel @Inject constructor(
     }
 
     fun onToggleEditMode(isEditing: Boolean) {
-        _uiState.update { it.copy(isEditing = isEditing) }
+        _uiState.update {
+            it.copy(
+                isEditing = isEditing,
+                // Явно передаємо нове значення 'isEditing' в функцію
+                toolbarState = computeToolbarState(it.content, isEditing = isEditing)
+            )
+        }
     }
 
     fun onSave() {
@@ -111,7 +119,11 @@ class UnifiedCustomListViewModel @Inject constructor(
                     } ?: _events.send(UnifiedCustomListEvent.ShowError("List not found"))
                 }
             } catch (e: Exception) {
-                _events.send(UnifiedCustomListEvent.ShowError(e.message ?: "An unknown error occurred"))
+                _events.send(
+                    UnifiedCustomListEvent.ShowError(
+                        e.message ?: "An unknown error occurred"
+                    )
+                )
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -122,10 +134,17 @@ class UnifiedCustomListViewModel @Inject constructor(
         _uiState.update { it.copy(title = newTitle) }
     }
 
+// CustomListViewModel.kt
+
     fun onContentChange(newValue: TextFieldValue) {
         pushUndo(_uiState.value.content)
         clearRedo()
-        _uiState.update { it.copy(content = newValue, toolbarState = computeToolbarState(newValue)) }
+        _uiState.update {
+            it.copy(
+                content = newValue,
+                toolbarState = computeToolbarState(newValue, isEditing = it.isEditing)
+            )
+        }
     }
 
     fun onEnter(newValue: TextFieldValue) {
@@ -145,11 +164,25 @@ class UnifiedCustomListViewModel @Inject constructor(
         val insert = if (marker.isNotEmpty()) "$marker " else indent
 
         if (insert.isNotEmpty()) {
-            val newText = text.substring(0, selectionStart) + insert + text.substring(selectionStart)
+            val newText =
+                text.substring(0, selectionStart) + insert + text.substring(selectionStart)
             val newSelection = TextRange(selectionStart + insert.length)
-            _uiState.update { it.copy(content = TextFieldValue(newText, newSelection), toolbarState = computeToolbarState(TextFieldValue(newText, newSelection))) }
+            _uiState.update {
+                it.copy(
+                    content = TextFieldValue(newText, newSelection),
+                    toolbarState = computeToolbarState(
+                        TextFieldValue(newText, newSelection),
+                        it.isEditing
+                    )
+                )
+            }
         } else {
-            _uiState.update { it.copy(content = newValue, toolbarState = computeToolbarState(newValue)) }
+            _uiState.update {
+                it.copy(
+                    content = newValue,
+                    toolbarState = computeToolbarState(newValue, it.isEditing)
+                )
+            }
         }
     }
 
@@ -180,8 +213,13 @@ class UnifiedCustomListViewModel @Inject constructor(
         }
     }
 
-    fun onIndentBlock() { onIndentLine() }
-    fun onDeIndentBlock() { onDeIndentLine() }
+    fun onIndentBlock() {
+        onIndentLine()
+    }
+
+    fun onDeIndentBlock() {
+        onDeIndentLine()
+    }
 
     fun onMoveLineUp() {
         val cur = _uiState.value.content
@@ -207,8 +245,13 @@ class UnifiedCustomListViewModel @Inject constructor(
         onContentChange(TextFieldValue(newText, selection = newSel))
     }
 
-    fun onMoveBlockUp() { onMoveLineUp() }
-    fun onMoveBlockDown() { onMoveLineDown() }
+    fun onMoveBlockUp() {
+        onMoveLineUp()
+    }
+
+    fun onMoveBlockDown() {
+        onMoveLineDown()
+    }
 
     fun onDeleteLine() {
         val cur = _uiState.value.content
@@ -238,7 +281,8 @@ class UnifiedCustomListViewModel @Inject constructor(
         val cur = _uiState.value.content
         val (lineStart, _) = findLineStartAndIndex(cur.text, cur.selection.start)
         val insertion = clipboard
-        val newText = cur.text.substring(0, lineStart) + insertion + "\n" + cur.text.substring(lineStart)
+        val newText =
+            cur.text.substring(0, lineStart) + insertion + "\n" + cur.text.substring(lineStart)
         val newSel = TextRange(lineStart + insertion.length + 1)
         onContentChange(TextFieldValue(newText, selection = newSel))
     }
@@ -252,7 +296,7 @@ class UnifiedCustomListViewModel @Inject constructor(
         val line = lines[lineIndex]
         val indent = line.takeWhile { it.isWhitespace() }
         val trimmedLine = line.trimStart()
-        
+
         val newText: String
         if (trimmedLine.startsWith("• ")) {
             newText = indent + trimmedLine.removePrefix("• ")
@@ -260,26 +304,39 @@ class UnifiedCustomListViewModel @Inject constructor(
             newText = indent + "• " + trimmedLine
         }
         lines[lineIndex] = newText
-        
+
         val newContent = lines.joinToString("\n")
         onContentChange(TextFieldValue(newContent, cur.selection))
     }
 
-    fun onToggleNumbered() { /* ... */ }
-    fun onToggleChecklist() { /* ... */ }
+    fun onToggleNumbered() { /* ... */
+    }
+
+    fun onToggleChecklist() { /* ... */
+    }
 
     fun onUndo() {
         if (undoStack.isEmpty()) return
         val prev = undoStack.removeLast()
         redoStack.addLast(_uiState.value.content)
-        _uiState.update { it.copy(content = prev, toolbarState = computeToolbarState(prev)) }
+        _uiState.update {
+            it.copy(
+                content = prev,
+                toolbarState = computeToolbarState(prev, it.isEditing)
+            )
+        }
     }
 
     fun onRedo() {
         if (redoStack.isEmpty()) return
         val next = redoStack.removeLast()
         undoStack.addLast(_uiState.value.content)
-        _uiState.update { it.copy(content = next, toolbarState = computeToolbarState(next)) }
+        _uiState.update {
+            it.copy(
+                content = next,
+                toolbarState = computeToolbarState(next, it.isEditing)
+            )
+        }
     }
 
     private fun pushUndo(value: TextFieldValue) {
@@ -292,23 +349,34 @@ class UnifiedCustomListViewModel @Inject constructor(
         redoStack.clear()
     }
 
-    private fun computeToolbarState(content: TextFieldValue): ListToolbarState {
+    private fun computeToolbarState(content: TextFieldValue, isEditing: Boolean): ListToolbarState {
         val text = content.text
         val cursorPosition = content.selection.start
-        val (canIndent, canDeIndent, canMoveUp, canMoveDown) = calculateCapabilities(text, cursorPosition)
+        val (canIndent, canDeIndent, canMoveUp, canMoveDown) = calculateCapabilities(
+            text,
+            cursorPosition
+        )
+
         return ListToolbarState(
             totalItems = text.lines().count { it.isNotBlank() },
-            isEditing = uiState.value.isEditing,
+            isEditing = isEditing, // Тепер ми беремо значення з параметра функції
             formatMode = detectFormatMode(text.lines()),
             hasSelection = content.selection.length > 0,
             canIndent = canIndent,
             canDeIndent = canDeIndent,
             canMoveUp = canMoveUp,
-            canMoveDown = canMoveDown
+            canMoveDown = canMoveDown,
+            canUndo = undoStack.isNotEmpty(),
+            canRedo = redoStack.isNotEmpty()
         )
     }
 
-    private fun findLineStartAndIndex(fullText: String, cursorPos: Int, preferPrevious: Boolean = false): Pair<Int, Int> {
+
+    private fun findLineStartAndIndex(
+        fullText: String,
+        cursorPos: Int,
+        preferPrevious: Boolean = false
+    ): Pair<Int, Int> {
         val corrected = cursorPos.coerceIn(0, fullText.length)
         var before = fullText.substring(0, corrected)
         if (preferPrevious && before.endsWith("\n")) {
@@ -322,32 +390,41 @@ class UnifiedCustomListViewModel @Inject constructor(
         return Pair(lineStart, lineIndex)
     }
 
-private fun detectListMarker(linePrefix: String): String {
-    val trimmed = linePrefix.trimStart()
-    val numberRegex = Regex("^(\\d+)\\.")
+    private fun detectListMarker(linePrefix: String): String {
+        val trimmed = linePrefix.trimStart()
+        val numberRegex = Regex("^(\\d+)\\.")
 
-    return when {
-        trimmed.startsWith("•") -> "•"
-        trimmed.startsWith("☐") -> "☐"
-        trimmed.startsWith("☑") -> "☑"
-        numberRegex.containsMatchIn(trimmed) -> {
-            val match = numberRegex.find(trimmed)
-            val num = match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
-            "${num + 1}."
+        return when {
+            trimmed.startsWith("•") -> "•"
+            trimmed.startsWith("☐") -> "☐"
+            trimmed.startsWith("☑") -> "☑"
+            numberRegex.containsMatchIn(trimmed) -> {
+                val match = numberRegex.find(trimmed)
+                val num = match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+                "${num + 1}."
+            }
+
+            else -> ""
         }
-        else -> ""
     }
-}
 
 
-    private fun shiftSelectionAfterInsert(old: TextFieldValue, insertPos: Int, insertLen: Int): TextRange {
+    private fun shiftSelectionAfterInsert(
+        old: TextFieldValue,
+        insertPos: Int,
+        insertLen: Int
+    ): TextRange {
         val oldSel = old.selection
         val newStart = if (oldSel.start >= insertPos) oldSel.start + insertLen else oldSel.start
         val newEnd = if (oldSel.end >= insertPos) oldSel.end + insertLen else oldSel.end
         return TextRange(newStart, newEnd)
     }
 
-    private fun shiftSelectionAfterRemove(old: TextFieldValue, removePos: Int, removeLen: Int): TextRange {
+    private fun shiftSelectionAfterRemove(
+        old: TextFieldValue,
+        removePos: Int,
+        removeLen: Int
+    ): TextRange {
         val oldSel = old.selection
         val newStart = when {
             oldSel.start <= removePos -> oldSel.start
@@ -366,7 +443,7 @@ private fun detectListMarker(linePrefix: String): String {
         val prefixLen = lines.take(targetIndex).sumOf { it.length + 1 }
         return TextRange(prefixLen.coerceAtMost(lines.joinToString("\n").length))
     }
-    
+
     private fun scheduleAutoSave() {}
 
     private fun calculateCapabilities(text: String, cursorPosition: Int): List<Boolean> {
@@ -381,26 +458,26 @@ private fun detectListMarker(linePrefix: String): String {
         return listOf(canIndent, canDeIndent, canMoveUp, canMoveDown)
     }
 
-private fun detectFormatMode(lines: List<String>): ListFormatMode {
-    val nonEmptyLines = lines.filter { it.isNotBlank() }
-    if (nonEmptyLines.isEmpty()) return ListFormatMode.BULLET
+    private fun detectFormatMode(lines: List<String>): ListFormatMode {
+        val nonEmptyLines = lines.filter { it.isNotBlank() }
+        if (nonEmptyLines.isEmpty()) return ListFormatMode.BULLET
 
-    val bulletCount = nonEmptyLines.count { it.trimStart().startsWith("•") }
-    val numberedCount = nonEmptyLines.count { line ->
-        val trimmed = line.trimStart()
-        trimmed.matches(Regex("^\\d+\\.\\s.*"))
-    }
-    val checklistCount = nonEmptyLines.count { line ->
-        val trimmed = line.trimStart()
-        trimmed.startsWith("☐") || trimmed.startsWith("☑")
-    }
+        val bulletCount = nonEmptyLines.count { it.trimStart().startsWith("•") }
+        val numberedCount = nonEmptyLines.count { line ->
+            val trimmed = line.trimStart()
+            trimmed.matches(Regex("^\\d+\\.\\s.*"))
+        }
+        val checklistCount = nonEmptyLines.count { line ->
+            val trimmed = line.trimStart()
+            trimmed.startsWith("☐") || trimmed.startsWith("☑")
+        }
 
-    return when {
-        checklistCount > nonEmptyLines.size / 2 -> ListFormatMode.CHECKLIST
-        numberedCount > nonEmptyLines.size / 2 -> ListFormatMode.NUMBERED
-        bulletCount > nonEmptyLines.size / 2 -> ListFormatMode.BULLET
-        else -> ListFormatMode.PLAIN
+        return when {
+            checklistCount > nonEmptyLines.size / 2 -> ListFormatMode.CHECKLIST
+            numberedCount > nonEmptyLines.size / 2 -> ListFormatMode.NUMBERED
+            bulletCount > nonEmptyLines.size / 2 -> ListFormatMode.BULLET
+            else -> ListFormatMode.PLAIN
+        }
     }
-}
 
 }

@@ -48,7 +48,7 @@ import kotlin.math.max
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 
@@ -73,12 +73,7 @@ fun ActivityTrackerScreen(
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    var showMatrixSplash by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        delay(1200)
-        showMatrixSplash = false
-    }
+    var showMatrixSplash by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -169,17 +164,6 @@ fun ActivityTrackerScreen(
                     currentReminderTime = record.reminderTime,
                 )
             }
-        }
-        AnimatedVisibility(
-            visible = showMatrixSplash,
-            exit = fadeOut(animationSpec = tween(300))
-        ) {
-            AndroidView(
-                factory = { context ->
-                    MatrixRainView(context)
-                },
-                modifier = Modifier.fillMaxSize()
-            )
         }
     }
 }

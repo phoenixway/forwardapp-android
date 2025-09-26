@@ -9,12 +9,18 @@ import com.romankozak.forwardappmobile.ui.screens.daymanagement.DayManagementScr
 
 fun NavGraphBuilder.dayManagementGraph(navController: NavController) {
     composable(
-        
-        route = "$DAY_MANAGEMENT_ROUTE/{$DAY_PLAN_DATE_ARG}",
-        arguments = listOf(navArgument(DAY_PLAN_DATE_ARG) { type = NavType.LongType }),
-    ) {
-        
-        DayManagementScreen(mainNavController = navController)
+        route = "$DAY_MANAGEMENT_ROUTE/{$DAY_PLAN_DATE_ARG}?startTab={startTab}",
+        arguments = listOf(
+            navArgument(DAY_PLAN_DATE_ARG) { type = NavType.LongType },
+            navArgument("startTab") { 
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        ),
+    ) { backStackEntry ->
+        val startTab = backStackEntry.arguments?.getString("startTab")
+        DayManagementScreen(mainNavController = navController, startTab = startTab)
     }
 }
 

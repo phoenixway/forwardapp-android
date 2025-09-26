@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.room.withTransaction
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
@@ -259,7 +260,7 @@ constructor(
             if (!cleanAddress.startsWith("http://") && !cleanAddress.startsWith("https://")) {
                 cleanAddress = "http://$cleanAddress"
             }
-            val uri = Uri.parse(cleanAddress)
+            val uri = cleanAddress.toUri()
             val hostAndPort = "${uri.host}:${if (uri.port != -1) uri.port else 8080}"
             val fullUrl = "http://$hostAndPort/export"
             Log.d(TAG, "Fetching from: $fullUrl")

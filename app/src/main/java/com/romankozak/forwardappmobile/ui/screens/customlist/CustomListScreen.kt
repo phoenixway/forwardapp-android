@@ -12,6 +12,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,16 +40,45 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.platform.LocalDensity
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.customlist.components.EnhancedListToolbar
+import androidx.compose.foundation.interaction.MutableInteractionSource
+
 
 enum class ScreenMode {
   CREATE,
   EDIT_EXISTING,
   VIEW,
+}
+
+@Composable
+private fun ShowToolbarButton(onClick: () -> Unit) {
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+      shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = "Показати тулбар",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,6 +87,8 @@ fun UnifiedCustomListScreen(
   navController: NavController,
   viewModel: UnifiedCustomListViewModel = hiltViewModel(),
 ) {
+  var showEditTitleDialog by remember { mutableStateOf(false) }
+  var isToolbarVisible by remember { mutableStateOf(true) }
   // Колір TopAppBar, який буде під прозорим рядком стану
   val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
   val view = LocalView.current
@@ -69,7 +102,9 @@ fun UnifiedCustomListScreen(
       WindowCompat.setDecorFitsSystemWindows(window, false)
 
       // Робимо системні панелі прозорими
+      @Suppress("DEPRECATION")
       window.statusBarColor = Color.Transparent.toArgb()
+      @Suppress("DEPRECATION")
       window.navigationBarColor = Color.Transparent.toArgb()
 
       // Налаштовуємо колір іконок системних панелей для контрасту
@@ -125,10 +160,20 @@ fun UnifiedCustomListScreen(
     }
   }
 
+  if (showEditTitleDialog) {
+    EditTitleDialog(
+        currentTitle = uiState.title,
+        onDismiss = { showEditTitleDialog = false },
+        onSave = { newTitle ->
+            viewModel.onTitleChange(newTitle)
+            showEditTitleDialog = false
+        }
+    )
+  }
+
   Scaffold(
-    // Прибираємо Modifier.safeDrawingPadding() звідси
-    modifier = Modifier.background(animatedBackgroundColor),
-    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    modifier = Modifier.background(animatedBackgroundColor).imePadding(),
+    // прибрав contentWindowInsets, воно не потрібне тут
     topBar = {
       EnhancedTopAppBar(
         screenMode = screenMode,
@@ -141,30 +186,48 @@ fun UnifiedCustomListScreen(
           viewModel.onSave()
           screenMode = ScreenMode.VIEW
         },
+        onEditTitle = { showEditTitleDialog = true },
+
       )
     },
     bottomBar = {
-      Box(modifier = Modifier.navigationBarsPadding()) {
-        EnhancedListToolbar(
-          state = uiState.toolbarState,
-          onIndentBlock = viewModel::onIndentBlock,
-          onDeIndentBlock = viewModel::onDeIndentBlock,
-          onMoveBlockUp = viewModel::onMoveBlockUp,
-          onMoveBlockDown = viewModel::onMoveBlockDown,
-          onIndentLine = viewModel::onIndentLine,
-          onDeIndentLine = viewModel::onDeIndentLine,
-          onMoveLineUp = viewModel::onMoveLineUp,
-          onMoveLineDown = viewModel::onMoveLineDown,
-          onDeleteLine = viewModel::onDeleteLine,
-          onCopyLine = viewModel::onCopyLine,
-          onCutLine = viewModel::onCutLine,
-          onPasteLine = viewModel::onPasteLine,
-          onToggleBullet = viewModel::onToggleBullet,
-          onToggleNumbered = viewModel::onToggleNumbered,
-          onToggleChecklist = viewModel::onToggleChecklist,
-          onUndo = viewModel::onUndo,
-          onRedo = viewModel::onRedo,
-        )
+      if (screenMode != ScreenMode.VIEW) {
+        Box(modifier = Modifier.navigationBarsPadding()) {
+          AnimatedContent(
+            targetState = isToolbarVisible,
+            label = "toolbar_visibility",
+            transitionSpec = {
+              (slideInVertically { height -> height } + fadeIn())
+                .togetherWith(slideOutVertically { height -> height } + fadeOut())
+            }
+          ) { isVisible ->
+            if (isVisible) {
+              EnhancedListToolbar(
+                state = uiState.toolbarState,
+                onIndentBlock = viewModel::onIndentBlock,
+                onDeIndentBlock = viewModel::onDeIndentBlock,
+                onMoveBlockUp = viewModel::onMoveBlockUp,
+                onMoveBlockDown = viewModel::onMoveBlockDown,
+                onIndentLine = viewModel::onIndentLine,
+                onDeIndentLine = viewModel::onDeIndentLine,
+                onMoveLineUp = viewModel::onMoveLineUp,
+                onMoveLineDown = viewModel::onMoveLineDown,
+                onDeleteLine = viewModel::onDeleteLine,
+                onCopyLine = viewModel::onCopyLine,
+                onCutLine = viewModel::onCutLine,
+                onPasteLine = viewModel::onPasteLine,
+                onToggleBullet = viewModel::onToggleBullet,
+                onToggleNumbered = viewModel::onToggleNumbered,
+                onToggleChecklist = viewModel::onToggleChecklist,
+                onUndo = viewModel::onUndo,
+                onRedo = viewModel::onRedo,
+                onToggleVisibility = { isToolbarVisible = false },
+              )
+            } else {
+              ShowToolbarButton(onClick = { isToolbarVisible = true })
+            }
+          }
+        }
       }
     },
     floatingActionButton = {
@@ -181,14 +244,16 @@ fun UnifiedCustomListScreen(
           text = { Text("Створити") },
           containerColor = MaterialTheme.colorScheme.primaryContainer,
           contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-          // Додаємо відступ для панелі навігації
           modifier = Modifier.navigationBarsPadding().clip(RoundedCornerShape(16.dp)),
         )
       }
     },
   ) { paddingValues ->
     Box(
-      modifier = Modifier.padding(paddingValues).fillMaxSize().background(animatedBackgroundColor)
+      modifier = Modifier
+        .padding(paddingValues)
+        .fillMaxSize()
+        .background(animatedBackgroundColor)
     ) {
       when (screenMode) {
         ScreenMode.CREATE,
@@ -232,7 +297,7 @@ fun UnifiedCustomListScreen(
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // -> Corrected
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EnhancedTopAppBar(
   screenMode: ScreenMode,
@@ -242,9 +307,9 @@ private fun EnhancedTopAppBar(
   onNavigateBack: () -> Unit,
   onEdit: () -> Unit,
   onSave: () -> Unit,
+  onEditTitle: () -> Unit,
 ) {
   Card(
-    // 1. Прибираємо відступ звідси. Тепер Card малюється під системним рядком.
     modifier = Modifier.fillMaxWidth(),
     shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -270,7 +335,7 @@ private fun EnhancedTopAppBar(
           }
           Column {
             Text(
-              text = "Список",
+              text = title.ifEmpty { "Новий список" },
               style = MaterialTheme.typography.headlineSmall,
               fontWeight = FontWeight.SemiBold,
             )
@@ -294,6 +359,11 @@ private fun EnhancedTopAppBar(
         }
       },
       actions = {
+        if (screenMode != ScreenMode.CREATE) {
+            IconButton(onClick = onEditTitle) {
+                Icon(Icons.Default.Tune, contentDescription = "Властивості")
+            }
+        }
         when (screenMode) {
           ScreenMode.VIEW -> {
             IconButton(onClick = onEdit) {
@@ -317,7 +387,6 @@ private fun EnhancedTopAppBar(
         }
       },
       colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-      // 2. Додаємо insets сюди. Тепер вміст TopAppBar має правильний відступ.
       windowInsets = WindowInsets.statusBars,
     )
   }
@@ -330,77 +399,48 @@ private fun CreateEditContent(
   titleFocusRequester: FocusRequester,
   contentFocusRequester: FocusRequester,
 ) {
-  Column(modifier = Modifier.fillMaxSize().imePadding().navigationBarsPadding()) {
-    Card(
-      modifier = Modifier.fillMaxWidth().padding(16.dp),
-      colors =
-        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-      BasicTextField(
-        value = uiState.title,
-        onValueChange = viewModel::onTitleChange,
-        modifier = Modifier.fillMaxWidth().padding(20.dp).focusRequester(titleFocusRequester),
-        textStyle =
-          TextStyle(
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-          ),
-        singleLine = true,
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        decorationBox = { innerTextField ->
-          if (uiState.title.isEmpty()) {
-            Text(
-              text = "Enter list title...",
-              style =
-                TextStyle(
-                  fontSize = 24.sp,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                ),
-            )
-          }
-          innerTextField()
-        },
-      )
-    }
-
-      val textColor = MaterialTheme.colorScheme.onSurface
-      BasicTextField(
-        value = uiState.content,
-        onValueChange = { newValue ->
-          val oldValue = uiState.content
-          if (
-            newValue.text.length > oldValue.text.length &&
-              newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
-          ) {
-            viewModel.onEnter(newValue)
-          } else {
-            viewModel.onContentChange(newValue)
-          }
-        },
-        modifier = Modifier.fillMaxSize().focusRequester(contentFocusRequester).padding(horizontal = 16.dp, vertical = 2.dp),
-        textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        visualTransformation = ListVisualTransformation(uiState.collapsedLines, textColor),
-        decorationBox = { innerTextField ->
-          Row(Modifier.padding(vertical = 16.dp)) {
-            Gutter(
-              lines = uiState.content.text.lines(),
-              collapsedLines = uiState.collapsedLines,
-              onToggleFold = viewModel::onToggleFold,
-            )
-            Box(modifier = Modifier.padding(start = 16.dp)) { innerTextField() }
-          }
-        },
-      )
+  Column(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val accentColor = MaterialTheme.colorScheme.primary
+    BasicTextField(
+      value = uiState.content,
+      onValueChange = { newValue ->
+        val oldValue = uiState.content
+        if (
+          newValue.text.length > oldValue.text.length &&
+            newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
+        ) {
+          viewModel.onEnter(newValue)
+        } else {
+          viewModel.onContentChange(newValue)
+        }
+      },
+      modifier = Modifier
+        .fillMaxSize()
+        .focusRequester(contentFocusRequester)
+        .padding(horizontal = 16.dp, vertical = 2.dp),
+      textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+      cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+      visualTransformation = ListVisualTransformation(uiState.collapsedLines, textColor, accentColor),
+      decorationBox = { innerTextField ->
+        Row(Modifier.padding(vertical = 16.dp)) {
+          Gutter(
+            lines = uiState.content.text.lines(),
+            collapsedLines = uiState.collapsedLines,
+            onToggleFold = viewModel::onToggleFold,
+            lineHeight = 24.sp
+          )
+          Box(modifier = Modifier.padding(start = 16.dp)) { innerTextField() }
+        }
+      },
+    )
   }
 }
 
 @Composable
-private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: (Int) -> Unit) {
+private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: (Int) -> Unit, lineHeight: TextUnit) {
   val focusManager = LocalFocusManager.current
+  val lineHeightDp = with(LocalDensity.current) { lineHeight.toDp() }
   Column(modifier = Modifier.width(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
     lines.forEachIndexed { index, line ->
       val indent = line.takeWhile { it.isWhitespace() }.length
@@ -408,7 +448,7 @@ private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: 
         if (index + 1 < lines.size) lines[index + 1].takeWhile { it.isWhitespace() }.length else -1
       val isParent = nextIndent > indent && line.isNotBlank()
 
-      Box(modifier = Modifier.height(24.dp), contentAlignment = Alignment.Center) {
+      Box(modifier = Modifier.height(lineHeightDp), contentAlignment = Alignment.Center) {
         if (isParent) {
           val isCollapsed = collapsedLines.contains(index)
           val icon =
@@ -432,6 +472,7 @@ private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: 
 private class ListVisualTransformation(
   private val collapsedLines: Set<Int>,
   private val textColor: Color,
+  private val accentColor: Color,
 ) : VisualTransformation {
   override fun filter(text: AnnotatedString): TransformedText {
     val originalText = text.text
@@ -457,8 +498,49 @@ private class ListVisualTransformation(
     }
 
     val transformedText = buildAnnotatedString {
-      visibleLines.forEachIndexed { visibleIndex, (_, line) ->
-        withStyle(style = SpanStyle(color = textColor)) { append(line) }
+      visibleLines.forEachIndexed { visibleIndex, indexedValue ->
+        val (_, line) = indexedValue
+
+        val bulletRegex = Regex("""^(\s*)\*\s(.*)""")
+        val numberedRegex = Regex("""^(\s*)(\d+)\.\s(.*)""")
+        val checkedRegex = Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
+        val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
+
+        var matched = false
+
+        if (!matched) bulletRegex.find(line)?.let {
+          val (indent, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("• ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+        if (!matched) numberedRegex.find(line)?.let {
+          val (indent, number, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("$number. ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+        if (!matched) uncheckedRegex.find(line)?.let {
+          val (indent, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☐ ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+        if (!matched) checkedRegex.find(line)?.let {
+          val (indent, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☑ ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+
+        if (!matched) {
+          withStyle(SpanStyle(color = textColor)) { append(line) }
+        }
+
         if (visibleIndex < visibleLines.size - 1) {
           append("\n")
         }
@@ -511,7 +593,10 @@ private fun ViewContent(
   onContentClick: () -> Unit,
 ) {
   Column(
-    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(rememberScrollState())
+      .padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(4.dp),
   ) {
     Card(
@@ -532,7 +617,9 @@ private fun ViewContent(
     Spacer(modifier = Modifier.height(8.dp))
 
     Card(
-      modifier = Modifier.fillMaxWidth().clickable { onContentClick() },
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable { onContentClick() },
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
       elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
       shape = RoundedCornerShape(12.dp),
@@ -601,4 +688,39 @@ private fun ViewContent(
     // Додатковий відступ знизу, щоб контент не ховався за панеллю навігації
     Spacer(modifier = Modifier.navigationBarsPadding())
   }
+}
+
+@Composable
+private fun EditTitleDialog(
+    currentTitle: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var text by remember(currentTitle) { mutableStateOf(currentTitle) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Редагувати заголовок") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Заголовок списку") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(text) },
+                enabled = text.isNotBlank()
+            ) {
+                Text("Зберегти")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+        }
+    )
 }

@@ -6,6 +6,7 @@ import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -351,7 +352,7 @@ private class UkDtNerProcessor(
         destinationFile: File,
     ): File =
         withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(Uri.parse(uriString))?.use { inputStream ->
+            context.contentResolver.openInputStream(uriString.toUri())?.use { inputStream ->
                 FileOutputStream(destinationFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
@@ -375,7 +376,7 @@ private class UkDtNerProcessor(
             val inputIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.ids), shape)
             val attnTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.attentionMask), shape)
 
-            val tokenTypeIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(LongArray(encoding.ids.size) { 0L }), shape)
+            val tokenTypeIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(LongArray(encoding.ids.size)), shape)
 
             val inputs =
                 mapOf(

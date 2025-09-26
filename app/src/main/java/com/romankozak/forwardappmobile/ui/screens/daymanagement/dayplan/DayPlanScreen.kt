@@ -142,7 +142,7 @@ fun CompactDayPlanHeader(
     val formattedDate =
         remember(dayPlan?.date) {
             dayPlan?.date?.let { dateMillis ->
-                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale("uk"))
+                val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("uk"))
                 Instant.ofEpochMilli(dateMillis)
                     .atZone(ZoneId.systemDefault())
                     .format(formatter)
@@ -296,9 +296,12 @@ fun DayPlanScreen(
     val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
 
     var showMatrixSplash by remember { mutableStateOf(true) }
+    var matrixView by remember { mutableStateOf<MatrixRainView?>(null) }
 
     LaunchedEffect(Unit) {
-        delay(1200)
+        delay(400) // Show matrix effect longer
+        matrixView?.startFadeOut() // Start fade out animation
+        delay(300) // Wait for fade out to complete
         showMatrixSplash = false
     }
 
@@ -394,13 +397,14 @@ fun DayPlanScreen(
             )
         }
 
+        // Enhanced Matrix splash screen
         AnimatedVisibility(
             visible = showMatrixSplash,
             exit = fadeOut(animationSpec = tween(300))
         ) {
             AndroidView(
                 factory = { context ->
-                    MatrixRainView(context)
+                    MatrixRainView(context).also { matrixView = it }
                 },
                 modifier = Modifier.fillMaxSize()
             )

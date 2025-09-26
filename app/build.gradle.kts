@@ -197,7 +197,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Jetpack DataStore (якщо ще не додано, для збереження налаштувань)
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.androidx.datastore.preferences)
     implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
 
     // ONNX Runtime для Android

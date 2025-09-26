@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.InlineTextContent
@@ -156,7 +157,7 @@ fun MarkdownText(
                                         try {
                                             val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
                                             val encodedFile = URLEncoder.encode(noteName, "UTF-8")
-                                            val uri = Uri.parse("obsidian://open?vault=$encodedVault&file=$encodedFile")
+                                            val uri = "obsidian://open?vault=$encodedVault&file=$encodedFile".toUri()
                                             context.startActivity(Intent(Intent.ACTION_VIEW, uri))
                                         } catch (e: ActivityNotFoundException) {
                                             Toast.makeText(context, "Obsidian not installed", Toast.LENGTH_SHORT).show()

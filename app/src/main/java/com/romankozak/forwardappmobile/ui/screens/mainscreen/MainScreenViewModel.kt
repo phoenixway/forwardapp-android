@@ -592,10 +592,10 @@ constructor(
       is MainScreenEvent.NavigateToActivityTracker -> {
         viewModelScope.launch {
           val today = System.currentTimeMillis()
-          _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "TRACK"))
+          _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "PLAN"))
         }
       }
-
+      
       is MainScreenEvent.NavigateToAiInsights -> {
         viewModelScope.launch {
           _uiEventChannel.send(ProjectUiEvent.Navigate("ai_insights_screen"))
