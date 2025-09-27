@@ -281,8 +281,8 @@ class BacklogViewModel
 
         
         private var batchSaveJob: Job? = null
-        private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
-        private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
+private val projectIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
         val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
         val itemActionHandler = ItemActionHandler(projectRepository, viewModelScope, projectIdFlow, this)
