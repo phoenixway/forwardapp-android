@@ -26,6 +26,7 @@ class DayManagementRepository
         private val goalDao: GoalDao,
         private val projectDao: ProjectDao,
         private val recurringTaskDao: RecurringTaskDao,
+        private val listItemDao: ListItemDao, 
         private val activityRepository: ActivityRepository,
         private val alarmScheduler: AlarmScheduler,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -131,57 +132,63 @@ class DayManagementRepository
         }
 
         
+    suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask =
+        withContext(ioDispatcher) {
+            val order =
+                params.order ?: run {
+                    val maxOrder = dayTaskDao.getMaxOrderForDayPlan(params.dayPlanId) ?: 0L
+                    maxOrder + 1
+                }
 
-        suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask =
-            withContext(ioDispatcher) {
-                val order =
-                    params.order ?: run {
-                        val maxOrder = dayTaskDao.getMaxOrderForDayPlan(params.dayPlanId) ?: 0L
-                        maxOrder + 1
-                    }
+            val task =
+                DayTask(
+                    dayPlanId = params.dayPlanId,
+                    title = params.title,
+                    description = params.description,
+                    goalId = params.goalId,
+                    projectId = params.projectId,
+                    priority = params.priority,
+                    scheduledTime = params.scheduledTime,
+                    estimatedDurationMinutes = params.estimatedDurationMinutes,
+                    order = order,
+                    taskType = params.taskType ?: ListItemType.GOAL,
+                )
+            dayTaskDao.insert(task)
+            task
+        }
 
-                val task =
-                    DayTask(
-                        dayPlanId = params.dayPlanId,
-                        title = params.title,
-                        description = params.description,
-                        goalId = params.goalId,
-                        projectId = params.projectId,
-                        priority = params.priority,
-                        scheduledTime = params.scheduledTime,
-                        estimatedDurationMinutes = params.estimatedDurationMinutes,
-                        order = order,
-                        
-                        taskType = params.taskType ?: ListItemType.GOAL,
-                    )
-                dayTaskDao.insert(task)
-                task
-            }
+    @Transaction
+    suspend fun addGoalToDayPlan(
+        dayPlanId: String,
+        goalId: String,
+        scheduledTime: Long? = null,
+    ): DayTask =
+        withContext(ioDispatcher) {
+            // <--- ПОЧАТОК ВИПРАВЛЕННЯ
+            // Крок 2.1: Знаходимо projectId для цілі через listItemDao
+            val projectId = listItemDao.findProjectIdForGoal(goalId)
+                ?: throw IllegalStateException("Goal $goalId is not associated with any project.")
+            // КІНЕЦЬ ВИПРАВЛЕННЯ --->
 
-        @Transaction
-        suspend fun addGoalToDayPlan(
-            dayPlanId: String,
-            goalId: String,
-            scheduledTime: Long? = null,
-        ): DayTask =
-            withContext(ioDispatcher) {
-                val goal =
-                    goalDao.getGoalById(goalId)
-                        ?: throw NoSuchElementException("Goal with id $goalId not found")
+            val goal =
+                goalDao.getGoalById(goalId)
+                    ?: throw NoSuchElementException("Goal with id $goalId not found")
 
-                val taskParams =
-                    NewTaskParameters(
-                        dayPlanId = dayPlanId,
-                        title = goal.text,
-                        description = goal.description,
-                        goalId = goalId,
-                        scheduledTime = scheduledTime,
-                        priority = mapImportanceToPriority(goal.valueImportance),
-                        taskType = ListItemType.GOAL,
-                    )
-                addTaskToDayPlan(taskParams)
-            }
-
+            val taskParams =
+                NewTaskParameters(
+                    dayPlanId = dayPlanId,
+                    title = goal.text,
+                    description = goal.description,
+                    goalId = goalId,
+                    // <--- ПОЧАТОК ВИПРАВЛЕННЯ
+                    projectId = projectId, // Крок 2.2: Передаємо знайдений projectId
+                    // КІНЕЦЬ ВИПРАВЛЕННЯ --->
+                    scheduledTime = scheduledTime,
+                    priority = mapImportanceToPriority(goal.valueImportance),
+                    taskType = ListItemType.GOAL,
+                )
+            addTaskToDayPlan(taskParams)
+        }
         @Transaction
         suspend fun addProjectToDayPlan(
             dayPlanId: String,
