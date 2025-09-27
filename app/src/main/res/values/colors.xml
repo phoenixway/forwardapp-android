@@ -34,5 +34,21 @@
     <color name="cyber_icon_secondary">#FF0080</color>
     <color name="cyber_button_background">#00FFC3</color>
     <color name="cyber_button_text">#000000</color>
+
+    <!-- Нові кольори для кастомних елементів -->
+    <color name="cyber_header_text_color">#FF40A0</color> <!-- Яскравий акцентний рожевий -->
+    <color name="cyber_border_color">#00FFC3</color> <!-- Основний бірюзовий -->
+
+    <!-- Кольори для режимів інпут панелі (денна тема) -->
+    <color name="input_panel_add_goal_bg">#E0F7FA</color>
+    <color name="input_panel_add_goal_text">#00796B</color>
+    <color name="input_panel_search_list_bg">#FCE4EC</color>
+    <color name="input_panel_search_list_text">#C2185B</color>
+    <color name="input_panel_search_global_bg">#FFFDE7</color>
+    <color name="input_panel_search_global_text">#FBC02D</color>
+    <color name="input_panel_add_quick_record_bg">#E8EAF6</color>
+    <color name="input_panel_add_quick_record_text">#303F9F</color>
+    <color name="input_panel_add_project_log_bg">#F3E5F5</color>
+    <color name="input_panel_add_project_log_text">#7B1FA2</color>
 </resources>
 

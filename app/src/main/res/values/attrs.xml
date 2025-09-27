@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="customHeaderTextColor" format="color" />
+    <attr name="customBorderColor" format="color" />
+
+    <!-- Кольори для режимів інпут панелі -->
+    <attr name="inputPanelAddGoalBackgroundColor" format="color" />
+    <attr name="inputPanelAddGoalTextColor" format="color" />
+    <attr name="inputPanelSearchInListBackgroundColor" format="color" />
+    <attr name="inputPanelSearchInListTextColor" format="color" />
+    <attr name="inputPanelSearchGlobalBackgroundColor" format="color" />
+    <attr name="inputPanelSearchGlobalTextColor" format="color" />
+    <attr name="inputPanelAddQuickRecordBackgroundColor" format="color" />
+    <attr name="inputPanelAddQuickRecordTextColor" format="color" />
+    <attr name="inputPanelAddProjectLogBackgroundColor" format="color" />
+    <attr name="inputPanelAddProjectLogTextColor" format="color" />
+</resources>

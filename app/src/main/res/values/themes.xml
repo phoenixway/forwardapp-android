@@ -8,6 +8,22 @@
         <item name="colorSurface">@color/cyber_surface</item>
         <item name="android:textColorPrimary">@color/cyber_text_primary</item>
         <item name="android:fontFamily">@font/orbitron</item>
+
+        <!-- Кастомні кольори -->
+        <item name="customHeaderTextColor">@color/cyber_header_text_color</item>
+        <item name="customBorderColor">@color/cyber_border_color</item>
+
+        <!-- Кольори для режимів інпут панелі -->
+        <item name="inputPanelAddGoalBackgroundColor">@color/input_panel_add_goal_bg</item>
+        <item name="inputPanelAddGoalTextColor">@color/input_panel_add_goal_text</item>
+        <item name="inputPanelSearchInListBackgroundColor">@color/input_panel_search_list_bg</item>
+        <item name="inputPanelSearchInListTextColor">@color/input_panel_search_list_text</item>
+        <item name="inputPanelSearchGlobalBackgroundColor">@color/input_panel_search_global_bg</item>
+        <item name="inputPanelSearchGlobalTextColor">@color/input_panel_search_global_text</item>
+        <item name="inputPanelAddQuickRecordBackgroundColor">@color/input_panel_add_quick_record_bg</item>
+        <item name="inputPanelAddQuickRecordTextColor">@color/input_panel_add_quick_record_text</item>
+        <item name="inputPanelAddProjectLogBackgroundColor">@color/input_panel_add_project_log_bg</item>
+        <item name="inputPanelAddProjectLogTextColor">@color/input_panel_add_project_log_text</item>
     </style>
 </resources>
 

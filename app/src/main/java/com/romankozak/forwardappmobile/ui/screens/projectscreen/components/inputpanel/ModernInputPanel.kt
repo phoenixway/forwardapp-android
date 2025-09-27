@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
+import com.romankozak.forwardappmobile.ui.theme.LocalInputPanelColors
 import kotlinx.coroutines.delay
 
 // ------------------- STATE ---------------------
@@ -734,42 +735,43 @@ fun ModernInputPanel(
 
   val currentModeIndex = modes.indexOf(inputMode)
 
+  val inputPanelColors = LocalInputPanelColors.current
   val panelColors =
     when (inputMode) {
       InputMode.AddGoal ->
         PanelColors(
-          containerColor = MaterialTheme.colorScheme.surfaceContainer,
-          contentColor = MaterialTheme.colorScheme.onSurface,
-          accentColor = MaterialTheme.colorScheme.primary,
-          inputFieldColor = MaterialTheme.colorScheme.surfaceVariant,
+          containerColor = inputPanelColors.addGoal.backgroundColor,
+          contentColor = inputPanelColors.addGoal.textColor,
+          accentColor = inputPanelColors.addGoal.textColor,
+          inputFieldColor = inputPanelColors.addGoal.inputFieldColor,
         )
       InputMode.AddQuickRecord ->
         PanelColors(
-          containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f),
-          contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-          accentColor = MaterialTheme.colorScheme.secondary,
-          inputFieldColor = MaterialTheme.colorScheme.surface,
+          containerColor = inputPanelColors.addQuickRecord.backgroundColor,
+          contentColor = inputPanelColors.addQuickRecord.textColor,
+          accentColor = inputPanelColors.addQuickRecord.textColor,
+          inputFieldColor = inputPanelColors.addQuickRecord.inputFieldColor,
         )
       InputMode.SearchInList ->
         PanelColors(
-          containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-          contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-          accentColor = MaterialTheme.colorScheme.primary,
-          inputFieldColor = MaterialTheme.colorScheme.surface,
+          containerColor = inputPanelColors.searchInList.backgroundColor,
+          contentColor = inputPanelColors.searchInList.textColor,
+          accentColor = inputPanelColors.searchInList.textColor,
+          inputFieldColor = inputPanelColors.searchInList.inputFieldColor,
         )
       InputMode.SearchGlobal ->
         PanelColors(
-          containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.9f),
-          contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-          accentColor = MaterialTheme.colorScheme.tertiary,
-          inputFieldColor = MaterialTheme.colorScheme.surface,
+          containerColor = inputPanelColors.searchGlobal.backgroundColor,
+          contentColor = inputPanelColors.searchGlobal.textColor,
+          accentColor = inputPanelColors.searchGlobal.textColor,
+          inputFieldColor = inputPanelColors.searchGlobal.inputFieldColor,
         )
       InputMode.AddProjectLog ->
         PanelColors(
-          containerColor = MaterialTheme.colorScheme.primary,
-          contentColor = MaterialTheme.colorScheme.onPrimary,
-          accentColor = MaterialTheme.colorScheme.secondary,
-          inputFieldColor = MaterialTheme.colorScheme.primaryContainer,
+          containerColor = inputPanelColors.addProjectLog.backgroundColor,
+          contentColor = inputPanelColors.addProjectLog.textColor,
+          accentColor = inputPanelColors.addProjectLog.textColor,
+          inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
         )
     }
 
@@ -957,7 +959,7 @@ fun ModernInputPanel(
               Modifier.fillMaxWidth().padding(vertical = 12.dp).focusRequester(focusRequester),
             textStyle =
               MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = panelColors.contentColor,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
               ),
@@ -984,7 +986,7 @@ fun ModernInputPanel(
                         },
                       style =
                         MaterialTheme.typography.bodyLarge.copy(
-                          color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                          color = panelColors.contentColor.copy(alpha = 0.7f),
                           fontSize = 16.sp,
                         ),
                     )
@@ -1033,11 +1035,7 @@ fun ModernInputPanel(
               ),
           exit = fadeOut() + scaleOut(targetScale = 0.8f),
         ) {
-          val sendButtonBackgroundColor =
-            when (inputMode) {
-              InputMode.AddProjectLog -> MaterialTheme.colorScheme.onSecondary
-              else -> panelColors.accentColor
-            }
+          val sendButtonBackgroundColor = panelColors.accentColor
 
           IconButton(
             onClick = onSubmit,
@@ -1046,14 +1044,7 @@ fun ModernInputPanel(
                 .background(color = sendButtonBackgroundColor, shape = CircleShape),
             colors =
               IconButtonDefaults.iconButtonColors(
-                contentColor =
-                  when (inputMode) {
-                    InputMode.AddGoal,
-                    InputMode.AddQuickRecord -> MaterialTheme.colorScheme.onPrimary
-                    InputMode.SearchInList -> MaterialTheme.colorScheme.onPrimary
-                    InputMode.SearchGlobal -> MaterialTheme.colorScheme.onTertiary
-                    InputMode.AddProjectLog -> MaterialTheme.colorScheme.primary
-                  }
+                contentColor = panelColors.containerColor
               ),
           ) {
             Icon(
