@@ -1,38 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material базові -->
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-
-    <!-- Загальні кольори UI -->
-    <color name="colorBackground">#FFFFFF</color>
-    <color name="colorSurface">#F5F5F5</color>
-    <color name="colorPrimary">#00FFF0</color>
-    <color name="colorPrimaryVariant">#00BFAF</color>
-    <color name="colorSecondary">#FF0080</color>
-    <color name="colorOnPrimary">#000000</color>
-    <color name="colorOnSecondary">#FFFFFF</color>
-    <color name="colorOnBackground">#000000</color>
-    <color name="colorOnSurface">#000000</color>
-    <color name="colorError">#B00020</color>
-    <color name="colorOnError">#FFFFFF</color>
-
-    <!-- Cyber theme денний -->
-    <color name="cyber_background">#FFFFFF</color>
-    <color name="cyber_surface">#F5F5F5</color>
-    <color name="cyber_primary">#00FFC3</color>
-    <color name="cyber_primary_variant">#00A88F</color>
-    <color name="cyber_secondary">#FF40A0</color>
-    <color name="cyber_text_primary">#000000</color>
-    <color name="cyber_text_secondary">#505050</color>
-    <color name="cyber_icon_primary">#00BFAF</color>
-    <color name="cyber_icon_secondary">#FF0080</color>
+    <!-- Cyber theme нічний -->
+    <color name="cyber_background">#0A0A0A</color> <!-- Дуже темний фон -->
+    <color name="cyber_surface">#1A1A1A</color> <!-- Темна поверхня -->
+    <color name="cyber_primary">#00FFC3</color> <!-- Яскравий бірюзовий, залишається для акцентів -->
+    <color name="cyber_primary_variant">#00A88F</color> <!-- Темніший бірюзовий -->
+    <color name="cyber_secondary">#FF40A0</color> <!-- Яскравий рожевий, залишається для акцентів -->
+    <color name="cyber_text_primary">#E0E0E0</color> <!-- Світло-сірий для основного тексту -->
+    <color name="cyber_text_secondary">#A0A0A0</color> <!-- Сірий для другорядного тексту -->
+    <color name="cyber_icon_primary">#00FFC3</color>
+    <color name="cyber_icon_secondary">#FF40A0</color>
     <color name="cyber_button_background">#00FFC3</color>
     <color name="cyber_button_text">#000000</color>
-</resources>
 
+    <!-- Нові кольори для кастомних елементів (нічна тема) -->
+    <color name="cyber_header_text_color">#00FFC3</color> <!-- Яскравий бірюзовий для заголовків -->
+    <color name="cyber_border_color">#FF40A0</color> <!-- Яскравий рожевий для рамок -->
+
+    <!-- Кольори для режимів інпут панелі (нічна тема) -->
+    <color name="input_panel_add_goal_bg">#004D40</color>
+    <color name="input_panel_add_goal_text">#80CBC4</color>
+    <color name="input_panel_search_list_bg">#880E4F</color>
+    <color name="input_panel_search_list_text">#F48FB1</color>
+    <color name="input_panel_search_global_bg">#FF8F00</color>
+    <color name="input_panel_search_global_text">#FFECB3</color>
+    <color name="input_panel_add_quick_record_bg">#1A237E</color>
+    <color name="input_panel_add_quick_record_text">#C5CAE9</color>
+    <color name="input_panel_add_project_log_bg">#4A148C</color>
+    <color name="input_panel_add_project_log_text">#E1BEE7</color>
+</resources>

@@ -13,6 +13,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+
 // region --- Theme Definitions ---
 
 enum class ThemeName(val displayName: String) {
@@ -33,7 +36,9 @@ enum class ThemeMode {
 data class AppTheme(
     val name: ThemeName,
     val lightColors: ColorScheme,
-    val darkColors: ColorScheme
+    val darkColors: ColorScheme,
+    val inputPanelLightColors: InputPanelColors,
+    val inputPanelDarkColors: InputPanelColors
 )
 
 data class ThemeSettings(
@@ -162,18 +167,20 @@ private val SolarizedDarkColorScheme = darkColorScheme(
 
 object ThemeManager {
     val themes = listOf(
-        AppTheme(ThemeName.DEFAULT, DefaultLightColorScheme, DefaultDarkColorScheme),
-        AppTheme(ThemeName.CYBERPUNK, CyberpunkLightColorScheme, CyberpunkDarkColorScheme),
-        AppTheme(ThemeName.SCI_FI, SciFiLightColorScheme, SciFiDarkColorScheme),
-        AppTheme(ThemeName.DRACULA, DefaultLightColorScheme, DraculaColorScheme),
-        AppTheme(ThemeName.NORD, DefaultLightColorScheme, NordColorScheme),
-        AppTheme(ThemeName.SOLARIZED_DARK, DefaultLightColorScheme, SolarizedDarkColorScheme)
+        AppTheme(ThemeName.DEFAULT, DefaultLightColorScheme, DefaultDarkColorScheme, DefaultLightInputPanelColors, DefaultDarkInputPanelColors),
+        AppTheme(ThemeName.CYBERPUNK, CyberpunkLightColorScheme, CyberpunkDarkColorScheme, CyberpunkLightInputPanelColors, CyberpunkDarkInputPanelColors),
+        AppTheme(ThemeName.SCI_FI, SciFiLightColorScheme, SciFiDarkColorScheme, SciFiLightInputPanelColors, SciFiDarkInputPanelColors),
+        AppTheme(ThemeName.DRACULA, DefaultLightColorScheme, DraculaColorScheme, DefaultLightInputPanelColors, DraculaInputPanelColors),
+        AppTheme(ThemeName.NORD, DefaultLightColorScheme, NordColorScheme, DefaultLightInputPanelColors, NordInputPanelColors),
+        AppTheme(ThemeName.SOLARIZED_DARK, DefaultLightColorScheme, SolarizedDarkColorScheme, DefaultLightInputPanelColors, SolarizedDarkInputPanelColors)
     )
 
     fun getTheme(name: ThemeName): AppTheme {
         return themes.first { it.name == name }
     }
 }
+
+val LocalInputPanelColors = staticCompositionLocalOf { DefaultLightInputPanelColors }
 
 @Composable
 fun ForwardAppMobileTheme(
@@ -186,10 +193,9 @@ fun ForwardAppMobileTheme(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    val colorScheme = when (useDarkTheme) {
-        true -> ThemeManager.getTheme(themeSettings.darkThemeName).darkColors
-        false -> ThemeManager.getTheme(themeSettings.lightThemeName).lightColors
-    }
+    val appTheme = ThemeManager.getTheme(if (useDarkTheme) themeSettings.darkThemeName else themeSettings.lightThemeName)
+    val colorScheme = if (useDarkTheme) appTheme.darkColors else appTheme.lightColors
+    val inputPanelColors = if (useDarkTheme) appTheme.inputPanelDarkColors else appTheme.inputPanelLightColors
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -200,9 +206,11 @@ fun ForwardAppMobileTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalInputPanelColors provides inputPanelColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
