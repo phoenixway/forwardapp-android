@@ -950,7 +950,7 @@ fun ModernInputPanel(
           shape = RoundedCornerShape(20.dp),
           color = panelColors.inputFieldColor,
           border = BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
-          shadowElevation = 1.dp,
+          shadowElevation = 0.dp,
         ) {
           BasicTextField(
             value = inputValue,
