@@ -35,6 +35,12 @@ import kotlinx.coroutines.flow.flow
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.material3.MaterialTheme
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskList(
@@ -76,6 +82,12 @@ fun TaskList(
 
     
     Column(modifier = modifier) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars),
+            shadowElevation = 2.dp
+        ) {}
         
         val completedTasks = tasks.count { it.completed }
         val totalTasks = tasks.size
