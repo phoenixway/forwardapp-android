@@ -37,7 +37,10 @@ fun RecentListsSheet(
     onPinClick: (com.romankozak.forwardappmobile.data.database.models.RecentItem) -> Unit,
 ) {
     if (showSheet) {
-        ModalBottomSheet(onDismissRequest = onDismiss) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
             Column(Modifier.navigationBarsPadding()) {
                 Text(
                     text = "Нещодавно відкриті",
@@ -57,7 +60,7 @@ fun RecentListsSheet(
                             stickyHeader {
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                    color = MaterialTheme.colorScheme.surfaceContainer
                                 ) {
                                     Text(
                                         text = "Закріплені",
@@ -72,10 +75,10 @@ fun RecentListsSheet(
                         }
 
                         groupedItems[false]?.let { unpinnedItems ->
-                             stickyHeader {
+                            stickyHeader {
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                    color = MaterialTheme.colorScheme.surfaceContainer
                                 ) {
                                     Text(
                                         text = "Недавні",
@@ -104,17 +107,16 @@ private fun RecentItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .clickable {
+                Log.d("RecentItemClick", "onItemClick triggered for ${item.displayName}")
+                onItemClick(item)
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .clickable {
-                    Log.d("RecentItemClick", "onItemClick triggered for ${item.displayName}")
-                    onItemClick(item)
-                },
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val icon = when (item.type) {
@@ -123,18 +125,27 @@ private fun RecentItemRow(
                 com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> Icons.Outlined.List
                 com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
             }
-            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
             Spacer(Modifier.width(16.dp))
-            Text(item.displayName)
+            Text(
+                text = item.displayName,
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
         IconButton(onClick = {
             Log.d("RecentItemClick", "onPinClick triggered for ${item.displayName}")
             onPinClick(item)
-        }, modifier = Modifier.clickable {}) {
+        }) {
             Icon(
                 imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                 contentDescription = "Pin",
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
+                tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }

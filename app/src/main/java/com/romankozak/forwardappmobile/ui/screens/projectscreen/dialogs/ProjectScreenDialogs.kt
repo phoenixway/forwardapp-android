@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
+import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,53 +86,13 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     )
 
     if (uiState.showRecentProjectsSheet) {
-        ModalBottomSheet(onDismissRequest = { viewModel.inputHandler.onDismissRecentLists() }) {
-            Column(Modifier.navigationBarsPadding()) {
-                Text(
-                    text = "Нещодавно відкриті",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
-                if (recentItems.isEmpty()) {
-                    Text(
-                        text = "Історія порожня.",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    val pinnedItems = recentItems.filter { it.isPinned }
-                    val regularItems = recentItems.filter { !it.isPinned }
-
-                    LazyColumn {
-                        if (pinnedItems.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = "Закріплені",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
-                            }
-                            items(pinnedItems, key = { "pinned-${it.id}" }) { item ->
-                                RecentItemEntry(viewModel = viewModel, item = item)
-                            }
-                        }
-
-                        if (regularItems.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = "Недавні",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
-                            }
-                            items(regularItems, key = { "recent-${it.id}" }) { item ->
-                                RecentItemEntry(viewModel = viewModel, item = item)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        RecentListsSheet(
+            showSheet = uiState.showRecentProjectsSheet,
+            recentItems = recentItems,
+            onDismiss = { viewModel.inputHandler.onDismissRecentLists() },
+            onItemClick = { viewModel.onRecentItemClick(it) },
+            onPinClick = { viewModel.onPinRecentItem(it) }
+        )
     }
 
     if (uiState.showImportFromMarkdownDialog) {
@@ -161,42 +122,4 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             currentReminderTime = record.reminderTime,
         )
     }
-}
-
-@Composable
-private fun RecentItemEntry(viewModel: BacklogViewModel, item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
-    var menuExpanded by remember { mutableStateOf(false) }
-
-    ListItem(
-        headlineContent = { Text(item.displayName) },
-        leadingContent = {
-            val icon = when (item.type) {
-                RecentItemType.PROJECT -> Icons.Outlined.Folder
-                RecentItemType.NOTE -> Icons.Outlined.Note
-                RecentItemType.CUSTOM_LIST -> Icons.Outlined.List
-                RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
-            }
-            Icon(icon, contentDescription = null)
-        },
-        trailingContent = {
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(if (item.isPinned) "Відкріпити" else "Закріпити") },
-                        onClick = {
-                            viewModel.onPinRecentItem(item)
-                            menuExpanded = false
-                        }
-                    )
-                }
-            }
-        },
-        modifier = Modifier.clickable { viewModel.inputHandler.onRecentListSelected(item) },
-    )
 }
