@@ -197,14 +197,7 @@ fun ForwardAppMobileTheme(
     val colorScheme = if (useDarkTheme) appTheme.darkColors else appTheme.lightColors
     val inputPanelColors = if (useDarkTheme) appTheme.inputPanelDarkColors else appTheme.inputPanelLightColors
 
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.surfaceContainer.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !useDarkTheme
-        }
-    }
+
 
     CompositionLocalProvider(LocalInputPanelColors provides inputPanelColors) {
         MaterialTheme(
