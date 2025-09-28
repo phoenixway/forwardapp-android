@@ -50,6 +50,7 @@ class MainScreenViewModel
 @Inject
 constructor(
   private val projectRepository: ProjectRepository,
+  private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
   private val settingsRepo: SettingsRepository,
   private val activityRepository: ActivityRepository,
   private val alarmScheduler: AlarmScheduler,
@@ -570,6 +571,14 @@ constructor(
       is MainScreenEvent.ContextSelected -> onContextSelected(event.name)
 
       is MainScreenEvent.EditRequest -> onEditRequest(event.project)
+      is MainScreenEvent.AddToDayPlanRequest -> {
+        viewModelScope.launch {
+          val today = System.currentTimeMillis()
+          val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
+          dayManagementRepository.addProjectToDayPlan(dayPlan.id, event.project.id)
+          _uiEventChannel.send(ProjectUiEvent.ShowToast("Проект додано до плану дня"))
+        }
+      }
       is MainScreenEvent.GoToSettings -> onShowSettingsScreen()
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
