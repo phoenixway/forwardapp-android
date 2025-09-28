@@ -22,6 +22,21 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.ui.common.rememberParsedText
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.google.accompanist.flowlayout.FlowRow
+import kotlinx.coroutines.delay
+import androidx.compose.animation.core.Spring
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -72,15 +87,17 @@ fun SubprojectItemRow(
     childProjects: List<Project> = emptyList(),
     onChildProjectClick: (Project) -> Unit = {},
     currentTimeMillis: Long,
+    contextMarkerToEmojiMap: Map<String, String>,
+    emojiToHide: String?,
 ) {
     val subproject = subprojectContent.project
+    val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
 
     Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         EnhancedCustomCheckbox(
@@ -91,26 +108,24 @@ fun SubprojectItemRow(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .pointerInput(onClick, onLongClick) {
-                        detectTapGestures(
-                            onLongPress = { onLongClick() },
-                            onTap = { onClick() },
-                        )
-                    },
+            modifier = Modifier
+                .weight(1f)
+                .pointerInput(onClick, onLongClick) {
+                    detectTapGestures(
+                        onLongPress = { onLongClick() },
+                        onTap = { onClick() },
+                    )
+                },
         ) {
-            val textColor =
-                if (subproject.isCompleted) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
+            val textColor = if (subproject.isCompleted) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
             val textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null
 
             Text(
-                text = subproject.name,
+                text = parsedData.mainText,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -118,18 +133,17 @@ fun SubprojectItemRow(
                 textDecoration = textDecoration,
             )
 
-            val hasExtraContent =
-                !subproject.tags.isNullOrEmpty() ||
-                    (subproject.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
-                    (subproject.reminderTime != null)
+            val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
+                (subproject.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                (subproject.reminderTime != null) ||
+                (parsedData.icons.isNotEmpty())
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (hasExtraContent) 6.dp else 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = if (hasExtraContent) 6.dp else 4.dp),
             ) {
                 EnhancedSublistIconBadge(
                     modifier = Modifier.align(Alignment.CenterVertically),
@@ -146,6 +160,29 @@ fun SubprojectItemRow(
                     scoringStatus = subproject.scoringStatus,
                     displayScore = subproject.displayScore,
                 )
+
+                parsedData.icons
+                    .filterNot { icon -> icon == emojiToHide }
+                    .forEachIndexed { index, icon ->
+                        key(icon) {
+                            var delayedVisible by remember { mutableStateOf(false) }
+                            LaunchedEffect(Unit) {
+                                delay(index * 50L)
+                                delayedVisible = true
+                            }
+                            AnimatedVisibility(
+                                visible = delayedVisible,
+                                enter = scaleIn(
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                ) + fadeIn(),
+                            ) {
+                                AnimatedContextEmoji(
+                                    emoji = icon,
+                                    modifier = Modifier.align(Alignment.CenterVertically),
+                                )
+                            }
+                        }
+                    }
 
                 if (!subproject.tags.isNullOrEmpty()) {
                     subproject.tags.filter { it.isNotBlank() }.forEach { tag ->
@@ -185,12 +222,11 @@ fun SubprojectItemRow(
                     crossAxisSpacing = 4.dp,
                 ) {
                     childProjects.forEach { child ->
-                        val link =
-                            RelatedLink(
-                                type = LinkType.PROJECT,
-                                target = child.id,
-                                displayName = child.name,
-                            )
+                        val link = RelatedLink(
+                            type = LinkType.PROJECT,
+                            target = child.id,
+                            displayName = child.name,
+                        )
                         RelatedLinkChip(
                             link = link,
                             onClick = { onChildProjectClick(child) },

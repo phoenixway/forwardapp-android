@@ -140,6 +140,8 @@ fun BacklogView(
                                 currentTimeMillis = currentTime,
                                 childProjects = children,
                                 onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
+                                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                emojiToHide = currentListContextEmojiToHide,
                             )
                         }
                         else -> {

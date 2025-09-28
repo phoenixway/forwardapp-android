@@ -37,6 +37,7 @@ import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -159,58 +160,6 @@ internal fun EnhancedReminderBadge(
             )
         }
     }
-}
-
-private data class ParsedGoalData(
-    val icons: List<String>,
-    val mainText: String,
-)
-
-private fun parseTextAndExtractIcons(
-    text: String,
-    contextMarkerToEmojiMap: Map<String, String>,
-): ParsedGoalData {
-    var currentText = text
-    val foundIcons = mutableSetOf<String>()
-
-    val allMarkersToIcons = mutableMapOf<String, String>()
-
-    val hardcodedIconsData =
-        mapOf(
-            "🔥" to listOf("@critical", "! ", "!"),
-            "⭐" to listOf("@day", "+"),
-            "📌" to listOf("@week", "++"),
-            "🗓️" to listOf("@month"),
-            "🎯" to listOf("+++ "),
-            "🔭" to listOf("~ ", "~"),
-            "✨" to listOf("@str"),
-            "🌫️" to listOf("@unclear"),
-        )
-    hardcodedIconsData.forEach { (icon, markers) ->
-        markers.forEach { marker ->
-            allMarkersToIcons[marker] = icon
-        }
-    }
-
-    allMarkersToIcons.putAll(contextMarkerToEmojiMap)
-
-    val sortedMarkers = allMarkersToIcons.keys.sortedByDescending { it.length }
-
-    sortedMarkers.forEach { marker ->
-        val icon = allMarkersToIcons[marker] ?: return@forEach
-        val regexOptions = if (marker.startsWith("@")) setOf(RegexOption.IGNORE_CASE) else emptySet()
-        val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))", regexOptions)
-
-        if (regex.containsMatchIn(currentText)) {
-            foundIcons.add(icon)
-            currentText = currentText.replace(regex, " ")
-        }
-    }
-
-    currentText = currentText.replace(Regex("\\[icon::\\s*([^]]+?)\\s*]"), "")
-    val cleanedText = currentText.replace(Regex("\\s+"), " ").trim()
-
-    return ParsedGoalData(icons = foundIcons.toList(), mainText = cleanedText)
 }
 
 @Composable
@@ -448,10 +397,7 @@ fun GoalItem(
     contextMarkerToEmojiMap: Map<String, String>,
     currentTimeMillis: Long,
 ) {
-    val parsedData =
-        remember(goal.text, contextMarkerToEmojiMap) {
-            parseTextAndExtractIcons(goal.text, contextMarkerToEmojiMap)
-        }
+    val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
 
     Surface(
         modifier =
@@ -613,7 +559,7 @@ fun GoalItem(
 ) {
     val goal = goalContent.goal
 
-    val parsedData = remember(goal.text) { parseTextAndExtractIcons(goal.text, emptyMap()) }
+    val parsedData = rememberParsedText(goal.text, emptyMap())
 
     Surface(
         modifier =
