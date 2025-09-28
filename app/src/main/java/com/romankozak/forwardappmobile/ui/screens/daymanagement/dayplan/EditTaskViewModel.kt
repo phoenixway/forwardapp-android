@@ -23,6 +23,7 @@ data class EditTaskUiState(
     val description: String = "",
     val priority: TaskPriority = TaskPriority.NONE,
     val duration: Long? = null,
+    val points: Int = 0,
     val isRecurring: Boolean = false,
     val recurrenceRule: RecurrenceRule? = null,
     val recurrenceFrequency: RecurrenceFrequency = RecurrenceFrequency.DAILY,
@@ -58,6 +59,7 @@ class EditTaskViewModel @Inject constructor(
                     description = task?.description ?: "",
                     priority = task?.priority ?: TaskPriority.NONE,
                     duration = task?.estimatedDurationMinutes,
+                    points = task?.points ?: 0,
                     isRecurring = task?.recurringTaskId != null,
                     recurrenceRule = recurringTask?.recurrenceRule,
                     recurrenceFrequency = recurringTask?.recurrenceRule?.frequency ?: RecurrenceFrequency.DAILY,
@@ -82,6 +84,10 @@ class EditTaskViewModel @Inject constructor(
 
     fun onDurationChange(duration: Long?) {
         _uiState.value = _uiState.value.copy(duration = duration)
+    }
+
+    fun onPointsChange(points: Int) {
+        _uiState.value = _uiState.value.copy(points = points)
     }
 
     fun onRecurringChange(isRecurring: Boolean) {
@@ -135,7 +141,8 @@ class EditTaskViewModel @Inject constructor(
                         title = state.title,
                         description = state.description,
                         priority = state.priority,
-                        duration = state.duration
+                        duration = state.duration,
+                        points = state.points
                     )
                 } else {
                     // Non-recurring -> Recurring: Create new recurring task and link it
@@ -160,7 +167,8 @@ class EditTaskViewModel @Inject constructor(
                         title = state.title,
                         description = state.description,
                         priority = state.priority,
-                        duration = state.duration
+                        duration = state.duration,
+                        points = state.points
                     )
                 } else {
                     // Non-recurring -> Non-recurring: Just update
@@ -169,7 +177,8 @@ class EditTaskViewModel @Inject constructor(
                         title = state.title,
                         description = state.description,
                         priority = state.priority,
-                        duration = state.duration
+                        duration = state.duration,
+                        points = state.points
                     )
                 }
             }

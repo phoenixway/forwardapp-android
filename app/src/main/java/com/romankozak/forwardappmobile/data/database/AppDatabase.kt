@@ -34,7 +34,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         NoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 43,
+    version = 44,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)

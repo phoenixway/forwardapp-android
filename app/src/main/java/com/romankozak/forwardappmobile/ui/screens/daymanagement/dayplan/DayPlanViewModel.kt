@@ -140,7 +140,8 @@ constructor(
         description: String,
         duration: Long?,
         priority: TaskPriority,
-        recurrenceRule: RecurrenceRule?
+        recurrenceRule: RecurrenceRule?,
+        points: Int
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -176,6 +177,7 @@ constructor(
                             estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
                             priority = priority,
                             order = maxOrder + 1,
+                            points = points,
                         ),
                     )
                 }
@@ -602,6 +604,7 @@ constructor(
         description: String,
         duration: Long?,
         priority: TaskPriority,
+        points: Int
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             val task = selectedTask.value ?: return@launch
@@ -612,10 +615,11 @@ constructor(
                     newTitle = title,
                     newDescription = description,
                     newPriority = priority,
-                    newDuration = duration
+                    newDuration = duration,
+                    points = task.points
                 )
             } else {
-                dayManagementRepository.updateTask(taskId, title, description, priority, duration)
+                dayManagementRepository.updateTask(taskId, title, description, priority, duration, points)
             }
             dismissEditTaskDialog()
             clearSelectedTask()

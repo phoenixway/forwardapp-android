@@ -22,6 +22,7 @@ data class NewTaskParameters(
     val estimatedDurationMinutes: Long? = null,
     val order: Long? = null,
     val taskType: ListItemType? = null,
+    val points: Int = 0,
 )
 
 
@@ -125,6 +126,7 @@ data class DayTask(
     val updatedAt: Long? = null,
     val completedAt: Long? = null,
     val nextOccurrenceTime: Long? = null,
+    @ColumnInfo(defaultValue = "0") val points: Int = 0,
 )
 
 

@@ -21,12 +21,13 @@ import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.componen
 @Composable
 fun AddTaskDialog(
     onDismissRequest: () -> Unit,
-    onConfirm: (title: String, description: String, duration: Long?, priority: TaskPriority, recurrenceRule: RecurrenceRule?) -> Unit,
+    onConfirm: (title: String, description: String, duration: Long?, priority: TaskPriority, recurrenceRule: RecurrenceRule?, points: Int) -> Unit,
     initialPriority: TaskPriority = TaskPriority.MEDIUM,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var durationText by remember { mutableStateOf("") }
+    var pointsText by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(initialPriority) }
     var recurrenceRule by remember { mutableStateOf<RecurrenceRule?>(null) }
     var showRecurrencePicker by remember { mutableStateOf(false) }
@@ -93,6 +94,25 @@ fun AddTaskDialog(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                        )
+                    },
+                )
+
+                OutlinedTextField(
+                    value = pointsText,
+                    onValueChange = { newValue ->
+                        if (newValue.all { it.isDigit() } || newValue.isEmpty()) {
+                            pointsText = newValue
+                        }
+                    },
+                    label = { Text("Бали") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Star,
                             contentDescription = null,
                         )
                     },
@@ -177,7 +197,8 @@ fun AddTaskDialog(
             FilledTonalButton(
                 onClick = {
                     val duration = durationText.toLongOrNull()
-                    onConfirm(title, description, duration, priority, recurrenceRule)
+                    val points = pointsText.toIntOrNull() ?: 0
+                    onConfirm(title, description, duration, priority, recurrenceRule, points)
                 },
                 enabled = title.isNotBlank(),
                 modifier = Modifier.padding(end = 8.dp),
