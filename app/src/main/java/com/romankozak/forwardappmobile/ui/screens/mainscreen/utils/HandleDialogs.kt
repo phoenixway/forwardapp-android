@@ -40,6 +40,7 @@ fun HandleDialogs(
                 onAddSubprojectRequest = { onEvent(MainScreenEvent.AddSubprojectRequest(it)) },
                 onDeleteRequest = { onEvent(MainScreenEvent.DeleteRequest(it)) },
                 onEditRequest = { onEvent(MainScreenEvent.EditRequest(it)) },
+                onAddToDayPlanRequest = { onEvent(MainScreenEvent.AddToDayPlanRequest(it)) },
             )
         }
         is DialogState.ConfirmDelete -> {
