@@ -37,7 +37,7 @@ fun DayPlanBottomNav(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
-            ModernBottomNavButton(text = "Home", icon = Icons.Default.Home, onClick = onHomeClick)
+            ModernBottomNavButton(text = "Projects", icon = Icons.Default.Home, onClick = onHomeClick)
             ModernBottomNavButton(text = "Analytics", icon = Icons.Outlined.Analytics, onClick = onAnalyticsClick)
             ModernBottomNavButton(text = "Dashboard", icon = Icons.Outlined.Dashboard, onClick = onDashboardClick)
             ModernBottomNavButton(text = "Add", icon = Icons.Default.Add, onClick = onAddTaskClick)

@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.*
@@ -30,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -129,6 +133,7 @@ fun CompactDayPlanHeader(
   isNextDayNavigationEnabled: Boolean,
   onSettingsClick: () -> Unit,
   modifier: Modifier = Modifier,
+  containerColor: Color,
 ) {
   val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
   val formattedDate =
@@ -138,11 +143,13 @@ fun CompactDayPlanHeader(
         Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).format(formatter)
       } ?: "План дня"
     }
-  Card(
-    modifier = modifier.fillMaxWidth().offset(y = (-10).dp),
-    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-  ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)) {
+  Surface(modifier = modifier.fillMaxWidth(), shadowElevation = 2.dp, color = containerColor) {
+    Column(
+      modifier =
+        Modifier.fillMaxWidth()
+          // REMOVED: .statusBarsPadding() - this was causing the big vertical space
+          .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp) // Added top padding instead
+    ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -181,9 +188,8 @@ fun CompactDayPlanHeader(
           Icon(imageVector = Icons.Filled.Settings, contentDescription = "Налаштування")
         }
       }
-      Spacer(modifier = Modifier.height(8.dp))
       Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
@@ -264,6 +270,30 @@ fun DayPlanScreen(
   addTaskTrigger: Int,
 ) {
   val TAG = "NAV_DEBUG" // Тег для логування
+
+  val systemUiController = rememberSystemUiController()
+  val isLight = !isSystemInDarkTheme()
+
+  val headerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+
+  // ВИДАЛЯЄМО ЦЕЙ БЛОК:
+  /*
+  LaunchedEffect(headerColor, isLight) {
+    systemUiController.setStatusBarColor(
+      color = headerColor,
+      darkIcons = headerColor.luminance() > 0.5f,
+    )
+  }
+  */
+
+  // АКТИВУЄМО ЦЕЙ БЛОК, ЩОБ ЗРОБИТИ СТАТУС-БАР ПРОЗОРИМ
+  LaunchedEffect(isLight) {
+    systemUiController.setSystemBarsColor(
+      color = Color.Transparent,
+      darkIcons = isLight,
+      isNavigationBarContrastEnforced = false,
+    )
+  }
 
   val uiState by viewModel.uiState.collectAsState()
   val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
@@ -364,6 +394,7 @@ fun DayPlanScreen(
               onSublistClick = onNavigateToProject,
               onSettingsClick = onNavigateToSettings,
               modifier = Modifier.fillMaxSize(),
+              headerContainerColor = headerColor,
             )
           }
         }
@@ -414,6 +445,7 @@ fun DayPlanScreen(
       showAddToTodayOption = !uiState.isToday,
       onAddToToday = { viewModel.copyTaskToTodaysPlan(task) },
       onShowInBacklog = { onNavigateToBacklog(task) },
+      onMoveToTop = { viewModel.moveTaskToTop(task) },
     )
   }
 
@@ -602,6 +634,7 @@ fun TaskOptionsBottomSheet(
   showAddToTodayOption: Boolean,
   onAddToToday: () -> Unit,
   onShowInBacklog: (DayTask) -> Unit,
+  onMoveToTop: () -> Unit,
 ) {
   ModalBottomSheet(onDismissRequest = onDismiss) {
     Column {
@@ -609,6 +642,11 @@ fun TaskOptionsBottomSheet(
         headlineContent = { Text("Редагувати") },
         leadingContent = { Icon(Icons.Outlined.Edit, contentDescription = null) },
         modifier = Modifier.clickable { onEdit() },
+      )
+      ListItem(
+        headlineContent = { Text("Підняти на вершину списку") },
+        leadingContent = { Icon(Icons.Outlined.VerticalAlignTop, contentDescription = null) },
+        modifier = Modifier.clickable { onMoveToTop() },
       )
       ListItem(
         headlineContent = { Text("Встановити нагадування") },
@@ -660,6 +698,116 @@ fun TaskOptionsBottomSheet(
           },
       )
       Spacer(modifier = Modifier.height(16.dp))
+    }
+  }
+}
+
+@Composable
+fun CompactDayPlanHeaderExtended(
+  dayPlan: DayPlan?,
+  completedTasks: Int,
+  totalTasks: Int,
+  onNavigateToPreviousDay: () -> Unit,
+  onNavigateToNextDay: () -> Unit,
+  isNextDayNavigationEnabled: Boolean,
+  onSettingsClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  containerColor: Color,
+) {
+  val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
+  val formattedDate =
+    remember(dayPlan?.date) {
+      dayPlan?.date?.let { dateMillis ->
+        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("uk"))
+        Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).format(formatter)
+      } ?: "План дня"
+    }
+  Surface(modifier = modifier.fillMaxWidth(), shadowElevation = 2.dp, color = containerColor) {
+    Column(
+      modifier =
+        Modifier.fillMaxWidth()
+          // REMOVED: .statusBarsPadding() - this was causing the big vertical space
+          .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp) // Added top padding instead
+    ) {
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+      ) {
+        IconButton(onClick = onNavigateToPreviousDay) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Попередній день",
+          )
+        }
+        Text(
+          text =
+            formattedDate.replaceFirstChar {
+              if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
+            },
+          style = MaterialTheme.typography.titleMedium,
+          color = MaterialTheme.colorScheme.onSurface,
+          fontWeight = FontWeight.Bold,
+          textAlign = TextAlign.Center,
+          modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = "Наступний день",
+            tint =
+              if (isNextDayNavigationEnabled) {
+                MaterialTheme.colorScheme.onSurface
+              } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+              },
+          )
+        }
+        IconButton(onClick = onSettingsClick) {
+          Icon(imageVector = Icons.Filled.Settings, contentDescription = "Налаштування")
+        }
+      }
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Text(
+          text = "$completedTasks з $totalTasks виконано",
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (totalTasks > 0) {
+          Text(
+            text = "${(progress * 100).toInt()}%",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+          )
+        }
+      }
+      if (completedTasks == totalTasks && totalTasks > 0) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.Center,
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Icon(
+            Icons.Default.CheckCircle,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.tertiary,
+          )
+          Spacer(modifier = Modifier.width(6.dp))
+          Text(
+            text = "Вітаємо! Всі завдання виконані!",
+            color = MaterialTheme.colorScheme.tertiary,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodySmall,
+          )
+        }
+      }
     }
   }
 }
