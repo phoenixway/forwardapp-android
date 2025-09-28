@@ -388,9 +388,6 @@ private fun MainScreenTopAppBar(
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
                     }
                 }
-                IconButton(onClick = onShowHistory) {
-                    Icon(Icons.Outlined.History, "История")
-                }
 
                 AnimatedVisibility(visible = !isFocusMode) {
                     
