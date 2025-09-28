@@ -61,6 +61,9 @@ interface DayPlanDao {
         updatedAt: Long,
     )
 
+    @Query("SELECT id FROM day_plans WHERE date >= :date")
+    suspend fun getFutureDayPlanIds(date: Long): List<String>
+
     @Query("SELECT * FROM day_plans WHERE id = :planId LIMIT 1")
     fun getPlanByIdStream(planId: String): Flow<DayPlan?>
 }

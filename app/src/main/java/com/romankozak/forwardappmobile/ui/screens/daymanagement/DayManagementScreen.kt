@@ -142,6 +142,7 @@ fun DayManagementScreen(
                   },
                   onNavigateToSettings = { mainNavController.navigate("settings_screen") },
                   addTaskTrigger = addTaskTrigger,
+                  navController = mainNavController,
                 )
               DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = planId)
               DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
