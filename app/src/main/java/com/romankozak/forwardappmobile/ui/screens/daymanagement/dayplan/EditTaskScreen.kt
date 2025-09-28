@@ -77,6 +77,11 @@ fun EditTaskScreen(
                             contentDescription = "Back"
                         )
                     }
+                },
+                actions = {
+                    Button(onClick = { viewModel.saveTask() }) {
+                        Text("Save")
+                    }
                 }
             )
         },
@@ -106,6 +111,19 @@ fun EditTaskScreen(
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 5
                 )
+            }
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        OutlinedTextField(
+                            value = uiState.points.toString(),
+                            onValueChange = { viewModel.onPointsChange(it.toIntOrNull() ?: 0) },
+                            label = { Text("Points") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                }
             }
 
             item {
@@ -214,15 +232,7 @@ fun EditTaskScreen(
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { viewModel.saveTask() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Save")
-                }
-            }
+
         }
     }
 }

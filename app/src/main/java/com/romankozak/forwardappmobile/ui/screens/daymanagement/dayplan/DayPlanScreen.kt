@@ -131,8 +131,7 @@ private fun EmptyTasksState(modifier: Modifier = Modifier) {
 @Composable
 fun CompactDayPlanHeader(
   dayPlan: DayPlan?,
-  completedTasks: Int,
-  totalTasks: Int,
+  totalPoints: Int,
   onNavigateToPreviousDay: () -> Unit,
   onNavigateToNextDay: () -> Unit,
   isNextDayNavigationEnabled: Boolean,
@@ -140,7 +139,6 @@ fun CompactDayPlanHeader(
   modifier: Modifier = Modifier,
   containerColor: Color,
 ) {
-  val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
   val formattedDate =
     remember(dayPlan?.date) {
       dayPlan?.date?.let { dateMillis ->
@@ -195,44 +193,15 @@ fun CompactDayPlanHeader(
       }
       Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          text = "$completedTasks з $totalTasks виконано",
+          text = "Всього балів: $totalPoints",
           style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.primary,
         )
-        if (totalTasks > 0) {
-          Text(
-            text = "${(progress * 100).toInt()}%",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-          )
-        }
-      }
-      if (completedTasks == totalTasks && totalTasks > 0) {
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.Center,
-          modifier = Modifier.fillMaxWidth(),
-        ) {
-          Icon(
-            Icons.Default.CheckCircle,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.tertiary,
-          )
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(
-            text = "Вітаємо! Всі завдання виконані!",
-            color = MaterialTheme.colorScheme.tertiary,
-            fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.bodySmall,
-          )
-        }
       }
     }
   }
@@ -404,9 +373,11 @@ fun DayPlanScreen(
           }
           else -> {
             val tasks = uiState.tasks
+            val totalPoints = tasks.filter { it.completed }.sumOf { it.points }
             TaskList(
               tasks = tasks,
               dayPlan = uiState.dayPlan,
+              totalPoints = totalPoints,
               onToggleTask = { taskId ->
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.toggleTaskCompletion(taskId)
@@ -457,8 +428,8 @@ fun DayPlanScreen(
   if (isAddTaskDialogOpen) {
     AddTaskDialog(
       onDismissRequest = viewModel::dismissAddTaskDialog,
-      onConfirm = { title, description, duration, priority, recurrenceRule ->
-        viewModel.addTask(dayPlanId, title, description, duration, priority, recurrenceRule)
+      onConfirm = { title, description, duration, priority, recurrenceRule, points ->
+        viewModel.addTask(dayPlanId, title, description, duration, priority, recurrenceRule, points)
       },
       initialPriority = TaskPriority.MEDIUM,
     )
@@ -727,8 +698,7 @@ fun TaskOptionsBottomSheet(
 @Composable
 fun CompactDayPlanHeaderExtended(
   dayPlan: DayPlan?,
-  completedTasks: Int,
-  totalTasks: Int,
+  totalPoints: Int,
   onNavigateToPreviousDay: () -> Unit,
   onNavigateToNextDay: () -> Unit,
   isNextDayNavigationEnabled: Boolean,
@@ -736,7 +706,6 @@ fun CompactDayPlanHeaderExtended(
   modifier: Modifier = Modifier,
   containerColor: Color,
 ) {
-  val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
   val formattedDate =
     remember(dayPlan?.date) {
       dayPlan?.date?.let { dateMillis ->
@@ -791,44 +760,15 @@ fun CompactDayPlanHeaderExtended(
       }
       Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          text = "$completedTasks з $totalTasks виконано",
+          text = "Всього балів: $totalPoints",
           style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.primary,
         )
-        if (totalTasks > 0) {
-          Text(
-            text = "${(progress * 100).toInt()}%",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-          )
-        }
-      }
-      if (completedTasks == totalTasks && totalTasks > 0) {
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.Center,
-          modifier = Modifier.fillMaxWidth(),
-        ) {
-          Icon(
-            Icons.Default.CheckCircle,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.tertiary,
-          )
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(
-            text = "Вітаємо! Всі завдання виконані!",
-            color = MaterialTheme.colorScheme.tertiary,
-            fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.bodySmall,
-          )
-        }
       }
     }
   }

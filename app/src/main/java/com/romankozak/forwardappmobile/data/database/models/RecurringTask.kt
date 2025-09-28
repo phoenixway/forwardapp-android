@@ -15,6 +15,7 @@ data class RecurringTask(
     val goalId: String? = null,
     val duration: Int?,
     val priority: TaskPriority,
+    val points: Int = 0,
 
     @Embedded
     val recurrenceRule: RecurrenceRule,

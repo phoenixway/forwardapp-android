@@ -152,6 +152,7 @@ class DayManagementRepository
                     estimatedDurationMinutes = params.estimatedDurationMinutes,
                     order = order,
                     taskType = params.taskType ?: ListItemType.GOAL,
+                    points = params.points,
                 )
             dayTaskDao.insert(task)
             task
@@ -324,6 +325,7 @@ class DayManagementRepository
             description: String?,
             priority: TaskPriority,
             duration: Long?,
+            points: Int,
         ) = withContext(ioDispatcher) {
             val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
             val updatedTask =
@@ -332,6 +334,7 @@ class DayManagementRepository
                     description = description,
                     priority = priority,
                     estimatedDurationMinutes = duration,
+                    points = points,
                     updatedAt = System.currentTimeMillis(),
                 )
             dayTaskDao.update(updatedTask)
@@ -361,7 +364,8 @@ class DayManagementRepository
             newTitle: String,
             newDescription: String?,
             newPriority: TaskPriority,
-            newDuration: Long?
+            newDuration: Long?,
+            points: Int
         ) {
             withContext(ioDispatcher) {
                 val recurringTaskId = originalTask.recurringTaskId ?: return@withContext
@@ -383,7 +387,8 @@ class DayManagementRepository
                     priority = newPriority,
                     duration = newDuration?.toInt(),
                     startDate = dayPlan.date,
-                    endDate = null
+                    endDate = null,
+                    points = points
                 )
                 recurringTaskDao.insert(newRecurringTask)
 

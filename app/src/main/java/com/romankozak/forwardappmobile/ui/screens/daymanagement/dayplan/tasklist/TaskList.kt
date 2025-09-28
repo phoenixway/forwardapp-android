@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 fun TaskList(
   tasks: List<DayTask>,
   dayPlan: DayPlan?,
+  totalPoints: Int,
   onToggleTask: (String) -> Unit,
   onTaskLongPress: (DayTask) -> Unit,
   onTasksReordered: (List<DayTask>) -> Unit,
@@ -94,15 +95,10 @@ fun TaskList(
           )
       }
   ) {
-    val completedTasks = tasks.count { it.completed }
-    val totalTasks = tasks.size
-
-    // REPLACE THIS CALL:
     CompactDayPlanHeaderExtended( // Changed from CompactDayPlanHeader to
       // CompactDayPlanHeaderExtended
       dayPlan = dayPlan,
-      completedTasks = completedTasks,
-      totalTasks = totalTasks,
+      totalPoints = totalPoints,
       onNavigateToPreviousDay = onNavigateToPreviousDay,
       onNavigateToNextDay = onNavigateToNextDay,
       isNextDayNavigationEnabled = isNextDayNavigationEnabled,
