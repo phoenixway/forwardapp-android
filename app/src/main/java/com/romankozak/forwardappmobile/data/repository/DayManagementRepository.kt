@@ -239,6 +239,30 @@ class DayManagementRepository
                 addTaskToDayPlan(newTaskParams)
             }
 
+        suspend fun moveTaskToTomorrow(taskToMove: DayTask) = withContext(ioDispatcher) {
+            val currentPlan = dayPlanDao.getPlanById(taskToMove.dayPlanId) ?: return@withContext
+
+            val calendar = Calendar.getInstance().apply {
+                timeInMillis = currentPlan.date
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+            val tomorrowTimestamp = getDayStart(calendar.timeInMillis)
+            val tomorrowsPlan = createOrUpdateDayPlan(tomorrowTimestamp)
+
+            val maxOrder = dayTaskDao.getMaxOrderForDayPlan(tomorrowsPlan.id) ?: 0L
+
+            val updatedTask = taskToMove.copy(
+                dayPlanId = tomorrowsPlan.id,
+                order = maxOrder + 1, // Set order to be the last in the new plan
+                updatedAt = System.currentTimeMillis()
+            )
+            dayTaskDao.update(updatedTask)
+
+            // Recalculate metrics for both days
+            calculateAndSaveDailyMetrics(currentPlan.id)
+            calculateAndSaveDailyMetrics(tomorrowsPlan.id)
+        }
+
         fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>> =
             dayTaskDao.getTasksForDay(dayPlanId)
                 .map { tasks ->

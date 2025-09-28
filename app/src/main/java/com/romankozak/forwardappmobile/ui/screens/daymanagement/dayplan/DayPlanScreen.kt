@@ -478,6 +478,7 @@ fun DayPlanScreen(
       onAddToToday = { viewModel.copyTaskToTodaysPlan(task) },
       onShowInBacklog = { onNavigateToBacklog(task) },
       onMoveToTop = { viewModel.moveTaskToTop(task) },
+      onMoveToTomorrow = { viewModel.moveTaskToTomorrow(task) },
     )
   }
 
@@ -647,6 +648,7 @@ fun TaskOptionsBottomSheet(
   onAddToToday: () -> Unit,
   onShowInBacklog: (DayTask) -> Unit,
   onMoveToTop: () -> Unit,
+  onMoveToTomorrow: () -> Unit,
 ) {
   ModalBottomSheet(onDismissRequest = onDismiss) {
     Column {
@@ -659,6 +661,14 @@ fun TaskOptionsBottomSheet(
         headlineContent = { Text("Підняти на вершину списку") },
         leadingContent = { Icon(Icons.Outlined.VerticalAlignTop, contentDescription = null) },
         modifier = Modifier.clickable { onMoveToTop() },
+      )
+      ListItem(
+        headlineContent = { Text("Перенести на завтра") },
+        leadingContent = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
+        modifier = Modifier.clickable {
+            onMoveToTomorrow()
+            onDismiss()
+        },
       )
       ListItem(
         headlineContent = { Text("Встановити нагадування") },
