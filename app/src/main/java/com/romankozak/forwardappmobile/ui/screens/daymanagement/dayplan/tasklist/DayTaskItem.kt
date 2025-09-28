@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
+
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.Topic
@@ -58,7 +59,7 @@ private fun SublistIconBadge(modifier: Modifier = Modifier) {
 private fun ProjectLinkBadge(modifier: Modifier = Modifier) {
     Icon(
         imageVector = Icons.Default.Topic,
-        contentDescription = "Прив'язано до проєкту",
+        contentDescription = "Підпроект в беклозі",
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.size(18.dp),
     )
@@ -122,10 +123,10 @@ fun DayTaskAsSublistItem(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     if (task.projectId != null) {
                         ProjectLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     }
+                    SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     if (task.goalId != null) {
                         GoalLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
                     }
@@ -270,7 +271,7 @@ private fun PriorityBadge(priority: TaskPriority) {
 private fun GoalLinkBadge(modifier: Modifier = Modifier) {
     Icon(
         imageVector = Icons.Default.TrackChanges,
-        contentDescription = "Прив'язано до цілі",
+        contentDescription = "Ціль в беклозі",
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.size(18.dp),
     )
