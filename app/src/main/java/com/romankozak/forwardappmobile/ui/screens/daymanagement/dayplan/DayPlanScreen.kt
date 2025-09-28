@@ -187,17 +187,14 @@ fun CompactDayPlanHeader(
               },
           )
         }
-        IconButton(onClick = onSettingsClick) {
-          Icon(imageVector = Icons.Filled.Settings, contentDescription = "Налаштування")
-        }
       }
       Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          text = "Всього балів: $totalPoints",
+          text = "Досягнуто, в балах: $totalPoints",
           style = MaterialTheme.typography.bodyMedium,
           fontWeight = FontWeight.SemiBold,
           color = MaterialTheme.colorScheme.primary,
@@ -754,17 +751,14 @@ fun CompactDayPlanHeaderExtended(
               },
           )
         }
-        IconButton(onClick = onSettingsClick) {
-          Icon(imageVector = Icons.Filled.Settings, contentDescription = "Налаштування")
-        }
       }
       Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          text = "Всього балів: $totalPoints",
+          text = "Досягнуто, в балах: $totalPoints",
           style = MaterialTheme.typography.bodyMedium,
           fontWeight = FontWeight.SemiBold,
           color = MaterialTheme.colorScheme.primary,
