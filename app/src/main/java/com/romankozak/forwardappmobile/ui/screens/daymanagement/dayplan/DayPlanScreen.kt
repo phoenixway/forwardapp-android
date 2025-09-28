@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -34,6 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -364,7 +368,17 @@ fun DayPlanScreen(
       enter = fadeIn(animationSpec = tween(300, delayMillis = 400)),
       modifier = Modifier.fillMaxSize(),
     ) {
-      Box(modifier = Modifier.fillMaxSize()) {
+      Box(
+        modifier =
+          Modifier.fillMaxSize().pointerInput(Unit) {
+            detectHorizontalDragGestures { _, dragAmount ->
+              when {
+                dragAmount < -50 && !uiState.isToday -> viewModel.navigateToNextDay()
+                dragAmount > 50 -> viewModel.navigateToPreviousDay()
+              }
+            }
+          }
+      ) {
         when {
           uiState.isLoading -> LoadingState()
           uiState.error != null && uiState.tasks.isEmpty() -> {

@@ -29,6 +29,9 @@ import kotlinx.coroutines.flow.flow
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+
 // In your TaskList.kt file, replace the CompactDayPlanHeader call:
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -71,7 +74,26 @@ fun TaskList(
 
   LaunchedEffect(tasks) { internalTasks = tasks }
 
-  Column(modifier = modifier) {
+  var swipeState by remember { mutableStateOf(0f) }
+  Column(
+      modifier = modifier.pointerInput(Unit) {
+          detectHorizontalDragGestures(
+              onHorizontalDrag = { change, dragAmount ->
+                  change.consume()
+                  swipeState += dragAmount
+              },
+              onDragEnd = {
+                  val threshold = 100
+                  if (swipeState > threshold) {
+                      onNavigateToPreviousDay()
+                  } else if (swipeState < -threshold) {
+                      if(isNextDayNavigationEnabled) onNavigateToNextDay()
+                  }
+                  swipeState = 0f
+              }
+          )
+      }
+  ) {
     val completedTasks = tasks.count { it.completed }
     val totalTasks = tasks.size
 
