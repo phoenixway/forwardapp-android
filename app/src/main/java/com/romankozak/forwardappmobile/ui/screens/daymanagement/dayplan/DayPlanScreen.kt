@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
@@ -272,6 +273,7 @@ fun DayPlanScreen(
   onNavigateToBacklog: (task: DayTask) -> Unit,
   onNavigateToSettings: () -> Unit,
   addTaskTrigger: Int,
+  navController: NavController,
 ) {
   val TAG = "NAV_DEBUG" // Тег для логування
 
@@ -308,6 +310,22 @@ fun DayPlanScreen(
   var showReminderDialog by remember { mutableStateOf(false) }
   val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
   val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
+
+  DisposableEffect(Unit) {
+    onDispose {
+        viewModel.clearSelectedTask()
+    }
+  }
+
+  LaunchedEffect(Unit) {
+    viewModel.uiEvent.collect {
+        when(it) {
+            is DayPlanUiEvent.NavigateToEditTask -> {
+                navController.navigate("edit_task_screen/${it.taskId}")
+            }
+        }
+    }
+  }
 
   var showMatrixSplash by remember { mutableStateOf(true) }
   var matrixView by remember { mutableStateOf<MatrixRainView?>(null) }
@@ -463,29 +481,7 @@ fun DayPlanScreen(
     )
   }
 
-  if (isEditTaskDialogOpen && selectedTask != null) {
-    EditTaskDialog(
-      task = selectedTask!!,
-      onDismissRequest = {
-        viewModel.dismissEditTaskDialog()
-        viewModel.clearSelectedTask()
-      },
-      onConfirm = { title, description, duration, priority ->
-        viewModel.updateTask(
-          taskId = selectedTask!!.id,
-          title = title,
-          description = description,
-          duration = duration,
-          priority = priority,
-        )
-      },
-      onDelete = {
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-        viewModel.deleteTask(dayPlanId, selectedTask!!.id)
-        viewModel.dismissEditTaskDialog()
-      },
-    )
-  }
+
 
   if (showReminderDialog && selectedTask != null) {
     ReminderPickerDialog(
@@ -542,13 +538,15 @@ fun DeleteRecurringTaskDialog(
     title = { Text("Видалити повторюване завдання?") },
     text = { Text("Ви хочете видалити тільки це завдання, чи це і всі наступні?") },
     confirmButton = {
-      Column {
+      Column(modifier = Modifier.padding(8.dp)) {
         Button(onClick = { onConfirmDeleteSingle(task) }) { Text("Тільки це завдання") }
         Spacer(modifier = Modifier.height(8.dp))
         Button(onClick = { onConfirmDeleteAll(task) }) { Text("Це і всі наступні") }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = onDismiss) { Text("Скасувати") }
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
+    dismissButton = null,
   )
 }
 

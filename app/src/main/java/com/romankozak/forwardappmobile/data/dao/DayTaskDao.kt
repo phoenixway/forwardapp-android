@@ -144,8 +144,8 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId LIMIT 1")
     suspend fun findByRecurringIdAndDate(recurringTaskId: String, dayPlanId: String): DayTask?
 
-    @Query("DELETE FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IN (SELECT id FROM day_plans WHERE date >= :date)")
-    suspend fun deleteFutureInstances(recurringTaskId: String, date: Long)
+    @Query("DELETE FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IN (:dayPlanIds)")
+    suspend fun deleteTasksForDayPlanIds(recurringTaskId: String, dayPlanIds: List<String>)
 
     @Query("UPDATE day_tasks SET recurringTaskId = null WHERE id = :taskId")
     suspend fun detachFromRecurrence(taskId: String)

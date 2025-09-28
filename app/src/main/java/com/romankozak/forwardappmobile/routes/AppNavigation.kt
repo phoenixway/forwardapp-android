@@ -33,6 +33,7 @@ import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChoo
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
@@ -405,5 +406,12 @@ private fun NavGraphBuilder.mainGraph(
 
     composable("reminders_screen") {
         com.romankozak.forwardappmobile.ui.screens.reminders.RemindersScreen(navController = navController)
+    }
+
+    composable(
+        route = "edit_task_screen/{taskId}",
+        arguments = listOf(navArgument("taskId") { type = NavType.StringType })
+    ) {
+        EditTaskScreen(onNavigateUp = { navController.navigateUp() })
     }
 }

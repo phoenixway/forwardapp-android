@@ -364,7 +364,10 @@ class DayManagementRepository
                 recurringTaskDao.insert(newRecurringTask)
 
                 // 3. Delete future instances of the old task
-                dayTaskDao.deleteFutureInstances(recurringTaskId, dayPlan.date)
+                val futureDayPlanIds = dayPlanDao.getFutureDayPlanIds(dayPlan.date)
+                if (futureDayPlanIds.isNotEmpty()) {
+                    dayTaskDao.deleteTasksForDayPlanIds(recurringTaskId, futureDayPlanIds)
+                }
             }
         }
 
@@ -570,27 +573,50 @@ class DayManagementRepository
 
         suspend fun deleteAllFutureInstancesOfRecurringTask(recurringTaskId: String, dayPlanId: String) {
             withContext(ioDispatcher) {
+                val TAG = "DELETE_RECURRING_DEBUG"
+                android.util.Log.d(TAG, "Deleting future instances for recurringTaskId: $recurringTaskId, dayPlanId: $dayPlanId")
+
                 val recurringTask = recurringTaskDao.getById(recurringTaskId)
                 if (recurringTask != null) {
+                    android.util.Log.d(TAG, "Found recurringTask: $recurringTask")
                     val dayPlan = dayPlanDao.getPlanById(dayPlanId)
                     if (dayPlan != null) {
+                        android.util.Log.d(TAG, "Found dayPlan: $dayPlan")
                         val yesterday = Calendar.getInstance().apply {
                             timeInMillis = dayPlan.date
                             add(Calendar.DAY_OF_YEAR, -1)
                         }.timeInMillis
+                        android.util.Log.d(TAG, "Setting endDate to: $yesterday")
                         recurringTaskDao.update(recurringTask.copy(endDate = yesterday))
-                        dayTaskDao.deleteFutureInstances(recurringTaskId, dayPlan.date)
+
+                        val futureDayPlanIds = dayPlanDao.getFutureDayPlanIds(dayPlan.date)
+                        android.util.Log.d(TAG, "Found future day plan IDs: $futureDayPlanIds")
+                        if (futureDayPlanIds.isNotEmpty()) {
+                            android.util.Log.d(TAG, "Deleting tasks for future day plans")
+                            dayTaskDao.deleteTasksForDayPlanIds(recurringTaskId, futureDayPlanIds)
+                        } else {
+                            android.util.Log.d(TAG, "No future day plans found to delete tasks from.")
+                        }
+                    } else {
+                        android.util.Log.d(TAG, "Could not find dayPlan with id: $dayPlanId")
                     }
+                } else {
+                    android.util.Log.d(TAG, "Could not find recurringTask with id: $recurringTaskId")
                 }
             }
         }
 
-        suspend fun getRecurringTask(id: String): RecurringTask? {
-            return withContext(ioDispatcher) {
-                recurringTaskDao.getById(id)
+            suspend fun getRecurringTask(id: String): RecurringTask? {
+                return withContext(ioDispatcher) {
+                    recurringTaskDao.getById(id)
+                }
             }
-        }
-
+        
+            suspend fun getTaskById(taskId: String): DayTask? {
+                return withContext(ioDispatcher) {
+                    dayTaskDao.getTaskById(taskId)
+                }
+            }
         suspend fun getGoal(id: String): Goal? {
             return withContext(ioDispatcher) {
                 goalDao.getGoalById(id)
