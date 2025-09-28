@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -50,7 +52,7 @@ fun RecentListsSheet(
             Column(Modifier.navigationBarsPadding()) {
                 Text(
                     text = "Нещодавно відкриті",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
                 if (recentItems.isEmpty()) {
@@ -87,11 +89,12 @@ fun RecentListsSheet(
                                     }
                                 }
                             }
-                            if (pinnedItemsExpanded) {
-                                items(pinnedItems, key = { "pinned-${it.id}" }) { item ->
+                            items(pinnedItems, key = { "pinned-${it.id}" }) { item ->
+                                AnimatedVisibility(visible = pinnedItemsExpanded) {
                                     RecentItemRow(item, onItemClick, onPinClick)
                                 }
                             }
+                            item { HorizontalDivider() }
                         }
 
                         groupedItems[false]?.let { unpinnedItems ->
@@ -131,7 +134,7 @@ private fun RecentItemRow(
                 Log.d("RecentItemClick", "onItemClick triggered for ${item.displayName}")
                 onItemClick(item)
             }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -147,9 +150,8 @@ private fun RecentItemRow(
             }
             Icon(
                 icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),                tint = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.width(16.dp))
             Text(
@@ -164,7 +166,7 @@ private fun RecentItemRow(
             Icon(
                 imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                 contentDescription = "Pin",
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(22.dp),
                 tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
