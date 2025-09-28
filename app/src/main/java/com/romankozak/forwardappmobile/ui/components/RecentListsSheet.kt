@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Link
@@ -69,11 +71,20 @@ fun RecentListsSheet(
                                         .clickable { pinnedItemsExpanded = !pinnedItemsExpanded },
                                     color = MaterialTheme.colorScheme.surfaceContainer
                                 ) {
-                                    Text(
-                                        text = "Закріплені",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (pinnedItemsExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowRight,
+                                            contentDescription = "Collapse/Expand"
+                                        )
+                                        Text(
+                                            text = "Закріплені",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                        )
+                                    }
                                 }
                             }
                             if (pinnedItemsExpanded) {
