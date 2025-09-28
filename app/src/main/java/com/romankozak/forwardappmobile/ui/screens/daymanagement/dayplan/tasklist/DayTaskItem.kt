@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.Topic
@@ -143,7 +144,8 @@ private fun hasStatusContent(task: DayTask): Boolean {
         (task.nextOccurrenceTime != null) ||
         (!task.description.isNullOrBlank()) ||
         (task.goalId != null) ||
-        (task.projectId != null)
+        (task.projectId != null) ||
+        (task.recurringTaskId != null)
 }
 
 @Composable
@@ -151,6 +153,14 @@ private fun FlowRowScope.RenderBadges(
     task: DayTask,
     currentTimeMillis: Long,
 ) {
+    if (task.recurringTaskId != null) {
+        Icon(
+            imageVector = Icons.Default.Repeat,
+            contentDescription = "Повторюване завдання",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp).align(Alignment.CenterVertically),
+        )
+    }
     task.nextOccurrenceTime?.let { time ->
         if (time > currentTimeMillis) {
             val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
