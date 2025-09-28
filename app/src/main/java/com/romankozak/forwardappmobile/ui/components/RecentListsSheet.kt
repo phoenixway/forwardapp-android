@@ -23,6 +23,10 @@ import androidx.compose.material.icons.outlined.Note
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -55,11 +59,14 @@ fun RecentListsSheet(
                     )
                 } else {
                     val groupedItems = recentItems.groupBy { it.isPinned }
+                    var pinnedItemsExpanded by remember { mutableStateOf(false) }
                     LazyColumn {
                         groupedItems[true]?.let { pinnedItems ->
                             stickyHeader {
                                 Surface(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { pinnedItemsExpanded = !pinnedItemsExpanded },
                                     color = MaterialTheme.colorScheme.surfaceContainer
                                 ) {
                                     Text(
@@ -69,8 +76,10 @@ fun RecentListsSheet(
                                     )
                                 }
                             }
-                            items(pinnedItems, key = { "pinned-${it.id}" }) { item ->
-                                RecentItemRow(item, onItemClick, onPinClick)
+                            if (pinnedItemsExpanded) {
+                                items(pinnedItems, key = { "pinned-${it.id}" }) { item ->
+                                    RecentItemRow(item, onItemClick, onPinClick)
+                                }
                             }
                         }
 
@@ -111,7 +120,7 @@ private fun RecentItemRow(
                 Log.d("RecentItemClick", "onItemClick triggered for ${item.displayName}")
                 onItemClick(item)
             }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
