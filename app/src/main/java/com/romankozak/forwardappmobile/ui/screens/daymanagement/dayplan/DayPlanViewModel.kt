@@ -618,4 +618,34 @@ class DayPlanViewModel
                 }
             }
         }
+
+        fun moveTaskToTop(task: DayTask) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val currentTasks = _uiState.value.tasks.toMutableList()
+                    currentTasks.remove(task)
+                    currentTasks.add(0, task.copy(order = 0))
+
+                    val tasksWithNewOrder =
+                        currentTasks.mapIndexed { index, t ->
+                            t.copy(order = index.toLong())
+                        }
+
+                    dayManagementRepository.updateTasksOrder(task.dayPlanId, tasksWithNewOrder)
+
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            tasks = sortTasksWithOrder(tasksWithNewOrder),
+                            lastUpdated = System.currentTimeMillis(),
+                        )
+                    }
+                    clearSelectedTask()
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(error = "Помилка при переміщенні завдання: ${e.localizedMessage}")
+                    }
+                    e.printStackTrace()
+                }
+            }
+        }
     }

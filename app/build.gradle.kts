@@ -247,4 +247,7 @@ dependencies {
 
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.ui:ui")
+
+    // Рекомендується використовувати останню версію бібліотеки
+implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 }
