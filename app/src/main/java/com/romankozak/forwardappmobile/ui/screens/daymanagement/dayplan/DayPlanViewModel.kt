@@ -573,6 +573,18 @@ constructor(
         }
     }
 
+    fun moveTaskToTomorrow(taskToMove: DayTask) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                dayManagementRepository.moveTaskToTomorrow(taskToMove)
+                clearSelectedTask()
+                _tasksUpdated.tryEmit(Unit)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Помилка перенесення завдання: ${e.localizedMessage}") }
+            }
+        }
+    }
+
     private val _isEditTaskDialogOpen = MutableStateFlow(false)
     val isEditTaskDialogOpen: StateFlow<Boolean> = _isEditTaskDialogOpen.asStateFlow()
 
