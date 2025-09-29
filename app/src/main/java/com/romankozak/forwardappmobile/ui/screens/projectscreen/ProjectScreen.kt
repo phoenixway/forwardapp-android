@@ -329,7 +329,7 @@ fun ProjectsScreen(
                             onForwardClick = { viewModel.onForwardPressed() },
                             onHomeClick = viewModel::onHomeClick,
                             isAttachmentsExpanded = list?.isAttachmentsExpanded ?: false,
-                            onToggleAttachments = { viewModel.toggleAttachmentsVisibility() },
+                            onToggleAttachments = { navController.navigate("attachments_screen/${list?.id}") },
                             onEditList = {
                                 Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                                 menuExpanded = false

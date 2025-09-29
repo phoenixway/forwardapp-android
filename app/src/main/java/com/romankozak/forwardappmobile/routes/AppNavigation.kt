@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import androidx.navigation.navigation
 import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand
@@ -400,6 +401,20 @@ private fun NavGraphBuilder.mainGraph(
     dayManagementGraph(navController)
     dayManagementScreen(navController)
     strategicManagementScreen(navController)
+
+    composable(
+        route = "attachments_screen/{listId}",
+        arguments = listOf(navArgument("listId") { type = NavType.StringType })
+    ) {
+        val viewModel: BacklogViewModel = hiltViewModel()
+        val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+        val attachments = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
+
+        com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectAttachmentsScreen(
+            navController = navController,
+            projectId = it.arguments?.getString("listId")
+        )
+    }
 
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)

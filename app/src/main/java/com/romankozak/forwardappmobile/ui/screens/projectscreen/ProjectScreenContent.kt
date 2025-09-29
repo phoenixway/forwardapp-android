@@ -34,18 +34,6 @@ fun GoalDetailContent(
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
 
-    val displayList =
-        remember(listContent, goalList?.isAttachmentsExpanded) {
-            val attachmentItems = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
-            val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
-
-            if (goalList?.isAttachmentsExpanded == true) {
-                attachmentItems + draggableItems
-            } else {
-                draggableItems
-            }
-        }
-
     val calculatedSwipeEnabled = !isSelectionModeActive && !dragDropState.isDragging
     Log.v(
         TAG,
@@ -61,7 +49,7 @@ fun GoalDetailContent(
                 listState = listState,
                 dragDropState = dragDropState,
                 listContent = listContent,
-                isAttachmentsExpanded = goalList?.isAttachmentsExpanded == true,
+                isAttachmentsExpanded = false, // This is no longer used
                 swipeEnabled = calculatedSwipeEnabled,
             )
         }

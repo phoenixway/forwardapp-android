@@ -951,39 +951,7 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
             }
         }
 
-        private var lastToggleTime = 0L
 
-        fun toggleAttachmentsVisibility() {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastToggleTime < 500) {
-                Log.d("ATTACHMENT_DEBUG", "VM: Toggle DEBOUNCED. Call ignored.")
-                return
-            }
-            lastToggleTime = currentTime
-
-            Log.d("ATTACHMENT_DEBUG", "VM: toggleAttachmentsVisibility() called (ROBUST + DEBOUNCED).")
-            viewModelScope.launch(Dispatchers.IO) {
-                val projectId = projectIdFlow.value
-                if (projectId.isBlank()) {
-                    Log.w("ATTACHMENT_DEBUG", "VM: projectId is blank, aborting toggle.")
-                    return@launch
-                }
-                val currentProject = projectRepository.getProjectById(projectId)
-
-                if (currentProject == null) {
-                    Log.w("ATTACHMENT_DEBUG", "VM: project from repository is null, aborting toggle.")
-                    return@launch
-                }
-
-                val currentExpandedState = currentProject.isAttachmentsExpanded ?: false
-                Log.d("ATTACHMENT_DEBUG", "VM: Read current isAttachmentsExpanded state FROM REPO: $currentExpandedState")
-
-                val newState = !currentExpandedState
-                Log.d("ATTACHMENT_DEBUG", "VM: Calculated newState for DB: $newState")
-
-                projectRepository.updateProject(currentProject.copy(isAttachmentsExpanded = newState))
-            }
-        }
 
         fun onAddAttachment(type: AttachmentType) {
             when (type) {
