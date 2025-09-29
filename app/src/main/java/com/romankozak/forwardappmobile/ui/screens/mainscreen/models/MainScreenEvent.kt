@@ -101,6 +101,8 @@ sealed interface MainScreenEvent {
 
     object NavigateToAiInsights : MainScreenEvent
 
+    object NavigateToStrategicManagement : MainScreenEvent
+
     data class SaveSettings(
         val show: Boolean,
         val daily: String,
@@ -133,4 +135,5 @@ sealed interface MainScreenEvent {
     data class UpdateDarkTheme(val themeName: com.romankozak.forwardappmobile.ui.theme.ThemeName) : MainScreenEvent
     data class UpdateThemeMode(val themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) : MainScreenEvent
     data object GoToReminders : MainScreenEvent
+    data class RevealProjectInHierarchy(val projectId: String) : MainScreenEvent
 }

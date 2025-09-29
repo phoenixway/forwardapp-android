@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.Domain
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -149,6 +150,7 @@ internal fun ExpandingBottomNav(
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,
+    onStrManagementClick: () -> Unit,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     
@@ -199,6 +201,12 @@ internal fun ExpandingBottomNav(
                         icon = Icons.Outlined.AutoAwesome,
                         
                         onClick = onAiChatClick,
+                    )
+
+                    SmallBottomNavButton(
+                        text = "Contexts",
+                        icon = Icons.Outlined.Style,
+                        onClick = onContextsClick,
                     )
 
                     Box {
@@ -305,7 +313,7 @@ internal fun ExpandingBottomNav(
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Contexts", icon = Icons.Outlined.Style, onClick = onContextsClick)
+                ModernBottomNavButton(text = "Str. Mngmt", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
             }
         }
     }
