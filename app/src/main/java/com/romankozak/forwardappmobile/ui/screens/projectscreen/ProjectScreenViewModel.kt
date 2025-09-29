@@ -644,7 +644,7 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
                             .map { it.link.linkData }
                             .find { it.target == target }
                     if (link != null) {
-                        _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+                        onLinkItemClick(link)
                     }
                 } else {
                     
@@ -923,15 +923,27 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
         
 
         fun onLinkItemClick(link: RelatedLink) {
+            Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
             viewModelScope.launch {
-                if (link.type == LinkType.PROJECT) {
-                    val projectName = link.displayName ?: "Project"
-                    enhancedNavigationManager.navigateToProject(link.target, projectName)
-                } else {
-                    if (link.type == LinkType.OBSIDIAN) {
-                        projectRepository.logObsidianLinkAccess(link)
+                when (link.type) {
+                    LinkType.PROJECT -> {
+                        val projectName = link.displayName ?: "Project"
+                        enhancedNavigationManager.navigateToProject(link.target, projectName)
                     }
-                    _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+                    LinkType.OBSIDIAN -> {
+                        projectRepository.logObsidianLinkAccess(link)
+                        val vaultName = settingsRepository.obsidianVaultNameFlow.first()
+                        if (vaultName.isNotBlank()) {
+                            val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
+                            val uri = "obsidian://open?vault=$vaultName&file=$encodedNoteName"
+                            _uiEventFlow.send(UiEvent.OpenUri(uri))
+                        } else {
+                            _uiEventFlow.send(UiEvent.ShowSnackbar("Obsidian vault name is not configured."))
+                        }
+                    }
+                    else -> {
+                        _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+                    }
                 }
             }
         }
@@ -1497,7 +1509,7 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
                     }
                     RecentItemType.OBSIDIAN_LINK -> {
                         val link = RelatedLink(type = LinkType.OBSIDIAN, target = item.target, displayName = item.displayName)
-                        _uiEventFlow.send(UiEvent.HandleLinkClick(link))
+                        onLinkItemClick(link)
                     }
                 }
             }

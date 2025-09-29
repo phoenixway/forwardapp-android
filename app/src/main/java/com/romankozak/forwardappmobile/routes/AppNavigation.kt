@@ -407,6 +407,7 @@ private fun NavGraphBuilder.mainGraph(
         arguments = listOf(navArgument("listId") { type = NavType.StringType })
     ) { backStackEntry ->
         val viewModel: BacklogViewModel = hiltViewModel()
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
         LaunchedEffect(Unit) {
             backStackEntry.savedStateHandle.getStateFlow<String?>("list_chooser_result", null)
