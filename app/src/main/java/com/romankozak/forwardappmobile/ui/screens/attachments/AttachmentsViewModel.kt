@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.attachments
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.LinkType
@@ -73,6 +74,23 @@ class AttachmentsViewModel @Inject constructor(
     private var originalProject: Project? = null
 
     init {
+        viewModelScope.launch {
+            savedStateHandle.getLiveData<String>("list_chooser_result").asFlow().collect { result ->
+                if (result != null) {
+                    android.util.Log.d("AttachmentsViewModel", "Result received: $result")
+                    when (uiState.value.pendingAttachmentType) {
+                        PendingAttachmentType.LIST_LINK -> onAddListLink(result)
+                        PendingAttachmentType.SHORTCUT -> onAddListShortcut(result)
+                        PendingAttachmentType.NONE -> {
+                            android.util.Log.w("AttachmentsViewModel", "Received a list chooser result but no pending attachment type.")
+                        }
+                    }
+                    savedStateHandle.remove<String>("list_chooser_result")
+                    android.util.Log.d("AttachmentsViewModel", "Result removed from SavedStateHandle.")
+                }
+            }
+        }
+
         viewModelScope.launch {
             val loadedProject = projectRepository.getProjectById(projectId.value)
             originalProject = loadedProject
@@ -206,8 +224,10 @@ class AttachmentsViewModel @Inject constructor(
     }
 
     fun onAddListLink(projectId: String) {
+        android.util.Log.d("AttachmentsViewModel", "onAddListLink called with projectId: $projectId")
         viewModelScope.launch {
             val project = projectRepository.getProjectById(projectId)
+            android.util.Log.d("AttachmentsViewModel", "project: $project")
             if (project != null) {
                 val link = RelatedLink(
                     type = LinkType.PROJECT,

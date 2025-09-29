@@ -22,9 +22,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.* 
+import androidx.compose.ui.platform.LocalContext
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.*
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.AddWebLinkDialog
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.UiEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +40,7 @@ fun ProjectAttachmentsScreen(
     val attachments = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     LaunchedEffect(key1 = Unit) {
         viewModel.uiEventFlow.collect {
             when(it) {

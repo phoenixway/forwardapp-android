@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -70,47 +71,10 @@ fun AttachmentsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddAttachmentDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     var currentTagInput by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(key1 = true) {
-        viewModel.uiEventFlow.collectLatest { event ->
-            when (event) {
-                is UiEvent.Navigate -> {
-                    navController.navigate(event.route)
-                }
-                is UiEvent.OpenUri -> {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(event.uri))
-                    context.startActivity(intent)
-                }
-                is UiEvent.NavigateToListChooser -> {
-                    val encodedTitle = URLEncoder.encode(event.title, "UTF-8")
-                    navController.navigate("list_chooser_screen/$encodedTitle?disabledIds=${event.disabledIds}")
-                }
-            }
-        }
-    }
 
-    DisposableEffect(navController, lifecycleOwner, viewModel) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.remove<String?>("list_chooser_result")
-                        ?.let { result ->
-                            when (uiState.pendingAttachmentType) {
-                                PendingAttachmentType.LIST_LINK -> viewModel.onAddListLink(result)
-                                PendingAttachmentType.SHORTCUT -> viewModel.onAddListShortcut(result)
-                                PendingAttachmentType.NONE -> {}
-                            }
-                        }
-                }
-            }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
 
     if (showAddAttachmentDialog) {
         AddAttachmentDialog(
