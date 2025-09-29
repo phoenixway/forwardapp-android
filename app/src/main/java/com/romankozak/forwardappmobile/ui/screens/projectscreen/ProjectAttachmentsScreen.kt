@@ -48,9 +48,17 @@ fun ProjectAttachmentsScreen(
                     navController.navigate(it.route)
                 }
                 is UiEvent.HandleLinkClick -> {
-                    if (!it.link.target.isNullOrEmpty()) {
+                    if (!it.link.target.isNullOrBlank()) {
                         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(it.link.target))
                         context.startActivity(intent)
+                    }
+                }
+                is UiEvent.OpenUri -> {
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(it.uri))
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        // Handle exception, e.g., show a snackbar
                     }
                 }
                 else -> {}
