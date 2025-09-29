@@ -36,10 +36,11 @@ class StrategicManagementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                val longTermIds = projectRepository.findProjectIdsByTag("long-term-strategy")
                 val strReviewIds = projectRepository.findProjectIdsByTag("str-review")
                 val middleTermIds = projectRepository.findProjectIdsByTag("middle-term-backlog")
-                val longTermIds = projectRepository.findProjectIdsByTag("long-term-strategy")
-                val projectIds = (strReviewIds + middleTermIds + longTermIds).distinct()
+                val activeQuestsIds = projectRepository.findProjectIdsByTag("active-quests")
+                val projectIds = (longTermIds + strReviewIds + middleTermIds + activeQuestsIds).distinct()
                 val allProjects = projectRepository.getAllProjects()
                 val projects = projectIds.mapNotNull { id -> allProjects.find { it.id == id } }
                 _uiState.update { it.copy(dashboardProjects = projects, isLoading = false) }
