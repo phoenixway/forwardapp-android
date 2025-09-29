@@ -37,6 +37,24 @@ fun ProjectAttachmentsScreen(
     val attachments = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(key1 = Unit) {
+        viewModel.uiEventFlow.collect {
+            when(it) {
+                is UiEvent.Navigate -> {
+                    navController.navigate(it.route)
+                }
+                is UiEvent.HandleLinkClick -> {
+                    if (!it.link.target.isNullOrEmpty()) {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(it.link.target))
+                        context.startActivity(intent)
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
     if (uiState.showAddWebLinkDialog) {
         AddWebLinkDialog(
             onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
