@@ -612,6 +612,12 @@ constructor(
         }
       }
 
+      is MainScreenEvent.NavigateToStrategicManagement -> {
+        viewModelScope.launch {
+          _uiEventChannel.send(ProjectUiEvent.NavigateToStrategicManagement)
+        }
+      }
+
       is MainScreenEvent.SaveSettings -> {
         saveSettings(
           show = event.show,
@@ -641,6 +647,11 @@ constructor(
       is MainScreenEvent.UpdateThemeMode -> updateThemeMode(event.themeMode)
       is MainScreenEvent.GoToReminders -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
+      }
+      is MainScreenEvent.RevealProjectInHierarchy -> {
+        viewModelScope.launch {
+          searchAndNavigationManager.revealProjectInHierarchy(event.projectId)
+        }
       }
       else -> {}
     }

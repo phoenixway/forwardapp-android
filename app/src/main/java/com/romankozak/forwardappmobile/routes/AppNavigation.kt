@@ -399,6 +399,7 @@ private fun NavGraphBuilder.mainGraph(
     chatScreen(navController)
     dayManagementGraph(navController)
     dayManagementScreen(navController)
+    strategicManagementScreen(navController)
 
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)

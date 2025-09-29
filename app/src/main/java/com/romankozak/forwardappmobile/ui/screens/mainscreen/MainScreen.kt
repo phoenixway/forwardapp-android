@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.routes.navigateToDayManagement
+import com.romankozak.forwardappmobile.routes.navigateToStrategicManagement
 import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
@@ -104,6 +105,8 @@ fun MainScreen(
                 is ProjectUiEvent.Navigate -> navController.navigate(event.route)
                 is ProjectUiEvent.NavigateToDayPlan ->
                     navController.navigateToDayManagement(event.date, event.startTab)
+                is ProjectUiEvent.NavigateToStrategicManagement ->
+                    navController.navigateToStrategicManagement()
                 is ProjectUiEvent.FocusSearchField -> {
                     
                 }
@@ -245,6 +248,7 @@ private fun MainScreenScaffold(
                         onRecentsClick = { onEvent(MainScreenEvent.ShowRecentLists) },
                         onDayPlanClick = { onEvent(MainScreenEvent.DayPlanClick) },
                         onHomeClick = { onEvent(MainScreenEvent.HomeClick) },
+                        onStrManagementClick = { onEvent(MainScreenEvent.NavigateToStrategicManagement) },
                         isExpanded = uiState.isBottomNavExpanded,
                         onExpandedChange = { onEvent(MainScreenEvent.BottomNavExpandedChange(it)) },
                         onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },

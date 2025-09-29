@@ -25,4 +25,5 @@ sealed interface ProjectUiEvent {
 
     data class OpenUri(val uri: String) : ProjectUiEvent
     data class ScrollToIndex(val index: Int) : ProjectUiEvent
+    data object NavigateToStrategicManagement : ProjectUiEvent
 }
