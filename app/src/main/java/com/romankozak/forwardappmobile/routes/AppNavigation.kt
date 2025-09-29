@@ -405,14 +405,22 @@ private fun NavGraphBuilder.mainGraph(
     composable(
         route = "attachments_screen/{listId}",
         arguments = listOf(navArgument("listId") { type = NavType.StringType })
-    ) {
+    ) { backStackEntry ->
         val viewModel: BacklogViewModel = hiltViewModel()
-        val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-        val attachments = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem }
+
+        LaunchedEffect(Unit) {
+            backStackEntry.savedStateHandle.getStateFlow<String?>("list_chooser_result", null)
+                .collect { result ->
+                    if (result != null) {
+                        viewModel.onListChooserResult(result)
+                        backStackEntry.savedStateHandle.remove<String>("list_chooser_result")
+                    }
+                }
+        }
 
         com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectAttachmentsScreen(
             navController = navController,
-            projectId = it.arguments?.getString("listId")
+            projectId = backStackEntry.arguments?.getString("listId")
         )
     }
 

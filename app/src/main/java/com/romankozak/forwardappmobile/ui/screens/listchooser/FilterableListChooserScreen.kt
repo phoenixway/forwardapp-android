@@ -60,6 +60,7 @@ fun FilterableListChooserScreen(
     showDescendants: Boolean,
     onToggleShowDescendants: () -> Unit,
 ) {
+    android.util.Log.d("ListChooserScreen", "onConfirm called")
     var isCreatingMode by remember { mutableStateOf(false) }
     var newProjectName by remember { mutableStateOf("") }
     var parentForNewProject by remember { mutableStateOf<Project?>(null) }
@@ -389,6 +390,7 @@ fun FilterableListChooserScreen(
                                     onSelect = { id ->
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onConfirm(id)
+                                        android.util.Log.d("ListChooserScreen", "onConfirm called with id: $id")
                                     },
                                     disabledIds = disabledIds,
                                     highlightedProjectId = highlightedProjectId,

@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -45,6 +46,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
@@ -405,9 +408,7 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
             settingsRepository.obsidianVaultNameFlow
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-        private var pendingAction: GoalActionType? = null
-        private var pendingSourceItemIds: Set<String> = emptySet()
-        private var pendingSourceGoalIds: Set<String> = emptySet()
+
         private var pendingActivityForReminder: ActivityRecord? = null
 
         val desktopAddress: StateFlow<String> =
@@ -682,9 +683,10 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
             itemIds: Set<String>,
             goalIds: Set<String>,
         ) {
-            pendingAction = actionType
-            pendingSourceItemIds = itemIds
-            pendingSourceGoalIds = goalIds
+            savedStateHandle["pendingAction"] = actionType.name
+            savedStateHandle["pendingSourceItemIds"] = itemIds.toList()
+            savedStateHandle["pendingSourceGoalIds"] = goalIds.toList()
+
             val title =
                 when (actionType) {
                     GoalActionType.CreateInstance -> "Створити посилання у..."
@@ -768,9 +770,11 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
                 return
             }
 
-            val actionType = pendingAction ?: return
-            val itemIds = pendingSourceItemIds.toList()
-            val goalIds = pendingSourceGoalIds.toList()
+            val actionTypeName = savedStateHandle.get<String>("pendingAction") ?: return
+            val actionType = GoalActionType.valueOf(actionTypeName)
+            val itemIds = savedStateHandle.get<List<String>>("pendingSourceItemIds") ?: emptyList()
+            val goalIds = savedStateHandle.get<List<String>>("pendingSourceGoalIds") ?: emptyList()
+
             viewModelScope.launch(Dispatchers.IO) {
                 when (actionType) {
                     GoalActionType.CreateInstance ->
@@ -812,9 +816,9 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
                 }
                 withContext(Dispatchers.Main) { forceRefresh() }
             }
-            pendingAction = null
-            pendingSourceItemIds = emptySet()
-            pendingSourceGoalIds = emptySet()
+            savedStateHandle.remove<String>("pendingAction")
+            savedStateHandle.remove<List<String>>("pendingSourceItemIds")
+            savedStateHandle.remove<List<String>>("pendingSourceGoalIds")
             selectionHandler.clearSelection()
         }
 
