@@ -114,6 +114,8 @@ private fun ViewModeToggle(
   onViewChange: (ProjectViewMode) -> Unit,
   onInputModeSelected: (InputMode) -> Unit,
   contentColor: Color,
+  isAttachmentsExpanded: Boolean,
+  onToggleAttachments: () -> Unit,
 ) {
   Surface(
     shape = RoundedCornerShape(16.dp),
@@ -157,6 +159,20 @@ private fun ViewModeToggle(
             tint = contentColor,
           )
         }
+      }
+      // Separator
+      Box(modifier = Modifier.width(1.dp).height(24.dp).background(contentColor.copy(alpha = 0.1f)))
+      // Attachments button
+      IconButton(
+          onClick = onToggleAttachments,
+          modifier = Modifier.size(36.dp),
+      ) {
+          Icon(
+              imageVector = Icons.Default.Attachment,
+              contentDescription = stringResource(R.string.toggle_attachments),
+              modifier = Modifier.size(18.dp),
+              tint = if (isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
+          )
       }
     }
   }
@@ -533,6 +549,8 @@ private fun NavigationBar(
             onViewChange = actions.onViewChange,
             onInputModeSelected = actions.onInputModeSelected,
             contentColor = contentColor,
+            isAttachmentsExpanded = state.isAttachmentsExpanded,
+            onToggleAttachments = actions.onToggleAttachments,
           )
         }
       }
@@ -559,23 +577,6 @@ private fun NavigationBar(
           )
         }
       }
-    }
-
-    val attachmentIconColor by
-      animateColorAsState(
-        if (state.isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
-        label = "attColor",
-      )
-    val attachmentIconScale by
-      animateFloatAsState(if (state.isAttachmentsExpanded) 1.2f else 1.0f, label = "attScale")
-
-    IconButton(onClick = actions.onToggleAttachments, modifier = Modifier.size(40.dp)) {
-      Icon(
-        imageVector = Icons.Default.Attachment,
-        contentDescription = stringResource(R.string.toggle_attachments),
-        tint = attachmentIconColor,
-        modifier = Modifier.size(20.dp).scale(attachmentIconScale),
-      )
     }
 
     OptionsMenu(state = state, actions = actions, contentColor = contentColor)

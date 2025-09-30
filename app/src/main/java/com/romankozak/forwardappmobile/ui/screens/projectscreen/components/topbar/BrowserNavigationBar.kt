@@ -2,7 +2,11 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topb
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -16,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -137,86 +142,56 @@ private fun RightButtons(
     onExportToMarkdown: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        SingleChoiceSegmentedButtonRow(
-            modifier =
-                Modifier
-                    .height(36.dp)
-                    .padding(end = 8.dp),
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
         ) {
-            SegmentedButton(
-                selected = currentView == ProjectViewMode.BACKLOG,
-                onClick = { onViewChange(ProjectViewMode.BACKLOG) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                icon = { },
-                colors =
-                    SegmentedButtonDefaults.colors(
-                        activeContainerColor = MaterialTheme.colorScheme.primary,
-                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.List,
-                    contentDescription = "Backlog",
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
+                val views = listOf(ProjectViewMode.BACKLOG, ProjectViewMode.INBOX)
+                views.forEach { viewMode ->
+                    val isSelected = currentView == viewMode
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                            .clickable { onViewChange(viewMode) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = when (viewMode) {
+                                ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
+                                ProjectViewMode.INBOX -> Icons.Outlined.Inbox
+                                else -> Icons.Default.Error // Should not happen
+                            },
+                            contentDescription = viewMode.name,
+                            modifier = Modifier.size(18.dp),
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                // Separator
+                Box(modifier = Modifier.width(1.dp).height(24.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)))
 
-            SegmentedButton(
-                selected = currentView == ProjectViewMode.INBOX,
-                onClick = { onViewChange(ProjectViewMode.INBOX) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                icon = { },
-                colors =
-                    SegmentedButtonDefaults.colors(
-                        activeContainerColor = MaterialTheme.colorScheme.primary,
-                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                        inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Inbox,
-                    contentDescription = "Inbox",
-                    modifier = Modifier.size(18.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable { onToggleAttachments() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Attachment,
+                        contentDescription = stringResource(R.string.toggle_attachments),
+                        modifier = Modifier.size(18.dp),
+                        tint = if (isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         }
 
-        val attachmentIconColor by animateColorAsState(
-            targetValue =
-                if (isAttachmentsExpanded) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            label = "attachmentIconColor",
-        )
-
-        val attachmentScale by animateFloatAsState(
-            targetValue = if (isAttachmentsExpanded) 1.2f else 1f,
-            label = "attachmentScale",
-        )
-
-        IconButton(
-            onClick = onToggleAttachments,
-            modifier =
-                Modifier
-                    .size(40.dp)
-                    .graphicsLayer {
-                        scaleX = attachmentScale
-                        scaleY = attachmentScale
-                    },
-        ) {
-            Icon(
-                imageVector = Icons.Default.Attachment,
-                contentDescription = stringResource(R.string.toggle_attachments),
-                tint = attachmentIconColor,
-            )
-        }
+        Spacer(modifier = Modifier.width(8.dp))
 
         Box {
             IconButton(onClick = { onMenuExpandedChange(true) }) {
