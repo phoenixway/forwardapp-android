@@ -400,28 +400,7 @@ private fun NavGraphBuilder.mainGraph(
     dayManagementScreen(navController)
     strategicManagementScreen(navController)
 
-    composable(
-        route = "attachments_screen/{listId}",
-        arguments = listOf(navArgument("listId") { type = NavType.StringType })
-    ) { backStackEntry ->
-        val viewModel: BacklogViewModel = hiltViewModel()
-        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
-        LaunchedEffect(Unit) {
-            backStackEntry.savedStateHandle.getStateFlow<String?>("list_chooser_result", null)
-                .collect { result ->
-                    if (result != null) {
-                        viewModel.onListChooserResult(result)
-                        backStackEntry.savedStateHandle.remove<String>("list_chooser_result")
-                    }
-                }
-        }
-
-        com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectAttachmentsScreen(
-            navController = navController,
-            projectId = backStackEntry.arguments?.getString("listId")
-        )
-    }
 
     composable(AI_INSIGHTS_ROUTE) {
         AiInsightsScreen(navController = navController)
