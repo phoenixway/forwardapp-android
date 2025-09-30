@@ -504,78 +504,87 @@ private fun NavigationBar(
   contentColor: Color,
   modifier: Modifier = Modifier,
 ) {
-  Row(
-    modifier =
-      modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 12.dp, vertical = 6.dp),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    // --- LEFT SIDE ---
-    BackForwardButton(state, actions, contentColor)
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val availableWidth = maxWidth
+        val showReveal = availableWidth > 280.dp
+        val showRecents = availableWidth > 240.dp
 
-    IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
-      Icon(
-        Icons.Filled.Home,
-        "Дім",
-        tint = contentColor.copy(alpha = 0.7f),
-        modifier = Modifier.size(20.dp),
-      )
-    }
+        Row(
+            modifier = Modifier.heightIn(min = 52.dp).padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // --- LEFT SIDE ---
+            BackForwardButton(state, actions, contentColor)
 
-    Row {
-      IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
-        Icon(
-          Icons.Outlined.Restore,
-          "Недавні",
-          tint = contentColor.copy(alpha = 0.7f),
-          modifier = Modifier.size(20.dp),
-        )
-      }
-      IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
-        Icon(
-          Icons.Filled.MyLocation,
-          "Показати у списку",
-          tint = contentColor.copy(alpha = 0.7f),
-          modifier = Modifier.size(20.dp),
-        )
-      }
-    }
+            IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    Icons.Filled.Home,
+                    "Дім",
+                    tint = contentColor.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
 
-    Spacer(Modifier.weight(1f))
+            Row {
+                AnimatedVisibility(visible = showRecents) {
+                    IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            Icons.Outlined.Restore,
+                            "Недавні",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                AnimatedVisibility(visible = showReveal) {
+                    IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            Icons.Filled.MyLocation,
+                            "Показати у списку",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
 
-    // --- RIGHT SIDE ---
-    AnimatedContent(
-      targetState = state.isViewModePanelVisible,
-      transitionSpec = {
-        (slideInHorizontally { it / 2 } + fadeIn()) togetherWith
-          (slideOutHorizontally { -it / 2 } + fadeOut())
-      },
-      label = "NavBarRightAnimation",
-    ) { isViewMode ->
-      if (isViewMode) {
-        ViewModeToggle(
-          currentView = state.currentView,
-          isProjectManagementEnabled = state.isProjectManagementEnabled,
-          onViewChange = actions.onViewChange,
-          onInputModeSelected = actions.onInputModeSelected,
-          contentColor = contentColor,
-          isAttachmentsExpanded = state.isAttachmentsExpanded,
-          onToggleAttachments = actions.onToggleAttachments,
-          onToggleNavPanelMode = actions.onToggleNavPanelMode,
-        )
-      } else {
-        IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
-          Icon(
-            imageVector = Icons.Outlined.Widgets, // New icon
-            contentDescription = "Перемкнути панель",
-            tint = contentColor.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp),
-          )
+            Spacer(Modifier.weight(1f))
+
+            // --- RIGHT SIDE ---
+            AnimatedContent(
+                targetState = state.isViewModePanelVisible,
+                transitionSpec = {
+                    (slideInHorizontally { it / 2 } + fadeIn()) togetherWith
+                            (slideOutHorizontally { -it / 2 } + fadeOut())
+                },
+                label = "NavBarRightAnimation",
+            ) { isViewMode ->
+                if (isViewMode) {
+                    ViewModeToggle(
+                        currentView = state.currentView,
+                        isProjectManagementEnabled = state.isProjectManagementEnabled,
+                        onViewChange = actions.onViewChange,
+                        onInputModeSelected = actions.onInputModeSelected,
+                        contentColor = contentColor,
+                        isAttachmentsExpanded = state.isAttachmentsExpanded,
+                        onToggleAttachments = actions.onToggleAttachments,
+                        onToggleNavPanelMode = actions.onToggleNavPanelMode,
+                    )
+                } else {
+                    IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = Icons.Outlined.Widgets, // New icon
+                            contentDescription = "Перемкнути панель",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+
+            OptionsMenu(state = state, actions = actions, contentColor = contentColor)
         }
-      }
     }
-
-    OptionsMenu(state = state, actions = actions, contentColor = contentColor)
-  }
 }
 
 // ------------------- NER INDICATOR ---------------------
