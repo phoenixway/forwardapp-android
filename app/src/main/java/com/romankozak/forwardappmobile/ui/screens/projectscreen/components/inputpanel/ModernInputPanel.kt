@@ -116,6 +116,7 @@ private fun ViewModeToggle(
   contentColor: Color,
   isAttachmentsExpanded: Boolean,
   onToggleAttachments: () -> Unit,
+  onToggleNavPanelMode: () -> Unit,
 ) {
   Surface(
     shape = RoundedCornerShape(16.dp),
@@ -123,6 +124,20 @@ private fun ViewModeToggle(
     border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f)),
   ) {
     Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
+      IconButton(
+          onClick = onToggleNavPanelMode,
+          modifier = Modifier.size(36.dp),
+      ) {
+          Icon(
+              imageVector = Icons.Outlined.Tune,
+              contentDescription = "Перемкнути панель",
+              modifier = Modifier.size(18.dp),
+              tint = contentColor,
+          )
+      }
+      // Separator
+      Box(modifier = Modifier.width(1.dp).height(24.dp).background(contentColor.copy(alpha = 0.1f)))
+
       val availableViews =
         ProjectViewMode.values().filter {
           it != ProjectViewMode.DASHBOARD || isProjectManagementEnabled
@@ -506,53 +521,22 @@ private fun NavigationBar(
       )
     }
 
-    AnimatedContent(
-      targetState = state.isViewModePanelVisible,
-      transitionSpec = {
-        (slideInHorizontally { it / 2 } + fadeIn()) togetherWith
-          (slideOutHorizontally { -it / 2 } + fadeOut())
-      },
-      label = "NavBarLeftAnimation",
-    ) { isViewMode ->
-      if (!isViewMode) {
-        Row {
-          IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
-            Icon(
-              Icons.Outlined.Restore,
-              "Недавні",
-              tint = contentColor.copy(alpha = 0.7f),
-              modifier = Modifier.size(20.dp),
-            )
-          }
-          IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
-            Icon(
-              Icons.Filled.MyLocation,
-              "Показати у списку",
-              tint = contentColor.copy(alpha = 0.7f),
-              modifier = Modifier.size(20.dp),
-            )
-          }
-        }
-      } else {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
-            Icon(
-              imageVector = Icons.Outlined.Tune,
-              contentDescription = "Перемкнути панель",
-              tint = contentColor.copy(alpha = 0.7f),
-              modifier = Modifier.size(20.dp),
-            )
-          }
-          ViewModeToggle(
-            currentView = state.currentView,
-            isProjectManagementEnabled = state.isProjectManagementEnabled,
-            onViewChange = actions.onViewChange,
-            onInputModeSelected = actions.onInputModeSelected,
-            contentColor = contentColor,
-            isAttachmentsExpanded = state.isAttachmentsExpanded,
-            onToggleAttachments = actions.onToggleAttachments,
-          )
-        }
+    Row {
+      IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
+        Icon(
+          Icons.Outlined.Restore,
+          "Недавні",
+          tint = contentColor.copy(alpha = 0.7f),
+          modifier = Modifier.size(20.dp),
+        )
+      }
+      IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
+        Icon(
+          Icons.Filled.MyLocation,
+          "Показати у списку",
+          tint = contentColor.copy(alpha = 0.7f),
+          modifier = Modifier.size(20.dp),
+        )
       }
     }
 
@@ -567,10 +551,21 @@ private fun NavigationBar(
       },
       label = "NavBarRightAnimation",
     ) { isViewMode ->
-      if (!isViewMode) {
+      if (isViewMode) {
+        ViewModeToggle(
+          currentView = state.currentView,
+          isProjectManagementEnabled = state.isProjectManagementEnabled,
+          onViewChange = actions.onViewChange,
+          onInputModeSelected = actions.onInputModeSelected,
+          contentColor = contentColor,
+          isAttachmentsExpanded = state.isAttachmentsExpanded,
+          onToggleAttachments = actions.onToggleAttachments,
+          onToggleNavPanelMode = actions.onToggleNavPanelMode,
+        )
+      } else {
         IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
           Icon(
-            imageVector = Icons.Outlined.Tune,
+            imageVector = Icons.Outlined.Widgets, // New icon
             contentDescription = "Перемкнути панель",
             tint = contentColor.copy(alpha = 0.7f),
             modifier = Modifier.size(20.dp),
