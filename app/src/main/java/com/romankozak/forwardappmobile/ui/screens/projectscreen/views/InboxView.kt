@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.data.database.models.InboxRecord
+import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.InboxScreen
 
@@ -17,6 +18,7 @@ fun InboxView(
     inboxRecords: List<InboxRecord>,
     listState: LazyListState,
     highlightedRecordId: String?,
+    navigationManager: EnhancedNavigationManager,
 ) {
     Box(modifier = modifier) {
         InboxScreen(
@@ -24,8 +26,9 @@ fun InboxView(
             
             onDelete = viewModel.inboxHandler::deleteInboxRecord,
             onPromoteToGoal = viewModel.inboxHandler::promoteInboxRecordToGoal,
-            onPromoteToAnotherList = viewModel.inboxHandler::onPromoteToAnotherList,
-            onRecordClick = viewModel.inboxHandler::onInboxRecordEditRequest,
+            onRecordClick = { record ->
+                navigationManager.navigate("inbox_editor_screen/${record.id}")
+            },
             
             onCopy = { text -> viewModel.copyInboxRecordText(text) },
             listState = listState,

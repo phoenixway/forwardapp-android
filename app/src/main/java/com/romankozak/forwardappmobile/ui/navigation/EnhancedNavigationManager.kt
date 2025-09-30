@@ -47,6 +47,10 @@ class EnhancedNavigationManager(
     private val _showNavigationMenu = MutableStateFlow(false)
     val showNavigationMenu: StateFlow<Boolean> = _showNavigationMenu.asStateFlow()
 
+    fun navigate(route: String) {
+        sendNavigationCommand(NavigationCommand.Navigate(route))
+    }
+
     fun navigateToMainScreen(isInitial: Boolean = false) {
         val entry = NavigationEntry.createMainScreen()
         historyManager.addEntry(entry)
