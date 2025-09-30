@@ -1,17 +1,13 @@
-package com.romankozak.forwardappmobile.ui.screens.customlist
+package com.romankozak.forwardappmobile.ui.common.editor
 
 import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.util.Log
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.ui.screens.customlist.components.ListFormatMode
 import com.romankozak.forwardappmobile.ui.screens.customlist.components.ListToolbarState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -20,33 +16,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
 
-sealed class UnifiedCustomListEvent {
-    object NavigateBack : UnifiedCustomListEvent()
-    data class ShowError(val message: String) : UnifiedCustomListEvent()
-    data class ShowSuccess(val message: String = "") : UnifiedCustomListEvent()
-    object AutoSaved : UnifiedCustomListEvent()
+sealed class UniversalEditorEvent {
+    data class ShowError(val message: String) : UniversalEditorEvent()
 }
 
-data class UnifiedCustomListUiState(
-    val title: String = "",
+data class UniversalEditorUiState(
     val content: TextFieldValue = TextFieldValue(""),
-    val collapsedLines: Set<Int> = emptySet(),
     val toolbarState: ListToolbarState = ListToolbarState(),
     val isLoading: Boolean = false,
-    val isEditing: Boolean = false,
-    val isNewList: Boolean = true,
-    val currentLine: Int? = null,
 )
 
 @HiltViewModel
-class UnifiedCustomListViewModel @Inject constructor(
+class UniversalEditorViewModel @Inject constructor(
     private val application: Application,
-    private val projectRepository: ProjectRepository,
-    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     companion object {
@@ -54,10 +39,10 @@ class UnifiedCustomListViewModel @Inject constructor(
         private const val INDENT_LENGTH = 6
     }
 
-    private val _uiState = MutableStateFlow(UnifiedCustomListUiState())
-    val uiState: StateFlow<UnifiedCustomListUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(UniversalEditorUiState())
+    val uiState: StateFlow<UniversalEditorUiState> = _uiState.asStateFlow()
 
-    private val _events = Channel<UnifiedCustomListEvent>()
+    private val _events = Channel<UniversalEditorEvent>()
     val events = _events.receiveAsFlow()
 
     private val undoStack = ArrayDeque<TextFieldValue>()
@@ -65,88 +50,16 @@ class UnifiedCustomListViewModel @Inject constructor(
 
     private var clipboard: String = ""
 
-    val isNewList: Boolean get() = _uiState.value.isNewList
-
-    init {
-        val listId: String? = savedStateHandle["listId"]
-        if (listId == null) {
-            _uiState.update {
-                it.copy(isNewList = true, content = TextFieldValue("• ", selection = TextRange(2)))
-            }
-        } else {
-            viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true, isNewList = false) }
-                projectRepository.getCustomListById(listId)?.let { list ->
-                    projectRepository.updateCustomList(list.copy(updatedAt = System.currentTimeMillis()))
-                    val content = TextFieldValue(list.content ?: "")
-                    _uiState.update {
-                        it.copy(
-                            title = list.name,
-                            content = content,
-                            isLoading = false,
-                            toolbarState = computeToolbarState(content, false)
-                        )
-                    }
-                    pushUndo(content)
-                } ?: _events.send(UnifiedCustomListEvent.NavigateBack)
-            }
-        }
-    }
-
-    fun onToggleEditMode(isEditing: Boolean) {
+    fun setInitialContent(content: String) {
+        val textFieldValue = TextFieldValue(content)
         _uiState.update {
             it.copy(
-                isEditing = isEditing,
-                // Явно передаємо нове значення 'isEditing' в функцію
-                toolbarState = computeToolbarState(it.content, isEditing = isEditing)
+                content = textFieldValue,
+                toolbarState = computeToolbarState(textFieldValue, true)
             )
         }
+        pushUndo(textFieldValue)
     }
-
-    fun onSave() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val currentState = _uiState.value
-            val listId: String? = savedStateHandle["listId"]
-            val projectId: String? = savedStateHandle["projectId"]
-
-            try {
-                if (listId == null) {
-                    projectId?.let {
-                        projectRepository.createCustomList(
-                            name = currentState.title.ifBlank { "New List" },
-                            content = currentState.content.text,
-                            projectId = it
-                        )
-                        _events.send(UnifiedCustomListEvent.NavigateBack)
-                    } ?: _events.send(UnifiedCustomListEvent.ShowError("Project ID is missing"))
-                } else {
-                    projectRepository.getCustomListById(listId)?.let { existingList ->
-                        val updatedList = existingList.copy(
-                            name = currentState.title,
-                            content = currentState.content.text
-                        )
-                        projectRepository.updateCustomList(updatedList)
-                        _events.send(UnifiedCustomListEvent.ShowSuccess("Saved"))
-                    } ?: _events.send(UnifiedCustomListEvent.ShowError("List not found"))
-                }
-            } catch (e: Exception) {
-                _events.send(
-                    UnifiedCustomListEvent.ShowError(
-                        e.message ?: "An unknown error occurred"
-                    )
-                )
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
-            }
-        }
-    }
-
-    fun onTitleChange(newTitle: String) {
-        _uiState.update { it.copy(title = newTitle) }
-    }
-
-// CustomListViewModel.kt
 
     fun onContentChange(newValue: TextFieldValue) {
         pushUndo(_uiState.value.content)
@@ -154,7 +67,7 @@ class UnifiedCustomListViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 content = newValue,
-                toolbarState = computeToolbarState(newValue, isEditing = it.isEditing)
+                toolbarState = computeToolbarState(newValue, true)
             )
         }
     }
@@ -184,7 +97,7 @@ class UnifiedCustomListViewModel @Inject constructor(
                     content = TextFieldValue(newText, newSelection),
                     toolbarState = computeToolbarState(
                         TextFieldValue(newText, newSelection),
-                        it.isEditing
+                        true
                     )
                 )
             }
@@ -192,17 +105,9 @@ class UnifiedCustomListViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     content = newValue,
-                    toolbarState = computeToolbarState(newValue, it.isEditing)
+                    toolbarState = computeToolbarState(newValue, true)
                 )
             }
-        }
-    }
-
-    fun onToggleFold(lineIndex: Int) {
-        _uiState.update {
-            val set = it.collapsedLines.toMutableSet()
-            if (set.contains(lineIndex)) set.remove(lineIndex) else set.add(lineIndex)
-            it.copy(collapsedLines = set)
         }
     }
 
@@ -311,7 +216,7 @@ class UnifiedCustomListViewModel @Inject constructor(
         val selectionEnd = cur.selection.end
         val newText = cur.text.replaceRange(selectionStart, selectionEnd, textToPaste)
         val newSel = TextRange(selectionStart + textToPaste.length)
-        
+
         onContentChange(TextFieldValue(newText, selection = newSel))
     }
 
@@ -337,12 +242,6 @@ class UnifiedCustomListViewModel @Inject constructor(
         onContentChange(TextFieldValue(newContent, cur.selection))
     }
 
-    fun onToggleNumbered() { /* ... */
-    }
-
-    fun onToggleChecklist() { /* ... */
-    }
-
     fun onUndo() {
         if (undoStack.isEmpty()) return
         val prev = undoStack.removeLast()
@@ -350,7 +249,7 @@ class UnifiedCustomListViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 content = prev,
-                toolbarState = computeToolbarState(prev, it.isEditing)
+                toolbarState = computeToolbarState(prev, true)
             )
         }
     }
@@ -362,7 +261,7 @@ class UnifiedCustomListViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 content = next,
-                toolbarState = computeToolbarState(next, it.isEditing)
+                toolbarState = computeToolbarState(next, true)
             )
         }
     }
@@ -380,8 +279,6 @@ class UnifiedCustomListViewModel @Inject constructor(
     private fun computeToolbarState(content: TextFieldValue, isEditing: Boolean): ListToolbarState {
         val text = content.text
         val cursorPosition = content.selection.start
-        val (_, lineIndex) = findLineStartAndIndex(text, cursorPosition)
-        _uiState.update { it.copy(currentLine = lineIndex) }
 
         val (canIndent, canDeIndent, canMoveUp, canMoveDown) = calculateCapabilities(
             text,
@@ -391,7 +288,6 @@ class UnifiedCustomListViewModel @Inject constructor(
         return ListToolbarState(
             totalItems = text.lines().count { it.isNotBlank() },
             isEditing = isEditing, // Тепер ми беремо значення з параметра функції
-            formatMode = detectFormatMode(text.lines()),
             hasSelection = content.selection.length > 0,
             canIndent = canIndent,
             canDeIndent = canDeIndent,
@@ -402,11 +298,10 @@ class UnifiedCustomListViewModel @Inject constructor(
         )
     }
 
-
     private fun findLineStartAndIndex(
         fullText: String,
         cursorPos: Int,
-        preferPrevious: Boolean = false
+        preferPrevious: Boolean = false,
     ): Pair<Int, Int> {
         val corrected = cursorPos.coerceIn(0, fullText.length)
         var before = fullText.substring(0, corrected)
@@ -421,27 +316,27 @@ class UnifiedCustomListViewModel @Inject constructor(
         return Pair(lineStart, lineIndex)
     }
 
-   private fun detectListMarker(linePrefix: String): String {
-    val trimmed = linePrefix.trimStart()
-    val numberRegex = Regex("""^(\d+)\.""")
+    private fun detectListMarker(linePrefix: String): String {
+        val trimmed = linePrefix.trimStart()
+        val numberRegex = Regex("""^(\\d+)\\. """)
 
-    return when {
-        trimmed.startsWith("•") -> "•"
-        trimmed.startsWith("☐") -> "☐"
-        trimmed.startsWith("☑") -> "☑"
-        numberRegex.containsMatchIn(trimmed) -> {
-            val match = numberRegex.find(trimmed)
-            val num = match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
-            "${num + 1}."
+        return when {
+            trimmed.startsWith("•") -> "•"
+            trimmed.startsWith("☐") -> "☐"
+            trimmed.startsWith("☑") -> "☑"
+            numberRegex.containsMatchIn(trimmed) -> {
+                val match = numberRegex.find(trimmed)
+                val num = match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+                "${num + 1}."
+            }
+            else -> ""
         }
-        else -> ""
     }
-}
 
     private fun shiftSelectionAfterInsert(
         old: TextFieldValue,
         insertPos: Int,
-        insertLen: Int
+        insertLen: Int,
     ): TextRange {
         val oldSel = old.selection
         val newStart = if (oldSel.start >= insertPos) oldSel.start + insertLen else oldSel.start
@@ -452,7 +347,7 @@ class UnifiedCustomListViewModel @Inject constructor(
     private fun shiftSelectionAfterRemove(
         old: TextFieldValue,
         removePos: Int,
-        removeLen: Int
+        removeLen: Int,
     ): TextRange {
         val oldSel = old.selection
         val newStart = when {
@@ -473,8 +368,6 @@ class UnifiedCustomListViewModel @Inject constructor(
         return TextRange(prefixLen.coerceAtMost(lines.joinToString("\n").length))
     }
 
-    private fun scheduleAutoSave() {}
-
     private fun calculateCapabilities(text: String, cursorPosition: Int): List<Boolean> {
         val (_, lineIndex) = findLineStartAndIndex(text, cursorPosition)
         val lines = text.lines()
@@ -486,28 +379,4 @@ class UnifiedCustomListViewModel @Inject constructor(
 
         return listOf(canIndent, canDeIndent, canMoveUp, canMoveDown)
     }
-
-private fun detectFormatMode(lines: List<String>): ListFormatMode {
-    val nonEmptyLines = lines.filter { it.isNotBlank() }
-    if (nonEmptyLines.isEmpty()) return ListFormatMode.BULLET
-
-    val bulletCount = nonEmptyLines.count { it.trimStart().startsWith("•") }
-    val numberedCount = nonEmptyLines.count { line ->
-        val trimmed = line.trimStart()
-        trimmed.matches(Regex("""^\d+\.\s.*"""))
-    }
-    val checklistCount = nonEmptyLines.count { line ->
-        val trimmed = line.trimStart()
-        trimmed.startsWith("☐") || trimmed.startsWith("☑")
-    }
-
-    return when {
-        checklistCount > nonEmptyLines.size / 2 -> ListFormatMode.CHECKLIST
-        numberedCount > nonEmptyLines.size / 2 -> ListFormatMode.NUMBERED
-        bulletCount > nonEmptyLines.size / 2 -> ListFormatMode.BULLET
-        else -> ListFormatMode.PLAIN
-    }
-}
-
-
 }
