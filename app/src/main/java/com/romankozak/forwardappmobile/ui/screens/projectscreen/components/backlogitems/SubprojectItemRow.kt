@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
+import com.romankozak.forwardappmobile.ui.common.components.ExpandableFlowRow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -34,7 +35,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.google.accompanist.flowlayout.FlowRow
 import kotlinx.coroutines.delay
 import androidx.compose.animation.core.Spring
 
@@ -136,62 +136,79 @@ fun SubprojectItemRow(
             val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
                 (subproject.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
                 (subproject.reminderTime != null) ||
-                (parsedData.icons.isNotEmpty())
+                (parsedData.icons.isNotEmpty()) ||
+                childProjects.isNotEmpty()
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ExpandableFlowRow(
+                maxHeight = 72.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = if (hasExtraContent) 6.dp else 4.dp),
             ) {
-                EnhancedSublistIconBadge(
-                    modifier = Modifier.align(Alignment.CenterVertically),
-                )
-
-                subproject.reminderTime?.let { time ->
-                    EnhancedReminderBadge(
-                        reminderTime = time,
-                        currentTimeMillis = currentTimeMillis,
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    EnhancedSublistIconBadge(
+                        modifier = Modifier.align(Alignment.CenterVertically),
                     )
-                }
 
-                EnhancedScoreStatusBadge(
-                    scoringStatus = subproject.scoringStatus,
-                    displayScore = subproject.displayScore,
-                )
-
-                parsedData.icons
-                    .filterNot { icon -> icon == emojiToHide }
-                    .forEachIndexed { index, icon ->
-                        key(icon) {
-                            var delayedVisible by remember { mutableStateOf(false) }
-                            LaunchedEffect(Unit) {
-                                delay(index * 50L)
-                                delayedVisible = true
-                            }
-                            AnimatedVisibility(
-                                visible = delayedVisible,
-                                enter = scaleIn(
-                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                ) + fadeIn(),
-                            ) {
-                                AnimatedContextEmoji(
-                                    emoji = icon,
-                                    modifier = Modifier.align(Alignment.CenterVertically),
-                                )
-                            }
-                        }
+                    childProjects.forEach { child ->
+                        val link = RelatedLink(
+                            type = LinkType.PROJECT,
+                            target = child.id,
+                            displayName = child.name,
+                        )
+                        RelatedLinkChip(
+                            link = link,
+                            onClick = { onChildProjectClick(child) },
+                        )
                     }
 
-                if (!subproject.tags.isNullOrEmpty()) {
-                    subproject.tags.filter { it.isNotBlank() }.forEach { tag ->
-                        val formattedTag = "#${tag.trim().trimStart('#')}"
-                        ModernTagChip(
-                            text = formattedTag,
-                            onClick = { onTagClick(formattedTag) },
-                            tagType = TagType.PROJECT,
+                    subproject.reminderTime?.let { time ->
+                        EnhancedReminderBadge(
+                            reminderTime = time,
+                            currentTimeMillis = currentTimeMillis,
                         )
+                    }
+
+                    EnhancedScoreStatusBadge(
+                        scoringStatus = subproject.scoringStatus,
+                        displayScore = subproject.displayScore,
+                    )
+
+                    parsedData.icons
+                        .filterNot { icon -> icon == emojiToHide }
+                        .forEachIndexed { index, icon ->
+                            key(icon) {
+                                var delayedVisible by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    delay(index * 50L)
+                                    delayedVisible = true
+                                }
+                                AnimatedVisibility(
+                                    visible = delayedVisible,
+                                    enter = scaleIn(
+                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    ) + fadeIn(),
+                                ) {
+                                    AnimatedContextEmoji(
+                                        emoji = icon,
+                                        modifier = Modifier.align(Alignment.CenterVertically),
+                                    )
+                                }
+                            }
+                        }
+
+                    if (!subproject.tags.isNullOrEmpty()) {
+                        subproject.tags.filter { it.isNotBlank() }.forEach { tag ->
+                            val formattedTag = "#${tag.trim().trimStart('#')}"
+                            ModernTagChip(
+                                text = formattedTag,
+                                onClick = { onTagClick(formattedTag) },
+                                tagType = TagType.PROJECT,
+                            )
+                        }
                     }
                 }
             }
@@ -212,26 +229,6 @@ fun SubprojectItemRow(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(8.dp),
                     )
-                }
-            }
-
-            if (childProjects.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                com.google.accompanist.flowlayout.FlowRow(
-                    mainAxisSpacing = 8.dp,
-                    crossAxisSpacing = 4.dp,
-                ) {
-                    childProjects.forEach { child ->
-                        val link = RelatedLink(
-                            type = LinkType.PROJECT,
-                            target = child.id,
-                            displayName = child.name,
-                        )
-                        RelatedLinkChip(
-                            link = link,
-                            onClick = { onChildProjectClick(child) },
-                        )
-                    }
                 }
             }
         }
