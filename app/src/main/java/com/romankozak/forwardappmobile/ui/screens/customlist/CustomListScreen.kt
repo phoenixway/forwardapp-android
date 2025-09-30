@@ -1,107 +1,62 @@
 package com.romankozak.forwardappmobile.ui.screens.customlist
 
-// FIX: Added a newline and separated the package declaration
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import android.app.Activity
+import android.util.Log
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.FormatAlignLeft
-import androidx.compose.material.icons.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.FormatListNumbered
-import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.Title
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.platform.LocalDensity
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.common.editor.CreateEditContent
-
-enum class ListFormatMode {
-  BULLET,
-  NUMBERED,
-  CHECKLIST,
-  PLAIN,
-}
-
-enum class SortMode {
-  NONE,
-  ALPHABETICAL,
-  CREATION_DATE,
-  PRIORITY,
-}
-
-data class ListToolbarState(
-  val isEditing: Boolean = false,
-  val formatMode: ListFormatMode = ListFormatMode.BULLET,
-  val sortMode: SortMode = SortMode.NONE,
-  val hasSelection: Boolean = false,
-  val selectedCount: Int = 0,
-  val totalItems: Int = 0,
-  val canUndo: Boolean = false,
-  val isSelectAllMode: Boolean = false,
-)
+import com.romankozak.forwardappmobile.ui.screens.customlist.components.EnhancedListToolbar
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class ScreenMode {
   CREATE,
@@ -109,451 +64,648 @@ enum class ScreenMode {
   VIEW,
 }
 
+@Composable
+private fun ShowToolbarButton(onClick: () -> Unit) {
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+      shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = "Показати тулбар",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnifiedCustomListScreen(
   navController: NavController,
-  listId: String? = null, // null для створення нового списку
-  projectId: String? = null, // для створення нового списку
   viewModel: UnifiedCustomListViewModel = hiltViewModel(),
 ) {
-  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-  var screenMode by remember {
-    mutableStateOf(
-      when {
-        listId != null -> ScreenMode.VIEW
-        projectId != null -> ScreenMode.CREATE
-        else -> ScreenMode.CREATE
-      }
-    )
+  var isToolbarVisible by remember { mutableStateOf(true) }
+  val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
+  val view = LocalView.current
+  val isDarkTheme = isSystemInDarkTheme()
+
+  if (!view.isInEditMode) {
+    LaunchedEffect(Unit) {
+      val window = (view.context as Activity).window
+      WindowCompat.setDecorFitsSystemWindows(window, false)
+
+      @Suppress("DEPRECATION")
+      window.statusBarColor = Color.Transparent.toArgb()
+      @Suppress("DEPRECATION")
+      window.navigationBarColor = Color.Transparent.toArgb()
+
+      val insetsController = WindowCompat.getInsetsController(window, view)
+      insetsController.isAppearanceLightStatusBars = topBarContainerColor.luminance() > 0.5
+      insetsController.isAppearanceLightNavigationBars = !isDarkTheme
+    }
   }
 
-  // Toolbar state
-  var toolbarState: ListToolbarState by remember {
-    mutableStateOf(
-      ListToolbarState(
-        isEditing = screenMode != ScreenMode.VIEW,
-        formatMode = ListFormatMode.BULLET,
-        totalItems = 0,
-      )
-    )
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  var screenMode by remember {
+    mutableStateOf(if (viewModel.isNewList) ScreenMode.CREATE else ScreenMode.VIEW)
   }
 
   val keyboardController = LocalSoftwareKeyboardController.current
-  val titleFocusRequester = remember { FocusRequester() }
   val contentFocusRequester = remember { FocusRequester() }
 
-  // Update toolbar state when screen mode changes
-  LaunchedEffect(screenMode, uiState.content.text) {
-    val itemCount = uiState.content.text.lines().count { it.trim().isNotEmpty() }
-    toolbarState = 
-      toolbarState.copy(
-        isEditing = screenMode != ScreenMode.VIEW,
-        totalItems = itemCount,
-        canUndo = false, // TODO: implement undo functionality
-      )
-  }
+  val animatedBackgroundColor by
+    animateColorAsState(
+      targetValue =
+        when (screenMode) {
+          ScreenMode.VIEW -> MaterialTheme.colorScheme.surface
+          else -> MaterialTheme.colorScheme.surfaceContainerLow
+        },
+      animationSpec = tween(300),
+      label = "background_color",
+    )
 
-  // Ініціалізація
-  LaunchedEffect(listId, projectId) { viewModel.initialize(listId, projectId) }
+  val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
-  // Обробка подій
-  LaunchedEffect(Unit) { 
-    viewModel.events.collect { event ->
+  LaunchedEffect(screenMode) { viewModel.onToggleEditMode(screenMode != ScreenMode.VIEW) }
+
+  LaunchedEffect(Unit) {
+    viewModel.events.collect { event: UnifiedCustomListEvent ->
       when (event) {
         is UnifiedCustomListEvent.NavigateBack -> {
           navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
           navController.popBackStack()
         }
-        is UnifiedCustomListEvent.ShowError -> {
-          // Обробка помилки
-        }
+        is UnifiedCustomListEvent.ShowError -> {}
+        is UnifiedCustomListEvent.ShowSuccess -> {}
+        is UnifiedCustomListEvent.AutoSaved -> {}
       }
     }
   }
 
-  // Керування фокусом при зміні режиму
   LaunchedEffect(screenMode) {
     when (screenMode) {
-      ScreenMode.CREATE -> {
-        titleFocusRequester.requestFocus()
-      }
-      ScreenMode.EDIT_EXISTING -> {
-        contentFocusRequester.requestFocus()
-      }
-      ScreenMode.VIEW -> {
-        keyboardController?.hide()
-      }
+      ScreenMode.CREATE, ScreenMode.EDIT_EXISTING -> contentFocusRequester.requestFocus()
+      ScreenMode.VIEW -> keyboardController?.hide()
     }
   }
 
   Scaffold(
+    modifier = Modifier.background(animatedBackgroundColor).imePadding(),
     topBar = {
-      TopAppBar(
-        title = {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-          ) {
-            Icon(
-              imageVector = Icons.Default.ListAlt,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.primary,
-            )
-            Column {
-              Text(
-                text =
-                  when (screenMode) {
-                    ScreenMode.CREATE -> "New Custom List"
-                    ScreenMode.EDIT_EXISTING -> "Edit List"
-                    ScreenMode.VIEW -> uiState.title.ifEmpty { "Custom List" }
-                  },
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-              )
-              if (screenMode == ScreenMode.VIEW) {
-                Text(
-                  text = "Tap to edit content",
-                  style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-              }
-            }
-          }
+      EnhancedTopAppBar(
+        screenMode = screenMode,
+        title = uiState.title,
+        totalItems = uiState.toolbarState.totalItems,
+        isLoading = uiState.isLoading,
+        onNavigateBack = { navController.popBackStack() },
+        onEdit = { screenMode = ScreenMode.EDIT_EXISTING },
+        onSave = {
+          viewModel.onSave()
+          screenMode = ScreenMode.VIEW
         },
-        navigationIcon = {
-          IconButton(onClick = { navController.popBackStack() }) {
-            Icon(
-              Icons.AutoMirrored.Filled.ArrowBack,
-              contentDescription = "Back",
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
-        },
-        actions = {
-          when (screenMode) {
-            ScreenMode.VIEW -> {
-              IconButton(onClick = { screenMode = ScreenMode.EDIT_EXISTING }) {
-                Icon(
-                  Icons.Default.Edit,
-                  contentDescription = "Edit",
-                  tint = MaterialTheme.colorScheme.primary,
-                )
-              }
-            }
-            ScreenMode.EDIT_EXISTING -> {
-              IconButton(onClick = { screenMode = ScreenMode.VIEW }) {
-                Icon(
-                  Icons.Default.Close,
-                  contentDescription = "Cancel",
-                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-              }
-            }
-            ScreenMode.CREATE -> {
-              // Показуємо Save button у FAB
-            }
-          }
-        },
-        colors =
-          TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
       )
-    },
-    floatingActionButton = {
-      when (screenMode) {
-        ScreenMode.CREATE -> {
-          AnimatedVisibility(
-            visible = uiState.isSaveEnabled,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-          ) {
-            FloatingActionButton(
-              onClick = { viewModel.onSave() },
-              containerColor = MaterialTheme.colorScheme.primary,
-              contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-              Icon(Icons.Default.Add, contentDescription = "Create")
-            }
-          }
-        }
-        ScreenMode.EDIT_EXISTING -> {
-          FloatingActionButton(
-            onClick = {
-              viewModel.onSave()
-              screenMode = ScreenMode.VIEW
-            },
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-          ) {
-            Icon(Icons.Default.Check, contentDescription = "Save")
-          }
-        }
-        ScreenMode.VIEW -> {
-          // Немає FAB у режимі перегляду
-        }
-      }
     },
     bottomBar = {
-        Column(modifier = Modifier.imePadding()) {
-            SimpleListToolbar(
-                state = toolbarState,
-                onToggleEdit = {
-                    screenMode =
-                        if (screenMode == ScreenMode.VIEW) {
-                            ScreenMode.EDIT_EXISTING
-                        } else {
-                            ScreenMode.VIEW
-                        }
-                },
-                onAddItem = {
-                    val currentText = uiState.content.text
-                    val newText =
-                        if (currentText.isEmpty()) {
-                            "• "
-                        } else if (!currentText.endsWith("\n")) {
-                            "$currentText\n• "
-                        } else {
-                            "$currentText• "
-                        }
-                    viewModel.onContentChange(
-                        TextFieldValue(newText, selection = TextRange(newText.length))
-                    )
-                },
-                onFormatChange = { format ->
-                    toolbarState = toolbarState.copy(formatMode = format)
-                    // TODO: Convert existing content to new format
-                },
-                onSortChange = { sort ->
-                    toolbarState = toolbarState.copy(sortMode = sort)
-                    // TODO: Implement sorting
-                },
-                onSelectAll = {
-                    // TODO: Implement select all
-                },
-                onClearSelection = {
-                    toolbarState = toolbarState.copy(hasSelection = false, selectedCount = 0)
-                },
-                onDeleteSelected = {
-                    // TODO: Implement delete selected
-                },
-                onUndo = {
-                    // TODO: Implement undo
-                },
-            )
+      if (screenMode != ScreenMode.VIEW) {
+        Box(modifier = Modifier.navigationBarsPadding()) {
+          AnimatedContent(
+            targetState = isToolbarVisible,
+            label = "toolbar_visibility",
+            transitionSpec = {
+              (slideInVertically { height -> height } + fadeIn())
+                .togetherWith(slideOutVertically { height -> height } + fadeOut())
+            }
+          ) { isVisible ->
+            if (isVisible) {
+              EnhancedListToolbar(
+                state = uiState.toolbarState,
+                onIndentBlock = viewModel::onIndentBlock,
+                onDeIndentBlock = viewModel::onDeIndentBlock,
+                onMoveBlockUp = viewModel::onMoveBlockUp,
+                onMoveBlockDown = viewModel::onMoveBlockDown,
+                onIndentLine = viewModel::onIndentLine,
+                onDeIndentLine = viewModel::onDeIndentLine,
+                onMoveLineUp = viewModel::onMoveLineUp,
+                onMoveLineDown = viewModel::onMoveLineDown,
+                onDeleteLine = viewModel::onDeleteLine,
+                onCopyLine = viewModel::onCopyLine,
+                onCutLine = viewModel::onCutLine,
+                onPasteLine = viewModel::onPasteLine,
+                onToggleBullet = viewModel::onToggleBullet,
+                onUndo = viewModel::onUndo,
+                onRedo = viewModel::onRedo,
+                onToggleVisibility = { isToolbarVisible = false },
+              )
+            } else {
+              ShowToolbarButton(onClick = { isToolbarVisible = true })
+            }
+          }
         }
+      }
     },
-  ) { it ->
-    Column(modifier = Modifier.fillMaxSize()) {
-      // Enhanced Toolbar
-      if (screenMode == ScreenMode.VIEW || screenMode == ScreenMode.EDIT_EXISTING) {
-        SimpleListToolbar(
-          state = toolbarState,
-          onToggleEdit = {
-            screenMode =
-              if (screenMode == ScreenMode.VIEW) {
-                ScreenMode.EDIT_EXISTING
-              } else {
-                ScreenMode.VIEW
-              }
-          },
-          onAddItem = {
-            val currentText = uiState.content.text
-            val newText =
-              if (currentText.isEmpty()) {
-                "• "
-              } else if (!currentText.endsWith("\n")) {
-                "$currentText\n• "
-              } else {
-                "$currentText• "
-              }
-            viewModel.onContentChange(
-              TextFieldValue(newText, selection = TextRange(newText.length))
-            )
-          },
-          onFormatChange = { format ->
-            toolbarState = toolbarState.copy(formatMode = format)
-            // TODO: Convert existing content to new format
-          },
-          onSortChange = { sort ->
-            toolbarState = toolbarState.copy(sortMode = sort)
-            // TODO: Implement sorting
-          },
-          onSelectAll = {
-            // TODO: Implement select all
-          },
-          onClearSelection = {
-            toolbarState = toolbarState.copy(hasSelection = false, selectedCount = 0)
-          },
-          onDeleteSelected = {
-            // TODO: Implement delete selected
-          },
-          onUndo = {
-            // TODO: Implement undo
-          },
+    floatingActionButton = {
+      AnimatedVisibility(
+        visible = screenMode == ScreenMode.CREATE,
+        enter =
+          scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) +
+            fadeIn(),
+        exit = scaleOut(animationSpec = tween(200)) + fadeOut(),
+      ) {
+        ExtendedFloatingActionButton(
+          onClick = viewModel::onSave,
+          icon = { Icon(Icons.Default.Add, contentDescription = "Створити список") },
+          text = { Text("Створити") },
+          containerColor = MaterialTheme.colorScheme.primaryContainer,
+          contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+          modifier = Modifier.navigationBarsPadding().clip(RoundedCornerShape(16.dp)),
         )
       }
-
-      // Main content
-      CreateEditContent(
-        uiState = uiState,
-        viewModel = viewModel,
-        paddingValues = it,
-        titleFocusRequester = titleFocusRequester,
-        contentFocusRequester = contentFocusRequester,
-        isCreating = screenMode == ScreenMode.CREATE,
-      )
+    },
+  ) { paddingValues ->
+    Box(
+      modifier = Modifier
+        .padding(paddingValues)
+        .fillMaxSize()
+        .background(animatedBackgroundColor)
+    ) {
+      when (screenMode) {
+        ScreenMode.CREATE,
+        ScreenMode.EDIT_EXISTING -> {
+          CreateEditContent(
+            uiState = uiState,
+            viewModel = viewModel,
+            contentFocusRequester = contentFocusRequester,
+            bringIntoViewRequester = bringIntoViewRequester,
+            isToolbarVisible = isToolbarVisible,
+          )
+        }
+        ScreenMode.VIEW -> {
+          ViewContent(
+            uiState = uiState,
+            viewModel = viewModel,
+            onContentClick = { screenMode = ScreenMode.EDIT_EXISTING },
+          )
+        }
+      }
+      if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+          Card(
+            colors =
+              CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+              ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+          ) {
+            Row(
+              modifier = Modifier.padding(24.dp),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+              CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
+              Text(text = "Збереження...", style = MaterialTheme.typography.bodyMedium)
+            }
+          }
+        }
+      }
     }
   }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SimpleListToolbar(
-  state: ListToolbarState,
-  onToggleEdit: () -> Unit,
-  onAddItem: () -> Unit,
-  onFormatChange: (ListFormatMode) -> Unit,
-  onSortChange: (SortMode) -> Unit,
-  onSelectAll: () -> Unit,
-  onClearSelection: () -> Unit,
-  onDeleteSelected: () -> Unit,
-  onUndo: () -> Unit,
-  modifier: Modifier = Modifier,
+private fun EnhancedTopAppBar(
+  screenMode: ScreenMode,
+  title: String,
+  totalItems: Int,
+  isLoading: Boolean,
+  onNavigateBack: () -> Unit,
+  onEdit: () -> Unit,
+  onSave: () -> Unit,
 ) {
-  var showFormatMenu by remember { mutableStateOf(false) }
-
   Card(
-    modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-    colors =
-      CardDefaults.cardColors(
-        containerColor =
-          if (state.isEditing) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-          else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
-      ),
-    elevation = CardDefaults.cardElevation(defaultElevation = if (state.isEditing) 4.dp else 2.dp),
+    modifier = Modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
+    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
   ) {
-    Row(
-      modifier = Modifier.fillMaxWidth().padding(12.dp),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      // Left side - Mode indicator and stats
-      Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        // Mode toggle button
-        Surface(
-          shape = CircleShape,
-          color =
-            if (state.isEditing) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.surfaceVariant,
-          modifier = Modifier.size(32.dp),
+    TopAppBar(
+      title = {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-          Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.clickable { onToggleEdit() }.padding(8.dp),
-          ) {
-            Icon(
-              imageVector = if (state.isEditing) Icons.Default.Check else Icons.Default.Edit,
-              contentDescription = if (state.isEditing) "Finish editing" else "Start editing",
-              tint =
-                if (state.isEditing) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.size(16.dp),
-            )
-          }
-        }
-
-        // Stats
-        Column {
-          Text(
-            text = "${state.totalItems} items",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-
-          if (state.isEditing) {
-            Text(
-              text = "Editing mode",
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-            )
-          }
-        }
-      }
-
-      // Right side - Action buttons
-      Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        if (state.isEditing) {
-          // Add item button
           Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary,
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
             modifier = Modifier.size(32.dp),
           ) {
-            Box(
-              contentAlignment = Alignment.Center,
-              modifier = Modifier.clickable { onAddItem() },
-            ) {
-              Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add item",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(16.dp),
+            Icon(
+              imageVector = Icons.AutoMirrored.Filled.ListAlt,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onPrimaryContainer,
+              modifier = Modifier.fillMaxSize().padding(6.dp),
+            )
+          }
+          Column {
+            Text(
+              text = title.ifEmpty { "Новий список" },
+              style = MaterialTheme.typography.headlineSmall,
+              fontWeight = FontWeight.SemiBold,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+            )
+            if (screenMode == ScreenMode.VIEW && totalItems > 0) {
+              Text(
+                text = "$totalItems пунктів",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
             }
           }
         }
-
-        // Format menu
-        Box {
-          IconButton(onClick = { showFormatMenu = true }) {
-            Icon(
-              imageVector =
-                when (state.formatMode) {
-                  ListFormatMode.BULLET -> Icons.Default.FormatListBulleted
-                  ListFormatMode.NUMBERED -> Icons.Default.FormatListNumbered
-                  ListFormatMode.CHECKLIST -> Icons.Default.CheckBox
-                  ListFormatMode.PLAIN -> Icons.Default.FormatAlignLeft
-                },
-              contentDescription = "Change format",
-              tint = MaterialTheme.colorScheme.primary,
-            )
+      },
+      navigationIcon = {
+        IconButton(onClick = onNavigateBack) {
+          Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Назад",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+      },
+      actions = {
+        when (screenMode) {
+          ScreenMode.VIEW -> {
+            IconButton(onClick = onEdit) {
+              Icon(
+                Icons.Default.Edit,
+                contentDescription = "Редагувати",
+                tint = MaterialTheme.colorScheme.primary,
+              )
+            }
           }
-
-          DropdownMenu(expanded = showFormatMenu, onDismissRequest = { showFormatMenu = false }) {
-            DropdownMenuItem(
-              text = { Text("Bullet List") },
-              onClick = {
-                onFormatChange(ListFormatMode.BULLET)
-                showFormatMenu = false
-              },
-              leadingIcon = { Icon(Icons.Default.FormatListBulleted, contentDescription = null) },
-            )
-            DropdownMenuItem(
-              text = { Text("Numbered List") },
-              onClick = {
-                onFormatChange(ListFormatMode.NUMBERED)
-                showFormatMenu = false
-              },
-              leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null) },
-            )
-            DropdownMenuItem(
-              text = { Text("Checklist") },
-              onClick = {
-                onFormatChange(ListFormatMode.CHECKLIST)
-                showFormatMenu = false
-              },
-              leadingIcon = { Icon(Icons.Default.CheckBox, contentDescription = null) },
-            )
+          ScreenMode.EDIT_EXISTING -> {
+            FilledTonalIconButton(onClick = onSave, enabled = !isLoading) {
+              if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+              } else {
+                Icon(Icons.Default.Check, contentDescription = "Зберегти")
+              }
+            }
           }
+          ScreenMode.CREATE -> {}
+        }
+      },
+      colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+      windowInsets = WindowInsets.statusBars,
+    )
+  }
+}
+
+@Composable
+private fun CreateEditContent(
+  uiState: UnifiedCustomListUiState,
+  viewModel: UnifiedCustomListViewModel,
+  contentFocusRequester: FocusRequester,
+  bringIntoViewRequester: BringIntoViewRequester,
+  isToolbarVisible: Boolean,
+) {
+  val scrollState = rememberScrollState()
+  val coroutineScope = rememberCoroutineScope()
+  var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+  LaunchedEffect(uiState.content.selection, textLayoutResult, isToolbarVisible) {
+      if (!isToolbarVisible) return@LaunchedEffect
+      val layoutResult = textLayoutResult ?: return@LaunchedEffect
+      val cursorRect = layoutResult.getCursorRect(uiState.content.selection.start)
+
+      val paddedRect = cursorRect.copy(
+          top = (cursorRect.top - 150).coerceAtLeast(0f),
+          bottom = (cursorRect.bottom + 150)
+      )
+
+      coroutineScope.launch {
+          delay(350) // Wait for animations
+          bringIntoViewRequester.bringIntoView(paddedRect)
+      }
+  }
+
+  val highlightColor = MaterialTheme.colorScheme.surfaceVariant
+  val textColor = MaterialTheme.colorScheme.onSurface
+  val accentColor = MaterialTheme.colorScheme.primary
+
+  Row(
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(scrollState)
+      .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+  ) {
+    Gutter(
+      lines = uiState.content.text.lines(),
+      collapsedLines = uiState.collapsedLines,
+      onToggleFold = viewModel::onToggleFold,
+      lineHeight = 24.sp
+    )
+
+   BasicTextField(
+    value = uiState.content,
+    onValueChange = { newValue ->
+        val firstLine = newValue.text.lines().firstOrNull() ?: ""
+        Log.d("TitleFormation", "Original first line: '$firstLine'")
+val markerRegex = Regex(
+    """^(\s*)(\*|•|\d+\.|\[\s*x?\])\s*""",
+    RegexOption.IGNORE_CASE
+)
+        val title = firstLine.replaceFirst(markerRegex, "").trim()
+        Log.d("TitleFormation", "Cleaned title: '$title'")
+        viewModel.onTitleChange(title)
+
+        val oldValue = uiState.content
+        if (
+            newValue.text.length > oldValue.text.length &&
+            newValue.text.count { it == '\n' } > oldValue.text.count { it == '\n' }
+        ) {
+          viewModel.onEnter(newValue)
+        } else {
+          viewModel.onContentChange(newValue)
+        }
+    },
+      onTextLayout = { result ->
+        textLayoutResult = result
+      },
+      modifier = Modifier
+        .padding(start = 16.dp)
+        .weight(1f)
+        .fillMaxHeight()
+        .focusRequester(contentFocusRequester)
+        .bringIntoViewRequester(bringIntoViewRequester)
+        .drawBehind {
+          uiState.currentLine?.let { line ->
+            textLayoutResult?.let { layoutResult ->
+              if (line < layoutResult.lineCount) {
+                val top = layoutResult.getLineTop(line)
+                val bottom = layoutResult.getLineBottom(line)
+                drawRect(
+                  color = highlightColor,
+                  topLeft = Offset(0f, top),
+                  size = Size(size.width, bottom - top)
+                )
+              }
+            }
+          }
+        },
+      textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+      cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+      visualTransformation = ListVisualTransformation(uiState.collapsedLines, textColor, accentColor),
+    )
+  }
+}
+
+@Composable
+private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: (Int) -> Unit, lineHeight: TextUnit) {
+  val focusManager = LocalFocusManager.current
+  val lineHeightDp = with(LocalDensity.current) { lineHeight.toDp() }
+  Column(modifier = Modifier.width(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    lines.forEachIndexed { index, line ->
+      val indent = line.takeWhile { it.isWhitespace() }.length
+      val nextIndent =
+        if (index + 1 < lines.size) lines[index + 1].takeWhile { it.isWhitespace() }.length else -1
+      val isParent = nextIndent > indent && line.isNotBlank()
+
+      Box(modifier = Modifier.height(lineHeightDp), contentAlignment = Alignment.Center) {
+        if (isParent) {
+          val isCollapsed = collapsedLines.contains(index)
+          val icon =
+            if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.KeyboardArrowDown
+          Icon(
+            imageVector = icon,
+            contentDescription = if (isCollapsed) "Expand" else "Collapse",
+            modifier =
+              Modifier.size(16.dp).clickable {
+                focusManager.clearFocus()
+                onToggleFold(index)
+              },
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
         }
       }
     }
   }
-} // <-- FIX: Added missing closing brace
+}
+
+private class ListVisualTransformation(
+  private val collapsedLines: Set<Int>,
+  private val textColor: Color,
+  private val accentColor: Color,
+) : VisualTransformation {
+  override fun filter(text: AnnotatedString): TransformedText {
+    val originalText = text.text
+    val lines = originalText.lines()
+    val visibleLines = mutableListOf<IndexedValue<String>>()
+
+    var i = 0
+    while (i < lines.size) {
+      val line = lines[i]
+      visibleLines.add(IndexedValue(i, line))
+      if (collapsedLines.contains(i)) {
+        val indent = line.takeWhile { it.isWhitespace() }.length
+        i++
+        while (
+          i < lines.size &&
+            (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
+        ) {
+          i++
+        }
+      } else {
+        i++
+      }
+    }
+
+    val transformedText = buildAnnotatedString {
+      visibleLines.forEachIndexed { visibleIndex, indexedValue ->
+        val (_, line) = indexedValue
+
+val headingRegex   = Regex("""^(\s*)(#+\s)(.*)""")
+val bulletRegex    = Regex("""^(\s*)\*\s(.*)""")
+val numberedRegex  = Regex("""^(\s*)(\d+)\.\s(.*)""")
+val checkedRegex   = Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
+val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
 
 
+
+        var matched = false
+
+        if (!matched) headingRegex.find(line)?.let {
+          val (indent, hashes, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append(hashes) }
+          withStyle(SpanStyle(color = textColor, fontWeight = FontWeight.Bold)) { append(content) }
+          matched = true
+        }
+
+        if (!matched) bulletRegex.find(line)?.let {
+          val (indent, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("• ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+        if (!matched) numberedRegex.find(line)?.let {
+          val (indent, number, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("$number. ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+        if (!matched) uncheckedRegex.find(line)?.let {
+          val (indent, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☐ ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+        if (!matched) checkedRegex.find(line)?.let {
+          val (indent, content) = it.destructured
+          append(indent)
+          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☑ ") }
+          withStyle(SpanStyle(color = textColor)) { append(content) }
+          matched = true
+        }
+
+        if (!matched) {
+          withStyle(SpanStyle(color = textColor)) { append(line) }
+        }
+
+        if (visibleIndex < visibleLines.size - 1) {
+          append("\n")
+        }
+      }
+    }
+
+    val offsetMapping =
+      object : OffsetMapping {
+        override fun originalToTransformed(offset: Int): Int {
+          if (offset <= 0) return 0
+          val prefix = originalText.substring(0, offset)
+          val parts = prefix.lines()
+          val originalLineIndex = parts.size - 1
+          val charInLine = parts.lastOrNull()?.length ?: 0
+
+          var transformedLineStart = 0
+          var found = false
+          for (v in visibleLines) {
+            if (v.index == originalLineIndex) {
+              found = true
+              break
+            }
+            transformedLineStart += v.value.length + 1
+          }
+          if (!found) return transformedText.length
+          return (transformedLineStart + charInLine).coerceIn(0, transformedText.length)
+        }
+
+        override fun transformedToOriginal(offset: Int): Int {
+          if (offset <= 0) return 0
+          val prefix = transformedText.substring(0, offset)
+          val parts = prefix.lines()
+          val transformedLineIndex = parts.size - 1
+          val charInLine = parts.lastOrNull()?.length ?: 0
+          if (transformedLineIndex >= visibleLines.size) return originalText.length
+          val originalLineIndex = visibleLines[transformedLineIndex].index
+          val originalLineStart = lines.take(originalLineIndex).sumOf { it.length + 1 }
+          return (originalLineStart + charInLine).coerceIn(0, originalText.length)
+        }
+      }
+
+    return TransformedText(transformedText, offsetMapping)
+  }
+}
+
+@Composable
+private fun ViewContent(
+  uiState: UnifiedCustomListUiState,
+  viewModel: UnifiedCustomListViewModel,
+  onContentClick: () -> Unit,
+) {
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(rememberScrollState())
+      .clickable { onContentClick() }
+      .padding(16.dp),
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
+    if (uiState.content.text.isBlank()) {
+      Column(
+        modifier = Modifier.fillMaxWidth().padding(48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+      ) {
+        Icon(
+          imageVector = Icons.Default.EditNote,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+          modifier = Modifier.size(64.dp),
+        )
+        Text(
+          text = "Список порожній",
+          style = MaterialTheme.typography.titleLarge,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          fontWeight = FontWeight.Medium,
+        )
+        Text(
+          text = "Натисніть щоб додати елементи",
+          style = MaterialTheme.typography.bodyLarge,
+          color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        )
+      }
+    } else {
+      val annotatedString = buildAnnotatedString {
+        val lines = uiState.content.text.lines()
+        var i = 0
+        while (i < lines.size) {
+          val line = lines[i]
+          val indent = line.takeWhile { it.isWhitespace() }.length
+          val isCollapsed = uiState.collapsedLines.contains(i)
+
+          withStyle(
+            style =
+              SpanStyle(background = if (isCollapsed) Color.LightGray else Color.Transparent)
+          ) {
+            append(line)
+          }
+          append("\n")
+
+          if (isCollapsed) {
+            i++
+            while (
+              i < lines.size &&
+                (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
+            ) {
+              i++
+            }
+          } else {
+            i++
+          }
+        }
+      }
+      Text(
+        text = annotatedString,
+        style = TextStyle(lineHeight = 20.sp),
+      )
+    }
+    // Додатковий відступ знизу, щоб контент не ховався за панеллю навігації
+    Spacer(modifier = Modifier.navigationBarsPadding())
+  }
+}
