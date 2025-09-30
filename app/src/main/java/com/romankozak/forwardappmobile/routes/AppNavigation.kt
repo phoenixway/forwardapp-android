@@ -37,7 +37,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.EditTaskScreen
-import com.romankozak.forwardappmobile.ui.screens.noteedit.NoteEditScreen
+import com.romankozak.forwardappmobile.ui.screens.note.NoteEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
@@ -285,7 +285,7 @@ private fun NavGraphBuilder.mainGraph(
                 },
             ),
     ) {
-        NoteEditScreen(navController = navController)
+        NoteEditorScreen(navController = navController)
     }
 
     // Об'єднаний екран для перегляду/редагування існуючого списку
