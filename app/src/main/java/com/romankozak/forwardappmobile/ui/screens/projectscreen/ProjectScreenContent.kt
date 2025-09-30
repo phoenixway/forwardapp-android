@@ -60,6 +60,7 @@ fun GoalDetailContent(
                 inboxRecords = inboxRecords,
                 listState = inboxListState,
                 highlightedRecordId = uiState.inboxRecordToHighlight,
+                navigationManager = viewModel.enhancedNavigationManager,
             )
         }
         ProjectViewMode.DASHBOARD -> {

@@ -49,7 +49,6 @@ fun InboxScreen(
     records: List<InboxRecord>,
     onDelete: (String) -> Unit,
     onPromoteToGoal: (InboxRecord) -> Unit,
-    onPromoteToAnotherList: (InboxRecord) -> Unit,
     onRecordClick: (InboxRecord) -> Unit,
     onCopy: (String) -> Unit,
     listState: LazyListState,
@@ -119,7 +118,6 @@ fun InboxScreen(
                                 snackbarHostState.showSnackbar("Переміщено до цілей")
                             }
                         },
-                        onPromoteToAnotherList = { onPromoteToAnotherList(record) },
                         onEdit = { onRecordClick(record) },
                         onCopy = {
                             onCopy(record.text)
@@ -151,7 +149,6 @@ fun InboxItemRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onPromoteToGoal: () -> Unit,
-    onPromoteToAnotherList: () -> Unit,
     onCopy: () -> Unit,
     listState: LazyListState,
     index: Int,
@@ -274,12 +271,7 @@ fun InboxItemRow(
                                 onClick = onPromoteToGoal,
                                 tint = MaterialTheme.colorScheme.primary,
                             )
-                            SimpleIconButton(
-                                icon = Icons.Outlined.CallMade,
-                                contentDescription = "Перемістити до іншого списку",
-                                onClick = onPromoteToAnotherList,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
+
                         }
 
                         

@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScree
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
 import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
+import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreen
@@ -438,5 +439,12 @@ private fun NavGraphBuilder.mainGraph(
         arguments = listOf(navArgument("taskId") { type = NavType.StringType })
     ) {
         EditTaskScreen(onNavigateUp = { navController.navigateUp() })
+    }
+
+    composable(
+        route = "inbox_editor_screen/{inboxId}",
+        arguments = listOf(navArgument("inboxId") { type = NavType.StringType })
+    ) {
+        InboxEditorScreen(navController = navController)
     }
 }

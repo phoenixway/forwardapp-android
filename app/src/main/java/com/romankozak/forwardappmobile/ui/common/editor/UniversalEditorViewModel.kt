@@ -29,8 +29,7 @@ data class UniversalEditorUiState(
     val isLoading: Boolean = false,
 )
 
-@HiltViewModel
-class UniversalEditorViewModel @Inject constructor(
+class UniversalEditorViewModel(
     private val application: Application,
 ) : ViewModel() {
 
