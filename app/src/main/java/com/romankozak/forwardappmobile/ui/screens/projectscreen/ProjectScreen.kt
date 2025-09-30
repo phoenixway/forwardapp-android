@@ -113,6 +113,15 @@ fun ProjectsScreen(
     val coroutineScope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(value = false) }
 
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("refresh_needed")?.observeForever { isRefreshNeeded ->
+            if (isRefreshNeeded) {
+                viewModel.forceRefresh()
+                navController.currentBackStackEntry?.savedStateHandle?.remove<Boolean>("refresh_needed")
+            }
+        }
+    }
+
     @Composable
     fun rememberSimpleDragDropState(
         lazyListState: LazyListState,

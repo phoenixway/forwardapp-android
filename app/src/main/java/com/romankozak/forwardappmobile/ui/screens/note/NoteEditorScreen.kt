@@ -23,6 +23,7 @@ fun NoteEditorScreen(
         title = "Edit Note",
         onSave = { content ->
             viewModel.saveNote(content)
+            navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
             navController.popBackStack()
         },
         onNavigateBack = { navController.popBackStack() },

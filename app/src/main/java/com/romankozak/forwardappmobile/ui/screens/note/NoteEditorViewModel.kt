@@ -31,7 +31,8 @@ class NoteEditorViewModel @Inject constructor(
         noteId?.let {
             viewModelScope.launch {
                 projectRepository.getNoteById(it)?.let { note ->
-                    val updatedNote = note.copy(content = content)
+                    val title = content.lines().firstOrNull() ?: ""
+                    val updatedNote = note.copy(title = title, content = content)
                     projectRepository.saveNote(updatedNote)
                 }
             }
