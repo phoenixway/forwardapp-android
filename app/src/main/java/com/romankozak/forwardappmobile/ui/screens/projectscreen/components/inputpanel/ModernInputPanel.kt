@@ -68,7 +68,6 @@ private data class PanelColors(
 data class NavPanelState(
   val canGoBack: Boolean,
   val canGoForward: Boolean,
-  val isAttachmentsExpanded: Boolean,
   val menuExpanded: Boolean,
   val currentView: ProjectViewMode,
   val isProjectManagementEnabled: Boolean,
@@ -85,7 +84,6 @@ data class NavPanelActions(
   val onCloseSearch: () -> Unit,
   val onViewChange: (ProjectViewMode) -> Unit,
   val onInputModeSelected: (InputMode) -> Unit,
-  val onToggleAttachments: () -> Unit,
   val onMenuExpandedChange: (Boolean) -> Unit,
   val onAddProjectToDayPlan: () -> Unit,
   val onToggleNavPanelMode: () -> Unit,
@@ -114,8 +112,6 @@ private fun ViewModeToggle(
   onViewChange: (ProjectViewMode) -> Unit,
   onInputModeSelected: (InputMode) -> Unit,
   contentColor: Color,
-  isAttachmentsExpanded: Boolean,
-  onToggleAttachments: () -> Unit,
   onToggleNavPanelMode: () -> Unit,
 ) {
   Surface(
@@ -168,6 +164,7 @@ private fun ViewModeToggle(
                 ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
                 ProjectViewMode.INBOX -> Icons.Outlined.Inbox
                 ProjectViewMode.DASHBOARD -> Icons.Outlined.Dashboard
+                ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
               },
             contentDescription = viewMode.name,
             modifier = Modifier.size(18.dp),
@@ -175,20 +172,7 @@ private fun ViewModeToggle(
           )
         }
       }
-      // Separator
-      Box(modifier = Modifier.width(1.dp).height(24.dp).background(contentColor.copy(alpha = 0.1f)))
-      // Attachments button
-      IconButton(
-          onClick = onToggleAttachments,
-          modifier = Modifier.size(36.dp),
-      ) {
-          Icon(
-              imageVector = Icons.Default.Attachment,
-              contentDescription = stringResource(R.string.toggle_attachments),
-              modifier = Modifier.size(18.dp),
-              tint = if (isAttachmentsExpanded) contentColor else contentColor.copy(alpha = 0.7f),
-          )
-      }
+
     }
   }
 }
@@ -567,8 +551,6 @@ private fun NavigationBar(
                         onViewChange = actions.onViewChange,
                         onInputModeSelected = actions.onInputModeSelected,
                         contentColor = contentColor,
-                        isAttachmentsExpanded = state.isAttachmentsExpanded,
-                        onToggleAttachments = actions.onToggleAttachments,
                         onToggleNavPanelMode = actions.onToggleNavPanelMode,
                     )
                 } else {
@@ -654,8 +636,6 @@ fun ModernInputPanel(
   onBackClick: () -> Unit,
   onForwardClick: () -> Unit,
   onHomeClick: () -> Unit,
-  isAttachmentsExpanded: Boolean,
-  onToggleAttachments: () -> Unit,
   onEditList: () -> Unit,
   onShareList: () -> Unit,
   onDeleteList: () -> Unit,
@@ -686,7 +666,6 @@ fun ModernInputPanel(
     NavPanelState(
       canGoBack = canGoBack,
       canGoForward = canGoForward,
-      isAttachmentsExpanded = isAttachmentsExpanded,
       menuExpanded = menuExpanded,
       currentView = currentView,
       isProjectManagementEnabled = isProjectManagementEnabled,
@@ -703,7 +682,6 @@ fun ModernInputPanel(
       onCloseSearch = onCloseSearch,
       onViewChange = onViewChange,
       onInputModeSelected = onInputModeSelected,
-      onToggleAttachments = onToggleAttachments,
       onMenuExpandedChange = onMenuExpandedChange,
       onAddProjectToDayPlan = onAddProjectToDayPlan,
       onToggleNavPanelMode = onToggleNavPanelMode,

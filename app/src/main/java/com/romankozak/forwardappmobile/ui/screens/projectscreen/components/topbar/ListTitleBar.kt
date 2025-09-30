@@ -41,6 +41,7 @@ internal fun getViewModeText(viewMode: ProjectViewMode): String =
         ProjectViewMode.BACKLOG -> "Backlog"
         ProjectViewMode.INBOX -> "Inbox"
         ProjectViewMode.DASHBOARD -> "Dashboard"
+        ProjectViewMode.ATTACHMENTS -> "Attachments"
     }
 
 @Composable
@@ -95,6 +96,10 @@ private fun ViewModeIndicator(
         ProjectViewMode.DASHBOARD -> Pair(
             Color(0xFFF3E5F5).copy(alpha = 0.7f),
             Color(0xFF7B1FA2).copy(alpha = 0.8f)
+        )
+        ProjectViewMode.ATTACHMENTS -> Pair(
+            Color(0xFFF5F5F5).copy(alpha = 0.7f),
+            Color(0xFF616161).copy(alpha = 0.8f)
         )
     }
 
