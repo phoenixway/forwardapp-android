@@ -506,8 +506,9 @@ private fun NavigationBar(
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableWidth = maxWidth
-        val showReveal = availableWidth > 280.dp
-        val showRecents = availableWidth > 240.dp
+        val baseWidth = if (state.isProjectManagementEnabled) 380.dp else 320.dp
+        val showReveal = !state.isViewModePanelVisible || availableWidth > baseWidth
+        val showRecents = !state.isViewModePanelVisible || availableWidth > (baseWidth - 40.dp)
 
         Row(
             modifier = Modifier.heightIn(min = 52.dp).padding(horizontal = 12.dp, vertical = 6.dp),
