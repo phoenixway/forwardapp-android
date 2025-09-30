@@ -504,6 +504,76 @@ private fun Gutter(lines: List<String>, collapsedLines: Set<Int>, onToggleFold: 
   }
 }
 
+private fun AnnotatedString.Builder.styleLine(line: String, textColor: Color, accentColor: Color) {
+    val headingRegex   = Regex("""^(\s*)(#+\s)(.*)""")
+    val bulletRegex    = Regex("""^(\s*)\*\s(.*)""")
+    val numberedRegex  = Regex("""^(\s*)(\d+)\.\s(.*)""")
+    val checkedRegex   = Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
+    val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
+    val boldRegex = Regex("""\*\*(.*?)\*\*""")
+
+    fun applyBold(text: String, baseStyle: SpanStyle) {
+        var lastIndex = 0
+        boldRegex.findAll(text).forEach { match ->
+            val range = match.range
+            val boldText = match.groupValues[1]
+            if (range.first > lastIndex) {
+                withStyle(baseStyle) { append(text.substring(lastIndex, range.first)) }
+            }
+            withStyle(baseStyle.copy(fontWeight = FontWeight.Bold)) {
+                append(boldText)
+            }
+            lastIndex = range.last + 1
+        }
+        if (lastIndex < text.length) {
+            withStyle(baseStyle) { append(text.substring(lastIndex)) }
+        }
+    }
+
+    var matched = false
+
+    if (!matched) headingRegex.find(line)?.let {
+        val (indent, hashes, content) = it.destructured
+        append(indent)
+        withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append(hashes) }
+        applyBold(content, SpanStyle(color = textColor, fontWeight = FontWeight.Bold))
+        matched = true
+    }
+
+    if (!matched) bulletRegex.find(line)?.let {
+        val (indent, content) = it.destructured
+        append(indent)
+        withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("• ") }
+        applyBold(content, SpanStyle(color = textColor))
+        matched = true
+    }
+    if (!matched) numberedRegex.find(line)?.let {
+        val (indent, number, content) = it.destructured
+        append(indent)
+        withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("$number. ") }
+        applyBold(content, SpanStyle(color = textColor))
+        matched = true
+    }
+    if (!matched) uncheckedRegex.find(line)?.let {
+        val (indent, content) = it.destructured
+        append(indent)
+        withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☐ ") }
+        applyBold(content, SpanStyle(color = textColor))
+        matched = true
+    }
+    if (!matched) checkedRegex.find(line)?.let {
+        val (indent, content) = it.destructured
+        append(indent)
+        withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☑ ") }
+        applyBold(content, SpanStyle(color = textColor))
+        matched = true
+    }
+
+    if (!matched) {
+        applyBold(line, SpanStyle(color = textColor))
+    }
+}
+
 private class ListVisualTransformation(
   private val collapsedLines: Set<Int>,
   private val textColor: Color,
@@ -535,58 +605,7 @@ private class ListVisualTransformation(
     val transformedText = buildAnnotatedString {
       visibleLines.forEachIndexed { visibleIndex, indexedValue ->
         val (_, line) = indexedValue
-
-val headingRegex   = Regex("""^(\s*)(#+\s)(.*)""")
-val bulletRegex    = Regex("""^(\s*)\*\s(.*)""")
-val numberedRegex  = Regex("""^(\s*)(\d+)\.\s(.*)""")
-val checkedRegex   = Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
-val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
-
-
-
-        var matched = false
-
-        if (!matched) headingRegex.find(line)?.let {
-          val (indent, hashes, content) = it.destructured
-          append(indent)
-          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append(hashes) }
-          withStyle(SpanStyle(color = textColor, fontWeight = FontWeight.Bold)) { append(content) }
-          matched = true
-        }
-
-        if (!matched) bulletRegex.find(line)?.let {
-          val (indent, content) = it.destructured
-          append(indent)
-          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("• ") }
-          withStyle(SpanStyle(color = textColor)) { append(content) }
-          matched = true
-        }
-        if (!matched) numberedRegex.find(line)?.let {
-          val (indent, number, content) = it.destructured
-          append(indent)
-          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("$number. ") }
-          withStyle(SpanStyle(color = textColor)) { append(content) }
-          matched = true
-        }
-        if (!matched) uncheckedRegex.find(line)?.let {
-          val (indent, content) = it.destructured
-          append(indent)
-          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☐ ") }
-          withStyle(SpanStyle(color = textColor)) { append(content) }
-          matched = true
-        }
-        if (!matched) checkedRegex.find(line)?.let {
-          val (indent, content) = it.destructured
-          append(indent)
-          withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☑ ") }
-          withStyle(SpanStyle(color = textColor)) { append(content) }
-          matched = true
-        }
-
-        if (!matched) {
-          withStyle(SpanStyle(color = textColor)) { append(line) }
-        }
-
+        styleLine(line, textColor, accentColor)
         if (visibleIndex < visibleLines.size - 1) {
           append("\n")
         }
@@ -671,33 +690,36 @@ private fun ViewContent(
         )
       }
     } else {
-      val annotatedString = buildAnnotatedString {
-        val lines = uiState.content.text.lines()
-        var i = 0
-        while (i < lines.size) {
-          val line = lines[i]
-          val indent = line.takeWhile { it.isWhitespace() }.length
-          val isCollapsed = uiState.collapsedLines.contains(i)
+      val accentColor = MaterialTheme.colorScheme.primary
+      val textColor = MaterialTheme.colorScheme.onSurface
+      val annotatedString = remember(uiState.content.text, uiState.collapsedLines) {
+        buildAnnotatedString {
+            val lines = uiState.content.text.lines()
+            var i = 0
+            while (i < lines.size) {
+                val line = lines[i]
+                val indent = line.takeWhile { it.isWhitespace() }.length
+                val isCollapsed = uiState.collapsedLines.contains(i)
 
-          withStyle(
-            style =
-              SpanStyle(background = if (isCollapsed) Color.LightGray else Color.Transparent)
-          ) {
-            append(line)
-          }
-          append("\n")
+                withStyle(
+                    style = SpanStyle(background = if (isCollapsed) Color.LightGray else Color.Transparent)
+                ) {
+                    styleLine(line, textColor, accentColor)
+                }
+                append("\n")
 
-          if (isCollapsed) {
-            i++
-            while (
-              i < lines.size &&
-                (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
-            ) {
-              i++
+                if (isCollapsed) {
+                    i++
+                    while (
+                        i < lines.size &&
+                        (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
+                    ) {
+                        i++
+                    }
+                } else {
+                    i++
+                }
             }
-          } else {
-            i++
-          }
         }
       }
       Text(
