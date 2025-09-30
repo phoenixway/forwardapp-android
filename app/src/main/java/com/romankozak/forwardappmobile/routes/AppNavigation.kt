@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
+import com.romankozak.forwardappmobile.ui.screens.customlist.CustomListEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.customlist.UnifiedCustomListScreen
 import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
@@ -294,11 +295,7 @@ private fun NavGraphBuilder.mainGraph(
             navArgument("listId") { type = NavType.StringType }
         ),
     ) { backStackEntry ->
-        val listId = backStackEntry.arguments?.getString("listId")
-
-        UnifiedCustomListScreen(
-            navController = navController,
-        )
+        CustomListEditorScreen(navController = navController)
     }
 
     // Об'єднаний екран для створення нового списку
