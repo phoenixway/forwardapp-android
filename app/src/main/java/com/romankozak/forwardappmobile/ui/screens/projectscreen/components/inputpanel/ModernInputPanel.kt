@@ -129,7 +129,7 @@ private fun ViewModeToggle(
           modifier = Modifier.size(36.dp),
       ) {
           Icon(
-              imageVector = Icons.Outlined.Tune,
+              imageVector = Icons.Outlined.Widgets, // New icon
               contentDescription = "Перемкнути панель",
               modifier = Modifier.size(18.dp),
               tint = contentColor,
