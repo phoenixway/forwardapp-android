@@ -1,42 +1,60 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ContextualFlowRow
+import androidx.compose.foundation.layout.ContextualFlowRowOverflow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
-import com.romankozak.forwardappmobile.ui.common.components.ExpandableFlowRow
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
-import androidx.compose.animation.core.Spring
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -54,7 +72,7 @@ private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
                     .background(
                         brush =
                             androidx.compose.ui.graphics.Brush.linearGradient(
-                                colors =
+                                colors = 
                                     listOf(
                                         MaterialTheme.colorScheme.primaryContainer,
                                         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
@@ -72,6 +90,15 @@ private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+private sealed class FlowItem {
+    data class SublistIcon(val item: @Composable () -> Unit) : FlowItem()
+    data class ChildProject(val project: Project) : FlowItem()
+    data class Reminder(val time: Long) : FlowItem()
+    data class ScoreStatus(val scoringStatus: ScoringStatus, val displayScore: Int) : FlowItem()
+    data class IconEmoji(val icon: String, val index: Int) : FlowItem()
+    data class Tag(val tag: String) : FlowItem()
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -139,51 +166,73 @@ fun SubprojectItemRow(
                 (parsedData.icons.isNotEmpty()) ||
                 childProjects.isNotEmpty()
 
-            ExpandableFlowRow(
-                maxHeight = 72.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = if (hasExtraContent) 6.dp else 4.dp),
-            ) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    EnhancedSublistIconBadge(
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                    )
-
-                    childProjects.forEach { child ->
-                        val link = RelatedLink(
-                            type = LinkType.PROJECT,
-                            target = child.id,
-                            displayName = child.name,
-                        )
-                        RelatedLinkChip(
-                            link = link,
-                            onClick = { onChildProjectClick(child) },
-                        )
-                    }
-
-                    subproject.reminderTime?.let { time ->
-                        EnhancedReminderBadge(
-                            reminderTime = time,
-                            currentTimeMillis = currentTimeMillis,
-                        )
-                    }
-
-                    EnhancedScoreStatusBadge(
-                        scoringStatus = subproject.scoringStatus,
-                        displayScore = subproject.displayScore,
-                    )
-
+            val items = remember(childProjects, subproject, parsedData, emojiToHide, currentTimeMillis) {
+                buildList<FlowItem> {
+                    add(FlowItem.SublistIcon { EnhancedSublistIconBadge() })
+                    childProjects.forEach { add(FlowItem.ChildProject(it)) }
+                    subproject.reminderTime?.let { add(FlowItem.Reminder(it)) }
+                    add(FlowItem.ScoreStatus(subproject.scoringStatus, subproject.displayScore))
                     parsedData.icons
                         .filterNot { icon -> icon == emojiToHide }
-                        .forEachIndexed { index, icon ->
-                            key(icon) {
+                        .forEachIndexed { index, icon -> add(FlowItem.IconEmoji(icon, index)) }
+                    subproject.tags?.filter { it.isNotBlank() }?.forEach { add(FlowItem.Tag(it)) }
+                }
+            }
+
+            if (hasExtraContent) {
+                var maxLines by remember { mutableIntStateOf(2) }
+
+                ContextualFlowRow(
+                    itemCount = items.size,
+                    maxLines = maxLines,
+                    overflow = ContextualFlowRowOverflow.expandOrCollapseIndicator(
+                        expandIndicator = {
+                            Text("..", modifier = Modifier.clickable { maxLines = Int.MAX_VALUE })
+                        },
+                        collapseIndicator = {
+                            Icon(
+                                Icons.Default.KeyboardArrowUp,
+                                null,
+                                modifier = Modifier.clickable { maxLines = 2 }.alpha(0.6f),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) { index ->
+                    when (val item = items[index]) {
+                        is FlowItem.SublistIcon -> item.item()
+                        is FlowItem.ChildProject -> {
+                            RelatedLinkChip(
+                                link = RelatedLink(
+                                    type = LinkType.PROJECT,
+                                    target = item.project.id,
+                                    displayName = item.project.name,
+                                ),
+                                onClick = { onChildProjectClick(item.project) },
+                            )
+                        }
+                        is FlowItem.Reminder -> {
+                            EnhancedReminderBadge(
+                                reminderTime = item.time,
+                                currentTimeMillis = currentTimeMillis,
+                            )
+                        }
+                        is FlowItem.ScoreStatus -> {
+                            EnhancedScoreStatusBadge(
+                                scoringStatus = item.scoringStatus,
+                                displayScore = item.displayScore,
+                            )
+                        }
+                        is FlowItem.IconEmoji -> {
+                            key(item.icon) {
                                 var delayedVisible by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) {
-                                    delay(index * 50L)
+                                    delay(item.index * 50L)
                                     delayedVisible = true
                                 }
                                 AnimatedVisibility(
@@ -193,16 +242,13 @@ fun SubprojectItemRow(
                                     ) + fadeIn(),
                                 ) {
                                     AnimatedContextEmoji(
-                                        emoji = icon,
-                                        modifier = Modifier.align(Alignment.CenterVertically),
+                                        emoji = item.icon,
                                     )
                                 }
                             }
                         }
-
-                    if (!subproject.tags.isNullOrEmpty()) {
-                        subproject.tags.filter { it.isNotBlank() }.forEach { tag ->
-                            val formattedTag = "#${tag.trim().trimStart('#')}"
+                        is FlowItem.Tag -> {
+                            val formattedTag = "#${item.tag.trim().trimStart('#')}"
                             ModernTagChip(
                                 text = formattedTag,
                                 onClick = { onTagClick(formattedTag) },
@@ -218,7 +264,7 @@ fun SubprojectItemRow(
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 ) {
                     Text(
