@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.ui.common.editor.CreateEditContent
 
 enum class ListFormatMode {
   BULLET,
@@ -292,6 +293,55 @@ fun UnifiedCustomListScreen(
         }
       }
     },
+    bottomBar = {
+        Column(modifier = Modifier.imePadding()) {
+            SimpleListToolbar(
+                state = toolbarState,
+                onToggleEdit = {
+                    screenMode =
+                        if (screenMode == ScreenMode.VIEW) {
+                            ScreenMode.EDIT_EXISTING
+                        } else {
+                            ScreenMode.VIEW
+                        }
+                },
+                onAddItem = {
+                    val currentText = uiState.content.text
+                    val newText =
+                        if (currentText.isEmpty()) {
+                            "• "
+                        } else if (!currentText.endsWith("\n")) {
+                            "$currentText\n• "
+                        } else {
+                            "$currentText• "
+                        }
+                    viewModel.onContentChange(
+                        TextFieldValue(newText, selection = TextRange(newText.length))
+                    )
+                },
+                onFormatChange = { format ->
+                    toolbarState = toolbarState.copy(formatMode = format)
+                    // TODO: Convert existing content to new format
+                },
+                onSortChange = { sort ->
+                    toolbarState = toolbarState.copy(sortMode = sort)
+                    // TODO: Implement sorting
+                },
+                onSelectAll = {
+                    // TODO: Implement select all
+                },
+                onClearSelection = {
+                    toolbarState = toolbarState.copy(hasSelection = false, selectedCount = 0)
+                },
+                onDeleteSelected = {
+                    // TODO: Implement delete selected
+                },
+                onUndo = {
+                    // TODO: Implement undo
+                },
+            )
+        }
+    },
   ) { it ->
     Column(modifier = Modifier.fillMaxSize()) {
       // Enhanced Toolbar
@@ -344,32 +394,14 @@ fun UnifiedCustomListScreen(
       }
 
       // Main content
-      when (screenMode) {
-        ScreenMode.CREATE ->
-          CreateEditContent(
-            uiState = uiState,
-            viewModel = viewModel,
-            paddingValues = it,
-            titleFocusRequester = titleFocusRequester,
-            contentFocusRequester = contentFocusRequester,
-            isCreating = true,
-          )
-        ScreenMode.EDIT_EXISTING ->
-          CreateEditContent(
-            uiState = uiState,
-            viewModel = viewModel,
-            paddingValues = it,
-            titleFocusRequester = titleFocusRequester,
-            contentFocusRequester = contentFocusRequester,
-            isCreating = false,
-          )
-        ScreenMode.VIEW ->
-          ViewContent(
-            uiState = uiState,
-            paddingValues = it,
-            onContentClick = { screenMode = ScreenMode.EDIT_EXISTING },
-          )
-      }
+      CreateEditContent(
+        uiState = uiState,
+        viewModel = viewModel,
+        paddingValues = it,
+        titleFocusRequester = titleFocusRequester,
+        contentFocusRequester = contentFocusRequester,
+        isCreating = screenMode == ScreenMode.CREATE,
+      )
     }
   }
 }
@@ -524,271 +556,4 @@ private fun SimpleListToolbar(
   }
 } // <-- FIX: Added missing closing brace
 
-@Composable
-private fun CreateEditContent(
-  uiState: UnifiedCustomListUiState,
-  viewModel: UnifiedCustomListViewModel,
-  paddingValues: androidx.compose.foundation.layout.PaddingValues,
-  titleFocusRequester: FocusRequester,
-  contentFocusRequester: FocusRequester,
-  isCreating: Boolean,
-) {
-  Column(
-    modifier =
-      Modifier.fillMaxSize()
-        .padding(start = 16.dp, end = 16.dp, bottom = paddingValues.calculateBottomPadding())
-        .verticalScroll(rememberScrollState())
-        .imePadding()
-        .padding(16.dp),
-    verticalArrangement = Arrangement.spacedBy(24.dp),
-  ) {
-    // Title Section (показуємо тільки при створенні або якщо потрібно редагувати назву)
-    if (isCreating || !uiState.isExistingList) {
-      Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-          CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-          ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-      ) {
-        Column(
-          modifier = Modifier.padding(16.dp),
-          verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-          ) {
-            Icon(
-              imageVector = Icons.Default.Title,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.size(20.dp),
-            )
-            Text(
-              text = "List Title",
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.Medium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
 
-          OutlinedTextField(
-            value = uiState.title,
-            onValueChange = viewModel::onTitleChange,
-            modifier = Modifier.fillMaxWidth().focusRequester(titleFocusRequester),
-            placeholder = {
-              Text("Enter list title...", style = MaterialTheme.typography.bodyLarge)
-            },
-            singleLine = true,
-            isError = uiState.error != null,
-            colors =
-              OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                errorBorderColor = MaterialTheme.colorScheme.error,
-              ),
-            shape = RoundedCornerShape(12.dp),
-            textStyle = MaterialTheme.typography.bodyLarge,
-          )
-
-          AnimatedVisibility(
-            visible = uiState.error != null,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-          ) {
-            val error = uiState.error
-            if (error != null) {
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-              ) {
-                Icon(
-                  imageVector = Icons.Default.Error,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.error,
-                  modifier = Modifier.size(16.dp),
-                )
-                Text(
-                  text = error,
-                  color = MaterialTheme.colorScheme.error,
-                  style = MaterialTheme.typography.bodySmall,
-                )
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Content Section
-    Card(
-      modifier = Modifier.fillMaxWidth().weight(1f),
-      colors =
-        CardDefaults.cardColors(
-          containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-      Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-      ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          Box(
-            modifier =
-              Modifier.size(24.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center,
-          ) {
-            Text(
-              text = "✏",
-              style = MaterialTheme.typography.titleSmall,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          }
-          Text(
-            text = "List Content",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
-          )
-        }
-
-        BasicTextField(
-          value = uiState.content,
-          onValueChange = { newText ->
-            val oldText = uiState.content
-            viewModel.onContentChange(newText)
-
-            // Handle Enter key - auto add bullet points
-            if (
-              newText.text.length > oldText.text.length &&
-                oldText.selection.end < newText.text.length &&
-                newText.text[oldText.selection.start] == '\n'
-            ) {
-
-              val lineStart =
-                newText.text.lastIndexOf('\n', startIndex = oldText.selection.start - 1) + 1
-              val previousLine = newText.text.substring(lineStart, oldText.selection.start)
-              val leadingWhitespace = previousLine.takeWhile { it.isWhitespace() }
-
-              if (previousLine.trim().startsWith("• ")) {
-                val listMarker = "• "
-                val newCursorPos =
-                  newText.selection.start + leadingWhitespace.length + listMarker.length
-                val finalText =
-                  newText.text.substring(0, newText.selection.start) +
-                    leadingWhitespace +
-                    listMarker +
-                    newText.text.substring(newText.selection.start)
-                viewModel.onContentChange(
-                  TextFieldValue(finalText, selection = TextRange(newCursorPos))
-                )
-              }
-            }
-          },
-          modifier = Modifier.fillMaxSize().focusRequester(contentFocusRequester),
-          textStyle =
-            TextStyle(
-              fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-              lineHeight = MaterialTheme.typography.bodyLarge.lineHeight,
-              color = MaterialTheme.colorScheme.onSurface,
-            ),
-          cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-          keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-          decorationBox = { innerTextField ->
-            Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-              if (uiState.content.text.isEmpty()) {
-                Text(
-                  text =
-                    "• Start typing your list items\n• Each line can be a new item\n• Use bullet points for better organization",
-                  style = MaterialTheme.typography.bodyLarge,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
-              }
-              innerTextField()
-            }
-          },
-        )
-      }
-    }
-
-    Spacer(modifier = Modifier.height(80.dp))
-  }
-}
-
-@Composable
-private fun ViewContent(
-  uiState: UnifiedCustomListUiState,
-  paddingValues: androidx.compose.foundation.layout.PaddingValues,
-  onContentClick: () -> Unit,
-) {
-  Column(
-    modifier =
-      Modifier.fillMaxSize()
-        .padding(start = 16.dp, end = 16.dp, bottom = paddingValues.calculateBottomPadding())
-  ) {
-    Card(
-      modifier = Modifier.fillMaxSize().padding(16.dp).clickable { onContentClick() },
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-      elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-      Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-      ) {
-        val content = uiState.content.text
-        if (content.isNotBlank()) {
-          content.lines().forEach { line ->
-            if (line.trim().isNotEmpty()) {
-              Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.Top,
-              ) {
-                Box(
-                  modifier =
-                    Modifier.size(6.dp)
-                      .clip(RoundedCornerShape(3.dp))
-                      .background(MaterialTheme.colorScheme.primary)
-                      .padding(top = 8.dp)
-                )
-                Text(
-                  text = line.removePrefix("• ").removePrefix("-").trim(),
-                  style = MaterialTheme.typography.bodyLarge,
-                  color = MaterialTheme.colorScheme.onSurface,
-                  modifier = Modifier.weight(1f),
-                )
-              }
-            }
-          }
-        } else {
-          Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-          ) {
-            Icon(
-              imageVector = Icons.Default.ListAlt,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-              modifier = Modifier.size(48.dp),
-            )
-            Text(
-              text = "This list is empty.\nTap anywhere to add items.",
-              style = MaterialTheme.typography.bodyLarge,
-              color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-              textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-          }
-        }
-      }
-    }
-  }
-}
