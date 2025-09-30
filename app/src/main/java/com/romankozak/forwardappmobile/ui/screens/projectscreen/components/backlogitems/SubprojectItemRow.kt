@@ -11,8 +11,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ContextualFlowRow
-import androidx.compose.foundation.layout.ContextualFlowRowOverflow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,12 +33,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -180,31 +175,16 @@ fun SubprojectItemRow(
             }
 
             if (hasExtraContent) {
-                var maxLines by remember { mutableIntStateOf(2) }
-
-                ContextualFlowRow(
-                    itemCount = items.size,
-                    maxLines = maxLines,
-                    overflow = ContextualFlowRowOverflow.expandOrCollapseIndicator(
-                        expandIndicator = {
-                            Text("..", modifier = Modifier.clickable { maxLines = Int.MAX_VALUE })
-                        },
-                        collapseIndicator = {
-                            Icon(
-                                Icons.Default.KeyboardArrowUp,
-                                null,
-                                modifier = Modifier.clickable { maxLines = 2 }.alpha(0.6f),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    ),
+                ExpandableFlowRow(
+                    items = items,
+                    maxLinesWhenCollapsed = 2,
+                    horizontalSpacing = 6.dp,
+                    verticalSpacing = 4.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) { index ->
-                    when (val item = items[index]) {
+                ) { item ->
+                    when (item) {
                         is FlowItem.SublistIcon -> item.item()
                         is FlowItem.ChildProject -> {
                             RelatedLinkChip(
