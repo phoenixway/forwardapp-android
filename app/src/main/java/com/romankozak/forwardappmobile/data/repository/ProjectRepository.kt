@@ -577,6 +577,8 @@ constructor(
         projectDao.deleteProjectById(projectId)
     }
 
+    suspend fun getInboxRecordById(id: String): InboxRecord? = inboxRecordDao.getRecordById(id)
+
     fun getInboxRecordsStream(projectId: String): Flow<List<InboxRecord>> = inboxRecordDao.getRecordsForProjectStream(projectId)
 
     suspend fun addInboxRecord(
