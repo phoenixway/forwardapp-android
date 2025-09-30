@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.project_dashboard.ProjectDashboardView
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.AttachmentsView
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.BacklogView
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.InboxView
 
@@ -72,6 +73,13 @@ fun GoalDetailContent(
                 onStatusUpdate = viewModel::onProjectStatusUpdate,
                 projectTimeMetrics = uiState.projectTimeMetrics,
                 onRecalculateTime = viewModel::onRecalculateTime,
+            )
+        }
+        ProjectViewMode.ATTACHMENTS -> {
+            AttachmentsView(
+                modifier = modifier,
+                viewModel = viewModel,
+                listContent = listContent
             )
         }
     }

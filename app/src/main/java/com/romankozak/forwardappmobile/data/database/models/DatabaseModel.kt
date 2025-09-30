@@ -76,7 +76,7 @@ class Converters {
 
 
 
-enum class ProjectViewMode { BACKLOG, INBOX, DASHBOARD }
+enum class ProjectViewMode { BACKLOG, INBOX, DASHBOARD, ATTACHMENTS }
 
 enum class ListItemType { GOAL, SUBLIST, LINK_ITEM, NOTE, CUSTOM_LIST }
 
