@@ -112,7 +112,7 @@ fun BacklogView(
                             GoalItem(
                                 goal = content.goal,
                                 obsidianVaultName = obsidianVaultName,
-                                onToggle = { isChecked ->
+                                onCheckedChange = { isChecked ->
                                     viewModel.itemActionHandler.toggleGoalCompletedWithState(
                                         content.goal,
                                         isChecked,
@@ -125,6 +125,7 @@ fun BacklogView(
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
                                 currentTimeMillis = currentTime,
+                                isSelected = isSelected,
                             )
                         }
                         is ListItemContent.SublistItem -> {

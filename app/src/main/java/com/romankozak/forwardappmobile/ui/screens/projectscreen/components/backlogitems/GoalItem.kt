@@ -387,7 +387,7 @@ private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
 fun GoalItem(
     goal: Goal,
     obsidianVaultName: String,
-    onToggle: (Boolean) -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
     onTagClick: (String) -> Unit,
@@ -396,6 +396,7 @@ fun GoalItem(
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
     currentTimeMillis: Long,
+    isSelected: Boolean,
 ) {
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
 
@@ -418,7 +419,7 @@ fun GoalItem(
         ) {
             EnhancedCustomCheckbox(
                 checked = goal.completed,
-                onCheckedChange = onToggle,
+                onCheckedChange = onCheckedChange,
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -540,172 +541,6 @@ fun GoalItem(
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
-@Composable
-fun GoalItem(
-    goalContent: ListItemContent.GoalItem,
-    onCheckedChange: (Boolean) -> Unit,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    isSelected: Boolean,
-    modifier: Modifier = Modifier,
-    currentTimeMillis: Long,
-) {
-    val goal = goalContent.goal
-
-    val parsedData = rememberParsedText(goal.text, emptyMap())
-
-    Surface(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border =
-            BorderStroke(
-                0.5.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-            ),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            EnhancedCustomCheckbox(
-                checked = goal.completed,
-                onCheckedChange = onCheckedChange,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .pointerInput(onClick, onLongClick) {
-                            detectTapGestures(
-                                onLongPress = { onLongClick() },
-                                onTap = { onClick() },
-                            )
-                        }
-                        .padding(vertical = 6.dp),
-            ) {
-                Text(
-                    text = parsedData.mainText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
-                    color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                val hasStatusContent =
-                    (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                        (goal.reminderTime != null) ||
-                        (parsedData.icons.isNotEmpty()) ||
-                        (!goal.description.isNullOrBlank()) ||
-                        (!goal.relatedLinks.isNullOrEmpty())
-
-                AnimatedVisibility(
-                    visible = hasStatusContent,
-                    enter =
-                        slideInVertically(
-                            initialOffsetY = { height -> -height },
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        ) + fadeIn(),
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            goal.reminderTime?.let { time ->
-                                EnhancedReminderBadge(
-                                    reminderTime = time,
-                                    currentTimeMillis = currentTimeMillis,
-                                )
-                            }
-
-                            EnhancedScoreStatusBadge(
-                                scoringStatus = goal.scoringStatus,
-                                displayScore = goal.displayScore,
-                            )
-
-                            parsedData.icons.forEachIndexed { index, icon ->
-                                key(icon) {
-                                    var delayedVisible by remember { mutableStateOf(false) }
-                                    LaunchedEffect(Unit) {
-                                        delay(index * 50L)
-                                        delayedVisible = true
-                                    }
-                                    AnimatedVisibility(
-                                        visible = delayedVisible,
-                                        enter =
-                                            scaleIn(
-                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                            ) + fadeIn(),
-                                    ) {
-                                        AnimatedContextEmoji(
-                                            emoji = icon,
-                                            modifier = Modifier.align(Alignment.CenterVertically),
-                                        )
-                                    }
-                                }
-                            }
-
-                            if (!goal.description.isNullOrBlank()) {
-                                NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                            }
-
-                            goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
-                                key(link.target + link.type?.name) {
-                                    var delayedVisible by remember { mutableStateOf(false) }
-                                    LaunchedEffect(Unit) {
-                                        delay((parsedData.icons.size + index) * 50L)
-                                        delayedVisible = true
-                                    }
-                                    AnimatedVisibility(
-                                        visible = delayedVisible,
-                                        enter =
-                                            slideInHorizontally(
-                                                initialOffsetX = { fullWidth -> fullWidth },
-                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                            ) + fadeIn(),
-                                    ) {
-                                        EnhancedRelatedLinkChip(
-                                            link = link,
-                                            onClick = { },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (!goal.description.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = goal.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        maxLines = if (isSelected) 4 else 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                 }
             }
         }
