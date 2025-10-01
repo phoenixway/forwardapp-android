@@ -106,59 +106,55 @@ internal fun EnhancedReminderBadge(
     reminderTime: Long,
     currentTimeMillis: Long,
 ) {
-    val reminderText =
-        remember(reminderTime, currentTimeMillis) {
-            ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
-        }
+    val reminderText = remember(reminderTime, currentTimeMillis) {
+        ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
+    }
     val isPastDue = reminderTime < currentTimeMillis
 
     val backgroundColor by animateColorAsState(
-        targetValue =
-            if (isPastDue) {
-                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
-            },
+        targetValue = if (isPastDue) {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+        } else {
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
+        },
         label = "reminder_badge_bg",
     )
     val contentColor by animateColorAsState(
-        targetValue =
-            if (isPastDue) {
-                MaterialTheme.colorScheme.onErrorContainer
-            } else {
-                MaterialTheme.colorScheme.onTertiaryContainer
-            },
+        targetValue = if (isPastDue) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.tertiary
+        },
         label = "reminder_badge_content",
     )
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = backgroundColor,
-        border = BorderStroke(0.7.dp, contentColor.copy(alpha = 0.3f)),
+        shadowElevation = 1.dp,
+        tonalElevation = 2.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
                 imageVector = if (isPastDue) Icons.Default.AlarmOff else Icons.Default.AlarmOn,
                 contentDescription = "Нагадування",
                 tint = contentColor,
-                modifier = Modifier.size(12.dp),
+                modifier = Modifier.size(14.dp),
             )
-            Text(
-                text = reminderText,
-                style =
-                    MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 10.sp,
-                    ),
-                color = contentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+                            Text(
+                                text = reminderText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 10.sp,
+                                ),
+                                color = contentColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )        }
     }
 }
 
@@ -244,59 +240,57 @@ internal fun EnhancedRelatedLinkChip(
     link: RelatedLink,
     onClick: () -> Unit,
 ) {
-    var isPressed by remember { mutableStateOf(value = false) }
+    var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
+        targetValue = if (isPressed) 0.92f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "chip_scale",
     )
 
-    val backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
     val contentColor = MaterialTheme.colorScheme.primary
-    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 
     Surface(
-        modifier =
-            Modifier
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            tryAwaitRelease()
-                            isPressed = false
-                        },
-                        onTap = { onClick() },
-                    )
-                }
-                .semantics {
-                    contentDescription = "${link.type?.name ?: "LINK"}: ${link.displayName ?: link.target}"
-                    role = Role.Button
-                },
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { onClick() },
+                )
+            }
+            .semantics {
+                contentDescription = "${link.type?.name ?: "LINK"}: ${link.displayName ?: link.target}"
+                role = Role.Button
+            },
+        shape = RoundedCornerShape(16.dp),
         color = backgroundColor,
-        border = BorderStroke(0.7.dp, borderColor),
+        shadowElevation = 1.dp,
+        tonalElevation = 1.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector =
-                    when (link.type) {
-                        LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
-                        LinkType.URL -> Icons.Default.Link
-                        LinkType.OBSIDIAN -> Icons.Default.Book
-                        null -> Icons.Default.BrokenImage
-                        else -> Icons.Default.BrokenImage
-                    },
+                imageVector = when (link.type) {
+                    LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
+                    LinkType.URL -> Icons.Default.Link
+                    LinkType.OBSIDIAN -> Icons.Default.Book
+                    null -> Icons.Default.BrokenImage
+                    else -> Icons.Default.BrokenImage
+                },
                 contentDescription = null,
                 tint = contentColor,
-                modifier = Modifier.size(12.dp),
+                modifier = Modifier.size(14.dp),
             )
             Text(
                 text = link.displayName ?: link.target,
@@ -319,7 +313,18 @@ fun AnimatedContextEmoji(
     emoji: String,
     modifier: Modifier = Modifier,
 ) {
-    var isVisible by remember { mutableStateOf(value = false) }
+    var isVisible by remember { mutableStateOf(false) }
+    
+    val infiniteTransition = rememberInfiniteTransition(label = "emoji_pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "emoji_scale",
+    )
 
     LaunchedEffect(emoji) {
         delay(100)
@@ -328,27 +333,28 @@ fun AnimatedContextEmoji(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter =
-            scaleIn(
-                animationSpec =
-                    spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow,
-                    ),
-            ) + fadeIn(),
+        enter = scaleIn(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow,
+            ),
+        ) + fadeIn(),
         modifier = modifier,
     ) {
         Box(
-            modifier =
-                Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                        shape = CircleShape,
-                    )
-                    .padding(4.dp)
-                    .semantics {
-                        contentDescription = "Контекст: $emoji"
-                    },
+            modifier = Modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    shape = CircleShape,
+                )
+                .padding(6.dp)
+                .semantics {
+                    contentDescription = "Контекст: $emoji"
+                },
         ) {
             Text(
                 text = emoji,
@@ -361,24 +367,28 @@ fun AnimatedContextEmoji(
 
 @Composable
 private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
-    Box(
-        modifier =
-            modifier
-                .background(
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                    shape = CircleShape,
-                )
-                .padding(4.dp)
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
+        shadowElevation = 1.dp,
+        tonalElevation = 2.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(6.dp)
                 .semantics {
                     contentDescription = "Містить нотатку"
                 },
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(18.dp),
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }
 
@@ -402,20 +412,21 @@ fun GoalItem(
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
 
     Surface(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp, horizontal = 8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border =
-            BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            ),
+        shadowElevation = if (isSelected) 4.dp else 1.dp,
+        tonalElevation = if (isSelected) 3.dp else 1.dp,
+        border = if (isSelected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        },
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             EnhancedCustomCheckbox(
