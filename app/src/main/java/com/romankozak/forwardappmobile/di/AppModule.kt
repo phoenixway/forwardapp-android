@@ -61,8 +61,9 @@ object DatabaseModule {
             MIGRATION_40_41,
             MIGRATION_41_42,
             MIGRATION_42_43,
-            MIGRATION_43_44
-        ).fallbackToDestructiveMigration().build()
+            MIGRATION_44_45,
+            MIGRATION_45_46
+        ).build()
 
     @Provides
     fun provideConversationFolderDao(db: AppDatabase): ConversationFolderDao = db.conversationFolderDao()
@@ -111,4 +112,7 @@ object DatabaseModule {
 
     @Provides
     fun provideRecurringTaskDao(db: AppDatabase): RecurringTaskDao = db.recurringTaskDao()
+
+    @Provides
+    fun provideReminderInfoDao(db: AppDatabase): ReminderInfoDao = db.reminderInfoDao()
 }

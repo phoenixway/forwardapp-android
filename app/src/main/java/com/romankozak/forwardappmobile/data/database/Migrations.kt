@@ -147,3 +147,235 @@ val MIGRATION_43_44 = object : Migration(43, 44) {
         database.execSQL("ALTER TABLE recurring_tasks ADD COLUMN points INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_44_45 = object : Migration(44, 45) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // goals table
+        db.execSQL("ALTER TABLE goals RENAME TO goals_old")
+        db.execSQL("""
+            CREATE TABLE `goals` (
+                `id` TEXT NOT NULL, 
+                `text` TEXT NOT NULL, 
+                `description` TEXT, 
+                `completed` INTEGER NOT NULL, 
+                `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER, 
+                `tags` TEXT, 
+                `relatedLinks` TEXT, 
+                `valueImportance` REAL NOT NULL DEFAULT 0.0, 
+                `valueImpact` REAL NOT NULL DEFAULT 0.0, 
+                `effort` REAL NOT NULL DEFAULT 0.0, 
+                `cost` REAL NOT NULL DEFAULT 0.0, 
+                `risk` REAL NOT NULL DEFAULT 0.0, 
+                `weightEffort` REAL NOT NULL DEFAULT 1.0, 
+                `weightCost` REAL NOT NULL DEFAULT 1.0, 
+                `weightRisk` REAL NOT NULL DEFAULT 1.0, 
+                `rawScore` REAL NOT NULL DEFAULT 0.0, 
+                `displayScore` INTEGER NOT NULL DEFAULT 0, 
+                `scoring_status` TEXT NOT NULL DEFAULT 'NOT_ASSESSED', 
+                `parentValueImportance` REAL DEFAULT 0.0, 
+                `impactOnParentGoal` REAL DEFAULT 0.0, 
+                `timeCost` REAL DEFAULT 0.0, 
+                `financialCost` REAL DEFAULT 0.0, 
+                `reminder_time` INTEGER, 
+                PRIMARY KEY(`id`)
+            )
+        """.trimIndent())
+        db.execSQL("""
+            INSERT INTO goals 
+            SELECT 
+                id, text, description, completed, createdAt, updatedAt, 
+                tags, relatedLinks, valueImportance, valueImpact, effort, 
+                cost, risk, weightEffort, weightCost, weightRisk, rawScore, 
+                displayScore, 
+                CASE scoring_status 
+                    WHEN 0 THEN 'NOT_ASSESSED' 
+                    WHEN 1 THEN 'IMPOSSIBLE_TO_ASSESS' 
+                    WHEN 2 THEN 'ASSESSED' 
+                    ELSE 'NOT_ASSESSED' 
+                END, 
+                parentValueImportance, impactOnParentGoal, timeCost, 
+                financialCost, reminder_time 
+            FROM goals_old
+        """.trimIndent())
+        db.execSQL("DROP TABLE goals_old")
+
+        // projects table
+        db.execSQL("ALTER TABLE projects RENAME TO projects_old")
+        db.execSQL("""
+            CREATE TABLE `projects` (
+                `id` TEXT NOT NULL, 
+                `name` TEXT NOT NULL, 
+                `description` TEXT, 
+                `parentId` TEXT, 
+                `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER, 
+                `tags` TEXT, 
+                `is_expanded` INTEGER NOT NULL DEFAULT 1, 
+                `goal_order` INTEGER NOT NULL DEFAULT 0, 
+                `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, 
+                `default_view_mode` TEXT, 
+                `is_completed` INTEGER NOT NULL DEFAULT 0, 
+                `is_project_management_enabled` INTEGER, 
+                `project_status` TEXT DEFAULT 'NO_PLAN', 
+                `project_status_text` TEXT, 
+                `project_log_level` TEXT DEFAULT 'NORMAL', 
+                `total_time_spent_minutes` INTEGER, 
+                `reminder_time` INTEGER, 
+                `valueImportance` REAL NOT NULL DEFAULT 0.0, 
+                `valueImpact` REAL NOT NULL DEFAULT 0.0, 
+                `effort` REAL NOT NULL DEFAULT 0.0, 
+                `cost` REAL NOT NULL DEFAULT 0.0, 
+                `risk` REAL NOT NULL DEFAULT 0.0, 
+                `weightEffort` REAL NOT NULL DEFAULT 1.0, 
+                `weightCost` REAL NOT NULL DEFAULT 1.0, 
+                `weightRisk` REAL NOT NULL DEFAULT 1.0, 
+                `rawScore` REAL NOT NULL DEFAULT 0.0, 
+                `displayScore` INTEGER NOT NULL DEFAULT 0, 
+                `scoring_status` TEXT NOT NULL DEFAULT 'NOT_ASSESSED', 
+                PRIMARY KEY(`id`)
+            )
+        """.trimIndent())
+        db.execSQL("""
+            INSERT INTO projects 
+            SELECT 
+                id, name, description, parentId, createdAt, updatedAt, tags, 
+                is_expanded, goal_order, is_attachments_expanded, 
+                default_view_mode, is_completed, is_project_management_enabled, 
+                CASE project_status 
+                    WHEN 0 THEN 'NO_PLAN' 
+                    WHEN 1 THEN 'PLANNING' 
+                    WHEN 2 THEN 'IN_PROGRESS' 
+                    WHEN 3 THEN 'COMPLETED' 
+                    WHEN 4 THEN 'ON_HOLD' 
+                    WHEN 5 THEN 'PAUSED' 
+                    ELSE 'NO_PLAN' 
+                END, 
+                project_status_text, 
+                CASE project_log_level 
+                    WHEN 0 THEN 'DETAILED' 
+                    WHEN 1 THEN 'NORMAL' 
+                    ELSE 'NORMAL' 
+                END, 
+                total_time_spent_minutes, reminder_time, valueImportance, 
+                valueImpact, effort, cost, risk, weightEffort, weightCost, 
+                weightRisk, rawScore, displayScore, 
+                CASE scoring_status 
+                    WHEN 0 THEN 'NOT_ASSESSED' 
+                    WHEN 1 THEN 'IMPOSSIBLE_TO_ASSESS' 
+                    WHEN 2 THEN 'ASSESSED' 
+                    ELSE 'NOT_ASSESSED' 
+                END 
+            FROM projects_old
+        """.trimIndent())
+        db.execSQL("DROP TABLE projects_old")
+
+        // project_execution_logs table
+        db.execSQL("ALTER TABLE project_execution_logs RENAME TO project_execution_logs_old")
+        db.execSQL("""
+            CREATE TABLE `project_execution_logs` (
+                `id` TEXT NOT NULL, 
+                `projectId` TEXT NOT NULL, 
+                `timestamp` INTEGER NOT NULL, 
+                `type` TEXT NOT NULL, 
+                `description` TEXT NOT NULL, 
+                `details` TEXT, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) 
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs` (`projectId`)")
+        db.execSQL("""
+            INSERT INTO project_execution_logs 
+            SELECT 
+                id, projectId, timestamp, 
+                CASE type 
+                    WHEN 0 THEN 'STATUS_CHANGE' 
+                    WHEN 1 THEN 'COMMENT' 
+                    WHEN 2 THEN 'AUTOMATIC' 
+                    WHEN 3 THEN 'INSIGHT' 
+                    WHEN 4 THEN 'MILESTONE' 
+                    ELSE 'COMMENT' 
+                END, 
+                description, details 
+            FROM project_execution_logs_old
+        """.trimIndent())
+        db.execSQL("DROP TABLE project_execution_logs_old")
+
+        // list_items table
+        db.execSQL("ALTER TABLE list_items RENAME TO list_items_old")
+        db.execSQL("""
+            CREATE TABLE `list_items` (
+                `id` TEXT NOT NULL, 
+                `project_id` TEXT NOT NULL, 
+                `itemType` TEXT NOT NULL, 
+                `entityId` TEXT NOT NULL, 
+                `item_order` INTEGER NOT NULL, 
+                PRIMARY KEY(`id`), 
+                FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) 
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_list_items_project_id` ON `list_items` (`project_id`)")
+        db.execSQL("""
+            INSERT INTO list_items 
+            SELECT 
+                id, project_id, 
+                CASE itemType 
+                    WHEN 0 THEN 'GOAL' 
+                    WHEN 1 THEN 'SUBLIST' 
+                    WHEN 2 THEN 'LINK_ITEM' 
+                    WHEN 3 THEN 'NOTE' 
+                    WHEN 4 THEN 'CUSTOM_LIST' 
+                    ELSE 'GOAL' 
+                END, 
+                entityId, item_order 
+            FROM list_items_old
+        """.trimIndent())
+        db.execSQL("DROP TABLE list_items_old")
+    }
+}
+
+val MIGRATION_45_46 = object : Migration(45, 46) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Перевіряємо, чи існує таблиця reminder_info
+        val cursor = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='reminder_info'")
+        val tableExists = cursor.count > 0
+        cursor.close()
+        
+        if (!tableExists) {
+            // Якщо таблиця не існує - створюємо
+            db.execSQL("""
+                CREATE TABLE `reminder_info` (
+                    `goalId` TEXT NOT NULL,
+                    `reminder_status` TEXT NOT NULL,
+                    `snooze_time` INTEGER,
+                    PRIMARY KEY(`goalId`)
+                )
+            """.trimIndent())
+        } else {
+            // Якщо таблиця існує але пошкоджена - пересоздаємо
+            val columnsCursor = db.query("PRAGMA table_info(reminder_info)")
+            val hasColumns = columnsCursor.count > 0
+            columnsCursor.close()
+            
+            if (!hasColumns) {
+                // Таблиця порожня - видаляємо та створюємо знову
+                db.execSQL("DROP TABLE IF EXISTS reminder_info")
+                db.execSQL("""
+                    CREATE TABLE `reminder_info` (
+                        `goalId` TEXT NOT NULL,
+                        `reminder_status` TEXT NOT NULL,
+                        `snooze_time` INTEGER,
+                        PRIMARY KEY(`goalId`)
+                    )
+                """.trimIndent())
+            }
+        }
+        
+        // Додаємо індекси для list_items та project_execution_logs
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_list_items_project_id` ON `list_items` (`project_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs` (`projectId`)")
+    }
+}

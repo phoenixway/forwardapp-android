@@ -55,8 +55,10 @@ fun ProjectAttachmentsScreen(
                 }
                 is UiEvent.OpenUri -> {
                     try {
+                        if (it.uri.isNotBlank()) {
                         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(it.uri))
                         context.startActivity(intent)
+                    }
                     } catch (e: Exception) {
                         // Handle exception, e.g., show a snackbar
                     }
