@@ -328,7 +328,7 @@ val MIGRATION_44_45 = object : Migration(44, 45) {
                     WHEN 2 THEN 'LINK_ITEM' 
                     WHEN 3 THEN 'NOTE' 
                     WHEN 4 THEN 'CUSTOM_LIST' 
-                    ELSE 'GOAL' 
+                    ELSE 'UNKNOWN' 
                 END, 
                 entityId, item_order 
             FROM list_items_old
