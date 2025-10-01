@@ -190,7 +190,7 @@ data class Goal(
     @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
     @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
     @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
-    @ColumnInfo(name = "scoring_status", defaultValue = "'NOT_ASSESSED'") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     @ColumnInfo(defaultValue = "0.0") val parentValueImportance: Float? = null,
     @ColumnInfo(defaultValue = "0.0") val impactOnParentGoal: Float? = null,
     @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
@@ -201,7 +201,7 @@ data class Goal(
 @Entity(tableName = "reminder_info")
 data class ReminderInfo(
     @PrimaryKey val goalId: String,
-    @ColumnInfo(name = "reminder_status", defaultValue = "'ACTIVE'") val reminderStatus: String = "ACTIVE",
+    @ColumnInfo(name = "reminder_status") val reminderStatus: String = "ACTIVE",
     @ColumnInfo(name = "snooze_time") val snoozeTime: Long? = null,
 )
 
@@ -220,9 +220,9 @@ data class Project(
     @ColumnInfo(name = "default_view_mode") val defaultViewModeName: String? = ProjectViewMode.BACKLOG.name,
     @ColumnInfo(name = "is_completed", defaultValue = "0") val isCompleted: Boolean = false,
     @ColumnInfo(name = "is_project_management_enabled") val isProjectManagementEnabled: Boolean? = false,
-    @ColumnInfo(name = "project_status", defaultValue = "'NO_PLAN'") val projectStatus: String? = ProjectStatusValues.NO_PLAN,
+    @ColumnInfo(name = "project_status") val projectStatus: String? = ProjectStatusValues.NO_PLAN,
     @ColumnInfo(name = "project_status_text") val projectStatusText: String? = null,
-    @ColumnInfo(name = "project_log_level", defaultValue = "'NORMAL'") val projectLogLevel: String? = ProjectLogLevelValues.NORMAL,
+    @ColumnInfo(name = "project_log_level") val projectLogLevel: String? = ProjectLogLevelValues.NORMAL,
     @ColumnInfo(name = "total_time_spent_minutes") val totalTimeSpentMinutes: Long? = 0,
     @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
@@ -235,7 +235,7 @@ data class Project(
     @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
     @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
     @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
-    @ColumnInfo(name = "scoring_status", defaultValue = "'NOT_ASSESSED'") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
 )
 
 @Entity(

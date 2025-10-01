@@ -1,0 +1,140 @@
+Here is a summary of the Room migration issue I'm facing. I would appreciate your help in resolving this.
+
+**Goal:**
+
+Migrate a Room database from version 44 to 45.
+
+**Changes:**
+
+Several `Enum` columns were changed to `String` columns. The affected tables and columns are:
+
+*   `goals`: `scoringStatus`
+*   `projects`: `projectStatus`, `projectLogLevel`, `scoringStatus`
+*   `project_execution_logs`: `type`
+*   `list_items`: `itemType`
+
+**Problem:**
+
+I'm facing a catch-22 situation with `IllegalStateException` and `SQLiteException` when trying to set a default value for the new string columns.
+
+1.  When I use single quotes for the `DEFAULT` value in the `CREATE TABLE` statement (e.g., `DEFAULT 'NOT_ASSESSED'`), the app crashes with an `IllegalStateException` because Room's schema validation expects the default value to be wrapped in double single quotes (e.g., `''NOT_ASSESSED''`).
+2.  When I use double single quotes for the `DEFAULT` value (e.g., `DEFAULT ''NOT_ASSESSED''`), the app crashes with an `SQLiteException` because it's a syntax error.
+
+**Failed Attempts:**
+
+1.  Using single quotes for `DEFAULT` in `CREATE TABLE` and single quotes for `defaultValue` in `@ColumnInfo`.
+2.  Using double single quotes for `DEFAULT` in `CREATE TABLE` and double single quotes for `defaultValue` in `@ColumnInfo`.
+3.  Removing the `DEFAULT` clause from `CREATE TABLE` and the `defaultValue` from `@ColumnInfo`.
+
+**Relevant Code Snippets:**
+
+**`MIGRATION_44_45` in `Migrations.kt` (latest attempt):**
+
+```kotlin
+val MIGRATION_44_45 = object : Migration(44, 45) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // goals table
+        db.execSQL("ALTER TABLE goals RENAME TO goals_old")
+        db.execSQL("CREATE TABLE `goals` (`id` TEXT NOT NULL, `text` TEXT NOT NULL, `description` TEXT, `completed` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `relatedLinks` TEXT, `valueImportance` REAL NOT NULL, `valueImpact` REAL NOT NULL, `effort` REAL NOT NULL, `cost` REAL NOT NULL, `risk` REAL NOT NULL, `weightEffort` REAL NOT NULL, `weightCost` REAL NOT NULL, `weightRisk` REAL NOT NULL, `rawScore` REAL NOT NULL, `displayScore` INTEGER NOT NULL, `scoring_status` TEXT NOT NULL, `parentValueImportance` REAL, `impactOnParentGoal` REAL, `timeCost` REAL, `financialCost` REAL, `reminder_time` INTEGER, PRIMARY KEY(`id`))")
+        db.execSQL("INSERT INTO goals (id, text, description, completed, createdAt, updatedAt, tags, relatedLinks, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoring_status, parentValueImportance, impactOnParentGoal, timeCost, financialCost, reminder_time) SELECT id, text, description, completed, createdAt, updatedAt, tags, relatedLinks, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, CASE scoring_status WHEN 0 THEN 'NOT_ASSESSED' WHEN 1 THEN 'IMPOSSIBLE_TO_ASSESS' WHEN 2 THEN 'ASSESSED' ELSE 'NOT_ASSESSED' END, parentValueImportance, impactOnParentGoal, timeCost, financialCost, reminder_time FROM goals_old")
+        db.execSQL("DROP TABLE goals_old")
+
+        // projects table
+        db.execSQL("ALTER TABLE projects RENAME TO projects_old")
+        db.execSQL("CREATE TABLE `projects` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT, `project_status_text` TEXT, `project_log_level` TEXT, `total_time_spent_minutes` INTEGER, `reminder_time` INTEGER, `valueImportance` REAL NOT NULL, `valueImpact` REAL NOT NULL, `effort` REAL NOT NULL, `cost` REAL NOT NULL, `risk` REAL NOT NULL, `weightEffort` REAL NOT NULL, `weightCost` REAL NOT NULL, `weightRisk` REAL NOT NULL, `rawScore` REAL NOT NULL, `displayScore` INTEGER NOT NULL, `scoring_status` TEXT NOT NULL, PRIMARY KEY(`id`))")
+        db.execSQL("INSERT INTO projects (id, name, description, parentId, createdAt, updatedAt, tags, is_expanded, goal_order, is_attachments_expanded, default_view_mode, is_completed, is_project_management_enabled, project_status, project_status_text, project_log_level, total_time_spent_minutes, reminder_time, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoring_status) SELECT id, name, description, parentId, createdAt, updatedAt, tags, is_expanded, goal_order, is_attachments_expanded, default_view_mode, is_completed, is_project_management_enabled, CASE project_status WHEN 0 THEN 'NO_PLAN' WHEN 1 THEN 'PLANNING' WHEN 2 THEN 'IN_PROGRESS' WHEN 3 THEN 'COMPLETED' WHEN 4 THEN 'ON_HOLD' WHEN 5 THEN 'PAUSED' ELSE 'NO_PLAN' END, project_status_text, CASE project_log_level WHEN 0 THEN 'DETAILED' WHEN 1 THEN 'NORMAL' ELSE 'NORMAL' END, total_time_spent_minutes, reminder_time, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, CASE scoring_status WHEN 0 THEN 'NOT_ASSESSED' WHEN 1 THEN 'IMPOSSIBLE_TO_ASSESS' WHEN 2 THEN 'ASSESSED' ELSE 'NOT_ASSESSED' END FROM projects_old")
+        db.execSQL("DROP TABLE projects_old")
+
+        // project_execution_logs table
+        db.execSQL("ALTER TABLE project_execution_logs RENAME TO project_execution_logs_old")
+        db.execSQL("CREATE TABLE `project_execution_logs` (`id` TEXT NOT NULL, `projectId` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `type` TEXT NOT NULL, `description` TEXT NOT NULL, `details` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs` (`projectId`)")
+        db.execSQL("INSERT INTO project_execution_logs (id, projectId, timestamp, type, description, details) SELECT id, projectId, timestamp, CASE type WHEN 0 THEN 'STATUS_CHANGE' WHEN 1 THEN 'COMMENT' WHEN 2 THEN 'AUTOMATIC' WHEN 3 THEN 'INSIGHT' WHEN 4 THEN 'MILESTONE' ELSE 'COMMENT' END, description, details FROM project_execution_logs_old")
+        db.execSQL("DROP TABLE project_execution_logs_old")
+
+        // list_items table
+        db.execSQL("ALTER TABLE list_items RENAME TO list_items_old")
+        db.execSQL("CREATE TABLE `list_items` (`id` TEXT NOT NULL, `project_id` TEXT NOT NULL, `itemType` TEXT NOT NULL, `entityId` TEXT NOT NULL, `item_order` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_list_items_project_id` ON `list_items` (`project_id`)")
+        db.execSQL("INSERT INTO list_items (id, project_id, itemType, entityId, item_order) SELECT id, project_id, CASE itemType WHEN 0 THEN 'GOAL' WHEN 1 THEN 'SUBLIST' WHEN 2 THEN 'LINK_ITEM' WHEN 3 THEN 'NOTE' WHEN 4 THEN 'CUSTOM_LIST' ELSE 'GOAL' END, entityId, item_order FROM list_items_old")
+        db.execSQL("DROP TABLE list_items_old")
+    }
+}
+```
+
+**`Goal` entity in `DatabaseModel.kt` (latest attempt):**
+
+```kotlin
+@Entity(tableName = "goals")
+data class Goal(
+    @PrimaryKey val id: String,
+    val text: String,
+    val description: String? = null,
+    val completed: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val tags: List<String>? = null,
+    val relatedLinks: List<RelatedLink>? = null,
+    @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
+    @ColumnInfo(defaultValue = "1.0") val weightEffort: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightCost: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
+    @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
+    @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
+    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(defaultValue = "0.0") val parentValueImportance: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val impactOnParentGoal: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
+    @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
+    @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
+)
+```
+
+**`Project` entity in `DatabaseModel.kt` (latest attempt):**
+
+```kotlin
+@Entity(tableName = "projects")
+data class Project(
+    @PrimaryKey val id: String,
+    val name: String,
+    val description: String?,
+    val parentId: String?,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val tags: List<String>? = null,
+    @ColumnInfo(name = "is_expanded", defaultValue = "1") val isExpanded: Boolean = true,
+    @ColumnInfo(name = "goal_order", defaultValue = "0") val order: Long = 0,
+    @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0") val isAttachmentsExpanded: Boolean = false,
+    @ColumnInfo(name = "default_view_mode") val defaultViewModeName: String? = ProjectViewMode.BACKLOG.name,
+    @ColumnInfo(name = "is_completed", defaultValue = "0") val isCompleted: Boolean = false,
+    @ColumnInfo(name = "is_project_management_enabled") val isProjectManagementEnabled: Boolean? = false,
+    @ColumnInfo(name = "project_status") val projectStatus: String? = ProjectStatusValues.NO_PLAN,
+    @ColumnInfo(name = "project_status_text") val projectStatusText: String? = null,
+    @ColumnInfo(name = "project_log_level") val projectLogLevel: String? = ProjectLogLevelValues.NORMAL,
+    @ColumnInfo(name = "total_time_spent_minutes") val totalTimeSpentMinutes: Long? = 0,
+    @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
+    @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val cost: Float = 0f,
+    @ColumnInfo(defaultValue = "0.0") val risk: Float = 0f,
+    @ColumnInfo(defaultValue = "1.0") val weightEffort: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightCost: Float = 1f,
+    @ColumnInfo(defaultValue = "1.0") val weightRisk: Float = 1f,
+    @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
+    @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
+    @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+)
+```
+
+**Error Messages:**
+
+`java.lang.IllegalStateException: Migration didn't properly handle: goals(com.romankozak.forwardappmobile.data.database.models.Goal).`
+
+`android.database.sqlite.SQLiteException: near "NOT_ASSESSED": syntax error (code 1 SQLITE_ERROR): , while compiling: CREATE TABLE `goals` ...`
+
+Thank you for your help!
