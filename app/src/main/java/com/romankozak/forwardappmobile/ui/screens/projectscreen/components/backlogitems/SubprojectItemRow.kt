@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -116,13 +117,26 @@ fun SubprojectItemRow(
     val subproject = subprojectContent.project
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 12.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border =
+            BorderStroke(
+                1.5.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            ),
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         EnhancedCustomCheckbox(
             checked = subproject.isCompleted,
             onCheckedChange = onCheckedChange,
@@ -261,4 +275,5 @@ fun SubprojectItemRow(
         }
         endAction()
     }
+}
 }
