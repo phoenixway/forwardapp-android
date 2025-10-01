@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.common.editor
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -60,12 +62,12 @@ fun UniversalEditorScreen(
     onSave: (String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: UniversalEditorViewModel = hiltViewModel(),
-)
-{
+) {
     var isToolbarVisible by remember { mutableStateOf(true) }
     val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
     val view = LocalView.current
     val isDarkTheme = isSystemInDarkTheme()
+    val context = LocalContext.current
 
     if (!view.isInEditMode) {
         LaunchedEffect(Unit) {
@@ -86,6 +88,26 @@ fun UniversalEditorScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val contentFocusRequester = remember { FocusRequester() }
 
+    LaunchedEffect(Unit) {
+        viewModel.events.collect {
+            when (it) {
+                is UniversalEditorEvent.ShareContent -> {
+                    val sendIntent: Intent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, it.content)
+                        type = "text/plain"
+                    }
+                    val shareIntent = Intent.createChooser(sendIntent, null)
+                    context.startActivity(shareIntent)
+                }
+
+                is UniversalEditorEvent.ShowError -> {
+                    // TODO: Handle error
+                }
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow).imePadding(),
         topBar = {
@@ -94,6 +116,8 @@ fun UniversalEditorScreen(
                 isLoading = uiState.isLoading,
                 onNavigateBack = onNavigateBack,
                 onSave = { onSave(uiState.content.text) },
+                onCopyAll = viewModel::onCopyAll,
+                onShare = viewModel::onShare,
             )
         },
         bottomBar = {
@@ -162,8 +186,9 @@ private fun EditorTopAppBar(
     isLoading: Boolean,
     onNavigateBack: () -> Unit,
     onSave: () -> Unit,
-)
-{
+    onCopyAll: () -> Unit,
+    onShare: () -> Unit,
+) {
     TopAppBar(
         title = {
             Text(
@@ -178,6 +203,12 @@ private fun EditorTopAppBar(
             }
         },
         actions = {
+            IconButton(onClick = onCopyAll) {
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy all")
+            }
+            IconButton(onClick = onShare) {
+                Icon(Icons.Default.Share, contentDescription = "Share")
+            }
             FilledTonalIconButton(onClick = onSave, enabled = !isLoading) {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
