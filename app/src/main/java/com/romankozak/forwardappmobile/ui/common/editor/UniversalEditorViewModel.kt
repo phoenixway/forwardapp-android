@@ -9,18 +9,18 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.ui.screens.customlist.components.ListToolbarState
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
+import kotlinx.coroutines.launch
 import kotlin.math.min
 
 sealed class UniversalEditorEvent {
     data class ShowError(val message: String) : UniversalEditorEvent()
+    data class ShareContent(val content: String) : UniversalEditorEvent()
 }
 
 data class UniversalEditorUiState(
@@ -43,6 +43,8 @@ class UniversalEditorViewModel(
 
     private val _events = Channel<UniversalEditorEvent>()
     val events = _events.receiveAsFlow()
+
+
 
     private val undoStack = ArrayDeque<TextFieldValue>()
     private val redoStack = ArrayDeque<TextFieldValue>()
@@ -98,7 +100,11 @@ class UniversalEditorViewModel(
 
         val marker = detectListMarker(prevLine)
         val indent = prevLine.takeWhile { it.isWhitespace() }
-        val insert = if (marker.isNotEmpty()) "$marker " else indent
+        val insert = if (marker.isNotEmpty()) {
+            indent + marker + " "
+        } else {
+            indent
+        }
 
         if (insert.isNotEmpty()) {
             val newText =
@@ -211,6 +217,24 @@ class UniversalEditorViewModel(
         onDeleteLine()
     }
 
+    fun onCopyAll() {
+        val textToCopy = _uiState.value.content.text
+        if (textToCopy.isNotEmpty()) {
+            val clipboardManager = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("editor_content", textToCopy)
+            clipboardManager.setPrimaryClip(clip)
+        }
+    }
+
+    fun onShare() {
+        val textToShare = _uiState.value.content.text
+        if (textToShare.isNotEmpty()) {
+            viewModelScope.launch {
+                _events.send(UniversalEditorEvent.ShareContent(textToShare))
+            }
+        }
+    }
+
     fun onPasteLine() {
         val clipboardManager = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = clipboardManager.primaryClip
@@ -239,26 +263,70 @@ class UniversalEditorViewModel(
         if (lineIndex >= lines.size) return
 
         val line = lines[lineIndex]
-        val indent = line.takeWhile { it.isWhitespace() }
+        val originalIndent = line.takeWhile { it.isWhitespace() }
         val trimmedLine = line.trimStart()
 
-        val newText: String
-        val selectionOffset: Int
-        if (trimmedLine.startsWith("- ")) {
-            newText = indent + trimmedLine.removePrefix("- ")
-            selectionOffset = -2
-        } else {
-            newText = indent + "- " + trimmedLine
-            selectionOffset = 2
+        // Check if the line is already a list item
+        val markerInfo = getMarkerInfo(trimmedLine)
+        if (markerInfo != null) {
+            // Already a list item, so remove the marker
+            val (marker, content) = markerInfo
+            val newText = originalIndent + content
+            lines[lineIndex] = newText
+            val selectionOffset = -(marker.length + 1) // marker + space
+            val newSelectionStart = (cur.selection.start + selectionOffset).coerceAtLeast(lineStart + originalIndent.length)
+            val newSelectionEnd = (cur.selection.end + selectionOffset).coerceAtLeast(lineStart + originalIndent.length)
+            onContentChange(TextFieldValue(lines.joinToString("\n"), TextRange(newSelectionStart, newSelectionEnd)))
+            return
         }
+
+        // Not a list item, so add a marker based on previous line
+        var indent = originalIndent
+        var marker = "-"
+
+        if (lineIndex > 0) {
+            val prevLine = lines[lineIndex - 1]
+            val prevLineIndent = prevLine.takeWhile { it.isWhitespace() }
+            val prevLineTrimmed = prevLine.trimStart()
+            val prevMarkerInfo = getMarkerInfo(prevLineTrimmed)
+            if (prevMarkerInfo != null) {
+                indent = prevLineIndent
+                val prevMarker = prevMarkerInfo.first
+                val numRegex = Regex("^(\\d+)\\.")
+                val match = numRegex.find(prevMarker)
+                if (match != null) {
+                    val num = match.groupValues[1].toInt()
+                    marker = "${num + 1}."
+                } else {
+                    marker = prevMarker
+                }
+            }
+        }
+
+        val newText = indent + "$marker " + trimmedLine
         lines[lineIndex] = newText
-
-        val newContent = lines.joinToString("\n")
-
+        val selectionOffset = (indent.length + marker.length + 1) - originalIndent.length
         val newSelectionStart = (cur.selection.start + selectionOffset).coerceAtLeast(lineStart + indent.length)
         val newSelectionEnd = (cur.selection.end + selectionOffset).coerceAtLeast(lineStart + indent.length)
+        onContentChange(TextFieldValue(lines.joinToString("\n"), TextRange(newSelectionStart, newSelectionEnd)))
+    }
 
-        onContentChange(TextFieldValue(newContent, TextRange(newSelectionStart, newSelectionEnd)))
+    // Helper function to get marker info
+    private fun getMarkerInfo(line: String): Pair<String, String>? {
+        val patterns = listOf(
+            Regex("^(- )(.*)"),
+            Regex("^(\\d+\\. )(.*)"),
+            Regex("^([•] )(.*)"),
+            Regex("^([☐] )(.*)"),
+            Regex("^([☑] )(.*)")
+        )
+        for (pattern in patterns) {
+            val match = pattern.find(line)
+            if (match != null) {
+                return Pair(match.groupValues[1].trim(), match.groupValues[2])
+            }
+        }
+        return null
     }
 
     fun onUndo() {
@@ -337,7 +405,7 @@ class UniversalEditorViewModel(
 
     private fun detectListMarker(linePrefix: String): String {
         val trimmed = linePrefix.trimStart()
-        val numberRegex = Regex("""^(\\d+)\\. """)
+        val numberRegex = Regex("^(\\d+)\\. ")
 
         return when {
             trimmed.startsWith("-") -> "-"

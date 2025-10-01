@@ -40,7 +40,7 @@ fun StrategicManagementScreen(
   val currentTab by viewModel.currentTab.collectAsState()
   val uiState by viewModel.uiState.collectAsState()
   val mainScreenViewModel: MainScreenViewModel =
-    hiltViewModel(remember { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) })
+    hiltViewModel(remember(navController.currentBackStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) })
 
   Scaffold(
     containerColor = MaterialTheme.colorScheme.background,
