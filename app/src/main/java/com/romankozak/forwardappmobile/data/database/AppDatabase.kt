@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         RecentItem::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
+        ReminderInfo::class,
 
         GoalFts::class,
         ProjectFts::class,
@@ -34,7 +35,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         NoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 44,
+    version = 45,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -70,4 +71,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recentItemDao(): RecentItemDao
 
     abstract fun recurringTaskDao(): RecurringTaskDao
+
+    abstract fun reminderInfoDao(): ReminderInfoDao
 }

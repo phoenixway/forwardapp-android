@@ -36,7 +36,7 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -434,25 +434,8 @@ fun GoalItem(
                             )
                         },
             ) {
-                MarkdownText(
-                    text = parsedData.mainText,
-                    isCompleted = goal.completed,
-                    obsidianVaultName = obsidianVaultName,
-                    onTagClick = onTagClick,
-                    onTextClick = onItemClick,
-                    onLongClick = onLongClick,
-                    maxLines = 4,
-                    style =
-                        MaterialTheme.typography.bodySmall.copy(
-                            lineHeight = 16.sp,
-                            letterSpacing = 0.1.sp,
-                            fontSize = 12.sp,
-                            fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
-                        ),
-                )
-
-                val hasStatusContent =
-                    (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+val hasStatusContent =
+                    (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
                         (goal.reminderTime != null) ||
                         (parsedData.icons.isNotEmpty()) ||
                         (!goal.description.isNullOrBlank()) ||
@@ -612,7 +595,7 @@ fun GoalItem(
                 )
 
                 val hasStatusContent =
-                    (goal.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                    (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
                         (goal.reminderTime != null) ||
                         (parsedData.icons.isNotEmpty()) ||
                         (!goal.description.isNullOrBlank()) ||

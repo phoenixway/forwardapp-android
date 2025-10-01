@@ -595,7 +595,7 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
         }
 
         fun onProjectStatusUpdate(
-            newStatus: ProjectStatus,
+            newStatus: String,
             statusText: String?,
         ) {
             viewModelScope.launch {

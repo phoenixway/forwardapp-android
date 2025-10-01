@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import kotlinx.coroutines.delay
 
@@ -45,19 +45,20 @@ internal fun getViewModeText(viewMode: ProjectViewMode): String =
     }
 
 @Composable
-private fun getStatusVisuals(status: ProjectStatus): StatusVisuals =
+private fun getStatusVisuals(status: String): StatusVisuals =
     when (status) {
-        ProjectStatus.NO_PLAN -> StatusVisuals("⚠️", Color(0xFFFF9800).copy(alpha = 0.3f))
-        ProjectStatus.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
-        ProjectStatus.IN_PROGRESS -> StatusVisuals("▶️", Color(0xFF2196F3).copy(alpha = 0.3f))
-        ProjectStatus.COMPLETED -> StatusVisuals("✅", Color(0xFF4CAF50).copy(alpha = 0.3f))
-        ProjectStatus.ON_HOLD -> StatusVisuals("⏸️", Color(0xFFFF9800).copy(alpha = 0.3f))
-        ProjectStatus.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
+        ProjectStatusValues.NO_PLAN -> StatusVisuals("⚠️", Color(0xFFFF9800).copy(alpha = 0.3f))
+        ProjectStatusValues.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
+        ProjectStatusValues.IN_PROGRESS -> StatusVisuals("▶️", Color(0xFF2196F3).copy(alpha = 0.3f))
+        ProjectStatusValues.COMPLETED -> StatusVisuals("✅", Color(0xFF4CAF50).copy(alpha = 0.3f))
+        ProjectStatusValues.ON_HOLD -> StatusVisuals("⏸️", Color(0xFFFF9800).copy(alpha = 0.3f))
+        ProjectStatusValues.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
+        else -> StatusVisuals("", Color.Transparent)
     }
 
 @Composable
 private fun BriefStatusIndicator(
-    status: ProjectStatus,
+    status: String,
     modifier: Modifier = Modifier,
 ) {
     val visuals = getStatusVisuals(status = status)
@@ -126,7 +127,7 @@ private fun ViewModeIndicator(
 // Enhanced ProjectStatusIndicator with animations
 @Composable
 private fun ProjectStatusIndicator(
-    status: ProjectStatus,
+    status: String,
     statusText: String?,
     modifier: Modifier = Modifier,
 ) {
@@ -189,7 +190,7 @@ private fun ProjectStatusIndicator(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     )
                     Text(
-                        text = status.displayName,
+                        text = ProjectStatusValues.getDisplayName(status),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = 13.sp,

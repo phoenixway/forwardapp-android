@@ -21,7 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ListItemType
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import java.util.UUID
 
@@ -51,7 +51,7 @@ fun RemindersScreen(
                 val listItem = ListItem(
                     id = UUID.randomUUID().toString(),
                     projectId = "", // Not needed for this screen
-                    itemType = ListItemType.GOAL,
+                    itemType = ListItemTypeValues.GOAL,
                     entityId = goal.id,
                     order = 0
                 )
@@ -67,3 +67,4 @@ fun RemindersScreen(
         }
     }
 }
+

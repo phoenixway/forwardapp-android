@@ -22,19 +22,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateStatusDialog(
-    currentStatus: ProjectStatus,
+    currentStatus: String,
     currentStatusText: String,
     onDismissRequest: () -> Unit,
-    onSave: (ProjectStatus, String?) -> Unit,
+    onSave: (String, String?) -> Unit,
 ) {
     var selectedStatus by remember { mutableStateOf(currentStatus) }
     var statusText by remember { mutableStateOf(currentStatusText) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
+    val statuses = listOf(
+        ProjectStatusValues.NO_PLAN,
+        ProjectStatusValues.PLANNING,
+        ProjectStatusValues.IN_PROGRESS,
+        ProjectStatusValues.ON_HOLD,
+        ProjectStatusValues.PAUSED,
+        ProjectStatusValues.COMPLETED
+    )
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -48,7 +56,7 @@ fun UpdateStatusDialog(
                     onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
                 ) {
                     OutlinedTextField(
-                        value = selectedStatus.displayName,
+                        value = ProjectStatusValues.getDisplayName(selectedStatus),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Статус") },
@@ -72,9 +80,9 @@ fun UpdateStatusDialog(
                         expanded = isDropdownExpanded,
                         onDismissRequest = { isDropdownExpanded = false },
                     ) {
-                        ProjectStatus.values().forEach { status ->
+                        statuses.forEach { status ->
                             DropdownMenuItem(
-                                text = { Text(status.displayName) },
+                                text = { Text(ProjectStatusValues.getDisplayName(status)) },
                                 onClick = {
                                     selectedStatus = status
                                     isDropdownExpanded = false

@@ -3,6 +3,9 @@ package com.romankozak.forwardappmobile.data.repository
 import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
@@ -63,14 +66,14 @@ constructor(
         val status = if (isEnabled) "активовано" else "деактивовано"
         addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryType.AUTOMATIC,
+            type = ProjectLogEntryTypeValues.AUTOMATIC,
             description = "Управління проектом було $status.",
         )
     }
 
     suspend fun updateProjectStatus(
         projectId: String,
-        newStatus: ProjectStatus,
+        newStatus: String,
         statusText: String?,
     ) {
         val project = getProjectById(projectId) ?: return
@@ -90,7 +93,7 @@ constructor(
 
         addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryType.STATUS_CHANGE,
+            type = ProjectLogEntryTypeValues.STATUS_CHANGE,
             description = logDescription,
         )
     }
@@ -101,14 +104,14 @@ constructor(
     ) {
         addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryType.COMMENT,
+            type = ProjectLogEntryTypeValues.COMMENT,
             description = comment,
         )
     }
 
     private suspend fun addProjectLogEntry(
         projectId: String,
-        type: ProjectLogEntryType,
+        type: String,
         description: String,
         details: String? = null,
     ) {
@@ -135,26 +138,27 @@ constructor(
         listItemDao.getItemsForProjectStream(projectId).map { items ->
             items.mapNotNull { item ->
                 when (item.itemType) {
-                    ListItemType.GOAL ->
+                    ListItemTypeValues.GOAL ->
                         goalDao.getGoalById(item.entityId)?.let { goal ->
                             ListItemContent.GoalItem(goal, item)
                         }
-                    ListItemType.SUBLIST ->
+                    ListItemTypeValues.SUBLIST ->
                         projectDao.getProjectById(item.entityId)?.let { project ->
                             ListItemContent.SublistItem(project, item)
                         }
-                    ListItemType.LINK_ITEM ->
+                    ListItemTypeValues.LINK_ITEM ->
                         linkItemDao.getLinkItemById(item.entityId)?.let { link ->
                             ListItemContent.LinkItem(link, item)
                         }
-                    ListItemType.NOTE ->
+                    ListItemTypeValues.NOTE ->
                         noteDao.getNoteById(item.entityId)?.let { note ->
                             ListItemContent.NoteItem(note, item)
                         }
-                    ListItemType.CUSTOM_LIST ->
+                    ListItemTypeValues.CUSTOM_LIST ->
                         customListDao.getCustomListById(item.entityId)?.let { customList ->
                             ListItemContent.CustomListItem(customList, item)
                         }
+                    else -> null
                 }
             }
         }
@@ -180,7 +184,7 @@ constructor(
             ListItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                itemType = ListItemType.GOAL,
+                itemType = ListItemTypeValues.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
             )
@@ -201,7 +205,7 @@ constructor(
             ListItem(
                 id = UUID.randomUUID().toString(),
                 projectId = currentProjectId,
-                itemType = ListItemType.SUBLIST,
+                itemType = ListItemTypeValues.SUBLIST,
                 entityId = targetProjectId,
                 order = -System.currentTimeMillis(),
             )
@@ -227,7 +231,7 @@ constructor(
                     ListItem(
                         id = UUID.randomUUID().toString(),
                         projectId = targetProjectId,
-                        itemType = ListItemType.GOAL,
+                        itemType = ListItemTypeValues.GOAL,
                         entityId = goalId,
                         order = -System.currentTimeMillis(),
                     )
@@ -252,7 +256,7 @@ constructor(
                     ListItem(
                         id = UUID.randomUUID().toString(),
                         projectId = targetProjectId,
-                        itemType = ListItemType.GOAL,
+                        itemType = ListItemTypeValues.GOAL,
                         entityId = newGoal.id,
                         order = -System.currentTimeMillis(),
                     ),
@@ -546,7 +550,7 @@ constructor(
             ListItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                itemType = ListItemType.LINK_ITEM,
+                itemType = ListItemTypeValues.LINK_ITEM,
                 entityId = newLinkEntity.id,
                 order = -System.currentTimeMillis(),
             )
@@ -642,7 +646,7 @@ constructor(
             ListItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                itemType = ListItemType.GOAL,
+                itemType = ListItemTypeValues.GOAL,
                 entityId = newGoal.id,
                 order = -currentTime,
             )
@@ -704,7 +708,7 @@ constructor(
         val description = "Загальний час за день: $totalFormattedDuration."
         val details = detailsBuilder.toString()
 
-        addProjectLogEntry(projectId = projectId, type = ProjectLogEntryType.AUTOMATIC, description = description, details = details)
+        addProjectLogEntry(projectId = projectId, type = ProjectLogEntryTypeValues.AUTOMATIC, description = description, details = details)
     }
 
     private fun formatDuration(millis: Long): String {
@@ -736,7 +740,7 @@ constructor(
 
         addProjectLogEntry(
             projectId = projectId,
-            type = ProjectLogEntryType.AUTOMATIC,
+            type = ProjectLogEntryTypeValues.AUTOMATIC,
             description = description,
             details = "Розраховано на запит користувача.",
         )
@@ -780,7 +784,7 @@ constructor(
                 ListItem(
                     id = UUID.randomUUID().toString(),
                     projectId = note.projectId,
-                    itemType = ListItemType.NOTE,
+                    itemType = ListItemTypeValues.NOTE,
                     entityId = note.id,
                     order = -System.currentTimeMillis(),
                 )
@@ -818,7 +822,7 @@ constructor(
             ListItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                itemType = ListItemType.CUSTOM_LIST,
+                itemType = ListItemTypeValues.CUSTOM_LIST,
                 entityId = newList.id,
                 order = -System.currentTimeMillis(),
             )

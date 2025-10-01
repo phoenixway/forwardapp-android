@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 45,
-    "identityHash": "e2cf393a5146d57e8762462edd915f74",
+    "identityHash": "c5b0c67a44c32cc2ca9c7342e37c507a",
     "entities": [
       {
         "tableName": "conversations",
@@ -227,7 +227,7 @@
       },
       {
         "tableName": "projects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT, `project_status_text` TEXT, `project_log_level` TEXT, `total_time_spent_minutes` INTEGER, `reminder_time` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL DEFAULT 'NOT_ASSESSED', PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT DEFAULT 'NO_PLAN', `project_status_text` TEXT, `project_log_level` TEXT DEFAULT 'NORMAL', `total_time_spent_minutes` INTEGER, `reminder_time` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL DEFAULT 'NOT_ASSESSED', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -286,6 +286,13 @@
             "defaultValue": "0"
           },
           {
+            "fieldPath": "isAttachmentsExpanded",
+            "columnName": "is_attachments_expanded",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
             "fieldPath": "defaultViewModeName",
             "columnName": "default_view_mode",
             "affinity": "TEXT",
@@ -308,7 +315,8 @@
             "fieldPath": "projectStatus",
             "columnName": "project_status",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": false,
+            "defaultValue": "'NO_PLAN'"
           },
           {
             "fieldPath": "projectStatusText",
@@ -320,7 +328,8 @@
             "fieldPath": "projectLogLevel",
             "columnName": "project_log_level",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": false,
+            "defaultValue": "'NORMAL'"
           },
           {
             "fieldPath": "totalTimeSpentMinutes",
@@ -1783,6 +1792,39 @@
         "foreignKeys": []
       },
       {
+        "tableName": "reminder_info",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goalId` TEXT NOT NULL, `reminder_status` TEXT NOT NULL DEFAULT 'ACTIVE', `snooze_time` INTEGER, PRIMARY KEY(`goalId`))",
+        "fields": [
+          {
+            "fieldPath": "goalId",
+            "columnName": "goalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reminderStatus",
+            "columnName": "reminder_status",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'ACTIVE'"
+          },
+          {
+            "fieldPath": "snoozeTime",
+            "columnName": "snooze_time",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "goalId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
         "ftsVersion": "FTS4",
         "ftsOptions": {
           "tokenizer": "simple",
@@ -1985,7 +2027,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e2cf393a5146d57e8762462edd915f74')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c5b0c67a44c32cc2ca9c7342e37c507a')"
     ]
   }
 }

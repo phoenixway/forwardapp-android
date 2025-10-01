@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 44,
-    "identityHash": "ec68d72147ef79428d6ac250f43fb86e",
+    "identityHash": "1399c2fe00ce36905f76cdb46c836994",
     "entities": [
       {
         "tableName": "conversations",
@@ -1790,6 +1790,39 @@
         "foreignKeys": []
       },
       {
+        "tableName": "reminder_info",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goalId` TEXT NOT NULL, `reminder_status` TEXT NOT NULL DEFAULT 'ACTIVE', `snooze_time` INTEGER, PRIMARY KEY(`goalId`))",
+        "fields": [
+          {
+            "fieldPath": "goalId",
+            "columnName": "goalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reminderStatus",
+            "columnName": "reminder_status",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'ACTIVE'"
+          },
+          {
+            "fieldPath": "snoozeTime",
+            "columnName": "snooze_time",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "goalId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
         "ftsVersion": "FTS4",
         "ftsOptions": {
           "tokenizer": "simple",
@@ -1992,7 +2025,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ec68d72147ef79428d6ac250f43fb86e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1399c2fe00ce36905f76cdb46c836994')"
     ]
   }
 }

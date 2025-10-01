@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Comment
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.TrendingUp
@@ -17,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryType
+import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -56,11 +58,12 @@ fun LogContent(
 private fun LogEntryItem(log: ProjectExecutionLog) {
     val icon =
         when (log.type) {
-            ProjectLogEntryType.STATUS_CHANGE -> Icons.Default.TrendingUp
-            ProjectLogEntryType.COMMENT -> Icons.Default.Comment
-            ProjectLogEntryType.AUTOMATIC -> Icons.Default.ReceiptLong
-            ProjectLogEntryType.INSIGHT -> Icons.Default.Lightbulb
-            ProjectLogEntryType.MILESTONE -> TODO()
+            ProjectLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
+            ProjectLogEntryTypeValues.COMMENT -> Icons.Default.Comment
+            ProjectLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
+            ProjectLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
+            ProjectLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
+            else -> Icons.Default.Info
         }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -73,7 +76,7 @@ private fun LogEntryItem(log: ProjectExecutionLog) {
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = log.type.name,
+                contentDescription = log.type,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )

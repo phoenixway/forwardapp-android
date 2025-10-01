@@ -47,7 +47,7 @@ import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 
@@ -91,7 +91,7 @@ private sealed class FlowItem {
     data class SublistIcon(val item: @Composable () -> Unit) : FlowItem()
     data class ChildProject(val project: Project) : FlowItem()
     data class Reminder(val time: Long) : FlowItem()
-    data class ScoreStatus(val scoringStatus: ScoringStatus, val displayScore: Int) : FlowItem()
+    data class ScoreStatus(val scoringStatus: String, val displayScore: Int) : FlowItem()
     data class IconEmoji(val icon: String, val index: Int) : FlowItem()
     data class Tag(val tag: String) : FlowItem()
 }
@@ -156,7 +156,7 @@ fun SubprojectItemRow(
             )
 
             val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
-                (subproject.scoringStatus != ScoringStatus.NOT_ASSESSED) ||
+                (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
                 (subproject.reminderTime != null) ||
                 (parsedData.icons.isNotEmpty()) ||
                 childProjects.isNotEmpty()

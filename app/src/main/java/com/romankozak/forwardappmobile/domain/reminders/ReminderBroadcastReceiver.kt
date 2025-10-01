@@ -14,6 +14,9 @@ import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.romankozak.forwardappmobile.data.dao.ReminderInfoDao
+import com.romankozak.forwardappmobile.data.database.models.ReminderInfo
+import com.romankozak.forwardappmobile.data.database.models.ReminderStatusValues
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +28,9 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
     @Inject
     lateinit var alarmScheduler: AlarmScheduler
+
+    @Inject
+    lateinit var reminderInfoDao: ReminderInfoDao
 
     companion object {
         const val EXTRA_GOAL_ID = "EXTRA_GOAL_ID"
@@ -265,6 +271,16 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal completed via notification: $goalId")
 
+        CoroutineScope(Dispatchers.IO).launch {
+            reminderInfoDao.insertOrUpdate(
+                ReminderInfo(
+                    goalId = goalId,
+                    reminderStatus = ReminderStatusValues.COMPLETED,
+                    snoozeTime = null
+                )
+            )
+        }
+
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         // Скасовуємо всі пов'язані сповіщення
         nm.cancel(getNotificationId(goalId))
@@ -277,7 +293,8 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             }
             try {
                 context.startActivity(closeIntent)
-            } catch (e: Exception) {
+            }
+            catch (e: Exception) {
                 Log.w(tag, "Could not close lock screen activity", e)
             }
         }
@@ -290,8 +307,15 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(getNotificationId(goalId))
 
-        // Snooze the reminder
         CoroutineScope(Dispatchers.IO).launch {
+            val snoozeTime = System.currentTimeMillis() + (15 * 60 * 1000) // 15 хвилин
+            reminderInfoDao.insertOrUpdate(
+                ReminderInfo(
+                    goalId = goalId,
+                    reminderStatus = ReminderStatusValues.SNOOZED,
+                    snoozeTime = snoozeTime
+                )
+            )
             alarmScheduler.snooze(goalId)
         }
 
@@ -312,6 +336,16 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     private fun handleDismissAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal dismissed via notification: $goalId")
+
+        CoroutineScope(Dispatchers.IO).launch {
+            reminderInfoDao.insertOrUpdate(
+                ReminderInfo(
+                    goalId = goalId,
+                    reminderStatus = ReminderStatusValues.DISMISSED,
+                    snoozeTime = null
+                )
+            )
+        }
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(getNotificationId(goalId))

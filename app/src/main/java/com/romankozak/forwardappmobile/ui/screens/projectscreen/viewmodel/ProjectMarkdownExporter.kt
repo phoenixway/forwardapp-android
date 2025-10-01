@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogMarkdownHandlerResultListener
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -29,7 +30,7 @@ class ProjectMarkdownExporter
                     appendLine()
 
                     appendLine("## Поточний стан проекту")
-                    appendLine("- **Статус:** ${project.projectStatus?.displayName ?: "Не визначено"}")
+                    appendLine("- **Статус:** ${ProjectStatusValues.getDisplayName(project.projectStatus) ?: "Не визначено"}")
                     project.projectStatusText?.takeIf { it.isNotBlank() }?.let {
                         appendLine("- **Коментар до статусу:** $it")
                     }
@@ -69,7 +70,7 @@ class ProjectMarkdownExporter
                         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                         logs.sortedBy { it.timestamp }.forEach { log ->
                             val date = dateFormat.format(Date(log.timestamp))
-                            appendLine("### ${log.type.name} - $date")
+                            appendLine("### ${log.type} - $date")
                             appendLine(log.description)
                             log.details?.let {
                                 appendLine("\n> Деталі: $it\n")

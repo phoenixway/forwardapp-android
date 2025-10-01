@@ -6,7 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.DashboardContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.InsightsContent
@@ -25,7 +25,7 @@ fun ProjectDashboardView(
     modifier: Modifier = Modifier,
     project: Project?,
     projectLogs: List<ProjectExecutionLog>,
-    onStatusUpdate: (ProjectStatus, String?) -> Unit,
+    onStatusUpdate: (String, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
     projectTimeMetrics: ProjectTimeMetrics?,

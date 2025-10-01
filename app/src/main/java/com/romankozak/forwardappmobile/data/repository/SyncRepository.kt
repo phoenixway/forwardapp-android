@@ -25,10 +25,10 @@ import com.romankozak.forwardappmobile.data.database.models.FullAppBackup
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevel
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -169,11 +169,11 @@ constructor(
                     projectFromBackup.copy(
                         defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
                         isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
-                        projectStatus = projectFromBackup.projectStatus ?: ProjectStatus.NO_PLAN,
+                        projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
                         projectStatusText = projectFromBackup.projectStatusText ?: "",
-                        projectLogLevel = projectFromBackup.projectLogLevel ?: ProjectLogLevel.NORMAL,
+                        projectLogLevel = projectFromBackup.projectLogLevel ?: ProjectLogLevelValues.NORMAL,
                         totalTimeSpentMinutes = projectFromBackup.totalTimeSpentMinutes ?: 0,
-                        scoringStatus = projectFromBackup.scoringStatus ?: ScoringStatus.NOT_ASSESSED,
+                        scoringStatus = projectFromBackup.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
                         valueImportance = projectFromBackup.valueImportance,
                         valueImpact = projectFromBackup.valueImpact,
                         effort = projectFromBackup.effort,

@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile.data.repository
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import kotlinx.coroutines.CoroutineDispatcher
@@ -121,7 +122,7 @@ class DayManagementRepository
                     priority = priority,
                     goalId = goalId,
                     estimatedDurationMinutes = duration,
-                    taskType = ListItemType.GOAL,
+                    taskType = ListItemTypeValues.GOAL,
                 )
                 val dayTask = addTaskToDayPlan(taskParams).copy(
                     recurringTaskId = recurringTask.id,
@@ -151,7 +152,7 @@ class DayManagementRepository
                     scheduledTime = params.scheduledTime,
                     estimatedDurationMinutes = params.estimatedDurationMinutes,
                     order = order,
-                    taskType = params.taskType ?: ListItemType.GOAL,
+                    taskType = params.taskType ?: ListItemTypeValues.GOAL,
                     points = params.points,
                 )
             dayTaskDao.insert(task)
@@ -186,7 +187,7 @@ class DayManagementRepository
                     // КІНЕЦЬ ВИПРАВЛЕННЯ --->
                     scheduledTime = scheduledTime,
                     priority = mapImportanceToPriority(goal.valueImportance),
-                    taskType = ListItemType.GOAL,
+                    taskType = ListItemTypeValues.GOAL,
                 )
             addTaskToDayPlan(taskParams)
         }
@@ -209,7 +210,7 @@ class DayManagementRepository
                         projectId = projectId,
                         scheduledTime = scheduledTime,
                         priority = mapImportanceToPriority(project.valueImportance),
-                        taskType = ListItemType.SUBLIST,
+                        taskType = ListItemTypeValues.SUBLIST,
                     )
                 addTaskToDayPlan(taskParams)
             }
@@ -563,7 +564,7 @@ class DayManagementRepository
                                     goalId = goalId,
                                     priority = recurringTask.priority,
                                     estimatedDurationMinutes = recurringTask.duration?.toLong(),
-                                    taskType = ListItemType.GOAL,
+                                    taskType = ListItemTypeValues.GOAL,
                                 )
                                 addTaskToDayPlan(taskParams).copy(recurringTaskId = recurringTask.id).also { dayTaskDao.update(it) }
                             }
