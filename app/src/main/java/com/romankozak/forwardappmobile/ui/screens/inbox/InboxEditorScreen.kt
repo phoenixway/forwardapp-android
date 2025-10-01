@@ -17,7 +17,7 @@ fun InboxEditorScreen(
 
   UniversalEditorScreen(
     title = "Edit Inbox Item",
-    onSave = { content ->
+    onSave = { content, _ -> // Ignore cursor position for now
       viewModel.saveInboxItem(content)
       navController.popBackStack()
     },

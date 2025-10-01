@@ -17,8 +17,8 @@ fun CustomListEditorScreen(
 
   UniversalEditorScreen(
     title = "Edit Custom List",
-    onSave = { content ->
-      viewModel.saveCustomList(content)
+    onSave = { content, cursorPosition ->
+      viewModel.saveCustomList(content, cursorPosition)
       navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
       navController.popBackStack()
     },

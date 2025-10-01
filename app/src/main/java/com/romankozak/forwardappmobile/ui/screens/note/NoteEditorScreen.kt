@@ -17,7 +17,7 @@ fun NoteEditorScreen(
 
   UniversalEditorScreen(
     title = "Edit Note",
-    onSave = { content ->
+    onSave = { content, _ -> // Ignore cursor position for now
       viewModel.saveNote(content)
       navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
       navController.popBackStack()
