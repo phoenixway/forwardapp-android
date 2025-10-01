@@ -132,7 +132,7 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
-        route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}",
+        route = "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}",
         arguments =
             listOf(
                 navArgument("listId") { type = NavType.StringType },
@@ -145,6 +145,10 @@ private fun NavGraphBuilder.mainGraph(
                     nullable = true
                 },
                 navArgument("inboxRecordIdToHighlight") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("initialViewMode") {
                     type = NavType.StringType
                     nullable = true
                 },
