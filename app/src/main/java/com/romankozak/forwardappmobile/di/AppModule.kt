@@ -62,7 +62,8 @@ object DatabaseModule {
             MIGRATION_41_42,
             MIGRATION_42_43,
             MIGRATION_44_45,
-            MIGRATION_45_46
+            MIGRATION_45_46,
+MIGRATION_46_47
         ).build()
 
     @Provides

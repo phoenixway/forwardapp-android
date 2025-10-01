@@ -55,8 +55,10 @@ class UniversalEditorViewModel(private val application: Application) : ViewModel
     _uiState.update { it.copy(projectId = projectId) }
   }
 
-  fun setInitialContent(content: String) {
-    val textFieldValue = TextFieldValue(content)
+  fun setInitialContent(content: String, cursorPosition: Int = 0) {
+    android.util.Log.d("CursorDebug", "setInitialContent called with cursorPosition: $cursorPosition")
+    val selection = TextRange(cursorPosition.coerceIn(0, content.length))
+    val textFieldValue = TextFieldValue(content, selection)
     _uiState.update {
       it.copy(content = textFieldValue, toolbarState = computeToolbarState(textFieldValue, true))
     }

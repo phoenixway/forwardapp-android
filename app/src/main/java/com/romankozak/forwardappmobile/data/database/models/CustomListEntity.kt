@@ -25,4 +25,5 @@ data class CustomListEntity(
     val createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
     val content: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0") val lastCursorPosition: Int = 0,
 )

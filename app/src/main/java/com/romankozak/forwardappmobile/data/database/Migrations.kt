@@ -379,3 +379,9 @@ val MIGRATION_45_46 = object : Migration(45, 46) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_execution_logs_projectId` ON `project_execution_logs` (`projectId`)")
     }
 }
+
+val MIGRATION_46_47 = object : Migration(46, 47) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE custom_lists ADD COLUMN lastCursorPosition INTEGER NOT NULL DEFAULT 0")
+    }
+}

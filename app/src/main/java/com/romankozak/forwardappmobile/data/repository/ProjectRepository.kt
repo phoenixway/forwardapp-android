@@ -865,6 +865,7 @@ constructor(
     }
 
     suspend fun updateCustomList(list: CustomListEntity) {
+        android.util.Log.d("CursorDebug", "Repository updating custom list. lastCursorPosition: ${list.lastCursorPosition}")
         Log.d(TAG, "updateCustomList called with list: $list")
         customListDao.updateCustomList(list)
         val recentItem = recentItemDao.getRecentItemById(list.id)

@@ -26,19 +26,29 @@ constructor(
     listId = id
     viewModelScope.launch {
       projectRepository.getCustomListById(id)?.let { customList ->
+        android.util.Log.d("CursorDebug", "Loaded customList with lastCursorPosition: ${customList.lastCursorPosition}")
         // Встановлюємо projectId для "Show Location"
         universalEditorViewModel.setProjectId(customList.projectId)
-        universalEditorViewModel.setInitialContent(customList.content ?: "")
+        universalEditorViewModel.setInitialContent(
+            customList.content ?: "",
+            customList.lastCursorPosition
+        )
       }
     }
   }
 
-  fun saveCustomList(content: String) {
+  fun saveCustomList(content: String, cursorPosition: Int) {
+    android.util.Log.d("CursorDebug", "saveCustomList called with cursorPosition: $cursorPosition")
     listId?.let {
       viewModelScope.launch {
         projectRepository.getCustomListById(it)?.let { customList ->
           val name = content.lines().firstOrNull()?.take(100) ?: "Unnamed List"
-          val updatedList = customList.copy(name = name, content = content)
+          val updatedList = customList.copy(
+              name = name,
+              content = content,
+              updatedAt = System.currentTimeMillis(),
+              lastCursorPosition = cursorPosition
+          )
           projectRepository.updateCustomList(updatedList)
         }
       }

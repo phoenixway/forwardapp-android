@@ -48,10 +48,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.screens.customlist.components.EnhancedListToolbar
 
+import kotlinx.coroutines.delay
+
 @Composable
 fun UniversalEditorScreen(
   title: String,
-  onSave: (String) -> Unit,
+  onSave: (content: String, cursorPosition: Int) -> Unit,
   onNavigateBack: () -> Unit,
   navController: NavController,
   viewModel: UniversalEditorViewModel = hiltViewModel(),
@@ -80,6 +82,11 @@ fun UniversalEditorScreen(
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val contentFocusRequester = remember { FocusRequester() }
+
+  LaunchedEffect(Unit) {
+      delay(300) // Delay to allow UI to settle before requesting focus
+      contentFocusRequester.requestFocus()
+  }
 
   LaunchedEffect(Unit) {
     viewModel.events.collect {
@@ -116,7 +123,7 @@ fun UniversalEditorScreen(
         title = title,
         isLoading = uiState.isLoading,
         onNavigateBack = onNavigateBack,
-        onSave = { onSave(uiState.content.text) },
+        onSave = { onSave(uiState.content.text, uiState.content.selection.start) },
         onCopyAll = viewModel::onCopyAll,
         onShare = viewModel::onShare,
         onShowLocation = viewModel::onShowLocation,
@@ -237,6 +244,31 @@ private fun Editor(
   val highlightColor = MaterialTheme.colorScheme.surfaceVariant
   val textColor = MaterialTheme.colorScheme.onSurface
   val accentColor = MaterialTheme.colorScheme.primary
+
+  LaunchedEffect(content.selection) {
+      textLayoutResult?.let { layoutResult ->
+          val cursorOffset = content.selection.start
+          android.util.Log.d("CursorDebug", "Scrolling effect triggered. Cursor offset: $cursorOffset")
+          val line = layoutResult.getLineForOffset(cursorOffset)
+          val lineTop = layoutResult.getLineTop(line)
+          val lineBottom = layoutResult.getLineBottom(line)
+          val viewportHeight = scrollState.viewportSize
+          val currentScrollPosition = scrollState.value
+
+          android.util.Log.d("CursorDebug", "Line: $line, LineTop: $lineTop, ViewportHeight: $viewportHeight, Scroll: $currentScrollPosition")
+
+          if (lineTop < currentScrollPosition) {
+              // Line is above the viewport, scroll up
+              android.util.Log.d("CursorDebug", "Scrolling UP to ${lineTop.toInt()}")
+              scrollState.animateScrollTo(lineTop.toInt())
+          } else if (lineBottom > currentScrollPosition + viewportHeight) {
+              // Line is below the viewport, scroll down
+              val scrollAmount = (lineBottom - viewportHeight).toInt()
+              android.util.Log.d("CursorDebug", "Scrolling DOWN to ${scrollAmount.coerceAtLeast(0)}")
+              scrollState.animateScrollTo(scrollAmount.coerceAtLeast(0))
+          }
+      }
+  }
 
   Row(
     modifier =
