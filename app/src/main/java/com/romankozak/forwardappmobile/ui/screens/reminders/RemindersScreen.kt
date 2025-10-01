@@ -56,12 +56,17 @@ fun RemindersScreen(
                     order = 0
                 )
                 GoalItem(
-                    goalContent = ListItemContent.GoalItem(goal, listItem),
+                    goal = goal,
+                    obsidianVaultName = "",
                     onCheckedChange = { _ -> },
-                    onClick = { },
+                    onItemClick = { },
                     onLongClick = { },
-                    isSelected = false,
-                    currentTimeMillis = currentTimeMillis
+                    onTagClick = { },
+                    onRelatedLinkClick = { },
+                    emojiToHide = null,
+                    contextMarkerToEmojiMap = emptyMap(),
+                    currentTimeMillis = currentTimeMillis,
+                    isSelected = false
                 )
             }
         }

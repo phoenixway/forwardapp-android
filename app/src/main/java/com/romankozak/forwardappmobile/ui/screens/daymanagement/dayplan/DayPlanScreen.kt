@@ -565,13 +565,17 @@ fun TaskGoalItem(
         )
         Box(modifier = Modifier.weight(1f)) {
           GoalItem(
-            goalContent = goalContent,
-            onCheckedChange = {},
-            onClick = {},
-            onLongClick = onLongPress,
-            isSelected = false,
-            modifier = Modifier.fillMaxWidth(),
+            goal = goalContent.goal,
+            obsidianVaultName = "",
+            onCheckedChange = { _ -> },
+            onItemClick = { },
+            onLongClick = { onLongPress() },
+            onTagClick = { },
+            onRelatedLinkClick = { },
+            emojiToHide = null,
+            contextMarkerToEmojiMap = emptyMap(),
             currentTimeMillis = System.currentTimeMillis(),
+            isSelected = false
           )
         }
         if (task.recurringTaskId != null) {
