@@ -65,13 +65,10 @@ class Converters {
     }
 
     @TypeConverter
-    fun toRelatedLink(value: String?): RelatedLink? {
-        if (value.isNullOrEmpty()) {
-            return null
-        }
-        val type = object : TypeToken<RelatedLink>() {}.type
-        return gson.fromJson(value, type)
-    }
+    fun toReminderStatus(value: String) = enumValueOf<ReminderStatus>(value)
+
+    @TypeConverter
+    fun fromReminderStatus(value: ReminderStatus) = value.name
 }
 
 
@@ -130,6 +127,8 @@ data class LinkItemEntity(
     val createdAt: Long,
 )
 
+enum class ReminderStatus { ACTIVE, SNOOZED, COMPLETED }
+
 @Entity(tableName = "goals")
 data class Goal(
     @PrimaryKey val id: String,
@@ -156,6 +155,8 @@ data class Goal(
     @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
     @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
     @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
+    @ColumnInfo(name = "reminder_status", defaultValue = "'ACTIVE'") val reminderStatus: ReminderStatus = ReminderStatus.ACTIVE,
+    @ColumnInfo(name = "snooze_time") val snoozeTime: Long? = null,
 )
 
 @Entity(tableName = "projects")

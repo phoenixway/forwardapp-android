@@ -102,11 +102,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
 
     val notificationManager =
       getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    val notificationId =
-      intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID)?.hashCode() ?: -1
-    if (notificationId != -1) {
-      notificationManager.cancel(notificationId)
-    }
+    notificationManager.cancel(ReminderBroadcastReceiver().getNotificationId(goalId))
 
     setupLockScreenFlags()
 
@@ -298,9 +294,8 @@ class ReminderLockScreenActivity : ComponentActivity() {
   private fun cancelAllNotifications(goalId: String) {
     val notificationManager =
       getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    val notificationId = 1000 + goalId.hashCode()
-    notificationManager.cancel(notificationId)
-    Log.d(tag, "Cancelled notification with ID: $notificationId")
+    notificationManager.cancel(ReminderBroadcastReceiver().getNotificationId(goalId))
+    Log.d(tag, "Cancelled notification with ID: ${ReminderBroadcastReceiver().getNotificationId(goalId)}")
   }
 
   private fun finishSafely() {

@@ -44,7 +44,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         private const val BASE_ACTION_ID = 3000
     }
 
-    private fun getNotificationId(goalId: String): Int {
+    fun getNotificationId(goalId: String): Int {
         return BASE_NOTIFICATION_ID + goalId.hashCode()
     }
 
@@ -242,7 +242,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.FLAG_INSISTENT or
                 NotificationCompat.FLAG_NO_CLEAR
 
-        notificationManager.notify(goalId.hashCode(), notification)
+        notificationManager.notify(getNotificationId(goalId), notification)
 
         Log.d(tag, "Full-screen notification created for goal: $goalId")
     }
@@ -251,8 +251,6 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             this.action = action
             putExtra(EXTRA_GOAL_ID, goalId)
-            // Додаємо унікальний параметр для запобігання перезапису
-            putExtra("ACTION_TIMESTAMP", System.currentTimeMillis())
         }
         return PendingIntent.getBroadcast(
             context,
