@@ -397,6 +397,7 @@ fun GoalItem(
     contextMarkerToEmojiMap: Map<String, String>,
     currentTimeMillis: Long,
     isSelected: Boolean,
+    endAction: @Composable () -> Unit = {},
 ) {
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
 
@@ -404,17 +405,17 @@ fun GoalItem(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(8.dp),
+                .padding(vertical = 4.dp, horizontal = 12.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
         border =
             BorderStroke(
-                0.5.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                1.5.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
             ),
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             EnhancedCustomCheckbox(
@@ -543,6 +544,7 @@ fun GoalItem(
                     }
                 }
             }
+            endAction()
         }
     }
 }

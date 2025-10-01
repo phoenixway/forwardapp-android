@@ -111,6 +111,7 @@ fun SubprojectItemRow(
     currentTimeMillis: Long,
     contextMarkerToEmojiMap: Map<String, String>,
     emojiToHide: String?,
+    endAction: @Composable () -> Unit = {},
 ) {
     val subproject = subprojectContent.project
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
@@ -119,7 +120,7 @@ fun SubprojectItemRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         EnhancedCustomCheckbox(
@@ -258,5 +259,6 @@ fun SubprojectItemRow(
                 }
             }
         }
+        endAction()
     }
 }

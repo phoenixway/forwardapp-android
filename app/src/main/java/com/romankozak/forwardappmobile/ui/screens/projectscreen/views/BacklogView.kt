@@ -1,14 +1,23 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.views
 
 import android.util.Log
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
@@ -20,6 +29,23 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.I
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+
+@Composable
+private fun DragHandleIcon(modifier: Modifier = Modifier) {
+    Box(
+        modifier =
+            modifier
+                .fillMaxHeight()
+                .padding(vertical = 4.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.DragHandle,
+            contentDescription = "Перетягнути",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        )
+    }
+}
 
 @Composable
 fun BacklogView(
@@ -126,6 +152,7 @@ fun BacklogView(
                                 emojiToHide = currentListContextEmojiToHide,
                                 currentTimeMillis = currentTime,
                                 isSelected = isSelected,
+                                endAction = { DragHandleIcon() }
                             )
                         }
                         is ListItemContent.SublistItem -> {
@@ -143,6 +170,7 @@ fun BacklogView(
                                 onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
+                                endAction = { DragHandleIcon() }
                             )
                         }
                         else -> {

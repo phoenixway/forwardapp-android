@@ -131,9 +131,6 @@ fun InteractiveListItem(
                         Box(modifier = Modifier.weight(1f)) {
                             content(isDragging)
                         }
-                        if (isDraggable) {
-                            DragHandleIcon()
-                        }
                     }
                 },
             )
