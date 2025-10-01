@@ -121,20 +121,22 @@ fun SubprojectItemRow(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 0.dp),
-        shape = RoundedCornerShape(12.dp),
+                .padding(vertical = 6.dp, horizontal = 8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border =
-            BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            ),
+        shadowElevation = if (isSelected) 4.dp else 1.dp,
+        tonalElevation = if (isSelected) 3.dp else 1.dp,
+        border = if (isSelected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        },
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
         EnhancedCustomCheckbox(

@@ -172,7 +172,7 @@ val MIGRATION_44_45 = object : Migration(44, 45) {
                 `weightRisk` REAL NOT NULL DEFAULT 1.0, 
                 `rawScore` REAL NOT NULL DEFAULT 0.0, 
                 `displayScore` INTEGER NOT NULL DEFAULT 0, 
-                `scoring_status` TEXT NOT NULL DEFAULT 'NOT_ASSESSED', 
+                `scoring_status` TEXT NOT NULL, 
                 `parentValueImportance` REAL DEFAULT 0.0, 
                 `impactOnParentGoal` REAL DEFAULT 0.0, 
                 `timeCost` REAL DEFAULT 0.0, 
@@ -217,9 +217,9 @@ val MIGRATION_44_45 = object : Migration(44, 45) {
                 `default_view_mode` TEXT, 
                 `is_completed` INTEGER NOT NULL DEFAULT 0, 
                 `is_project_management_enabled` INTEGER, 
-                `project_status` TEXT DEFAULT 'NO_PLAN', 
+                `project_status` TEXT, 
                 `project_status_text` TEXT, 
-                `project_log_level` TEXT DEFAULT 'NORMAL', 
+                `project_log_level` TEXT, 
                 `total_time_spent_minutes` INTEGER, 
                 `reminder_time` INTEGER, 
                 `valueImportance` REAL NOT NULL DEFAULT 0.0, 
@@ -232,7 +232,7 @@ val MIGRATION_44_45 = object : Migration(44, 45) {
                 `weightRisk` REAL NOT NULL DEFAULT 1.0, 
                 `rawScore` REAL NOT NULL DEFAULT 0.0, 
                 `displayScore` INTEGER NOT NULL DEFAULT 0, 
-                `scoring_status` TEXT NOT NULL DEFAULT 'NOT_ASSESSED', 
+                `scoring_status` TEXT NOT NULL, 
                 PRIMARY KEY(`id`)
             )
         """.trimIndent())
