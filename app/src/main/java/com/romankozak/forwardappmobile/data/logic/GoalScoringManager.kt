@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.logic
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 
 object GoalScoringManager {
     private val effortScale = listOf(0f, 1f, 2f, 3f, 5f, 8f, 13f, 21f)
@@ -22,7 +22,7 @@ object GoalScoringManager {
     }
 
     fun calculateScores(goal: Goal): Goal {
-        if (goal.scoringStatus != ScoringStatus.ASSESSED) {
+        if (goal.scoringStatus != ScoringStatusValues.ASSESSED) {
             return goal.copy(
                 rawScore = 0f,
                 displayScore = 0,
@@ -55,7 +55,7 @@ object GoalScoringManager {
     }
 
     fun calculateScoresForProject(project: Project): Project {
-        if (project.scoringStatus != ScoringStatus.ASSESSED) {
+        if (project.scoringStatus != ScoringStatusValues.ASSESSED) {
             return project.copy(
                 rawScore = 0f,
                 displayScore = 0,

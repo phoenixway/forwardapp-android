@@ -35,7 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowRow
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -333,7 +333,7 @@ private fun EvaluationSection(
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
 
-                        if (uiState.scoringStatus == ScoringStatus.ASSESSED) {
+                        if (uiState.scoringStatus == ScoringStatusValues.ASSESSED) {
                             val rawScore = uiState.rawScore
                             val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
                             val balanceColor =
@@ -365,16 +365,16 @@ private fun EvaluationSection(
 
 @Composable
 private fun ScoringStatusSelector(
-    selectedStatus: ScoringStatus,
-    onStatusSelected: (ScoringStatus) -> Unit,
+    selectedStatus: String,
+    onStatusSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val statuses = ScoringStatus.entries.toTypedArray()
+    val statuses = listOf(ScoringStatusValues.NOT_ASSESSED, ScoringStatusValues.ASSESSED, ScoringStatusValues.IMPOSSIBLE_TO_ASSESS)
     val labels =
         mapOf(
-            ScoringStatus.NOT_ASSESSED to "Не задано",
-            ScoringStatus.ASSESSED to "Задано",
-            ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Неможливо",
+            ScoringStatusValues.NOT_ASSESSED to "Не задано",
+            ScoringStatusValues.ASSESSED to "Задано",
+            ScoringStatusValues.IMPOSSIBLE_TO_ASSESS to "Неможливо",
         )
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         statuses.forEachIndexed { index, status ->

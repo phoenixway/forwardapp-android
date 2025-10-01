@@ -19,7 +19,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
-import com.romankozak.forwardappmobile.data.database.models.ListItemType
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeaderExtended
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsGoalItem
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.DayTaskAsSublistItem
@@ -116,7 +116,7 @@ fun TaskList(
             modifier =
               Modifier.combinedClickable(
                 onClick = {
-                  if (task.taskType == ListItemType.SUBLIST) {
+                  if (task.taskType == ListItemTypeValues.SUBLIST) {
                     task.projectId?.let { onSublistClick(it) }
                   }
                 },
@@ -137,7 +137,7 @@ fun TaskList(
               Spacer(Modifier.width(8.dp))
               Box(modifier = Modifier.weight(1f)) {
                 when (task.taskType) {
-                  ListItemType.SUBLIST -> DayTaskAsSublistItem(task, currentTime)
+                  ListItemTypeValues.SUBLIST -> DayTaskAsSublistItem(task, currentTime)
                   else -> DayTaskAsGoalItem(task, currentTime)
                 }
               }

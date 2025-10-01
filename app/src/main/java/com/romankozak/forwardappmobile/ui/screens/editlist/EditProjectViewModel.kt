@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
@@ -19,7 +19,7 @@ data class EditProjectUiState(
     val name: String = "",
     val tags: List<String> = emptyList(),
     val reminderTime: Long? = null,
-    val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
+    val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     val isScoringEnabled: Boolean = true,
     val valueImportance: Float = 0f,
     val valueImpact: Float = 0f,
@@ -59,7 +59,7 @@ class EditProjectViewModel
                             tags = loadedProject.tags?.filter { it.isNotBlank() } ?: emptyList(),
                             reminderTime = loadedProject.reminderTime,
                             scoringStatus = loadedProject.scoringStatus,
-                            isScoringEnabled = loadedProject.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS,
+                            isScoringEnabled = loadedProject.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                             valueImportance = loadedProject.valueImportance,
                             valueImpact = loadedProject.valueImpact,
                             effort = loadedProject.effort,
@@ -144,8 +144,8 @@ class EditProjectViewModel
             _uiState.update { it.copy(reminderTime = null) }
         }
 
-        fun onScoringStatusChange(newStatus: ScoringStatus) {
-            _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS) }
+        fun onScoringStatusChange(newStatus: String) {
+            _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }
             updateScores()
         }
 
@@ -167,8 +167,8 @@ class EditProjectViewModel
 
         private fun onScoringParameterChange(update: (EditProjectUiState) -> EditProjectUiState) {
             _uiState.update(update)
-            if (_uiState.value.scoringStatus == ScoringStatus.NOT_ASSESSED) {
-                _uiState.update { it.copy(scoringStatus = ScoringStatus.ASSESSED) }
+            if (_uiState.value.scoringStatus == ScoringStatusValues.NOT_ASSESSED) {
+                _uiState.update { it.copy(scoringStatus = ScoringStatusValues.ASSESSED) }
             }
             updateScores()
         }

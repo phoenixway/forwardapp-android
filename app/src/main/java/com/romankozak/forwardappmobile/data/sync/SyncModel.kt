@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.sync
 
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.*
 
 data class DesktopGoal(
@@ -21,7 +22,7 @@ data class DesktopGoal(
     val weightRisk: Float = 1f,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
-    val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
+    val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
 )
 
 data class DesktopGoalList(

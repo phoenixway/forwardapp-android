@@ -62,7 +62,7 @@ object DatabaseModule {
             MIGRATION_41_42,
             MIGRATION_42_43,
             MIGRATION_43_44
-        ).build()
+        ).fallbackToDestructiveMigration().build()
 
     @Provides
     fun provideConversationFolderDao(db: AppDatabase): ConversationFolderDao = db.conversationFolderDao()

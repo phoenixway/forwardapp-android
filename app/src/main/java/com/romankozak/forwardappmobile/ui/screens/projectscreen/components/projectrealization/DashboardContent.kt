@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectStatus
+import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
 
@@ -40,7 +40,7 @@ import com.romankozak.forwardappmobile.ui.utils.formatDurationForUi
 @Composable
 fun DashboardContent(
     project: Project,
-    onStatusUpdate: (ProjectStatus, String?) -> Unit,
+    onStatusUpdate: (String, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
     projectTimeMetrics: ProjectTimeMetrics?,
@@ -65,7 +65,7 @@ fun DashboardContent(
                 if (!isManagementEnabled) {
                     EnableSupportCard(onEnable = { onToggleProjectManagement(true) })
                 } else {
-                    StatusDisplayCard(status = project.projectStatus ?: ProjectStatus.NO_PLAN, statusText = project.projectStatusText, onClick = {
+                    StatusDisplayCard(status = project.projectStatus ?: ProjectStatusValues.NO_PLAN, statusText = project.projectStatusText, onClick = {
                         showStatusDialog = true
                     })
 
@@ -89,7 +89,7 @@ fun DashboardContent(
 
     if (showStatusDialog) {
         UpdateStatusDialog(
-            currentStatus = project.projectStatus ?: ProjectStatus.NO_PLAN,
+            currentStatus = project.projectStatus ?: ProjectStatusValues.NO_PLAN,
             currentStatusText = project.projectStatusText ?: "",
             onDismissRequest = {
                 showStatusDialog = false
@@ -105,7 +105,7 @@ fun DashboardContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusDisplayCard(
-    status: ProjectStatus,
+    status: String,
     statusText: String?,
     onClick: () -> Unit,
 ) {
@@ -122,7 +122,7 @@ private fun StatusDisplayCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text("Поточний статус", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(status.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(ProjectStatusValues.getDisplayName(status), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 if (!statusText.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(

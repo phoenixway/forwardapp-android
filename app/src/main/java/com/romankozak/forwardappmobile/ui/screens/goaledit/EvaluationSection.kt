@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 
 @Composable
 fun EvaluationSection(
@@ -66,7 +66,7 @@ fun EvaluationSection(
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
 
-                        if (uiState.scoringStatus == ScoringStatus.ASSESSED) {
+                        if (uiState.scoringStatus == ScoringStatusValues.ASSESSED) {
                             val rawScore = uiState.rawScore
                             val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
                             val balanceColor =

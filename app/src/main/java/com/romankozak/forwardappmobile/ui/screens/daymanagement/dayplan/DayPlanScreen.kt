@@ -51,8 +51,8 @@ import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.database.models.ListItemType
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
@@ -210,7 +210,7 @@ private fun DayTask.toGoal(): Goal {
     text = this.title,
     description = this.description,
     completed = this.completed,
-    scoringStatus = ScoringStatus.NOT_ASSESSED,
+    scoringStatus = ScoringStatusValues.NOT_ASSESSED,
     displayScore = 0,
     reminderTime = this.dueTime,
     relatedLinks = null,
@@ -223,7 +223,7 @@ fun DayTask.toListItem(): ListItem {
   return ListItem(
     id = this.id,
     projectId = this.projectId ?: this.dayPlanId,
-    itemType = this.taskType ?: ListItemType.GOAL,
+    itemType = this.taskType ?: ListItemTypeValues.GOAL,
     entityId = this.entityId ?: this.goalId ?: this.id,
     order = this.order,
   )

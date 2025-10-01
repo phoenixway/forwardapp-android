@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 
 @Composable
 fun RelatedLinkChip(
@@ -58,7 +58,6 @@ fun RelatedLinkChip(
             LinkType.URL -> Icons.Default.Link
             LinkType.OBSIDIAN -> Icons.Default.Book
             null -> Icons.Default.BrokenImage
-            else -> Icons.Default.BrokenImage
         }
     Box(
         modifier =
@@ -86,11 +85,11 @@ fun RelatedLinkChip(
 
 @Composable
 fun EnhancedScoreStatusBadge(
-    scoringStatus: ScoringStatus,
+    scoringStatus: String,
     displayScore: Int,
 ) {
     when (scoringStatus) {
-        ScoringStatus.ASSESSED -> {
+        ScoringStatusValues.ASSESSED -> {
             if (displayScore > 0) {
                 val animatedColor by animateColorAsState(
                     targetValue =
@@ -152,7 +151,7 @@ fun EnhancedScoreStatusBadge(
                 }
             }
         }
-        ScoringStatus.IMPOSSIBLE_TO_ASSESS -> {
+        ScoringStatusValues.IMPOSSIBLE_TO_ASSESS -> {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -173,7 +172,7 @@ fun EnhancedScoreStatusBadge(
                 )
             }
         }
-        ScoringStatus.NOT_ASSESSED -> {
+        ScoringStatusValues.NOT_ASSESSED -> {
         }
     }
 }

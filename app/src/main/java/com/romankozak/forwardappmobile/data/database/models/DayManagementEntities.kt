@@ -21,7 +21,7 @@ data class NewTaskParameters(
     val scheduledTime: Long? = null,
     val estimatedDurationMinutes: Long? = null,
     val order: Long? = null,
-    val taskType: ListItemType? = null,
+    val taskType: String? = null,
     val points: Int = 0,
 )
 
@@ -98,7 +98,7 @@ data class DayTask(
     val activityRecordId: String? = null,
     val recurringTaskId: String? = null,
     
-    val taskType: ListItemType? = null,
+    val taskType: String? = null,
     val entityId: String? = null,
     
     val order: Long = 0,

@@ -8,20 +8,20 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.data.database.models.ScoringStatus
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 
 @Composable
 fun ScoringStatusSelector(
-    selectedStatus: ScoringStatus,
-    onStatusSelected: (ScoringStatus) -> Unit,
+    selectedStatus: String,
+    onStatusSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val statuses = ScoringStatus.entries.toTypedArray()
+    val statuses = listOf(ScoringStatusValues.NOT_ASSESSED, ScoringStatusValues.ASSESSED, ScoringStatusValues.IMPOSSIBLE_TO_ASSESS)
     val labels =
         mapOf(
-            ScoringStatus.NOT_ASSESSED to "Unset",
-            ScoringStatus.ASSESSED to "Set",
-            ScoringStatus.IMPOSSIBLE_TO_ASSESS to "Impossible",
+            ScoringStatusValues.NOT_ASSESSED to "Unset",
+            ScoringStatusValues.ASSESSED to "Set",
+            ScoringStatusValues.IMPOSSIBLE_TO_ASSESS to "Impossible",
         )
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         statuses.forEachIndexed { index, status ->

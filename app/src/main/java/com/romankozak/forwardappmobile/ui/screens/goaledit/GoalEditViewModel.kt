@@ -47,7 +47,7 @@ data class GoalEditUiState(
     val weightEffort: Float = 1f,
     val weightCost: Float = 1f,
     val weightRisk: Float = 1f,
-    val scoringStatus: ScoringStatus = ScoringStatus.NOT_ASSESSED,
+    val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
     val isDescriptionEditorOpen: Boolean = false,
@@ -142,7 +142,7 @@ class GoalEditViewModel
                         rawScore = goal.rawScore,
                         displayScore = goal.displayScore,
                         scoringStatus = goal.scoringStatus,
-                        isScoringEnabled = goal.scoringStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS,
+                        isScoringEnabled = goal.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                         reminderTime = goal.reminderTime,
                     )
                 }
@@ -156,7 +156,7 @@ class GoalEditViewModel
                 it.copy(
                     isReady = true,
                     isNewGoal = true,
-                    scoringStatus = ScoringStatus.NOT_ASSESSED,
+                    scoringStatus = ScoringStatusValues.NOT_ASSESSED,
                     isScoringEnabled = true,
                 )
             }
@@ -249,15 +249,15 @@ class GoalEditViewModel
 
         fun onWeightRiskChange(value: Float) = onScoringParameterChange { it.copy(weightRisk = value) }
 
-        fun onScoringStatusChange(newStatus: ScoringStatus) {
-            _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatus.IMPOSSIBLE_TO_ASSESS) }
+        fun onScoringStatusChange(newStatus: String) {
+            _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }
             updateScores()
         }
 
         private fun onScoringParameterChange(update: (GoalEditUiState) -> GoalEditUiState) {
             _uiState.update(update)
-            if (_uiState.value.scoringStatus == ScoringStatus.NOT_ASSESSED) {
-                _uiState.update { it.copy(scoringStatus = ScoringStatus.ASSESSED) }
+            if (_uiState.value.scoringStatus == ScoringStatusValues.NOT_ASSESSED) {
+                _uiState.update { it.copy(scoringStatus = ScoringStatusValues.ASSESSED) }
             }
             updateScores()
         }
