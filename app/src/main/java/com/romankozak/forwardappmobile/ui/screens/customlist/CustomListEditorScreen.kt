@@ -8,24 +8,22 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 
 @Composable
 fun CustomListEditorScreen(
-    navController: NavController,
-    viewModel: CustomListEditorViewModel = hiltViewModel(),
+  navController: NavController,
+  viewModel: CustomListEditorViewModel = hiltViewModel(),
 ) {
-    val listId: String? = navController.currentBackStackEntry?.arguments?.getString("listId")
+  val listId: String? = navController.currentBackStackEntry?.arguments?.getString("listId")
 
-    LaunchedEffect(listId) {
-        listId?.let {
-            viewModel.loadCustomList(it)
-        }
-    }
+  LaunchedEffect(listId) { listId?.let { viewModel.loadCustomList(it) } }
 
-    UniversalEditorScreen(
-        title = "Edit Custom List",
-        onSave = { content ->
-            viewModel.saveCustomList(content)
-            navController.popBackStack()
-        },
-        onNavigateBack = { navController.popBackStack() },
-        viewModel = viewModel.universalEditorViewModel,
-    )
+  UniversalEditorScreen(
+    title = "Edit Custom List",
+    onSave = { content ->
+      viewModel.saveCustomList(content)
+      navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
+      navController.popBackStack()
+    },
+    onNavigateBack = { navController.popBackStack() },
+    viewModel = viewModel.universalEditorViewModel,
+    navController = navController,
+  )
 }

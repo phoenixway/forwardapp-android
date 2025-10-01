@@ -124,11 +124,21 @@ fun MainScreen(
         val observer =
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
+                    android.util.Log.d("ProjectRevealDebug", "MainScreen ON_RESUME")
                     navController.currentBackStackEntry
                         ?.savedStateHandle
                         ?.remove<String?>("list_chooser_result")
                         ?.let { result ->
                             viewModel.onEvent(MainScreenEvent.MoveConfirm(result))
+                        }
+
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<String>("projectIdToReveal")
+                        ?.let { projectId ->
+                            android.util.Log.d("ProjectRevealDebug", "Retrieved and removed projectIdToReveal: $projectId")
+                            android.util.Log.d("ProjectRevealDebug", "Calling RevealProjectInHierarchy event")
+                            viewModel.onEvent(MainScreenEvent.RevealProjectInHierarchy(projectId))
                         }
                 }
             }

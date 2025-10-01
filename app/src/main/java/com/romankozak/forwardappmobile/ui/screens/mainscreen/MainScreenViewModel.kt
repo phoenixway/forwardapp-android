@@ -649,8 +649,34 @@ constructor(
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
       }
       is MainScreenEvent.RevealProjectInHierarchy -> {
+        android.util.Log.d("ProjectRevealDebug", "MainScreenViewModel received RevealProjectInHierarchy event with projectId: ${event.projectId}")
         viewModelScope.launch {
-          searchAndNavigationManager.revealProjectInHierarchy(event.projectId)
+          // Switch to "All" mode to ensure the project isn't filtered out by a planning mode
+          planningModeManager.changeMode(PlanningMode.All)
+
+          when (val result = searchAndNavigationManager.revealProjectInHierarchy(event.projectId)) {
+            is RevealResult.Success -> {
+              android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
+              pushSubState(MainSubState.ProjectFocused(result.projectId))
+              if (result.shouldFocus) {
+                android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
+                searchAndNavigationManager.navigateToProject(
+                  result.projectId,
+                  uiState.value.projectHierarchy,
+                )
+              } else {
+                android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
+                projectToRevealAndScroll = result.projectId
+                if (isSearchActive()) {
+                  popToSubState(MainSubState.Hierarchy)
+                }
+              }
+            }
+            is RevealResult.Failure -> {
+              android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
+              _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
+            }
+          }
         }
       }
       else -> {}

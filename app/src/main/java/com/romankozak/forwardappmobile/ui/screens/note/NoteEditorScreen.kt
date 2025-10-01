@@ -8,25 +8,22 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 
 @Composable
 fun NoteEditorScreen(
-    navController: NavController,
-    viewModel: NoteEditorViewModel = hiltViewModel(),
+  navController: NavController,
+  viewModel: NoteEditorViewModel = hiltViewModel(),
 ) {
-    val noteId: String? = navController.currentBackStackEntry?.arguments?.getString("noteId")
+  val noteId: String? = navController.currentBackStackEntry?.arguments?.getString("noteId")
 
-    LaunchedEffect(noteId) {
-        noteId?.let {
-            viewModel.loadNote(it)
-        }
-    }
+  LaunchedEffect(noteId) { noteId?.let { viewModel.loadNote(it) } }
 
-    UniversalEditorScreen(
-        title = "Edit Note",
-        onSave = { content ->
-            viewModel.saveNote(content)
-            navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
-            navController.popBackStack()
-        },
-        onNavigateBack = { navController.popBackStack() },
-        viewModel = viewModel.universalEditorViewModel,
-    )
+  UniversalEditorScreen(
+    title = "Edit Note",
+    onSave = { content ->
+      viewModel.saveNote(content)
+      navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
+      navController.popBackStack()
+    },
+    onNavigateBack = { navController.popBackStack() },
+    viewModel = viewModel.universalEditorViewModel,
+    navController = navController,
+  )
 }

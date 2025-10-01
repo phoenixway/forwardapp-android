@@ -419,6 +419,16 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
         init {
             Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
 
+            savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
+                try {
+                    val viewMode = ProjectViewMode.valueOf(modeName)
+                    _uiState.update { it.copy(currentView = viewMode) }
+                    Log.d(TAG, "Initial view mode set to $viewMode from navigation argument.")
+                } catch (e: IllegalArgumentException) {
+                    Log.w(TAG, "Invalid initialViewMode provided: $modeName")
+                }
+            }
+
             viewModelScope.launch {
                 project.collect { proj ->
                     if (proj != null) {

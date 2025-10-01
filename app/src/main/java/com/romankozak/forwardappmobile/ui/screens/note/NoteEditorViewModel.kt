@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorViewModel
+import androidx.lifecycle.SavedStateHandle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -13,6 +14,7 @@ import javax.inject.Inject
 class NoteEditorViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val application: Application,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     val universalEditorViewModel = UniversalEditorViewModel(application)
@@ -21,8 +23,10 @@ class NoteEditorViewModel @Inject constructor(
     fun loadNote(id: String) {
         noteId = id
         viewModelScope.launch {
-            projectRepository.getNoteById(id)?.let {
-                universalEditorViewModel.setInitialContent(it.content ?: "")
+            projectRepository.getNoteById(id)?.let { note ->
+                // Встановлюємо projectId для "Show Location"
+                universalEditorViewModel.setProjectId(note.projectId)
+                universalEditorViewModel.setInitialContent(note.content ?: "")
             }
         }
     }

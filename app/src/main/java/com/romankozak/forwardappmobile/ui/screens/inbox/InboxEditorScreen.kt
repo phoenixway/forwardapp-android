@@ -8,24 +8,21 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 
 @Composable
 fun InboxEditorScreen(
-    navController: NavController,
-    viewModel: InboxEditorViewModel = hiltViewModel(),
+  navController: NavController,
+  viewModel: InboxEditorViewModel = hiltViewModel(),
 ) {
-    val inboxId: String? = navController.currentBackStackEntry?.arguments?.getString("inboxId")
+  val inboxId: String? = navController.currentBackStackEntry?.arguments?.getString("inboxId")
 
-    LaunchedEffect(inboxId) {
-        inboxId?.let {
-            viewModel.loadInboxItem(it)
-        }
-    }
+  LaunchedEffect(inboxId) { inboxId?.let { viewModel.loadInboxItem(it) } }
 
-    UniversalEditorScreen(
-        title = "Edit Inbox Item",
-        onSave = { content ->
-            viewModel.saveInboxItem(content)
-            navController.popBackStack()
-        },
-        onNavigateBack = { navController.popBackStack() },
-        viewModel = viewModel.universalEditorViewModel,
-    )
+  UniversalEditorScreen(
+    title = "Edit Inbox Item",
+    onSave = { content ->
+      viewModel.saveInboxItem(content)
+      navController.popBackStack()
+    },
+    onNavigateBack = { navController.popBackStack() },
+    viewModel = viewModel.universalEditorViewModel,
+    navController = navController,
+  )
 }
