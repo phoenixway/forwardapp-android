@@ -1546,4 +1546,12 @@ private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
                     _uiState.update { it.copy(showCreateCustomListDialog = false) }
                     _uiEventFlow.send(UiEvent.Navigate("custom_list_edit_screen?projectId=${projectIdFlow.value}"))
                 }
-            }    }
+            }
+
+            fun onCleanupDatabase() {
+                viewModelScope.launch {
+                    projectRepository.cleanupDanglingListItems()
+                    forceRefresh()
+                }
+            }
+    }

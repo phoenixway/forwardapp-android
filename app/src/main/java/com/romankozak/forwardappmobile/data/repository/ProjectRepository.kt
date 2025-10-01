@@ -873,4 +873,28 @@ constructor(
         }
         Log.d(TAG, "updateCustomList finished")
     }
+
+    suspend fun cleanupDanglingListItems() {
+        val allListItems = listItemDao.getAll()
+        val itemsToDelete = mutableListOf<String>()
+
+        allListItems.forEach { item ->
+            val entityExists = when (item.itemType) {
+                ListItemTypeValues.GOAL -> goalDao.getGoalById(item.entityId) != null
+                ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
+                ListItemTypeValues.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId) != null
+                ListItemTypeValues.NOTE -> noteDao.getNoteById(item.entityId) != null
+                ListItemTypeValues.CUSTOM_LIST -> customListDao.getCustomListById(item.entityId) != null
+                else -> true // Assume unknown types are valid to avoid deleting them
+            }
+            if (!entityExists) {
+                itemsToDelete.add(item.id)
+            }
+        }
+
+        if (itemsToDelete.isNotEmpty()) {
+            listItemDao.deleteItemsByIds(itemsToDelete)
+            Log.d("DB_CLEANUP", "Deleted ${itemsToDelete.size} dangling ListItem records.")
+        }
+    }
 }
