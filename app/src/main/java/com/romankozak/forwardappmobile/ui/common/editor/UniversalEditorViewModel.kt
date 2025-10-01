@@ -61,7 +61,20 @@ class UniversalEditorViewModel(
     }
 
     fun onContentChange(newValue: TextFieldValue) {
-        pushUndo(_uiState.value.content)
+        val oldValue = _uiState.value.content
+        val oldText = oldValue.text
+        val newText = newValue.text
+        val oldSelection = oldValue.selection
+
+        if (newText.length > oldText.length && oldSelection.collapsed) {
+            val inserted = newText.substring(oldSelection.start, oldSelection.start + (newText.length - oldText.length))
+            if (inserted == "\n") {
+                onEnter(newValue)
+                return
+            }
+        }
+
+        pushUndo(oldValue)
         clearRedo()
         _uiState.update {
             it.copy(
@@ -230,15 +243,22 @@ class UniversalEditorViewModel(
         val trimmedLine = line.trimStart()
 
         val newText: String
-        if (trimmedLine.startsWith("• ")) {
-            newText = indent + trimmedLine.removePrefix("• ")
+        val selectionOffset: Int
+        if (trimmedLine.startsWith("- ")) {
+            newText = indent + trimmedLine.removePrefix("- ")
+            selectionOffset = -2
         } else {
-            newText = indent + "• " + trimmedLine
+            newText = indent + "- " + trimmedLine
+            selectionOffset = 2
         }
         lines[lineIndex] = newText
 
         val newContent = lines.joinToString("\n")
-        onContentChange(TextFieldValue(newContent, cur.selection))
+
+        val newSelectionStart = (cur.selection.start + selectionOffset).coerceAtLeast(lineStart + indent.length)
+        val newSelectionEnd = (cur.selection.end + selectionOffset).coerceAtLeast(lineStart + indent.length)
+
+        onContentChange(TextFieldValue(newContent, TextRange(newSelectionStart, newSelectionEnd)))
     }
 
     fun onUndo() {
@@ -320,6 +340,7 @@ class UniversalEditorViewModel(
         val numberRegex = Regex("""^(\\d+)\\. """)
 
         return when {
+            trimmed.startsWith("-") -> "-"
             trimmed.startsWith("•") -> "•"
             trimmed.startsWith("☐") -> "☐"
             trimmed.startsWith("☑") -> "☑"
