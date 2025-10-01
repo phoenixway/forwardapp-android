@@ -405,13 +405,13 @@ fun GoalItem(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 12.dp),
+                .padding(vertical = 4.dp, horizontal = 4.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
         border =
             BorderStroke(
-                1.5.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
             ),
     ) {
         Row(

@@ -125,7 +125,7 @@ fun InteractiveListItem(
                 backgroundColor = backgroundColor,
                 content = {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(modifier = Modifier.weight(1f)) {
