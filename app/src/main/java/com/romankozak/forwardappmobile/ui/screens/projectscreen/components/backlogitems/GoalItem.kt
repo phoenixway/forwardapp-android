@@ -434,7 +434,24 @@ fun GoalItem(
                             )
                         },
             ) {
-val hasStatusContent =
+                MarkdownText(
+                    text = parsedData.mainText,
+                    isCompleted = goal.completed,
+                    obsidianVaultName = obsidianVaultName,
+                    onTagClick = onTagClick,
+                    onTextClick = onItemClick,
+                    onLongClick = onLongClick,
+                    maxLines = 4,
+                    style =
+                        MaterialTheme.typography.bodySmall.copy(
+                            lineHeight = 16.sp,
+                            letterSpacing = 0.1.sp,
+                            fontSize = 12.sp,
+                            fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                        ),
+                )
+
+                val hasStatusContent =
                     (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
                         (goal.reminderTime != null) ||
                         (parsedData.icons.isNotEmpty()) ||
