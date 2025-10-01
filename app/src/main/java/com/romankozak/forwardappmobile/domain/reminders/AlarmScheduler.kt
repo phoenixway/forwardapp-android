@@ -53,12 +53,12 @@ class AlarmScheduler
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, goal.description)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "🎯")
                 }
-            setExactAlarm(goal.id.hashCode(), reminderTime, intent)
+            setExactAlarm(ReminderBroadcastReceiver().getNotificationId(goal.id), reminderTime, intent)
         }
 
         fun cancel(goal: Goal) {
             Log.d(tag, "AlarmScheduler: cancel() called for goal ID: ${goal.id}")
-            cancelAlarm(goal.id.hashCode())
+            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(goal.id))
         }
 
         fun scheduleForProject(project: Project) {
@@ -80,12 +80,12 @@ class AlarmScheduler
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, project.description)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "📂")
                 }
-            setExactAlarm(project.id.hashCode(), reminderTime, intent)
+            setExactAlarm(ReminderBroadcastReceiver().getNotificationId(project.id), reminderTime, intent)
         }
 
         fun cancelForProject(project: Project) {
             Log.d(tag, "AlarmScheduler: cancelForProject() called for project ID: ${project.id}")
-            cancelAlarm(project.id.hashCode())
+            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(project.id))
         }
 
         override fun scheduleNotification(
@@ -220,7 +220,7 @@ class AlarmScheduler
             val testPendingIntent =
                 PendingIntent.getBroadcast(
                     context,
-                    goalId.hashCode(),
+                    ReminderBroadcastReceiver().getNotificationId(goalId),
                     testIntent,
                     PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
                 )
@@ -270,12 +270,12 @@ class AlarmScheduler
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, task.description)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "📅")
                 }
-            setExactAlarm(task.id.hashCode(), reminderTime, intent)
+            setExactAlarm(ReminderBroadcastReceiver().getNotificationId(task.id), reminderTime, intent)
         }
 
         fun cancelForTask(task: DayTask) {
             Log.d(tag, "AlarmScheduler: cancelForTask() called for task ID: ${task.id}")
-            cancelAlarm(task.id.hashCode())
+            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(task.id))
         }
 
         suspend fun snooze(goalId: String) {
