@@ -566,7 +566,13 @@ constructor(
 
     suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
-    suspend fun getAllListItems(): List<ListItem> = listItemDao.getAll()
+    suspend fun deleteItemByEntityId(entityId: String) {
+        listItemDao.deleteItemByEntityId(entityId)
+    }
+
+    suspend fun findProjectIdForGoal(goalId: String): String? {
+        return listItemDao.findProjectIdForGoal(goalId)
+    }
 
     suspend fun logCurrentDbOrderForDebug(projectId: String) {
         val itemsFromDb = listItemDao.getItemsForProjectSyncForDebug(projectId)
