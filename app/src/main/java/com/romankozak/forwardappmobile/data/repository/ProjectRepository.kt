@@ -375,6 +375,12 @@ constructor(
 
     suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
 
+    @Transaction
+    suspend fun deleteGoal(goalId: String) {
+        goalDao.deleteGoalById(goalId)
+        listItemDao.deleteItemByEntityId(goalId)
+    }
+
     suspend fun updateGoal(goal: Goal) = goalDao.updateGoal(goal)
 
     suspend fun updateGoals(goals: List<Goal>) = goalDao.updateGoals(goals)

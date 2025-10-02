@@ -113,4 +113,13 @@ class RemindersViewModel @Inject constructor(
             }
         }
     }
+
+    fun deleteReminder(goal: Goal) {
+        viewModelScope.launch {
+            alarmScheduler.cancel(goal)
+            val updatedGoal = goal.copy(reminderTime = null)
+            projectRepository.updateGoal(updatedGoal)
+            reminderInfoDao.deleteByGoalId(goal.id)
+        }
+    }
 }
