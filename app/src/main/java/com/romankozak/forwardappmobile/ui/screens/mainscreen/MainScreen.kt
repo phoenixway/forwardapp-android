@@ -264,6 +264,7 @@ private fun MainScreenScaffold(
                         onAiChatClick = { onEvent(MainScreenEvent.NavigateToChat) },
                         onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
                         onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
+                        onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
                     )
                 }
             }
@@ -458,14 +459,7 @@ private fun MainScreenTopAppBar(
                             menuExpanded = false
                         },
                     )
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { Text("Reminders") },
-                        onClick = {
-                            onShowReminders()
-                            menuExpanded = false
-                        },
-                    )
+
                 }
             }
         },

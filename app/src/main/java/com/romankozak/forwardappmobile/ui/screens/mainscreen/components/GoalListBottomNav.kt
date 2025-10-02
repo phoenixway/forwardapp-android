@@ -157,6 +157,7 @@ internal fun ExpandingBottomNav(
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
+    onShowReminders: () -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -207,6 +208,12 @@ internal fun ExpandingBottomNav(
                         text = "Contexts",
                         icon = Icons.Outlined.Style,
                         onClick = onContextsClick,
+                    )
+
+                    SmallBottomNavButton(
+                        text = "Reminders",
+                        icon = Icons.Outlined.Notifications,
+                        onClick = onShowReminders,
                     )
 
                     Box {
