@@ -138,11 +138,13 @@ class RemindersViewModel @Inject constructor(
                         val updatedGoal = item.item.goal.copy(reminderTime = timestamp)
                         projectRepository.updateGoal(updatedGoal)
                         alarmScheduler.schedule(updatedGoal)
+                        reminderInfoDao.deleteByGoalId(item.item.goal.id)
                     }
                     is ReminderListItem.ProjectReminder -> {
                         val updatedProject = item.item.project.copy(reminderTime = timestamp)
                         projectRepository.updateProject(updatedProject)
                         alarmScheduler.scheduleForProject(updatedProject)
+                        projectReminderInfoDao.deleteByProjectId(item.item.project.id)
                     }
                 }
             }

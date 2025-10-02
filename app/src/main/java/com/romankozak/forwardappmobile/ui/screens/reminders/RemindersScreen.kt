@@ -39,7 +39,7 @@ import com.romankozak.forwardappmobile.data.database.models.ReminderStatusValues
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.screens.reminders.components.ReminderAction
-import com.romankozak.forwardappmobile.ui.screens.reminders.components.ProjectItem
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.ProjectItem
 import com.romankozak.forwardappmobile.ui.screens.reminders.components.ReminderActionsDialog
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.reminders.ReminderListItem
@@ -119,7 +119,24 @@ fun RemindersScreen(
                             val isCompleted = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
                             ProjectItem(
                                 project = project,
-                                onClick = { viewModel.onEditReminder(reminderItem) }
+                                childProjects = emptyList(),
+                                onCheckedChange = { _ -> },
+                                onItemClick = { viewModel.onEditReminder(reminderItem) },
+                                onLongClick = { },
+                                onTagClick = { },
+                                onChildProjectClick = { },
+                                onRelatedLinkClick = { },
+                                emojiToHide = null,
+                                contextMarkerToEmojiMap = emptyMap(),
+                                currentTimeMillis = currentTimeMillis,
+                                isSelected = false,
+                                isSnoozed = isSnoozed,
+                                isCompletedFromReminder = isCompleted,
+                                endAction = {
+                                    IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
+                                        Icon(Icons.Default.MoreHoriz, "...")
+                                    }
+                                }
                             )
                         }
                     }
