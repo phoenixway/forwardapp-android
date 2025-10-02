@@ -89,6 +89,7 @@ class RemindersViewModel @Inject constructor(
                 val updatedGoal = goal.copy(reminderTime = null)
                 projectRepository.updateGoal(updatedGoal)
                 alarmScheduler.cancel(updatedGoal)
+                reminderInfoDao.deleteByGoalId(goalId)
             }
             onDismissEditReminder()
         }
@@ -99,6 +100,7 @@ class RemindersViewModel @Inject constructor(
             val goalsWithReminders = reminders.value.map { it.goal }
             goalsWithReminders.forEach { goal ->
                 alarmScheduler.cancel(goal)
+                reminderInfoDao.deleteByGoalId(goal.id)
             }
             val updatedGoals = goalsWithReminders.map { it.copy(reminderTime = null) }
             projectRepository.updateGoals(updatedGoals)

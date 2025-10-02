@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.ReminderStatusValues
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.UiState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentsSection
@@ -135,6 +136,7 @@ fun BacklogView(
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
+                            val isCompletedFromReminder = content.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
                             GoalItem(
                                 goal = content.goal,
                                 obsidianVaultName = obsidianVaultName,
@@ -152,6 +154,7 @@ fun BacklogView(
                                 emojiToHide = currentListContextEmojiToHide,
                                 currentTimeMillis = currentTime,
                                 isSelected = isSelected,
+                                isCompletedFromReminder = isCompletedFromReminder,
                                 endAction = { DragHandleIcon() }
                             )
                         }

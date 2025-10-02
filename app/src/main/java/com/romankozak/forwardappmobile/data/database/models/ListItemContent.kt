@@ -5,7 +5,7 @@ sealed class ListItemContent {
     
     abstract val listItem: ListItem
 
-    data class GoalItem(val goal: Goal, override val listItem: ListItem) : ListItemContent()
+    data class GoalItem(val goal: Goal, override val listItem: ListItem, val reminderInfo: ReminderInfo?) : ListItemContent()
 
     data class SublistItem(val project: Project, override val listItem: ListItem) : ListItemContent()
 
