@@ -25,6 +25,7 @@ fun ContextMenuDialog(
     onDeleteRequest: (Project) -> Unit,
     onEditRequest: (Project) -> Unit,
     onAddToDayPlanRequest: (Project) -> Unit,
+    onSetReminderRequest: (Project) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -46,6 +47,12 @@ fun ContextMenuDialog(
                     text = "Додати в план дня",
                     icon = Icons.AutoMirrored.Filled.PlaylistAdd,
                     onClick = { onAddToDayPlanRequest(project) },
+                )
+                HorizontalDivider()
+                DialogActionItem(
+                    text = "Встановити нагадування",
+                    icon = Icons.Default.Alarm,
+                    onClick = { onSetReminderRequest(project) },
                 )
                 HorizontalDivider()
                 DialogActionItem(
