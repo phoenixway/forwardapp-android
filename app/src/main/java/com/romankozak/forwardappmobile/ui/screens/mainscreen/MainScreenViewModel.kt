@@ -579,6 +579,9 @@ constructor(
           _uiEventChannel.send(ProjectUiEvent.ShowToast("Проект додано до плану дня"))
         }
       }
+      is MainScreenEvent.SetReminderRequest -> {
+        onSetReminderForProject(event.project)
+      }
       is MainScreenEvent.GoToSettings -> onShowSettingsScreen()
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
@@ -888,19 +891,46 @@ constructor(
 
           alarmScheduler.cancelForActivityRecord(record)
 
+          if (record.goalId != null) {
+            projectRepository.getGoalById(record.goalId)?.let { goal ->
+              val updatedGoal = goal.copy(reminderTime = timestamp)
+              projectRepository.updateGoal(updatedGoal)
+            }
+          } else if (record.projectId != null) {
+            projectRepository.getProjectById(record.projectId)?.let { project ->
+              val updatedProject = project.copy(reminderTime = timestamp)
+              projectRepository.updateProject(updatedProject)
+            }
+          }
+
           val updatedRecord = record.copy(reminderTime = timestamp)
           activityRepository.updateRecord(updatedRecord)
           alarmScheduler.scheduleForActivityRecord(updatedRecord)
           onReminderDialogDismiss()
+          _uiEventChannel.send(ProjectUiEvent.ShowToast("Нагадування встановлено"))
       }
 
   fun onClearReminder() =
       viewModelScope.launch {
           val record = _uiState.value.recordForReminderDialog ?: return@launch
+          alarmScheduler.cancelForActivityRecord(record)
+
+          if (record.goalId != null) {
+            projectRepository.getGoalById(record.goalId)?.let { goal ->
+              val updatedGoal = goal.copy(reminderTime = null)
+              projectRepository.updateGoal(updatedGoal)
+            }
+          } else if (record.projectId != null) {
+            projectRepository.getProjectById(record.projectId)?.let { project ->
+              val updatedProject = project.copy(reminderTime = null)
+              projectRepository.updateProject(updatedProject)
+            }
+          }
+
           val updatedRecord = record.copy(reminderTime = null)
           activityRepository.updateRecord(updatedRecord)
-          alarmScheduler.cancelForActivityRecord(record)
           onReminderDialogDismiss()
+          _uiEventChannel.send(ProjectUiEvent.ShowToast("Нагадування скасовано"))
       }
 
   private fun onContextSelected(name: String) {
@@ -928,6 +958,21 @@ constructor(
 
   private fun onShowSettingsScreen() {
     viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.NavigateToSettings) }
+  }
+
+  private fun onSetReminderForProject(project: Project) {
+    viewModelScope.launch {
+        val record = com.romankozak.forwardappmobile.data.database.models.ActivityRecord(
+            id = project.id,
+            text = project.name,
+            reminderTime = project.reminderTime,
+            createdAt = project.createdAt,
+            projectId = project.id,
+            goalId = null,
+        )
+        _uiState.update { it.copy(recordForReminderDialog = record) }
+        dialogStateManager.dismissDialog()
+    }
   }
 
   private fun saveSettings(
