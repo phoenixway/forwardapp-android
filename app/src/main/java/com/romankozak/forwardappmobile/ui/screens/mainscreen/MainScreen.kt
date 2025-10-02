@@ -60,7 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.routes.navigateToDayManagement
 import com.romankozak.forwardappmobile.routes.navigateToStrategicManagement
-import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
+import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.navigation.NavigationHistoryMenu
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.ExpandingBottomNav
@@ -308,7 +308,7 @@ private fun MainScreenScaffold(
         },
     )
 
-    RecentListsSheet(
+    NewRecentListsSheet(
         showSheet = uiState.showRecentListsSheet,
         recentItems = uiState.recentItems,
         onDismiss = { onEvent(MainScreenEvent.DismissRecentLists) },
