@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.project_dashboard
+package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*

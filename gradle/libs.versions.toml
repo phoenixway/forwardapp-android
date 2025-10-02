@@ -1,10 +1,10 @@
 [versions]
 # Core Plugins & Tools -> Встановлюємо стабільну, сумісну пару
 accompanistSharedElement = "0.36.0"
-agp = "8.11.1"
+agp = "8.13.0"
 javapoet = "1.13.0"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.25"
+kotlin = "2.2.20"
+ksp = "2.2.20-2.0.3"
 
 # Compose -> Використовуємо актуальну стабільну версію BOM
 androidx-compose-bom = "2024.12.01"
@@ -14,7 +14,7 @@ coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.2"
 activityCompose = "1.9.0"
 navigationCompose = "2.7.7"
-room = "2.6.1"
+room = "2.8.1"
 datastore = "1.1.1"
 
 # Testing
@@ -27,7 +27,7 @@ gson = "2.11.0"
 ktor = "2.3.12"
 kotlin-logging = "3.0.5"
 slf4j-android = "1.7.36"
-hilt = "2.57"
+hilt = "2.57.2"
 hilt-navigation-compose = "1.2.0"
 compose-dnd = "0.4.0"
 reorderable = "3.0.1-SNAPSHOT"

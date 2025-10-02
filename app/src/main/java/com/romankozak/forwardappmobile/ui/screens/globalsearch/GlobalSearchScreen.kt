@@ -36,6 +36,7 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.data.database.models.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
@@ -328,7 +329,12 @@ private fun SearchResultsContent(
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
-                            val searchResult = result.searchResult
+                            val searchResult = GlobalGoalSearchResult(
+                                goal = result.goal,
+                                projectId = result.listItem.projectId,
+                                projectName = result.projectName,
+                                pathSegments = result.pathSegments
+                            )
                             SearchResultItem(
                                 result = searchResult,
                                 onOpenAsProject = {

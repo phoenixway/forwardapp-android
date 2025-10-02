@@ -45,6 +45,7 @@ constructor(
     private val activityRepository: ActivityRepository,
     private val projectManagementDao: ProjectManagementDao,
     private val recentItemDao: RecentItemDao,
+    private val reminderInfoDao: ReminderInfoDao,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "CUSTOM_LIST_DEBUG"
@@ -140,7 +141,8 @@ constructor(
                 when (item.itemType) {
                     ListItemTypeValues.GOAL ->
                         goalDao.getGoalById(item.entityId)?.let { goal ->
-                            ListItemContent.GoalItem(goal, item)
+                            val reminderInfo = reminderInfoDao.getReminderInfo(goal.id)
+                            ListItemContent.GoalItem(goal, item, reminderInfo)
                         }
                     ListItemTypeValues.SUBLIST ->
                         projectDao.getProjectById(item.entityId)?.let { project ->
@@ -390,8 +392,18 @@ constructor(
     @Transaction
     suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
         val goalResults =
-            goalDao.searchGoalsGlobal(query).map {
-                GlobalSearchResultItem.GoalItem(it)
+            goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
+                val listItem = listItemDao.getListItemByEntityId(searchResult.goal.id)
+                val reminderInfo = reminderInfoDao.getReminderInfo(searchResult.goal.id)
+                listItem?.let {
+                    GlobalSearchResultItem.GoalItem(
+                        goal = searchResult.goal,
+                        listItem = it,
+                        reminderInfo = reminderInfo,
+                        projectName = searchResult.projectName,
+                        pathSegments = searchResult.pathSegments
+                    )
+                }
             }
         val linkResults =
             linkItemDao.searchLinksGlobal(query).map {

@@ -353,9 +353,15 @@ sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
     abstract val uniqueId: String
 
-    data class GoalItem(val searchResult: GlobalGoalSearchResult) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = searchResult.goal.updatedAt ?: searchResult.goal.createdAt
-        override val uniqueId: String get() = "goal_${searchResult.goal.id}_${searchResult.projectId}"
+    data class GoalItem(
+        val goal: Goal,
+        val listItem: ListItem,
+        val reminderInfo: ReminderInfo?, // New property
+        val projectName: String,
+        val pathSegments: List<String>
+    ) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
+        override val uniqueId: String get() = "goal_${goal.id}_${listItem.projectId}"
     }
 
     data class LinkItem(val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {

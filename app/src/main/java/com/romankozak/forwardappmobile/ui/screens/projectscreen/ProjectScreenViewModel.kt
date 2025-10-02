@@ -242,7 +242,6 @@ class BacklogViewModel
         private val projectMarkdownExporter: ProjectMarkdownExporter,
         private val savedStateHandle: SavedStateHandle,
         private val dayManagementRepository: DayManagementRepository,
-        
         private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel(),

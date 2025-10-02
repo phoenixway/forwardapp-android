@@ -1,6 +1,11 @@
 package com.romankozak.forwardappmobile.ui.screens.reminders
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -8,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,7 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -71,30 +79,35 @@ fun RemindersScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            items(reminders) { reminderItem ->
-                val goal = reminderItem.goal
-                val isSnoozed = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
-                GoalItem(
-                    goal = goal,
-                    obsidianVaultName = "",
-                    onCheckedChange = { _ -> },
-                    onItemClick = { viewModel.onEditReminder(goal) },
-                    onLongClick = { },
-                    onTagClick = { },
-                    onRelatedLinkClick = { },
-                    emojiToHide = null,
-                    contextMarkerToEmojiMap = emptyMap(),
-                    currentTimeMillis = currentTimeMillis,
-                    isSelected = false,
-                    isSnoozed = isSnoozed,
-                    isCompletedFromReminder = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED,
-                    endAction = {
-                        IconButton(onClick = { showActionsDialogForGoal = goal }) {
-                            Icon(Icons.Default.MoreHoriz, "...")
+        if (reminders.isEmpty()) {
+            EmptyRemindersView()
+        } else {
+            LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                items(reminders) { reminderItem ->
+                    val goal = reminderItem.goal
+                    val isSnoozed = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
+                    val isCompleted = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
+                    GoalItem(
+                        goal = goal,
+                        obsidianVaultName = "",
+                        onCheckedChange = { _ -> },
+                        onItemClick = { viewModel.onEditReminder(goal) },
+                        onLongClick = { },
+                        onTagClick = { },
+                        onRelatedLinkClick = { },
+                        emojiToHide = null,
+                        contextMarkerToEmojiMap = emptyMap(),
+                        currentTimeMillis = currentTimeMillis,
+                        isSelected = false,
+                        isSnoozed = isSnoozed,
+                        isCompletedFromReminder = isCompleted,
+                        endAction = {
+                            IconButton(onClick = { showActionsDialogForGoal = goal }) {
+                                Icon(Icons.Default.MoreHoriz, "...")
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -132,5 +145,35 @@ fun RemindersScreen(
             onDismiss = { showActionsDialogForGoal = null },
             actions = actions
         )
+    }
+}
+
+@Composable
+fun EmptyRemindersView() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.NotificationsOff,
+                contentDescription = "No reminders",
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+            Text(
+                text = "No reminders yet",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Add a reminder to a goal to see it here.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
     }
 }

@@ -49,6 +49,9 @@ interface ListItemDao {
   @Query("DELETE FROM list_items WHERE entityId = :entityId")
   suspend fun deleteItemByEntityId(entityId: String)
 
+  @Query("SELECT * FROM list_items WHERE entityId = :entityId LIMIT 1")
+  suspend fun getListItemByEntityId(entityId: String): ListItem?
+
   /**
    * Знаходить ID проєкту, до якого належить певна сутність (наприклад, ціль).
    *
