@@ -284,6 +284,7 @@ class AlarmScheduler
             if (goal != null) {
                 val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
                 val snoozedGoal = goal.copy(reminderTime = snoozeTime)
+                projectRepository.updateGoal(snoozedGoal)
                 schedule(snoozedGoal)
             } else {
                 Log.e(tag, "AlarmScheduler: Goal with ID $goalId not found for snoozing.")
