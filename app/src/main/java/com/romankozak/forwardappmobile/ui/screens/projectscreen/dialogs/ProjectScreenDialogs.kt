@@ -60,6 +60,9 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             onActionSelected = { actionType ->
                 viewModel.itemActionHandler.onGoalActionSelected(actionType, itemContent)
             },
+            onSetReminder = {
+                viewModel.onSetReminderForItem(itemContent)
+            }
         )
     }
 

@@ -63,7 +63,9 @@ object DatabaseModule {
             MIGRATION_42_43,
             MIGRATION_44_45,
             MIGRATION_45_46,
-MIGRATION_46_47
+MIGRATION_46_47,
+MIGRATION_47_48,
+MIGRATION_48_49
         ).build()
 
     @Provides
@@ -116,4 +118,7 @@ MIGRATION_46_47
 
     @Provides
     fun provideReminderInfoDao(db: AppDatabase): ReminderInfoDao = db.reminderInfoDao()
+
+    @Provides
+    fun provideProjectReminderInfoDao(db: AppDatabase): ProjectReminderInfoDao = db.projectReminderInfoDao()
 }
