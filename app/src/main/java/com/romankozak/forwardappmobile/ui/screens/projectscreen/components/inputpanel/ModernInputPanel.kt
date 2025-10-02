@@ -531,7 +531,7 @@ private fun NavigationBar(
                 AnimatedVisibility(visible = showReveal) {
                     IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
                         Icon(
-                            Icons.Filled.MyLocation,
+                            Icons.Outlined.Visibility,
                             "Показати у списку",
                             tint = contentColor.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp),
@@ -801,7 +801,7 @@ fun ModernInputPanel(
     Column {
       AnimatedVisibility(visible = suggestions.isNotEmpty()) {
         Column {
-          Divider(
+          HorizontalDivider(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             color = panelColors.contentColor.copy(alpha = 0.12f),
           )
