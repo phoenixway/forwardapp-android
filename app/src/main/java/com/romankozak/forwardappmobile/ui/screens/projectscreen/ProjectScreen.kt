@@ -345,6 +345,7 @@ fun ProjectsScreen(
                             },
                             onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
                             onDeleteList = { viewModel.deleteCurrentProject() },
+                            onSetReminder = { viewModel.onSetReminderForProject() },
                             menuExpanded = menuExpanded,
                             onMenuExpandedChange = { newStatus -> menuExpanded = newStatus },
                             currentView = uiState.currentView,
