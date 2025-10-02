@@ -24,7 +24,7 @@ import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
-import com.romankozak.forwardappmobile.ui.components.RecentListsSheet
+import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +89,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     )
 
     if (uiState.showRecentProjectsSheet) {
-        RecentListsSheet(
+        NewRecentListsSheet(
             showSheet = uiState.showRecentProjectsSheet,
             recentItems = recentItems,
             onDismiss = { viewModel.inputHandler.onDismissRecentLists() },
