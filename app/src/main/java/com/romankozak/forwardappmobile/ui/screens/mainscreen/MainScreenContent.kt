@@ -195,6 +195,7 @@ internal fun OptimizedExpandingBottomNav(
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
+    onShowReminders: () -> Unit,
 ) {
     
     val stableOnHomeClick = remember { { onHomeClick() } }
@@ -219,5 +220,6 @@ internal fun OptimizedExpandingBottomNav(
         onAiChatClick = onAiChatClick,
         onActivityTrackerClick = stableOnActivityTrackerClick,
         onInsightsClick = onInsightsClick,
+        onShowReminders = onShowReminders,
     )
 }
