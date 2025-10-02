@@ -7,10 +7,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -114,6 +116,15 @@ fun RemindersScreen(
                     viewModel.showGoalInProject(goal)
                     showActionsDialogForGoal = null
                 }
+            ),
+            ReminderAction(
+                text = "Delete",
+                icon = Icons.Outlined.Delete,
+                onClick = {
+                    viewModel.deleteReminder(goal)
+                    showActionsDialogForGoal = null
+                },
+                color = MaterialTheme.colorScheme.error
             )
         )
         ReminderActionsDialog(
