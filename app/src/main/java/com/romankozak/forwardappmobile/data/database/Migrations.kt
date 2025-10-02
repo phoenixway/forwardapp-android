@@ -385,3 +385,17 @@ val MIGRATION_46_47 = object : Migration(46, 47) {
         db.execSQL("ALTER TABLE custom_lists ADD COLUMN lastCursorPosition INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_47_48 = object : Migration(47, 48) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE projects ADD COLUMN reminderTime INTEGER")
+    }
+}
+
+val MIGRATION_48_49 = object : Migration(48, 49) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `project_reminder_info` (`projectId` TEXT NOT NULL, `reminder_status` TEXT NOT NULL, `snooze_time` INTEGER, PRIMARY KEY(`projectId`))"
+        )
+    }
+}

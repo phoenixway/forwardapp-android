@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import androidx.compose.material.icons.filled.Notifications
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 
 @Composable
@@ -21,6 +22,7 @@ fun GoalActionChoiceDialog(
     itemContent: ListItemContent,
     onDismiss: () -> Unit,
     onActionSelected: (GoalActionType) -> Unit,
+    onSetReminder: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -57,6 +59,15 @@ fun GoalActionChoiceDialog(
                         },
                     )
                 }
+                HorizontalDivider()
+                DialogActionItem(
+                    text = "Встановити нагадування",
+                    icon = Icons.Default.Notifications,
+                    onClick = {
+                        onSetReminder()
+                        onDismiss()
+                    },
+                )
             }
         }
     }

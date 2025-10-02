@@ -76,6 +76,10 @@ debug:
 	@echo "🚀  Збираю debug APK..."
 	@./gradlew :app:assembleDebug
 
+check-compile:
+	@echo "🚀  Перевіряю через compileDebugKotlin..."
+	@./gradlew :app:compileDebugKotlin
+
 # Встановити debug APK
 install-debug: debug
 	@echo "🐞  Встановлюю debug APK (пріоритет ARM64)..."

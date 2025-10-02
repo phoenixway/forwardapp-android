@@ -39,7 +39,10 @@ import com.romankozak.forwardappmobile.data.database.models.ReminderStatusValues
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.screens.reminders.components.ReminderAction
+import com.romankozak.forwardappmobile.ui.screens.reminders.components.ProjectItem
 import com.romankozak.forwardappmobile.ui.screens.reminders.components.ReminderActionsDialog
+import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.ui.screens.reminders.ReminderListItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,9 +51,9 @@ fun RemindersScreen(
     viewModel: RemindersViewModel = hiltViewModel()
 ) {
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
-    val goalToEdit by viewModel.goalToEdit.collectAsStateWithLifecycle()
+    val itemToEdit by viewModel.itemToEdit.collectAsStateWithLifecycle()
     val currentTimeMillis by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showActionsDialogForGoal by remember { mutableStateOf<Goal?>(null) }
+    var showActionsDialogForItem by remember { mutableStateOf<ReminderListItem?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -84,65 +87,78 @@ fun RemindersScreen(
         } else {
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
                 items(reminders) { reminderItem ->
-                    val goal = reminderItem.goal
-                    val isSnoozed = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
-                    val isCompleted = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
-                    GoalItem(
-                        goal = goal,
-                        obsidianVaultName = "",
-                        onCheckedChange = { _ -> },
-                        onItemClick = { viewModel.onEditReminder(goal) },
-                        onLongClick = { },
-                        onTagClick = { },
-                        onRelatedLinkClick = { },
-                        emojiToHide = null,
-                        contextMarkerToEmojiMap = emptyMap(),
-                        currentTimeMillis = currentTimeMillis,
-                        isSelected = false,
-                        isSnoozed = isSnoozed,
-                        isCompletedFromReminder = isCompleted,
-                        endAction = {
-                            IconButton(onClick = { showActionsDialogForGoal = goal }) {
-                                Icon(Icons.Default.MoreHoriz, "...")
-                            }
+                    when (reminderItem) {
+                        is ReminderListItem.GoalReminder -> {
+                            val goal = reminderItem.item.goal
+                            val isSnoozed = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
+                            val isCompleted = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
+                            GoalItem(
+                                goal = goal,
+                                obsidianVaultName = "",
+                                onCheckedChange = { _ -> },
+                                onItemClick = { viewModel.onEditReminder(reminderItem) },
+                                onLongClick = { },
+                                onTagClick = { },
+                                onRelatedLinkClick = { },
+                                emojiToHide = null,
+                                contextMarkerToEmojiMap = emptyMap(),
+                                currentTimeMillis = currentTimeMillis,
+                                isSelected = false,
+                                isSnoozed = isSnoozed,
+                                isCompletedFromReminder = isCompleted,
+                                endAction = {
+                                    IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
+                                        Icon(Icons.Default.MoreHoriz, "...")
+                                    }
+                                }
+                            )
                         }
-                    )
+                        is ReminderListItem.ProjectReminder -> {
+                            val project = reminderItem.item.project
+                            val isSnoozed = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
+                            val isCompleted = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
+                            ProjectItem(
+                                project = project,
+                                onClick = { viewModel.onEditReminder(reminderItem) }
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 
-    goalToEdit?.let { goal ->
+    itemToEdit?.let { item ->
         ReminderPickerDialog(
             onDismiss = { viewModel.onDismissEditReminder() },
-            onSetReminder = { timestamp -> viewModel.setReminderForGoal(goal.id, timestamp) },
-            onClearReminder = { viewModel.clearReminderForGoal(goal.id) },
-            currentReminderTime = goal.reminderTime
+            onSetReminder = { timestamp -> viewModel.setReminder(item.id, timestamp) },
+            onClearReminder = { viewModel.clearReminder(item.id) },
+            currentReminderTime = item.reminderTime
         )
     }
 
-    showActionsDialogForGoal?.let { goal ->
+    showActionsDialogForItem?.let { item ->
         val actions = listOf(
             ReminderAction(
                 text = "Show in project",
                 icon = Icons.Outlined.TravelExplore,
                 onClick = {
-                    viewModel.showGoalInProject(goal)
-                    showActionsDialogForGoal = null
+                    viewModel.showItemInProject(item)
+                    showActionsDialogForItem = null
                 }
             ),
             ReminderAction(
                 text = "Delete",
                 icon = Icons.Outlined.Delete,
                 onClick = {
-                    viewModel.deleteReminder(goal)
-                    showActionsDialogForGoal = null
+                    viewModel.deleteReminder(item)
+                    showActionsDialogForItem = null
                 },
                 color = MaterialTheme.colorScheme.error
             )
         )
         ReminderActionsDialog(
-            onDismiss = { showActionsDialogForGoal = null },
+            onDismiss = { showActionsDialogForItem = null },
             actions = actions
         )
     }
