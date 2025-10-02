@@ -101,6 +101,7 @@ data class OptionsMenuActions(
   val onExportBacklogToMarkdown: () -> Unit,
   val onExportProjectState: () -> Unit,
   val onDeleteList: () -> Unit,
+  val onSetReminder: () -> Unit,
 )
 
 // ------------------- VIEW TOGGLE ---------------------
@@ -332,7 +333,13 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                 "Недавні проекти",
                 Icons.Outlined.Restore,
                 {
-                  actions.onRecentsClick()
+                },
+              ),
+              MenuItem(
+                "Встановити нагадування",
+                Icons.Outlined.Alarm,
+                {
+                  menu.onSetReminder()
                   actions.onMenuExpandedChange(false)
                 },
               ),
@@ -639,6 +646,7 @@ fun ModernInputPanel(
   onEditList: () -> Unit,
   onShareList: () -> Unit,
   onDeleteList: () -> Unit,
+  onSetReminder: () -> Unit,
   menuExpanded: Boolean,
   onMenuExpandedChange: (Boolean) -> Unit,
   currentView: ProjectViewMode,
@@ -697,6 +705,7 @@ fun ModernInputPanel(
           onExportBacklogToMarkdown = onExportBacklogToMarkdown,
           onExportProjectState = onExportProjectState,
           onDeleteList = onDeleteList,
+          onSetReminder = onSetReminder,
         ),
     )
 

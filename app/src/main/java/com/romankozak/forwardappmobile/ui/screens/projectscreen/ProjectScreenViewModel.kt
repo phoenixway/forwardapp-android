@@ -1186,6 +1186,22 @@ constructor(
     _uiState.update { it.copy(recordForReminderDialog = record) }
   }
 
+  fun onSetReminderForProject() {
+    viewModelScope.launch {
+        project.value?.let { proj ->
+            val record = ActivityRecord(
+                id = proj.id,
+                text = proj.name,
+                reminderTime = proj.reminderTime,
+                createdAt = proj.createdAt,
+                projectId = proj.id,
+                goalId = null,
+            )
+            _uiState.update { it.copy(recordForReminderDialog = record) }
+        }
+    }
+  }
+
   fun stopOngoingActivity() {
     viewModelScope.launch {
       lastOngoingActivity.value?.let {
