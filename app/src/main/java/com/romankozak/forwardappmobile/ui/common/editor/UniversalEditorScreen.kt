@@ -211,7 +211,7 @@ private fun EditorTopAppBar(
     actions = {
       if (showLocationEnabled) {
         IconButton(onClick = onShowLocation) {
-          Icon(Icons.Default.LocationOn, contentDescription = "Show location")
+          Icon(Icons.Default.RemoveRedEye, contentDescription = "Show")
         }
       }
       IconButton(onClick = onCopyAll) {
