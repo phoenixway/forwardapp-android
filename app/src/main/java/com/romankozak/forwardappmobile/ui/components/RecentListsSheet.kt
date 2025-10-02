@@ -71,7 +71,7 @@ fun RecentListsSheet(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { pinnedItemsExpanded = !pinnedItemsExpanded },
-                                    color = MaterialTheme.colorScheme.surfaceContainer
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -101,7 +101,7 @@ fun RecentListsSheet(
                             stickyHeader {
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.surfaceContainer
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh
                                 ) {
                                     Text(
                                         text = "Недавні",
