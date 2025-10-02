@@ -146,7 +146,7 @@ internal fun EnhancedReminderBadge(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = if (isCompleted) Icons.Default.CheckCircle else if (isPastDue) Icons.Default.AlarmOff else Icons.Default.AlarmOn,
+                imageVector = if (isPastDue) Icons.Default.AlarmOff else Icons.Default.AlarmOn,
                 contentDescription = "Нагадування",
                 tint = contentColor,
                 modifier = Modifier.size(14.dp),
