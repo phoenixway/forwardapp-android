@@ -88,6 +88,7 @@ fun RemindersScreen(
                     currentTimeMillis = currentTimeMillis,
                     isSelected = false,
                     isSnoozed = isSnoozed,
+                    isCompletedFromReminder = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED,
                     endAction = {
                         IconButton(onClick = { showActionsDialogForGoal = goal }) {
                             Icon(Icons.Default.MoreHoriz, "...")

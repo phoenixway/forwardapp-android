@@ -106,25 +106,30 @@ internal object ReminderTextUtil {
 internal fun EnhancedReminderBadge(
     reminderTime: Long,
     currentTimeMillis: Long,
+    isCompleted: Boolean = false
 ) {
-    val reminderText = remember(reminderTime, currentTimeMillis) {
-        ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
+    val reminderText = if (isCompleted) {
+        "Completed"
+    } else {
+        remember(reminderTime, currentTimeMillis) {
+            ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
+        }
     }
-    val isPastDue = reminderTime < currentTimeMillis
+    val isPastDue = reminderTime < currentTimeMillis && !isCompleted
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (isPastDue) {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-        } else {
-            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
+        targetValue = when {
+            isCompleted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            isPastDue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+            else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
         },
         label = "reminder_badge_bg",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isPastDue) {
-            MaterialTheme.colorScheme.error
-        } else {
-            MaterialTheme.colorScheme.tertiary
+        targetValue = when {
+            isCompleted -> MaterialTheme.colorScheme.primary
+            isPastDue -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.tertiary
         },
         label = "reminder_badge_content",
     )
@@ -141,21 +146,22 @@ internal fun EnhancedReminderBadge(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = if (isPastDue) Icons.Default.AlarmOff else Icons.Default.AlarmOn,
+                imageVector = if (isCompleted) Icons.Default.CheckCircle else if (isPastDue) Icons.Default.AlarmOff else Icons.Default.AlarmOn,
                 contentDescription = "Нагадування",
                 tint = contentColor,
                 modifier = Modifier.size(14.dp),
             )
-                            Text(
-                                text = reminderText,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 10.sp,
-                                ),
-                                color = contentColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )        }
+            Text(
+                text = reminderText,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                ),
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -409,6 +415,7 @@ fun GoalItem(
     currentTimeMillis: Long,
     isSelected: Boolean,
     isSnoozed: Boolean = false,
+    isCompletedFromReminder: Boolean = false,
     endAction: @Composable () -> Unit = {},
 ) {
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
@@ -493,6 +500,7 @@ fun GoalItem(
                                     EnhancedReminderBadge(
                                         reminderTime = time,
                                         currentTimeMillis = currentTimeMillis,
+                                        isCompleted = isCompletedFromReminder
                                     )
                                     if (isSnoozed) {
                                         Icon(
