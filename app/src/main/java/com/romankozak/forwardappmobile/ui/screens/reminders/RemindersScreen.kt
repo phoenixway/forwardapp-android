@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,8 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ListItem
-import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
+import com.romankozak.forwardappmobile.data.database.models.ReminderStatusValues
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import java.util.UUID
 
@@ -42,12 +43,19 @@ fun RemindersScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.clearAllReminders() }) {
+                        Icon(Icons.Default.ClearAll, contentDescription = "Clear all reminders")
+                    }
                 }
             )
         }
     ) { paddingValues ->
         LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            items(reminders) { goal ->
+            items(reminders) { reminderItem ->
+                val goal = reminderItem.goal
+                val isSnoozed = reminderItem.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
                 val listItem = ListItem(
                     id = UUID.randomUUID().toString(),
                     projectId = "", // Not needed for this screen
@@ -66,10 +74,10 @@ fun RemindersScreen(
                     emojiToHide = null,
                     contextMarkerToEmojiMap = emptyMap(),
                     currentTimeMillis = currentTimeMillis,
-                    isSelected = false
+                    isSelected = false,
+                    isSnoozed = isSnoozed
                 )
             }
         }
     }
 }
-

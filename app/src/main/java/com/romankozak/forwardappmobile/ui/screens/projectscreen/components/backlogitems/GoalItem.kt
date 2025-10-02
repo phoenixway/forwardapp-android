@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
+import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -407,6 +408,7 @@ fun GoalItem(
     contextMarkerToEmojiMap: Map<String, String>,
     currentTimeMillis: Long,
     isSelected: Boolean,
+    isSnoozed: Boolean = false,
     endAction: @Composable () -> Unit = {},
 ) {
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
@@ -487,10 +489,20 @@ fun GoalItem(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             goal.reminderTime?.let { time ->
-                                EnhancedReminderBadge(
-                                    reminderTime = time,
-                                    currentTimeMillis = currentTimeMillis,
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) { // new Row
+                                    EnhancedReminderBadge(
+                                        reminderTime = time,
+                                        currentTimeMillis = currentTimeMillis,
+                                    )
+                                    if (isSnoozed) {
+                                        Icon(
+                                            imageVector = Icons.Default.Snooze,
+                                            contentDescription = "Snoozed",
+                                            modifier = Modifier.size(16.dp).padding(start = 4.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
 
                             EnhancedScoreStatusBadge(
