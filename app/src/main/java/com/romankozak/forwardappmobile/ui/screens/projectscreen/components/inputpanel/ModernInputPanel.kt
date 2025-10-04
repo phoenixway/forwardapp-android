@@ -531,7 +531,7 @@ private fun NavigationBar(
                 AnimatedVisibility(visible = showReveal) {
                     IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
                         Icon(
-                            Icons.Outlined.Visibility,
+                            Icons.Outlined.RemoveRedEye,
                             "Показати у списку",
                             tint = contentColor.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp),
