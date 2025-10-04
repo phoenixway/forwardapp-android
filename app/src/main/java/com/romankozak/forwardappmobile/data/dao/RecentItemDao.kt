@@ -16,7 +16,7 @@ interface RecentItemDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<RecentItem>)
 
-    @Query("SELECT * FROM recent_items ORDER BY isPinned DESC, lastAccessed DESC LIMIT :limit")
+    @Query("SELECT * FROM recent_items ORDER BY lastAccessed DESC LIMIT :limit")
     fun getRecentItems(limit: Int): Flow<List<RecentItem>>
 
     @Query("SELECT * FROM recent_items WHERE id = :id")
