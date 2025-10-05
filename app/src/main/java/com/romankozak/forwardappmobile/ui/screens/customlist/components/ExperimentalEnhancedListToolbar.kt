@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.customlist.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -21,11 +23,12 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.graphicsLayer
 
 enum class CommandGroup { РЕДАГУВАННЯ, СПИСКИ, ВСТАВКА, ФОРМАТУВАННЯ }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
 fun ExperimentalEnhancedListToolbar(
   modifier: Modifier = Modifier,
   state: ListToolbarState,
@@ -62,61 +65,111 @@ fun ExperimentalEnhancedListToolbar(
 
   AnimatedVisibility(
     visible = state.isEditing,
-    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+    enter = slideInVertically(
+      initialOffsetY = { it },
+      animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+    ) + fadeIn(),
+    exit = slideOutVertically(
+      targetOffsetY = { it },
+      animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+    ) + fadeOut(),
   ) {
-    Card(
+    Surface(
       modifier = modifier.fillMaxWidth(),
-      elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-      shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+      shadowElevation = 12.dp,
+      tonalElevation = 2.dp,
+      color = MaterialTheme.colorScheme.surface,
+      shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
     ) {
       Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
       ) {
+        // Drag handle with animation
         Box(
           modifier = Modifier
-            .height(24.dp)
+            .height(32.dp)
             .fillMaxWidth()
             .clickable(onClick = onToggleVisibility),
           contentAlignment = Alignment.Center
         ) {
-          Icon(
-            imageVector = Icons.Default.KeyboardArrowDown,
-            contentDescription = "Сховати тулбар",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
+          Box(
+            modifier = Modifier
+              .width(40.dp)
+              .height(4.dp)
+              .clip(RoundedCornerShape(2.dp))
+              .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
           )
         }
 
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 16.dp)
+              .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ScrollableTabRow(selectedTabIndex = selectedTab.ordinal, edgePadding = 0.dp) {
+            // Modern tab row with chips style
+            ScrollableTabRow(
+              selectedTabIndex = selectedTab.ordinal,
+              edgePadding = 0.dp,
+              containerColor = Color.Transparent,
+              indicator = { },
+              divider = { }
+            ) {
                 CommandGroup.values().forEach { group ->
+                    val isSelected = selectedTab == group
                     Tab(
-                        modifier = Modifier.height(36.dp),
-                        selected = selectedTab == group,
-                        onClick = { selectedTab = group },
-                        text = { Text(text = group.name, fontSize = 11.sp) }
-                    )
+                        modifier = Modifier.height(40.dp),
+                        selected = isSelected,
+                        onClick = {
+                          haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                          selectedTab = group
+                        },
+                    ) {
+                      Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) 
+                          MaterialTheme.colorScheme.primaryContainer 
+                        else 
+                          MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                      ) {
+                        Text(
+                          text = group.name,
+                          fontSize = 12.sp,
+                          fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                          color = if (isSelected)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                          else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                          modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                      }
+                    }
                 }
             }
 
-            Crossfade(targetState = selectedTab) {
+            // Animated content with crossfade
+            Crossfade(
+              targetState = selectedTab,
+              animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) { tab ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .horizontalScroll(rememberScrollState())
+                      .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    when (it) {
+                    when (tab) {
                         CommandGroup.РЕДАГУВАННЯ -> {
                             ToolbarSection(title = "Історія") {
                                 EnhancedToolbarButton(
                                   icon = Icons.AutoMirrored.Filled.Undo,
                                   description = "Скасувати",
+                                  enabled = state.canUndo,
                                   onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onUndo()
@@ -125,6 +178,7 @@ fun ExperimentalEnhancedListToolbar(
                                 EnhancedToolbarButton(
                                   icon = Icons.AutoMirrored.Filled.Redo,
                                   description = "Повторити",
+                                  enabled = state.canRedo,
                                   onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onRedo()
@@ -132,15 +186,16 @@ fun ExperimentalEnhancedListToolbar(
                                 )
                             }
                             VerticalDivider(
-                                modifier = Modifier.height(40.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             )
                             ToolbarSection(title = "Редагування") {
                                 EnhancedToolbarButton(
                                   icon = Icons.Default.DeleteOutline,
                                   description = "Видалити рядок",
                                   onClick = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onDeleteLine()
                                   },
                                 )
@@ -183,8 +238,9 @@ fun ExperimentalEnhancedListToolbar(
                                 )
                             }
                             VerticalDivider(
-                                modifier = Modifier.height(40.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             )
                             ToolbarSection(title = "Відступи") {
                                 EnhancedToolbarButton(
@@ -207,8 +263,9 @@ fun ExperimentalEnhancedListToolbar(
                                 )
                             }
                             VerticalDivider(
-                                modifier = Modifier.height(40.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             )
                             ToolbarSection(title = "Рядки") {
                                 EnhancedToolbarButton(
@@ -231,8 +288,9 @@ fun ExperimentalEnhancedListToolbar(
                                 )
                             }
                             VerticalDivider(
-                                modifier = Modifier.height(40.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             )
                             ToolbarSection(title = "Блоки") {
                                 EnhancedToolbarButton(
@@ -326,8 +384,9 @@ fun ExperimentalEnhancedListToolbar(
                                 )
                             }
                             VerticalDivider(
-                                modifier = Modifier.height(40.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             )
                             ToolbarSection(title = "Стиль") {
                                 EnhancedToolbarButton(
@@ -357,17 +416,17 @@ fun ExperimentalEnhancedListToolbar(
   }
 }
 
-@Composable
+ @Composable
 private fun ToolbarSection(title: String, content: @Composable RowScope.() -> Unit) {
   Row(
-    modifier = Modifier.padding(horizontal = 4.dp),
-    horizontalArrangement = Arrangement.spacedBy(2.dp),
+    modifier = Modifier.padding(horizontal = 2.dp),
+    horizontalArrangement = Arrangement.spacedBy(4.dp),
     verticalAlignment = Alignment.CenterVertically,
     content = content
   )
 }
 
-@Composable
+ @Composable
 private fun EnhancedToolbarButton(
   icon: ImageVector,
   description: String,
@@ -376,42 +435,53 @@ private fun EnhancedToolbarButton(
   enabled: Boolean = true,
   isActive: Boolean = false,
 ) {
-  val animatedColor by
-    animateColorAsState(
-      targetValue =
-        when {
-          isActive -> MaterialTheme.colorScheme.primary
-          enabled -> MaterialTheme.colorScheme.onSurfaceVariant
-          else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-        },
-      animationSpec = tween(200),
-      label = "button_color",
-    )
+  val animatedScale by animateFloatAsState(
+    targetValue = if (enabled) 1f else 0.95f,
+    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+    label = "button_scale"
+  )
 
-  val animatedBackgroundColor by
-    animateColorAsState(
-      targetValue =
-        if (isActive) {
-          MaterialTheme.colorScheme.primaryContainer
-        } else {
-          Color.Transparent
-        },
-      animationSpec = tween(200),
-      label = "button_background",
-    )
+  val animatedColor by animateColorAsState(
+    targetValue = when {
+      isActive -> MaterialTheme.colorScheme.primary
+      enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+      else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+    },
+    animationSpec = tween(250, easing = FastOutSlowInEasing),
+    label = "button_color",
+  )
+
+  val animatedBackgroundColor by animateColorAsState(
+    targetValue = if (isActive) {
+      MaterialTheme.colorScheme.primaryContainer
+    } else {
+      MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    },
+    animationSpec = tween(250, easing = FastOutSlowInEasing),
+    label = "button_background",
+  )
 
   FilledIconButton(
     onClick = onClick,
     enabled = enabled,
-    modifier = modifier.size(36.dp),
-    colors =
-      IconButtonDefaults.filledIconButtonColors(
-        containerColor = animatedBackgroundColor,
-        contentColor = animatedColor,
-        disabledContainerColor = Color.Transparent,
-        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-      ),
+    modifier = modifier
+      .size(42.dp)
+      .graphicsLayer {
+        scaleX = animatedScale
+        scaleY = animatedScale
+      },
+    shape = RoundedCornerShape(12.dp),
+    colors = IconButtonDefaults.filledIconButtonColors(
+      containerColor = animatedBackgroundColor,
+      contentColor = animatedColor,
+      disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+      disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+    ),
   ) {
-    Icon(imageVector = icon, contentDescription = description, modifier = Modifier.size(18.dp))
+    Icon(
+      imageVector = icon,
+      contentDescription = description,
+      modifier = Modifier.size(20.dp)
+    )
   }
 }
