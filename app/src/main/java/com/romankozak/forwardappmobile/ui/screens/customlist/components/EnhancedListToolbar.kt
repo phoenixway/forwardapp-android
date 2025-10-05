@@ -74,6 +74,8 @@ fun EnhancedListToolbar(
   onUndo: () -> Unit = {},
   onRedo: () -> Unit = {},
   onToggleVisibility: () -> Unit = {},
+  onInsertDateTime: () -> Unit = {},
+  onInsertTime: () -> Unit = {},
 ) {
   val haptics = LocalHapticFeedback.current
 
@@ -287,6 +289,30 @@ fun EnhancedListToolbar(
                   onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onPasteLine()
+                  },
+                )
+              }
+
+              VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+              )
+
+              ToolbarSection(title = "Вставка") {
+                EnhancedToolbarButton(
+                  icon = Icons.Default.DateRange,
+                  description = "Вставити дату і час",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onInsertDateTime()
+                  },
+                )
+                EnhancedToolbarButton(
+                  icon = Icons.Default.AccessTime,
+                  description = "Вставити час",
+                  onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onInsertTime()
                   },
                 )
               }

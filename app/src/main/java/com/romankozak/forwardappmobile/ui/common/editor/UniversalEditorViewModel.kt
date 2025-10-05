@@ -16,7 +16,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 sealed class UniversalEditorEvent {
   data class ShowError(val message: String) : UniversalEditorEvent()
@@ -63,6 +68,11 @@ class UniversalEditorViewModel(private val application: Application) : ViewModel
       it.copy(content = textFieldValue, toolbarState = computeToolbarState(textFieldValue, true))
     }
     pushUndo(textFieldValue)
+
+    viewModelScope.launch {
+        delay(400)
+        _uiState.update { it.copy(content = it.content.copy()) }
+    }
   }
 
   fun onContentChange(newValue: TextFieldValue) {
@@ -472,5 +482,26 @@ class UniversalEditorViewModel(private val application: Application) : ViewModel
     if (projectId != null) {
       viewModelScope.launch { _events.send(UniversalEditorEvent.ShowLocation(projectId)) }
     }
+  }
+
+  fun onInsertDateTime() {
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    val currentDate = sdf.format(Date())
+    insertText(currentDate)
+  }
+
+  fun onInsertTime() {
+    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val currentTime = sdf.format(Date())
+    insertText(currentTime)
+  }
+
+  private fun insertText(textToInsert: String) {
+    val cur = _uiState.value.content
+    val selectionStart = cur.selection.start
+    val selectionEnd = cur.selection.end
+    val newText = cur.text.replaceRange(selectionStart, selectionEnd, textToInsert)
+    val newSel = TextRange(selectionStart + textToInsert.length)
+    onContentChange(TextFieldValue(newText, selection = newSel))
   }
 }
