@@ -22,34 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class ListFormatMode {
-  BULLET,
-  NUMBERED,
-  CHECKLIST,
-  PLAIN,
-}
-
-enum class SortMode {
-  NONE,
-  ALPHABETICAL,
-  CREATION_DATE,
-  PRIORITY,
-}
-
-data class ListToolbarState(
-  val isEditing: Boolean = false,
-  val formatMode: ListFormatMode = ListFormatMode.BULLET,
-  val sortMode: SortMode = SortMode.NONE,
-  val totalItems: Int = 0,
-  val hasSelection: Boolean = false,
-  val canIndent: Boolean = true,
-  val canDeIndent: Boolean = false,
-  val canMoveUp: Boolean = true,
-  val canMoveDown: Boolean = true,
-      val canUndo: Boolean = false,
-    val canRedo: Boolean = false
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedListToolbar(

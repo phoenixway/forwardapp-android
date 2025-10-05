@@ -496,6 +496,59 @@ class UniversalEditorViewModel(private val application: Application) : ViewModel
     insertText(currentTime)
   }
 
+  fun onH1() {
+    toggleHeader(1)
+  }
+
+  fun onH2() {
+    toggleHeader(2)
+  }
+
+  fun onH3() {
+    toggleHeader(3)
+  }
+
+  fun onBold() {
+    surroundSelection("**")
+  }
+
+  fun onItalic() {
+    surroundSelection("*")
+  }
+
+  fun onInsertSeparator() {
+    insertText("\n***\n")
+  }
+
+  private fun toggleHeader(level: Int) {
+    val cur = _uiState.value.content
+    val (lineStart, _) = findLineStartAndIndex(cur.text, cur.selection.start)
+    val line = cur.text.substring(lineStart).lineSequence().first()
+    val header = "#".repeat(level) + " "
+
+    val newText = if (line.startsWith(header)) {
+      // Remove header
+      cur.text.removeRange(lineStart, lineStart + header.length)
+    } else {
+      // Add header
+      cur.text.substring(0, lineStart) + header + cur.text.substring(lineStart)
+    }
+    onContentChange(TextFieldValue(newText, selection = cur.selection))
+  }
+
+  private fun surroundSelection(operator: String) {
+    val cur = _uiState.value.content
+    val selection = cur.selection
+    if (selection.collapsed) return
+
+    val newText = cur.text.substring(0, selection.start) +
+      operator + cur.text.substring(selection.start, selection.end) + operator +
+      cur.text.substring(selection.end)
+
+    val newSelection = TextRange(selection.end + operator.length * 2)
+    onContentChange(TextFieldValue(newText, newSelection))
+  }
+
   private fun insertText(textToInsert: String) {
     val cur = _uiState.value.content
     val selectionStart = cur.selection.start
