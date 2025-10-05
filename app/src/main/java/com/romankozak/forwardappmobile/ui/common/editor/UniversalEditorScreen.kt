@@ -8,6 +8,8 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -160,6 +163,8 @@ fun UniversalEditorScreen(
               onUndo = viewModel::onUndo,
               onRedo = viewModel::onRedo,
               onToggleVisibility = { isToolbarVisible = false },
+              onInsertDateTime = viewModel::onInsertDateTime,
+              onInsertTime = viewModel::onInsertTime,
             )
           } else {
             ShowToolbarButton(onClick = { isToolbarVisible = true })
@@ -231,6 +236,7 @@ private fun EditorTopAppBar(
   )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Editor(
   content: TextFieldValue,
@@ -240,34 +246,34 @@ private fun Editor(
 ) {
   val scrollState = rememberScrollState()
   var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-
+  val bringIntoViewRequester = remember { BringIntoViewRequester() }
   val highlightColor = MaterialTheme.colorScheme.surfaceVariant
   val textColor = MaterialTheme.colorScheme.onSurface
   val accentColor = MaterialTheme.colorScheme.primary
+  val density = LocalDensity.current
 
-  LaunchedEffect(content.selection) {
-      textLayoutResult?.let { layoutResult ->
-          val cursorOffset = content.selection.start
-          android.util.Log.d("CursorDebug", "Scrolling effect triggered. Cursor offset: $cursorOffset")
-          val line = layoutResult.getLineForOffset(cursorOffset)
-          val lineTop = layoutResult.getLineTop(line)
-          val lineBottom = layoutResult.getLineBottom(line)
-          val viewportHeight = scrollState.viewportSize
-          val currentScrollPosition = scrollState.value
+  // Відстежуємо висоту IME
+  val imeHeight = WindowInsets.ime.getBottom(density)
+  val isImeVisible = imeHeight > 0
 
-          android.util.Log.d("CursorDebug", "Line: $line, LineTop: $lineTop, ViewportHeight: $viewportHeight, Scroll: $currentScrollPosition")
+  // Затримка для стабілізації після змін IME та layout
+  LaunchedEffect(content.selection, textLayoutResult, imeHeight, isToolbarVisible) {
+    // Чекаємо завершення анімації IME та layout
+    delay(100)
 
-          if (lineTop < currentScrollPosition) {
-              // Line is above the viewport, scroll up
-              android.util.Log.d("CursorDebug", "Scrolling UP to ${lineTop.toInt()}")
-              scrollState.animateScrollTo(lineTop.toInt())
-          } else if (lineBottom > currentScrollPosition + viewportHeight) {
-              // Line is below the viewport, scroll down
-              val scrollAmount = (lineBottom - viewportHeight).toInt()
-              android.util.Log.d("CursorDebug", "Scrolling DOWN to ${scrollAmount.coerceAtLeast(0)}")
-              scrollState.animateScrollTo(scrollAmount.coerceAtLeast(0))
-          }
+    textLayoutResult?.let { layoutResult ->
+      if (layoutResult.lineCount > 0) {
+        val cursorRect = layoutResult.getCursorRect(content.selection.start)
+
+        // Додаємо додатковий відступ, щоб курсор не був впритул до панелі
+        val extraPadding = with(density) { 24.dp.toPx() }
+        val adjustedRect = cursorRect.copy(
+          bottom = cursorRect.bottom + extraPadding
+        )
+
+        bringIntoViewRequester.bringIntoView(adjustedRect)
       }
+    }
   }
 
   Row(
@@ -285,6 +291,7 @@ private fun Editor(
           .weight(1f)
           .fillMaxHeight()
           .focusRequester(contentFocusRequester)
+          .bringIntoViewRequester(bringIntoViewRequester)
           .drawBehind {
             textLayoutResult?.let { layoutResult ->
               val currentLine =
