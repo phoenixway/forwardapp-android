@@ -1545,6 +1545,7 @@ constructor(
   }
 
   fun onRecentItemClick(item: RecentItem) {
+    _uiState.update { it.copy(showRecentProjectsSheet = false) }
     viewModelScope.launch {
       when (item.type) {
         RecentItemType.PROJECT -> {
