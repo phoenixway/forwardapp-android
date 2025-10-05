@@ -49,7 +49,7 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.customlist.components.EnhancedListToolbar
+import com.romankozak.forwardappmobile.ui.screens.customlist.components.ExperimentalEnhancedListToolbar
 
 import kotlinx.coroutines.delay
 
@@ -145,7 +145,7 @@ fun UniversalEditorScreen(
           },
         ) { isVisible ->
           if (isVisible) {
-            EnhancedListToolbar(
+            ExperimentalEnhancedListToolbar(
               state = uiState.toolbarState,
               onIndentBlock = viewModel::onIndentBlock,
               onDeIndentBlock = viewModel::onDeIndentBlock,
@@ -165,6 +165,12 @@ fun UniversalEditorScreen(
               onToggleVisibility = { isToolbarVisible = false },
               onInsertDateTime = viewModel::onInsertDateTime,
               onInsertTime = viewModel::onInsertTime,
+              onH1 = viewModel::onH1,
+              onH2 = viewModel::onH2,
+              onH3 = viewModel::onH3,
+              onBold = viewModel::onBold,
+              onItalic = viewModel::onItalic,
+              onInsertSeparator = viewModel::onInsertSeparator,
             )
           } else {
             ShowToolbarButton(onClick = { isToolbarVisible = true })
