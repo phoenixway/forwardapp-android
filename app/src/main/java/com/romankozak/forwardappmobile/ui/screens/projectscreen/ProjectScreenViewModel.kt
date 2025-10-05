@@ -1548,12 +1548,15 @@ constructor(
     viewModelScope.launch {
       when (item.type) {
         RecentItemType.PROJECT -> {
+          projectRepository.logProjectAccess(item.target)
           enhancedNavigationManager.navigateToProject(item.target, item.displayName)
         }
         RecentItemType.NOTE -> {
+          projectRepository.getNoteById(item.target)?.let { projectRepository.logNoteAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
         }
         RecentItemType.CUSTOM_LIST -> {
+          projectRepository.getCustomListById(item.target)?.let { projectRepository.logCustomListAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
@@ -1563,6 +1566,7 @@ constructor(
               target = item.target,
               displayName = item.displayName,
             )
+          projectRepository.logObsidianLinkAccess(link)
           onLinkItemClick(link)
         }
       }

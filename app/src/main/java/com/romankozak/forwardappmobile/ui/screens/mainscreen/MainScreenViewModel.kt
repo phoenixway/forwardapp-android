@@ -829,6 +829,7 @@ constructor(
         _showRecentListsSheet.value = false
         when (item.type) {
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
+                projectRepository.logProjectAccess(item.target)
                 val project = _allProjectsFlat.value.find { it.id == item.target }
                 if (project != null) {
                     popToSubState(MainSubState.Hierarchy)
@@ -836,12 +837,24 @@ constructor(
                 }
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
+                projectRepository.getNoteById(item.target)?.let {
+                    projectRepository.logNoteAccess(it)
+                }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
+                projectRepository.getCustomListById(item.target)?.let {
+                    projectRepository.logCustomListAccess(it)
+                }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("custom_list_screen/${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
+                val link = com.romankozak.forwardappmobile.data.database.models.RelatedLink(
+                    target = item.target,
+                    displayName = item.displayName,
+                    type = com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN
+                )
+                projectRepository.logObsidianLinkAccess(link)
                 val vaultName = settingsRepo.obsidianVaultNameFlow.first()
                 val encodedNoteName = java.net.URLEncoder.encode(item.target, "UTF-8")
                 val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"
