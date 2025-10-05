@@ -63,51 +63,83 @@ fun ExperimentalEnhancedListToolbar(
   var selectedTab by remember { mutableStateOf(CommandGroup.РЕДАГУВАННЯ) }
   val haptics = LocalHapticFeedback.current
 
-  AnimatedVisibility(
-    visible = state.isEditing,
-    enter = slideInVertically(
-      initialOffsetY = { it },
-      animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
-    ) + fadeIn(),
-    exit = slideOutVertically(
-      targetOffsetY = { it },
-      animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-    ) + fadeOut(),
+  Surface(
+    modifier = modifier.fillMaxWidth(),
+    shadowElevation = if (state.isEditing) 12.dp else 4.dp,
+    tonalElevation = 2.dp,
+    color = MaterialTheme.colorScheme.surface,
+    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
   ) {
-    Surface(
-      modifier = modifier.fillMaxWidth(),
-      shadowElevation = 12.dp,
-      tonalElevation = 2.dp,
-      color = MaterialTheme.colorScheme.surface,
-      shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+    Column(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+      // Top accent line
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(3.dp)
+          .background(
+            MaterialTheme.colorScheme.primary.copy(
+              alpha = if (state.isEditing) 0.6f else 0.3f
+            )
+          )
+      )
+      
+      // Drag handle with pulsing animation
+      val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+      val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+          animation = tween(1500, easing = FastOutSlowInEasing),
+          repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+      )
+      
+      Box(
+        modifier = Modifier
+          .height(24.dp)
+          .fillMaxWidth()
+          .clickable(onClick = onToggleVisibility),
+        contentAlignment = Alignment.Center
       ) {
-        // Drag handle with animation
         Box(
           modifier = Modifier
-            .height(32.dp)
-            .fillMaxWidth()
-            .clickable(onClick = onToggleVisibility),
-          contentAlignment = Alignment.Center
-        ) {
-          Box(
-            modifier = Modifier
-              .width(40.dp)
-              .height(4.dp)
-              .clip(RoundedCornerShape(2.dp))
-              .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            .width(48.dp)
+            .height(5.dp)
+            .clip(RoundedCornerShape(2.5.dp))
+            .background(
+              MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                alpha = if (state.isEditing) 0.5f else pulseAlpha
+              )
+            )
+        )
+      }
+      
+      AnimatedVisibility(
+        visible = state.isEditing,
+        enter = expandVertically(
+          animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
           )
-        }
+        ) + fadeIn(),
+        exit = shrinkVertically(
+          animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+          )
+        ) + fadeOut(),
+      ) {
 
         Column(
             modifier = Modifier
               .fillMaxWidth()
               .padding(horizontal = 16.dp)
-              .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+              .padding(bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Modern tab row with chips style
             ScrollableTabRow(
@@ -159,7 +191,7 @@ fun ExperimentalEnhancedListToolbar(
                     modifier = Modifier
                       .fillMaxWidth()
                       .horizontalScroll(rememberScrollState())
-                      .padding(vertical = 4.dp),
+                      .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -416,7 +448,7 @@ fun ExperimentalEnhancedListToolbar(
   }
 }
 
- @Composable
+@Composable
 private fun ToolbarSection(title: String, content: @Composable RowScope.() -> Unit) {
   Row(
     modifier = Modifier.padding(horizontal = 2.dp),
@@ -426,7 +458,7 @@ private fun ToolbarSection(title: String, content: @Composable RowScope.() -> Un
   )
 }
 
- @Composable
+@Composable
 private fun EnhancedToolbarButton(
   icon: ImageVector,
   description: String,
@@ -465,7 +497,7 @@ private fun EnhancedToolbarButton(
     onClick = onClick,
     enabled = enabled,
     modifier = modifier
-      .size(42.dp)
+      .size(36.dp)
       .graphicsLayer {
         scaleX = animatedScale
         scaleY = animatedScale

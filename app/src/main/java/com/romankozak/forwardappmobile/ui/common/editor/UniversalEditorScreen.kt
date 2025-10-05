@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -322,22 +323,48 @@ private fun Editor(
 
 @Composable
 private fun ShowToolbarButton(onClick: () -> Unit) {
-  Card(
+  Surface(
     modifier = Modifier.fillMaxWidth(),
-    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    shadowElevation = 4.dp,
+    tonalElevation = 2.dp,
+    color = MaterialTheme.colorScheme.surface,
+    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
   ) {
-    Box(
-      modifier = Modifier.fillMaxWidth().height(24.dp).clickable(onClick = onClick),
-      contentAlignment = Alignment.Center,
+    Column(
+      modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+      horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Icon(
-        imageVector = Icons.Default.KeyboardArrowUp,
-        contentDescription = "Show Toolbar",
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(24.dp),
+      // Top accent line
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(3.dp)
+          .background(
+            MaterialTheme.colorScheme.primary.copy(
+              alpha = 0.3f
+            )
+          )
       )
+      
+      // Drag handle
+      Box(
+        modifier = Modifier
+          .height(40.dp)
+          .fillMaxWidth(),
+        contentAlignment = Alignment.Center
+      ) {
+        Box(
+          modifier = Modifier
+            .width(48.dp)
+            .height(5.dp)
+            .clip(RoundedCornerShape(2.5.dp))
+            .background(
+              MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                alpha = 0.5f
+              )
+            )
+        )
+      }
     }
   }
 }
