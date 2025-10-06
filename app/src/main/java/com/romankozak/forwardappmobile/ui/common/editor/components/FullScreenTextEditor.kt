@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.common.components
+package com.romankozak.forwardappmobile.ui.common.editor.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,11 +82,11 @@ fun FullScreenTextEditor(
             }
 
             if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) {
-                ListEditingPanel(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    value = value,
-                    onValueChange = onValueChange
-                )
+//                ListEditingPanel(
+//                    modifier = Modifier.align(Alignment.BottomCenter),
+//                    value = value,
+//                    onValueChange = onValueChange
+//                )
             }
         }
     }

@@ -42,7 +42,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
-import com.romankozak.forwardappmobile.ui.common.components.FullScreenTextEditor
+import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
@@ -100,7 +100,7 @@ fun ProjectsScreen(
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val list by viewModel.project.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
-    val desktopAddress by viewModel.desktopAddress.collectAsStateWithLifecycle()
+    
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
 
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
@@ -156,20 +156,15 @@ fun ProjectsScreen(
         )
     } else {
         if (uiState.showExportTransferDialog) {
-            val transferUrl = remember(desktopAddress) {
-                val ip = desktopAddress
-                if (ip.isNotBlank() && !ip.startsWith("http")) {
-                    "http://$ip:8000"
-                } else {
-                    ip
-                }
-            }
+    
 
             ExportTransferDialog(
                 onDismiss = { viewModel.onExportTransferDialogDismiss() },
                 onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
-                onTransfer = { url -> viewModel.onTransferBacklogViaWifi(url) },
-                desktopUrl = transferUrl,
+                onTransfer = { viewModel.onTransferBacklogToServerRequest() },
+                onGoToSettings = { navController.navigate("settings_screen") },
+                serverAddress = uiState.serverAddress,
+                serverAddressMode = uiState.serverAddressMode,
                 transferStatus = uiState.transferStatus
             )
         }

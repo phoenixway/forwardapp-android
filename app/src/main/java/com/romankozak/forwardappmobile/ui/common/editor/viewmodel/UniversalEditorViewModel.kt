@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.common.editor
+package com.romankozak.forwardappmobile.ui.common.editor.viewmodel
 
 import android.app.Application
 import android.content.ClipData
@@ -8,7 +8,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.ui.screens.customlist.components.ListToolbarState
+import com.romankozak.forwardappmobile.ui.common.editor.components.ListToolbarState
 import kotlin.math.min
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

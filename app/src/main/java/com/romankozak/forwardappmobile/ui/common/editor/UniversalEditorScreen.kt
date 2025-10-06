@@ -50,7 +50,9 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.customlist.components.ExperimentalEnhancedListToolbar
+import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
+import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorEvent
+import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 
 import kotlinx.coroutines.delay
 

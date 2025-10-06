@@ -117,6 +117,8 @@ data class UiState(
   val showExportTransferDialog: Boolean = false,
   val transferStatus: TransferStatus = TransferStatus.IDLE,
   val showCreateCustomListDialog: Boolean = false,
+  val serverAddress: String? = null,
+  val serverAddressMode: String = "auto",
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -404,12 +406,7 @@ constructor(
 
   private var pendingActivityForReminder: ActivityRecord? = null
 
-  val desktopAddress: StateFlow<String> =
-    settingsRepository.desktopAddressFlow.stateIn(
-      viewModelScope,
-      SharingStarted.WhileSubscribed(5000),
-      "",
-    )
+
 
   init {
     Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
@@ -486,6 +483,18 @@ constructor(
     viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
     loadAllTags()
     loadAllContexts()
+
+    viewModelScope.launch {
+        settingsRepository.serverAddressModeFlow.collect { mode ->
+            _uiState.update { it.copy(serverAddressMode = mode) }
+        }
+    }
+
+    viewModelScope.launch {
+        settingsRepository.getServerAddress().collect { address ->
+            _uiState.update { it.copy(serverAddress = address) }
+        }
+    }
   }
 
   private fun loadAllTags() {
@@ -1317,7 +1326,12 @@ constructor(
     onExportTransferDialogDismiss()
   }
 
-  fun onTransferBacklogViaWifi(url: String) {
+  fun onTransferBacklogToServerRequest() {
+    val url = uiState.value.serverAddress
+    if (url.isNullOrBlank()) {
+        showSnackbar("Server address is not available. Check settings.", null)
+        return
+    }
     Log.d(TAG, "onTransferBacklogViaWifi: Ініційовано передачу на URL: $url")
     executeBacklogTransfer(url)
   }

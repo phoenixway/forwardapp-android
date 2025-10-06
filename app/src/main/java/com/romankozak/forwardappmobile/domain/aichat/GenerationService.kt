@@ -52,14 +52,30 @@ class GenerationService : Service() {
 
         serviceScope.launch {
             try {
-                val ollamaUrl = settingsRepo.ollamaUrlFlow.first()
+                val url = settingsRepo.getServerAddress().first()
+                if (url.isNullOrBlank()) {
+                    Log.e(TAG, "Server address is not configured.")
+                    val errorMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
+                    errorMessage?.let {
+                        chatRepo.addMessage(
+                            it.copy(
+                                text = "Error: Server address is not configured in settings.",
+                                isError = true,
+                                isStreaming = false,
+                            ),
+                        )
+                    }
+                    stopSelf()
+                    return@launch
+                }
+
                 val smartModel = settingsRepo.ollamaSmartModelFlow.first()
                 val systemPrompt = settingsRepo.systemPromptFlow.first()
                 val temperature = settingsRepo.temperatureFlow.first()
                 val historyEntities = chatRepo.getChatHistory(conversationId).first()
 
                 Log.d(TAG, "--- Ollama Request ---")
-                Log.d(TAG, "URL: $ollamaUrl")
+                Log.d(TAG, "URL: $url")
                 Log.d(TAG, "Model: $smartModel")
                 Log.d(TAG, "System Prompt: $systemPrompt")
                 Log.d(TAG, "Temperature: $temperature")
@@ -81,7 +97,7 @@ class GenerationService : Service() {
                 var fullResponse = ""
                 try {
                     ollamaService
-                        .generateChatResponseStream(ollamaUrl, smartModel, history, temperature)
+                        .generateChatResponseStream(url, smartModel, history, temperature)
                         .collect { chunk ->
                             fullResponse += chunk
                             val currentMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }

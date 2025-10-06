@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.customlist.components
+package com.romankozak.forwardappmobile.ui.common.editor.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*

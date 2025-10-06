@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.ui.screens.settings
 
 import android.Manifest
@@ -13,9 +11,9 @@ import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.util.Log
-import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -37,15 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.data.repository.ServerDiscoveryState
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.ui.ModelsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 
-
-fun getFileName(
-    uri: Uri,
-    context: Context,
-): String {
+fun getFileName(uri: Uri, context: Context): String {
     var fileName: String? = null
     try {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -62,10 +57,7 @@ fun getFileName(
     return fileName ?: "Unknown file"
 }
 
-fun getFolderName(
-    uri: Uri,
-    context: Context,
-): String =
+fun getFolderName(uri: Uri, context: Context): String =
     try {
         val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
         context.contentResolver.query(docUri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
@@ -87,13 +79,7 @@ fun SettingsScreen(
     reservedContextCount: Int,
     onManageContextsClick: () -> Unit,
     onBack: () -> Unit,
-    onSave: (
-        showModes: Boolean,
-        dailyTag: String,
-        mediumTag: String,
-        longTag: String,
-        vaultName: String,
-    ) -> Unit,
+    onSave: (showModes: Boolean, dailyTag: String, mediumTag: String, longTag: String, vaultName: String) -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -113,27 +99,23 @@ fun SettingsScreen(
 
     val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName) {
         derivedStateOf {
-            val planningIsDirty =
-                tempShowModes != planningSettings.showModes ||
+            val planningIsDirty = tempShowModes != planningSettings.showModes ||
                     tempDailyTag != planningSettings.dailyTag ||
                     tempMediumTag != planningSettings.mediumTag ||
                     tempLongTag != planningSettings.longTag ||
                     tempVaultName != initialVaultName
 
-            
-            val viewModelIsDirty =
-                initialViewModelState?.let {
-                    uiState.ollamaUrl != it.ollamaUrl ||
-                        uiState.fastModel != it.fastModel ||
-                        uiState.smartModel != it.smartModel ||
-                        uiState.nerModelUri != it.nerModelUri ||
-                        uiState.nerTokenizerUri != it.nerTokenizerUri ||
-                        uiState.nerLabelsUri != it.nerLabelsUri ||
-                        uiState.rolesFolderUri != it.rolesFolderUri ||
-                        uiState.desktopAddress != it.desktopAddress ||
-                        uiState.themeSettings != it.themeSettings
-                } ?: false
-            
+            val viewModelIsDirty = initialViewModelState?.let {
+                uiState.serverAddressMode != it.serverAddressMode ||
+                uiState.manualServerAddress != it.manualServerAddress ||
+                uiState.fastModel != it.fastModel ||
+                uiState.smartModel != it.smartModel ||
+                uiState.nerModelUri != it.nerModelUri ||
+                uiState.nerTokenizerUri != it.nerTokenizerUri ||
+                uiState.nerLabelsUri != it.nerLabelsUri ||
+                uiState.rolesFolderUri != it.rolesFolderUri ||
+                uiState.themeSettings != it.themeSettings
+            } ?: false
 
             planningIsDirty || viewModelIsDirty
         }
@@ -146,42 +128,28 @@ fun SettingsScreen(
                 title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
         },
         bottomBar = {
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                        .imePadding(),
+                modifier = Modifier.fillMaxWidth().padding(12.dp).imePadding(),
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(
                     onClick = onBack,
-                    colors =
-                        ButtonDefaults.textButtonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = MaterialTheme.colorScheme.primary,
-                        ),
+                    colors = ButtonDefaults.textButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
                 ) { Text("Cancel") }
                 Spacer(Modifier.width(8.dp))
                 Button(
                     enabled = isDirty,
                     onClick = {
-                        onSave(
-                            tempShowModes,
-                            tempDailyTag,
-                            tempMediumTag,
-                            tempLongTag,
-                            tempVaultName,
-                        )
+                        onSave(tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName)
                         viewModel.saveSettings()
                         onBack()
                     },
@@ -191,13 +159,7 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(
-            modifier =
-                Modifier
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .fillMaxSize()
-                    .imePadding()
-                    .padding(16.dp),
+            modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).fillMaxSize().imePadding().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             PermissionsSettingsCard()
@@ -209,12 +171,14 @@ fun SettingsScreen(
                 onDarkThemeSelected = viewModel::onDarkThemeSelected,
             )
 
-            OllamaSettingsCard(
+            ServerSettingsCard(
                 state = uiState,
-                onUrlChange = viewModel::onUrlChanged,
+                onModeChange = viewModel::onServerAddressModeChanged,
+                onAddressChange = viewModel::onManualServerAddressChanged,
                 onFetchClick = viewModel::fetchAvailableModels,
                 onFastModelSelect = viewModel::onFastModelSelected,
                 onSmartModelSelect = viewModel::onSmartModelSelected,
+                onRefreshDiscovery = viewModel::refreshServerDiscovery
             )
 
             RolesSettingsCard(
@@ -269,17 +233,6 @@ fun SettingsScreen(
                     helper = "Exact vault name for link integration",
                     singleLine = true,
                 )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Specify the base URL of your Wi-Fi server for backlog export.")
-                AnimatedTextField(
-                    value = uiState.desktopAddress,
-                    onValueChange = viewModel::onDesktopAddressChanged,
-                    label = "Desktop Sync Address",
-                    helper = "e.g., http://192.168.1.5:8000",
-                    singleLine = true,
-                )
-                
             }
 
             SettingsCard(
@@ -302,6 +255,126 @@ fun SettingsScreen(
                     Text("Test Crash")
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ServerSettingsCard(
+    state: SettingsUiState,
+    onModeChange: (String) -> Unit,
+    onAddressChange: (String) -> Unit,
+    onFetchClick: () -> Unit,
+    onFastModelSelect: (String) -> Unit,
+    onSmartModelSelect: (String) -> Unit,
+    onRefreshDiscovery: () -> Unit
+) {
+    SettingsCard(title = "Server Settings", icon = Icons.Default.Dns) {
+        // Unified Address Mode
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Server Address", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                AnimatedVisibility(visible = state.serverAddressMode == "auto") {
+                    IconButton(onClick = onRefreshDiscovery) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh Discovery")
+                    }
+                }
+            }
+            Text("Used for AI Server, File Sync, etc.", style = MaterialTheme.typography.bodySmall)
+
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    onClick = { onModeChange("auto") },
+                    selected = state.serverAddressMode == "auto"
+                ) {
+                    Text("Auto")
+                }
+                SegmentedButton(
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    onClick = { onModeChange("manual") },
+                    selected = state.serverAddressMode == "manual"
+                ) {
+                    Text("Manual")
+                }
+            }
+
+            AnimatedVisibility(visible = state.serverAddressMode == "auto") {
+                when (val discoveryState = state.serverDiscoveryState) {
+                    is ServerDiscoveryState.Loading -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Text("Searching for server...")
+                        }
+                    }
+                    is ServerDiscoveryState.Found -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = "Found", tint = Color.Green)
+                            Text("Found at: ${discoveryState.address}")
+                        }
+                    }
+                    is ServerDiscoveryState.NotFound -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Warning, contentDescription = "Not Found", tint = Color.Yellow)
+                            Text("Server not found on the network.")
+                        }
+                    }
+                    is ServerDiscoveryState.Error -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                            Text("Error: ${discoveryState.message}", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = state.serverAddressMode == "manual") {
+                AnimatedTextField(
+                    value = state.manualServerAddress,
+                    onValueChange = onAddressChange,
+                    label = "Manual Server Address",
+                    helper = "e.g., http://192.168.1.5:8000",
+                    singleLine = true
+                )
+            }
+        }
+
+        Divider(modifier = Modifier.padding(vertical = 16.dp))
+
+        // Ollama Models
+        Text("Ollama AI Models", style = MaterialTheme.typography.titleSmall)
+        OutlinedButton(
+            onClick = onFetchClick,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.serverDiscoveryState is ServerDiscoveryState.Found && state.modelsState !is ModelsState.Loading,
+        ) {
+            if (state.modelsState is ModelsState.Loading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            } else {
+                Text("Fetch Available Models")
+            }
+        }
+
+        when (val modelsState = state.modelsState) {
+            is ModelsState.Error -> {
+                Text(modelsState.message, color = MaterialTheme.colorScheme.error)
+            }
+            is ModelsState.Success -> {
+                ModelSelector(
+                    label = "Fast Model",
+                    selectedValue = state.fastModel,
+                    models = modelsState.models,
+                    onModelSelected = onFastModelSelect,
+                )
+                ModelSelector(
+                    label = "Smart Model",
+                    selectedValue = state.smartModel,
+                    models = modelsState.models,
+                    onModelSelected = onSmartModelSelect,
+                )
+            }
+            ModelsState.Loading -> { }
         }
     }
 }
@@ -348,15 +421,18 @@ private fun FileSelector(
     context: Context,
     isFolder: Boolean = false,
 ) {
-    val displayName =
-        remember(selectedFileUri) {
-            if (selectedFileUri.isNotBlank()) {
-                val uri = selectedFileUri.toUri()
+    val displayName = remember(selectedFileUri) {
+        if (selectedFileUri.isNotBlank()) {
+            try {
+                val uri = Uri.parse(selectedFileUri)
                 if (isFolder) getFolderName(uri, context) else getFileName(uri, context)
-            } else {
-                "Not selected"
+            } catch (e: Exception) {
+                "Invalid URI"
             }
+        } else {
+            "Not selected"
         }
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -385,30 +461,27 @@ private fun PermissionsSettingsCard() {
     val context = LocalContext.current
     var permissionUpdateTrigger by remember { mutableIntStateOf(0) }
 
-    val hasNotificationPermission =
-        remember(permissionUpdateTrigger) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
+    val hasNotificationPermission = remember(permissionUpdateTrigger) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
         }
+    }
 
-    val canScheduleExactAlarms =
-        remember(permissionUpdateTrigger) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                alarmManager.canScheduleExactAlarms()
-            } else {
-                true
-            }
+    val canScheduleExactAlarms = remember(permissionUpdateTrigger) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
         }
+    }
 
-    val notificationLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
-            onResult = { permissionUpdateTrigger++ },
-        )
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { permissionUpdateTrigger++ },
+    )
 
     SettingsCard(title = "Permissions", icon = Icons.Default.Security) {
         PermissionRow(
@@ -430,10 +503,9 @@ private fun PermissionsSettingsCard() {
             isGranted = canScheduleExactAlarms,
             onGrantClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val intent =
-                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
-                        }
+                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
                     context.startActivity(intent)
                 }
             },
@@ -453,21 +525,13 @@ private fun PermissionRow(
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         },
         headlineContent = { Text(name) },
         supportingContent = { Text(description) },
         trailingContent = {
             if (isGranted) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Granted",
-                    tint = Color(0xFF388E3C),
-                )
+                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Granted", tint = Color(0xFF388E3C))
             } else {
                 Button(onClick = onGrantClick, contentPadding = PaddingValues(horizontal = 16.dp)) {
                     Text("Grant")
@@ -475,61 +539,6 @@ private fun PermissionRow(
             }
         },
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun OllamaSettingsCard(
-    state: SettingsUiState,
-    onUrlChange: (String) -> Unit,
-    onFetchClick: () -> Unit,
-    onFastModelSelect: (String) -> Unit,
-    onSmartModelSelect: (String) -> Unit,
-) {
-    SettingsCard(
-        title = "Ollama AI Integration",
-        icon = Icons.Default.Dns,
-    ) {
-        AnimatedTextField(
-            value = state.ollamaUrl,
-            onValueChange = onUrlChange,
-            label = "Ollama Server URL",
-            helper = "e.g., http://192.168.1.5:11434",
-            singleLine = true,
-        )
-        OutlinedButton(
-            onClick = onFetchClick,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = state.ollamaUrl.isNotBlank() && state.modelsState !is ModelsState.Loading,
-        ) {
-            if (state.modelsState is ModelsState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else {
-                Text("Fetch Available Models")
-            }
-        }
-
-        when (val modelsState = state.modelsState) {
-            is ModelsState.Error -> {
-                Text(modelsState.message, color = MaterialTheme.colorScheme.error)
-            }
-            is ModelsState.Success -> {
-                ModelSelector(
-                    label = "Fast Model",
-                    selectedValue = state.fastModel,
-                    models = modelsState.models,
-                    onModelSelected = onFastModelSelect,
-                )
-                ModelSelector(
-                    label = "Smart Model",
-                    selectedValue = state.smartModel,
-                    models = modelsState.models,
-                    onModelSelected = onSmartModelSelect,
-                )
-            }
-            ModelsState.Loading -> { }
-        }
-    }
 }
 
 @Composable
@@ -541,52 +550,40 @@ private fun NerSettingsCard(
     onReloadClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    val areAllFilesSelected =
-        state.nerModelUri.isNotBlank() &&
-            state.nerTokenizerUri.isNotBlank() &&
-            state.nerLabelsUri.isNotBlank()
+    val areAllFilesSelected = state.nerModelUri.isNotBlank() && state.nerTokenizerUri.isNotBlank() && state.nerLabelsUri.isNotBlank()
 
-    val modelLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocument(),
-        ) { uri: Uri? ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    onModelFileSelected(it.toString())
-                } catch (e: SecurityException) {
-                    Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
-                }
+    val modelLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                onModelFileSelected(it.toString())
+            } catch (e: SecurityException) {
+                Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
             }
         }
+    }
 
-    val tokenizerLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocument(),
-        ) { uri: Uri? ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    onTokenizerFileSelected(it.toString())
-                } catch (e: SecurityException) {
-                    Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
-                }
+    val tokenizerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                onTokenizerFileSelected(it.toString())
+            } catch (e: SecurityException) {
+                Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
             }
         }
+    }
 
-    val labelsLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocument(),
-        ) { uri: Uri? ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    onLabelsFileSelected(it.toString())
-                } catch (e: SecurityException) {
-                    Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
-                }
+    val labelsLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                onLabelsFileSelected(it.toString())
+            } catch (e: SecurityException) {
+                Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
             }
         }
+    }
 
     SettingsCard(
         title = "Date/Time NER Model (ONNX)",
@@ -595,25 +592,19 @@ private fun NerSettingsCard(
         FileSelector(
             label = "Model File (.onnx)",
             selectedFileUri = state.nerModelUri,
-            onSelectClick = {
-                modelLauncher.launch(arrayOf("*/*", "application/octet-stream"))
-            },
+            onSelectClick = { modelLauncher.launch(arrayOf("*/*", "application/octet-stream")) },
             context = context,
         )
         FileSelector(
             label = "Tokenizer File (.json)",
             selectedFileUri = state.nerTokenizerUri,
-            onSelectClick = {
-                tokenizerLauncher.launch(arrayOf("application/json", "text/plain"))
-            },
+            onSelectClick = { tokenizerLauncher.launch(arrayOf("application/json", "text/plain")) },
             context = context,
         )
         FileSelector(
             label = "Labels File (.json)",
             selectedFileUri = state.nerLabelsUri,
-            onSelectClick = {
-                labelsLauncher.launch(arrayOf("application/json", "text/plain"))
-            },
+            onSelectClick = { labelsLauncher.launch(arrayOf("application/json", "text/plain")) },
             context = context,
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -628,11 +619,7 @@ private fun NerSettingsCard(
             enabled = areAllFilesSelected && state.nerState !is NerState.Downloading,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(
-                imageVector = Icons.Default.Sync,
-                contentDescription = "Reload",
-                modifier = Modifier.size(ButtonDefaults.IconSize),
-            )
+            Icon(imageVector = Icons.Default.Sync, contentDescription = "Reload", modifier = Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
             Text(if (state.nerState is NerState.Error) "Try Again" else "Reload Model")
         }
@@ -640,35 +627,16 @@ private fun NerSettingsCard(
 }
 
 @Composable
-private fun NerStatusIndicator(
-    nerState: NerState,
-    areAllFilesSelected: Boolean,
-) {
-    val (icon, color, text) =
-        when (nerState) {
-            is NerState.Downloading ->
-                Triple(
-                    Icons.Default.Sync,
-                    MaterialTheme.colorScheme.primary,
-                    "Loading: ${nerState.progress}%",
-                )
-            is NerState.Error ->
-                Triple(
-                    Icons.Default.Error,
-                    MaterialTheme.colorScheme.error,
-                    "Error: ${nerState.message}",
-                )
-            NerState.NotInitialized -> {
-                val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
-                Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
-            }
-            NerState.Ready ->
-                Triple(
-                    Icons.Default.CheckCircle,
-                    Color(0xFF388E3C),
-                    "Model loaded successfully",
-                )
+private fun NerStatusIndicator(nerState: NerState, areAllFilesSelected: Boolean) {
+    val (icon, color, text) = when (nerState) {
+        is NerState.Downloading -> Triple(Icons.Default.Sync, MaterialTheme.colorScheme.primary, "Loading: ${nerState.progress}%")
+        is NerState.Error -> Triple(Icons.Default.Error, MaterialTheme.colorScheme.error, "Error: ${nerState.message}")
+        NerState.NotInitialized -> {
+            val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
+            Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
         }
+        NerState.Ready -> Triple(Icons.Default.CheckCircle, Color(0xFF388E3C), "Model loaded successfully")
+    }
 
     val animatedColor by animateColorAsState(targetValue = color, label = "ner_status_color")
 
@@ -683,10 +651,7 @@ private fun NerStatusIndicator(
         }
         if (nerState is NerState.Downloading) {
             Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { nerState.progress / 100f },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            LinearProgressIndicator(progress = { nerState.progress / 100f }, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -712,14 +677,12 @@ private fun ModelSelector(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
-            modifier =
-                Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = isExpanded,
             onDismissRequest = { isExpanded = false },
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
             models.forEach { model ->
                 DropdownMenuItem(
@@ -747,11 +710,7 @@ private fun SettingsCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (icon != null) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 }
                 Text(title, style = MaterialTheme.typography.titleMedium)
             }
@@ -770,11 +729,7 @@ private fun AnimatedTextField(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val backgroundColor by animateColorAsState(
-        if (isFocused) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-        } else {
-            Color.Transparent
-        },
+        if (isFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) else Color.Transparent,
         label = "",
     )
     OutlinedTextField(
@@ -783,11 +738,7 @@ private fun AnimatedTextField(
         label = { Text(label) },
         supportingText = { Text(helper) },
         singleLine = singleLine,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(backgroundColor)
-                .onFocusChanged { isFocused = it.isFocused },
+        modifier = Modifier.fillMaxWidth().background(backgroundColor).onFocusChanged { isFocused = it.isFocused },
     )
 }
 
@@ -866,14 +817,13 @@ private fun ThemePicker(
                 value = selectedTheme.displayName,
                 onValueChange = {},
                 readOnly = true,
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth()
             )
             ExposedDropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 themes.forEach { theme ->
                     DropdownMenuItem(
