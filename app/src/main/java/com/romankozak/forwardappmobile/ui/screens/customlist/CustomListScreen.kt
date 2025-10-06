@@ -47,7 +47,7 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.ui.screens.customlist.components.EnhancedListToolbar
+import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.draw.drawBehind
@@ -188,7 +188,7 @@ fun UnifiedCustomListScreen(
             }
           ) { isVisible ->
             if (isVisible) {
-              EnhancedListToolbar(
+              ExperimentalEnhancedListToolbar(
                 state = uiState.toolbarState,
                 onIndentBlock = viewModel::onIndentBlock,
                 onDeIndentBlock = viewModel::onDeIndentBlock,
@@ -205,7 +205,7 @@ fun UnifiedCustomListScreen(
                 onToggleBullet = viewModel::onToggleBullet,
                 onUndo = viewModel::onUndo,
                 onRedo = viewModel::onRedo,
-                onToggleVisibility = { isToolbarVisible = false },
+                onToggleVisibility = { isToolbarVisible = !isToolbarVisible },
               )
             } else {
               ShowToolbarButton(onClick = { isToolbarVisible = true })

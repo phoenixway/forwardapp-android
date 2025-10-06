@@ -11,8 +11,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.ui.screens.customlist.components.ListFormatMode
-import com.romankozak.forwardappmobile.ui.screens.customlist.components.ListToolbarState
+import com.romankozak.forwardappmobile.ui.common.editor.components.ListFormatMode
+import com.romankozak.forwardappmobile.ui.common.editor.components.ListToolbarState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

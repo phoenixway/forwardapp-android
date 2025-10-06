@@ -11,7 +11,6 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.romankozak.forwardappmobile.data.database.models.ConversationEntity
-import com.romankozak.forwardappmobile.ui.screens.chat.DrawerItem
 import com.romankozak.forwardappmobile.data.repository.ChatRepository
 import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -21,15 +20,7 @@ import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -50,9 +41,7 @@ data class ChatUiState(
 )
 
 @HiltViewModel
-class ChatViewModel
-@Inject
-constructor(
+class ChatViewModel @Inject constructor(
     private val ollamaService: OllamaService,
     private val settingsRepo: SettingsRepository,
     private val chatRepo: ChatRepository,
@@ -70,7 +59,6 @@ constructor(
             chatRepo.getDrawerItems().collectLatest { drawerItems ->
                 _uiState.update { it.copy(drawerItems = drawerItems) }
                 if (uiState.value.currentConversation == null) {
-                    // Find the first conversation in the drawer items to set as current
                     val firstConversation = drawerItems.firstNotNullOfOrNull { item ->
                         when (item) {
                             is DrawerItem.Conversation -> item.conversationWithLastMessage.conversation
@@ -87,9 +75,7 @@ constructor(
                 if (conversationId != null) {
                     chatRepo.getChatHistory(conversationId).collectLatest { history ->
                         _uiState.update { currentState ->
-                            val newMessages = history.map {
-                                it.toChatMessage(conversationId)
-                            }
+                            val newMessages = history.map { it.toChatMessage(conversationId) }
                             currentState.copy(messages = newMessages)
                         }
                     }
@@ -116,6 +102,7 @@ constructor(
                 }
             }.collect{}
         }
+        loadAvailableModels()
     }
 
     fun setCurrentConversation(conversationId: Long) {
@@ -186,13 +173,13 @@ constructor(
     fun loadAvailableModels() {
         viewModelScope.launch {
             _uiState.update { it.copy(availableModels = ModelsState.Loading) }
-            val ollamaUrl = settingsRepo.ollamaUrlFlow.first()
-            if (ollamaUrl.isBlank()) {
-                _uiState.update { it.copy(availableModels = ModelsState.Error("Ollama URL is not set")) }
+            val url = settingsRepo.getServerAddress().first()
+            if (url.isNullOrBlank()) {
+                _uiState.update { it.copy(availableModels = ModelsState.Error("Server URL is not set")) }
                 return@launch
             }
 
-            val result = ollamaService.getAvailableModels(ollamaUrl)
+            val result = ollamaService.getAvailableModels(url)
             result.onSuccess { models ->
                 _uiState.update { it.copy(availableModels = ModelsState.Success(models)) }
             }.onFailure { error ->
