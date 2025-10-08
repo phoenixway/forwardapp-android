@@ -375,6 +375,10 @@ constructor(
           searchResultsFlow,
           searchAndNavigationManager.searchHistory,
           planningSettingsState,
+          wifiSyncManager.showWifiServerDialog,
+          wifiSyncManager.wifiServerAddress,
+          wifiSyncManager.showWifiImportDialog,
+          wifiSyncManager.desktopAddress,
         ) { values ->
           val coreState = values[0] as CoreUiState
           val dialogState = values[1] as DialogUiState
@@ -384,6 +388,10 @@ constructor(
 
           @Suppress("UNCHECKED_CAST") val searchHistory = values[4] as List<String>
           val planningSettings = values[5] as PlanningSettingsState
+          val showWifiServerDialog = values[6] as Boolean
+          val wifiServerAddress = values[7] as String?
+          val showWifiImportDialog = values[8] as Boolean
+          val desktopAddress = values[9] as String
 
           MainScreenUiState(
             subStateStack = coreState.subStateStack,
@@ -410,10 +418,10 @@ constructor(
             isReadyForFiltering = _isReadyForFiltering.value,
             obsidianVaultName = settingsRepo.obsidianVaultNameFlow.firstOrNull() ?: "",
             appStatistics = AppStatistics(),
-            showWifiServerDialog = wifiSyncManager.showWifiServerDialog.value,
-            wifiServerAddress = wifiSyncManager.wifiServerAddress.value,
-            showWifiImportDialog = wifiSyncManager.showWifiImportDialog.value,
-            desktopAddress = wifiSyncManager.desktopAddress.value,
+            showWifiServerDialog = showWifiServerDialog,
+            wifiServerAddress = wifiServerAddress,
+            showWifiImportDialog = showWifiImportDialog,
+            desktopAddress = desktopAddress,
           )
         }
         .distinctUntilChanged()
