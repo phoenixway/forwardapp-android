@@ -50,7 +50,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                 Toast.makeText(this, "Forwarding to FAM...", Toast.LENGTH_SHORT).show()
                 Log.d(TAG, "Received shared text. Getting server address...")
                 coroutineScope.launch {
-                    val serverAddress = settingsRepository.getServerAddress().first()
+                    val serverAddress = settingsRepository.getFastApiUrl().first()
                     if (serverAddress.isNullOrBlank()) {
                         Log.e(TAG, "Server address is not configured or not found.")
                         showToast("Server address not found. Please configure it in settings.")

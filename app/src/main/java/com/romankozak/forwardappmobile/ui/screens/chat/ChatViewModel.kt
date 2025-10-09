@@ -173,7 +173,7 @@ class ChatViewModel @Inject constructor(
     fun loadAvailableModels() {
         viewModelScope.launch {
             _uiState.update { it.copy(availableModels = ModelsState.Loading) }
-            val url = settingsRepo.getServerAddress().first()
+            val url = settingsRepo.getOllamaUrl().first()
             if (url.isNullOrBlank()) {
                 _uiState.update { it.copy(availableModels = ModelsState.Error("Server URL is not set")) }
                 return@launch

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -17,6 +18,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -41,86 +44,138 @@ class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
 
-    // --- UNIFIED SERVER ADDRESS ---
-    val serverAddressModeKey = stringPreferencesKey("server_address_mode") // "auto" or "manual"
-    val manualServerAddressKey = stringPreferencesKey("manual_server_address")
+    // --- SERVER ADDRESS MANAGEMENT ---
+    private val serverIpConfigurationModeKey = stringPreferencesKey("server_ip_configuration_mode") // "auto" or "manual"
+    private val manualServerIpKey = stringPreferencesKey("manual_server_ip")
+    private val wifiSyncPortKey = intPreferencesKey("wifi_sync_port")
+    private val ollamaPortKey = intPreferencesKey("ollama_port")
+    private val fastApiPortKey = intPreferencesKey("fastapi_port")
 
-    val serverAddressModeFlow: Flow<String> = context.dataStore.data.map {
-        it[serverAddressModeKey] ?: "auto"
+
+    val serverIpConfigurationModeFlow: Flow<String> = context.dataStore.data.map {
+        val mode = it[serverIpConfigurationModeKey] ?: "auto"
+        Log.e("SettingsRepository", "Reading mode: $mode")
+        mode
     }
-    val manualServerAddressFlow: Flow<String> = context.dataStore.data.map {
-        it[manualServerAddressKey] ?: ""
+    val manualServerIpFlow: Flow<String> = context.dataStore.data.map {
+        val ip = it[manualServerIpKey] ?: ""
+        Log.e("SettingsRepository", "Reading ip: $ip")
+        ip
+    }
+    val wifiSyncPortFlow: Flow<Int> = context.dataStore.data.map {
+        it[wifiSyncPortKey] ?: 8080
+    }
+    val ollamaPortFlow: Flow<Int> = context.dataStore.data.map {
+        it[ollamaPortKey] ?: 11434
+    }
+    val fastApiPortFlow: Flow<Int> = context.dataStore.data.map {
+        it[fastApiPortKey] ?: 8000
     }
 
-    suspend fun saveServerAddressSettings(mode: String, manualAddress: String) {
+    suspend fun saveServerAddressSettings(
+        mode: String,
+        manualIp: String,
+        wifiSyncPort: Int,
+        ollamaPort: Int,
+        fastApiPort: Int
+    ) {
         context.dataStore.edit {
-            it[serverAddressModeKey] = mode
-            it[manualServerAddressKey] = manualAddress
+            it[serverIpConfigurationModeKey] = mode
+            it[manualServerIpKey] = manualIp
+            it[wifiSyncPortKey] = wifiSyncPort
+            it[ollamaPortKey] = ollamaPort
+            it[fastApiPortKey] = fastApiPort
         }
     }
 
     fun discoverServer(): Flow<ServerDiscoveryState> = callbackFlow {
-        val scope = CoroutineScope(Dispatchers.IO)
-        val job = scope.launch {
+        val job = launch(Dispatchers.IO) {
             trySend(ServerDiscoveryState.Loading)
-            val mode = serverAddressModeFlow.first()
+            val mode = serverIpConfigurationModeFlow.first()
+            Log.e("SettingsRepository", "[discoverServer] Mode: $mode")
             if (mode == "manual") {
-                val manualAddress = manualServerAddressFlow.first()
-                if (manualAddress.isNotBlank()) {
-                    trySend(ServerDiscoveryState.Found(manualAddress))
+                val manualIp = manualServerIpFlow.first()
+                Log.e("SettingsRepository", "[discoverServer] Manual IP: $manualIp")
+                if (manualIp.isNotBlank()) {
+                    trySend(ServerDiscoveryState.Found(manualIp))
                 } else {
                     trySend(ServerDiscoveryState.NotFound)
                 }
-                close()
-                return@launch
-            }
-
-            var jmdns: JmDNS? = null
-            var lock: android.net.wifi.WifiManager.MulticastLock? = null
-            val serviceListener = object : ServiceListener {
-                override fun serviceAdded(event: javax.jmdns.ServiceEvent?) {}
-                override fun serviceRemoved(event: javax.jmdns.ServiceEvent?) {}
-                override fun serviceResolved(event: javax.jmdns.ServiceEvent?) {
-                    event?.info?.let {
-                        if (it.hostAddresses.isNotEmpty()) {
-                            val address = "http://${it.hostAddresses[0]}:${it.port}"
-                            trySend(ServerDiscoveryState.Found(address))
-                            close()
+            } else {
+                var jmdns: JmDNS? = null
+                var lock: android.net.wifi.WifiManager.MulticastLock? = null
+                val serviceListener = object : ServiceListener {
+                    override fun serviceAdded(event: javax.jmdns.ServiceEvent?) {}
+                    override fun serviceRemoved(event: javax.jmdns.ServiceEvent?) {}
+                    override fun serviceResolved(event: javax.jmdns.ServiceEvent?) {
+                        event?.info?.let {
+                            if (it.hostAddresses.isNotEmpty()) {
+                                val address = it.hostAddresses[0]
+                                trySend(ServerDiscoveryState.Found(address))
+                            }
                         }
                     }
                 }
-            }
 
-            try {
-                val wifiManager =
-                    context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
-                lock = wifiManager.createMulticastLock("fam-mdns-lock")
-                lock.setReferenceCounted(true)
-                lock.acquire()
+                try {
+                    val wifiManager =
+                        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+                    lock = wifiManager.createMulticastLock("fam-mdns-lock")
+                    lock.setReferenceCounted(true)
+                    lock.acquire()
 
-                val ipAddress = wifiManager.connectionInfo.ipAddress
-                val ipString = android.text.format.Formatter.formatIpAddress(ipAddress)
-                val wifiIpAddress = InetAddress.getByName(ipString)
+                    val ipAddress = wifiManager.connectionInfo.ipAddress
+                    val ipString = android.text.format.Formatter.formatIpAddress(ipAddress)
+                    val wifiIpAddress = InetAddress.getByName(ipString)
 
-                jmdns = JmDNS.create(wifiIpAddress, wifiIpAddress.hostName)
-                jmdns.addServiceListener("_http._tcp.local.", serviceListener)
+                    jmdns = JmDNS.create(wifiIpAddress, wifiIpAddress.hostName)
+                    jmdns.addServiceListener("_http._tcp.local.", serviceListener)
 
-            } catch (e: Exception) {
-                Log.e("SettingsRepository", "Error during auto-discovery setup", e)
-                trySend(ServerDiscoveryState.Error(e.message ?: "Unknown error"))
-                close()
+                } catch (e: Exception) {
+                    Log.e("SettingsRepository", "Error during auto-discovery setup", e)
+                    trySend(ServerDiscoveryState.Error(e.message ?: "Unknown error"))
+                }
             }
         }
-
         awaitClose {
             job.cancel()
         }
     }
 
-    fun getServerAddress(): Flow<String?> = discoverServer().map {
-        when (it) {
-            is ServerDiscoveryState.Found -> it.address
-            else -> null
+    fun getOllamaUrl(): Flow<String?> {
+        return discoverServer()
+            .filter { it !is ServerDiscoveryState.Loading }
+            .combine(ollamaPortFlow) { discoveryState, port ->
+            if (discoveryState is ServerDiscoveryState.Found) {
+                "http://${discoveryState.address}:$port"
+            } else {
+                null
+            }
+        }
+    }
+
+    fun getWifiSyncUrl(): Flow<String?> {
+        return discoverServer()
+            .filter { it !is ServerDiscoveryState.Loading }
+            .combine(wifiSyncPortFlow) { discoveryState, port ->
+            Log.e("SettingsRepository", "[getWifiSyncUrl] Discovery state: $discoveryState")
+            if (discoveryState is ServerDiscoveryState.Found) {
+                "http://${discoveryState.address}:$port"
+            } else {
+                null
+            }
+        }
+    }
+
+    fun getFastApiUrl(): Flow<String?> {
+        return discoverServer()
+            .filter { it !is ServerDiscoveryState.Loading }
+            .combine(fastApiPortFlow) { discoveryState, port ->
+            if (discoveryState is ServerDiscoveryState.Found) {
+                "http://${discoveryState.address}:$port"
+            } else {
+                null
+            }
         }
     }
 
@@ -131,6 +186,8 @@ class SettingsRepository @Inject constructor(
     val dailyTagKey = stringPreferencesKey("daily_planning_tag")
     val mediumTagKey = stringPreferencesKey("medium_planning_tag")
     val longTagKey = stringPreferencesKey("long_planning_tag")
+    private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
+
 
     companion object {
         val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
@@ -456,8 +513,6 @@ class SettingsRepository @Inject constructor(
     suspend fun saveRolesFolderUri(uri: String) {
         context.dataStore.edit { settings -> settings[ROLES_FOLDER_URI_KEY] = uri }
     }
-
-    private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
 
     val isBottomNavExpandedFlow: Flow<Boolean> =
         context.dataStore.data
