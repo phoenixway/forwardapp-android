@@ -263,7 +263,7 @@ constructor(
             val uri = cleanAddress.toUri()
             val hostAndPort = "${uri.host}:${if (uri.port != -1) uri.port else 8080}"
             val fullUrl = "http://$hostAndPort/export"
-            Log.d(TAG, "Fetching from: $fullUrl")
+            Log.e(TAG, "[fetchBackupFromWifi] Fetching from: $fullUrl")
             val response: String = client.get(fullUrl).body()
             Result.success(response)
         } catch (e: Exception) {

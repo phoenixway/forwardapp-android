@@ -30,7 +30,6 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUt
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputMode
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.TransferStatus
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandlerResultListener
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxMarkdownHandler
@@ -114,11 +113,8 @@ data class UiState(
   val nerState: NerState = NerState.NotInitialized,
   val recordForReminderDialog: ActivityRecord? = null,
   val projectTimeMetrics: ProjectTimeMetrics? = null,
-  val showExportTransferDialog: Boolean = false,
-  val transferStatus: TransferStatus = TransferStatus.IDLE,
+  val showShareDialog: Boolean = false,
   val showCreateCustomListDialog: Boolean = false,
-  val serverAddress: String? = null,
-  val serverAddressMode: String = "auto",
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -484,17 +480,7 @@ constructor(
     loadAllTags()
     loadAllContexts()
 
-    viewModelScope.launch {
-        settingsRepository.serverAddressModeFlow.collect { mode ->
-            _uiState.update { it.copy(serverAddressMode = mode) }
-        }
-    }
 
-    viewModelScope.launch {
-        settingsRepository.getServerAddress().collect { address ->
-            _uiState.update { it.copy(serverAddress = address) }
-        }
-    }
   }
 
   private fun loadAllTags() {
@@ -1311,61 +1297,63 @@ constructor(
   }
 
   fun onExportBacklogRequest() {
-    _uiState.update {
-      it.copy(showExportTransferDialog = true, transferStatus = TransferStatus.IDLE)
-    }
+    _uiState.update { it.copy(showShareDialog = true) }
   }
 
-  fun onExportTransferDialogDismiss() {
-    _uiState.update { it.copy(showExportTransferDialog = false) }
+  fun onShareDialogDismiss() {
+    _uiState.update { it.copy(showShareDialog = false) }
+  }
+
+  fun getBacklogAsMarkdown(): String {
+    val markdownBuilder = StringBuilder()
+    listContent.value.forEach { item ->
+        val line =
+            when (item) {
+                is ListItemContent.GoalItem -> {
+                    val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
+                    "$checkbox ${item.goal.text}"
+                }
+                is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
+                is ListItemContent.LinkItem -> {
+                    val displayName = item.link.linkData.displayName ?: item.link.linkData.target
+                    "- [Л] [$displayName](${item.link.linkData.target})"
+                }
+                is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
+                is ListItemContent.CustomListItem -> "- [К] ${item.customList.name}"
+            }
+        markdownBuilder.appendLine(line)
+    }
+    return markdownBuilder.toString()
   }
 
   fun onCopyToClipboardRequest() {
-    backlogMarkdownHandler.exportToMarkdown(listContent.value)
+    val markdownText = getBacklogAsMarkdown()
+    copyToClipboard(markdownText, "Backlog Export")
     showSnackbar("Беклог скопійовано", null)
-    onExportTransferDialogDismiss()
+    onShareDialogDismiss()
   }
 
   fun onTransferBacklogToServerRequest() {
-    val url = uiState.value.serverAddress
-    if (url.isNullOrBlank()) {
-        showSnackbar("Server address is not available. Check settings.", null)
-        return
+    viewModelScope.launch {
+        val url = settingsRepository.getFastApiUrl().first()
+        if (url.isNullOrBlank()) {
+            showSnackbar("Server address is not available. Check settings.", null)
+            return@launch
+        }
+        Log.d(TAG, "onTransferBacklogViaWifi: Ініційовано передачу на URL: $url")
+        executeBacklogTransfer(url)
     }
-    Log.d(TAG, "onTransferBacklogViaWifi: Ініційовано передачу на URL: $url")
-    executeBacklogTransfer(url)
   }
 
   private fun executeBacklogTransfer(url: String) {
     Log.d(TAG, "executeBacklogTransfer: Початок підготовки даних для відправки.")
-    _uiState.update { it.copy(transferStatus = TransferStatus.IN_PROGRESS) }
-
     viewModelScope.launch(Dispatchers.IO) {
       try {
-        val markdownBuilder = StringBuilder()
-        listContent.value.forEach { item ->
-          val line =
-            when (item) {
-              is ListItemContent.GoalItem -> {
-                val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
-                "$checkbox ${item.goal.text}"
-              }
-              is ListItemContent.SublistItem -> "- [С] ${item.project.name}"
-              is ListItemContent.LinkItem -> {
-                val displayName = item.link.linkData.displayName ?: item.link.linkData.target
-                "- [Л] [$displayName](${item.link.linkData.target})"
-              }
-              is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-              is ListItemContent.CustomListItem -> "- [К] ${item.customList.name}"
-            }
-          markdownBuilder.appendLine(line)
-        }
-        val markdownContent = markdownBuilder.toString()
+        val markdownContent = getBacklogAsMarkdown()
 
         if (markdownContent.isBlank()) {
           withContext(Dispatchers.Main) {
             showSnackbar("Беклог порожній. Нічого передавати.", null)
-            _uiState.update { it.copy(transferStatus = TransferStatus.IDLE) }
           }
           return@launch
         }
@@ -1384,21 +1372,19 @@ constructor(
               TAG,
               "executeBacklogTransfer: Успішна відповідь від сервера. Код: ${response.code()}",
             )
-            _uiState.update { it.copy(transferStatus = TransferStatus.SUCCESS) }
+            showSnackbar("Беклог успішно передано", null)
           } else {
             val errorMsg = response.errorBody()?.string() ?: "Невідома помилка"
             Log.e(
               TAG,
               "executeBacklogTransfer: Помилка від сервера. Код: ${response.code()}, Повідомлення: $errorMsg",
             )
-            _uiState.update { it.copy(transferStatus = TransferStatus.ERROR) }
             showSnackbar("Помилка: ${response.code()} - $errorMsg", null)
           }
         }
       } catch (e: Exception) {
         withContext(Dispatchers.Main) {
           Log.e(TAG, "executeBacklogTransfer: Критична помилка мережі.", e)
-          _uiState.update { it.copy(transferStatus = TransferStatus.ERROR) }
           showSnackbar("Помилка мережі: ${e.message}", null)
         }
       }
@@ -1484,8 +1470,8 @@ constructor(
       return true
     }
 
-    if (state.showExportTransferDialog) {
-      onExportTransferDialogDismiss()
+    if (state.showShareDialog) {
+      onShareDialogDismiss()
       return true
     }
     if (state.recordForReminderDialog != null) {

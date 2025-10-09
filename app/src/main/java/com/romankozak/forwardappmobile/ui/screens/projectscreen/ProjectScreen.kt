@@ -43,10 +43,10 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
+import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ExportTransferDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
 import kotlinx.coroutines.delay
 
@@ -155,17 +155,14 @@ fun ProjectsScreen(
             onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() }
         )
     } else {
-        if (uiState.showExportTransferDialog) {
-    
-
-            ExportTransferDialog(
-                onDismiss = { viewModel.onExportTransferDialogDismiss() },
+        if (uiState.showShareDialog) {
+            ShareDialog(
+                onDismiss = { viewModel.onShareDialogDismiss() },
                 onCopyToClipboard = { viewModel.onCopyToClipboardRequest() },
-                onTransfer = { viewModel.onTransferBacklogToServerRequest() },
-                onGoToSettings = { navController.navigate("settings_screen") },
-                serverAddress = uiState.serverAddress,
-                serverAddressMode = uiState.serverAddressMode,
-                transferStatus = uiState.transferStatus
+                onTransfer = {
+                    viewModel.onTransferBacklogToServerRequest()
+                },
+                content = viewModel.getBacklogAsMarkdown()
             )
         }
 
