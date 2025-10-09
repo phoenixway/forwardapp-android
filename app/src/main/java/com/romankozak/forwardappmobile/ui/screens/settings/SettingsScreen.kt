@@ -106,8 +106,11 @@ fun SettingsScreen(
                     tempVaultName != initialVaultName
 
             val viewModelIsDirty = initialViewModelState?.let {
-                uiState.serverAddressMode != it.serverAddressMode ||
-                uiState.manualServerAddress != it.manualServerAddress ||
+                uiState.serverIpConfigurationMode != it.serverIpConfigurationMode ||
+                uiState.manualServerIp != it.manualServerIp ||
+                uiState.wifiSyncPort != it.wifiSyncPort ||
+                uiState.ollamaPort != it.ollamaPort ||
+                uiState.fastApiPort != it.fastApiPort ||
                 uiState.fastModel != it.fastModel ||
                 uiState.smartModel != it.smartModel ||
                 uiState.nerModelUri != it.nerModelUri ||
@@ -173,8 +176,11 @@ fun SettingsScreen(
 
             ServerSettingsCard(
                 state = uiState,
-                onModeChange = viewModel::onServerAddressModeChanged,
-                onAddressChange = viewModel::onManualServerAddressChanged,
+                onIpConfigModeChange = viewModel::onServerIpConfigurationModeChanged,
+                onIpChange = viewModel::onManualServerIpChanged,
+                onOllamaPortChange = viewModel::onOllamaPortChanged,
+                onWifiSyncPortChange = viewModel::onWifiSyncPortChanged,
+                onFastApiPortChange = viewModel::onFastApiPortChanged,
                 onFetchClick = viewModel::fetchAvailableModels,
                 onFastModelSelect = viewModel::onFastModelSelected,
                 onSmartModelSelect = viewModel::onSmartModelSelected,
@@ -263,19 +269,22 @@ fun SettingsScreen(
 @Composable
 private fun ServerSettingsCard(
     state: SettingsUiState,
-    onModeChange: (String) -> Unit,
-    onAddressChange: (String) -> Unit,
+    onIpConfigModeChange: (String) -> Unit,
+    onIpChange: (String) -> Unit,
+    onOllamaPortChange: (String) -> Unit,
+    onWifiSyncPortChange: (String) -> Unit,
+    onFastApiPortChange: (String) -> Unit,
     onFetchClick: () -> Unit,
     onFastModelSelect: (String) -> Unit,
     onSmartModelSelect: (String) -> Unit,
     onRefreshDiscovery: () -> Unit
 ) {
-    SettingsCard(title = "Server Settings", icon = Icons.Default.Dns) {
+    SettingsCard(title = "Remote Server Settings", icon = Icons.Default.Dns) {
         // Unified Address Mode
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Server Address", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                AnimatedVisibility(visible = state.serverAddressMode == "auto") {
+                Text("Server IP Address", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                AnimatedVisibility(visible = state.serverIpConfigurationMode == "auto") {
                     IconButton(onClick = onRefreshDiscovery) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh Discovery")
                     }
@@ -286,21 +295,25 @@ private fun ServerSettingsCard(
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    onClick = { onModeChange("auto") },
-                    selected = state.serverAddressMode == "auto"
+                    onClick = { 
+                        onIpConfigModeChange("auto")
+                    },
+                    selected = state.serverIpConfigurationMode == "auto"
                 ) {
                     Text("Auto")
                 }
                 SegmentedButton(
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    onClick = { onModeChange("manual") },
-                    selected = state.serverAddressMode == "manual"
+                    onClick = { 
+                        onIpConfigModeChange("manual")
+                    },
+                    selected = state.serverIpConfigurationMode == "manual"
                 ) {
                     Text("Manual")
                 }
             }
 
-            AnimatedVisibility(visible = state.serverAddressMode == "auto") {
+            AnimatedVisibility(visible = state.serverIpConfigurationMode == "auto") {
                 when (val discoveryState = state.serverDiscoveryState) {
                     is ServerDiscoveryState.Loading -> {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -329,14 +342,37 @@ private fun ServerSettingsCard(
                 }
             }
 
-            AnimatedVisibility(visible = state.serverAddressMode == "manual") {
-                AnimatedTextField(
-                    value = state.manualServerAddress,
-                    onValueChange = onAddressChange,
-                    label = "Manual Server Address",
-                    helper = "e.g., http://192.168.1.5:8000",
-                    singleLine = true
-                )
+            AnimatedVisibility(visible = state.serverIpConfigurationMode == "manual") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AnimatedTextField(
+                        value = state.manualServerIp,
+                        onValueChange = onIpChange,
+                        label = "Manual Server IP",
+                        helper = "e.g., 192.168.1.5",
+                        singleLine = true
+                    )
+                    AnimatedTextField(
+                        value = state.ollamaPort.toString(),
+                        onValueChange = onOllamaPortChange,
+                        label = "Ollama Port",
+                        helper = "Port for Ollama service",
+                        singleLine = true
+                    )
+                    AnimatedTextField(
+                        value = state.wifiSyncPort.toString(),
+                        onValueChange = onWifiSyncPortChange,
+                        label = "WiFi Sync Port",
+                        helper = "Port for WiFi sync service",
+                        singleLine = true
+                    )
+                    AnimatedTextField(
+                        value = state.fastApiPort.toString(),
+                        onValueChange = onFastApiPortChange,
+                        label = "FastAPI Port",
+                        helper = "Port for FastAPI service",
+                        singleLine = true
+                    )
+                }
             }
         }
 
@@ -726,6 +762,7 @@ private fun AnimatedTextField(
     label: String,
     helper: String,
     singleLine: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val backgroundColor by animateColorAsState(
@@ -738,7 +775,7 @@ private fun AnimatedTextField(
         label = { Text(label) },
         supportingText = { Text(helper) },
         singleLine = singleLine,
-        modifier = Modifier.fillMaxWidth().background(backgroundColor).onFocusChanged { isFocused = it.isFocused },
+        modifier = modifier.fillMaxWidth().background(backgroundColor).onFocusChanged { isFocused = it.isFocused },
     )
 }
 

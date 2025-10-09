@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.settings
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -26,8 +27,11 @@ data class SettingsUiState(
     val nerLabelsUri: String = "",
     val nerState: NerState = NerState.NotInitialized,
     val rolesFolderUri: String = "",
-    val serverAddressMode: String = "auto",
-    val manualServerAddress: String = "",
+    val serverIpConfigurationMode: String = "auto",
+    val manualServerIp: String = "",
+    val wifiSyncPort: Int = 8080,
+    val ollamaPort: Int = 11434,
+    val fastApiPort: Int = 8000,
     val serverDiscoveryState: ServerDiscoveryState = ServerDiscoveryState.Loading,
     val themeSettings: com.romankozak.forwardappmobile.ui.theme.ThemeSettings = com.romankozak.forwardappmobile.ui.theme.ThemeSettings(),
 )
@@ -58,8 +62,11 @@ class SettingsViewModel @Inject constructor(
                 settingsRepo.nerLabelsUriFlow,
                 settingsRepo.rolesFolderUriFlow,
                 settingsRepo.themeSettings,
-                settingsRepo.serverAddressModeFlow,
-                settingsRepo.manualServerAddressFlow,
+                settingsRepo.serverIpConfigurationModeFlow,
+                settingsRepo.manualServerIpFlow,
+                settingsRepo.wifiSyncPortFlow,
+                settingsRepo.ollamaPortFlow,
+                settingsRepo.fastApiPortFlow,
             )
             combine(settingsFlows) { values ->
                 _uiState.update {
@@ -71,8 +78,11 @@ class SettingsViewModel @Inject constructor(
                         nerLabelsUri = values[4] as String,
                         rolesFolderUri = values[5] as String,
                         themeSettings = values[6] as com.romankozak.forwardappmobile.ui.theme.ThemeSettings,
-                        serverAddressMode = values[7] as String,
-                        manualServerAddress = values[8] as String,
+                        serverIpConfigurationMode = values[7] as String,
+                        manualServerIp = values[8] as String,
+                        wifiSyncPort = values[9] as Int,
+                        ollamaPort = values[10] as Int,
+                        fastApiPort = values[11] as Int,
                     )
                 }
             }.collect { 
@@ -103,9 +113,9 @@ class SettingsViewModel @Inject constructor(
     fun fetchAvailableModels() {
         viewModelScope.launch {
             _uiState.update { it.copy(modelsState = ModelsState.Loading) }
-            val discoveryState = _uiState.value.serverDiscoveryState
-            if (discoveryState is ServerDiscoveryState.Found) {
-                val result = ollamaService.getAvailableModels(discoveryState.address)
+            val ollamaUrl = settingsRepo.getOllamaUrl().first()
+            if (ollamaUrl != null) {
+                val result = ollamaService.getAvailableModels(ollamaUrl)
                 result
                     .onSuccess { models ->
                         _uiState.update { it.copy(modelsState = ModelsState.Success(models)) }
@@ -160,17 +170,30 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(themeSettings = it.themeSettings.copy(themeMode = themeMode)) }
     }
 
-    fun onServerAddressModeChanged(mode: String) {
-        _uiState.update { it.copy(serverAddressMode = mode) }
+    fun onServerIpConfigurationModeChanged(mode: String) {
+        _uiState.update { it.copy(serverIpConfigurationMode = mode) }
     }
 
-    fun onManualServerAddressChanged(address: String) {
-        _uiState.update { it.copy(manualServerAddress = address) }
+    fun onManualServerIpChanged(address: String) {
+        _uiState.update { it.copy(manualServerIp = address) }
+    }
+
+    fun onWifiSyncPortChanged(port: String) {
+        _uiState.update { it.copy(wifiSyncPort = port.toIntOrNull() ?: 8080) }
+    }
+
+    fun onOllamaPortChanged(port: String) {
+        _uiState.update { it.copy(ollamaPort = port.toIntOrNull() ?: 11434) }
+    }
+
+    fun onFastApiPortChanged(port: String) {
+        _uiState.update { it.copy(fastApiPort = port.toIntOrNull() ?: 8000) }
     }
 
     fun saveSettings() {
         viewModelScope.launch {
             val currentState = _uiState.value
+            Log.e("SettingsViewModel", "Saving server settings: mode=${currentState.serverIpConfigurationMode}, ip=${currentState.manualServerIp}, wifiPort=${currentState.wifiSyncPort}, ollamaPort=${currentState.ollamaPort}, fastApiPort=${currentState.fastApiPort}")
             settingsRepo.saveOllamaModels(currentState.fastModel, currentState.smartModel)
             settingsRepo.saveNerUris(
                 modelUri = currentState.nerModelUri,
@@ -178,7 +201,13 @@ class SettingsViewModel @Inject constructor(
                 labelsUri = currentState.nerLabelsUri,
             )
             settingsRepo.saveRolesFolderUri(currentState.rolesFolderUri)
-            settingsRepo.saveServerAddressSettings(currentState.serverAddressMode, currentState.manualServerAddress)
+            settingsRepo.saveServerAddressSettings(
+                mode = currentState.serverIpConfigurationMode,
+                manualIp = currentState.manualServerIp,
+                wifiSyncPort = currentState.wifiSyncPort,
+                ollamaPort = currentState.ollamaPort,
+                fastApiPort = currentState.fastApiPort,
+            )
             settingsRepo.saveThemeSettings(currentState.themeSettings)
         }
     }

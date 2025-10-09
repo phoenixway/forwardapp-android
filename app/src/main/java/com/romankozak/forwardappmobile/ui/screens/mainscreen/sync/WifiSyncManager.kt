@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.sync
 
 import android.app.Application
+import android.util.Log
 import com.romankozak.forwardappmobile.WifiSyncServer
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
@@ -70,7 +71,8 @@ class WifiSyncManager(
 
   fun onShowWifiImportDialog() {
     viewModelScope.launch {
-      val serverAddress = settingsRepository.getServerAddress().first()
+      val serverAddress = settingsRepository.getWifiSyncUrl().first()
+      Log.e("WifiSyncManager", "Retrieved wifi sync url: $serverAddress")
       if (serverAddress.isNullOrBlank()) {
         uiEventChannel.send(ProjectUiEvent.ShowToast("Server address not configured in settings"))
       } else {

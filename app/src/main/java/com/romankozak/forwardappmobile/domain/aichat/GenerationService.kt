@@ -52,7 +52,7 @@ class GenerationService : Service() {
 
         serviceScope.launch {
             try {
-                val url = settingsRepo.getServerAddress().first()
+                val url = settingsRepo.getOllamaUrl().first()
                 if (url.isNullOrBlank()) {
                     Log.e(TAG, "Server address is not configured.")
                     val errorMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
