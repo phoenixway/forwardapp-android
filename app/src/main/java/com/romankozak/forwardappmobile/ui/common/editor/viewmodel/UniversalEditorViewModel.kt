@@ -25,9 +25,6 @@ import java.util.Locale
 
 sealed class UniversalEditorEvent {
   data class ShowError(val message: String) : UniversalEditorEvent()
-
-  data class ShareContent(val content: String) : UniversalEditorEvent()
-
   data class ShowLocation(val projectId: String) : UniversalEditorEvent() // НОВИЙ EVENT
 }
 
@@ -36,6 +33,7 @@ data class UniversalEditorUiState(
   val toolbarState: ListToolbarState = ListToolbarState(),
   val isLoading: Boolean = false,
   val projectId: String? = null,
+  val showShareDialog: Boolean = false
 )
 
 class UniversalEditorViewModel(private val application: Application) : ViewModel() {
@@ -240,8 +238,12 @@ class UniversalEditorViewModel(private val application: Application) : ViewModel
   fun onShare() {
     val textToShare = _uiState.value.content.text
     if (textToShare.isNotEmpty()) {
-      viewModelScope.launch { _events.send(UniversalEditorEvent.ShareContent(textToShare)) }
+      _uiState.update { it.copy(showShareDialog = true) }
     }
+  }
+
+  fun onShareDialogDismiss() {
+    _uiState.update { it.copy(showShareDialog = false) }
   }
 
   fun onPasteLine() {

@@ -50,6 +50,7 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorEvent
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
@@ -69,7 +70,6 @@ fun UniversalEditorScreen(
   val view = LocalView.current
   val isDarkTheme = isSystemInDarkTheme()
   val context = LocalContext.current
-
   if (!view.isInEditMode) {
     LaunchedEffect(Unit) {
       val window = (view.context as Activity).window
@@ -97,17 +97,6 @@ fun UniversalEditorScreen(
   LaunchedEffect(Unit) {
     viewModel.events.collect {
       when (it) {
-        is UniversalEditorEvent.ShareContent -> {
-          val sendIntent: Intent =
-            Intent().apply {
-              action = Intent.ACTION_SEND
-              putExtra(Intent.EXTRA_TEXT, it.content)
-              type = "text/plain"
-            }
-          val shareIntent = Intent.createChooser(sendIntent, null)
-          context.startActivity(shareIntent)
-        }
-
         is UniversalEditorEvent.ShowLocation -> {
           // НОВИЙ ОБРОБНИК
           val projectId = it.projectId
@@ -120,6 +109,14 @@ fun UniversalEditorScreen(
         }
       }
     }
+  }
+
+  if (uiState.showShareDialog) {
+    ShareDialog(
+        onDismiss = viewModel::onShareDialogDismiss,
+        onCopyToClipboard = viewModel::onCopyAll,
+        content = uiState.content.text
+    )
   }
 
   Scaffold(
