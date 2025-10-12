@@ -36,8 +36,13 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.serialization.gson.gson
+import com.romankozak.forwardappmobile.data.sync.DesktopBackupFile
+import com.romankozak.forwardappmobile.data.sync.toGoal
+import com.romankozak.forwardappmobile.data.sync.toProject
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
@@ -272,8 +277,94 @@ constructor(
         }
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
-        
+        val desktopData = gson.fromJson(jsonString, DesktopBackupFile::class.java).data ?: return SyncReport(emptyList())
+
+        val localGoals = goalDao.getAll().associateBy { it.id }
+        val localProjects = projectDao.getAll().associateBy { it.id }
+
         val changes = mutableListOf<SyncChange>()
+
+        // Goals
+        desktopData.goals?.forEach { (id, desktopGoal) ->
+            val localGoal = localGoals[id]
+            if (localGoal == null) {
+                changes.add(SyncChange(ChangeType.Add, "Ціль", id, "Нова ціль: ${desktopGoal.text}", entity = desktopGoal.toGoal()))
+            } else {
+                val desktopUpdatedAt = desktopGoal.updatedAt?.let { try { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { 0L } } ?: 0L
+                if (desktopUpdatedAt > (localGoal.updatedAt ?: 0)) {
+                    val updates = mutableListOf<String>()
+                    if (desktopGoal.text != localGoal.text) updates.add("text changed")
+                    if (desktopGoal.completed != localGoal.completed) updates.add("completion status changed")
+                    if (desktopGoal.description != localGoal.description) updates.add("description changed")
+                    if (desktopGoal.tags?.toSet() != localGoal.tags?.toSet()) updates.add("tags changed")
+                    if (desktopGoal.valueImportance != localGoal.valueImportance) updates.add("valueImportance changed")
+                    if (desktopGoal.valueImpact != localGoal.valueImpact) updates.add("valueImpact changed")
+                    if (desktopGoal.effort != localGoal.effort) updates.add("effort changed")
+                    if (desktopGoal.cost != localGoal.cost) updates.add("cost changed")
+                    if (desktopGoal.risk != localGoal.risk) updates.add("risk changed")
+                    if (desktopGoal.scoringStatus != localGoal.scoringStatus) updates.add("scoringStatus changed")
+
+                    if (updates.isNotEmpty()) {
+                        changes.add(
+                            SyncChange(
+                                ChangeType.Update,
+                                "Ціль",
+                                id,
+                                "Оновлено ціль: ${desktopGoal.text}",
+                                longDescription = "Зміни: ${updates.joinToString()}",
+                                entity = desktopGoal.toGoal()
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        localGoals.keys.minus(desktopData.goals?.keys ?: emptySet()).forEach { id ->
+            changes.add(SyncChange(ChangeType.Delete, "Ціль", id, "Видалено ціль: ${localGoals[id]?.text}", entity = localGoals[id]!!))
+        }
+
+        // Projects
+        desktopData.goalLists?.forEach { (id, desktopProject) ->
+            val localProject = localProjects[id]
+            if (localProject == null) {
+                changes.add(SyncChange(ChangeType.Add, "Список", id, "Новий список: ${desktopProject.name}", entity = desktopProject.toProject()))
+            } else {
+                val desktopUpdatedAt = desktopProject.updatedAt?.let { try { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant().toEpochMilli() } catch (e: Exception) { 0L } } ?: 0L
+                if (desktopUpdatedAt > (localProject.updatedAt ?: 0)) {
+                    val updates = mutableListOf<String>()
+                    if (desktopProject.name != localProject.name) updates.add("name to '${desktopProject.name}'")
+                    if (desktopProject.parentId != localProject.parentId) updates.add("parent changed")
+                    if (desktopProject.description != localProject.description) updates.add("description changed")
+                    if (desktopProject.isExpanded != localProject.isExpanded) updates.add("isExpanded changed to ${desktopProject.isExpanded}")
+                    if (desktopProject.order?.toLong() != localProject.order) updates.add("order changed")
+                    if (desktopProject.tags?.toSet() != localProject.tags?.toSet()) updates.add("tags changed")
+                    if (desktopProject.isCompleted != localProject.isCompleted) updates.add("completion status changed")
+                    if (desktopProject.valueImportance != localProject.valueImportance) updates.add("valueImportance changed")
+                    if (desktopProject.valueImpact != localProject.valueImpact) updates.add("valueImpact changed")
+                    if (desktopProject.effort != localProject.effort) updates.add("effort changed")
+                    if (desktopProject.cost != localProject.cost) updates.add("cost changed")
+                    if (desktopProject.risk != localProject.risk) updates.add("risk changed")
+                    if (desktopProject.scoringStatus != localProject.scoringStatus) updates.add("scoringStatus changed")
+
+                    if (updates.isNotEmpty()) {
+                        changes.add(
+                            SyncChange(
+                                ChangeType.Update,
+                                "Список",
+                                id,
+                                "Оновлено список: ${desktopProject.name}",
+                                longDescription = "Зміни: ${updates.joinToString()}",
+                                entity = desktopProject.toProject()
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        localProjects.keys.minus(desktopData.goalLists?.keys ?: emptySet()).forEach { id ->
+            changes.add(SyncChange(ChangeType.Delete, "Список", id, "Видалено список: ${localProjects[id]?.name}", entity = localProjects[id]!!))
+        }
+
         return SyncReport(changes)
     }
 

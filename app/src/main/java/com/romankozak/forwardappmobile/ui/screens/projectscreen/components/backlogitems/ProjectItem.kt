@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -122,9 +124,11 @@ fun ProjectItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EnhancedCustomCheckbox(
-                checked = project.isCompleted,
-                onCheckedChange = onCheckedChange,
+            Icon(
+                imageVector = Icons.Default.AccountTree,
+                contentDescription = "Project",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
 
             Spacer(modifier = Modifier.width(16.dp))

@@ -39,7 +39,7 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
-    private val ollamaService: OllamaService,
+    // private val ollamaService: OllamaService,
     private val nerManager: NerManager,
 ) : ViewModel() {
 
@@ -111,21 +111,21 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun fetchAvailableModels() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(modelsState = ModelsState.Loading) }
-            val ollamaUrl = settingsRepo.getOllamaUrl().first()
-            if (ollamaUrl != null) {
-                val result = ollamaService.getAvailableModels(ollamaUrl)
-                result
-                    .onSuccess { models ->
-                        _uiState.update { it.copy(modelsState = ModelsState.Success(models)) }
-                    }.onFailure { error ->
-                        _uiState.update { it.copy(modelsState = ModelsState.Error("Error: ${error.message}")) }
-                    }
-            } else {
-                _uiState.update { it.copy(modelsState = ModelsState.Error("Server not found")) }
-            }
-        }
+        // viewModelScope.launch {
+        //     _uiState.update { it.copy(modelsState = ModelsState.Loading) }
+        //     val ollamaUrl = settingsRepo.getOllamaUrl().first()
+        //     if (ollamaUrl != null) {
+        //         val result = ollamaService.getAvailableModels(ollamaUrl)
+        //         result
+        //             .onSuccess { models ->
+        //                 _uiState.update { it.copy(modelsState = ModelsState.Success(models)) }
+        //             }.onFailure { error ->
+        //                 _uiState.update { it.copy(modelsState = ModelsState.Error("Error: ${error.message}")) }
+        //             }
+        //     } else {
+        //         _uiState.update { it.copy(modelsState = ModelsState.Error("Server not found")) }
+        //     }
+        // }
     }
 
     fun onNerModelFileSelected(uri: String) {

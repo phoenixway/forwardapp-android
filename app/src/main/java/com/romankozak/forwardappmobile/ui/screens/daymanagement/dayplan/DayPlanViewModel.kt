@@ -78,6 +78,10 @@ constructor(
         _isAddTaskDialogOpen.value = false
     }
 
+    fun onTaskLongPressed(task: DayTask) {
+        _selectedTask.value = task
+    }
+
     fun selectTask(task: DayTask) {
         _selectedTask.value = task
     }
