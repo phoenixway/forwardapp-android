@@ -22,7 +22,7 @@ data class DesktopGoal(
     val weightRisk: Float = 1f,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
-    val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    val scoringStatus: String? = ScoringStatusValues.NOT_ASSESSED,
 )
 
 data class DesktopGoalList(
@@ -36,6 +36,13 @@ data class DesktopGoalList(
     val isExpanded: Boolean? = true,
     val order: Long? = 0,
     val tags: List<String>? = null,
+    val isCompleted: Boolean = false,
+    val valueImportance: Float = 0f,
+    val valueImpact: Float = 0f,
+    val effort: Float = 0f,
+    val cost: Float = 0f,
+    val risk: Float = 0f,
+    val scoringStatus: String? = ScoringStatusValues.NOT_ASSESSED,
 )
 
 data class DesktopGoalInstance(

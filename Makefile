@@ -182,3 +182,9 @@ help:
 	@echo "  make feature-sync              - Оновити поточну гілку з dev."
 	@echo "  make release VERSION=<x.y.z>   - Створити новий реліз."
 
+# ============== PYTHON СЕРВЕР =============
+run-server:
+	@echo "🐍  Запускаю Python сервер..."
+	@python main.py
+
+

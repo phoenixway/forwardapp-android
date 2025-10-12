@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.AccountTree
 import android.text.format.DateUtils
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -165,82 +167,7 @@ internal fun EnhancedReminderBadge(
     }
 }
 
-@Composable
-fun EnhancedCustomCheckbox(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val haptic = LocalHapticFeedback.current
 
-    val animatedColor by animateColorAsState(
-        targetValue = if (checked) MaterialTheme.colorScheme.primary else Color.Transparent,
-        animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
-        label = "checkbox_color",
-    )
-
-    val animatedBorderColor by animateColorAsState(
-        targetValue =
-            if (checked) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outline
-            },
-        label = "checkbox_border",
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (checked) 1.1f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "checkbox_scale",
-    )
-
-    Box(
-        modifier =
-            modifier
-                .size(16.dp)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .clip(RoundedCornerShape(4.dp))
-                .background(animatedColor)
-                .border(1.dp, animatedBorderColor, RoundedCornerShape(4.dp))
-                .clickable(enabled = enabled) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onCheckedChange(!checked)
-                }
-                .semantics {
-                    role = Role.Checkbox
-                    this.stateDescription = if (checked) "Виконано" else "Не виконано"
-                },
-        contentAlignment = Alignment.Center,
-    ) {
-        AnimatedVisibility(
-            visible = checked,
-            enter =
-                scaleIn(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                ) + fadeIn(),
-            exit =
-                scaleOut(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                ) + fadeOut(),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(10.dp),
-            )
-        }
-    }
-}
 
 @Composable
 internal fun EnhancedRelatedLinkChip(
@@ -254,8 +181,18 @@ internal fun EnhancedRelatedLinkChip(
         label = "chip_scale",
     )
 
-    val backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-    val contentColor = MaterialTheme.colorScheme.primary
+    val isSubProject = link.type == LinkType.PROJECT
+    val backgroundColor = if (isSubProject) {
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+    } else {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+    }
+    val contentColor = if (isSubProject) {
+        MaterialTheme.colorScheme.secondary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
 
     Surface(
         modifier = Modifier
@@ -289,7 +226,7 @@ internal fun EnhancedRelatedLinkChip(
         ) {
             Icon(
                 imageVector = when (link.type) {
-                    LinkType.PROJECT -> Icons.AutoMirrored.Filled.ListAlt
+                    LinkType.PROJECT -> Icons.Default.AccountTree
                     LinkType.URL -> Icons.Default.Link
                     LinkType.OBSIDIAN -> Icons.Default.Book
                     null -> Icons.Default.BrokenImage
@@ -299,18 +236,20 @@ internal fun EnhancedRelatedLinkChip(
                 tint = contentColor,
                 modifier = Modifier.size(14.dp),
             )
-            Text(
-                text = link.displayName ?: link.target,
-                style =
-                    MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.15.sp,
-                        fontSize = 10.sp,
-                    ),
-                color = contentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (!isSubProject) {
+                Text(
+                    text = link.displayName ?: link.target,
+                    style =
+                        MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.15.sp,
+                            fontSize = 10.sp,
+                        ),
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -438,9 +377,11 @@ fun GoalItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EnhancedCustomCheckbox(
-                checked = goal.completed,
-                onCheckedChange = onCheckedChange,
+            Icon(
+                imageVector = Icons.Default.Flag,
+                contentDescription = "Goal",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
 
             Spacer(modifier = Modifier.width(16.dp))

@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan
 
-import TaskList
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.TaskList
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -229,7 +229,6 @@ fun DayTask.toListItem(): ListItem {
   )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DayPlanScreen(
   dayPlanId: String,
@@ -371,32 +370,24 @@ fun DayPlanScreen(
           else -> {
             val tasks = uiState.tasks
             val totalPoints = tasks.filter { it.completed }.sumOf { it.points }
-            TaskList(
-              tasks = tasks,
-              dayPlan = uiState.dayPlan,
-              totalPoints = totalPoints,
-              onToggleTask = { taskId ->
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.toggleTaskCompletion(taskId)
-              },
-              onTaskLongPress = { task ->
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.selectTask(task)
-              },
-              onTasksReordered = { reorderedList ->
-                uiState.dayPlan?.let { dayPlan ->
-                  viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                }
-              },
-              onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
-              onNavigateToNextDay = { viewModel.navigateToNextDay() },
-              isNextDayNavigationEnabled = !uiState.isToday,
-              onSublistClick = onNavigateToProject,
-              onSettingsClick = onNavigateToSettings,
-              modifier = Modifier.fillMaxSize(),
-              headerContainerColor = headerColor,
-            )
-          }
+                        TaskList(
+                          tasks = tasks,
+                          dayPlan = uiState.dayPlan,
+                          totalPoints = totalPoints,
+                          onTaskLongPress = { task -> viewModel.onTaskLongPressed(task) },
+                          onTasksReordered = { reorderedList ->
+                            uiState.dayPlan?.let { dayPlan ->
+                              viewModel.updateTasksOrder(dayPlan.id, reorderedList)
+                            }
+                          },
+                          onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
+                          onNavigateToNextDay = { viewModel.navigateToNextDay() },
+                          isNextDayNavigationEnabled = !uiState.isToday,
+                          onSublistClick = onNavigateToProject,
+                          onSettingsClick = onNavigateToSettings,
+                          modifier = Modifier.fillMaxSize(),
+                          headerContainerColor = headerColor,
+                        )          }
         }
 
         SnackbarHost(
