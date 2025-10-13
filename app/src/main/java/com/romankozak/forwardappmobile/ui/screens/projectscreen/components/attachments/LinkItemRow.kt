@@ -114,5 +114,6 @@ fun LinkItemRow(
         },
         onAddToDayPlanRequest = {},
         onMoveToTopRequest = {},
+        onToggleCompleted = {},
     )
 }

@@ -30,5 +30,6 @@ fun AttachmentItemRow(
         content = content,
         onAddToDayPlanRequest = {},
         onMoveToTopRequest = {},
+        onToggleCompleted = {},
     )
 }

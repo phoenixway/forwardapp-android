@@ -42,6 +42,7 @@ fun InteractiveListItem(
     onAddToDayPlanRequest: () -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onCopyContentRequest: () -> Unit,
+    onToggleCompleted: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
@@ -124,6 +125,7 @@ fun InteractiveListItem(
                 onStartTrackingRequest = onStartTrackingRequest,
                 onAddToDayPlanRequest = onAddToDayPlanRequest,
                 onCopyContentRequest = onCopyContentRequest,
+                onToggleCompleted = onToggleCompleted,
                 backgroundColor = backgroundColor,
                 content = {
                     Row(

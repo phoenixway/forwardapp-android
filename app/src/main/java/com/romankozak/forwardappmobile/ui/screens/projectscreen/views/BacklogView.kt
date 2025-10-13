@@ -159,6 +159,17 @@ fun BacklogView(
                     },
                     onStartTrackingRequest = { viewModel.onStartTrackingRequest(content) },
                     onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(content) },
+                    onToggleCompleted = {
+                        when (content) {
+                            is ListItemContent.GoalItem -> {
+                                viewModel.itemActionHandler.toggleGoalCompletedWithState(content.goal, !content.goal.completed)
+                            }
+                            is ListItemContent.SublistItem -> {
+                                viewModel.onSubprojectCompletedChanged(content.project, !content.project.isCompleted)
+                            }
+                            else -> {}
+                        }
+                    },
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
