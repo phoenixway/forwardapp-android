@@ -29,5 +29,6 @@ fun AttachmentItemRow(
         backgroundColor = backgroundColor,
         content = content,
         onAddToDayPlanRequest = {},
+        onMoveToTopRequest = {},
     )
 }

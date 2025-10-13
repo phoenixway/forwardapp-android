@@ -113,5 +113,6 @@ fun LinkItemRow(
             }
         },
         onAddToDayPlanRequest = {},
+        onMoveToTopRequest = {},
     )
 }

@@ -855,6 +855,14 @@ constructor(
     viewModelScope.launch { saveListOrder(newFullList) }
   }
 
+  fun onMoveToTop(item: ListItemContent) {
+    val fromIndex = _listContent.value.indexOf(item)
+    if (fromIndex != -1) {
+        moveItem(fromIndex, 0)
+        viewModelScope.launch { _uiEventFlow.send(UiEvent.ScrollTo(0)) }
+    }
+  }
+
   private suspend fun saveListOrder(listToSave: List<ListItemContent>) =
     withContext(Dispatchers.IO) {
       try {
