@@ -23,6 +23,7 @@ fun GoalActionChoiceDialog(
     onDismiss: () -> Unit,
     onActionSelected: (GoalActionType) -> Unit,
     onSetReminder: () -> Unit,
+    onOpenRemindersDialog: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -61,10 +62,10 @@ fun GoalActionChoiceDialog(
                 }
                 HorizontalDivider()
                 DialogActionItem(
-                    text = "Встановити нагадування",
+                    text = "Нагадування...",
                     icon = Icons.Default.Notifications,
                     onClick = {
-                        onSetReminder()
+                        onOpenRemindersDialog()
                         onDismiss()
                     },
                 )

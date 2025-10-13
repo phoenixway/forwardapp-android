@@ -115,6 +115,8 @@ data class UiState(
   val projectTimeMetrics: ProjectTimeMetrics? = null,
   val showShareDialog: Boolean = false,
   val showCreateCustomListDialog: Boolean = false,
+  val showRemindersDialog: Boolean = false,
+  val itemForRemindersDialog: ListItemContent? = null,
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -1544,6 +1546,14 @@ constructor(
 
   fun onToggleNavPanelMode() {
     _uiState.update { it.copy(isViewModePanelVisible = !it.isViewModePanelVisible) }
+  }
+
+  fun onOpenRemindersDialog(item: ListItemContent) {
+    _uiState.update { it.copy(showRemindersDialog = true, itemForRemindersDialog = item) }
+  }
+
+  fun onDismissRemindersDialog() {
+    _uiState.update { it.copy(showRemindersDialog = false, itemForRemindersDialog = null) }
   }
 
   fun onSubprojectClick(subproject: ListItemContent.SublistItem) {
