@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -43,9 +44,9 @@ enum class SwipeState { ActionsRevealedStart, Normal, ActionsRevealedEnd }
 
 object SwipeConstants {
     val LEFT_ACTION_WIDTH = 60.dp
-    val RIGHT_ACTION_WIDTH = 60.dp
+    val RIGHT_ACTION_WIDTH = 50.dp
     const val LEFT_ACTIONS_COUNT = 4
-    const val RIGHT_ACTIONS_COUNT = 2
+    const val RIGHT_ACTIONS_COUNT = 3
     const val SWIPE_THRESHOLD = 0.3f
     const val VELOCITY_THRESHOLD_DP = 250f
     const val ANIMATION_DURATION = 400
@@ -70,6 +71,7 @@ fun SwipeableListItem(
     onMoveToTopRequest: () -> Unit,
     onAddToDayPlanRequest: () -> Unit,
     onCopyContentRequest: () -> Unit,
+    onToggleCompleted: () -> Unit,
     content: @Composable () -> Unit,
     swipeEnabled: Boolean = true,
 ) {
@@ -264,6 +266,16 @@ fun SwipeableListItem(
                     horizontalArrangement = Arrangement.spacedBy(1.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    SwipeActionButton(
+                        icon = Icons.Default.CheckCircle,
+                        contentDescription = "Toggle Completed",
+                        color = MaterialTheme.colorScheme.primary,
+                        scale = rightActionsScale,
+                        onClick = {
+                            onToggleCompleted()
+                            resetSwipe()
+                        },
+                    )
                     SwipeActionButton(
                         icon = Icons.Default.Delete,
                         contentDescription = "Видалити",
