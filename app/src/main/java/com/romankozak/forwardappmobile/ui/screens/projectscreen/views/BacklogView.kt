@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.views
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -11,12 +13,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
@@ -31,18 +34,29 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.S
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DragHandleIcon(modifier: Modifier = Modifier) {
+private fun MoreActionsButton(
+    modifier: Modifier = Modifier,
+    onLongClick: () -> Unit,
+    onClick: () -> Unit,
+) {
     Box(
         modifier =
             modifier
                 .fillMaxHeight()
-                .padding(vertical = 4.dp, horizontal = 8.dp),
+                .padding(vertical = 4.dp, horizontal = 8.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = { onLongClick() },
+                        onTap = { onClick() },
+                    )
+                },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Default.DragHandle,
-            contentDescription = "Перетягнути",
+            imageVector = Icons.Default.MoreVert,
+            contentDescription = "Більше",
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         )
     }
@@ -75,6 +89,17 @@ fun BacklogView(
             }
         }.collect {
             currentTime = it
+        }
+    }
+
+    LaunchedEffect(viewModel.uiEventFlow) {
+        viewModel.uiEventFlow.collect { event ->
+            when (event) {
+                is com.romankozak.forwardappmobile.ui.screens.projectscreen.UiEvent.ScrollTo -> {
+                    listState.animateScrollToItem(event.index)
+                }
+                else -> {}
+            }
         }
     }
 
@@ -122,6 +147,7 @@ fun BacklogView(
                     onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) },
                     onDelete = { viewModel.itemActionHandler.deleteItem(content) },
                     onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                    onMoveToTopRequest = { viewModel.onMoveToTop(content) },
                     onAddToDayPlanRequest = { viewModel.addItemToDailyPlan(content) },
                     onShowGoalTransportMenu = { itemToTransport ->
                         viewModel.itemActionHandler.onGoalTransportInitiated(
@@ -155,7 +181,12 @@ fun BacklogView(
                                 currentTimeMillis = currentTime,
                                 isSelected = isSelected,
                                 isCompletedFromReminder = isCompletedFromReminder,
-                                endAction = { DragHandleIcon() }
+                                endAction = {
+                                    MoreActionsButton(
+                                        onClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                        onLongClick = { dragDropState.onDragStart(content) },
+                                    )
+                                }
                             )
                         }
                         is ListItemContent.SublistItem -> {
@@ -173,7 +204,12 @@ fun BacklogView(
                                 onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
-                                endAction = { DragHandleIcon() }
+                                endAction = {
+                                    MoreActionsButton(
+                                        onClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                        onLongClick = { dragDropState.onDragStart(content) },
+                                    )
+                                }
                             )
                         }
                         else -> {

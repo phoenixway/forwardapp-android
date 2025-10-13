@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
@@ -66,6 +67,7 @@ fun SwipeableListItem(
     onMoreActionsRequest: () -> Unit,
     onGoalTransportRequest: () -> Unit,
     onStartTrackingRequest: () -> Unit,
+    onMoveToTopRequest: () -> Unit,
     onAddToDayPlanRequest: () -> Unit,
     onCopyContentRequest: () -> Unit,
     content: @Composable () -> Unit,
@@ -210,13 +212,14 @@ fun SwipeableListItem(
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    
                     SwipeActionButton(
-                        icon = Icons.Default.MoreVert,
-                        contentDescription = "Більше дій",
-                        color = MaterialTheme.colorScheme.secondary,
+                        icon = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Перемістити на вершину",
+                        color = MaterialTheme.colorScheme.primary,
                         scale = leftActionsScale,
                         onClick = {
-                            onMoreActionsRequest()
+                            onMoveToTopRequest()
                             resetSwipe()
                         },
                     )
