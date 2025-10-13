@@ -397,3 +397,9 @@ val MIGRATION_48_49 = object : Migration(48, 49) {
         )
     }
 }
+
+val MIGRATION_49_50 = object : Migration(49, 50) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE `reminders` (`id` TEXT NOT NULL, `goalId` TEXT NOT NULL, `reminderTime` INTEGER NOT NULL, `status` TEXT NOT NULL, PRIMARY KEY(`id`, `goalId`))")
+    }
+}

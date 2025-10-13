@@ -46,6 +46,7 @@ constructor(
     private val projectManagementDao: ProjectManagementDao,
     private val recentItemDao: RecentItemDao,
     private val reminderInfoDao: ReminderInfoDao,
+    private val reminderDao: ReminderDao,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "CUSTOM_LIST_DEBUG"
@@ -921,5 +922,19 @@ constructor(
             listItemDao.deleteItemsByIds(itemsToDelete)
             Log.d("DB_CLEANUP", "Deleted ${itemsToDelete.size} dangling ListItem records.")
         }
+    }
+
+    fun getRemindersForGoal(goalId: String): Flow<List<Reminder>> = reminderDao.getRemindersForGoal(goalId)
+
+    suspend fun insertReminder(reminder: Reminder) {
+        reminderDao.insert(reminder)
+    }
+
+    suspend fun updateReminder(reminder: Reminder) {
+        reminderDao.update(reminder)
+    }
+
+    suspend fun deleteReminder(reminder: Reminder) {
+        reminderDao.delete(reminder)
     }
 }

@@ -121,4 +121,7 @@ MIGRATION_48_49
 
     @Provides
     fun provideProjectReminderInfoDao(db: AppDatabase): ProjectReminderInfoDao = db.projectReminderInfoDao()
+
+    @Provides
+    fun provideReminderDao(db: AppDatabase): ReminderDao = db.reminderDao()
 }
