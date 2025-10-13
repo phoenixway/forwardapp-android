@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RecentItemType
@@ -26,6 +27,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.RemindersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,8 +64,22 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             },
             onSetReminder = {
                 viewModel.onSetReminderForItem(itemContent)
+            },
+            onOpenRemindersDialog = {
+                viewModel.onOpenRemindersDialog(itemContent)
             }
         )
+    }
+
+    if (uiState.showRemindersDialog) {
+        val remindersViewModel: RemindersViewModel = hiltViewModel()
+        uiState.itemForRemindersDialog?.let {
+            RemindersDialog(
+                viewModel = remindersViewModel,
+                item = it,
+                onDismiss = { viewModel.onDismissRemindersDialog() }
+            )
+        }
     }
 
     GoalTransportMenu(
