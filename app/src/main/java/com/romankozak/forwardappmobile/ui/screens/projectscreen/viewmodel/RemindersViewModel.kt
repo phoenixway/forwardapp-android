@@ -35,6 +35,9 @@ class RemindersViewModel @Inject constructor(
     }
 
     fun addReminder(reminderTime: Long) {
+        val goalId: String = savedStateHandle.get<String>("goalId") ?: ""
+        if (goalId.isEmpty()) return
+
         viewModelScope.launch {
             val reminder = Reminder(
                 id = UUID.randomUUID().toString(),
