@@ -120,7 +120,12 @@ fun SubprojectItemRow(
     endAction: @Composable () -> Unit = {},
 ) {
     val subproject = subprojectContent.project
-    val reminder = reminders.firstOrNull()
+    val futureReminders = reminders.filter { it.reminderTime >= currentTimeMillis }
+    val reminder = if (futureReminders.isNotEmpty()) {
+        futureReminders.minByOrNull { it.reminderTime }
+    } else {
+        reminders.maxByOrNull { it.reminderTime }
+    }
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
 
     Surface(
