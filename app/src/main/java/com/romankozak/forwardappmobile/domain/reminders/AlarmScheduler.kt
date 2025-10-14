@@ -70,12 +70,12 @@ class AlarmScheduler
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, description)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, emoji)
                 }
-            setExactAlarm(ReminderBroadcastReceiver().getNotificationId(reminder.id), reminderTime, intent)
+            setExactAlarm(ReminderBroadcastReceiver.Companion.getNotificationId(reminder.id), reminderTime, intent)
         }
 
         fun cancel(reminder: Reminder) {
             Log.d(tag, "AlarmScheduler: cancel() called for reminder ID: ${reminder.id}")
-            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(reminder.id))
+            cancelAlarm(ReminderBroadcastReceiver.Companion.getNotificationId(reminder.id))
         }
 
 
@@ -211,7 +211,7 @@ class AlarmScheduler
             val testPendingIntent =
                 PendingIntent.getBroadcast(
                     context,
-                    ReminderBroadcastReceiver().getNotificationId(goalId),
+                    ReminderBroadcastReceiver.Companion.getNotificationId(goalId),
                     testIntent,
                     PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
                 )

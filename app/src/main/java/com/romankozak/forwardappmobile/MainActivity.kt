@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleReminderIntent(intent: Intent?) {
-        val goalId = intent?.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID)
+        val goalId = intent?.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_ID)
         if (goalId != null) {
             Log.d(tag, "MainActivity: Launched from reminder for goal ID: $goalId")
 
