@@ -403,3 +403,94 @@ val MIGRATION_49_50 = object : Migration(49, 50) {
         db.execSQL("CREATE TABLE `reminders` (`id` TEXT NOT NULL, `goalId` TEXT NOT NULL, `reminderTime` INTEGER NOT NULL, `status` TEXT NOT NULL, PRIMARY KEY(`id`, `goalId`))")
     }
 }
+
+val MIGRATION_50_51 = object : Migration(50, 51) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Step 1: Create the new unified reminders table
+        db.execSQL("""
+            CREATE TABLE `reminders_new` (
+                `id` TEXT NOT NULL, 
+                `entityId` TEXT NOT NULL, 
+                `entityType` TEXT NOT NULL, 
+                `reminderTime` INTEGER NOT NULL, 
+                `status` TEXT NOT NULL, 
+                `creationTime` INTEGER NOT NULL, 
+                `snoozeUntil` INTEGER, 
+                PRIMARY KEY(`id`)
+            )
+        """.trimIndent())
+
+        // Step 2: Migrate data from goals and reminder_info
+        db.execSQL("""
+            INSERT INTO reminders_new (id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil)
+            SELECT
+                goals.id,
+                goals.id,
+                'GOAL',
+                goals.reminder_time,
+                COALESCE(ri.reminder_status, 'SCHEDULED'),
+                goals.createdAt,
+                ri.snooze_time
+            FROM goals
+            LEFT JOIN reminder_info AS ri ON goals.id = ri.goalId
+            WHERE goals.reminder_time IS NOT NULL
+        """.trimIndent())
+
+        // Step 3: Migrate data from projects and project_reminder_info
+        db.execSQL("""
+            INSERT INTO reminders_new (id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil)
+            SELECT
+                projects.id,
+                projects.id,
+                'PROJECT',
+                projects.reminder_time,
+                COALESCE(pri.reminder_status, 'SCHEDULED'),
+                projects.createdAt,
+                pri.snooze_time
+            FROM projects
+            LEFT JOIN project_reminder_info AS pri ON projects.id = pri.projectId
+            WHERE projects.reminder_time IS NOT NULL
+        """.trimIndent())
+
+        // Step 4: Migrate data from day_tasks
+        db.execSQL("""
+            INSERT INTO reminders_new (id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil)
+            SELECT
+                id,
+                id,
+                'TASK',
+                reminderTime,
+                'SCHEDULED',
+                createdAt,
+                NULL
+            FROM day_tasks
+            WHERE reminderTime IS NOT NULL
+        """.trimIndent())
+
+        // Step 5: Drop the old tables
+        db.execSQL("DROP TABLE reminders")
+        db.execSQL("DROP TABLE reminder_info")
+        db.execSQL("DROP TABLE project_reminder_info")
+
+        // Step 6: Rename the new table
+        db.execSQL("ALTER TABLE reminders_new RENAME TO reminders")
+
+        // Step 7: Remove reminder_time column from goals
+        db.execSQL("CREATE TABLE `goals_temp` (`id` TEXT NOT NULL, `text` TEXT NOT NULL, `description` TEXT, `completed` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `relatedLinks` TEXT, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, `parentValueImportance` REAL DEFAULT 0.0, `impactOnParentGoal` REAL DEFAULT 0.0, `timeCost` REAL DEFAULT 0.0, `financialCost` REAL DEFAULT 0.0, PRIMARY KEY(`id`))")
+        db.execSQL("INSERT INTO goals_temp SELECT id, text, description, completed, createdAt, updatedAt, tags, relatedLinks, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoring_status, parentValueImportance, impactOnParentGoal, timeCost, financialCost FROM goals")
+        db.execSQL("DROP TABLE goals")
+        db.execSQL("ALTER TABLE goals_temp RENAME TO goals")
+
+        // Step 8: Remove reminder_time column from projects
+        db.execSQL("CREATE TABLE `projects_temp` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT, `project_status_text` TEXT, `project_log_level` TEXT, `total_time_spent_minutes` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, PRIMARY KEY(`id`))")
+        db.execSQL("INSERT INTO projects_temp SELECT id, name, description, parentId, createdAt, updatedAt, tags, is_expanded, goal_order, is_attachments_expanded, default_view_mode, is_completed, is_project_management_enabled, project_status, project_status_text, project_log_level, total_time_spent_minutes, valueImportance, valueImpact, effort, cost, risk, weightEffort, weightCost, weightRisk, rawScore, displayScore, scoring_status FROM projects")
+        db.execSQL("DROP TABLE projects")
+        db.execSQL("ALTER TABLE projects_temp RENAME TO projects")
+
+        // Step 9: Remove reminderTime column from day_tasks
+        db.execSQL("CREATE TABLE `day_tasks_temp` (`id` TEXT NOT NULL, `dayPlanId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `duration` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `order` INTEGER NOT NULL, `priority` TEXT NOT NULL, `taskType` TEXT, `goalId` TEXT, `projectId` TEXT, `recurringTaskId` TEXT, `recurrenceRule` TEXT, `isCompletedFromGcal` INTEGER, `gcalEventId` TEXT, `points` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))")
+        db.execSQL("INSERT INTO day_tasks_temp SELECT id, dayPlanId, title, description, duration, completed, createdAt, `order`, priority, taskType, goalId, projectId, recurringTaskId, recurrenceRule, isCompletedFromGcal, gcalEventId, points FROM day_tasks")
+        db.execSQL("DROP TABLE day_tasks")
+        db.execSQL("ALTER TABLE day_tasks_temp RENAME TO day_tasks")
+    }
+}

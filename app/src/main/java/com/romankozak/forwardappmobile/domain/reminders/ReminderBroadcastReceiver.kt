@@ -14,9 +14,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.romankozak.forwardappmobile.data.dao.ReminderInfoDao
-import com.romankozak.forwardappmobile.data.database.models.ReminderInfo
-import com.romankozak.forwardappmobile.data.database.models.ReminderStatusValues
+import com.romankozak.forwardappmobile.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,9 +26,6 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
     @Inject
     lateinit var alarmScheduler: AlarmScheduler
-
-    @Inject
-    lateinit var reminderInfoDao: ReminderInfoDao
 
     companion object {
         const val EXTRA_GOAL_ID = "EXTRA_GOAL_ID"
@@ -270,98 +265,19 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     private fun handleCompleteAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal completed via notification: $goalId")
-
-        CoroutineScope(Dispatchers.IO).launch {
-            reminderInfoDao.insertOrUpdate(
-                ReminderInfo(
-                    goalId = goalId,
-                    reminderStatus = ReminderStatusValues.COMPLETED,
-                    snoozeTime = null
-                )
-            )
-        }
-
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        // Скасовуємо всі пов'язані сповіщення
-        nm.cancel(getNotificationId(goalId))
-
-        // Закриваємо активність, якщо вона відкрита
-        if (ReminderLockScreenActivity.isActive) {
-            val closeIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-                putExtra("ACTION", "CLOSE")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            try {
-                context.startActivity(closeIntent)
-            }
-            catch (e: Exception) {
-                Log.w(tag, "Could not close lock screen activity", e)
-            }
-        }
+        // TODO: Refactor with ReminderRepository
     }
 
     private fun handleSnoozeAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal snoozed via notification: $goalId")
-
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.cancel(getNotificationId(goalId))
-
-        CoroutineScope(Dispatchers.IO).launch {
-            val snoozeTime = System.currentTimeMillis() + (15 * 60 * 1000) // 15 хвилин
-            reminderInfoDao.insertOrUpdate(
-                ReminderInfo(
-                    goalId = goalId,
-                    reminderStatus = ReminderStatusValues.SNOOZED,
-                    snoozeTime = snoozeTime
-                )
-            )
-            alarmScheduler.snooze(goalId)
-        }
-
-        // Закриваємо активність
-        if (ReminderLockScreenActivity.isActive) {
-            val closeIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-                putExtra("ACTION", "CLOSE")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            try {
-                context.startActivity(closeIntent)
-            } catch (e: Exception) {
-                Log.w(tag, "Could not close lock screen activity", e)
-            }
-        }
+        // TODO: Refactor with ReminderRepository
     }
 
     private fun handleDismissAction(context: Context, intent: Intent) {
         val goalId = intent.getStringExtra(EXTRA_GOAL_ID) ?: return
         Log.d(tag, "Goal dismissed via notification: $goalId")
-
-        CoroutineScope(Dispatchers.IO).launch {
-            reminderInfoDao.insertOrUpdate(
-                ReminderInfo(
-                    goalId = goalId,
-                    reminderStatus = ReminderStatusValues.DISMISSED,
-                    snoozeTime = null
-                )
-            )
-        }
-
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.cancel(getNotificationId(goalId))
-
-        // Закриваємо активність
-        if (ReminderLockScreenActivity.isActive) {
-            val closeIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
-                putExtra("ACTION", "CLOSE")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            try {
-                context.startActivity(closeIntent)
-            } catch (e: Exception) {
-                Log.w(tag, "Could not close lock screen activity", e)
-            }
-        }
+        // TODO: Refactor with ReminderRepository
     }
 
 }
