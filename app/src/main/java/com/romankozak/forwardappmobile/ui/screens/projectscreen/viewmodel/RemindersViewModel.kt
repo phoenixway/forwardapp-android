@@ -23,25 +23,28 @@ class RemindersViewModel @Inject constructor(
     private val _reminders = MutableStateFlow<List<Reminder>>(emptyList())
     val reminders: StateFlow<List<Reminder>> = _reminders
 
-    private val goalId: String = savedStateHandle.get<String>("goalId") ?: ""
+    private val entityId: String = savedStateHandle.get<String>("entityId") ?: ""
+    private val entityType: String = savedStateHandle.get<String>("entityType") ?: ""
 
-    fun loadReminders(goalId: String) {
-        savedStateHandle["goalId"] = goalId
+    fun loadReminders(entityId: String, entityType: String) {
+        savedStateHandle["entityId"] = entityId
+        savedStateHandle["entityType"] = entityType
         viewModelScope.launch {
-            projectRepository.reminderDao.getRemindersForEntity(goalId).collect { reminders ->
+            projectRepository.reminderDao.getRemindersForEntity(entityId).collect { reminders ->
                 _reminders.value = reminders
             }
         }
     }
 
     fun addReminder(reminderTime: Long) {
-        val goalId: String = savedStateHandle.get<String>("goalId") ?: ""
-        if (goalId.isEmpty()) return
+        val entityId: String = savedStateHandle.get<String>("entityId") ?: ""
+        val entityType: String = savedStateHandle.get<String>("entityType") ?: ""
+        if (entityId.isEmpty() || entityType.isEmpty()) return
 
         viewModelScope.launch {
             val reminder = Reminder(
-                entityId = goalId,
-                entityType = "GOAL",
+                entityId = entityId,
+                entityType = entityType,
                 reminderTime = reminderTime,
                 status = "SCHEDULED",
                 creationTime = System.currentTimeMillis()

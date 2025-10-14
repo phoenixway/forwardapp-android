@@ -53,6 +53,7 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.ui.common.components.EnhancedReminderBadge
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -228,9 +229,8 @@ fun SubprojectItemRow(
                         }
                         is FlowItem.ReminderItem -> {
                             EnhancedReminderBadge(
-                                reminderTime = item.reminder.reminderTime,
-                                currentTimeMillis = currentTimeMillis,
-                                isCompleted = item.reminder.status == "COMPLETED"
+                                reminder = item.reminder,
+                                currentTimeMillis = currentTimeMillis
                             )
                         }
                         is FlowItem.ScoreStatus -> {

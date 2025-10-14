@@ -357,12 +357,7 @@ fun GoalItem(
     reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
-    val futureReminders = reminders.filter { it.reminderTime >= currentTimeMillis }
-    val reminder = if (futureReminders.isNotEmpty()) {
-        futureReminders.minByOrNull { it.reminderTime }
-    } else {
-        reminders.maxByOrNull { it.reminderTime }
-    }
+    val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
 
     Surface(

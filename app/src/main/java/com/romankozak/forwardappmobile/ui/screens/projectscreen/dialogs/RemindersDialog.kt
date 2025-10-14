@@ -60,12 +60,19 @@ fun RemindersDialog(
     }
 
     LaunchedEffect(item) {
-        val goalId = when (item) {
+        val entityId = when (item) {
             is ListItemContent.GoalItem -> item.goal.id
+            is ListItemContent.SublistItem -> item.project.id
             else -> null
         }
-        goalId?.let {
-            viewModel.loadReminders(it)
+        val entityType = when (item) {
+            is ListItemContent.GoalItem -> "GOAL"
+            is ListItemContent.SublistItem -> "PROJECT"
+            else -> null
+        }
+
+        if (entityId != null && entityType != null) {
+            viewModel.loadReminders(entityId, entityType)
         }
     }
 
