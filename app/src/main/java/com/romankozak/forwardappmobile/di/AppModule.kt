@@ -67,7 +67,8 @@ MIGRATION_46_47,
 MIGRATION_47_48,
 MIGRATION_48_49,
 MIGRATION_49_50,
-MIGRATION_50_51
+MIGRATION_50_51,
+MIGRATION_51_52
         ).build()
 
     @Provides
@@ -114,6 +115,9 @@ MIGRATION_50_51
 
     @Provides
     fun provideRecentItemDao(db: AppDatabase): RecentItemDao = db.recentItemDao()
+
+    @Provides
+    fun provideProjectArtifactDao(db: AppDatabase): ProjectArtifactDao = db.projectArtifactDao()
 
     @Provides
     fun provideRecurringTaskDao(db: AppDatabase): RecurringTaskDao = db.recurringTaskDao()

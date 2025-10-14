@@ -52,6 +52,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.util.UUID
 import kotlinx.coroutines.withContext
 
 private const val TAG = "BacklogVM_DEBUG"
@@ -300,6 +301,17 @@ constructor(
         }
       }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+  val projectArtifact: StateFlow<ProjectArtifact?> =
+    projectIdFlow
+      .flatMapLatest { id ->
+        if (id.isNotEmpty()) {
+          projectRepository.getProjectArtifactStream(id)
+        } else {
+          flowOf(null)
+        }
+      }
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
   val inputHandler =
     InputHandler(
@@ -1652,5 +1664,34 @@ constructor(
 
     fun onDismissEditLogEntryDialog() {
         _uiState.update { it.copy(logEntryToEdit = null) }
+    }
+
+    fun onAddMilestone() {
+        viewModelScope.launch {
+            projectRepository.addProjectLogEntry(
+                projectId = projectIdFlow.value,
+                type = ProjectLogEntryTypeValues.MILESTONE,
+                description = "New Milestone",
+            )
+        }
+    }
+
+    fun onSaveArtifact(content: String) {
+        viewModelScope.launch {
+            val currentArtifact = projectArtifact.value
+            if (currentArtifact == null) {
+                projectRepository.createProjectArtifact(
+                    ProjectArtifact(
+                        id = UUID.randomUUID().toString(),
+                        projectId = projectIdFlow.value,
+                        content = content,
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            } else {
+                projectRepository.updateProjectArtifact(currentArtifact.copy(content = content, updatedAt = System.currentTimeMillis()))
+            }
+        }
     }
 }

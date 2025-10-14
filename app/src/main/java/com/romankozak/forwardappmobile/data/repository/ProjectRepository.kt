@@ -60,6 +60,7 @@ constructor(
     private val projectManagementDao: ProjectManagementDao,
     private val recentItemDao: RecentItemDao,
     val reminderDao: ReminderDao,
+    private val projectArtifactDao: ProjectArtifactDao,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "CUSTOM_LIST_DEBUG"
@@ -124,7 +125,7 @@ constructor(
         )
     }
 
-    private suspend fun addProjectLogEntry(
+    suspend fun addProjectLogEntry(
         projectId: String,
         type: String,
         description: String,
@@ -967,5 +968,17 @@ constructor(
 
     suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog) {
         projectManagementDao.deleteLog(log)
+    }
+
+    fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> {
+        return projectArtifactDao.getArtifactForProjectStream(projectId)
+    }
+
+    suspend fun updateProjectArtifact(artifact: ProjectArtifact) {
+        projectArtifactDao.update(artifact)
+    }
+
+    suspend fun createProjectArtifact(artifact: ProjectArtifact) {
+        projectArtifactDao.insert(artifact)
     }
 }
