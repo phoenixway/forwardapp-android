@@ -1,11 +1,10 @@
-
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RemindersViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository,
+    private val reminderRepository: ReminderRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -30,7 +29,7 @@ class RemindersViewModel @Inject constructor(
         savedStateHandle["entityId"] = entityId
         savedStateHandle["entityType"] = entityType
         viewModelScope.launch {
-            projectRepository.reminderDao.getRemindersForEntity(entityId).collect { reminders ->
+            reminderRepository.getRemindersForEntityFlow(entityId).collect { reminders ->
                 _reminders.value = reminders
             }
         }
@@ -42,26 +41,19 @@ class RemindersViewModel @Inject constructor(
         if (entityId.isEmpty() || entityType.isEmpty()) return
 
         viewModelScope.launch {
-            val reminder = Reminder(
-                entityId = entityId,
-                entityType = entityType,
-                reminderTime = reminderTime,
-                status = "SCHEDULED",
-                creationTime = System.currentTimeMillis()
-            )
-            projectRepository.reminderDao.insert(reminder)
+            reminderRepository.createReminder(entityId, entityType, reminderTime)
         }
     }
 
     fun updateReminder(reminder: Reminder) {
         viewModelScope.launch {
-            projectRepository.reminderDao.update(reminder)
+            reminderRepository.updateReminder(reminder)
         }
     }
 
     fun deleteReminder(reminder: Reminder) {
         viewModelScope.launch {
-            projectRepository.reminderDao.delete(reminder)
+            reminderRepository.removeReminder(reminder)
         }
     }
 
