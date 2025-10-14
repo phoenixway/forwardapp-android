@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.DashboardContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.InsightsContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.LogContent
@@ -16,6 +17,7 @@ private enum class ProjectManagementTab(
     val displayName: String,
 ) {
     Dashboard("Дашборд"),
+    Artifact("Артефакт"),
     Log("Історія"),
     Insights("Інсайти"),
 }
@@ -25,12 +27,14 @@ fun ProjectDashboardView(
     modifier: Modifier = Modifier,
     project: Project?,
     projectLogs: List<ProjectExecutionLog>,
+    projectArtifact: ProjectArtifact?,
     onStatusUpdate: (String, String?) -> Unit,
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
     projectTimeMetrics: ProjectTimeMetrics?,
     onEditLog: (ProjectExecutionLog) -> Unit,
     onDeleteLog: (ProjectExecutionLog) -> Unit,
+    onSaveArtifact: (String) -> Unit,
 ) {
     if (project == null) return
 
@@ -60,6 +64,13 @@ fun ProjectDashboardView(
                     onRecalculateTime = onRecalculateTime,
                     projectTimeMetrics = projectTimeMetrics,
                 )
+            ProjectManagementTab.Artifact -> {
+                ArtifactContent(
+                    artifact = projectArtifact,
+                    isManagementEnabled = project.isProjectManagementEnabled == true,
+                    onSaveArtifact = onSaveArtifact
+                )
+            }
             ProjectManagementTab.Log ->
                 LogContent(
                     logs = projectLogs,

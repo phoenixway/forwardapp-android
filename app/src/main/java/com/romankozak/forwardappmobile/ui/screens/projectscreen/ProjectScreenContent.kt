@@ -28,13 +28,15 @@ fun GoalDetailContent(
     inboxListState: LazyListState,
     dragDropState: SimpleDragDropState,
     onEditLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
-    onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit
+    onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
+    onSaveArtifact: (String) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
+    val projectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
 
     val calculatedSwipeEnabled = !isSelectionModeActive && !dragDropState.isDragging
@@ -71,12 +73,14 @@ fun GoalDetailContent(
                 modifier = modifier,
                 project = goalList,
                 projectLogs = projectLogs,
+                projectArtifact = projectArtifact,
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onStatusUpdate = viewModel::onProjectStatusUpdate,
                 projectTimeMetrics = uiState.projectTimeMetrics,
                 onRecalculateTime = viewModel::onRecalculateTime,
                 onEditLog = onEditLog,
-                onDeleteLog = onDeleteLog
+                onDeleteLog = onDeleteLog,
+                onSaveArtifact = onSaveArtifact
             )
         }
         ProjectViewMode.ATTACHMENTS -> {

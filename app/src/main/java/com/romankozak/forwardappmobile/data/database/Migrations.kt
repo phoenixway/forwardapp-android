@@ -661,3 +661,13 @@ val MIGRATION_50_51 = object : Migration(50, 51) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_recurringTaskId` ON `day_tasks` (`recurringTaskId`)")
     }
 }
+
+val MIGRATION_51_52 = object : Migration(51, 52) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `project_artifacts` (`id` TEXT NOT NULL, `projectId` TEXT NOT NULL, `content` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_project_artifacts_projectId` ON `project_artifacts` (`projectId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_artifacts_projectId_foreign` ON `project_artifacts` (`projectId`)")
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS `fk_project_artifacts_projects_projectId`\nBEFORE UPDATE ON `project_artifacts`\nFOR EACH ROW BEGIN\n    SELECT RAISE(ABORT, 'foreign key constraint failed')\n    WHERE NEW.`projectId` IS NOT NULL AND (SELECT `id` FROM `projects` WHERE `id` = NEW.`projectId`) IS NULL;\nEND")
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS `fk_project_artifacts_projects_projectId`\nBEFORE INSERT ON `project_artifacts`\nFOR EACH ROW BEGIN\n    SELECT RAISE(ABORT, 'foreign key constraint failed')\n    WHERE NEW.`projectId` IS NOT NULL AND (SELECT `id` FROM `projects` WHERE `id` = NEW.`projectId`) IS NULL;\nEND")
+    }
+}

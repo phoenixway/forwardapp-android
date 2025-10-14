@@ -362,6 +362,7 @@ fun ProjectsScreen(
                             onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
                             onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
                             onCloseSearch = viewModel::onCloseSearch,
+                            onAddMilestone = viewModel::onAddMilestone,
                             isViewModePanelVisible = uiState.isViewModePanelVisible,
                             onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                             suggestions = suggestions,
@@ -383,7 +384,8 @@ fun ProjectsScreen(
                 inboxListState = inboxListState,
                 dragDropState = dragDropState,
                 onEditLog = viewModel::onEditLogEntry,
-                onDeleteLog = viewModel::onDeleteLogEntry
+                onDeleteLog = viewModel::onDeleteLogEntry,
+                onSaveArtifact = viewModel::onSaveArtifact
             )
         }
     }

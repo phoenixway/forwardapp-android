@@ -86,7 +86,11 @@ fun LogContent(
             FilterPanel(
                 searchQuery = searchQuery,
                 onSearchChange = { searchQuery = it },
-                typeStates = typeStates
+                typeStates = typeStates,
+                onCloseSearch = {
+                    showSearch = false
+                    searchQuery = ""
+                }
             )
         }
 
@@ -118,6 +122,7 @@ private fun FilterPanel(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     typeStates: Map<String, MutableState<Boolean>>,
+    onCloseSearch: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -129,6 +134,11 @@ private fun FilterPanel(
             onValueChange = onSearchChange,
             label = { Text("Пошук по тексту") },
             leadingIcon = { Icon(Icons.Default.Search, null) },
+            trailingIcon = {
+                IconButton(onClick = onCloseSearch) {
+                    Icon(Icons.Default.Close, contentDescription = "Close Search")
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
