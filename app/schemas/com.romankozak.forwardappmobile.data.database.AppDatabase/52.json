@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 52,
-    "identityHash": "cefa8f5c24a26db085b1cddfe59807a8",
+    "identityHash": "f27032fdad00e181f4998c7d10eeb6c8",
     "entities": [
       {
         "tableName": "conversations",
@@ -1789,7 +1789,18 @@
           "columnNames": [
             "id"
           ]
-        }
+        },
+        "indices": [
+          {
+            "name": "index_project_artifacts_projectId",
+            "unique": false,
+            "columnNames": [
+              "projectId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_artifacts_projectId` ON `${TABLE_NAME}` (`projectId`)"
+          }
+        ]
       },
       {
         "tableName": "goals_fts",
@@ -1980,7 +1991,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cefa8f5c24a26db085b1cddfe59807a8')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f27032fdad00e181f4998c7d10eeb6c8')"
     ]
   }
 }
