@@ -8,6 +8,7 @@ import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.database.models.GlobalLinkSearchResult
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LinkItemDao {

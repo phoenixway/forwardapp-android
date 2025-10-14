@@ -532,8 +532,8 @@ private fun LoadingState(modifier: Modifier = Modifier) {
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
+ @OptIn(ExperimentalFoundationApi::class)
+ @Composable
 fun TaskGoalItem(
   taskWithReminder: DayTaskWithReminder,
   onToggle: () -> Unit,
@@ -544,7 +544,8 @@ fun TaskGoalItem(
 ) {
   val task = taskWithReminder.dayTask
   val reminder = taskWithReminder.reminder
-  val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem())
+    //val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem())
+   val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem(), reminder = reminder)
   Card(modifier = modifier.fillMaxWidth()) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -566,11 +567,13 @@ fun TaskGoalItem(
             onLongClick = { onLongPress() },
             onTagClick = { },
             onRelatedLinkClick = { },
+            modifier = Modifier,
             emojiToHide = null,
             contextMarkerToEmojiMap = emptyMap(),
             currentTimeMillis = System.currentTimeMillis(),
             isSelected = false,
-            reminder = reminder
+            reminder = reminder,
+            endAction = { }
           )
         }
         if (task.recurringTaskId != null) {

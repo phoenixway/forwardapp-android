@@ -21,6 +21,19 @@ import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }
 
+private data class CombinedData1(
+    val items: List<ListItem>,
+    val reminders: List<Reminder>,
+    val allGoals: List<Goal>,
+    val allProjects: List<Project>,
+    val allLinks: List<LinkItemEntity>
+)
+
+private data class CombinedData2(
+    val data1: CombinedData1,
+    val allNotes: List<NoteEntity>
+)
+
 private val GlobalSearchResultItem.typeOrder: Int
     get() =
         when (this) {
@@ -142,18 +155,28 @@ constructor(
             reminderDao.getAllReminders(),
             goalDao.getAllGoalsFlow(),
             projectDao.getAllProjects(),
-            linkItemDao.getAllEntitiesAsFlow(),
-            noteDao.getAllAsFlow(),
+            linkItemDao.getAllEntitiesAsFlow()
+        ) { items: List<ListItem>,
+            reminders: List<Reminder>,
+            allGoals: List<Goal>,
+            allProjects: List<Project>,
+            allLinks: List<LinkItemEntity> ->
+            CombinedData1(items, reminders, allGoals, allProjects, allLinks)
+        }.combine(
+            noteDao.getAllAsFlow()
+        ) { data1, allNotes ->
+            CombinedData2(data1, allNotes)
+        }.combine(
             customListDao.getAllCustomListsAsFlow()
-        ) { items, reminders, allGoals, allProjects, allLinks, allNotes, allCustomLists ->
-            val remindersMap = reminders.associateBy { it.entityId }
-            val goalsMap = allGoals.associateBy { it.id }
-            val projectsMap = allProjects.associateBy { it.id }
-            val linksMap = allLinks.associateBy { it.id }
-            val notesMap = allNotes.associateBy { it.id }
+        ) { data2, allCustomLists ->
+            val remindersMap = data2.data1.reminders.associateBy { it.entityId }
+            val goalsMap = data2.data1.allGoals.associateBy { it.id }
+            val projectsMap = data2.data1.allProjects.associateBy { it.id }
+            val linksMap = data2.data1.allLinks.associateBy { it.id }
+            val notesMap = data2.allNotes.associateBy { it.id }
             val customListsMap = allCustomLists.associateBy { it.id }
 
-            items.mapNotNull { item ->
+            data2.data1.items.mapNotNull { item ->
                 when (item.itemType) {
                     ListItemTypeValues.GOAL ->
                         goalsMap[item.entityId]?.let { goal ->
