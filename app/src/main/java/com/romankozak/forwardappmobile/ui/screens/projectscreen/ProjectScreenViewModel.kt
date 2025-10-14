@@ -1132,6 +1132,7 @@ constructor(
                 }",
         null,
       )
+      forceRefresh()
     }
 
   fun onClearReminder() =
@@ -1143,6 +1144,7 @@ constructor(
 
       onReminderDialogDismiss()
       showSnackbar("Нагадування скасовано", null)
+      forceRefresh()
     }
 
   fun onSetReminderForItem(item: ListItemContent) {
