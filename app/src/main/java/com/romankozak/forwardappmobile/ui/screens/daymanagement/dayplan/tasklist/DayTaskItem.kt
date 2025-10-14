@@ -162,7 +162,6 @@ private fun FlowRowScope.RenderBadges(
     reminder?.let { 
         EnhancedReminderBadge(
             reminder = it,
-            currentTimeMillis = currentTimeMillis,
         )
     }
     if (task.priority != TaskPriority.NONE) {

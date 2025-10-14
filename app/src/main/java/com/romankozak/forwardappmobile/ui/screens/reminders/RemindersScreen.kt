@@ -102,7 +102,6 @@ fun RemindersScreen(
                                 onRelatedLinkClick = { },
                                 emojiToHide = null,
                                 contextMarkerToEmojiMap = emptyMap(),
-                                currentTimeMillis = currentTimeMillis,
                                 isSelected = false,
                                 reminders = listOf(reminderItem.reminder),
                                 endAction = {

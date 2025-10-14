@@ -89,7 +89,7 @@ internal object ReminderTextUtil {
             return "Завтра о $formattedTime"
         }
 
-        val dateFormat = SimpleDateFormat("d MMM о HH:mm", Locale("uk", "UA"))
+        val dateFormat = SimpleDateFormat("d MMM о HH:mm", Locale.forLanguageTag("uk-UA"))
         return dateFormat.format(calendar.time)
     }
 
@@ -238,7 +238,6 @@ internal fun EnhancedRelatedLinkChip(
                     LinkType.URL -> Icons.Default.Link
                     LinkType.OBSIDIAN -> Icons.Default.Book
                     null -> Icons.Default.BrokenImage
-                    else -> Icons.Default.BrokenImage
                 },
                 contentDescription = null,
                 tint = contentColor,

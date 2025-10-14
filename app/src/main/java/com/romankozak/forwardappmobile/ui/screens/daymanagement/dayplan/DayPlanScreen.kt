@@ -570,7 +570,6 @@ fun TaskGoalItem(
             modifier = Modifier,
             emojiToHide = null,
             contextMarkerToEmojiMap = emptyMap(),
-            currentTimeMillis = System.currentTimeMillis(),
             isSelected = false,
             reminders = listOfNotNull(reminder),
             endAction = { }
