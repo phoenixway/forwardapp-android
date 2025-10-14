@@ -1,37 +1,52 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Comment
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
-@Composable
+ @Composable
 fun LogContent(
     logs: List<ProjectExecutionLog>,
     isManagementEnabled: Boolean,
@@ -43,125 +58,305 @@ fun LogContent(
         return
     }
 
-    LazyColumn(
+    var showSearch by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val allTypes = remember {
+        listOf(
+            ProjectLogEntryTypeValues.STATUS_CHANGE,
+            ProjectLogEntryTypeValues.COMMENT,
+            ProjectLogEntryTypeValues.AUTOMATIC,
+            ProjectLogEntryTypeValues.INSIGHT,
+            ProjectLogEntryTypeValues.MILESTONE,
+        )
+    }
+    val typeStates = remember { allTypes.associateWith { mutableStateOf(true) } }
+
+    val filteredLogs = logs
+        .filter { typeStates[it.type]?.value == true }
+        .filter {
+            it.description.contains(searchQuery, true) ||
+                    (it.details?.contains(searchQuery, true) == true)
+        }
+        .sortedByDescending { it.timestamp }
+
+    Column(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (logs.isEmpty()) {
-            item {
-                Text(
-                    "Історія проекту порожня.",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
+        AnimatedVisibility(visible = showSearch) {
+            FilterPanel(
+                searchQuery = searchQuery,
+                onSearchChange = { searchQuery = it },
+                typeStates = typeStates
+            )
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (filteredLogs.isEmpty()) {
+                item {
+                    PlaceholderContent(text = "Немає записів за вибраними фільтрами.")
+                }
+            } else {
+                items(filteredLogs, key = { it.id ?: it.timestamp }) { log ->
+                    LogEntryItem(
+                        log = log,
+                        onEdit = { onEditLog(log) },
+                        onDelete = { onDeleteLog(log) },
+                        onToggleSearch = { showSearch = !showSearch }
+                    )
+                }
             }
-        } else {
-            items(logs.sortedByDescending { it.timestamp }) { log ->
-                LogEntryItem(
-                    log = log,
-                    onEdit = { onEditLog(log) },
-                    onDelete = { onDeleteLog(log) },
+        }
+    }
+}
+
+@Composable
+private fun FilterPanel(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    typeStates: Map<String, MutableState<Boolean>>,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            label = { Text("Пошук по тексту") },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            typeStates.forEach { (type, state) ->
+                FilterChip(
+                    selected = state.value,
+                    onClick = { state.value = !state.value },
+                    label = { Text(typeToLabel(type)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = typeToIcon(type),
+                            contentDescription = null
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = typeToColor(type).copy(alpha = 0.2f)
+                    )
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/* ---------------------------------------------------------- */
+/*                       LOG ENTRY ITEM                        */
+/* ---------------------------------------------------------- */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun LogEntryItem(
     log: ProjectExecutionLog,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onToggleSearch: () -> Unit,
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-    val icon =
-        when (log.type) {
-            ProjectLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
-            ProjectLogEntryTypeValues.COMMENT -> Icons.Default.Comment
-            ProjectLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
-            ProjectLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
-            ProjectLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
-            else -> Icons.Default.Info
-        }
-    Box {
-        Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(
-                        onClick = { /* Handle click if necessary */ },
-                        onLongClick = { showMenu = true },
-                    ),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    var expanded by remember { mutableStateOf(false) }
+
+    val accent = typeToColor(log.type)
+    val icon = typeToIcon(log.type)
+    val smallLabel = typeToLabel(log.type)
+    val timeText = formatRelativeTime(log.timestamp)
+    val fullTime = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(log.timestamp))
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { expanded = true }
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            // Icon column
+            Column(
+                modifier = Modifier.weight(0.1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = log.type,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                Icon(icon, null, tint = accent, modifier = Modifier.size(24.dp))
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Content column
+            Column(modifier = Modifier.weight(0.9f)) {
+                Text(
+                    text = log.description.ifEmpty { smallLabel },
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    maxLines = Int.MAX_VALUE
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+
+                log.details?.let {
                     Text(
-                        text = log.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    log.details?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Text(
-                        text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(log.timestamp)),
+                        text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = Int.MAX_VALUE,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = fullTime,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(Icons.Default.MoreVert, null)
+                    }
+                }
+            }
+
+            DropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Редагувати") },
+                    onClick = {
+                        expanded = false
+                        onEdit()
+                    },
+                    leadingIcon = { Icon(Icons.Default.Edit, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Видалити") },
+                    onClick = {
+                        expanded = false
+                        onDelete()
+                    },
+                    leadingIcon = { Icon(Icons.Default.Delete, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Пошук") },
+                    onClick = {
+                        expanded = false
+                        onToggleSearch()
+                    },
+                    leadingIcon = { Icon(Icons.Default.Search, null) }
+                )
             }
         }
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false },
-        ) {
-            DropdownMenuItem(
-                text = { Text("Edit") },
-                onClick = {
-                    onEdit()
-                    showMenu = false
-                },
-                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Edit") },
+    }
+}
+
+/* ---------------------------------------------------------- */
+/*                       UTILITIES                             */
+/* ---------------------------------------------------------- */
+private fun typeToColor(type: String?): Color = when (type) {
+    ProjectLogEntryTypeValues.STATUS_CHANGE -> Color(0xFF00695C)
+    ProjectLogEntryTypeValues.COMMENT -> Color(0xFF1565C0)
+    ProjectLogEntryTypeValues.AUTOMATIC -> Color(0xFF6A1B9A)
+    ProjectLogEntryTypeValues.INSIGHT -> Color(0xFFF57C00)
+    ProjectLogEntryTypeValues.MILESTONE -> Color(0xFFD32F2F)
+    else -> Color(0xFF546E7A)
+}
+
+private fun typeToIcon(type: String?) = when (type) {
+    ProjectLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
+    ProjectLogEntryTypeValues.COMMENT -> Icons.Default.Comment
+    ProjectLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
+    ProjectLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
+    ProjectLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
+    else -> Icons.Default.Info
+}
+
+private fun typeToLabel(type: String?): String = when (type) {
+    ProjectLogEntryTypeValues.STATUS_CHANGE -> "Статус"
+    ProjectLogEntryTypeValues.COMMENT -> "Коментар"
+    ProjectLogEntryTypeValues.AUTOMATIC -> "Системний"
+    ProjectLogEntryTypeValues.INSIGHT -> "Ідея"
+    ProjectLogEntryTypeValues.MILESTONE -> "Віха"
+    else -> "Інше"
+}
+
+private fun formatRelativeTime(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    val absDiff = abs(diff)
+    val minutes = (absDiff / 60000L).toInt()
+    val hours = (absDiff / 3600000L).toInt()
+    val days = (absDiff / (24 * 3600000L)).toInt()
+    return when {
+        absDiff < 60_000L -> "щойно"
+        minutes < 60 -> "$minutes хв. тому"
+        hours < 24 -> "$hours год. тому"
+        days < 7 -> "$days дн. тому"
+        else -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(timestamp))
+    }
+}
+
+ @Composable
+internal fun PlaceholderContent(text: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
-            DropdownMenuItem(
-                text = { Text("Delete") },
-                onClick = {
-                    onDelete()
-                    showMenu = false
-                },
-                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = "Delete") },
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Додайте перший запис, щоб відстежувати прогрес.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
             )
         }
     }
 }
 
+/* ---------------------------------------------------------- */
+/*                       PREVIEW                               */
+/* ---------------------------------------------------------- */
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
-internal fun PlaceholderContent(text: String) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun LogContentPreview() {
+    val now = System.currentTimeMillis()
+    val sample = listOf(
+        ProjectExecutionLog(id = "1", projectId = "0", timestamp = now - 20 * 60_000, type = ProjectLogEntryTypeValues.STATUS_CHANGE, description = "Перенесено до 'Робота'", details = "Завершено перевірку"),
+        ProjectExecutionLog(id = "2", projectId = "0", timestamp = now - 120 * 60_000, type = ProjectLogEntryTypeValues.COMMENT, description = "Коментар", details = "Потрібно уточнити терміни"),
+        ProjectExecutionLog(id = "3", projectId = "0", timestamp = now - 3_600_000 * 5, type = ProjectLogEntryTypeValues.INSIGHT, description = "Ідея: кешування", details = "Зменшить навантаження"),
+    )
+    MaterialTheme {
+        LogContent(sample, true, {}, {})
     }
 }
