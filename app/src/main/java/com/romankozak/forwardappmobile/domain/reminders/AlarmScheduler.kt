@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
@@ -29,7 +30,6 @@ class AlarmScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-        private val projectRepository: ProjectRepository,
     ) : AlarmSchedulerInterface {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
         private val tag = "ReminderFlow"
@@ -278,16 +278,10 @@ class AlarmScheduler
             cancelAlarm(ReminderBroadcastReceiver().getNotificationId(task.id))
         }
 
-        suspend fun snooze(goalId: String) {
-            // Log.d(tag, "AlarmScheduler: snooze() called for goal ID: $goalId")
-            // val goal = projectRepository.getGoalById(goalId)
-            // if (goal != null) {
-            //     val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
-            //     val snoozedGoal = goal.copy(reminderTime = snoozeTime)
-            //     projectRepository.updateGoal(snoozedGoal)
-            //     schedule(snoozedGoal)
-            // } else {
-            //     Log.e(tag, "AlarmScheduler: Goal with ID $goalId not found for snoozing.")
-            // }
+        suspend fun snooze(reminder: Reminder) {
+            // Log.d(tag, "AlarmScheduler: snooze() called for reminder ID: ${reminder.id}")
+            // val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
+            // val snoozedReminder = reminder.copy(reminderTime = snoozeTime, status = "SNOOZED", snoozeUntil = snoozeTime)
+            // schedule(snoozedReminder)
         }
     }
