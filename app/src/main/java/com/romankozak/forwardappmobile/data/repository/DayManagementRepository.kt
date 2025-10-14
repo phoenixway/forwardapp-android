@@ -582,6 +582,7 @@ class DayManagementRepository
             if (recurringTask.endDate != null && date > recurringTask.endDate) return false
 
             return when (recurringTask.recurrenceRule.frequency) {
+                RecurrenceFrequency.HOURLY -> true
                 RecurrenceFrequency.DAILY -> true
                 RecurrenceFrequency.WEEKLY -> {
                     val taskDayOfWeek = when(dayOfWeek) {
@@ -596,8 +597,14 @@ class DayManagementRepository
                     }
                     recurringTask.recurrenceRule.daysOfWeek?.contains(taskDayOfWeek) ?: false
                 }
-                // TODO: Implement MONTHLY and YEARLY
-                else -> false
+                RecurrenceFrequency.MONTHLY -> {
+                    val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
+                    calendar.get(Calendar.DAY_OF_MONTH) == startCalendar.get(Calendar.DAY_OF_MONTH)
+                }
+                RecurrenceFrequency.YEARLY -> {
+                    val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
+                    calendar.get(Calendar.DAY_OF_YEAR) == startCalendar.get(Calendar.DAY_OF_YEAR)
+                }
             }
         }
 

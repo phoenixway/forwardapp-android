@@ -10,13 +10,15 @@ import androidx.compose.ui.graphics.Color
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayTaskWithReminder
+
 @Composable
 fun TaskList(
-    tasks: List<DayTask>,
+    tasks: List<DayTaskWithReminder>,
     dayPlan: DayPlan?,
     totalPoints: Int,
-    onTaskLongPress: (DayTask) -> Unit,
-    onTasksReordered: (List<DayTask>) -> Unit,
+    onTaskLongPress: (DayTaskWithReminder) -> Unit,
+    onTasksReordered: (List<DayTaskWithReminder>) -> Unit,
     onNavigateToPreviousDay: () -> Unit,
     onNavigateToNextDay: () -> Unit,
     isNextDayNavigationEnabled: Boolean,

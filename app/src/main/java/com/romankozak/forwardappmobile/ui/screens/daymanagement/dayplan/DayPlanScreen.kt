@@ -150,7 +150,6 @@ fun CompactDayPlanHeader(
     Column(
       modifier =
         Modifier.fillMaxWidth()
-          // REMOVED: .statusBarsPadding() - this was causing the big vertical space
           .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp) // Added top padding instead
     ) {
       Row(
@@ -313,19 +312,19 @@ fun DayPlanScreen(
 
   if (taskToEdit != null) {
     EditRecurringTaskDialog(
-      task = taskToEdit!!,
+      taskWithReminder = taskToEdit!!,
       onDismiss = { viewModel.dismissEditConfirmationDialog() },
-      onConfirmEditSingle = { viewModel.editSingleInstanceOfRecurringTask(it) },
-      onConfirmEditAll = { viewModel.editAllFutureInstancesOfRecurringTask(it) },
+      onConfirmEditSingle = { viewModel.editSingleInstanceOfRecurringTask(taskToEdit!!) },
+      onConfirmEditAll = { viewModel.editAllFutureInstancesOfRecurringTask(taskToEdit!!) },
     )
   }
 
   if (taskToDelete != null) {
     DeleteRecurringTaskDialog(
-      task = taskToDelete!!,
+      taskWithReminder = taskToDelete!!,
       onDismiss = { viewModel.dismissDeleteConfirmationDialog() },
-      onConfirmDeleteSingle = { viewModel.deleteSingleInstanceOfRecurringTask(it) },
-      onConfirmDeleteAll = { viewModel.deleteAllFutureInstancesOfRecurringTask(it) },
+      onConfirmDeleteSingle = { viewModel.deleteSingleInstanceOfRecurringTask(taskToDelete!!) },
+      onConfirmDeleteAll = { viewModel.deleteAllFutureInstancesOfRecurringTask(taskToDelete!!) },
     )
   }
 
@@ -369,12 +368,12 @@ fun DayPlanScreen(
           }
           else -> {
             val tasks = uiState.tasks
-            val totalPoints = tasks.filter { it.completed }.sumOf { it.points }
+            val totalPoints = tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points }
                         TaskList(
                           tasks = tasks,
                           dayPlan = uiState.dayPlan,
                           totalPoints = totalPoints,
-                          onTaskLongPress = { task -> viewModel.onTaskLongPressed(task) },
+                          onTaskLongPress = { taskWithReminder -> viewModel.onTaskLongPressed(taskWithReminder) },
                           onTasksReordered = { reorderedList ->
                             uiState.dayPlan?.let { dayPlan ->
                               viewModel.updateTasksOrder(dayPlan.id, reorderedList)
@@ -423,21 +422,21 @@ fun DayPlanScreen(
     )
   }
 
-  selectedTask?.let { task ->
+  selectedTask?.let { selectedTaskWithReminder ->
     TaskOptionsBottomSheet(
-      task = task,
+      taskWithReminder = selectedTaskWithReminder,
       onDismiss = viewModel::clearSelectedTask,
-      onEdit = { viewModel.onEditTaskClicked(task) },
-      onDelete = { taskToDelete ->
+      onEdit = { viewModel.onEditTaskClicked(selectedTaskWithReminder) },
+      onDelete = { 
         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-        viewModel.onDeleteTaskClicked(taskToDelete)
+        viewModel.onDeleteTaskClicked(it)
       },
       onSetReminder = { showReminderDialog = true },
       showAddToTodayOption = !uiState.isToday,
-      onAddToToday = { viewModel.copyTaskToTodaysPlan(task) },
-      onShowInBacklog = { onNavigateToBacklog(task) },
-      onMoveToTop = { viewModel.moveTaskToTop(task) },
-      onMoveToTomorrow = { viewModel.moveTaskToTomorrow(task) },
+      onAddToToday = { viewModel.copyTaskToTodaysPlan(selectedTaskWithReminder) },
+      onShowInBacklog = { onNavigateToBacklog(selectedTaskWithReminder.dayTask) },
+      onMoveToTop = { viewModel.moveTaskToTop(selectedTaskWithReminder) },
+      onMoveToTomorrow = { viewModel.moveTaskToTomorrow(selectedTaskWithReminder) },
     )
   }
 
@@ -450,36 +449,37 @@ fun DayPlanScreen(
         viewModel.clearSelectedTask()
       },
       onSetReminder = { reminderTime ->
-        // viewModel.setTaskReminder(selectedTask!!.id, reminderTime)
+        selectedTask?.let { viewModel.setTaskReminder(it.dayTask.id, reminderTime) }
         showReminderDialog = false
         viewModel.clearSelectedTask()
       },
       onClearReminder = {
-        // viewModel.clearTaskReminder(selectedTask!!.id)
+        selectedTask?.let { viewModel.clearTaskReminder(it.dayTask.id) }
         showReminderDialog = false
         viewModel.clearSelectedTask()
       },
-      // currentReminderTime = selectedTask!!.reminderTime,
+      currentReminderTime = selectedTask?.reminder?.reminderTime,
     )
   }
 }
 
 @Composable
 fun EditRecurringTaskDialog(
-  task: DayTask,
+  taskWithReminder: DayTaskWithReminder,
   onDismiss: () -> Unit,
-  onConfirmEditSingle: (DayTask) -> Unit,
-  onConfirmEditAll: (DayTask) -> Unit,
+  onConfirmEditSingle: (DayTaskWithReminder) -> Unit,
+  onConfirmEditAll: (DayTaskWithReminder) -> Unit,
 ) {
+  val task = taskWithReminder.dayTask
   AlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Редагувати повторюване завдання?") },
     text = { Text("Ви хочете редагувати тільки це завдання, чи це і всі наступні?") },
     confirmButton = {
       Column {
-        Button(onClick = { onConfirmEditSingle(task) }) { Text("Тільки це завдання") }
+        Button(onClick = { onConfirmEditSingle(taskWithReminder) }) { Text("Тільки це завдання") }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { onConfirmEditAll(task) }) { Text("Це і всі наступні") }
+        Button(onClick = { onConfirmEditAll(taskWithReminder) }) { Text("Це і всі наступні") }
       }
     },
     dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
@@ -488,20 +488,21 @@ fun EditRecurringTaskDialog(
 
 @Composable
 fun DeleteRecurringTaskDialog(
-  task: DayTask,
+  taskWithReminder: DayTaskWithReminder,
   onDismiss: () -> Unit,
-  onConfirmDeleteSingle: (DayTask) -> Unit,
-  onConfirmDeleteAll: (DayTask) -> Unit,
+  onConfirmDeleteSingle: (DayTaskWithReminder) -> Unit,
+  onConfirmDeleteAll: (DayTaskWithReminder) -> Unit,
 ) {
+  val task = taskWithReminder.dayTask
   AlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Видалити повторюване завдання?") },
     text = { Text("Ви хочете видалити тільки це завдання, чи це і всі наступні?") },
     confirmButton = {
       Column(modifier = Modifier.padding(8.dp)) {
-        Button(onClick = { onConfirmDeleteSingle(task) }) { Text("Тільки це завдання") }
+        Button(onClick = { onConfirmDeleteSingle(taskWithReminder) }) { Text("Тільки це завдання") }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { onConfirmDeleteAll(task) }) { Text("Це і всі наступні") }
+        Button(onClick = { onConfirmDeleteAll(taskWithReminder) }) { Text("Це і всі наступні") }
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = onDismiss) { Text("Скасувати") }
       }
@@ -534,14 +535,16 @@ private fun LoadingState(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskGoalItem(
-  task: DayTask,
+  taskWithReminder: DayTaskWithReminder,
   onToggle: () -> Unit,
   onLongPress: () -> Unit,
   isDragging: Boolean = false,
   reorderableState: ReorderableLazyListState? = null,
   modifier: Modifier = Modifier,
 ) {
-  val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem()) // TODO: Get reminder info
+  val task = taskWithReminder.dayTask
+  val reminder = taskWithReminder.reminder
+  val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem())
   Card(modifier = modifier.fillMaxWidth()) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -566,7 +569,8 @@ fun TaskGoalItem(
             emojiToHide = null,
             contextMarkerToEmojiMap = emptyMap(),
             currentTimeMillis = System.currentTimeMillis(),
-            isSelected = false
+            isSelected = false,
+            reminder = reminder
           )
         }
         if (task.recurringTaskId != null) {
@@ -602,10 +606,10 @@ fun TaskGoalItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskOptionsBottomSheet(
-  task: DayTask,
+  taskWithReminder: DayTaskWithReminder,
   onDismiss: () -> Unit,
   onEdit: () -> Unit,
-  onDelete: (DayTask) -> Unit,
+  onDelete: (DayTaskWithReminder) -> Unit,
   onSetReminder: () -> Unit,
   showAddToTodayOption: Boolean,
   onAddToToday: () -> Unit,
@@ -613,6 +617,7 @@ fun TaskOptionsBottomSheet(
   onMoveToTop: () -> Unit,
   onMoveToTomorrow: () -> Unit,
 ) {
+  val task = taskWithReminder.dayTask
   ModalBottomSheet(onDismissRequest = onDismiss) {
     Column {
       ListItem(
@@ -678,7 +683,7 @@ fun TaskOptionsBottomSheet(
         },
         modifier =
           Modifier.clickable {
-            onDelete(task)
+            onDelete(taskWithReminder)
             onDismiss()
           },
       )
@@ -709,7 +714,7 @@ fun CompactDayPlanHeaderExtended(
     Column(
       modifier =
         Modifier.fillMaxWidth()
-          // REMOVED: .statusBarsPadding() - this was causing the big vertical space
+
           .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp) // Added top padding instead
     ) {
       Row(

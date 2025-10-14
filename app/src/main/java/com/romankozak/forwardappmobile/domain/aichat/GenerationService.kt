@@ -23,8 +23,7 @@ private const val NOTIFICATION_CHANNEL_ID = "generation_channel"
 
 @AndroidEntryPoint
 class GenerationService : Service() {
-    // @Inject
-    // lateinit var ollamaService: OllamaService
+
 
     @Inject
     lateinit var chatRepo: ChatRepository
@@ -95,20 +94,7 @@ class GenerationService : Service() {
                 Log.d(TAG, "History Content: ${history.joinToString { it.role + ": " + it.content.take(50) + "..." }}")
 
                 var fullResponse = ""
-                // try {
-                //     ollamaService
-                //         .generateChatResponseStream(url, smartModel, history, temperature)
-                //         .collect { chunk ->
-                //             fullResponse += chunk
-                //             val currentMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
-                //             currentMessage?.let {
-                //                 chatRepo.addMessage(it.copy(text = fullResponse, isStreaming = true))
-                //             }
-                //         }
-                // } catch (e: Exception) {
-                //     Log.e(TAG, "Error during ollamaService.generateChatResponseStream call", e)
-                //     throw e // Re-throw to be caught by the outer block
-                // }
+
 
                 val finalMessage = chatRepo.getChatHistory(conversationId).first().find { it.id == assistantMessageId }
                 finalMessage?.let {

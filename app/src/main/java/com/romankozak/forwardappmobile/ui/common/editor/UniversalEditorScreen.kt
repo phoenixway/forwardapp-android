@@ -88,6 +88,7 @@ fun UniversalEditorScreen(
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val contentFocusRequester = remember { FocusRequester() }
+  val snackbarHostState = remember { SnackbarHostState() }
 
   LaunchedEffect(Unit) {
       delay(300) // Delay to allow UI to settle before requesting focus
@@ -105,7 +106,7 @@ fun UniversalEditorScreen(
         }
 
         is UniversalEditorEvent.ShowError -> {
-          // TODO: Handle error
+          snackbarHostState.showSnackbar(it.message)
         }
       }
     }
@@ -134,46 +135,52 @@ fun UniversalEditorScreen(
       )
     },
     bottomBar = {
-      Box(modifier = Modifier.navigationBarsPadding()) {
-        AnimatedContent(
-          targetState = isToolbarVisible,
-          label = "toolbar_visibility",
-          transitionSpec = {
-            (slideInVertically { height -> height } + fadeIn()).togetherWith(
-              slideOutVertically { height -> height } + fadeOut()
-            )
-          },
-        ) { isVisible ->
-          if (isVisible) {
-            ExperimentalEnhancedListToolbar(
-              state = uiState.toolbarState,
-              onIndentBlock = viewModel::onIndentBlock,
-              onDeIndentBlock = viewModel::onDeIndentBlock,
-              onMoveBlockUp = viewModel::onMoveBlockUp,
-              onMoveBlockDown = viewModel::onMoveBlockDown,
-              onIndentLine = viewModel::onIndentLine,
-              onDeIndentLine = viewModel::onDeIndentLine,
-              onMoveLineUp = viewModel::onMoveLineUp,
-              onMoveLineDown = viewModel::onMoveLineDown,
-              onDeleteLine = viewModel::onDeleteLine,
-              onCopyLine = viewModel::onCopyLine,
-              onCutLine = viewModel::onCutLine,
-              onPasteLine = viewModel::onPasteLine,
-              onToggleBullet = viewModel::onToggleBullet,
-              onUndo = viewModel::onUndo,
-              onRedo = viewModel::onRedo,
-              onToggleVisibility = { isToolbarVisible = false },
-              onInsertDateTime = viewModel::onInsertDateTime,
-              onInsertTime = viewModel::onInsertTime,
-              onH1 = viewModel::onH1,
-              onH2 = viewModel::onH2,
-              onH3 = viewModel::onH3,
-              onBold = viewModel::onBold,
-              onItalic = viewModel::onItalic,
-              onInsertSeparator = viewModel::onInsertSeparator,
-            )
-          } else {
-            ShowToolbarButton(onClick = { isToolbarVisible = true })
+      Column {
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Box(modifier = Modifier.navigationBarsPadding()) {
+          AnimatedContent(
+            targetState = isToolbarVisible,
+            label = "toolbar_visibility",
+            transitionSpec = {
+              (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                slideOutVertically { height -> height } + fadeOut()
+              )
+            },
+          ) { isVisible ->
+            if (isVisible) {
+              ExperimentalEnhancedListToolbar(
+                state = uiState.toolbarState,
+                onIndentBlock = viewModel::onIndentBlock,
+                onDeIndentBlock = viewModel::onDeIndentBlock,
+                onMoveBlockUp = viewModel::onMoveBlockUp,
+                onMoveBlockDown = viewModel::onMoveBlockDown,
+                onIndentLine = viewModel::onIndentLine,
+                onDeIndentLine = viewModel::onDeIndentLine,
+                onMoveLineUp = viewModel::onMoveLineUp,
+                onMoveLineDown = viewModel::onMoveLineDown,
+                onDeleteLine = viewModel::onDeleteLine,
+                onCopyLine = viewModel::onCopyLine,
+                onCutLine = viewModel::onCutLine,
+                onPasteLine = viewModel::onPasteLine,
+                onToggleBullet = viewModel::onToggleBullet,
+                onUndo = viewModel::onUndo,
+                onRedo = viewModel::onRedo,
+                onToggleVisibility = { isToolbarVisible = false },
+                onInsertDateTime = viewModel::onInsertDateTime,
+                onInsertTime = viewModel::onInsertTime,
+                onH1 = viewModel::onH1,
+                onH2 = viewModel::onH2,
+                onH3 = viewModel::onH3,
+                onBold = viewModel::onBold,
+                onItalic = viewModel::onItalic,
+                onInsertSeparator = viewModel::onInsertSeparator,
+              )
+            } else {
+              ShowToolbarButton(onClick = { isToolbarVisible = true })
+            }
           }
         }
       }
