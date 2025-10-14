@@ -1,63 +1,75 @@
-# План рефакторингу системи нагадувань
+## Оновлення плану рефакторингу (14 жовтня 2025)
 
-## Проблема
+### Виконані кроки:
 
-1.  **Фрагментована модель даних:** Інформація про нагадування (`reminderTime`) зберігається безпосередньо в сутностях `Goal`, `Project` і `Task`. Статуси нагадувань (`ReminderInfo`, `ProjectReminderInfo`) знаходяться в окремих таблицях. Існує також третя, схоже, застаріла таблиця `Reminder`. Це створює плутанину і надлишковість.
-2.  **Розкидана бізнес-логіка:** Логіка для створення, оновлення та видалення нагадувань дублюється в багатьох `ViewModel` (`ProjectScreenViewModel`, `GoalEditViewModel`, `MainScreenViewModel` і т.д.). Це ускладнює підтримку та внесення змін.
-3.  **Складний UI-лейер:** `RemindersViewModel` використовує складні `combine` операції для збору даних з різних джерел. Багато екранів мають власну логіку для управління діалогом вибору дати (`ReminderPickerDialog`).
+#### Фаза 1: Уніфікація моделі даних
+*   Створено нову, уніфіковану сутність `Reminder` (`app/src/main/java/com/romankozak/forwardappmobile/data/database/models/Reminder.kt`).
+*   Оновлено `AppDatabase.kt` для використання нової сутності `Reminder` та видалення посилань на застарілі `ReminderInfo` та `ProjectReminderInfo`.
+*   Оновлено `ReminderDao.kt` для роботи з новою сутністю `Reminder`.
+*   Видалено застарілі файли `ReminderInfoDao.kt` та `ProjectReminderInfoDao.kt`.
+*   Видалено застарілі класи `ReminderInfo` та `ReminderStatusValues` з `DatabaseModel.kt`.
+*   Видалено стовпець `reminder_time` з сутностей `Goal`, `Project` та `DayTask`.
+*   Створено міграцію `MIGRATION_50_51` у `Migrations.kt` для перенесення даних та оновлення схеми бази даних.
+*   Оновлено `AppModule.kt` для включення нової міграції та видалення `fallbackToDestructiveMigration()`.
 
-## План рефакторингу
+#### Фаза 2: Централізація бізнес-логіки
+*   Створено `ReminderRepository` (`app/src/main/java/com/romankozak/forwardappmobile/data/repository/ReminderRepository.kt`) для централізації всіх операцій з нагадуваннями.
+*   Створено `RepositoryModule.kt` для надання `ReminderRepository` через Hilt.
+*   Оновлено `AppModule.kt` для видалення провайдера `ReminderRepository` (перенесено до `RepositoryModule`).
+*   Оновлено `AlarmScheduler.kt`:
+    *   Додано залежність `ProjectRepository` та `DayManagementRepository` для отримання деталей сутностей.
+    *   Зроблено функцію `schedule` `suspend` функцією.
+    *   Оновлено функції `schedule` та `cancel` для роботи з об'єктом `Reminder`.
+    *   Видалено старі функції `schedule` та `cancel` для `Goal`, `Project` та `DayTask`.
+    *   Оновлено функцію `snooze` для використання нової функції `schedule`.
+*   Оновлено `ReminderRepository.kt` для використання `CoroutineScope` та `ioDispatcher` для запуску корутин.
 
-Моя мета — централізувати всю логіку, пов'язану з нагадуваннями, уніфікувати модель даних і спростити UI.
+#### Фаза 3: Спрощення UI та ViewModels (частково завершено)
+*   **`RemindersViewModel.kt`:**
+    *   Рефакторинг для використання `ReminderRepository`.
+    *   Оновлено `ReminderListItem` для зберігання об'єкта `Reminder`.
+    *   Переписано `reminders` flow для отримання даних з `ReminderRepository`.
+    *   Відновлено функції `setReminder`, `clearReminder`, `clearAllReminders` та `deleteReminder` для використання `ReminderRepository`.
+*   **`RemindersScreen.kt`:**
+    *   Оновлено для роботи з новою структурою `ReminderListItem`.
+    *   Логіка `isSnoozed` та `isCompleted` тепер виводиться з `reminderItem.reminder.status`.
+    *   Оновлено `ReminderPickerDialog` для використання коректних властивостей з об'єкта `reminder`.
+*   **`DayPlanViewModel.kt`:**
+    *   Відновлено функції `setTaskReminder` та `clearTaskReminder` для використання `ReminderRepository`.
+*   **`EditProjectViewModel.kt`:**
+    *   Інжектовано `ReminderRepository` та видалено `AlarmScheduler`.
+    *   Оновлено блок `init` для отримання нагадування та оновлення `uiState`.
+    *   Відновлено функції `onSetReminder` та `onClearReminder` для використання `ReminderRepository`.
+    *   Відновлено функцію `onSave` для планування/скасування нагадувань за допомогою `ReminderRepository`.
+*   **`GoalEditViewModel.kt`:**
+    *   Інжектовано `ReminderRepository` та видалено `AlarmScheduler`.
+    *   Оновлено блок `init` для отримання нагадування та оновлення `uiState`.
+    *   Відновлено функції `onSetReminder` та `onClearReminder` для використання `ReminderRepository`.
+    *   Відновлено функцію `onSave` для планування/скасування нагадувань за допомогою `ReminderRepository`.
+*   **Вирішено циклічну залежність:** Замінено пряму залежність `AlarmScheduler` на `Provider<AlarmScheduler>` у `DayManagementRepository.kt`.
 
-### Етап 1: Уніфікація моделі даних
+### Наступні кроки:
 
-1.  **Створити єдину сутність `Reminder`:** Це буде єдине джерело правди для всіх нагадувань у додатку.
+#### Фаза 4: Повна інтеграція UI та ViewModel
 
-    ```kotlin
-    package com.romankozak.forwardappmobile.data.database.models
+1.  **Оновити `ReminderBroadcastReceiver.kt`:**
+    *   Відновити логіку в `handleCompleteAction`, `handleSnoozeAction` та `handleDismissAction` для використання `ReminderRepository` для оновлення статусу сутності `Reminder`.
+    *   Це передбачає інжекцію `ReminderRepository` в `ReminderBroadcastReceiver`.
 
-    import androidx.room.Entity
-    import androidx.room.PrimaryKey
-    import java.util.UUID
+2.  **Оновити `MainScreenViewModel.kt`:**
+    *   Відновити функції `onSetReminder` та `onClearReminder` для використання `ReminderRepository`.
+    *   Відновити функцію `onSetReminderForProject`.
 
-    @Entity(tableName = "reminders")
-    data class Reminder(
-        @PrimaryKey val id: String = UUID.randomUUID().toString(),
-        val entityId: String,      // ID сутності (Goal, Project, Task)
-        val entityType: String,    // "GOAL", "PROJECT", "TASK"
-        val reminderTime: Long,
-        val status: String,        // "SCHEDULED", "COMPLETED", "SNOOZED", "DISMISSED"
-        val creationTime: Long,
-        val snoozeUntil: Long? = null
-    )
-    ```
+3.  **Оновити `ProjectScreenViewModel.kt`:**
+    *   Відновити функції `onSetReminder`, `onClearReminder`, `onSetReminderForItem` та `onSetReminderForProject` для використання `ReminderRepository`.
 
-2.  **Створити єдиний `ReminderDao`:** Один DAO для управління новою сутністю `Reminder`.
-3.  **Провести міграцію бази даних (Room Migration):**
-    *   Створити нову таблицю `reminders`.
-    *   Перенести дані з `reminderTime` (у `Goal`, `Project`, `Task`) та статусів (з `ReminderInfo`, `ProjectReminderInfo`) до нової таблиці.
-    *   Видалити поле `reminderTime` з таблиць `goals`, `projects`, `day_tasks`.
-    *   Видалити старі таблиці `reminder_info` та `project_reminder_info`.
+4.  **Оновити UI-компоненти для відображення статусу `Reminder`:**
+    *   `ReminderBadge.kt`: Оновити `EnhancedReminderBadge` для прийому об'єкта `Reminder` (або його статусу) безпосередньо.
+    *   `DayTaskItem.kt`: Відновити відображення інформації про нагадування за допомогою нової сутності `Reminder`.
+    *   `GoalItem.kt`: Відновити відображення інформації про нагадування за допомогою нової сутності `Reminder`.
+    *   `ProjectItem.kt`: Відновити відображення інформації про нагадування за допомогою нової сутності `Reminder`.
+    *   `SubprojectItemRow.kt`: Відновити відображення інформації про нагадування за допомогою нової сутності `Reminder`.
 
-### Етап 2: Централізація бізнес-логіки
+5.  **Очистити `TODO` та тимчасові коментарі:** Переглянути всі файли та видалити коментарі `// TODO:` та тимчасово закоментований код.
 
-1.  **Створити `ReminderRepository`:** Цей репозиторій стане єдиною точкою входу для всіх операцій з нагадуваннями. Він буде інкапсулювати `ReminderDao` та `AlarmScheduler`.
-    *   **Основні методи:**
-        *   `createOrUpdateReminder(entityId, entityType, reminderTime)`
-        *   `clearReminderForEntity(entityId)`
-        *   `snoozeReminder(reminderId)`
-        *   `dismissReminder(reminderId)`
-        *   `getReminderForEntityFlow(entityId): Flow<Reminder?>`
-        *   `getAllActiveRemindersFlow(): Flow<List<Reminder>>`
-
-2.  **Спростити `AlarmScheduler`:** Він прийматиме лише об'єкт `Reminder` і буде викликатися виключно з `ReminderRepository`.
-
-### Етап 3: Спрощення UI та ViewModels
-
-1.  **Створити Use Cases:** Замість дублювання логіки у `ViewModel`, створити спеціалізовані Use Cases (наприклад, `SetReminderUseCase`, `ClearReminderUseCase`), які будуть взаємодіяти з `ReminderRepository`.
-2.  **Рефакторинг `ViewModel`:**
-    *   Всі `ViewModel`, що працюють з нагадуваннями, будуть використовувати ці Use Cases. Наприклад, `GoalEditViewModel` просто викличе `setReminderUseCase(goal.id, "GOAL", time)`.
-    *   `RemindersViewModel` (для екрану зі списком нагадувань) значно спроститься. Він буде просто отримувати дані з `reminderRepository.getAllActiveRemindersFlow()`.
-3.  **Стандартизувати UI:**
-    *   `ReminderPickerDialog` стане єдиним компонентом для встановлення нагадувань. Його стан можна буде передавати з `ViewModel`, яка його викликає.
+Продовжую з оновлення `ReminderBroadcastReceiver.kt`.

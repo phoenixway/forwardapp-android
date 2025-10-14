@@ -67,7 +67,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    val goalId = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID) ?: "unknown"
+    val goalId = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_ID) ?: "unknown"
 
     // Перевіряємо, чи вже запущена активність для цієї ж цілі
     if (isActive && currentGoalId == goalId) {
@@ -102,14 +102,12 @@ class ReminderLockScreenActivity : ComponentActivity() {
 
     val notificationManager =
       getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    notificationManager.cancel(ReminderBroadcastReceiver().getNotificationId(goalId))
+    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(goalId))
 
-    setupLockScreenFlags()
-
-    val goalText = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT) ?: "Ваша мета"
-    val goalDescription = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION)
-    val goalEmoji = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI) ?: "🎯"
-    val extraInfo = intent.getStringExtra(ReminderBroadcastReceiver.EXTRA_INFO)
+    val goalText = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_TEXT) ?: "Ваша мета"
+    val goalDescription = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_DESCRIPTION)
+    val goalEmoji = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
+    val extraInfo = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_INFO)
 
     startAlarmSoundAndVibration()
 
@@ -294,8 +292,8 @@ class ReminderLockScreenActivity : ComponentActivity() {
   private fun cancelAllNotifications(goalId: String) {
     val notificationManager =
       getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    notificationManager.cancel(ReminderBroadcastReceiver().getNotificationId(goalId))
-    Log.d(tag, "Cancelled notification with ID: ${ReminderBroadcastReceiver().getNotificationId(goalId)}")
+    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(goalId))
+    Log.d(tag, "Cancelled notification with ID: ${ReminderBroadcastReceiver.Companion.getNotificationId(goalId)}")
   }
 
   private fun finishSafely() {
