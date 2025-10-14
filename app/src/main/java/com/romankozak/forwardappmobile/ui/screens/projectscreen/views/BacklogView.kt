@@ -80,18 +80,6 @@ fun BacklogView(
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
     val subprojectChildren by viewModel.subprojectChildren.collectAsStateWithLifecycle()
 
-    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        flow {
-            while (true) {
-                emit(System.currentTimeMillis())
-                delay(60_000L)
-            }
-        }.collect {
-            currentTime = it
-        }
-    }
-
     LaunchedEffect(viewModel.uiEventFlow) {
         viewModel.uiEventFlow.collect { event ->
             when (event) {
@@ -189,7 +177,6 @@ fun BacklogView(
                                 onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
-                                currentTimeMillis = currentTime,
                                 isSelected = isSelected,
 
                                 endAction = {
@@ -211,7 +198,6 @@ fun BacklogView(
                                 onCheckedChange = { isCompleted ->
                                     viewModel.onSubprojectCompletedChanged(content.project, isCompleted)
                                 },
-                                currentTimeMillis = currentTime,
                                 childProjects = children,
                                 onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
