@@ -77,7 +77,7 @@ class RemindersViewModel @Inject constructor(
     fun setReminder(id: String, timestamp: Long) {
         viewModelScope.launch {
             val item = reminders.value.find { it.reminder.id == id } ?: return@launch
-            reminderRepository.createOrUpdateReminder(item.reminder.entityId, item.reminder.entityType, timestamp)
+            reminderRepository.createReminder(item.reminder.entityId, item.reminder.entityType, timestamp)
             onDismissEditReminder()
         }
     }
@@ -85,7 +85,7 @@ class RemindersViewModel @Inject constructor(
     fun clearReminder(id: String) {
         viewModelScope.launch {
             val item = reminders.value.find { it.reminder.id == id } ?: return@launch
-            reminderRepository.clearReminderForEntity(item.reminder.entityId)
+            reminderRepository.clearRemindersForEntity(item.reminder.entityId)
             onDismissEditReminder()
         }
     }
@@ -93,7 +93,7 @@ class RemindersViewModel @Inject constructor(
     fun clearAllReminders() {
         viewModelScope.launch {
             reminders.value.forEach {
-                reminderRepository.clearReminderForEntity(it.reminder.entityId)
+                reminderRepository.clearRemindersForEntity(it.reminder.entityId)
             }
         }
     }
@@ -116,7 +116,7 @@ class RemindersViewModel @Inject constructor(
 
     fun deleteReminder(item: ReminderListItem) {
         viewModelScope.launch {
-            reminderRepository.clearReminderForEntity(item.reminder.entityId)
+            reminderRepository.clearRemindersForEntity(item.reminder.entityId)
         }
     }
 }

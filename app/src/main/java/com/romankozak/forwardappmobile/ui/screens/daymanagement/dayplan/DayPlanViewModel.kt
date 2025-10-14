@@ -421,8 +421,8 @@ constructor(
                                 flowOf(emptyList())
                             } else {
                                 combine(tasks.map { task ->
-                                    reminderRepository.getReminderForEntityFlow(task.id)
-                                        .map { reminder -> DayTaskWithReminder(task, reminder) }
+                                    reminderRepository.getRemindersForEntityFlow(task.id)
+                                        .map { reminders -> DayTaskWithReminder(task, reminders.firstOrNull()) }
                                 }) { it.toList() }
                             }
                         }
@@ -695,7 +695,7 @@ constructor(
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                reminderRepository.createOrUpdateReminder(taskId, "TASK", reminderTime)
+                reminderRepository.createReminder(taskId, "TASK", reminderTime)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Помилка встановлення нагадування") }
             }
@@ -706,7 +706,7 @@ constructor(
     fun clearTaskReminder(taskId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                reminderRepository.clearReminderForEntity(taskId)
+                reminderRepository.clearRemindersForEntity(taskId)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Помилка скасування нагадування") }
             }

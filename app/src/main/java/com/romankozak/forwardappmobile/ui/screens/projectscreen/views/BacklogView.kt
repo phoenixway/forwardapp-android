@@ -175,7 +175,7 @@ fun BacklogView(
                         is ListItemContent.GoalItem -> {
                             GoalItem(
                                 goal = content.goal,
-                                reminder = content.reminder,
+                                reminders = content.reminders,
                                 obsidianVaultName = obsidianVaultName,
                                 onCheckedChange = { isChecked ->
                                     viewModel.itemActionHandler.toggleGoalCompletedWithState(
@@ -204,7 +204,7 @@ fun BacklogView(
                             val children = subprojectChildren[content.project.id] ?: emptyList()
                             SubprojectItemRow(
                                 subprojectContent = content,
-                                reminder = content.reminder,
+                                reminders = content.reminders,
                                 isSelected = isSelected,
                                 onClick = { viewModel.itemActionHandler.onItemClick(content) },
                                 onLongClick = { viewModel.toggleSelection(content.listItem.id) },

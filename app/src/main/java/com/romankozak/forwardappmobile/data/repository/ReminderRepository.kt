@@ -27,7 +27,7 @@ class ReminderRepository @Inject constructor(
         return reminderDao.getAllReminders()
     }
 
-    suspend fun createOrUpdateReminder(
+    suspend fun createReminder(
         entityId: String,
         entityType: String,
         reminderTime: Long
@@ -43,16 +43,17 @@ class ReminderRepository @Inject constructor(
         repositoryScope.launch { alarmScheduler.schedule(reminder) }
     }
 
-    suspend fun clearReminderForEntity(entityId: String) {
-        try {
-            val reminder = reminderDao.getReminderForEntity(entityId).first()
-            if (reminder != null) {
-                reminderDao.delete(reminder)
-                alarmScheduler.cancel(reminder)
-            }
-        } catch (e: NoSuchElementException) {
-            // No reminder found, do nothing
+    suspend fun removeReminder(reminder: Reminder) {
+        reminderDao.delete(reminder)
+        alarmScheduler.cancel(reminder)
+    }
+
+    suspend fun clearRemindersForEntity(entityId: String) {
+        val reminders = reminderDao.getRemindersForEntity(entityId).first()
+        reminders.forEach { reminder ->
+            alarmScheduler.cancel(reminder)
         }
+        reminderDao.deleteByEntityId(entityId)
     }
 
     suspend fun snoozeReminder(reminderId: String) {
@@ -83,7 +84,7 @@ class ReminderRepository @Inject constructor(
         }
     }
 
-    fun getReminderForEntityFlow(entityId: String): Flow<Reminder?> {
-        return reminderDao.getReminderForEntity(entityId)
+    fun getRemindersForEntityFlow(entityId: String): Flow<List<Reminder>> {
+        return reminderDao.getRemindersForEntity(entityId)
     }
 }

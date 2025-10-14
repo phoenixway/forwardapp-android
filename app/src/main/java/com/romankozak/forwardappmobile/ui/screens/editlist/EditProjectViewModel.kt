@@ -73,8 +73,8 @@ class EditProjectViewModel
                         it
                     }
                 }
-                reminderRepository.getReminderForEntityFlow(projectId).collect { reminder ->
-                    _uiState.update { it.copy(reminderTime = reminder?.reminderTime) }
+                reminderRepository.getRemindersForEntityFlow(projectId).collect { reminders ->
+                    _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
                 }
             }
         }
@@ -114,9 +114,9 @@ class EditProjectViewModel
 
             viewModelScope.launch {
                 if (state.reminderTime != null) {
-                    reminderRepository.createOrUpdateReminder(projectId, "PROJECT", state.reminderTime)
+                    reminderRepository.createReminder(projectId, "PROJECT", state.reminderTime)
                 } else {
-                    reminderRepository.clearReminderForEntity(projectId)
+                    reminderRepository.clearRemindersForEntity(projectId)
                 }
                 projectRepository.updateProject(updatedProject)
             }
@@ -135,13 +135,13 @@ class EditProjectViewModel
                     set(year, month, day, hour, minute, 0)
                 }
             viewModelScope.launch {
-                reminderRepository.createOrUpdateReminder(projectId, "PROJECT", calendar.timeInMillis)
+                reminderRepository.createReminder(projectId, "PROJECT", calendar.timeInMillis)
             }
         }
 
         fun onClearReminder() {
             viewModelScope.launch {
-                reminderRepository.clearReminderForEntity(projectId)
+                reminderRepository.clearRemindersForEntity(projectId)
             }
         }
 

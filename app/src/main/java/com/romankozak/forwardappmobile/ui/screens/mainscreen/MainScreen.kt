@@ -325,13 +325,8 @@ private fun MainScreenScaffold(
         com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
-            onClearReminder =
-                if (record.reminderTime != null) {
-                    { viewModel.onClearReminder() }
-                } else {
-                    null
-                },
-            currentReminderTime = record.reminderTime,
+            onRemoveReminder = if (record.reminderTime != null) {{ _ -> viewModel.onClearReminder() }} else null,
+            currentReminderTimes = listOfNotNull(record.reminderTime),
         )
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,8 +35,8 @@ enum class ReminderType {
 fun ReminderPickerDialog(
     onDismiss: () -> Unit,
     onSetReminder: (Long) -> Unit,
-    onClearReminder: (() -> Unit)? = null,
-    currentReminderTime: Long? = null,
+    onRemoveReminder: ((Long) -> Unit)? = null,
+    currentReminderTimes: List<Long> = emptyList(),
 ) {
     var selectedType by remember { mutableStateOf(ReminderType.QUICK_DURATION) }
     var selectedDuration by remember { mutableStateOf<ReminderDuration?>(null) }
@@ -69,20 +70,44 @@ fun ReminderPickerDialog(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                currentReminderTime?.let { time ->
-                    Card(
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            ),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
+                if (currentReminderTimes.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Поточне нагадування:\n${formatDateTime(time)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(12.dp),
+                            "Поточні нагадування:",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
                         )
+                        currentReminderTimes.forEach { time ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = formatDateTime(time),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                    onRemoveReminder?.let {
+                                        IconButton(onClick = { it(time) }, modifier = Modifier.size(24.dp)) {
+                                            Icon(
+                                                Icons.Default.Close,
+                                                contentDescription = "Remove reminder",
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -116,14 +141,6 @@ fun ReminderPickerDialog(
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                onClearReminder?.let {
-                    if (currentReminderTime != null) {
-                        TextButton(onClick = it) {
-                            Text("Скасувати")
-                        }
-                    }
-                }
-
                 Button(
                     onClick = {
                         val reminderTime =
@@ -150,13 +167,13 @@ fun ReminderPickerDialog(
                             ReminderType.SPECIFIC_DATETIME -> selectedDateTime != null && selectedDateTime!! > System.currentTimeMillis()
                         },
                 ) {
-                    Text("Встановити")
+                    Text("Додати")
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Відмінити")
+                Text("Закрити")
             }
         },
     )
@@ -331,10 +348,10 @@ private fun CustomDurationPicker(
             fontWeight = FontWeight.Medium,
         )
 
-        FlowRow(
+        com.google.accompanist.flowlayout.FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            mainAxisSpacing = 8.dp,
+            crossAxisSpacing = 8.dp,
         ) {
             listOf(1, 2, 3, 5, 10, 30).forEach { mins ->
                 OutlinedButton(

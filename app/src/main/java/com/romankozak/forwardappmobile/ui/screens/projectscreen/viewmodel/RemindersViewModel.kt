@@ -28,8 +28,8 @@ class RemindersViewModel @Inject constructor(
     fun loadReminders(goalId: String) {
         savedStateHandle["goalId"] = goalId
         viewModelScope.launch {
-            projectRepository.reminderDao.getReminderForEntity(goalId).collect { reminder ->
-                _reminders.value = if (reminder != null) listOf(reminder) else emptyList()
+            projectRepository.reminderDao.getRemindersForEntity(goalId).collect { reminders ->
+                _reminders.value = reminders
             }
         }
     }

@@ -42,8 +42,8 @@ fun RemindersDialog(
                 }
                 viewModel.onEditReminderDismiss()
             },
-            onClearReminder = null,
-            currentReminderTime = editingReminder?.reminderTime
+            onRemoveReminder = null,
+            currentReminderTimes = listOfNotNull(editingReminder?.reminderTime)
         )
     }
 
@@ -54,8 +54,8 @@ fun RemindersDialog(
                 viewModel.addReminder(time)
                 viewModel.onAddTimePickerDismiss()
             },
-            onClearReminder = null,
-            currentReminderTime = null
+            onRemoveReminder = null,
+            currentReminderTimes = emptyList()
         )
     }
 
