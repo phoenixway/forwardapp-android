@@ -89,21 +89,33 @@ object ReminderTextUtil {
     }
 }
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+
 @Composable
 fun EnhancedReminderBadge(
     reminder: Reminder,
-    currentTimeMillis: Long,
 ) {
+    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = System.currentTimeMillis()
+            delay(1000L)
+        }
+    }
+
     val isCompleted = reminder.status == "COMPLETED"
     val isSnoozed = reminder.status == "SNOOZED"
-    val isPastDue = reminder.reminderTime < currentTimeMillis && !isCompleted && !isSnoozed
+    val isPastDue = reminder.reminderTime < currentTime && !isCompleted && !isSnoozed
 
     val reminderText = when {
         isCompleted -> "Виконано"
         isSnoozed -> "Відкладено"
         isPastDue -> "Прострочено"
-        else -> remember(reminder.reminderTime, currentTimeMillis) {
-            ReminderTextUtil.formatReminderTime(reminder.reminderTime, currentTimeMillis)
+        else -> remember(reminder.reminderTime, currentTime) {
+            ReminderTextUtil.formatReminderTime(reminder.reminderTime, currentTime)
         }
     }
 

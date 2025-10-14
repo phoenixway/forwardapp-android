@@ -108,17 +108,24 @@ internal object ReminderTextUtil {
 @Composable
 internal fun EnhancedReminderBadge(
     reminderTime: Long,
-    currentTimeMillis: Long,
     isCompleted: Boolean = false
 ) {
+    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = System.currentTimeMillis()
+            delay(1000L)
+        }
+    }
+
     val reminderText = if (isCompleted) {
         "Completed"
     } else {
-        remember(reminderTime, currentTimeMillis) {
-            ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
+        remember(reminderTime, currentTime) {
+            ReminderTextUtil.formatReminderTime(reminderTime, currentTime)
         }
     }
-    val isPastDue = reminderTime < currentTimeMillis && !isCompleted
+    val isPastDue = reminderTime < currentTime && !isCompleted
 
     val backgroundColor by animateColorAsState(
         targetValue = when {
@@ -352,7 +359,6 @@ fun GoalItem(
     modifier: Modifier = Modifier,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
-    currentTimeMillis: Long,
     isSelected: Boolean,
     reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
@@ -440,7 +446,6 @@ fun GoalItem(
                             reminder?.let { 
                                 EnhancedReminderBadge(
                                     reminderTime = it.reminderTime,
-                                    currentTimeMillis = currentTimeMillis,
                                     isCompleted = it.status == "COMPLETED"
                                 )
                             }

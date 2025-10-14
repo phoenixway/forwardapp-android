@@ -54,6 +54,7 @@ import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.ui.common.components.EnhancedReminderBadge
+import androidx.compose.runtime.mutableLongStateOf
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -114,12 +115,19 @@ fun SubprojectItemRow(
     onTagClick: (String) -> Unit = {},
     childProjects: List<Project> = emptyList(),
     onChildProjectClick: (Project) -> Unit = {},
-    currentTimeMillis: Long,
     contextMarkerToEmojiMap: Map<String, String>,
     emojiToHide: String?,
     reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
+    var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTimeMillis = System.currentTimeMillis()
+            delay(1000L)
+        }
+    }
+
     val subproject = subprojectContent.project
     val futureReminders = reminders.filter { it.reminderTime >= currentTimeMillis }
     val reminder = if (futureReminders.isNotEmpty()) {
@@ -229,8 +237,7 @@ fun SubprojectItemRow(
                         }
                         is FlowItem.ReminderItem -> {
                             EnhancedReminderBadge(
-                                reminder = item.reminder,
-                                currentTimeMillis = currentTimeMillis
+                                reminder = item.reminder
                             )
                         }
                         is FlowItem.ScoreStatus -> {
@@ -291,5 +298,4 @@ fun SubprojectItemRow(
         }
         endAction()
     }
-}
 }
