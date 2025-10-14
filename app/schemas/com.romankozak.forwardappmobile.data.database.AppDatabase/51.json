@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 51,
-    "identityHash": "ba2090dfa8f947043cc9e223e67124fb",
+    "identityHash": "bcee91f87b301886f76100bdd823b0bc",
     "entities": [
       {
         "tableName": "conversations",
@@ -52,7 +52,7 @@
       },
       {
         "tableName": "goals",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `text` TEXT NOT NULL, `description` TEXT, `completed` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `relatedLinks` TEXT, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, `parentValueImportance` REAL DEFAULT 0.0, `impactOnParentGoal` REAL DEFAULT 0.0, `timeCost` REAL DEFAULT 0.0, `financialCost` REAL DEFAULT 0.0, `reminder_time` INTEGER, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `text` TEXT NOT NULL, `description` TEXT, `completed` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `relatedLinks` TEXT, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, `parentValueImportance` REAL DEFAULT 0.0, `impactOnParentGoal` REAL DEFAULT 0.0, `timeCost` REAL DEFAULT 0.0, `financialCost` REAL DEFAULT 0.0, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -197,11 +197,6 @@
             "columnName": "financialCost",
             "affinity": "REAL",
             "defaultValue": "0.0"
-          },
-          {
-            "fieldPath": "reminderTime",
-            "columnName": "reminder_time",
-            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -213,7 +208,7 @@
       },
       {
         "tableName": "projects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT, `project_status_text` TEXT, `project_log_level` TEXT, `total_time_spent_minutes` INTEGER, `reminder_time` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT, `project_status_text` TEXT, `project_log_level` TEXT, `total_time_spent_minutes` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -309,11 +304,6 @@
           {
             "fieldPath": "totalTimeSpentMinutes",
             "columnName": "total_time_spent_minutes",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "reminderTime",
-            "columnName": "reminder_time",
             "affinity": "INTEGER"
           },
           {
@@ -891,7 +881,7 @@
       },
       {
         "tableName": "day_tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dayPlanId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `goalId` TEXT, `projectId` TEXT, `activityRecordId` TEXT, `recurringTaskId` TEXT, `taskType` TEXT, `entityId` TEXT, `order` INTEGER NOT NULL, `priority` TEXT NOT NULL, `status` TEXT NOT NULL, `completed` INTEGER NOT NULL, `scheduledTime` INTEGER, `estimatedDurationMinutes` INTEGER, `actualDurationMinutes` INTEGER, `reminderTime` INTEGER, `dueTime` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `location` TEXT, `tags` TEXT, `notes` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `completedAt` INTEGER, `nextOccurrenceTime` INTEGER, `points` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`), FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`activityRecordId`) REFERENCES `activity_records`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`recurringTaskId`) REFERENCES `recurring_tasks`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dayPlanId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `goalId` TEXT, `projectId` TEXT, `activityRecordId` TEXT, `recurringTaskId` TEXT, `taskType` TEXT, `entityId` TEXT, `order` INTEGER NOT NULL, `priority` TEXT NOT NULL, `status` TEXT NOT NULL, `completed` INTEGER NOT NULL, `scheduledTime` INTEGER, `estimatedDurationMinutes` INTEGER, `actualDurationMinutes` INTEGER, `dueTime` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `location` TEXT, `tags` TEXT, `notes` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `completedAt` INTEGER, `nextOccurrenceTime` INTEGER, `points` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`), FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`activityRecordId`) REFERENCES `activity_records`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`recurringTaskId`) REFERENCES `recurring_tasks`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -983,11 +973,6 @@
           {
             "fieldPath": "actualDurationMinutes",
             "columnName": "actualDurationMinutes",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "reminderTime",
-            "columnName": "reminderTime",
             "affinity": "INTEGER"
           },
           {
@@ -1953,7 +1938,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ba2090dfa8f947043cc9e223e67124fb')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bcee91f87b301886f76100bdd823b0bc')"
     ]
   }
 }

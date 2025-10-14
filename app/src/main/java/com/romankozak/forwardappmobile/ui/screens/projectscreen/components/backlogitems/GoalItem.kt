@@ -415,9 +415,8 @@ fun GoalItem(
                 )
 
                 val hasStatusContent =
-                    (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                        (goal.reminderTime != null) ||
-                        (parsedData.icons.isNotEmpty()) ||
+                                            (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                                            // (goal.reminderTime != null) ||                        (parsedData.icons.isNotEmpty()) ||
                         (!goal.description.isNullOrBlank()) ||
                         (!goal.relatedLinks.isNullOrEmpty())
 
@@ -436,23 +435,23 @@ fun GoalItem(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            goal.reminderTime?.let { time ->
-                                Row(verticalAlignment = Alignment.CenterVertically) { // new Row
-                                    EnhancedReminderBadge(
-                                        reminderTime = time,
-                                        currentTimeMillis = currentTimeMillis,
-                                        isCompleted = isCompletedFromReminder
-                                    )
-                                    if (isSnoozed) {
-                                        Icon(
-                                            imageVector = Icons.Default.Snooze,
-                                            contentDescription = "Snoozed",
-                                            modifier = Modifier.size(16.dp).padding(start = 4.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
+                            // goal.reminderTime?.let { time ->
+                            //     Row(verticalAlignment = Alignment.CenterVertically) { // new Row
+                            //         EnhancedReminderBadge(
+                            //             reminderTime = time,
+                            //             currentTimeMillis = currentTimeMillis,
+                            //             isCompleted = isCompletedFromReminder
+                            //         )
+                            //         if (isSnoozed) {
+                            //             Icon(
+                            //                 imageVector = Icons.Default.Snooze,
+                            //                 contentDescription = "Snoozed",
+                            //                 modifier = Modifier.size(16.dp).padding(start = 4.dp),
+                            //                 tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            //             )
+                            //         }
+                            //     }
+                            // }
 
                             EnhancedScoreStatusBadge(
                                 scoringStatus = goal.scoringStatus,

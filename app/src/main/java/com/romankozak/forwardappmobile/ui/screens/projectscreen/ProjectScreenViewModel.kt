@@ -1116,19 +1116,19 @@ constructor(
 
       if (record.goalId != null) {
         projectRepository.getGoalById(record.goalId)?.let { goal ->
-          val updatedGoal = goal.copy(reminderTime = timestamp)
-          projectRepository.updateGoal(updatedGoal)
+          // val updatedGoal = goal.copy(reminderTime = timestamp)
+          // projectRepository.updateGoal(updatedGoal)
         }
       } else if (record.projectId != null) {
         projectRepository.getProjectById(record.projectId)?.let { project ->
-          val updatedProject = project.copy(reminderTime = timestamp)
-          projectRepository.updateProject(updatedProject)
+          // val updatedProject = project.copy(reminderTime = timestamp)
+          // projectRepository.updateProject(updatedProject)
         }
       }
 
-      val updatedRecord = record.copy(reminderTime = timestamp)
-      activityRepository.updateRecord(updatedRecord)
-      alarmScheduler.scheduleForActivityRecord(updatedRecord)
+      // val updatedRecord = record.copy(reminderTime = timestamp)
+      // activityRepository.updateRecord(updatedRecord)
+      // alarmScheduler.scheduleForActivityRecord(updatedRecord)
       onReminderDialogDismiss()
       showSnackbar(
         "Нагадування встановлено на ${
@@ -1147,18 +1147,18 @@ constructor(
 
       if (record.goalId != null) {
         projectRepository.getGoalById(record.goalId)?.let { goal ->
-          val updatedGoal = goal.copy(reminderTime = null)
-          projectRepository.updateGoal(updatedGoal)
+          // val updatedGoal = goal.copy(reminderTime = null)
+          // projectRepository.updateGoal(updatedGoal)
         }
       } else if (record.projectId != null) {
         projectRepository.getProjectById(record.projectId)?.let { project ->
-          val updatedProject = project.copy(reminderTime = null)
-          projectRepository.updateProject(updatedProject)
+          // val updatedProject = project.copy(reminderTime = null)
+          // projectRepository.updateProject(updatedProject)
         }
       }
 
-      val updatedRecord = record.copy(reminderTime = null)
-      activityRepository.updateRecord(updatedRecord)
+      // val updatedRecord = record.copy(reminderTime = null)
+      // activityRepository.updateRecord(updatedRecord)
       onReminderDialogDismiss()
       showSnackbar("Нагадування скасовано", null)
     }
@@ -1170,7 +1170,7 @@ constructor(
           ActivityRecord(
             id = item.goal.id,
             text = item.goal.text,
-            reminderTime = item.goal.reminderTime,
+            // reminderTime = item.goal.reminderTime,
             createdAt = item.goal.createdAt,
             projectId = item.listItem.projectId,
             goalId = item.goal.id,
@@ -1180,7 +1180,7 @@ constructor(
           ActivityRecord(
             id = item.project.id,
             text = item.project.name,
-            reminderTime = item.project.reminderTime,
+            // reminderTime = item.project.reminderTime,
             createdAt = item.project.createdAt,
             projectId = item.project.id,
             goalId = null,
@@ -1197,7 +1197,7 @@ constructor(
             val record = ActivityRecord(
                 id = proj.id,
                 text = proj.name,
-                reminderTime = proj.reminderTime,
+                // reminderTime = proj.reminderTime,
                 createdAt = proj.createdAt,
                 projectId = proj.id,
                 goalId = null,

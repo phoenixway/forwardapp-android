@@ -212,7 +212,7 @@ private fun DayTask.toGoal(): Goal {
     completed = this.completed,
     scoringStatus = ScoringStatusValues.NOT_ASSESSED,
     displayScore = 0,
-    reminderTime = this.dueTime,
+    // reminderTime = this.dueTime,
     relatedLinks = null,
     createdAt = this.createdAt,
     updatedAt = this.createdAt,
@@ -450,16 +450,16 @@ fun DayPlanScreen(
         viewModel.clearSelectedTask()
       },
       onSetReminder = { reminderTime ->
-        viewModel.setTaskReminder(selectedTask!!.id, reminderTime)
+        // viewModel.setTaskReminder(selectedTask!!.id, reminderTime)
         showReminderDialog = false
         viewModel.clearSelectedTask()
       },
       onClearReminder = {
-        viewModel.clearTaskReminder(selectedTask!!.id)
+        // viewModel.clearTaskReminder(selectedTask!!.id)
         showReminderDialog = false
         viewModel.clearSelectedTask()
       },
-      currentReminderTime = selectedTask!!.reminderTime,
+      // currentReminderTime = selectedTask!!.reminderTime,
     )
   }
 }

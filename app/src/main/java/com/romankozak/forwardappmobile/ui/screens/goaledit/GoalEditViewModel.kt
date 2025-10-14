@@ -143,7 +143,7 @@ class GoalEditViewModel
                         displayScore = goal.displayScore,
                         scoringStatus = goal.scoringStatus,
                         isScoringEnabled = goal.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
-                        reminderTime = goal.reminderTime,
+                        // reminderTime = goal.reminderTime,
                     )
                 }
             } else {
@@ -172,16 +172,16 @@ class GoalEditViewModel
 
                 val goalFromState = buildGoalFromState(_uiState.value)
                 val goalToSave = GoalScoringManager.calculateScores(goalFromState)
-                val oldReminderTime = currentGoal?.reminderTime
-                val newReminderTime = goalToSave.reminderTime
+                // val oldReminderTime = currentGoal?.reminderTime
+                // val newReminderTime = goalToSave.reminderTime
 
-                if (newReminderTime != oldReminderTime) {
-                    if (newReminderTime != null) {
-                        alarmScheduler.schedule(goalToSave)
-                    } else {
-                        currentGoal?.let { alarmScheduler.cancel(it) }
-                    }
-                }
+                // if (newReminderTime != oldReminderTime) {
+                //     if (newReminderTime != null) {
+                //         alarmScheduler.schedule(goalToSave)
+                //     } else {
+                //         currentGoal?.let { alarmScheduler.cancel(it) }
+                //     }
+                // }
 
                 if (currentGoal != null) {
                     projectRepository.updateGoal(goalToSave)
@@ -225,7 +225,7 @@ class GoalEditViewModel
                 weightCost = state.weightCost,
                 weightRisk = state.weightRisk,
                 scoringStatus = state.scoringStatus,
-                reminderTime = state.reminderTime,
+                // reminderTime = state.reminderTime,
             )
         }
 
@@ -334,21 +334,21 @@ class GoalEditViewModel
             }
         }
 
-        fun onSetReminder(
-            year: Int,
-            month: Int,
-            day: Int,
-            hour: Int,
-            minute: Int,
-        ) {
-            val calendar =
-                Calendar.getInstance().apply {
-                    set(year, month, day, hour, minute, 0)
-                }
-            _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
-        }
+        // fun onSetReminder(
+        //     year: Int,
+        //     month: Int,
+        //     day: Int,
+        //     hour: Int,
+        //     minute: Int,
+        // ) {
+        //     val calendar =
+        //         Calendar.getInstance().apply {
+        //             set(year, month, day, hour, minute, 0)
+        //         }
+        //     _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
+        // }
 
-        fun onClearReminder() {
-            _uiState.update { it.copy(reminderTime = null) }
-        }
+        // fun onClearReminder() {
+        //     _uiState.update { it.copy(reminderTime = null) }
+        // }
     }

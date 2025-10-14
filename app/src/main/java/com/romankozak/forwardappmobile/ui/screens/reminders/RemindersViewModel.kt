@@ -32,12 +32,12 @@ sealed class ReminderListItem {
     data class GoalReminder(val goal: Goal) : ReminderListItem() {
         override val id: String = goal.id
         override val name: String = goal.text
-        override val reminderTime: Long? = goal.reminderTime
+        override val reminderTime: Long? = 0L // TODO: Re-implement with new Reminder status
     }
     data class ProjectReminder(val project: Project) : ReminderListItem() {
         override val id: String = project.id
         override val name: String = project.name
-        override val reminderTime: Long? = project.reminderTime
+        override val reminderTime: Long? = 0L // TODO: Re-implement with new Reminder status
     }
 }
 
@@ -54,11 +54,11 @@ class RemindersViewModel @Inject constructor(
     val uiEvent = _uiEvent.receiveAsFlow()
 
     val reminders: StateFlow<List<ReminderListItem>> = projectRepository.getAllGoalsFlow()
-        .map { goals -> goals.filter { it.reminderTime != null } }
-        .combine(projectRepository.getAllProjectsFlow().map { projects -> projects.filter { it.reminderTime != null } }) { goals, projects ->
+        // .map { goals -> goals.filter { it.reminderTime != null } }
+        .combine(projectRepository.getAllProjectsFlow()/*.map { projects -> projects.filter { it.reminderTime != null } }*/) { goals, projects ->
             val goalReminders = goals.map { ReminderListItem.GoalReminder(it) }
             val projectReminders = projects.map { ReminderListItem.ProjectReminder(it) }
-            (goalReminders + projectReminders).sortedBy { it.reminderTime }
+            (goalReminders + projectReminders)//.sortedBy { it.reminderTime }
         }
         .stateIn(
             scope = viewModelScope,

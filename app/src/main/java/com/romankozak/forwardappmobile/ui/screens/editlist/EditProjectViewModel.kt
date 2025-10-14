@@ -57,7 +57,7 @@ class EditProjectViewModel
                             project = loadedProject,
                             name = loadedProject.name,
                             tags = loadedProject.tags?.filter { it.isNotBlank() } ?: emptyList(),
-                            reminderTime = loadedProject.reminderTime,
+                            // reminderTime = loadedProject.reminderTime,
                             scoringStatus = loadedProject.scoringStatus,
                             isScoringEnabled = loadedProject.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                             valueImportance = loadedProject.valueImportance,
@@ -96,7 +96,7 @@ class EditProjectViewModel
                     name = state.name,
                     tags = state.tags.filter { it.isNotBlank() }.map { it.trim() },
                     updatedAt = System.currentTimeMillis(),
-                    reminderTime = state.reminderTime,
+                    // reminderTime = state.reminderTime,
                     scoringStatus = state.scoringStatus,
                     valueImportance = state.valueImportance,
                     valueImpact = state.valueImpact,
@@ -111,38 +111,37 @@ class EditProjectViewModel
             val updatedProject = GoalScoringManager.calculateScoresForProject(tempProject)
 
             viewModelScope.launch {
-                val oldReminderTime = originalProject?.reminderTime
-                val newReminderTime = updatedProject.reminderTime
-                if (newReminderTime != oldReminderTime) {
-                    if (newReminderTime != null) {
-                        alarmScheduler.scheduleForProject(updatedProject)
-                    } else {
-                        originalProject?.let { alarmScheduler.cancelForProject(it) }
-                    }
-                }
-
+                            // val oldReminderTime = originalProject?.reminderTime
+                            // val newReminderTime = updatedProject.reminderTime
+                            // if (newReminderTime != oldReminderTime) {
+                            //     if (newReminderTime != null) {
+                            //         alarmScheduler.scheduleForProject(updatedProject)
+                            //     } else {
+                            //         originalProject?.let { alarmScheduler.cancelForProject(it) }
+                            //     }
+                            // }
                 projectRepository.updateProject(updatedProject)
             }
             return updatedProject
         }
 
-        fun onSetReminder(
-            year: Int,
-            month: Int,
-            day: Int,
-            hour: Int,
-            minute: Int,
-        ) {
-            val calendar =
-                Calendar.getInstance().apply {
-                    set(year, month, day, hour, minute, 0)
-                }
-            _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
-        }
+        // fun onSetReminder(
+        //     year: Int,
+        //     month: Int,
+        //     day: Int,
+        //     hour: Int,
+        //     minute: Int,
+        // ) {
+        //     val calendar =
+        //         Calendar.getInstance().apply {
+        //             set(year, month, day, hour, minute, 0)
+        //         }
+        //     _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
+        // }
 
-        fun onClearReminder() {
-            _uiState.update { it.copy(reminderTime = null) }
-        }
+        // fun onClearReminder() {
+        //     _uiState.update { it.copy(reminderTime = null) }
+        // }
 
         fun onScoringStatusChange(newStatus: String) {
             _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }
