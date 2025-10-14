@@ -169,7 +169,6 @@ class DayManagementRepository
 
             val projectId = listItemDao.findProjectIdForGoal(goalId)
                 ?: throw IllegalStateException("Goal $goalId is not associated with any project.")
-            // КІНЕЦЬ ВИПРАВЛЕННЯ --->
 
             val goal =
                 goalDao.getGoalById(goalId)
@@ -181,9 +180,9 @@ class DayManagementRepository
                     title = goal.text,
                     description = goal.description,
                     goalId = goalId,
-                    // <--- ПОЧАТОК ВИПРАВЛЕННЯ
+
                     projectId = projectId, // Крок 2.2: Передаємо знайдений projectId
-                    // КІНЕЦЬ ВИПРАВЛЕННЯ --->
+
                     scheduledTime = scheduledTime,
                     priority = mapImportanceToPriority(goal.valueImportance),
                     taskType = ListItemTypeValues.GOAL,
