@@ -5,14 +5,23 @@ import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import com.romankozak.forwardappmobile.di.IoDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 @Singleton
 class ReminderRepository @Inject constructor(
     private val reminderDao: ReminderDao,
-    private val alarmScheduler: AlarmScheduler
+    private val alarmScheduler: AlarmScheduler,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
+    private val repositoryScope = CoroutineScope(ioDispatcher + SupervisorJob())
+
 
     fun getAllReminders(): Flow<List<Reminder>> {
         return reminderDao.getAllReminders()
@@ -31,7 +40,7 @@ class ReminderRepository @Inject constructor(
             creationTime = System.currentTimeMillis()
         )
         reminderDao.insert(reminder)
-        // alarmScheduler.schedule(reminder) // TODO: Update AlarmScheduler to accept a Reminder object
+        repositoryScope.launch { alarmScheduler.schedule(reminder) }
     }
 
     suspend fun clearReminderForEntity(entityId: String) {
@@ -39,7 +48,7 @@ class ReminderRepository @Inject constructor(
             val reminder = reminderDao.getReminderForEntity(entityId).first()
             if (reminder != null) {
                 reminderDao.delete(reminder)
-                // alarmScheduler.cancel(reminder) // TODO: Update AlarmScheduler to accept a Reminder object
+                alarmScheduler.cancel(reminder)
             }
         } catch (e: NoSuchElementException) {
             // No reminder found, do nothing
@@ -52,7 +61,7 @@ class ReminderRepository @Inject constructor(
             val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
             val snoozedReminder = reminder.copy(status = "SNOOZED", snoozeUntil = snoozeTime)
             reminderDao.update(snoozedReminder)
-            // alarmScheduler.schedule(snoozedReminder) // TODO: Update AlarmScheduler to accept a Reminder object
+            repositoryScope.launch { alarmScheduler.schedule(snoozedReminder) }
         }
     }
 
@@ -61,7 +70,7 @@ class ReminderRepository @Inject constructor(
         if (reminder != null) {
             val dismissedReminder = reminder.copy(status = "DISMISSED")
             reminderDao.update(dismissedReminder)
-            // alarmScheduler.cancel(reminder) // TODO: Update AlarmScheduler to accept a Reminder object
+            alarmScheduler.cancel(reminder)
         }
     }
 
@@ -70,7 +79,7 @@ class ReminderRepository @Inject constructor(
         if (reminder != null) {
             val completedReminder = reminder.copy(status = "COMPLETED")
             reminderDao.update(completedReminder)
-            // alarmScheduler.cancel(reminder) // TODO: Update AlarmScheduler to accept a Reminder object
+            alarmScheduler.cancel(reminder)
         }
     }
 

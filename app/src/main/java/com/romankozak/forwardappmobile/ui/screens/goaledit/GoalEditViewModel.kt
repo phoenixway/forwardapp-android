@@ -60,7 +60,7 @@ class GoalEditViewModel
     constructor(
         private val projectRepository: ProjectRepository,
         private val contextHandler: ContextHandler,
-        private val alarmScheduler: AlarmScheduler,
+        private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val goalId: String? = savedStateHandle["goalId"]
@@ -86,6 +86,9 @@ class GoalEditViewModel
                 loadAvailableTags()
                 if (goalId != null) {
                     loadExistingGoal(goalId)
+                    reminderRepository.getReminderForEntityFlow(goalId).collect { reminder ->
+                        _uiState.update { it.copy(reminderTime = reminder?.reminderTime) }
+                    }
                 } else {
                     createNewGoal()
                 }
@@ -172,16 +175,12 @@ class GoalEditViewModel
 
                 val goalFromState = buildGoalFromState(_uiState.value)
                 val goalToSave = GoalScoringManager.calculateScores(goalFromState)
-                // val oldReminderTime = currentGoal?.reminderTime
-                // val newReminderTime = goalToSave.reminderTime
 
-                // if (newReminderTime != oldReminderTime) {
-                //     if (newReminderTime != null) {
-                //         alarmScheduler.schedule(goalToSave)
-                //     } else {
-                //         currentGoal?.let { alarmScheduler.cancel(it) }
-                //     }
-                // }
+                if (uiState.value.reminderTime != null) {
+                    reminderRepository.createOrUpdateReminder(goalToSave.id, "GOAL", uiState.value.reminderTime!!)
+                } else {
+                    reminderRepository.clearReminderForEntity(goalToSave.id)
+                }
 
                 if (currentGoal != null) {
                     projectRepository.updateGoal(goalToSave)
@@ -334,21 +333,29 @@ class GoalEditViewModel
             }
         }
 
-        // fun onSetReminder(
-        //     year: Int,
-        //     month: Int,
-        //     day: Int,
-        //     hour: Int,
-        //     minute: Int,
-        // ) {
-        //     val calendar =
-        //         Calendar.getInstance().apply {
-        //             set(year, month, day, hour, minute, 0)
-        //         }
-        //     _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
-        // }
+        fun onSetReminder(
+            year: Int,
+            month: Int,
+            day: Int,
+            hour: Int,
+            minute: Int,
+        ) {
+            val calendar =
+                Calendar.getInstance().apply {
+                    set(year, month, day, hour, minute, 0)
+                }
+            goalId?.let {
+                viewModelScope.launch {
+                    reminderRepository.createOrUpdateReminder(it, "GOAL", calendar.timeInMillis)
+                }
+            }
+        }
 
-        // fun onClearReminder() {
-        //     _uiState.update { it.copy(reminderTime = null) }
-        // }
+        fun onClearReminder() {
+            goalId?.let {
+                viewModelScope.launch {
+                    reminderRepository.clearReminderForEntity(it)
+                }
+            }
+        }
     }

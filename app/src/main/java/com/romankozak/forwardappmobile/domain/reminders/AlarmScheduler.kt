@@ -30,63 +30,54 @@ class AlarmScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val projectRepository: ProjectRepository,
+        private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
     ) : AlarmSchedulerInterface {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
         private val tag = "ReminderFlow"
 
-        fun schedule(goal: Goal) {
-            // Log.d(
-            //     tag,
-            //     "AlarmScheduler: schedule() called for goal ID: ${goal.id}, text: '${goal.text}', reminderTime: ${goal.reminderTime}",
-            // )
-            // val reminderTime = goal.reminderTime ?: return
-            // if (reminderTime <= System.currentTimeMillis()) {
-            //     Log.w(tag, "AlarmScheduler: Reminder time is in the past or now for goal. Aborting schedule.")
-            //     return
-            // }
-            // if (!checkPermissions()) return
+        suspend fun schedule(reminder: Reminder) {
+            Log.d(
+                tag,
+                "AlarmScheduler: schedule() called for reminder ID: ${reminder.id}, entityId: ${reminder.entityId}, entityType: ${reminder.entityType}, reminderTime: ${reminder.reminderTime}",
+            )
+            val reminderTime = reminder.reminderTime
+            if (reminderTime <= System.currentTimeMillis()) {
+                Log.w(tag, "AlarmScheduler: Reminder time is in the past or now for reminder. Aborting schedule.")
+                return
+            }
+            if (!checkPermissions()) return
 
-            // val intent =
-            //     Intent(context, ReminderBroadcastReceiver::class.java).apply {
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, goal.id)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, goal.text)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, goal.description)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "🎯")
-            //     }
-            // setExactAlarm(ReminderBroadcastReceiver().getNotificationId(goal.id), reminderTime, intent)
+            val intent =
+                Intent(context, ReminderBroadcastReceiver::class.java).apply {
+                    putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, reminder.entityId)
+                    val (title, description, emoji) = when (reminder.entityType) {
+                        "GOAL" -> {
+                            val goal = projectRepository.getGoalById(reminder.entityId)
+                            Triple(goal?.text, goal?.description, "🎯")
+                        }
+                        "PROJECT" -> {
+                            val project = projectRepository.getProjectById(reminder.entityId)
+                            Triple(project?.name, project?.description, "📂")
+                        }
+                        "TASK" -> {
+                            val task = dayManagementRepository.getTaskById(reminder.entityId)
+                            Triple(task?.title, task?.description, "📅")
+                        }
+                        else -> Triple("Reminder", "You have a reminder", "🔔")
+                    }
+                    putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, title)
+                    putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, description)
+                    putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, emoji)
+                }
+            setExactAlarm(ReminderBroadcastReceiver().getNotificationId(reminder.id), reminderTime, intent)
         }
 
-        fun cancel(goal: Goal) {
-            Log.d(tag, "AlarmScheduler: cancel() called for goal ID: ${goal.id}")
-            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(goal.id))
+        fun cancel(reminder: Reminder) {
+            Log.d(tag, "AlarmScheduler: cancel() called for reminder ID: ${reminder.id}")
+            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(reminder.id))
         }
 
-        fun scheduleForProject(project: Project) {
-            // Log.d(
-            //     tag,
-            //     "AlarmScheduler: scheduleForProject() called for project ID: ${project.id}, name: '${project.name}', reminderTime: ${project.reminderTime}",
-            // )
-            // val reminderTime = project.reminderTime ?: return
-            // if (reminderTime <= System.currentTimeMillis()) {
-            //     Log.w(tag, "AlarmScheduler: Reminder time is in the past or now for project. Aborting schedule.")
-            //     return
-            // }
-            // if (!checkPermissions()) return
-
-            // val intent =
-            //     Intent(context, ReminderBroadcastReceiver::class.java).apply {
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, project.id)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, project.name)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, project.description)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "📂")
-            //     }
-            // setExactAlarm(ReminderBroadcastReceiver().getNotificationId(project.id), reminderTime, intent)
-        }
-
-        fun cancelForProject(project: Project) {
-            Log.d(tag, "AlarmScheduler: cancelForProject() called for project ID: ${project.id}")
-            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(project.id))
-        }
 
         override fun scheduleNotification(
             requestCode: Int,
@@ -251,37 +242,12 @@ class AlarmScheduler
             // schedule(testGoal)
         }
 
-        fun scheduleForTask(task: DayTask) {
-            // Log.d(
-            //     tag,
-            //     "AlarmScheduler: scheduleForTask() called for task ID: ${task.id}, text: '${task.title}', reminderTime: ${task.reminderTime}",
-            // )
-            // val reminderTime = task.reminderTime ?: return
-            // if (reminderTime <= System.currentTimeMillis()) {
-            //     Log.w(tag, "AlarmScheduler: Reminder time for task is in the past. Aborting schedule.")
-            //     return
-            // }
-            // if (!checkPermissions()) return
 
-            // val intent =
-            //     Intent(context, ReminderBroadcastReceiver::class.java).apply {
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, task.id)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_TEXT, task.title)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, task.description)
-            //         putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, "📅")
-            //     }
-            // setExactAlarm(ReminderBroadcastReceiver().getNotificationId(task.id), reminderTime, intent)
-        }
-
-        fun cancelForTask(task: DayTask) {
-            Log.d(tag, "AlarmScheduler: cancelForTask() called for task ID: ${task.id}")
-            cancelAlarm(ReminderBroadcastReceiver().getNotificationId(task.id))
-        }
 
         suspend fun snooze(reminder: Reminder) {
-            // Log.d(tag, "AlarmScheduler: snooze() called for reminder ID: ${reminder.id}")
-            // val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
-            // val snoozedReminder = reminder.copy(reminderTime = snoozeTime, status = "SNOOZED", snoozeUntil = snoozeTime)
-            // schedule(snoozedReminder)
+            Log.d(tag, "AlarmScheduler: snooze() called for reminder ID: ${reminder.id}")
+            val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
+            val snoozedReminder = reminder.copy(reminderTime = snoozeTime, status = "SNOOZED", snoozeUntil = snoozeTime)
+            schedule(snoozedReminder)
         }
     }

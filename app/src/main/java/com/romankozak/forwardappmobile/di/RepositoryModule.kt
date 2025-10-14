@@ -7,6 +7,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @Module
@@ -17,6 +18,7 @@ object RepositoryModule {
     @Singleton
     fun provideReminderRepository(
         reminderDao: ReminderDao,
-        alarmScheduler: AlarmScheduler
-    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler)
+        alarmScheduler: AlarmScheduler,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): ReminderRepository = ReminderRepository(reminderDao, alarmScheduler, ioDispatcher)
 }

@@ -29,7 +29,7 @@ class DayManagementRepository
         private val recurringTaskDao: RecurringTaskDao,
         private val listItemDao: ListItemDao, 
         private val activityRepository: ActivityRepository,
-        private val alarmScheduler: AlarmScheduler,
+        private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         
@@ -700,7 +700,7 @@ class DayManagementRepository
                 if (task != null) {
                     
                     // if (task.reminderTime != null) {
-                    //     alarmScheduler.cancelForTask(task)
+                    //     alarmScheduler.get().cancelForTask(task)
                     // }
                     dayTaskDao.deleteById(taskId)
                     calculateAndSaveDailyMetrics(task.dayPlanId)
@@ -724,9 +724,9 @@ class DayManagementRepository
                 
                 // if (task.reminderTime != null) {
                 //     if (newStatus) {
-                //         alarmScheduler.cancelForTask(task)
+                //         alarmScheduler.get().cancelForTask(task)
                 //     } else {
-                //         alarmScheduler.scheduleForTask(task)
+                //         alarmScheduler.get().scheduleForTask(task)
                 //     }
                 // }
 

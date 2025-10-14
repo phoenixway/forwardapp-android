@@ -37,7 +37,7 @@ class EditProjectViewModel
     @Inject
     constructor(
         private val projectRepository: ProjectRepository,
-        private val alarmScheduler: AlarmScheduler,
+        private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val projectId: String = checkNotNull(savedStateHandle["listId"])
@@ -57,7 +57,6 @@ class EditProjectViewModel
                             project = loadedProject,
                             name = loadedProject.name,
                             tags = loadedProject.tags?.filter { it.isNotBlank() } ?: emptyList(),
-                            // reminderTime = loadedProject.reminderTime,
                             scoringStatus = loadedProject.scoringStatus,
                             isScoringEnabled = loadedProject.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                             valueImportance = loadedProject.valueImportance,
@@ -73,6 +72,9 @@ class EditProjectViewModel
                     } else {
                         it
                     }
+                }
+                reminderRepository.getReminderForEntityFlow(projectId).collect { reminder ->
+                    _uiState.update { it.copy(reminderTime = reminder?.reminderTime) }
                 }
             }
         }
@@ -111,37 +113,37 @@ class EditProjectViewModel
             val updatedProject = GoalScoringManager.calculateScoresForProject(tempProject)
 
             viewModelScope.launch {
-                            // val oldReminderTime = originalProject?.reminderTime
-                            // val newReminderTime = updatedProject.reminderTime
-                            // if (newReminderTime != oldReminderTime) {
-                            //     if (newReminderTime != null) {
-                            //         alarmScheduler.scheduleForProject(updatedProject)
-                            //     } else {
-                            //         originalProject?.let { alarmScheduler.cancelForProject(it) }
-                            //     }
-                            // }
+                if (state.reminderTime != null) {
+                    reminderRepository.createOrUpdateReminder(projectId, "PROJECT", state.reminderTime)
+                } else {
+                    reminderRepository.clearReminderForEntity(projectId)
+                }
                 projectRepository.updateProject(updatedProject)
             }
             return updatedProject
         }
 
-        // fun onSetReminder(
-        //     year: Int,
-        //     month: Int,
-        //     day: Int,
-        //     hour: Int,
-        //     minute: Int,
-        // ) {
-        //     val calendar =
-        //         Calendar.getInstance().apply {
-        //             set(year, month, day, hour, minute, 0)
-        //         }
-        //     _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
-        // }
+        fun onSetReminder(
+            year: Int,
+            month: Int,
+            day: Int,
+            hour: Int,
+            minute: Int,
+        ) {
+            val calendar =
+                Calendar.getInstance().apply {
+                    set(year, month, day, hour, minute, 0)
+                }
+            viewModelScope.launch {
+                reminderRepository.createOrUpdateReminder(projectId, "PROJECT", calendar.timeInMillis)
+            }
+        }
 
-        // fun onClearReminder() {
-        //     _uiState.update { it.copy(reminderTime = null) }
-        // }
+        fun onClearReminder() {
+            viewModelScope.launch {
+                reminderRepository.clearReminderForEntity(projectId)
+            }
+        }
 
         fun onScoringStatusChange(newStatus: String) {
             _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }
