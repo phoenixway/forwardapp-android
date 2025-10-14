@@ -195,8 +195,8 @@ fun SubprojectItemRow(
             val items = remember(childProjects, subproject, parsedData, emojiToHide, currentTimeMillis, reminder) {
                 buildList<FlowItem> {
                     add(FlowItem.SublistIcon { EnhancedSublistIconBadge() })
-                    childProjects.forEach { add(FlowItem.ChildProject(it)) }
                     reminder?.let { add(FlowItem.ReminderItem(it)) }
+                    childProjects.forEach { add(FlowItem.ChildProject(it)) }
                     add(FlowItem.ScoreStatus(subproject.scoringStatus, subproject.displayScore))
                     parsedData.icons
                         .filterNot { icon -> icon == emojiToHide }
