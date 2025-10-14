@@ -190,7 +190,6 @@ data class Goal(
     @ColumnInfo(defaultValue = "0.0") val impactOnParentGoal: Float? = null,
     @ColumnInfo(defaultValue = "0.0") val timeCost: Float? = null,
     @ColumnInfo(defaultValue = "0.0") val financialCost: Float? = null,
-    @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
 )
 
 
@@ -214,7 +213,6 @@ data class Project(
     @ColumnInfo(name = "project_status_text") val projectStatusText: String? = null,
     @ColumnInfo(name = "project_log_level") val projectLogLevel: String? = ProjectLogLevelValues.NORMAL,
     @ColumnInfo(name = "total_time_spent_minutes") val totalTimeSpentMinutes: Long? = 0,
-    @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") val valueImpact: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") val effort: Float = 0f,

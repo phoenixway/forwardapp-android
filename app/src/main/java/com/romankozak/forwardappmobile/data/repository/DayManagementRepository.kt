@@ -699,9 +699,9 @@ class DayManagementRepository
                 val task = dayTaskDao.getTaskById(taskId)
                 if (task != null) {
                     
-                    if (task.reminderTime != null) {
-                        alarmScheduler.cancelForTask(task)
-                    }
+                    // if (task.reminderTime != null) {
+                    //     alarmScheduler.cancelForTask(task)
+                    // }
                     dayTaskDao.deleteById(taskId)
                     calculateAndSaveDailyMetrics(task.dayPlanId)
                 }
@@ -722,34 +722,34 @@ class DayManagementRepository
                 )
 
                 
-                if (task.reminderTime != null) {
-                    if (newStatus) {
-                        alarmScheduler.cancelForTask(task)
-                    } else {
-                        alarmScheduler.scheduleForTask(task)
-                    }
-                }
+                // if (task.reminderTime != null) {
+                //     if (newStatus) {
+                //         alarmScheduler.cancelForTask(task)
+                //     } else {
+                //         alarmScheduler.scheduleForTask(task)
+                //     }
+                // }
 
                 recalculateDayProgress(taskId)
             }
 
-        suspend fun setTaskReminder(
-            taskId: String,
-            reminderTime: Long,
-        ) = withContext(ioDispatcher) {
-            dayTaskDao.updateReminderTime(taskId, reminderTime, System.currentTimeMillis())
-            val updatedTask = dayTaskDao.getTaskById(taskId)
-            if (updatedTask != null) {
-                alarmScheduler.scheduleForTask(updatedTask)
-            }
-        }
+        // suspend fun setTaskReminder(
+        //     taskId: String,
+        //     reminderTime: Long,
+        // ) = withContext(ioDispatcher) {
+        //     dayTaskDao.updateReminderTime(taskId, reminderTime, System.currentTimeMillis())
+        //     val updatedTask = dayTaskDao.getTaskById(taskId)
+        //     if (updatedTask != null) {
+        //         alarmScheduler.scheduleForTask(updatedTask)
+        //     }
+        // }
 
-        suspend fun clearTaskReminder(taskId: String) =
-            withContext(ioDispatcher) {
-                val task = dayTaskDao.getTaskById(taskId)
-                dayTaskDao.updateReminderTime(taskId, null, System.currentTimeMillis())
-                if (task != null) {
-                    alarmScheduler.cancelForTask(task)
-                }
-            }
+        // suspend fun clearTaskReminder(taskId: String) =
+        //     withContext(ioDispatcher) {
+        //         val task = dayTaskDao.getTaskById(taskId)
+        //         dayTaskDao.updateReminderTime(taskId, null, System.currentTimeMillis())
+        //         if (task != null) {
+        //             alarmScheduler.cancelForTask(task)
+        //         }
+        //     }
     }

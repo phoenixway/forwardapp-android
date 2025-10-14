@@ -92,7 +92,7 @@ private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
 private sealed class FlowItem {
     data class SublistIcon(val item: @Composable () -> Unit) : FlowItem()
     data class ChildProject(val project: Project) : FlowItem()
-    data class Reminder(val time: Long) : FlowItem()
+    // data class Reminder(val time: Long) : FlowItem()
     data class ScoreStatus(val scoringStatus: String, val displayScore: Int) : FlowItem()
     data class IconEmoji(val icon: String, val index: Int) : FlowItem()
     data class Tag(val tag: String) : FlowItem()
@@ -177,7 +177,7 @@ fun SubprojectItemRow(
 
             val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
                 (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                (subproject.reminderTime != null) ||
+                // (subproject.reminderTime != null) ||
                 (parsedData.icons.isNotEmpty()) ||
                 childProjects.isNotEmpty()
 
@@ -185,7 +185,7 @@ fun SubprojectItemRow(
                 buildList<FlowItem> {
                     add(FlowItem.SublistIcon { EnhancedSublistIconBadge() })
                     childProjects.forEach { add(FlowItem.ChildProject(it)) }
-                    subproject.reminderTime?.let { add(FlowItem.Reminder(it)) }
+                    // subproject.reminderTime?.let { add(FlowItem.Reminder(it)) }
                     add(FlowItem.ScoreStatus(subproject.scoringStatus, subproject.displayScore))
                     parsedData.icons
                         .filterNot { icon -> icon == emojiToHide }
@@ -216,12 +216,12 @@ fun SubprojectItemRow(
                                 onClick = { onChildProjectClick(item.project) },
                             )
                         }
-                        is FlowItem.Reminder -> {
-                            EnhancedReminderBadge(
-                                reminderTime = item.time,
-                                currentTimeMillis = currentTimeMillis,
-                            )
-                        }
+                        // is FlowItem.Reminder -> {
+                        //     EnhancedReminderBadge(
+                        //         reminderTime = item.time,
+                        //         currentTimeMillis = currentTimeMillis,
+                        //     )
+                        // }
                         is FlowItem.ScoreStatus -> {
                             EnhancedScoreStatusBadge(
                                 scoringStatus = item.scoringStatus,

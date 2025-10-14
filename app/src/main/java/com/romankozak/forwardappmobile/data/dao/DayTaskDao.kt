@@ -134,12 +134,7 @@ interface DayTaskDao {
         updatedAt: Long,
     )
 
-    @Query("UPDATE day_tasks SET reminderTime = :reminderTime, updatedAt = :updatedAt WHERE id = :taskId")
-    suspend fun updateReminderTime(
-        taskId: String,
-        reminderTime: Long?,
-        updatedAt: Long,
-    )
+
 
     @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId LIMIT 1")
     suspend fun findByRecurringIdAndDate(recurringTaskId: String, dayPlanId: String): DayTask?

@@ -645,38 +645,38 @@ constructor(
         inboxRecordDao.deleteById(record.id)
     }
 
-    suspend fun addGoalWithReminder(
-        title: String,
-        projectId: String,
-        reminderTime: Long,
-    ): Goal {
-        val currentTime = System.currentTimeMillis()
-        val newGoal =
-            Goal(
-                id = UUID.randomUUID().toString(),
-                text = title,
-                completed = false,
-                createdAt = currentTime,
-                updatedAt = currentTime,
-                reminderTime = reminderTime,
-            )
-        goalDao.insertGoal(newGoal)
-        syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
+    // suspend fun addGoalWithReminder(
+    //     title: String,
+    //     projectId: String,
+    //     reminderTime: Long,
+    // ): Goal {
+    //     val currentTime = System.currentTimeMillis()
+    //     val newGoal =
+    //         Goal(
+    //             id = UUID.randomUUID().toString(),
+    //             text = title,
+    //             completed = false,
+    //             createdAt = currentTime,
+    //             updatedAt = currentTime,
+    //             reminderTime = reminderTime,
+    //         )
+    //     goalDao.insertGoal(newGoal)
+    //     syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
 
-        val newListItem =
-            ListItem(
-                id = UUID.randomUUID().toString(),
-                projectId = projectId,
-                itemType = ListItemTypeValues.GOAL,
-                entityId = newGoal.id,
-                order = -currentTime,
-            )
-        listItemDao.insertItem(newListItem)
+    //     val newListItem =
+    //         ListItem(
+    //             id = UUID.randomUUID().toString(),
+    //             projectId = projectId,
+    //             itemType = ListItemTypeValues.GOAL,
+    //             entityId = newGoal.id,
+    //             order = -currentTime,
+    //         )
+    //     listItemDao.insertItem(newListItem)
 
-        val finalGoalState = goalDao.getGoalById(newGoal.id)!!
-        contextHandler.handleContextsOnCreate(finalGoalState)
-        return newGoal
-    }
+    //     val finalGoalState = goalDao.getGoalById(newGoal.id)!!
+    //     contextHandler.handleContextsOnCreate(finalGoalState)
+    //     return newGoal
+    // }
 
     suspend fun logProjectTimeSummaryForDate(
         projectId: String,

@@ -164,7 +164,7 @@ fun ProjectItem(
 
                 val hasStatusContent =
                     (project.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                        (project.reminderTime != null) ||
+                        // (project.reminderTime != null) ||
                         (parsedData.icons.isNotEmpty()) ||
                         (!project.description.isNullOrBlank()) ||
                         childProjects.isNotEmpty() ||
@@ -185,25 +185,25 @@ fun ProjectItem(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            project.reminderTime?.let { time ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    EnhancedReminderBadge(
-                                        reminderTime = time,
-                                        currentTimeMillis = currentTimeMillis,
-                                        isCompleted = isCompletedFromReminder
-                                    )
-                                    if (isSnoozed) {
-                                        Icon(
-                                            imageVector = Icons.Default.Snooze,
-                                            contentDescription = "Snoozed",
-                                            modifier = Modifier
-                                                .size(16.dp)
-                                                .padding(start = 4.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
+                            // project.reminderTime?.let { time ->
+                            //     Row(verticalAlignment = Alignment.CenterVertically) {
+                            //         EnhancedReminderBadge(
+                            //             reminderTime = time,
+                            //             currentTimeMillis = currentTimeMillis,
+                            //             isCompleted = isCompletedFromReminder
+                            //         )
+                            //         if (isSnoozed) {
+                            //             Icon(
+                            //                 imageVector = Icons.Default.Snooze,
+                            //                 contentDescription = "Snoozed",
+                            //                 modifier = Modifier
+                            //                     .size(16.dp)
+                            //                     .padding(start = 4.dp),
+                            //                 tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            //             )
+                            //         }
+                            //     }
+                            // }
 
                             EnhancedScoreStatusBadge(
                                 scoringStatus = project.scoringStatus,

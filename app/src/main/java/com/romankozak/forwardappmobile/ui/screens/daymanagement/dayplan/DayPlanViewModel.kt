@@ -632,29 +632,29 @@ constructor(
     }
 
     
-    fun setTaskReminder(
-        taskId: String,
-        reminderTime: Long,
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                dayManagementRepository.setTaskReminder(taskId, reminderTime)
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Помилка встановлення нагадування") }
-            }
-        }
-    }
+    // fun setTaskReminder(
+    //     taskId: String,
+    //     reminderTime: Long,
+    // ) {
+    //     viewModelScope.launch(Dispatchers.IO) {
+    //         try {
+    //             dayManagementRepository.setTaskReminder(taskId, reminderTime)
+    //         } catch (e: Exception) {
+    //             _uiState.update { it.copy(error = "Помилка встановлення нагадування") }
+    //         }
+    //     }
+    // }
 
-    
-    fun clearTaskReminder(taskId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                dayManagementRepository.clearTaskReminder(taskId)
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Помилка скасування нагадування") }
-            }
-        }
-    }
+    // 
+    // fun clearTaskReminder(taskId: String) {
+    //     viewModelScope.launch(Dispatchers.IO) {
+    //         try {
+    //             dayManagementRepository.clearTaskReminder(taskId)
+    //         } catch (e: Exception) {
+    //             _uiState.update { it.copy(error = "Помилка скасування нагадування") }
+    //         }
+    //     }
+    // }
 
     fun moveTaskToTop(task: DayTask) {
         viewModelScope.launch(Dispatchers.IO) {

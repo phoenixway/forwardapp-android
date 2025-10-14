@@ -109,7 +109,6 @@ data class DayTask(
     val scheduledTime: Long? = null,
     val estimatedDurationMinutes: Long? = null,
     val actualDurationMinutes: Long? = null,
-    val reminderTime: Long? = null,
     val dueTime: Long? = null,
     
     @ColumnInfo(defaultValue = "0.0") val valueImportance: Float = 0f,

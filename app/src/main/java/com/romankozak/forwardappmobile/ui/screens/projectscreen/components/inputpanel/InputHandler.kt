@@ -193,17 +193,17 @@ class InputHandler(
                         }
 
                         val newItemIdentifier: String
-                        if (reminderTime != null) {
-                            val newGoal = projectRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
-                            newItemIdentifier = newGoal.id
-                            Log.d(
-                                TAG,
-                                "Goal object created, now scheduling: ID=${newGoal.id}, text='${newGoal.text}', reminderTime=${newGoal.reminderTime}",
-                            )
-                            alarmScheduler.schedule(newGoal)
-                        } else {
+                        // if (reminderTime != null) {
+                        //     val newGoal = projectRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
+                        //     newItemIdentifier = newGoal.id
+                        //     Log.d(
+                        //         TAG,
+                        //         "Goal object created, now scheduling: ID=${newGoal.id}, text='${newGoal.text}', reminderTime=${newGoal.reminderTime}",
+                        //     )
+                        //     alarmScheduler.schedule(newGoal)
+                        // } else {
                             newItemIdentifier = projectRepository.addGoalToProject(textToSave, currentProjectId)
-                        }
+                        // }
 
                         withContext(Dispatchers.Main) {
                             resultListener.updateInputState(

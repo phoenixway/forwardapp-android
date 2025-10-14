@@ -204,13 +204,13 @@ private fun GoalEditScreenContent(
         }
 
         
-        item {
-            ReminderSection(
-                reminderTime = uiState.reminderTime,
-                onSetReminder = viewModel::onSetReminder,
-                onClearReminder = viewModel::onClearReminder,
-            )
-        }
+        // item {
+        //     ReminderSection(
+        //         reminderTime = uiState.reminderTime,
+        //         onSetReminder = viewModel::onSetReminder,
+        //         onClearReminder = viewModel::onClearReminder,
+        //     )
+        // }
 
         
         item {
