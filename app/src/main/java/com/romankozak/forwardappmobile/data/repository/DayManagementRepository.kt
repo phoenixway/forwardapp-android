@@ -166,8 +166,7 @@ class DayManagementRepository
         scheduledTime: Long? = null,
     ): DayTask =
         withContext(ioDispatcher) {
-            // <--- ПОЧАТОК ВИПРАВЛЕННЯ
-            // Крок 2.1: Знаходимо projectId для цілі через listItemDao
+
             val projectId = listItemDao.findProjectIdForGoal(goalId)
                 ?: throw IllegalStateException("Goal $goalId is not associated with any project.")
             // КІНЕЦЬ ВИПРАВЛЕННЯ --->
