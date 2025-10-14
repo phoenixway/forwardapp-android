@@ -90,8 +90,8 @@ fun RemindersScreen(
                     when (reminderItem) {
                         is ReminderListItem.GoalReminder -> {
                             val goal = reminderItem.goal
-                            val isSnonoozed = false // TODO: Re-implement with new Reminder status
-                            val isCompleted = false // TODO: Re-implement with new Reminder status
+                            val isSnoozed = reminderItem.reminder.status == "SNOOZED"
+                            val isCompleted = reminderItem.reminder.status == "COMPLETED"
                             GoalItem(
                                 goal = goal,
                                 obsidianVaultName = "",
@@ -104,7 +104,7 @@ fun RemindersScreen(
                                 contextMarkerToEmojiMap = emptyMap(),
                                 currentTimeMillis = currentTimeMillis,
                                 isSelected = false,
-                                isSnoozed = isSnonoozed,
+                                isSnoozed = isSnoozed,
                                 isCompletedFromReminder = isCompleted,
                                 endAction = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
@@ -115,8 +115,8 @@ fun RemindersScreen(
                         }
                         is ReminderListItem.ProjectReminder -> {
                             val project = reminderItem.project
-                            val isSnoozed = false // TODO: Re-implement with new Reminder status
-                            val isCompleted = false // TODO: Re-implement with new Reminder status
+                            val isSnoozed = reminderItem.reminder.status == "SNOOZED"
+                            val isCompleted = reminderItem.reminder.status == "COMPLETED"
                             ProjectItem(
                                 project = project,
                                 childProjects = emptyList(),
@@ -148,9 +148,9 @@ fun RemindersScreen(
     itemToEdit?.let { item ->
         ReminderPickerDialog(
             onDismiss = { viewModel.onDismissEditReminder() },
-            onSetReminder = { timestamp -> viewModel.setReminder(item.id, timestamp) },
-            onClearReminder = { viewModel.clearReminder(item.id) },
-            currentReminderTime = item.reminderTime
+            onSetReminder = { timestamp -> viewModel.setReminder(item.reminder.id, timestamp) },
+            onClearReminder = { viewModel.clearReminder(item.reminder.id) },
+            currentReminderTime = item.reminder.reminderTime
         )
     }
 

@@ -2,49 +2,32 @@ package com.romankozak.forwardappmobile.ui.screens.reminders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed class RemindersUiEvent {
     data class Navigate(val route: String) : RemindersUiEvent()
 }
 
 sealed class ReminderListItem {
-    abstract val id: String
-    abstract val name: String
-    abstract val reminderTime: Long?
+    abstract val reminder: Reminder
 
-    data class GoalReminder(val goal: Goal) : ReminderListItem() {
-        override val id: String = goal.id
-        override val name: String = goal.text
-        override val reminderTime: Long? = 0L // TODO: Re-implement with new Reminder status
-    }
-    data class ProjectReminder(val project: Project) : ReminderListItem() {
-        override val id: String = project.id
-        override val name: String = project.name
-        override val reminderTime: Long? = 0L // TODO: Re-implement with new Reminder status
-    }
+    data class GoalReminder(override val reminder: Reminder, val goal: Goal) : ReminderListItem()
+    data class ProjectReminder(override val reminder: Reminder, val project: Project) : ReminderListItem()
 }
 
 @HiltViewModel
 class RemindersViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository,
-    private val alarmScheduler: AlarmScheduler
+    private val reminderRepository: ReminderRepository,
+    private val projectRepository: ProjectRepository
 ) : ViewModel() {
 
     private val _itemToEdit = MutableStateFlow<ReminderListItem?>(null)
@@ -53,12 +36,29 @@ class RemindersViewModel @Inject constructor(
     private val _uiEvent = Channel<RemindersUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    val reminders: StateFlow<List<ReminderListItem>> = projectRepository.getAllGoalsFlow()
-        // .map { goals -> goals.filter { it.reminderTime != null } }
-        .combine(projectRepository.getAllProjectsFlow()/*.map { projects -> projects.filter { it.reminderTime != null } }*/) { goals, projects ->
-            val goalReminders = goals.map { ReminderListItem.GoalReminder(it) }
-            val projectReminders = projects.map { ReminderListItem.ProjectReminder(it) }
-            (goalReminders + projectReminders)//.sortedBy { it.reminderTime }
+    val reminders: StateFlow<List<ReminderListItem>> = reminderRepository.getAllReminders()
+        .map { reminders ->
+            reminders.mapNotNull {
+                when (it.entityType) {
+                    "GOAL" -> {
+                        val goal = projectRepository.getGoalById(it.entityId)
+                        if (goal != null) {
+                            ReminderListItem.GoalReminder(it, goal)
+                        } else {
+                            null
+                        }
+                    }
+                    "PROJECT" -> {
+                        val project = projectRepository.getProjectById(it.entityId)
+                        if (project != null) {
+                            ReminderListItem.ProjectReminder(it, project)
+                        } else {
+                            null
+                        }
+                    }
+                    else -> null
+                }
+            }
         }
         .stateIn(
             scope = viewModelScope,
@@ -76,19 +76,25 @@ class RemindersViewModel @Inject constructor(
 
     fun setReminder(id: String, timestamp: Long) {
         viewModelScope.launch {
-            // TODO: Refactor with ReminderRepository
+            val item = reminders.value.find { it.reminder.id == id } ?: return@launch
+            reminderRepository.createOrUpdateReminder(item.reminder.entityId, item.reminder.entityType, timestamp)
+            onDismissEditReminder()
         }
     }
 
     fun clearReminder(id: String) {
         viewModelScope.launch {
-            // TODO: Refactor with ReminderRepository
+            val item = reminders.value.find { it.reminder.id == id } ?: return@launch
+            reminderRepository.clearReminderForEntity(item.reminder.entityId)
+            onDismissEditReminder()
         }
     }
 
     fun clearAllReminders() {
         viewModelScope.launch {
-            // TODO: Refactor with ReminderRepository
+            reminders.value.forEach {
+                reminderRepository.clearReminderForEntity(it.reminder.entityId)
+            }
         }
     }
 
@@ -110,7 +116,7 @@ class RemindersViewModel @Inject constructor(
 
     fun deleteReminder(item: ReminderListItem) {
         viewModelScope.launch {
-            // TODO: Refactor with ReminderRepository
+            reminderRepository.clearReminderForEntity(item.reminder.entityId)
         }
     }
 }
