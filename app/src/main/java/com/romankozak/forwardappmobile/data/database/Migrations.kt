@@ -488,8 +488,8 @@ val MIGRATION_50_51 = object : Migration(50, 51) {
         db.execSQL("ALTER TABLE projects_temp RENAME TO projects")
 
         // Step 9: Remove reminderTime column from day_tasks
-        db.execSQL("CREATE TABLE `day_tasks_temp` (`id` TEXT NOT NULL, `dayPlanId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `duration` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `order` INTEGER NOT NULL, `priority` TEXT NOT NULL, `taskType` TEXT, `goalId` TEXT, `projectId` TEXT, `recurringTaskId` TEXT, `recurrenceRule` TEXT, `isCompletedFromGcal` INTEGER, `gcalEventId` TEXT, `points` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))")
-        db.execSQL("INSERT INTO day_tasks_temp SELECT id, dayPlanId, title, description, duration, completed, createdAt, `order`, priority, taskType, goalId, projectId, recurringTaskId, recurrenceRule, isCompletedFromGcal, gcalEventId, points FROM day_tasks")
+        db.execSQL("CREATE TABLE `day_tasks_temp` (`id` TEXT NOT NULL, `dayPlanId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `estimatedDurationMinutes` INTEGER, `completed` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `order` INTEGER NOT NULL, `priority` TEXT NOT NULL, `taskType` TEXT, `goalId` TEXT, `projectId` TEXT, `recurringTaskId` TEXT, `recurrenceRule` TEXT, `isCompletedFromGcal` INTEGER, `gcalEventId` TEXT, `points` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))")
+        db.execSQL("INSERT INTO day_tasks_temp SELECT id, dayPlanId, title, description, estimatedDurationMinutes, completed, createdAt, `order`, priority, taskType, goalId, projectId, recurringTaskId, recurrenceRule, isCompletedFromGcal, gcalEventId, points FROM day_tasks")
         db.execSQL("DROP TABLE day_tasks")
         db.execSQL("ALTER TABLE day_tasks_temp RENAME TO day_tasks")
     }
