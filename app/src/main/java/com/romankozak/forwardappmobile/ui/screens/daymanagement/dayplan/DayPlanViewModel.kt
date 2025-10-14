@@ -43,6 +43,7 @@ class DayPlanViewModel
 @Inject
 constructor(
     private val dayManagementRepository: DayManagementRepository,
+    private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DayPlanUiState())
     val uiState: StateFlow<DayPlanUiState> = _uiState.asStateFlow()
@@ -632,29 +633,29 @@ constructor(
     }
 
     
-    // fun setTaskReminder(
-    //     taskId: String,
-    //     reminderTime: Long,
-    // ) {
-    //     viewModelScope.launch(Dispatchers.IO) {
-    //         try {
-    //             dayManagementRepository.setTaskReminder(taskId, reminderTime)
-    //         } catch (e: Exception) {
-    //             _uiState.update { it.copy(error = "Помилка встановлення нагадування") }
-    //         }
-    //     }
-    // }
+    fun setTaskReminder(
+        taskId: String,
+        reminderTime: Long,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                reminderRepository.createOrUpdateReminder(taskId, "TASK", reminderTime)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Помилка встановлення нагадування") }
+            }
+        }
+    }
 
-    // 
-    // fun clearTaskReminder(taskId: String) {
-    //     viewModelScope.launch(Dispatchers.IO) {
-    //         try {
-    //             dayManagementRepository.clearTaskReminder(taskId)
-    //         } catch (e: Exception) {
-    //             _uiState.update { it.copy(error = "Помилка скасування нагадування") }
-    //         }
-    //     }
-    // }
+    
+    fun clearTaskReminder(taskId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                reminderRepository.clearReminderForEntity(taskId)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Помилка скасування нагадування") }
+            }
+        }
+    }
 
     fun moveTaskToTop(task: DayTask) {
         viewModelScope.launch(Dispatchers.IO) {
