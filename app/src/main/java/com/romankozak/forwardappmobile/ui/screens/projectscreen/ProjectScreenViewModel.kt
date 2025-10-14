@@ -118,6 +118,7 @@ data class UiState(
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: ListItemContent? = null,
   val remindersForDialog: List<Reminder> = emptyList(),
+  val logEntryToEdit: ProjectExecutionLog? = null,
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -1626,4 +1627,30 @@ constructor(
       forceRefresh()
     }
   }
+
+    fun onEditLogEntry(log: ProjectExecutionLog) {
+        _uiState.update { it.copy(logEntryToEdit = log) }
+    }
+
+    fun onDeleteLogEntry(log: ProjectExecutionLog) {
+        viewModelScope.launch {
+            projectRepository.deleteProjectExecutionLog(log)
+        }
+    }
+
+    fun onUpdateLogEntry(description: String, details: String?) {
+        viewModelScope.launch {
+            val logToUpdate = uiState.value.logEntryToEdit ?: return@launch
+            val updatedLog = logToUpdate.copy(
+                description = description,
+                details = details
+            )
+            projectRepository.updateProjectExecutionLog(updatedLog)
+            onDismissEditLogEntryDialog()
+        }
+    }
+
+    fun onDismissEditLogEntryDialog() {
+        _uiState.update { it.copy(logEntryToEdit = null) }
+    }
 }
