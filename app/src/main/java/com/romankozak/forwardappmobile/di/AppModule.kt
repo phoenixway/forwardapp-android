@@ -25,7 +25,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database",
-        ).addMigrations(
+        ).fallbackToDestructiveMigration().addMigrations(
             MIGRATION_8_9,
             MIGRATION_10_11,
             MIGRATION_11_12,
@@ -116,11 +116,7 @@ MIGRATION_48_49
     @Provides
     fun provideRecurringTaskDao(db: AppDatabase): RecurringTaskDao = db.recurringTaskDao()
 
-    @Provides
-    fun provideReminderInfoDao(db: AppDatabase): ReminderInfoDao = db.reminderInfoDao()
 
-    @Provides
-    fun provideProjectReminderInfoDao(db: AppDatabase): ProjectReminderInfoDao = db.projectReminderInfoDao()
 
     @Provides
     fun provideReminderDao(db: AppDatabase): ReminderDao = db.reminderDao()

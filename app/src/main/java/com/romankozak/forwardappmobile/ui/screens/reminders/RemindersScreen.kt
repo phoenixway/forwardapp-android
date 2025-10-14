@@ -35,7 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.ReminderStatusValues
+
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.screens.reminders.components.ReminderAction
@@ -89,9 +89,9 @@ fun RemindersScreen(
                 items(reminders) { reminderItem ->
                     when (reminderItem) {
                         is ReminderListItem.GoalReminder -> {
-                            val goal = reminderItem.item.goal
-                            val isSnoozed = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
-                            val isCompleted = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
+                            val goal = reminderItem.goal
+                            val isSnonoozed = false // TODO: Re-implement with new Reminder status
+                            val isCompleted = false // TODO: Re-implement with new Reminder status
                             GoalItem(
                                 goal = goal,
                                 obsidianVaultName = "",
@@ -104,7 +104,7 @@ fun RemindersScreen(
                                 contextMarkerToEmojiMap = emptyMap(),
                                 currentTimeMillis = currentTimeMillis,
                                 isSelected = false,
-                                isSnoozed = isSnoozed,
+                                isSnoozed = isSnonoozed,
                                 isCompletedFromReminder = isCompleted,
                                 endAction = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
@@ -114,9 +114,9 @@ fun RemindersScreen(
                             )
                         }
                         is ReminderListItem.ProjectReminder -> {
-                            val project = reminderItem.item.project
-                            val isSnoozed = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.SNOOZED
-                            val isCompleted = reminderItem.item.reminderInfo?.reminderStatus == ReminderStatusValues.COMPLETED
+                            val project = reminderItem.project
+                            val isSnoozed = false // TODO: Re-implement with new Reminder status
+                            val isCompleted = false // TODO: Re-implement with new Reminder status
                             ProjectItem(
                                 project = project,
                                 childProjects = emptyList(),

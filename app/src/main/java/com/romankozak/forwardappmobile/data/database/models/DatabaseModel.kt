@@ -114,12 +114,7 @@ object ProjectLogEntryTypeValues {
     const val MILESTONE = "MILESTONE"
 }
 
-object ReminderStatusValues {
-    const val ACTIVE = "ACTIVE"
-    const val SNOOZED = "SNOOZED"
-    const val COMPLETED = "COMPLETED"
-    const val DISMISSED = "DISMISSED"
-}
+
 
 object ListItemTypeValues {
     const val GOAL = "GOAL"
@@ -198,12 +193,7 @@ data class Goal(
     @ColumnInfo(name = "reminder_time") val reminderTime: Long? = null,
 )
 
-@Entity(tableName = "reminder_info")
-data class ReminderInfo(
-    @PrimaryKey val goalId: String,
-    @ColumnInfo(name = "reminder_status") val reminderStatus: String = "ACTIVE",
-    @ColumnInfo(name = "snooze_time") val snoozeTime: Long? = null,
-)
+
 
 @Entity(tableName = "projects")
 data class Project(
@@ -356,7 +346,6 @@ sealed class GlobalSearchResultItem {
     data class GoalItem(
         val goal: Goal,
         val listItem: ListItem,
-        val reminderInfo: ReminderInfo?, // New property
         val projectName: String,
         val pathSegments: List<String>
     ) : GlobalSearchResultItem() {

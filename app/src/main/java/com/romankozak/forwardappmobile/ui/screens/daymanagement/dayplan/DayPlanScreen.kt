@@ -541,7 +541,7 @@ fun TaskGoalItem(
   reorderableState: ReorderableLazyListState? = null,
   modifier: Modifier = Modifier,
 ) {
-  val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem(), reminderInfo = null) // TODO: Get reminder info
+  val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem()) // TODO: Get reminder info
   Card(modifier = modifier.fillMaxWidth()) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(8.dp),

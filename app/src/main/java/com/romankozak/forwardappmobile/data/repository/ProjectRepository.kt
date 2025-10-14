@@ -45,8 +45,7 @@ constructor(
     private val activityRepository: ActivityRepository,
     private val projectManagementDao: ProjectManagementDao,
     private val recentItemDao: RecentItemDao,
-    private val reminderInfoDao: ReminderInfoDao,
-    private val reminderDao: ReminderDao,
+    val reminderDao: ReminderDao,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "CUSTOM_LIST_DEBUG"
@@ -142,8 +141,7 @@ constructor(
                 when (item.itemType) {
                     ListItemTypeValues.GOAL ->
                         goalDao.getGoalById(item.entityId)?.let { goal ->
-                            val reminderInfo = reminderInfoDao.getReminderInfo(goal.id)
-                            ListItemContent.GoalItem(goal, item, reminderInfo)
+                            ListItemContent.GoalItem(goal, item)
                         }
                     ListItemTypeValues.SUBLIST ->
                         projectDao.getProjectById(item.entityId)?.let { project ->
@@ -395,12 +393,10 @@ constructor(
         val goalResults =
             goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
                 val listItem = listItemDao.getListItemByEntityId(searchResult.goal.id)
-                val reminderInfo = reminderInfoDao.getReminderInfo(searchResult.goal.id)
                 listItem?.let {
                     GlobalSearchResultItem.GoalItem(
                         goal = searchResult.goal,
                         listItem = it,
-                        reminderInfo = reminderInfo,
                         projectName = searchResult.projectName,
                         pathSegments = searchResult.pathSegments
                     )
@@ -924,17 +920,5 @@ constructor(
         }
     }
 
-    fun getRemindersForGoal(goalId: String): Flow<List<Reminder>> = reminderDao.getRemindersForGoal(goalId)
 
-    suspend fun insertReminder(reminder: Reminder) {
-        reminderDao.insert(reminder)
-    }
-
-    suspend fun updateReminder(reminder: Reminder) {
-        reminderDao.update(reminder)
-    }
-
-    suspend fun deleteReminder(reminder: Reminder) {
-        reminderDao.delete(reminder)
-    }
 }

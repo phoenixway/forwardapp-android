@@ -28,8 +28,8 @@ class RemindersViewModel @Inject constructor(
     fun loadReminders(goalId: String) {
         savedStateHandle["goalId"] = goalId
         viewModelScope.launch {
-            projectRepository.getRemindersForGoal(goalId).collect {
-                _reminders.value = it
+            projectRepository.reminderDao.getReminderForEntity(goalId).collect { reminder ->
+                _reminders.value = if (reminder != null) listOf(reminder) else emptyList()
             }
         }
     }
@@ -40,24 +40,25 @@ class RemindersViewModel @Inject constructor(
 
         viewModelScope.launch {
             val reminder = Reminder(
-                id = UUID.randomUUID().toString(),
-                goalId = goalId,
+                entityId = goalId,
+                entityType = "GOAL",
                 reminderTime = reminderTime,
-                status = "ACTIVE"
+                status = "SCHEDULED",
+                creationTime = System.currentTimeMillis()
             )
-            projectRepository.insertReminder(reminder)
+            projectRepository.reminderDao.insert(reminder)
         }
     }
 
     fun updateReminder(reminder: Reminder) {
         viewModelScope.launch {
-            projectRepository.updateReminder(reminder)
+            projectRepository.reminderDao.update(reminder)
         }
     }
 
     fun deleteReminder(reminder: Reminder) {
         viewModelScope.launch {
-            projectRepository.deleteReminder(reminder)
+            projectRepository.reminderDao.delete(reminder)
         }
     }
 
