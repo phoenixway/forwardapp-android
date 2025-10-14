@@ -64,6 +64,9 @@ interface CustomListDao {
     @Query("SELECT * FROM custom_lists")
     suspend fun getAllCustomLists(): List<CustomListEntity>
 
+    @Query("SELECT * FROM custom_lists")
+    fun getAllCustomListsAsFlow(): Flow<List<CustomListEntity>>
+
     @Query("SELECT * FROM custom_list_items")
     suspend fun getAllListItems(): List<CustomListItemEntity>
 

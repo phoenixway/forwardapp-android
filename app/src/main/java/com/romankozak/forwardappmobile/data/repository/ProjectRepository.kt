@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
@@ -136,27 +137,44 @@ constructor(
     }
 
     fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> =
-        listItemDao.getItemsForProjectStream(projectId).map { items ->
+        combine(
+            listItemDao.getItemsForProjectStream(projectId),
+            reminderDao.getAllReminders(),
+            goalDao.getAllGoalsFlow(),
+            projectDao.getAllProjects(),
+            linkItemDao.getAllEntitiesAsFlow(),
+            noteDao.getAllAsFlow(),
+            customListDao.getAllCustomListsAsFlow()
+        ) { items, reminders, allGoals, allProjects, allLinks, allNotes, allCustomLists ->
+            val remindersMap = reminders.associateBy { it.entityId }
+            val goalsMap = allGoals.associateBy { it.id }
+            val projectsMap = allProjects.associateBy { it.id }
+            val linksMap = allLinks.associateBy { it.id }
+            val notesMap = allNotes.associateBy { it.id }
+            val customListsMap = allCustomLists.associateBy { it.id }
+
             items.mapNotNull { item ->
                 when (item.itemType) {
                     ListItemTypeValues.GOAL ->
-                        goalDao.getGoalById(item.entityId)?.let { goal ->
-                            ListItemContent.GoalItem(goal, item)
+                        goalsMap[item.entityId]?.let { goal ->
+                            val reminder = remindersMap[goal.id]
+                            ListItemContent.GoalItem(goal, reminder, item)
                         }
                     ListItemTypeValues.SUBLIST ->
-                        projectDao.getProjectById(item.entityId)?.let { project ->
-                            ListItemContent.SublistItem(project, item)
+                        projectsMap[item.entityId]?.let { project ->
+                            val reminder = remindersMap[project.id]
+                            ListItemContent.SublistItem(project, reminder, item)
                         }
                     ListItemTypeValues.LINK_ITEM ->
-                        linkItemDao.getLinkItemById(item.entityId)?.let { link ->
+                        linksMap[item.entityId]?.let { link ->
                             ListItemContent.LinkItem(link, item)
                         }
                     ListItemTypeValues.NOTE ->
-                        noteDao.getNoteById(item.entityId)?.let { note ->
+                        notesMap[item.entityId]?.let { note ->
                             ListItemContent.NoteItem(note, item)
                         }
                     ListItemTypeValues.CUSTOM_LIST ->
-                        customListDao.getCustomListById(item.entityId)?.let { customList ->
+                        customListsMap[item.entityId]?.let { customList ->
                             ListItemContent.CustomListItem(customList, item)
                         }
                     else -> null

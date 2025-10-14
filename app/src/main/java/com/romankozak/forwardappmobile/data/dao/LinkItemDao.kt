@@ -47,6 +47,9 @@ interface LinkItemDao {
     @Query("SELECT * FROM link_items")
     suspend fun getAllEntities(): List<LinkItemEntity>
 
+    @Query("SELECT * FROM link_items")
+    fun getAllEntitiesAsFlow(): Flow<List<LinkItemEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entities: List<LinkItemEntity>)
 
