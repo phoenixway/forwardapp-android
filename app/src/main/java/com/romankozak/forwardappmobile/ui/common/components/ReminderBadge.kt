@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.AlarmOff
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 
 object ReminderTextUtil {
     private const val ONE_MINUTE_MILLIS = 60 * 1000L
@@ -88,22 +91,26 @@ object ReminderTextUtil {
 
 @Composable
 fun EnhancedReminderBadge(
-    reminderTime: Long,
+    reminder: Reminder,
     currentTimeMillis: Long,
-    isCompleted: Boolean = false
 ) {
-    val reminderText = if (isCompleted) {
-        "Completed"
-    } else {
-        remember(reminderTime, currentTimeMillis) {
-            ReminderTextUtil.formatReminderTime(reminderTime, currentTimeMillis)
+    val isCompleted = reminder.status == "COMPLETED"
+    val isSnoozed = reminder.status == "SNOOZED"
+    val isPastDue = reminder.reminderTime < currentTimeMillis && !isCompleted && !isSnoozed
+
+    val reminderText = when {
+        isCompleted -> "Виконано"
+        isSnoozed -> "Відкладено"
+        isPastDue -> "Прострочено"
+        else -> remember(reminder.reminderTime, currentTimeMillis) {
+            ReminderTextUtil.formatReminderTime(reminder.reminderTime, currentTimeMillis)
         }
     }
-    val isPastDue = reminderTime < currentTimeMillis && !isCompleted
 
     val backgroundColor by animateColorAsState(
         targetValue = when {
             isCompleted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            isSnoozed -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
             isPastDue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
             else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
         },
@@ -112,6 +119,7 @@ fun EnhancedReminderBadge(
     val contentColor by animateColorAsState(
         targetValue = when {
             isCompleted -> MaterialTheme.colorScheme.primary
+            isSnoozed -> MaterialTheme.colorScheme.secondary
             isPastDue -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.tertiary
         },
@@ -130,7 +138,12 @@ fun EnhancedReminderBadge(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = if (isPastDue) Icons.Default.AlarmOff else Icons.Default.AlarmOn,
+                imageVector = when {
+                    isCompleted -> Icons.Default.CheckCircle
+                    isSnoozed -> Icons.Default.Snooze
+                    isPastDue -> Icons.Default.AlarmOff
+                    else -> Icons.Default.AlarmOn
+                },
                 contentDescription = "Нагадування",
                 tint = contentColor,
                 modifier = Modifier.size(14.dp),

@@ -52,6 +52,7 @@ import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -89,10 +90,12 @@ private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
     }
 }
 
+ 
+
 private sealed class FlowItem {
     data class SublistIcon(val item: @Composable () -> Unit) : FlowItem()
     data class ChildProject(val project: Project) : FlowItem()
-    // data class Reminder(val time: Long) : FlowItem()
+    data class ReminderItem(val reminder: Reminder) : FlowItem()
     data class ScoreStatus(val scoringStatus: String, val displayScore: Int) : FlowItem()
     data class IconEmoji(val icon: String, val index: Int) : FlowItem()
     data class Tag(val tag: String) : FlowItem()
@@ -113,6 +116,7 @@ fun SubprojectItemRow(
     currentTimeMillis: Long,
     contextMarkerToEmojiMap: Map<String, String>,
     emojiToHide: String?,
+    reminder: Reminder? = null,
     endAction: @Composable () -> Unit = {},
 ) {
     val subproject = subprojectContent.project
@@ -177,15 +181,15 @@ fun SubprojectItemRow(
 
             val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
                 (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                // (subproject.reminderTime != null) ||
+                (reminder != null) ||
                 (parsedData.icons.isNotEmpty()) ||
                 childProjects.isNotEmpty()
 
-            val items = remember(childProjects, subproject, parsedData, emojiToHide, currentTimeMillis) {
+            val items = remember(childProjects, subproject, parsedData, emojiToHide, currentTimeMillis, reminder) {
                 buildList<FlowItem> {
                     add(FlowItem.SublistIcon { EnhancedSublistIconBadge() })
                     childProjects.forEach { add(FlowItem.ChildProject(it)) }
-                    // subproject.reminderTime?.let { add(FlowItem.Reminder(it)) }
+                    reminder?.let { add(FlowItem.ReminderItem(it)) }
                     add(FlowItem.ScoreStatus(subproject.scoringStatus, subproject.displayScore))
                     parsedData.icons
                         .filterNot { icon -> icon == emojiToHide }
@@ -216,12 +220,13 @@ fun SubprojectItemRow(
                                 onClick = { onChildProjectClick(item.project) },
                             )
                         }
-                        // is FlowItem.Reminder -> {
-                        //     EnhancedReminderBadge(
-                        //         reminderTime = item.time,
-                        //         currentTimeMillis = currentTimeMillis,
-                        //     )
-                        // }
+                        is FlowItem.ReminderItem -> {
+                            EnhancedReminderBadge(
+                                reminderTime = item.reminder.reminderTime,
+                                currentTimeMillis = currentTimeMillis,
+                                isCompleted = item.reminder.status == "COMPLETED"
+                            )
+                        }
                         is FlowItem.ScoreStatus -> {
                             EnhancedScoreStatusBadge(
                                 scoringStatus = item.scoringStatus,

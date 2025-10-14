@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
@@ -100,8 +101,7 @@ fun ProjectItem(
     contextMarkerToEmojiMap: Map<String, String>,
     currentTimeMillis: Long,
     isSelected: Boolean,
-    isSnoozed: Boolean = false,
-    isCompletedFromReminder: Boolean = false,
+    reminder: Reminder? = null,
     endAction: @Composable () -> Unit = {},
 ) {
     val parsedData = rememberParsedText(project.name, contextMarkerToEmojiMap)
@@ -164,7 +164,7 @@ fun ProjectItem(
 
                 val hasStatusContent =
                     (project.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                        // (project.reminderTime != null) ||
+                        (reminder != null) ||
                         (parsedData.icons.isNotEmpty()) ||
                         (!project.description.isNullOrBlank()) ||
                         childProjects.isNotEmpty() ||
@@ -185,25 +185,13 @@ fun ProjectItem(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            // project.reminderTime?.let { time ->
-                            //     Row(verticalAlignment = Alignment.CenterVertically) {
-                            //         EnhancedReminderBadge(
-                            //             reminderTime = time,
-                            //             currentTimeMillis = currentTimeMillis,
-                            //             isCompleted = isCompletedFromReminder
-                            //         )
-                            //         if (isSnoozed) {
-                            //             Icon(
-                            //                 imageVector = Icons.Default.Snooze,
-                            //                 contentDescription = "Snoozed",
-                            //                 modifier = Modifier
-                            //                     .size(16.dp)
-                            //                     .padding(start = 4.dp),
-                            //                 tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            //             )
-                            //         }
-                            //     }
-                            // }
+                            reminder?.let { 
+                                EnhancedReminderBadge(
+                                    reminderTime = it.reminderTime,
+                                    currentTimeMillis = currentTimeMillis,
+                                    isCompleted = it.status == "COMPLETED"
+                                )
+                            }
 
                             EnhancedScoreStatusBadge(
                                 scoringStatus = project.scoringStatus,
