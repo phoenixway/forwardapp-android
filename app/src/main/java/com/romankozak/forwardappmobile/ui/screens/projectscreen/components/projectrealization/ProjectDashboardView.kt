@@ -50,7 +50,7 @@ fun ProjectDashboardView(
                 Tab(
                     selected = selectedTab == tab,
                     onClick = { selectedTab = tab },
-                    text = { Text(tab.displayName) },
+                    text = { Text(tab.displayName, style = MaterialTheme.typography.labelSmall) },
                 )
             }
         }
