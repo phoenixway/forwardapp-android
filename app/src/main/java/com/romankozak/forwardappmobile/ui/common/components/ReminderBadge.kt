@@ -28,6 +28,12 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 
@@ -73,7 +79,7 @@ object ReminderTextUtil {
             return "Завтра о $formattedTime"
         }
 
-        val dateFormat = SimpleDateFormat("d MMM о HH:mm", Locale("uk", "UA"))
+        val dateFormat = SimpleDateFormat("d MMM о HH:mm", Locale.forLanguageTag("uk-UA"))
         return dateFormat.format(calendar.time)
     }
 
@@ -88,11 +94,6 @@ object ReminderTextUtil {
             tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
     }
 }
-
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 
 @Composable
 fun EnhancedReminderBadge(
