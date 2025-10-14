@@ -155,13 +155,8 @@ fun ActivityTrackerScreen(
                 ReminderPickerDialog(
                     onDismiss = viewModel::onReminderDialogDismiss,
                     onSetReminder = viewModel::onSetReminder,
-                    onClearReminder =
-                    if (record.reminderTime != null) {
-                        { viewModel.onClearReminder() }
-                    } else {
-                        null
-                    },
-                    currentReminderTime = record.reminderTime,
+                    onRemoveReminder = if (record.reminderTime != null) {{ _ -> viewModel.onClearReminder() }} else null,
+                    currentReminderTimes = listOfNotNull(record.reminderTime),
                 )
             }
         }

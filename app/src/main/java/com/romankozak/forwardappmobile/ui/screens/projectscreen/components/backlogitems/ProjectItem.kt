@@ -101,9 +101,10 @@ fun ProjectItem(
     contextMarkerToEmojiMap: Map<String, String>,
     currentTimeMillis: Long,
     isSelected: Boolean,
-    reminder: Reminder? = null,
+    reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
+    val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(project.name, contextMarkerToEmojiMap)
 
     Surface(

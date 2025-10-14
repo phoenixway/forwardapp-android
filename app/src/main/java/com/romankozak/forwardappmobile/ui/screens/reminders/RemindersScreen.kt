@@ -104,7 +104,7 @@ fun RemindersScreen(
                                 contextMarkerToEmojiMap = emptyMap(),
                                 currentTimeMillis = currentTimeMillis,
                                 isSelected = false,
-                                reminder = reminderItem.reminder,
+                                reminders = listOf(reminderItem.reminder),
                                 endAction = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
                                         Icon(Icons.Default.MoreHoriz, "...")
@@ -129,7 +129,7 @@ fun RemindersScreen(
                                 contextMarkerToEmojiMap = emptyMap(),
                                 currentTimeMillis = currentTimeMillis,
                                 isSelected = false,
-                                reminder = reminderItem.reminder,
+                                reminders = listOf(reminderItem.reminder),
                                 endAction = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
                                         Icon(Icons.Default.MoreHoriz, "...")
@@ -147,8 +147,8 @@ fun RemindersScreen(
         ReminderPickerDialog(
             onDismiss = { viewModel.onDismissEditReminder() },
             onSetReminder = { timestamp -> viewModel.setReminder(item.reminder.id, timestamp) },
-            onClearReminder = { viewModel.clearReminder(item.reminder.id) },
-            currentReminderTime = item.reminder.reminderTime
+            onRemoveReminder = { _ -> viewModel.clearReminder(item.reminder.id) },
+            currentReminderTimes = listOfNotNull(item.reminder.reminderTime)
         )
     }
 

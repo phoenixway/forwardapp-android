@@ -117,6 +117,7 @@ data class UiState(
   val showCreateCustomListDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: ListItemContent? = null,
+  val remindersForDialog: List<Reminder> = emptyList(),
 )
 
 interface BacklogMarkdownHandlerResultListener {
@@ -1107,7 +1108,7 @@ constructor(
   }
 
   fun onReminderDialogDismiss() {
-    _uiState.update { it.copy(recordForReminderDialog = null) }
+    _uiState.update { it.copy(recordForReminderDialog = null, remindersForDialog = emptyList()) }
   }
 
   fun onSetReminder(timestamp: Long) =
@@ -1121,11 +1122,11 @@ constructor(
       }
       val entityId = record.goalId ?: record.projectId ?: record.id
 
-      reminderRepository.createOrUpdateReminder(entityId, entityType, timestamp)
+      reminderRepository.createReminder(entityId, entityType, timestamp)
 
-      onReminderDialogDismiss()
+      // onReminderDialogDismiss() // Don't dismiss, so user can add more
       showSnackbar(
-        "Нагадування встановлено на ${
+        "Нагадування додано на ${
                     SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(
                         Date(timestamp)
                     )
@@ -1135,12 +1136,21 @@ constructor(
       forceRefresh()
     }
 
+  fun onRemoveReminder(time: Long) = viewModelScope.launch {
+      val reminderToRemove = _uiState.value.remindersForDialog.find { it.reminderTime == time }
+      if (reminderToRemove != null) {
+          reminderRepository.removeReminder(reminderToRemove)
+          showSnackbar("Нагадування видалено", null)
+          forceRefresh()
+      }
+  }
+
   fun onClearReminder() =
     viewModelScope.launch {
       val record = _uiState.value.recordForReminderDialog ?: return@launch
 
       val entityId = record.goalId ?: record.projectId ?: record.id
-      reminderRepository.clearReminderForEntity(entityId)
+      reminderRepository.clearRemindersForEntity(entityId)
 
       onReminderDialogDismiss()
       showSnackbar("Нагадування скасовано", null)
@@ -1149,14 +1159,19 @@ constructor(
 
   fun onSetReminderForItem(item: ListItemContent) {
     viewModelScope.launch {
-        val reminder = reminderRepository.getReminderForEntityFlow(item.listItem.entityId).firstOrNull()
+        val reminders = when (item) {
+            is ListItemContent.GoalItem -> item.reminders
+            is ListItemContent.SublistItem -> item.reminders
+            else -> emptyList()
+        }
+
         val record =
             when (item) {
                 is ListItemContent.GoalItem -> {
                     ActivityRecord(
                         id = item.goal.id,
                         text = item.goal.text,
-                        reminderTime = reminder?.reminderTime,
+                        reminderTime = reminders.firstOrNull()?.reminderTime,
                         createdAt = item.goal.createdAt,
                         projectId = item.listItem.projectId,
                         goalId = item.goal.id,
@@ -1166,7 +1181,7 @@ constructor(
                     ActivityRecord(
                         id = item.project.id,
                         text = item.project.name,
-                        reminderTime = reminder?.reminderTime,
+                        reminderTime = reminders.firstOrNull()?.reminderTime,
                         createdAt = item.project.createdAt,
                         projectId = item.project.id,
                         goalId = null,
@@ -1174,18 +1189,18 @@ constructor(
                 }
                 else -> null
             }
-        _uiState.update { it.copy(recordForReminderDialog = record) }
+        _uiState.update { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
     }
   }
 
   fun onSetReminderForProject() {
     viewModelScope.launch {
         project.value?.let { proj ->
-            val reminder = reminderRepository.getReminderForEntityFlow(proj.id).firstOrNull()
+            val reminders = reminderRepository.getRemindersForEntityFlow(proj.id).firstOrNull()
             val record = ActivityRecord(
                 id = proj.id,
                 text = proj.name,
-                reminderTime = reminder?.reminderTime,
+                reminderTime = reminders?.firstOrNull()?.reminderTime,
                 createdAt = proj.createdAt,
                 projectId = proj.id,
                 goalId = null,

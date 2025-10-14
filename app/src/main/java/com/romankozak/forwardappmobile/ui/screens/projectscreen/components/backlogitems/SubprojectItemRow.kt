@@ -116,10 +116,11 @@ fun SubprojectItemRow(
     currentTimeMillis: Long,
     contextMarkerToEmojiMap: Map<String, String>,
     emojiToHide: String?,
-    reminder: Reminder? = null,
+    reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
     val subproject = subprojectContent.project
+    val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
 
     Surface(

@@ -86,8 +86,8 @@ class GoalEditViewModel
                 loadAvailableTags()
                 if (goalId != null) {
                     loadExistingGoal(goalId)
-                    reminderRepository.getReminderForEntityFlow(goalId).collect { reminder ->
-                        _uiState.update { it.copy(reminderTime = reminder?.reminderTime) }
+                    reminderRepository.getRemindersForEntityFlow(goalId).collect { reminders ->
+                        _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
                     }
                 } else {
                     createNewGoal()
@@ -177,9 +177,9 @@ class GoalEditViewModel
                 val goalToSave = GoalScoringManager.calculateScores(goalFromState)
 
                 if (uiState.value.reminderTime != null) {
-                    reminderRepository.createOrUpdateReminder(goalToSave.id, "GOAL", uiState.value.reminderTime!!)
+                    reminderRepository.createReminder(goalToSave.id, "GOAL", uiState.value.reminderTime!!)
                 } else {
-                    reminderRepository.clearReminderForEntity(goalToSave.id)
+                    reminderRepository.clearRemindersForEntity(goalToSave.id)
                 }
 
                 if (currentGoal != null) {
@@ -346,7 +346,7 @@ class GoalEditViewModel
                 }
             goalId?.let {
                 viewModelScope.launch {
-                    reminderRepository.createOrUpdateReminder(it, "GOAL", calendar.timeInMillis)
+                    reminderRepository.createReminder(it, "GOAL", calendar.timeInMillis)
                 }
             }
         }
@@ -354,7 +354,7 @@ class GoalEditViewModel
         fun onClearReminder() {
             goalId?.let {
                 viewModelScope.launch {
-                    reminderRepository.clearReminderForEntity(it)
+                    reminderRepository.clearRemindersForEntity(it)
                 }
             }
         }

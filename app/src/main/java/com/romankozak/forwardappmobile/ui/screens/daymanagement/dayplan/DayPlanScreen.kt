@@ -453,12 +453,12 @@ fun DayPlanScreen(
         showReminderDialog = false
         viewModel.clearSelectedTask()
       },
-      onClearReminder = {
+      onRemoveReminder = { _ ->
         selectedTask?.let { viewModel.clearTaskReminder(it.dayTask.id) }
         showReminderDialog = false
         viewModel.clearSelectedTask()
       },
-      currentReminderTime = selectedTask?.reminder?.reminderTime,
+      currentReminderTimes = listOfNotNull(selectedTask?.reminder?.reminderTime),
     )
   }
 }
@@ -545,7 +545,7 @@ fun TaskGoalItem(
   val task = taskWithReminder.dayTask
   val reminder = taskWithReminder.reminder
     //val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem())
-   val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem(), reminder = reminder)
+   val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem(), reminders = listOfNotNull(reminder))
   Card(modifier = modifier.fillMaxWidth()) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -572,7 +572,7 @@ fun TaskGoalItem(
             contextMarkerToEmojiMap = emptyMap(),
             currentTimeMillis = System.currentTimeMillis(),
             isSelected = false,
-            reminder = reminder,
+            reminders = listOfNotNull(reminder),
             endAction = { }
           )
         }

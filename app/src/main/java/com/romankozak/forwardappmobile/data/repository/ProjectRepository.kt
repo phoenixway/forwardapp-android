@@ -169,7 +169,7 @@ constructor(
         }.combine(
             customListDao.getAllCustomListsAsFlow()
         ) { data2, allCustomLists ->
-            val remindersMap = data2.data1.reminders.associateBy { it.entityId }
+            val remindersMap = data2.data1.reminders.groupBy { it.entityId }
             val goalsMap = data2.data1.allGoals.associateBy { it.id }
             val projectsMap = data2.data1.allProjects.associateBy { it.id }
             val linksMap = data2.data1.allLinks.associateBy { it.id }
@@ -180,13 +180,13 @@ constructor(
                 when (item.itemType) {
                     ListItemTypeValues.GOAL ->
                         goalsMap[item.entityId]?.let { goal ->
-                            val reminder = remindersMap[goal.id]
-                            ListItemContent.GoalItem(goal, reminder, item)
+                            val reminders = remindersMap[goal.id] ?: emptyList()
+                            ListItemContent.GoalItem(goal, reminders, item)
                         }
                     ListItemTypeValues.SUBLIST ->
                         projectsMap[item.entityId]?.let { project ->
-                            val reminder = remindersMap[project.id]
-                            ListItemContent.SublistItem(project, reminder, item)
+                            val reminders = remindersMap[project.id] ?: emptyList()
+                            ListItemContent.SublistItem(project, reminders, item)
                         }
                     ListItemTypeValues.LINK_ITEM ->
                         linksMap[item.entityId]?.let { link ->

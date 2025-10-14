@@ -918,7 +918,7 @@ constructor(
           }
           val entityId = record.goalId ?: record.projectId ?: record.id
 
-          reminderRepository.createOrUpdateReminder(entityId, entityType, timestamp)
+          reminderRepository.createReminder(entityId, entityType, timestamp)
 
           onReminderDialogDismiss()
           _uiEventChannel.send(ProjectUiEvent.ShowToast("Нагадування встановлено"))
@@ -929,7 +929,7 @@ constructor(
           val record = _uiState.value.recordForReminderDialog ?: return@launch
 
           val entityId = record.goalId ?: record.projectId ?: record.id
-          reminderRepository.clearReminderForEntity(entityId)
+          reminderRepository.clearRemindersForEntity(entityId)
 
           onReminderDialogDismiss()
           _uiEventChannel.send(ProjectUiEvent.ShowToast("Нагадування скасовано"))
@@ -964,11 +964,11 @@ constructor(
 
   private fun onSetReminderForProject(project: Project) {
     viewModelScope.launch {
-        val reminder = reminderRepository.getReminderForEntityFlow(project.id).firstOrNull()
+        val reminders = reminderRepository.getRemindersForEntityFlow(project.id).firstOrNull()
         val record = com.romankozak.forwardappmobile.data.database.models.ActivityRecord(
             id = project.id,
             text = project.name,
-            reminderTime = reminder?.reminderTime,
+            reminderTime = reminders?.firstOrNull()?.reminderTime,
             createdAt = project.createdAt,
             projectId = project.id,
             goalId = null,
