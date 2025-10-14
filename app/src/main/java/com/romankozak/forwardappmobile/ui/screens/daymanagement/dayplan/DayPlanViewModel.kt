@@ -21,9 +21,16 @@ import java.util.Calendar
 import java.util.UUID
 import javax.inject.Inject
 
+import com.romankozak.forwardappmobile.data.database.models.Reminder
+
+data class DayTaskWithReminder(
+    val dayTask: DayTask,
+    val reminder: Reminder?
+)
+
 data class DayPlanUiState(
     val dayPlan: DayPlan? = null,
-    val tasks: List<DayTask> = emptyList(),
+    val tasks: List<DayTaskWithReminder> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val isRefreshing: Boolean = false,
@@ -51,14 +58,14 @@ constructor(
     private val _isAddTaskDialogOpen = MutableStateFlow(false)
     val isAddTaskDialogOpen: StateFlow<Boolean> = _isAddTaskDialogOpen.asStateFlow()
 
-    private val _selectedTask = MutableStateFlow<DayTask?>(null)
-    val selectedTask: StateFlow<DayTask?> = _selectedTask.asStateFlow()
+    private val _selectedTask = MutableStateFlow<DayTaskWithReminder?>(null)
+    val selectedTask: StateFlow<DayTaskWithReminder?> = _selectedTask.asStateFlow()
 
-    private val _showDeleteConfirmationDialog = MutableStateFlow<DayTask?>(null)
-    val showDeleteConfirmationDialog: StateFlow<DayTask?> = _showDeleteConfirmationDialog.asStateFlow()
+    private val _showDeleteConfirmationDialog = MutableStateFlow<DayTaskWithReminder?>(null)
+    val showDeleteConfirmationDialog: StateFlow<DayTaskWithReminder?> = _showDeleteConfirmationDialog.asStateFlow()
 
-    private val _showEditConfirmationDialog = MutableStateFlow<DayTask?>(null)
-    val showEditConfirmationDialog: StateFlow<DayTask?> = _showEditConfirmationDialog.asStateFlow()
+    private val _showEditConfirmationDialog = MutableStateFlow<DayTaskWithReminder?>(null)
+    val showEditConfirmationDialog: StateFlow<DayTaskWithReminder?> = _showEditConfirmationDialog.asStateFlow()
 
     private var editingMode: EditingMode = EditingMode.SINGLE
 
@@ -79,12 +86,12 @@ constructor(
         _isAddTaskDialogOpen.value = false
     }
 
-    fun onTaskLongPressed(task: DayTask) {
-        _selectedTask.value = task
+    fun onTaskLongPressed(taskWithReminder: DayTaskWithReminder) {
+        _selectedTask.value = taskWithReminder
     }
 
-    fun selectTask(task: DayTask) {
-        _selectedTask.value = task
+    fun selectTask(taskWithReminder: DayTaskWithReminder) {
+        _selectedTask.value = taskWithReminder
     }
 
     fun clearSelectedTask() {
@@ -106,38 +113,55 @@ constructor(
         return today == otherDay && year == otherYear
     }
 
-    fun updateTasksOrder(
-        dayPlanId: String,
-        reorderedTasks: List<DayTask>,
-    ) {
-        
-        val tasksWithNewOrder =
-            reorderedTasks.mapIndexed { index, task ->
-                task.copy(order = index.toLong())
-            }
+            fun updateTasksOrder(
 
-        _uiState.update { currentState ->
-            currentState.copy(
-                tasks = tasksWithNewOrder,
-                isReordering = true,
-            )
-        }
+                dayPlanId: String,
+
+                reorderedTasks: List<DayTaskWithReminder>,
+
+            ) {
+
+                val tasksForRepo = reorderedTasks.mapIndexed { index, taskWithReminder ->
+
+                    taskWithReminder.dayTask.copy(order = index.toLong())
+
+                }
 
         
+
+                _uiState.update { currentState ->
+
+                    currentState.copy(
+
+                        tasks = reorderedTasks.mapIndexed { index, taskWithReminder -> taskWithReminder.copy(dayTask = taskWithReminder.dayTask.copy(order = index.toLong())) },
+
+                        isReordering = true,
+
+                    )
+
+                }
+
         
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                dayManagementRepository.updateTasksOrder(dayPlanId, tasksWithNewOrder)
-                
-                _uiState.update { it.copy(isReordering = false) }
-            } catch (e: Exception) {
-                
-                
-                _uiState.update { it.copy(error = "Помилка при зміні порядку завдань") }
-                loadDataForPlan(dayPlanId)
+
+                viewModelScope.launch(Dispatchers.IO) {
+
+                    try {
+
+                        dayManagementRepository.updateTasksOrder(dayPlanId, tasksForRepo)
+
+                        _uiState.update { it.copy(isReordering = false) }
+
+                    } catch (e: Exception) {
+
+                        _uiState.update { it.copy(error = "Помилка при зміні порядку завдань") }
+
+                        loadDataForPlan(dayPlanId)
+
+                    }
+
+                }
+
             }
-        }
-    }
 
     fun addTask(
         dayPlanId: String,
@@ -173,7 +197,7 @@ constructor(
                 } else {
                     Firebase.crashlytics.log("Adding single task: ${trimmedTitle}")
                     val currentTasks = _uiState.value.tasks
-                    val maxOrder = currentTasks.maxOfOrNull { it.order } ?: 0L
+                    val maxOrder = currentTasks.maxOfOrNull { it.dayTask.order } ?: 0L
                     dayManagementRepository.addTaskToDayPlan(
                         NewTaskParameters(
                             dayPlanId = dayPlanId,
@@ -225,9 +249,9 @@ constructor(
         }
     }
 
-    fun onEditTaskClicked(task: DayTask) {
+    fun onEditTaskClicked(taskWithReminder: DayTaskWithReminder) {
         viewModelScope.launch {
-            _uiEvent.send(DayPlanUiEvent.NavigateToEditTask(task.id))
+            _uiEvent.send(DayPlanUiEvent.NavigateToEditTask(taskWithReminder.dayTask.id))
         }
     }
 
@@ -235,31 +259,31 @@ constructor(
         _showEditConfirmationDialog.value = null
     }
 
-    fun editSingleInstanceOfRecurringTask(task: DayTask) {
+    fun editSingleInstanceOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
-            dayManagementRepository.detachFromRecurrence(task.id)
+            dayManagementRepository.detachFromRecurrence(taskWithReminder.dayTask.id)
             dismissEditConfirmationDialog()
             editingMode = EditingMode.SINGLE
             openEditTaskDialog()
         }
     }
 
-    fun editAllFutureInstancesOfRecurringTask(task: DayTask) {
+    fun editAllFutureInstancesOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
         dismissEditConfirmationDialog()
         editingMode = EditingMode.ALL_INSTANCES
         openEditTaskDialog()
     }
 
-    fun onDeleteTaskClicked(task: DayTask) {
+    fun onDeleteTaskClicked(taskWithReminder: DayTaskWithReminder) {
         val TAG = "DELETE_RECURRING_DEBUG"
-        Log.d(TAG, "onDeleteTaskClicked called for task: ${task.title}")
-        Log.d(TAG, "Task recurringTaskId: ${task.recurringTaskId}")
-        if (task.recurringTaskId != null) {
+        Log.d(TAG, "onDeleteTaskClicked called for task: ${taskWithReminder.dayTask.title}")
+        Log.d(TAG, "Task recurringTaskId: ${taskWithReminder.dayTask.recurringTaskId}")
+        if (taskWithReminder.dayTask.recurringTaskId != null) {
             Log.d(TAG, "recurringTaskId is not null, showing confirmation dialog")
-            _showDeleteConfirmationDialog.value = task
+            _showDeleteConfirmationDialog.value = taskWithReminder
         } else {
             Log.d(TAG, "recurringTaskId is null, deleting single task")
-            deleteTask(task.dayPlanId, task.id)
+            deleteTask(taskWithReminder.dayTask.dayPlanId, taskWithReminder.dayTask.id)
         }
     }
 
@@ -267,22 +291,22 @@ constructor(
         _showDeleteConfirmationDialog.value = null
     }
 
-    fun deleteSingleInstanceOfRecurringTask(task: DayTask) {
+    fun deleteSingleInstanceOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
-            dayManagementRepository.deleteTask(task.id)
+            dayManagementRepository.deleteTask(taskWithReminder.dayTask.id)
             _tasksUpdated.tryEmit(Unit)
             dismissDeleteConfirmationDialog()
         }
     }
 
-    fun deleteAllFutureInstancesOfRecurringTask(task: DayTask) {
+    fun deleteAllFutureInstancesOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
         val TAG = "DELETE_RECURRING_DEBUG"
-        Log.d(TAG, "ViewModel.deleteAllFutureInstancesOfRecurringTask called for task: ${task.title}")
-        Log.d(TAG, "Task recurringTaskId: ${task.recurringTaskId}")
+        Log.d(TAG, "ViewModel.deleteAllFutureInstancesOfRecurringTask called for task: ${taskWithReminder.dayTask.title}")
+        Log.d(TAG, "Task recurringTaskId: ${taskWithReminder.dayTask.recurringTaskId}")
         viewModelScope.launch(Dispatchers.IO) {
-            task.recurringTaskId?.let {
+            taskWithReminder.dayTask.recurringTaskId?.let {
                 Log.d(TAG, "recurringTaskId is not null, calling repository")
-                dayManagementRepository.deleteAllFutureInstancesOfRecurringTask(it, task.dayPlanId)
+                dayManagementRepository.deleteAllFutureInstancesOfRecurringTask(it, taskWithReminder.dayTask.dayPlanId)
                 _tasksUpdated.tryEmit(Unit)
             }
             dismissDeleteConfirmationDialog()
@@ -314,7 +338,8 @@ constructor(
 
     fun toggleTaskCompletion(taskId: String) {
         viewModelScope.launch {
-            val task = _uiState.value.tasks.find { it.id == taskId } ?: return@launch
+            val taskWithReminder = _uiState.value.tasks.find { it.dayTask.id == taskId } ?: return@launch
+            val task = taskWithReminder.dayTask
 
             if (task.recurringTaskId != null) {
                 val recurringTask = dayManagementRepository.getRecurringTask(task.recurringTaskId)
@@ -328,14 +353,13 @@ constructor(
             }
 
             try {
-                
                 _uiState.update { currentState ->
                     val updatedTasks =
-                        currentState.tasks.map { t ->
-                            if (t.id == taskId) {
-                                t.copy(completed = !t.completed)
+                        currentState.tasks.map { tWithR ->
+                            if (tWithR.dayTask.id == taskId) {
+                                tWithR.copy(dayTask = tWithR.dayTask.copy(completed = !tWithR.dayTask.completed))
                             } else {
-                                t
+                                tWithR
                             }
                         }
                     currentState.copy(
@@ -343,12 +367,8 @@ constructor(
                         lastUpdated = System.currentTimeMillis(),
                     )
                 }
-
-                
-                
                 dayManagementRepository.toggleTaskCompletion(taskId)
             } catch (e: Exception) {
-                
                 _uiState.update {
                     it.copy(error = "Помилка при оновленні статусу завдання: ${e.localizedMessage}")
                 }
@@ -396,6 +416,16 @@ constructor(
                 
                 launch {
                     dayManagementRepository.getTasksForDay(dayPlanId)
+                        .flatMapLatest { tasks ->
+                            if (tasks.isEmpty()) {
+                                flowOf(emptyList())
+                            } else {
+                                combine(tasks.map { task ->
+                                    reminderRepository.getReminderForEntityFlow(task.id)
+                                        .map { reminder -> DayTaskWithReminder(task, reminder) }
+                                }) { it.toList() }
+                            }
+                        }
                         .catch { e ->
                             _uiState.update {
                                 it.copy(
@@ -405,12 +435,12 @@ constructor(
                                 )
                             }
                         }
-                        .collect { tasks ->
+                        .collect { tasksWithReminders ->
                             _uiState.update { currentState ->
                                 currentState.copy(
                                     isLoading = false,
                                     isRefreshing = false,
-                                    tasks = sortTasksWithOrder(tasks),
+                                    tasks = sortTasksWithOrder(tasksWithReminders),
                                     lastUpdated = System.currentTimeMillis(),
                                     error = null,
                                 )
@@ -438,45 +468,74 @@ constructor(
     }
 
     
-    private fun sortTasksWithOrder(tasks: List<DayTask>): List<DayTask> {
+    private fun sortTasksWithOrder(tasks: List<DayTaskWithReminder>): List<DayTaskWithReminder> {
         return tasks.sortedWith(
-            compareBy<DayTask> { it.completed }
-                .thenBy { it.order }
-                .thenBy { it.title.lowercase() },
+            compareBy<DayTaskWithReminder> { it.dayTask.completed }
+                .thenBy { it.dayTask.order }
+                .thenBy { it.dayTask.title.lowercase() },
         )
     }
 
     
-    private fun sortTasks(tasks: List<DayTask>): List<DayTask> {
-        return tasks.sortedWith(
-            compareBy<DayTask> { it.completed }
-                .thenBy { task ->
-                    
-                    when (task.priority) {
-                        TaskPriority.CRITICAL -> 0
-                        TaskPriority.HIGH -> 1
-                        TaskPriority.MEDIUM -> 2
-                        TaskPriority.LOW -> 3
-                        TaskPriority.NONE -> 4
+        private fun sortTasks(tasks: List<DayTaskWithReminder>): List<DayTaskWithReminder> {
+
+    
+            return tasks.sortedWith(
+
+    
+                compareBy<DayTaskWithReminder> { it.dayTask.completed }
+
+    
+                    .thenBy { task ->
+
+    
+                        when (task.dayTask.priority) {
+
+    
+                            TaskPriority.CRITICAL -> 0
+
+    
+                            TaskPriority.HIGH -> 1
+
+    
+                            TaskPriority.MEDIUM -> 2
+
+    
+                            TaskPriority.LOW -> 3
+
+    
+                            TaskPriority.NONE -> 4
+
+    
+                        }
+
+    
                     }
-                }
-                .thenBy { it.dueTime ?: Long.MAX_VALUE }
-                .thenBy { it.title.lowercase() },
-        )
-    }
+
+    
+                    .thenBy { it.dayTask.dueTime ?: Long.MAX_VALUE }
+
+    
+                    .thenBy { it.dayTask.title.lowercase() },
+
+    
+            )
+
+    
+        }
 
     
     fun hasOverdueTasks(): Boolean {
         val currentTime = System.currentTimeMillis()
-        return _uiState.value.tasks.any { task ->
-            !task.completed && task.dueTime != null && task.dueTime < currentTime
+        return _uiState.value.tasks.any { taskWithReminder ->
+            !taskWithReminder.dayTask.completed && taskWithReminder.dayTask.dueTime != null && taskWithReminder.dayTask.dueTime < currentTime
         }
     }
 
     
     fun getCompletionStats(): Triple<Int, Int, Float> {
         val tasks = _uiState.value.tasks
-        val completed = tasks.count { it.completed }
+        val completed = tasks.count { it.dayTask.completed }
         val total = tasks.size
         val percentage = if (total > 0) completed.toFloat() / total else 0f
         return Triple(completed, total, percentage)
@@ -489,17 +548,16 @@ constructor(
                 val currentTasks = _uiState.value.tasks
                 val sortedTasks = sortTasks(currentTasks)
 
-                
                 val tasksWithNewOrder =
-                    sortedTasks.mapIndexed { index, task ->
-                        task.copy(order = index.toLong())
+                    sortedTasks.mapIndexed { index, taskWithReminder ->
+                        taskWithReminder.dayTask.copy(order = index.toLong())
                     }
 
                 dayManagementRepository.updateTasksOrder(dayPlanId, tasksWithNewOrder)
 
                 _uiState.update { currentState ->
                     currentState.copy(
-                        tasks = tasksWithNewOrder,
+                        tasks = sortedTasks.mapIndexed { index, taskWithReminder -> taskWithReminder.copy(dayTask = taskWithReminder.dayTask.copy(order = index.toLong())) },
                         lastUpdated = System.currentTimeMillis(),
                     )
                 }
@@ -566,13 +624,10 @@ constructor(
     }
 
     
-    fun copyTaskToTodaysPlan(taskToCopy: DayTask) {
+    fun copyTaskToTodaysPlan(taskToCopyWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                
-                
-                
-                dayManagementRepository.copyTaskToTodaysPlan(taskToCopy)
+                dayManagementRepository.copyTaskToTodaysPlan(taskToCopyWithReminder.dayTask)
                 clearSelectedTask()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Помилка копіювання завдання: ${e.localizedMessage}") }
@@ -580,10 +635,10 @@ constructor(
         }
     }
 
-    fun moveTaskToTomorrow(taskToMove: DayTask) {
+    fun moveTaskToTomorrow(taskToMoveWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                dayManagementRepository.moveTaskToTomorrow(taskToMove)
+                dayManagementRepository.moveTaskToTomorrow(taskToMoveWithReminder.dayTask)
                 clearSelectedTask()
                 _tasksUpdated.tryEmit(Unit)
             } catch (e: Exception) {
@@ -612,7 +667,8 @@ constructor(
         points: Int
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val task = selectedTask.value ?: return@launch
+            val taskWithReminder = selectedTask.value ?: return@launch
+            val task = taskWithReminder.dayTask
 
             if (editingMode == EditingMode.ALL_INSTANCES && task.recurringTaskId != null) {
                 dayManagementRepository.splitRecurringTask(
@@ -657,23 +713,23 @@ constructor(
         }
     }
 
-    fun moveTaskToTop(task: DayTask) {
+    fun moveTaskToTop(taskWithReminder: DayTaskWithReminder) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val currentTasks = _uiState.value.tasks.toMutableList()
-                currentTasks.remove(task)
-                currentTasks.add(0, task.copy(order = 0))
+                currentTasks.remove(taskWithReminder)
+                currentTasks.add(0, taskWithReminder.copy(dayTask = taskWithReminder.dayTask.copy(order = 0)))
 
-                val tasksWithNewOrder =
-                    currentTasks.mapIndexed { index, t ->
-                        t.copy(order = index.toLong())
+                val tasksForRepo =
+                    currentTasks.mapIndexed { index, tWithR ->
+                        tWithR.dayTask.copy(order = index.toLong())
                     }
 
-                dayManagementRepository.updateTasksOrder(task.dayPlanId, tasksWithNewOrder)
+                dayManagementRepository.updateTasksOrder(taskWithReminder.dayTask.dayPlanId, tasksForRepo)
 
                 _uiState.update { currentState ->
                     currentState.copy(
-                        tasks = sortTasksWithOrder(tasksWithNewOrder),
+                        tasks = sortTasksWithOrder(currentTasks),
                         lastUpdated = System.currentTimeMillis(),
                     )
                 }
