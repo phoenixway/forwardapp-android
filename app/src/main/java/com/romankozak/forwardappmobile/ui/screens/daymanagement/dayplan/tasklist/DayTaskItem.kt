@@ -24,7 +24,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedReminderBadge
+import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.ui.common.components.EnhancedReminderBadge
 
 
 @Composable
@@ -71,6 +72,7 @@ private fun ProjectLinkBadge(modifier: Modifier = Modifier) {
 fun DayTaskAsGoalItem(
     task: DayTask,
     currentTimeMillis: Long,
+    reminder: Reminder? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         DayPlanMarkdownText(
@@ -88,13 +90,7 @@ fun DayTaskAsGoalItem(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    if (task.projectId != null) {
-                        ProjectLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                    }
-                    if (task.goalId != null) {
-                        GoalLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                    }
-                    RenderBadges(task, currentTimeMillis)
+                    RenderBadges(task, currentTimeMillis, reminder)
                 }
             }
         }
@@ -106,6 +102,7 @@ fun DayTaskAsGoalItem(
 fun DayTaskAsSublistItem(
     task: DayTask,
     currentTimeMillis: Long,
+    reminder: Reminder? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -124,14 +121,7 @@ fun DayTaskAsSublistItem(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    if (task.projectId != null) {
-                        ProjectLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                    }
-                    SublistIconBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                    if (task.goalId != null) {
-                        GoalLinkBadge(modifier = Modifier.align(Alignment.CenterVertically))
-                    }
-                    RenderBadges(task, currentTimeMillis)
+                    RenderBadges(task, currentTimeMillis, reminder)
                 }
             }
         }
@@ -152,6 +142,7 @@ private fun hasStatusContent(task: DayTask): Boolean {
 private fun FlowRowScope.RenderBadges(
     task: DayTask,
     currentTimeMillis: Long,
+    reminder: Reminder?,
 ) {
     if (task.recurringTaskId != null) {
         Icon(
@@ -168,12 +159,12 @@ private fun FlowRowScope.RenderBadges(
             Text("Наступне о $nextTime", style = MaterialTheme.typography.labelSmall)
         }
     }
-    // task.reminderTime?.let { time ->
-    //     EnhancedReminderBadge(
-    //         reminderTime = time,
-    //         currentTimeMillis = currentTimeMillis,
-    //     )
-    // }
+    reminder?.let { 
+        EnhancedReminderBadge(
+            reminder = it,
+            currentTimeMillis = currentTimeMillis,
+        )
+    }
     if (task.priority != TaskPriority.NONE) {
         PriorityBadge(priority = task.priority)
     }

@@ -52,18 +52,18 @@
 
 #### Фаза 4: Повна інтеграція UI та ViewModel
 
-1.  **Оновити `ReminderBroadcastReceiver.kt`:**
+1.  **Оновити `ReminderBroadcastReceiver.kt`:** (Виконано)
     *   Відновити логіку в `handleCompleteAction`, `handleSnoozeAction` та `handleDismissAction` для використання `ReminderRepository` для оновлення статусу сутності `Reminder`.
     *   Це передбачає інжекцію `ReminderRepository` в `ReminderBroadcastReceiver`.
 
-2.  **Оновити `MainScreenViewModel.kt`:**
+2.  **Оновити `MainScreenViewModel.kt`:** (Виконано)
     *   Відновити функції `onSetReminder` та `onClearReminder` для використання `ReminderRepository`.
     *   Відновити функцію `onSetReminderForProject`.
 
-3.  **Оновити `ProjectScreenViewModel.kt`:**
+3.  **Оновити `ProjectScreenViewModel.kt`:** (Виконано)
     *   Відновити функції `onSetReminder`, `onClearReminder`, `onSetReminderForItem` та `onSetReminderForProject` для використання `ReminderRepository`.
 
-4.  **Оновити UI-компоненти для відображення статусу `Reminder`:**
+4.  **Оновити UI-компоненти для відображення статусу `Reminder`:** (Виконано)
     *   `ReminderBadge.kt`: Оновити `EnhancedReminderBadge` для прийому об'єкта `Reminder` (або його статусу) безпосередньо.
     *   `DayTaskItem.kt`: Відновити відображення інформації про нагадування за допомогою нової сутності `Reminder`.
     *   `GoalItem.kt`: Відновити відображення інформації про нагадування за допомогою нової сутності `Reminder`.
@@ -71,5 +71,3 @@
     *   `SubprojectItemRow.kt`: Відновити відображення інформації про нагадування за допомогою нової сутності `Reminder`.
 
 5.  **Очистити `TODO` та тимчасові коментарі:** Переглянути всі файли та видалити коментарі `// TODO:` та тимчасово закоментований код.
-
-Продовжую з оновлення `ReminderBroadcastReceiver.kt`.
