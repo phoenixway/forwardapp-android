@@ -29,6 +29,8 @@ fun ProjectDashboardView(
     onToggleProjectManagement: (Boolean) -> Unit,
     onRecalculateTime: () -> Unit,
     projectTimeMetrics: ProjectTimeMetrics?,
+    onEditLog: (ProjectExecutionLog) -> Unit,
+    onDeleteLog: (ProjectExecutionLog) -> Unit,
 ) {
     if (project == null) return
 
@@ -59,7 +61,12 @@ fun ProjectDashboardView(
                     projectTimeMetrics = projectTimeMetrics,
                 )
             ProjectManagementTab.Log ->
-                LogContent(logs = projectLogs, isManagementEnabled = project.isProjectManagementEnabled == true)
+                LogContent(
+                    logs = projectLogs,
+                    isManagementEnabled = project.isProjectManagementEnabled == true,
+                    onEditLog = onEditLog,
+                    onDeleteLog = onDeleteLog
+                )
             ProjectManagementTab.Insights ->
                 InsightsContent(isManagementEnabled = project.isProjectManagementEnabled == true)
         }

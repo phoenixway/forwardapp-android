@@ -27,6 +27,8 @@ fun GoalDetailContent(
     listState: LazyListState,
     inboxListState: LazyListState,
     dragDropState: SimpleDragDropState,
+    onEditLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
+    onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     
@@ -73,6 +75,8 @@ fun GoalDetailContent(
                 onStatusUpdate = viewModel::onProjectStatusUpdate,
                 projectTimeMetrics = uiState.projectTimeMetrics,
                 onRecalculateTime = viewModel::onRecalculateTime,
+                onEditLog = onEditLog,
+                onDeleteLog = onDeleteLog
             )
         }
         ProjectViewMode.ATTACHMENTS -> {

@@ -961,5 +961,11 @@ constructor(
         }
     }
 
+    suspend fun updateProjectExecutionLog(log: ProjectExecutionLog) {
+        projectManagementDao.updateLog(log)
+    }
 
+    suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog) {
+        projectManagementDao.deleteLog(log)
+    }
 }

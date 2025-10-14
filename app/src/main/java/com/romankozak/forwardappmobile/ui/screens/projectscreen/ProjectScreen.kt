@@ -196,7 +196,15 @@ fun ProjectsScreen(
 
         GoalDetailDialogs(viewModel = viewModel)
 
-
+        uiState.logEntryToEdit?.let { logEntry ->
+            com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.EditLogEntryDialog(
+                logEntry = logEntry,
+                onDismiss = viewModel::onDismissEditLogEntryDialog,
+                onConfirm = { description, details ->
+                    viewModel.onUpdateLogEntry(description, details)
+                }
+            )
+        }
 
         BackHandler(enabled = true) {
             val wasConsumed = viewModel.onBackPressed()
@@ -373,7 +381,9 @@ fun ProjectsScreen(
                 uiState = uiState,
                 listState = listState,
                 inboxListState = inboxListState,
-                dragDropState = dragDropState
+                dragDropState = dragDropState,
+                onEditLog = viewModel::onEditLogEntry,
+                onDeleteLog = viewModel::onDeleteLogEntry
             )
         }
     }

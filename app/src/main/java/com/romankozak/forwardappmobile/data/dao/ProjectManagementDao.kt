@@ -1,9 +1,11 @@
 package com.romankozak.forwardappmobile.data.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +16,12 @@ interface ProjectManagementDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: ProjectExecutionLog)
+
+    @Update
+    suspend fun updateLog(log: ProjectExecutionLog)
+
+    @Delete
+    suspend fun deleteLog(log: ProjectExecutionLog)
 
     @Query("SELECT * FROM project_execution_logs")
     suspend fun getAllLogs(): List<ProjectExecutionLog>
