@@ -48,6 +48,11 @@ class ReminderRepository @Inject constructor(
         alarmScheduler.cancel(reminder)
     }
 
+    suspend fun updateReminder(reminder: Reminder) {
+        reminderDao.update(reminder)
+        repositoryScope.launch { alarmScheduler.schedule(reminder) }
+    }
+
     suspend fun clearRemindersForEntity(entityId: String) {
         val reminders = reminderDao.getRemindersForEntity(entityId).first()
         reminders.forEach { reminder ->
