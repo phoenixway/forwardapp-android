@@ -224,6 +224,7 @@ constructor(
   private val dayManagementRepository: DayManagementRepository,
   private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+  private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
 ) :
   ViewModel(),
   ItemActionHandler.ResultListener,
@@ -1112,23 +1113,16 @@ constructor(
   fun onSetReminder(timestamp: Long) =
     viewModelScope.launch {
       val record = _uiState.value.recordForReminderDialog ?: return@launch
-      alarmScheduler.cancelForActivityRecord(record)
 
-      if (record.goalId != null) {
-        projectRepository.getGoalById(record.goalId)?.let { goal ->
-          // val updatedGoal = goal.copy(reminderTime = timestamp)
-          // projectRepository.updateGoal(updatedGoal)
-        }
-      } else if (record.projectId != null) {
-        projectRepository.getProjectById(record.projectId)?.let { project ->
-          // val updatedProject = project.copy(reminderTime = timestamp)
-          // projectRepository.updateProject(updatedProject)
-        }
+      val entityType = when {
+          record.goalId != null -> "GOAL"
+          record.projectId != null -> "PROJECT"
+          else -> "TASK" // Assuming ActivityRecord can also be a task
       }
+      val entityId = record.goalId ?: record.projectId ?: record.id
 
-      // val updatedRecord = record.copy(reminderTime = timestamp)
-      // activityRepository.updateRecord(updatedRecord)
-      // alarmScheduler.scheduleForActivityRecord(updatedRecord)
+      reminderRepository.createOrUpdateReminder(entityId, entityType, timestamp)
+
       onReminderDialogDismiss()
       showSnackbar(
         "Нагадування встановлено на ${
@@ -1143,61 +1137,53 @@ constructor(
   fun onClearReminder() =
     viewModelScope.launch {
       val record = _uiState.value.recordForReminderDialog ?: return@launch
-      alarmScheduler.cancelForActivityRecord(record)
 
-      if (record.goalId != null) {
-        projectRepository.getGoalById(record.goalId)?.let { goal ->
-          // val updatedGoal = goal.copy(reminderTime = null)
-          // projectRepository.updateGoal(updatedGoal)
-        }
-      } else if (record.projectId != null) {
-        projectRepository.getProjectById(record.projectId)?.let { project ->
-          // val updatedProject = project.copy(reminderTime = null)
-          // projectRepository.updateProject(updatedProject)
-        }
-      }
+      val entityId = record.goalId ?: record.projectId ?: record.id
+      reminderRepository.clearReminderForEntity(entityId)
 
-      // val updatedRecord = record.copy(reminderTime = null)
-      // activityRepository.updateRecord(updatedRecord)
       onReminderDialogDismiss()
       showSnackbar("Нагадування скасовано", null)
     }
 
   fun onSetReminderForItem(item: ListItemContent) {
-    val record =
-      when (item) {
-        is ListItemContent.GoalItem -> {
-          ActivityRecord(
-            id = item.goal.id,
-            text = item.goal.text,
-            // reminderTime = item.goal.reminderTime,
-            createdAt = item.goal.createdAt,
-            projectId = item.listItem.projectId,
-            goalId = item.goal.id,
-          )
-        }
-        is ListItemContent.SublistItem -> {
-          ActivityRecord(
-            id = item.project.id,
-            text = item.project.name,
-            // reminderTime = item.project.reminderTime,
-            createdAt = item.project.createdAt,
-            projectId = item.project.id,
-            goalId = null,
-          )
-        }
-        else -> null
-      }
-    _uiState.update { it.copy(recordForReminderDialog = record) }
+    viewModelScope.launch {
+        val reminder = reminderRepository.getReminderForEntityFlow(item.listItem.entityId).firstOrNull()
+        val record =
+            when (item) {
+                is ListItemContent.GoalItem -> {
+                    ActivityRecord(
+                        id = item.goal.id,
+                        text = item.goal.text,
+                        reminderTime = reminder?.reminderTime,
+                        createdAt = item.goal.createdAt,
+                        projectId = item.listItem.projectId,
+                        goalId = item.goal.id,
+                    )
+                }
+                is ListItemContent.SublistItem -> {
+                    ActivityRecord(
+                        id = item.project.id,
+                        text = item.project.name,
+                        reminderTime = reminder?.reminderTime,
+                        createdAt = item.project.createdAt,
+                        projectId = item.project.id,
+                        goalId = null,
+                    )
+                }
+                else -> null
+            }
+        _uiState.update { it.copy(recordForReminderDialog = record) }
+    }
   }
 
   fun onSetReminderForProject() {
     viewModelScope.launch {
         project.value?.let { proj ->
+            val reminder = reminderRepository.getReminderForEntityFlow(proj.id).firstOrNull()
             val record = ActivityRecord(
                 id = proj.id,
                 text = proj.name,
-                // reminderTime = proj.reminderTime,
+                reminderTime = reminder?.reminderTime,
                 createdAt = proj.createdAt,
                 projectId = proj.id,
                 goalId = null,

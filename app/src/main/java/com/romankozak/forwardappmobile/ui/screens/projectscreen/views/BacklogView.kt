@@ -173,7 +173,6 @@ fun BacklogView(
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
-                            val isCompletedFromReminder = false // TODO: Re-implement with new Reminder status
                             GoalItem(
                                 goal = content.goal,
                                 obsidianVaultName = obsidianVaultName,
@@ -191,7 +190,7 @@ fun BacklogView(
                                 emojiToHide = currentListContextEmojiToHide,
                                 currentTimeMillis = currentTime,
                                 isSelected = isSelected,
-                                isCompletedFromReminder = isCompletedFromReminder,
+
                                 endAction = {
                                     MoreActionsButton(
                                         onClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },

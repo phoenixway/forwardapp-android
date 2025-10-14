@@ -104,8 +104,7 @@ fun RemindersScreen(
                                 contextMarkerToEmojiMap = emptyMap(),
                                 currentTimeMillis = currentTimeMillis,
                                 isSelected = false,
-                                isSnoozed = isSnoozed,
-                                isCompletedFromReminder = isCompleted,
+                                reminder = reminderItem.reminder,
                                 endAction = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
                                         Icon(Icons.Default.MoreHoriz, "...")
@@ -130,8 +129,7 @@ fun RemindersScreen(
                                 contextMarkerToEmojiMap = emptyMap(),
                                 currentTimeMillis = currentTimeMillis,
                                 isSelected = false,
-                                isSnoozed = isSnoozed,
-                                isCompletedFromReminder = isCompleted,
+                                reminder = reminderItem.reminder,
                                 endAction = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
                                         Icon(Icons.Default.MoreHoriz, "...")
