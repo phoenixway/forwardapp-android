@@ -9,13 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,34 +20,42 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 fun ArtifactContent(
     artifact: ProjectArtifact?,
     isManagementEnabled: Boolean,
-    onSaveArtifact: (String) -> Unit,
+    onEditArtifact: (ProjectArtifact) -> Unit,
 ) {
     if (!isManagementEnabled) {
         PlaceholderContent(text = "Увімкніть підтримку реалізації на Дашборді, щоб бачити артефакти.")
         return
     }
 
-    var currentContent by remember { mutableStateOf(artifact?.content ?: "") }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        OutlinedTextField(
-            value = currentContent,
-            onValueChange = { currentContent = it },
-            label = { Text("Project Artifact Content") },
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            singleLine = false,
-        )
+        if (artifact == null || artifact.content.isBlank()) {
+            Text(
+                text = "Артефакт проекту порожній. Натисніть 'Редагувати', щоб додати вміст.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            Text(
+                text = artifact.content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
+
         Button(
-            onClick = { onSaveArtifact(currentContent) },
+            onClick = { artifact?.let { onEditArtifact(it) } },
             modifier = Modifier.fillMaxWidth(),
-            enabled = currentContent != (artifact?.content ?: "")
+            enabled = isManagementEnabled
         ) {
-            Text("Save Artifact")
+            Text("Редагувати Артефакт")
         }
     }
 }

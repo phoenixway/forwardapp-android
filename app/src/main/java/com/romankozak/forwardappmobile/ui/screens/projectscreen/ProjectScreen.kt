@@ -154,6 +154,37 @@ fun ProjectsScreen(
             },
             onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() }
         )
+    } else if (uiState.artifactToEdit != null) {
+        // NOTE: It's generally better to hoist hiltViewModel() calls outside of conditional blocks.
+        // However, for this targeted change, we'll create it here.
+        // This ViewModel will be scoped to the ProjectScreen's lifecycle.
+        val editorViewModel: com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel = hiltViewModel()
+        val artifact = uiState.artifactToEdit!!
+
+        // This effect will run when the artifact to edit changes, initializing the editor's content.
+        // If the user cancels, their intermediate edits will be preserved in the editorViewModel
+        // until they edit a different artifact or the screen is left.
+        LaunchedEffect(artifact) {
+            if (editorViewModel.uiState.value.content.text != artifact.content) {
+                val newContent = artifact.content
+                editorViewModel.onContentChange(
+                    TextFieldValue(
+                        newContent,
+                        androidx.compose.ui.text.TextRange(newContent.length)
+                    )
+                )
+            }
+        }
+
+        com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen(
+            title = "Редагувати Артефакт",
+            onSave = { content, _ ->
+                viewModel.onSaveArtifact(content)
+            },
+            onNavigateBack = { viewModel.onDismissArtifactEditor() },
+            navController = navController,
+            viewModel = editorViewModel
+        )
     } else {
         if (uiState.showShareDialog) {
             ShareDialog(
@@ -385,7 +416,8 @@ fun ProjectsScreen(
                 dragDropState = dragDropState,
                 onEditLog = viewModel::onEditLogEntry,
                 onDeleteLog = viewModel::onDeleteLogEntry,
-                onSaveArtifact = viewModel::onSaveArtifact
+                onSaveArtifact = viewModel::onSaveArtifact,
+                onEditArtifact = viewModel::onEditArtifact
             )
         }
     }

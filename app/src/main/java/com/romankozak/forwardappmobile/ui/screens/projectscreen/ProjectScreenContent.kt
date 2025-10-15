@@ -30,6 +30,7 @@ fun GoalDetailContent(
     onEditLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
+    onEditArtifact: (com.romankozak.forwardappmobile.data.database.models.ProjectArtifact) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     
@@ -80,7 +81,8 @@ fun GoalDetailContent(
                 onRecalculateTime = viewModel::onRecalculateTime,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
-                onSaveArtifact = onSaveArtifact
+                onSaveArtifact = onSaveArtifact,
+                onEditArtifact = onEditArtifact
             )
         }
         ProjectViewMode.ATTACHMENTS -> {
