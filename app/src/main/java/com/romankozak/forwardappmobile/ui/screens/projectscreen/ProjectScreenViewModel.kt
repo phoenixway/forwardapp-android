@@ -230,6 +230,7 @@ constructor(
   private val dayManagementRepository: DayManagementRepository,
   private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+  private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
 ) :
   ViewModel(),
@@ -319,6 +320,7 @@ constructor(
   val inputHandler =
     InputHandler(
       projectRepository,
+      goalRepository,
       viewModelScope,
       projectIdFlow,
       this,

@@ -57,6 +57,7 @@ class SmartDebouncer(
 
 class InputHandler(
     private val projectRepository: ProjectRepository,
+    private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,
     private val resultListener: ResultListener,
@@ -196,10 +197,10 @@ class InputHandler(
 
                         val newItemIdentifier: String
                         if (reminderTime != null) {
-                            val newGoal = projectRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
+                            val newGoal = goalRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
                             newItemIdentifier = newGoal.id
                         } else {
-                            newItemIdentifier = projectRepository.addGoalToProject(textToSave, currentProjectId)
+                            newItemIdentifier = goalRepository.addGoalToProject(textToSave, currentProjectId)
                         }
 
                         withContext(Dispatchers.Main) {
