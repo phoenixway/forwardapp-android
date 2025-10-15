@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TravelExplore
@@ -121,6 +122,7 @@ fun QuickActionsRow(
                                 InputMode.SearchInList -> "Пошук"
                                 InputMode.SearchGlobal -> "Глобально"
                                 InputMode.AddProjectLog -> "Лог"
+                                InputMode.AddMilestone -> "Віха"
                             },
                         style = MaterialTheme.typography.labelSmall,
                     )
@@ -154,6 +156,7 @@ fun InputStatusIndicator(
                         InputMode.SearchInList -> MaterialTheme.colorScheme.secondary
                         InputMode.SearchGlobal -> MaterialTheme.colorScheme.tertiary
                         InputMode.AddProjectLog -> MaterialTheme.colorScheme.secondary
+                        InputMode.AddMilestone -> MaterialTheme.colorScheme.secondary
                     }
                 else -> MaterialTheme.colorScheme.outline
             },
@@ -211,6 +214,7 @@ object InputModeUtils {
             InputMode.SearchInList -> Icons.Outlined.Search
             InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
             InputMode.AddProjectLog -> Icons.Outlined.PostAdd
+            InputMode.AddMilestone -> Icons.Outlined.Flag
         }
 
     fun getModeColor(
@@ -222,6 +226,7 @@ object InputModeUtils {
         InputMode.SearchInList -> colorScheme.secondary
         InputMode.SearchGlobal -> colorScheme.tertiary
         InputMode.AddProjectLog -> colorScheme.secondary
+        InputMode.AddMilestone -> colorScheme.secondary
     }
 }
 

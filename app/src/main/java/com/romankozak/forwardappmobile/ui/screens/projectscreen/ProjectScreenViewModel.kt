@@ -627,6 +627,18 @@ constructor(
     }
   }
 
+  override fun addMilestone(text: String) {
+    if (text.isBlank()) return
+    viewModelScope.launch(Dispatchers.IO) {
+        projectRepository.addProjectLogEntry(
+            projectId = projectIdFlow.value,
+            type = ProjectLogEntryTypeValues.MILESTONE,
+            description = text,
+        )
+        withContext(Dispatchers.Main) { _uiState.update { it.copy(inputValue = TextFieldValue("")) } }
+    }
+  }
+
   private fun getInputModeForView(viewMode: ProjectViewMode): InputMode =
     when (viewMode) {
       ProjectViewMode.INBOX -> InputMode.AddQuickRecord

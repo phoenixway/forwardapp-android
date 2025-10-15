@@ -48,6 +48,14 @@ fun ProjectDashboardView(
     if (project == null) return
 
     var selectedTab by remember { mutableStateOf(ProjectManagementTab.Dashboard) }
+    var previousLogs by remember { mutableStateOf(projectLogs) }
+
+    LaunchedEffect(projectLogs) {
+        if (projectLogs.size > previousLogs.size) {
+            selectedTab = ProjectManagementTab.Log
+        }
+        previousLogs = projectLogs
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(

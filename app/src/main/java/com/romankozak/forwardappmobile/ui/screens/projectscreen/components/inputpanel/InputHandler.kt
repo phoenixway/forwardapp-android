@@ -99,6 +99,8 @@ class InputHandler(
 
         fun addProjectComment(text: String)
 
+        fun addMilestone(text: String)
+
         fun createObsidianNote(noteName: String)
     }
 
@@ -227,6 +229,10 @@ class InputHandler(
             InputMode.AddProjectLog -> {
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
                 resultListener.addProjectComment(originalText)
+            }
+            InputMode.AddMilestone -> {
+                resultListener.updateInputState(inputValue = TextFieldValue(""))
+                resultListener.addMilestone(originalText)
             }
         }
     }
