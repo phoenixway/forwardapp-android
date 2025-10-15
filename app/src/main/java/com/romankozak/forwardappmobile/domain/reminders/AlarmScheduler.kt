@@ -52,6 +52,7 @@ class AlarmScheduler
 
             val intent =
                 Intent(context, ReminderBroadcastReceiver::class.java).apply {
+                    putExtra(ReminderBroadcastReceiver.EXTRA_REMINDER_ID, reminder.id)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, reminder.entityId)
                     val (title, description, emoji) = when (reminder.entityType) {
                         "GOAL" -> {
