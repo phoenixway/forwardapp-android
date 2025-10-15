@@ -100,23 +100,31 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             return
         }
 
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        createNotificationChannel(notificationManager)
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val isScreenOn = powerManager.isInteractive
 
-        val notificationText = buildString {
-            if (!goalDescription.isNullOrBlank()) append(goalDescription)
-            if (!extraInfo.isNullOrBlank()) {
-                if (isNotEmpty()) append("\n")
-                append(extraInfo)
+        if (isScreenOn) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            createNotificationChannel(notificationManager)
+
+            val notificationText = buildString {
+                if (!goalDescription.isNullOrBlank()) append(goalDescription)
+                if (!extraInfo.isNullOrBlank()) {
+                    if (isNotEmpty()) append("\n")
+                    append(extraInfo)
+                }
             }
-        }
 
-        // Показуємо тільки одне сповіщення з full-screen intent
-        showNotification(context, notificationManager, reminderId, goalId, goalText, notificationText, goalEmoji, extraInfo)
+            // Показуємо тільки одне сповіщення з full-screen intent
+            showNotification(context, notificationManager, reminderId, goalId, goalText, notificationText, goalEmoji, extraInfo)
+        } else {
+            startLockScreenActivity(context, reminderId, goalId, goalText, goalDescription, goalEmoji, extraInfo)
+        }
     }
 
     private fun startLockScreenActivity(
         context: Context,
+        reminderId: String,
         goalId: String,
         goalText: String,
         goalDescription: String?,
@@ -126,6 +134,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         try {
             val lockScreenIntent = 
                 Intent(context, ReminderLockScreenActivity::class.java).apply {
+                    putExtra(Companion.EXTRA_REMINDER_ID, reminderId)
                     putExtra(Companion.EXTRA_GOAL_ID, goalId)
                     putExtra(Companion.EXTRA_GOAL_TEXT, goalText)
                     putExtra(Companion.EXTRA_GOAL_DESCRIPTION, goalDescription)

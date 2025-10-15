@@ -36,7 +36,7 @@ fun ReminderPickerDialog(
     onDismiss: () -> Unit,
     onSetReminder: (Long) -> Unit,
     onRemoveReminder: ((Long) -> Unit)? = null,
-    currentReminderTimes: List<Long> = emptyList(),
+    currentReminders: List<com.romankozak.forwardappmobile.data.database.models.Reminder> = emptyList(),
 ) {
     var selectedType by remember { mutableStateOf(ReminderType.QUICK_DURATION) }
     var selectedDuration by remember { mutableStateOf<ReminderDuration?>(null) }
@@ -70,14 +70,14 @@ fun ReminderPickerDialog(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                if (currentReminderTimes.isNotEmpty()) {
+                if (currentReminders.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             "Поточні нагадування:",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium
                         )
-                        currentReminderTimes.forEach { time ->
+                        currentReminders.forEach { reminder ->
                             Card(
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -91,13 +91,20 @@ fun ReminderPickerDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(
-                                        text = formatDateTime(time),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    )
+                                    Column {
+                                        Text(
+                                            text = formatDateTime(reminder.reminderTime),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+                                        Text(
+                                            text = "Статус: ${reminder.status}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+                                    }
                                     onRemoveReminder?.let {
-                                        IconButton(onClick = { it(time) }, modifier = Modifier.size(24.dp)) {
+                                        IconButton(onClick = { it(reminder.reminderTime) }, modifier = Modifier.size(24.dp)) {
                                             Icon(
                                                 Icons.Default.Close,
                                                 contentDescription = "Remove reminder",

@@ -156,7 +156,7 @@ fun ActivityTrackerScreen(
                     onDismiss = viewModel::onReminderDialogDismiss,
                     onSetReminder = viewModel::onSetReminder,
                     onRemoveReminder = if (record.reminderTime != null) {{ _ -> viewModel.onClearReminder() }} else null,
-                    currentReminderTimes = listOfNotNull(record.reminderTime),
+                    currentReminders = listOfNotNull(record.reminderTime).map { com.romankozak.forwardappmobile.data.database.models.Reminder(entityId = record.id, entityType = "TASK", reminderTime = it, status = "SCHEDULED", creationTime = System.currentTimeMillis()) },
                 )
             }
         }

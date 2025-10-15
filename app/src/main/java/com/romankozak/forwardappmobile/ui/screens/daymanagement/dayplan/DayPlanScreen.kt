@@ -458,7 +458,7 @@ fun DayPlanScreen(
         showReminderDialog = false
         viewModel.clearSelectedTask()
       },
-      currentReminderTimes = listOfNotNull(selectedTask?.reminder?.reminderTime),
+      currentReminders = listOfNotNull(selectedTask?.reminder).map { it },
     )
   }
 }
