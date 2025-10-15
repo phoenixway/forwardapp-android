@@ -163,8 +163,8 @@ private fun ViewModeToggle(
           Icon(
             imageVector =
               when (viewMode) {
-                ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
-                ProjectViewMode.INBOX -> Icons.Outlined.Inbox
+                ProjectViewMode.BACKLOG -> Icons.Outlined.ListAlt
+                ProjectViewMode.INBOX -> Icons.Outlined.Notes
                 ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
                 ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
               },
