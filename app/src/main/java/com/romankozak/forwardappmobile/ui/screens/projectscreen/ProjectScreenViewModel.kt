@@ -118,12 +118,12 @@ data class UiState(
   val showCreateCustomListDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: ListItemContent? = null,
-  val remindersForDialog: List<Reminder> = emptyList(),
-  val logEntryToEdit: ProjectExecutionLog? = null,
-)
-
-interface BacklogMarkdownHandlerResultListener {
-  fun copyToClipboard(text: String, label: String)
+      val remindersForDialog: List<Reminder> = emptyList(),
+      val logEntryToEdit: ProjectExecutionLog? = null,
+      val artifactToEdit: ProjectArtifact? = null,
+  )
+  
+  interface BacklogMarkdownHandlerResultListener {  fun copyToClipboard(text: String, label: String)
 
   fun showSnackbar(message: String, action: String?)
 
@@ -1692,6 +1692,15 @@ constructor(
             } else {
                 projectRepository.updateProjectArtifact(currentArtifact.copy(content = content, updatedAt = System.currentTimeMillis()))
             }
+            onDismissArtifactEditor()
         }
+    }
+
+    fun onEditArtifact(artifact: ProjectArtifact) {
+        _uiState.update { it.copy(artifactToEdit = artifact) }
+    }
+
+    fun onDismissArtifactEditor() {
+        _uiState.update { it.copy(artifactToEdit = null) }
     }
 }

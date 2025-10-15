@@ -13,13 +13,21 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.proje
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.InsightsContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.LogContent
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lightbulb
+
 private enum class ProjectManagementTab(
     val displayName: String,
+    val icon: ImageVector,
 ) {
-    Dashboard("Дашборд"),
-    Artifact("Артефакт"),
-    Log("Історія"),
-    Insights("Інсайти"),
+    Dashboard("Дашборд", Icons.Default.Dashboard),
+    Artifact("Артефакт", Icons.Default.Description),
+    Log("Історія", Icons.Default.History),
+    Insights("Інсайти", Icons.Default.Lightbulb),
 }
 
 @Composable
@@ -35,6 +43,7 @@ fun ProjectDashboardView(
     onEditLog: (ProjectExecutionLog) -> Unit,
     onDeleteLog: (ProjectExecutionLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
+    onEditArtifact: (ProjectArtifact) -> Unit,
 ) {
     if (project == null) return
 
@@ -50,7 +59,7 @@ fun ProjectDashboardView(
                 Tab(
                     selected = selectedTab == tab,
                     onClick = { selectedTab = tab },
-                    text = { Text(tab.displayName, style = MaterialTheme.typography.labelSmall) },
+                    icon = { Icon(tab.icon, contentDescription = tab.displayName) },
                 )
             }
         }
@@ -68,7 +77,7 @@ fun ProjectDashboardView(
                 ArtifactContent(
                     artifact = projectArtifact,
                     isManagementEnabled = project.isProjectManagementEnabled == true,
-                    onSaveArtifact = onSaveArtifact
+                    onEditArtifact = onEditArtifact
                 )
             }
             ProjectManagementTab.Log ->
