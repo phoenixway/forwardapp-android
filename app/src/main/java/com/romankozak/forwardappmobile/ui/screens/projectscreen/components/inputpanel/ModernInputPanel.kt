@@ -22,6 +22,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowLeft
+import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.*
@@ -126,7 +128,7 @@ private fun ViewModeToggle(
           modifier = Modifier.size(36.dp),
       ) {
           Icon(
-              imageVector = Icons.Outlined.Widgets, // New icon
+              imageVector = Icons.AutoMirrored.Filled.ArrowRight,
               contentDescription = "Перемкнути панель",
               modifier = Modifier.size(18.dp),
               tint = contentColor,
@@ -562,7 +564,7 @@ private fun NavigationBar(
                 } else {
                     IconButton(onClick = actions.onToggleNavPanelMode, modifier = Modifier.size(40.dp)) {
                         Icon(
-                            imageVector = Icons.Outlined.Widgets, // New icon
+                            imageVector = Icons.AutoMirrored.Filled.ArrowLeft,
                             contentDescription = "Перемкнути панель",
                             tint = contentColor.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp),
