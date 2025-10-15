@@ -240,22 +240,7 @@ class AlarmScheduler
         }
 
         fun scheduleTestAlarm() {
-            // val testTime = System.currentTimeMillis() + 60000
-            // val currentTime = System.currentTimeMillis()
 
-            // val testGoal =
-            //     Goal(
-            //         id = "TEST_ALARM",
-            //         text = "Test Reminder - Delete this goal after testing",
-            //         description = "This is a test reminder to verify notifications work correctly",
-            //         completed = false,
-            //         reminderTime = testTime,
-            //         createdAt = currentTime,
-            //         updatedAt = currentTime,
-            //     )
-
-            // Log.i(tag, "AlarmScheduler: Scheduling test alarm for 1 minute from now")
-            // schedule(testGoal)
         }
 
 

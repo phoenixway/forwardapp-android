@@ -170,11 +170,8 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Critical goal reminders that appear on lock screen"
-                //enableVibration(true)
-               // vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 1000)
                 enableLights(true)
                 lightColor = Color.RED
-                //setSound(soundUri, audioAttributes)
                 setBypassDnd(true)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
 
@@ -248,7 +245,6 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             .addAction(R.drawable.ic_media_pause, "Відкласти ⏰", snoozeIntent)
             .addAction(R.drawable.ic_menu_close_clear_cancel, "Пропустити ❌", dismissIntent)
             .setColor(0xFF6366F1.toInt())
-          //  .setVibrate(longArrayOf(0, 300, 200, 300, 200, 800))
             .setLights(Color.BLUE, 1000, 500)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(fullScreenPendingIntent) // Додано основний інтент

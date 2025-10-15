@@ -410,8 +410,11 @@ val MIGRATION_50_51 = object : Migration(50, 51) {
         val dayTasksCursor = db.query("PRAGMA table_info(day_tasks)")
         val existingDayTasksColumns = mutableSetOf<String>()
         while (dayTasksCursor.moveToNext()) {
-            val columnName = dayTasksCursor.getString(dayTasksCursor.getColumnIndex("name"))
-            existingDayTasksColumns.add(columnName)
+            val nameIndex = dayTasksCursor.getColumnIndex("name")
+            if (nameIndex >= 0) {
+                val columnName = dayTasksCursor.getString(nameIndex)
+                existingDayTasksColumns.add(columnName)
+            }
         }
         dayTasksCursor.close()
         

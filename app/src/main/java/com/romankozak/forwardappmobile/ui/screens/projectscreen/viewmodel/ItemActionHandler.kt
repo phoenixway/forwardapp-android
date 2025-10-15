@@ -16,10 +16,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+
 class ItemActionHandler
     @Inject
     constructor(
         private val projectRepository: ProjectRepository,
+        private val recentItemsRepository: RecentItemsRepository,
         val scope: CoroutineScope,
         private val projectIdFlow: StateFlow<String>,
         private val resultListener: ResultListener,
@@ -50,12 +53,16 @@ class ItemActionHandler
             } else {
                 scope.launch {
                     when (item) {
-                        is ListItemContent.NoteItem -> projectRepository.logNoteAccess(item.note)
-                        is ListItemContent.CustomListItem -> projectRepository.logCustomListAccess(item.customList)
-                        is ListItemContent.SublistItem -> projectRepository.logProjectAccess(item.project.id)
+                        is ListItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
+                        is ListItemContent.CustomListItem -> recentItemsRepository.logCustomListAccess(item.customList)
+                        is ListItemContent.SublistItem -> {
+                            projectRepository.getProjectById(item.project.id)?.let {
+                                recentItemsRepository.logProjectAccess(it)
+                            }
+                        }
                         is ListItemContent.LinkItem -> {
                             if (item.link.linkData.type == com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN) {
-                                projectRepository.logObsidianLinkAccess(item.link.linkData)
+                                recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
                             }
                         }
                         else -> {}

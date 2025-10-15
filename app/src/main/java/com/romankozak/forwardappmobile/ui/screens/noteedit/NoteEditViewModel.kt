@@ -33,7 +33,7 @@ data class NoteEditUiState(
 class NoteEditViewModel
     @Inject
     constructor(
-        private val projectRepository: ProjectRepository,
+        private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(NoteEditUiState())
@@ -52,7 +52,7 @@ class NoteEditViewModel
 
             viewModelScope.launch {
                 if (noteId != null) {
-                    projectRepository.getNoteById(noteId!!)?.let { note ->
+                    noteRepository.getNoteById(noteId!!)?.let { note ->
                         projectId = note.projectId
                         initialTitle = note.title
                         initialContent = note.content
@@ -121,7 +121,7 @@ class NoteEditViewModel
                         )
                     } else {
                         
-                        val originalNote = projectRepository.getNoteById(noteId!!)!!
+                        val originalNote = noteRepository.getNoteById(noteId!!)!!
                         originalNote.copy(
                             title = title,
                             content = content,
@@ -129,7 +129,7 @@ class NoteEditViewModel
                         )
                     }
 
-                projectRepository.saveNote(noteToSave)
+                noteRepository.saveNote(noteToSave)
                 _events.send(NoteEditEvent.NavigateBack("Note saved"))
             }
         }

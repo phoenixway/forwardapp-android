@@ -294,7 +294,6 @@ fun ProjectsScreen(
                                 boundsTransform = { initialBounds, targetBounds ->
                                     tween(durationMillis = 600, easing = FastOutSlowInEasing)
                                 }
-                           //     boundsTransform = MaterialContainerTransform()
 
                             )
                             .graphicsLayer {

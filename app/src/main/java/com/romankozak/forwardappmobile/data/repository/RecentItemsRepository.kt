@@ -1,0 +1,99 @@
+package com.romankozak.forwardappmobile.data.repository
+
+import android.util.Log
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.database.models.CustomListEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteEntity
+import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class RecentItemsRepository @Inject constructor(
+    private val recentItemDao: RecentItemDao
+) {
+    fun getRecentItems(limit: Int = 20): Flow<List<RecentItem>> = recentItemDao.getRecentItems(limit)
+
+    suspend fun logProjectAccess(project: Project) {
+        val existingItem = recentItemDao.getRecentItemById(project.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = project.id,
+                type = RecentItemType.PROJECT,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = project.name,
+                target = project.id
+            )
+        }
+        Log.d("Recents_Debug", "Logging project access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun logNoteAccess(note: NoteEntity) {
+        val existingItem = recentItemDao.getRecentItemById(note.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = note.id,
+                type = RecentItemType.NOTE,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = note.title,
+                target = note.id
+            )
+        }
+        Log.d("Recents_Debug", "Logging note access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun logCustomListAccess(customList: CustomListEntity) {
+        val existingItem = recentItemDao.getRecentItemById(customList.id)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = customList.id,
+                type = RecentItemType.CUSTOM_LIST,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = customList.name,
+                target = customList.id
+            )
+        }
+        Log.d("Recents_Debug", "Logging custom list access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun logObsidianLinkAccess(link: RelatedLink) {
+        val existingItem = recentItemDao.getRecentItemById(link.target)
+        val recentItem = if (existingItem != null) {
+            existingItem.copy(lastAccessed = System.currentTimeMillis())
+        } else {
+            RecentItem(
+                id = link.target,
+                type = RecentItemType.OBSIDIAN_LINK,
+                lastAccessed = System.currentTimeMillis(),
+                displayName = link.displayName ?: link.target,
+                target = link.target
+            )
+        }
+        Log.d("Recents_Debug", "Logging obsidian link access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun updateRecentItem(item: RecentItem) {
+        recentItemDao.logAccess(item)
+    }
+    
+    suspend fun updateRecentItemDisplayName(itemId: String, displayName: String) {
+        val recentItem = recentItemDao.getRecentItemById(itemId)
+        if (recentItem != null) {
+            recentItemDao.logAccess(recentItem.copy(displayName = displayName))
+        }
+    }
+}
