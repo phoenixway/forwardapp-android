@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -276,30 +277,30 @@ class ReminderLockScreenActivity : ComponentActivity() {
     Log.d(tag, "Goal completed: $reminderId")
     stopAlarmSoundAndVibration()
     cancelAllNotifications(reminderId)
-    CoroutineScope(Dispatchers.IO).launch {
+    lifecycleScope.launch {
         reminderRepository.markAsCompleted(reminderId)
+        finishSafely()
     }
-    finishSafely()
   }
 
   private fun handleSnooze(reminderId: String) {
     Log.d(tag, "Goal snoozed: $reminderId")
     stopAlarmSoundAndVibration()
     cancelAllNotifications(reminderId)
-    CoroutineScope(Dispatchers.IO).launch {
+    lifecycleScope.launch {
         reminderRepository.snoozeReminder(reminderId)
+        finishSafely()
     }
-    finishSafely()
   }
 
   private fun handleDismiss(reminderId: String) {
     Log.d(tag, "Goal dismissed: $reminderId")
     stopAlarmSoundAndVibration()
     cancelAllNotifications(reminderId)
-    CoroutineScope(Dispatchers.IO).launch {
+    lifecycleScope.launch {
         reminderRepository.dismissReminder(reminderId)
+        finishSafely()
     }
-    finishSafely()
   }
 
   private fun cancelAllNotifications(reminderId: String) {

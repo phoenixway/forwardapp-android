@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.BroadcastReceiver.PendingResult
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -65,60 +66,68 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.i(Companion.tag, "onReceive triggered! Action: ${intent.action}")
 
-        when (intent.action) {
-            Companion.ACTION_COMPLETE -> {
-                handleCompleteAction(context, intent)
-                return
-            }
-            Companion.ACTION_SNOOZE -> {
-                handleSnoozeAction(context, intent)
-                return
-            }
-            Companion.ACTION_DISMISS -> {
-                handleDismissAction(context, intent)
-                return
-            }
-        }
-
-        val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID)
-        val goalId = intent.getStringExtra(Companion.EXTRA_GOAL_ID)
-        val goalText = intent.getStringExtra(Companion.EXTRA_GOAL_TEXT)
-        val goalDescription = intent.getStringExtra(Companion.EXTRA_GOAL_DESCRIPTION)
-        val goalEmoji = intent.getStringExtra(Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
-        val extraInfo = intent.getStringExtra(Companion.EXTRA_INFO)
-
-        if (reminderId == null || goalId == null || goalText == null) {
-            Log.e(Companion.tag, "Received broadcast with missing data. ReminderId: $reminderId, GoalId: $goalId, GoalText: $goalText")
-            return
-        }
-
-        Log.d(Companion.tag, "Starting reminder for goal: $goalText")
-
-        // Перевіряємо, чи активність вже запущена
-        if (ReminderLockScreenActivity.isActive) {
-            Log.d(Companion.tag, "Lock screen activity already active, skipping duplicate")
-            return
-        }
-
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        val isScreenOn = powerManager.isInteractive
-
-        if (isScreenOn) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            createNotificationChannel(notificationManager)
-
-            val notificationText = buildString {
-                if (!goalDescription.isNullOrBlank()) append(goalDescription)
-                if (!extraInfo.isNullOrBlank()) {
-                    if (isNotEmpty()) append("\n")
-                    append(extraInfo)
+        val pendingResult: PendingResult = goAsync()
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                when (intent.action) {
+                    Companion.ACTION_COMPLETE -> {
+                        handleCompleteAction(context, intent)
+                        return@launch
+                    }
+                    Companion.ACTION_SNOOZE -> {
+                        handleSnoozeAction(context, intent)
+                        return@launch
+                    }
+                    Companion.ACTION_DISMISS -> {
+                        handleDismissAction(context, intent)
+                        return@launch
+                    }
                 }
-            }
 
-            // Показуємо тільки одне сповіщення з full-screen intent
-            showNotification(context, notificationManager, reminderId, goalId, goalText, notificationText, goalEmoji, extraInfo)
-        } else {
-            startLockScreenActivity(context, reminderId, goalId, goalText, goalDescription, goalEmoji, extraInfo)
+                val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID)
+                val goalId = intent.getStringExtra(Companion.EXTRA_GOAL_ID)
+                val goalText = intent.getStringExtra(Companion.EXTRA_GOAL_TEXT)
+                val goalDescription = intent.getStringExtra(Companion.EXTRA_GOAL_DESCRIPTION)
+                val goalEmoji = intent.getStringExtra(Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
+                val extraInfo = intent.getStringExtra(Companion.EXTRA_INFO)
+
+                if (reminderId == null || goalId == null || goalText == null) {
+                    Log.e(Companion.tag, "Received broadcast with missing data. ReminderId: $reminderId, GoalId: $goalId, GoalText: $goalText")
+                    return@launch
+                }
+
+                Log.d(Companion.tag, "Starting reminder for goal: $goalText")
+
+                // Перевіряємо, чи активність вже запущена
+                if (ReminderLockScreenActivity.isActive) {
+                    Log.d(Companion.tag, "Lock screen activity already active, skipping duplicate")
+                    return@launch
+                }
+
+                val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                val isScreenOn = powerManager.isInteractive
+
+                if (isScreenOn) {
+                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    createNotificationChannel(notificationManager)
+
+                    val notificationText = buildString {
+                        if (!goalDescription.isNullOrBlank()) append(goalDescription)
+                        if (!extraInfo.isNullOrBlank()) {
+                            if (isNotEmpty()) append("\n")
+                            append(extraInfo)
+                        }
+                    }
+
+                    // Показуємо тільки одне сповіщення з full-screen intent
+                    showNotification(context, notificationManager, reminderId, goalId, goalText, notificationText, goalEmoji, extraInfo)
+                } else {
+                    startLockScreenActivity(context, reminderId, goalId, goalText, goalDescription, goalEmoji, extraInfo)
+                }
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
@@ -274,13 +283,11 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     }
 
 
-    private fun handleCompleteAction(context: Context, intent: Intent) {
+    private suspend fun handleCompleteAction(context: Context, intent: Intent) {
         val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
         Log.d(Companion.tag, "Goal completed via notification: $reminderId")
 
-        CoroutineScope(Dispatchers.IO).launch {
-            reminderRepository.markAsCompleted(reminderId)
-        }
+        reminderRepository.markAsCompleted(reminderId)
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(Companion.getNotificationId(reminderId))
@@ -300,16 +307,14 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun handleSnoozeAction(context: Context, intent: Intent) {
+    private suspend fun handleSnoozeAction(context: Context, intent: Intent) {
         val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
         Log.d(Companion.tag, "Goal snoozed via notification: $reminderId")
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(Companion.getNotificationId(reminderId))
 
-        CoroutineScope(Dispatchers.IO).launch {
-            reminderRepository.snoozeReminder(reminderId)
-        }
+        reminderRepository.snoozeReminder(reminderId)
 
         // Закриваємо активність
         if (ReminderLockScreenActivity.isActive) {
@@ -325,13 +330,11 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun handleDismissAction(context: Context, intent: Intent) {
+    private suspend fun handleDismissAction(context: Context, intent: Intent) {
         val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
         Log.d(Companion.tag, "Goal dismissed via notification: $reminderId")
 
-        CoroutineScope(Dispatchers.IO).launch {
-            reminderRepository.dismissReminder(reminderId)
-        }
+        reminderRepository.dismissReminder(reminderId)
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(Companion.getNotificationId(reminderId))
