@@ -49,16 +49,16 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         private const val BASE_FULLSCREEN_ID = 2000
         private const val BASE_ACTION_ID = 3000
 
-        fun getNotificationId(goalId: String): Int {
-            return BASE_NOTIFICATION_ID + goalId.hashCode()
+        fun getNotificationId(reminderId: String): Int {
+            return BASE_NOTIFICATION_ID + reminderId.hashCode()
         }
 
-        private fun getFullScreenId(goalId: String): Int {
-            return BASE_FULLSCREEN_ID + goalId.hashCode()
+        private fun getFullScreenId(reminderId: String): Int {
+            return BASE_FULLSCREEN_ID + reminderId.hashCode()
         }
 
-        private fun getActionId(action: String, goalId: String): Int {
-            return BASE_ACTION_ID + "$action$goalId".hashCode()
+        private fun getActionId(action: String, reminderId: String): Int {
+            return BASE_ACTION_ID + "$action$reminderId".hashCode()
         }
     }
 
@@ -216,7 +216,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
         val fullScreenPendingIntent = PendingIntent.getActivity(
             context,
-            goalId.hashCode(),
+            getFullScreenId(reminderId),
             fullScreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -250,7 +250,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.FLAG_INSISTENT or
                 NotificationCompat.FLAG_NO_CLEAR
 
-        notificationManager.notify(Companion.getNotificationId(goalId), notification)
+        notificationManager.notify(Companion.getNotificationId(reminderId), notification)
 
         Log.d(Companion.tag, "Full-screen notification created for goal: $goalId")
     }
