@@ -767,6 +767,13 @@ fun ModernInputPanel(
           accentColor = inputPanelColors.addProjectLog.textColor,
           inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
         )
+      InputMode.AddMilestone ->
+        PanelColors(
+          containerColor = inputPanelColors.addProjectLog.backgroundColor,
+          contentColor = inputPanelColors.addProjectLog.textColor,
+          accentColor = inputPanelColors.addProjectLog.textColor,
+          inputFieldColor = inputPanelColors.addProjectLog.inputFieldColor,
+        )
     }
 
   val animatedContainerColor by
@@ -978,6 +985,7 @@ fun ModernInputPanel(
                           InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
                           InputMode.SearchGlobal -> stringResource(R.string.hint_search_global)
                           InputMode.AddProjectLog -> "Додати коментар до проекту..."
+                          InputMode.AddMilestone -> "Додати віху до проекту..."
                         },
                       style =
                         MaterialTheme.typography.bodyLarge.copy(
