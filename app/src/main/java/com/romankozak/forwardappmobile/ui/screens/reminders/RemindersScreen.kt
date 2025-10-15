@@ -147,7 +147,7 @@ fun RemindersScreen(
             onDismiss = { viewModel.onDismissEditReminder() },
             onSetReminder = { timestamp -> viewModel.setReminder(item.reminder.id, timestamp) },
             onRemoveReminder = { _ -> viewModel.clearReminder(item.reminder.id) },
-            currentReminderTimes = listOfNotNull(item.reminder.reminderTime)
+            currentReminders = listOfNotNull(item.reminder)
         )
     }
 

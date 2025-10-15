@@ -134,7 +134,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,
             onRemoveReminder = { time -> viewModel.onRemoveReminder(time) },
-            currentReminderTimes = uiState.remindersForDialog.map { it.reminderTime },
+            currentReminders = uiState.remindersForDialog,
         )
     }
 
