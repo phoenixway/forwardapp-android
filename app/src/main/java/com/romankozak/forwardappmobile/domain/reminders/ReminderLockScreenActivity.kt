@@ -51,13 +51,22 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.romankozak.forwardappmobile.ui.theme.ForwardAppMobileTheme
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class ReminderLockScreenActivity : ComponentActivity() {
   companion object {
     var isActive = false
     private var currentGoalId: String? = null
   }
+
+  @Inject
+  lateinit var reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository
 
   private var wakeLock: PowerManager.WakeLock? = null
   private var mediaPlayer: MediaPlayer? = null
@@ -67,6 +76,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    val reminderId = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_REMINDER_ID) ?: "unknown"
     val goalId = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_ID) ?: "unknown"
 
     // Перевіряємо, чи вже запущена активність для цієї ж цілі
@@ -93,16 +103,9 @@ class ReminderLockScreenActivity : ComponentActivity() {
 
     Log.d(tag, "ReminderLockScreenActivity created for goal: $goalId")
 
-    // Скасовуємо сповіщення при запуску активності
-    //        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as
-    // android.app.NotificationManager
-    //       val notificationId = 1000 + goalId.hashCode() // Використовуємо ту ж логіку що й в
-    // BroadcastReceiver
-    //     notificationManager.cancel(notificationId)
-
     val notificationManager =
       getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(goalId))
+    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(reminderId))
 
     val goalText = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_TEXT) ?: "Ваша мета"
     val goalDescription = intent.getStringExtra(ReminderBroadcastReceiver.Companion.EXTRA_GOAL_DESCRIPTION)
@@ -115,14 +118,15 @@ class ReminderLockScreenActivity : ComponentActivity() {
       ForwardAppMobileTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
           DarkReminderLockScreen(
+            reminderId = reminderId,
             goalId = goalId,
             goalText = goalText,
             goalDescription = goalDescription,
             goalEmoji = goalEmoji,
             extraInfo = extraInfo,
-            onComplete = { handleComplete(goalId) },
-            onSnooze = { handleSnooze(goalId) },
-            onDismiss = { handleDismiss(goalId) },
+            onComplete = { handleComplete(reminderId) },
+            onSnooze = { handleSnooze(reminderId) },
+            onDismiss = { handleDismiss(reminderId) },
           )
         }
       }
@@ -268,32 +272,41 @@ class ReminderLockScreenActivity : ComponentActivity() {
     Log.d(tag, "Alarm sound and vibration stopped")
   }
 
-  private fun handleComplete(goalId: String) {
-    Log.d(tag, "Goal completed: $goalId")
+  private fun handleComplete(reminderId: String) {
+    Log.d(tag, "Goal completed: $reminderId")
     stopAlarmSoundAndVibration()
-    cancelAllNotifications(goalId)
+    cancelAllNotifications(reminderId)
+    CoroutineScope(Dispatchers.IO).launch {
+        reminderRepository.markAsCompleted(reminderId)
+    }
     finishSafely()
   }
 
-  private fun handleSnooze(goalId: String) {
-    Log.d(tag, "Goal snoozed: $goalId")
+  private fun handleSnooze(reminderId: String) {
+    Log.d(tag, "Goal snoozed: $reminderId")
     stopAlarmSoundAndVibration()
-    cancelAllNotifications(goalId)
+    cancelAllNotifications(reminderId)
+    CoroutineScope(Dispatchers.IO).launch {
+        reminderRepository.snoozeReminder(reminderId)
+    }
     finishSafely()
   }
 
-  private fun handleDismiss(goalId: String) {
-    Log.d(tag, "Goal dismissed: $goalId")
+  private fun handleDismiss(reminderId: String) {
+    Log.d(tag, "Goal dismissed: $reminderId")
     stopAlarmSoundAndVibration()
-    cancelAllNotifications(goalId)
+    cancelAllNotifications(reminderId)
+    CoroutineScope(Dispatchers.IO).launch {
+        reminderRepository.dismissReminder(reminderId)
+    }
     finishSafely()
   }
 
-  private fun cancelAllNotifications(goalId: String) {
+  private fun cancelAllNotifications(reminderId: String) {
     val notificationManager =
       getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(goalId))
-    Log.d(tag, "Cancelled notification with ID: ${ReminderBroadcastReceiver.Companion.getNotificationId(goalId)}")
+    notificationManager.cancel(ReminderBroadcastReceiver.Companion.getNotificationId(reminderId))
+    Log.d(tag, "Cancelled notification with ID: ${ReminderBroadcastReceiver.Companion.getNotificationId(reminderId)}")
   }
 
   private fun finishSafely() {
@@ -337,6 +350,7 @@ class ReminderLockScreenActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DarkReminderLockScreen(
+  reminderId: String,
   goalId: String,
   goalText: String,
   goalDescription: String?,
