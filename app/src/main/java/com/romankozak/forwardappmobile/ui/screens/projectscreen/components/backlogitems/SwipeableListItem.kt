@@ -277,16 +277,6 @@ fun SwipeableListItem(
                         },
                     )
                     SwipeActionButton(
-                        icon = Icons.Default.Share,
-                        contentDescription = "Share",
-                        color = MaterialTheme.colorScheme.primary,
-                        scale = rightActionsScale,
-                        onClick = {
-                            onGoalTransportRequest()
-                            resetSwipe()
-                        },
-                    )
-                    SwipeActionButton(
                         icon = Icons.Default.Delete,
                         contentDescription = "Видалити",
                         color = MaterialTheme.colorScheme.error,
