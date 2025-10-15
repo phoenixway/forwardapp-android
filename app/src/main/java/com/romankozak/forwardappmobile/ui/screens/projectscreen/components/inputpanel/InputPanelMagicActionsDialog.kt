@@ -196,7 +196,7 @@ fun InputPanelMagicActionsDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ActionGrid(
-                    title = "Додатки",
+                    title = "Add attachment",
                     items = linkActions,
                     haptic = haptic,
                 )
