@@ -58,6 +58,7 @@ class SmartDebouncer(
 class InputHandler(
     private val projectRepository: ProjectRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
+    private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,
     private val resultListener: ResultListener,
@@ -267,7 +268,7 @@ class InputHandler(
                     name
                 }
             val link = RelatedLink(type = LinkType.URL, target = url, displayName = displayName)
-            val newItemId = projectRepository.addLinkItemToProject(projectIdFlow.value, link)
+            val newItemId = listItemRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -280,7 +281,7 @@ class InputHandler(
         }
         scope.launch(Dispatchers.IO) {
             val link = RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
-            val newItemId = projectRepository.addLinkItemToProject(projectIdFlow.value, link)
+            val newItemId = listItemRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()

@@ -7,18 +7,22 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 @Singleton
 class GoalRepository @Inject constructor(
     private val goalDao: GoalDao,
     private val listItemDao: ListItemDao,
-    private val contextHandler: ContextHandler,
     private val reminderRepository: ReminderRepository,
-    private val projectDao: ProjectDao,
-) {
+    private val contextHandlerProvider: Provider<ContextHandler>,
+    private val projectDao: ProjectDao
+)
+{
+    private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
 
     suspend fun addGoalToProject(
         title: String,
@@ -52,6 +56,7 @@ class GoalRepository @Inject constructor(
         return newListItem.id
     }
 
+    @androidx.room.Transaction
     suspend fun addGoalWithReminder(
         title: String,
         projectId: String,
@@ -85,6 +90,74 @@ class GoalRepository @Inject constructor(
         return newGoal
     }
 
+    suspend fun createGoalLinks(
+        goalIds: List<String>,
+        targetProjectId: String,
+    ) {
+        if (goalIds.isNotEmpty()) {
+            val newItems =
+                goalIds.map {
+                    ListItem(
+                        id = UUID.randomUUID().toString(),
+                        projectId = targetProjectId,
+                        itemType = ListItemTypeValues.GOAL,
+                        entityId = it,
+                        order = -System.currentTimeMillis(),
+                    )
+                }
+            listItemDao.insertItems(newItems)
+        }
+    }
+
+    suspend fun copyGoalsToProject(
+        goalIds: List<String>,
+        targetProjectId: String,
+    ) {
+        if (goalIds.isNotEmpty()) {
+            val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
+            val newGoals = mutableListOf<Goal>()
+            val newItems = mutableListOf<ListItem>()
+
+            originalGoals.forEach {
+                val newGoal = it.copy(id = UUID.randomUUID().toString())
+                newGoals.add(newGoal)
+                newItems.add(
+                    ListItem(
+                        id = UUID.randomUUID().toString(),
+                        projectId = targetProjectId,
+                        itemType = ListItemTypeValues.GOAL,
+                        entityId = newGoal.id,
+                        order = -System.currentTimeMillis(),
+                    ),
+                )
+            }
+            goalDao.insertGoals(newGoals)
+            listItemDao.insertItems(newItems)
+        }
+    }
+
+    suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
+
+    @androidx.room.Transaction
+    suspend fun deleteGoal(goalId: String) {
+        goalDao.deleteGoalById(goalId)
+        listItemDao.deleteItemByEntityId(goalId)
+    }
+
+    suspend fun updateGoal(goal: Goal) = goalDao.updateGoal(goal)
+
+    suspend fun updateGoals(goals: List<Goal>) = goalDao.updateGoals(goals)
+
+    fun getAllGoalsCountFlow(): Flow<Int> = goalDao.getAllGoalsCountFlow()
+
+    fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllGoalsFlow()
+
+    suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
+
+    suspend fun findProjectIdForGoal(goalId: String): String? {
+        return listItemDao.findProjectIdForGoal(goalId)
+    }
+
     private suspend fun syncContextMarker(
         goalId: String,
         projectId: String,
@@ -105,7 +178,7 @@ class GoalRepository @Inject constructor(
         if (action == ContextTextAction.ADD && !hasMarker) {
             newText = "${goal.text} $marker".trim()
         } else if (action == ContextTextAction.REMOVE && hasMarker) {
-            newText = goal.text.replace(Regex("\\s*${Regex.escape(marker)}\\s*"), " ").trim()
+            newText = goal.text.replace(Regex("""\s*${Regex.escape(marker)}\s*"""), " ").trim()
         }
 
         if (newText != goal.text) {

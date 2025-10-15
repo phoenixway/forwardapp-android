@@ -61,6 +61,7 @@ class AttachmentsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val alarmScheduler: AlarmScheduler,
     private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
+    private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -206,7 +207,7 @@ class AttachmentsViewModel @Inject constructor(
                 target = url,
                 displayName = name
             )
-            projectRepository.addLinkItemToProject(projectId.value, link)
+            listItemRepository.addLinkItemToProjectFromLink(projectId.value, link)
             onDismissAddAttachmentDialog()
         }
     }
@@ -218,7 +219,7 @@ class AttachmentsViewModel @Inject constructor(
                 target = url,
                 displayName = name
             )
-            projectRepository.addLinkItemToProject(projectId.value, link)
+            listItemRepository.addLinkItemToProjectFromLink(projectId.value, link)
             onDismissAddAttachmentDialog()
         }
     }
@@ -234,7 +235,7 @@ class AttachmentsViewModel @Inject constructor(
                     target = projectId,
                     displayName = project.name
                 )
-                projectRepository.addLinkItemToProject(this@AttachmentsViewModel.projectId.value, link)
+                listItemRepository.addLinkItemToProjectFromLink(this@AttachmentsViewModel.projectId.value, link)
             }
             _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }
         }
@@ -242,7 +243,7 @@ class AttachmentsViewModel @Inject constructor(
 
     fun onAddListShortcut(projectId: String) {
         viewModelScope.launch {
-            projectRepository.addProjectLinkToProject(projectId, this@AttachmentsViewModel.projectId.value)
+            listItemRepository.addProjectLinkToProject(projectId, this@AttachmentsViewModel.projectId.value)
             _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }
         }
     }

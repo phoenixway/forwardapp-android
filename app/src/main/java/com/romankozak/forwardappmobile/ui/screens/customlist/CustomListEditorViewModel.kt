@@ -15,6 +15,7 @@ class CustomListEditorViewModel
 @Inject
 constructor(
   private val projectRepository: ProjectRepository,
+  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -25,7 +26,7 @@ constructor(
   fun loadCustomList(id: String) {
     listId = id
     viewModelScope.launch {
-      projectRepository.getCustomListById(id)?.let { customList ->
+      customListRepository.getCustomListById(id)?.let { customList ->
         android.util.Log.d("CursorDebug", "Loaded customList with lastCursorPosition: ${customList.lastCursorPosition}")
         // Встановлюємо projectId для "Show Location"
         universalEditorViewModel.setProjectId(customList.projectId)
@@ -41,7 +42,7 @@ constructor(
     android.util.Log.d("CursorDebug", "saveCustomList called with cursorPosition: $cursorPosition")
     listId?.let {
       viewModelScope.launch {
-        projectRepository.getCustomListById(it)?.let { customList ->
+        customListRepository.getCustomListById(it)?.let { customList ->
           val name = content.lines().firstOrNull()?.take(100) ?: "Unnamed List"
           val updatedList = customList.copy(
               name = name,
@@ -49,7 +50,7 @@ constructor(
               updatedAt = System.currentTimeMillis(),
               lastCursorPosition = cursorPosition
           )
-          projectRepository.updateCustomList(updatedList)
+          customListRepository.updateCustomList(updatedList)
         }
       }
     }

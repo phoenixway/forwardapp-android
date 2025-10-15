@@ -59,6 +59,7 @@ class GoalEditViewModel
     @Inject
     constructor(
         private val projectRepository: ProjectRepository,
+        private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
         private val contextHandler: ContextHandler,
         private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
         savedStateHandle: SavedStateHandle,
@@ -98,7 +99,7 @@ class GoalEditViewModel
         private suspend fun loadAvailableTags() {
             try {
                 
-                val allGoals = projectRepository.getAllGoals()
+                val allGoals = goalRepository.getAllGoals()
                 val allTagsFromGoals =
                     allGoals.flatMap { goal ->
                         TagUtils.extractTags(goal.text).map { it.fullTag }
@@ -122,7 +123,7 @@ class GoalEditViewModel
         }
 
         private suspend fun loadExistingGoal(goalId: String) {
-            val goal = projectRepository.getGoalById(goalId)
+            val goal = goalRepository.getGoalById(goalId)
             if (goal != null) {
                 currentGoal = goal
                 _uiState.update {
@@ -183,11 +184,11 @@ class GoalEditViewModel
                 }
 
                 if (currentGoal != null) {
-                    projectRepository.updateGoal(goalToSave)
+                    goalRepository.updateGoal(goalToSave)
                     contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
                 } else {
                     initialProjectId ?: return@launch
-                    projectRepository.addGoalToProject(goalToSave.text, initialProjectId)
+                    goalRepository.addGoalToProject(goalToSave.text, initialProjectId)
                 }
 
                 

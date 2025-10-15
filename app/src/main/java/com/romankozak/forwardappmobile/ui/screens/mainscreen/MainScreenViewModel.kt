@@ -57,6 +57,7 @@ constructor(
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
   private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
+  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
 
   private val application: Application,
   private val syncRepo: SyncRepository,
@@ -853,7 +854,7 @@ constructor(
                 _uiEventChannel.send(ProjectUiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
-                projectRepository.getCustomListById(item.target)?.let {
+                customListRepository.getCustomListById(item.target)?.let {
                     recentItemsRepository.logCustomListAccess(it)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("custom_list_screen/${item.target}"))

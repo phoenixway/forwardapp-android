@@ -27,7 +27,8 @@ sealed class ReminderListItem {
 @HiltViewModel
 class RemindersViewModel @Inject constructor(
     private val reminderRepository: ReminderRepository,
-    private val projectRepository: ProjectRepository
+    private val projectRepository: ProjectRepository,
+    private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository
 ) : ViewModel() {
 
     private val _itemToEdit = MutableStateFlow<ReminderListItem?>(null)
@@ -41,7 +42,7 @@ class RemindersViewModel @Inject constructor(
             reminders.mapNotNull {
                 when (it.entityType) {
                     "GOAL" -> {
-                        val goal = projectRepository.getGoalById(it.entityId)
+                        val goal = goalRepository.getGoalById(it.entityId)
                         if (goal != null) {
                             ReminderListItem.GoalReminder(it, goal)
                         } else {
@@ -102,7 +103,7 @@ class RemindersViewModel @Inject constructor(
         viewModelScope.launch {
             when (item) {
                 is ReminderListItem.GoalReminder -> {
-                    val projectId = projectRepository.findProjectIdForGoal(item.goal.id)
+                    val projectId = goalRepository.findProjectIdForGoal(item.goal.id)
                     if (projectId != null) {
                         _uiEvent.send(RemindersUiEvent.Navigate("goal_detail_screen/$projectId?goalId=${item.goal.id}"))
                     }

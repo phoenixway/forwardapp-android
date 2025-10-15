@@ -15,6 +15,7 @@ class InboxEditorViewModel
 @Inject
 constructor(
   private val projectRepository: ProjectRepository,
+  private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -25,7 +26,7 @@ constructor(
   fun loadInboxItem(id: String) {
     inboxId = id
     viewModelScope.launch {
-      projectRepository.getInboxRecordById(id)?.let { record ->
+      inboxRepository.getInboxRecordById(id)?.let { record ->
         // Встановлюємо projectId для "Show Location"
         universalEditorViewModel.setProjectId(record.projectId)
         universalEditorViewModel.setInitialContent(record.text)
@@ -36,9 +37,9 @@ constructor(
   fun saveInboxItem(content: String) {
     inboxId?.let {
       viewModelScope.launch {
-        projectRepository.getInboxRecordById(it)?.let { record ->
+        inboxRepository.getInboxRecordById(it)?.let { record ->
           val updatedRecord = record.copy(text = content)
-          projectRepository.updateInboxRecord(updatedRecord)
+          inboxRepository.updateInboxRecord(updatedRecord)
         }
       }
     }

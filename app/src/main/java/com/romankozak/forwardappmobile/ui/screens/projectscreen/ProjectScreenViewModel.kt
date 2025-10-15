@@ -137,6 +137,7 @@ class BacklogMarkdownHandler
 @Inject
 constructor(
   private val projectRepository: ProjectRepository,
+  private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
   private val scope: CoroutineScope,
   private val listener: BacklogMarkdownHandlerResultListener,
 ) {
@@ -184,7 +185,7 @@ constructor(
             trimmedLine.startsWith("- [ ]") -> {
               val goalText = trimmedLine.removePrefix("- [ ]").trim()
               if (goalText.isNotEmpty()) {
-                projectRepository.addGoalToProject(goalText, projectId, completed = false)
+                goalRepository.addGoalToProject(goalText, projectId, completed = false)
                 importedCount++
               }
             }
@@ -192,7 +193,7 @@ constructor(
             trimmedLine.startsWith("- [x]") -> {
               val goalText = trimmedLine.removePrefix("- [x]").trim()
               if (goalText.isNotEmpty()) {
-                projectRepository.addGoalToProject(goalText, projectId, completed = true)
+                goalRepository.addGoalToProject(goalText, projectId, completed = true)
                 importedCount++
               }
             }
@@ -231,10 +232,13 @@ constructor(
   private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
+  private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
+  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
   private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
   private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
+  private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
 ) :
   ViewModel(),
   ItemActionHandler.ResultListener,
@@ -279,11 +283,11 @@ constructor(
   private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
   val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
-  val itemActionHandler = ItemActionHandler(projectRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
-  val selectionHandler = SelectionHandler(projectRepository, viewModelScope, _listContent, this)
-  val inboxHandler = InboxHandler(projectRepository, viewModelScope, projectIdFlow, this)
-  val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, viewModelScope, this)
-  val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, viewModelScope, this)
+  val itemActionHandler = ItemActionHandler(projectRepository, goalRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
+  val selectionHandler = SelectionHandler(projectRepository, goalRepository, viewModelScope, _listContent, this)
+  val inboxHandler = InboxHandler(projectRepository, inboxRepository, viewModelScope, projectIdFlow, this)
+  val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
+  val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
 
   private val _uiState =
     MutableStateFlow(
@@ -324,6 +328,7 @@ constructor(
     InputHandler(
       projectRepository,
       goalRepository,
+      listItemRepository,
       viewModelScope,
       projectIdFlow,
       this,
@@ -818,10 +823,10 @@ constructor(
 
     viewModelScope.launch(Dispatchers.IO) {
       when (actionType) {
-        GoalActionType.CreateInstance -> projectRepository.createGoalLinks(goalIds, targetProjectId)
+        GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetProjectId)
 
-        GoalActionType.MoveInstance -> projectRepository.moveListItems(itemIds, targetProjectId)
-        GoalActionType.CopyGoal -> projectRepository.copyGoalsToProject(goalIds, targetProjectId)
+        GoalActionType.MoveInstance -> listItemRepository.moveListItems(itemIds, targetProjectId)
+        GoalActionType.CopyGoal -> goalRepository.copyGoalsToProject(goalIds, targetProjectId)
         GoalActionType.AddLinkToList -> {
           val targetProject = projectRepository.getProjectById(targetProjectId)
           val link =
@@ -830,7 +835,7 @@ constructor(
               target = targetProjectId,
               displayName = targetProject?.name ?: "Проект без назви",
             )
-          val newItemId = projectRepository.addLinkItemToProject(projectIdFlow.value, link)
+          val newItemId = listItemRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
           withContext(Dispatchers.Main) {
             _uiState.update { it.copy(newlyAddedItemId = newItemId) }
           }
@@ -840,13 +845,13 @@ constructor(
           if (goalIds.isNotEmpty()) {
             val subprojectToLinkId = goalIds.first()
             val newItemId =
-              projectRepository.addProjectLinkToProject(subprojectToLinkId, targetProjectId)
+              listItemRepository.addProjectLinkToProject(subprojectToLinkId, targetProjectId)
             withContext(Dispatchers.Main) {
               _uiState.update { it.copy(newlyAddedItemId = newItemId) }
             }
           } else {
             val newItemId =
-              projectRepository.addProjectLinkToProject(targetProjectId, projectIdFlow.value)
+              listItemRepository.addProjectLinkToProject(targetProjectId, projectIdFlow.value)
             withContext(Dispatchers.Main) {
               _uiState.update { it.copy(newlyAddedItemId = newItemId) }
             }
@@ -918,7 +923,7 @@ constructor(
       try {
         val updatedItems =
           listToSave.mapIndexed { index, content -> content.listItem.copy(order = index.toLong()) }
-        projectRepository.updateListItemsOrder(updatedItems)
+        listItemRepository.updateListItemsOrder(updatedItems)
       } catch (e: Exception) {
         Log.e(TAG, "[saveListOrder] Failed to save list order", e)
       }
@@ -1039,7 +1044,7 @@ constructor(
     viewModelScope.launch(Dispatchers.IO) {
       val projectId = projectIdFlow.value
       if (projectId.isNotEmpty()) {
-        projectRepository.deleteProject(projectId)
+        projectRepository.deleteProjectsAndSubProjects(listOf(project.value!!))
         withContext(Dispatchers.Main) { requestNavigation("back") }
       }
     }
@@ -1627,7 +1632,7 @@ constructor(
           _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
         }
         RecentItemType.CUSTOM_LIST -> {
-          projectRepository.getCustomListById(item.target)?.let { recentItemsRepository.logCustomListAccess(it) }
+          customListRepository.getCustomListById(item.target)?.let { recentItemsRepository.logCustomListAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
@@ -1709,7 +1714,7 @@ constructor(
     fun onSaveCustomList(content: String) {
         viewModelScope.launch {
             val title = content.lines().firstOrNull()?.trim() ?: "Новий список"
-            projectRepository.createCustomList(title, projectIdFlow.value)
+            customListRepository.createCustomList(title, projectIdFlow.value)
             onDismissCustomListEditor()
         }
     }

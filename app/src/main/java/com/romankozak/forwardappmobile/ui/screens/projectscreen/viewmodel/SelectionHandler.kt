@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 
 class SelectionHandler(
     private val projectRepository: ProjectRepository,
+    private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val listContentFlow: StateFlow<List<ListItemContent>>,
     private val resultListener: ResultListener,
@@ -63,7 +64,7 @@ class SelectionHandler(
         if (goalsToUpdate.isNotEmpty()) {
             scope.launch {
                 val updatedGoals = goalsToUpdate.map { it.copy(completed = true, updatedAt = System.currentTimeMillis()) }
-                projectRepository.updateGoals(updatedGoals)
+                goalRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Позначено як виконані: ${goalsToUpdate.size}", null)
                 resultListener.forceRefresh()
             }
@@ -86,7 +87,7 @@ class SelectionHandler(
         if (goalsToUpdate.isNotEmpty()) {
             scope.launch {
                 val updatedGoals = goalsToUpdate.map { it.copy(completed = false, updatedAt = System.currentTimeMillis()) }
-                projectRepository.updateGoals(updatedGoals)
+                goalRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Знято позначку виконання: ${goalsToUpdate.size}", null)
                 resultListener.forceRefresh()
             }
