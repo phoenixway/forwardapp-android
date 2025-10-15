@@ -711,11 +711,12 @@ fun ModernInputPanel(
 
   val focusRequester = remember { FocusRequester() }
   val modes =
-    remember(isProjectManagementEnabled) {
+    remember(isProjectManagementEnabled, currentView) {
       listOfNotNull(
         InputMode.AddGoal,
         InputMode.AddQuickRecord,
         if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
+        if (isProjectManagementEnabled && currentView == ProjectViewMode.ADVANCED) InputMode.AddMilestone else null,
         InputMode.SearchGlobal,
         InputMode.SearchInList,
       )
@@ -907,10 +908,11 @@ fun ModernInputPanel(
                     InputMode.SearchInList -> Icons.Outlined.Search
                     InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
                     InputMode.AddProjectLog -> Icons.Outlined.PostAdd
+                    InputMode.AddMilestone -> Icons.Outlined.Flag
                   }
                 Icon(
                   imageVector = icon,
-                  contentDescription = null,
+                  contentDescription = "Magic Button",
                   modifier =
                     Modifier.size(22.dp).graphicsLayer {
                       rotationZ = if (isPressed) (dragOffset / 20f).coerceIn(-15f, 15f) else 0f
@@ -1064,7 +1066,7 @@ fun ModernInputPanel(
     }
   }
   if (showModeMenu) {
-    InputModeSelectionDialog(
+    InputPanelMagicActionsDialog(
       currentInputMode = inputMode,
       isProjectManagementEnabled = isProjectManagementEnabled,
       onDismiss = { showModeMenu = false },
