@@ -439,7 +439,7 @@ constructor(
         if (proj != null) {
           val isManagementEnabled = proj.isProjectManagementEnabled ?: false
           val currentView = uiState.value.currentView
-          if (!isManagementEnabled && currentView == ProjectViewMode.DASHBOARD) {
+          if (!isManagementEnabled && currentView == ProjectViewMode.ADVANCED) {
             Log.d(
               TAG,
               "Inconsistency detected: Project management is OFF but view is DASHBOARD. Switching to BACKLOG.",
@@ -630,8 +630,7 @@ constructor(
   private fun getInputModeForView(viewMode: ProjectViewMode): InputMode =
     when (viewMode) {
       ProjectViewMode.INBOX -> InputMode.AddQuickRecord
-      ProjectViewMode.DASHBOARD -> InputMode.AddProjectLog
-      else -> InputMode.AddGoal
+                  ProjectViewMode.ADVANCED -> InputMode.AddProjectLog      else -> InputMode.AddGoal
     }
 
   override fun requestNavigation(route: String) {
@@ -1262,8 +1261,7 @@ constructor(
       projectRepository.toggleProjectManagement(proj.id, newState)
 
       if (newState) {
-        onProjectViewChange(ProjectViewMode.DASHBOARD)
-      } else if (currentView == ProjectViewMode.DASHBOARD) {
+                    onProjectViewChange(ProjectViewMode.ADVANCED)        } else if (currentView == ProjectViewMode.ADVANCED) {
         onProjectViewChange(ProjectViewMode.BACKLOG)
       }
     }

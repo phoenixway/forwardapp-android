@@ -69,7 +69,7 @@ fun GoalDetailContent(
                 navigationManager = viewModel.enhancedNavigationManager,
             )
         }
-        ProjectViewMode.DASHBOARD -> {
+        ProjectViewMode.ADVANCED -> {
             ProjectDashboardView(
                 modifier = modifier,
                 project = goalList,

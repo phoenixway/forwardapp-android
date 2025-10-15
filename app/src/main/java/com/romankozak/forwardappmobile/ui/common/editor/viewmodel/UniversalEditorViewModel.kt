@@ -8,6 +8,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.romankozak.forwardappmobile.ui.common.editor.components.ListToolbarState
 import kotlin.math.min
 import kotlinx.coroutines.channels.Channel
@@ -36,7 +38,8 @@ data class UniversalEditorUiState(
   val showShareDialog: Boolean = false
 )
 
-class UniversalEditorViewModel(private val application: Application) : ViewModel() {
+@HiltViewModel
+class UniversalEditorViewModel @Inject constructor(private val application: Application) : ViewModel() {
 
   companion object {
     private const val INDENT_STRING = "      " // 6 spaces

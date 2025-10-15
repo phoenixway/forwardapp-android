@@ -107,6 +107,8 @@ fun ProjectsScreen(
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val suggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
 
+    val editorViewModel: com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel = hiltViewModel()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val inboxListState = rememberLazyListState()
@@ -155,10 +157,6 @@ fun ProjectsScreen(
             onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() }
         )
     } else if (uiState.artifactToEdit != null) {
-        // NOTE: It's generally better to hoist hiltViewModel() calls outside of conditional blocks.
-        // However, for this targeted change, we'll create it here.
-        // This ViewModel will be scoped to the ProjectScreen's lifecycle.
-        val editorViewModel: com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel = hiltViewModel()
         val artifact = uiState.artifactToEdit!!
 
         // This effect will run when the artifact to edit changes, initializing the editor's content.

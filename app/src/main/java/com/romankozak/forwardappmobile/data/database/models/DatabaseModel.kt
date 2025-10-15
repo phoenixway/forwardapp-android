@@ -126,7 +126,7 @@ object ListItemTypeValues {
 
 
 
-enum class ProjectViewMode { BACKLOG, INBOX, DASHBOARD, ATTACHMENTS }
+enum class ProjectViewMode { BACKLOG, INBOX, ADVANCED, ATTACHMENTS }
 
 enum class LinkType { PROJECT, URL, OBSIDIAN }
 
