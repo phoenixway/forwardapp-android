@@ -629,6 +629,7 @@ constructor(
       withContext(Dispatchers.Main) {
           _uiState.update { it.copy(
               inputValue = TextFieldValue(""),
+              currentView = ProjectViewMode.ADVANCED,
               selectedDashboardTab = ProjectManagementTab.Log
           ) }
       }
