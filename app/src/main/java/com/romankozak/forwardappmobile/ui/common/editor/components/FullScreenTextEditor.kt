@@ -82,11 +82,7 @@ fun FullScreenTextEditor(
             }
 
             if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) {
-//                ListEditingPanel(
-//                    modifier = Modifier.align(Alignment.BottomCenter),
-//                    value = value,
-//                    onValueChange = onValueChange
-//                )
+
             }
         }
     }

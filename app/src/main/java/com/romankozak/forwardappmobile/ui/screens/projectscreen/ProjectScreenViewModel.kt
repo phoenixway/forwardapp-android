@@ -232,6 +232,9 @@ constructor(
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
+  private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
+  private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
+  private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
 ) :
   ViewModel(),
   ItemActionHandler.ResultListener,
@@ -276,7 +279,7 @@ constructor(
   private val _listContent = MutableStateFlow<List<ListItemContent>>(emptyList())
   val listContent: StateFlow<List<ListItemContent>> = _listContent.asStateFlow()
 
-  val itemActionHandler = ItemActionHandler(projectRepository, viewModelScope, projectIdFlow, this)
+  val itemActionHandler = ItemActionHandler(projectRepository, recentItemsRepository, viewModelScope, projectIdFlow, this)
   val selectionHandler = SelectionHandler(projectRepository, viewModelScope, _listContent, this)
   val inboxHandler = InboxHandler(projectRepository, viewModelScope, projectIdFlow, this)
   val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, viewModelScope, this)
@@ -334,7 +337,7 @@ constructor(
   val uiEventFlow = _uiEventFlow.receiveAsFlow()
 
   val recentItems: StateFlow<List<RecentItem>> =
-    projectRepository
+    recentItemsRepository
       .getRecentItems()
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -495,7 +498,11 @@ constructor(
     viewModelScope.launch {
       projectIdFlow
         .filter { it.isNotEmpty() }
-        .collect { id -> projectRepository.logProjectAccess(id) }
+        .collect { id ->
+            projectRepository.getProjectById(id)?.let {
+                recentItemsRepository.logProjectAccess(it)
+            }
+        }
     }
 
     viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
@@ -638,23 +645,22 @@ constructor(
     }
   }
 
-  override fun addMilestone(text: String) {
-    if (text.isBlank()) return
-    viewModelScope.launch(Dispatchers.IO) {
-        projectRepository.addProjectLogEntry(
-            projectId = projectIdFlow.value,
-            type = ProjectLogEntryTypeValues.MILESTONE,
-            description = text,
-        )
-        withContext(Dispatchers.Main) {
-            _uiState.update { it.copy(
-                inputValue = TextFieldValue(""),
-                selectedDashboardTab = ProjectManagementTab.Log
-            ) }
-        }
+      override fun addMilestone(text: String) {
+      if (text.isBlank()) return
+      viewModelScope.launch(Dispatchers.IO) {
+          projectLogRepository.addProjectLogEntry(
+              projectId = projectIdFlow.value,
+              type = ProjectLogEntryTypeValues.MILESTONE,
+              description = text,
+          )
+          withContext(Dispatchers.Main) {
+              _uiState.update { it.copy(
+                  inputValue = TextFieldValue(""),
+                  selectedDashboardTab = ProjectManagementTab.Log
+              ) }
+          }
+      }
     }
-  }
-
   private fun getInputModeForView(viewMode: ProjectViewMode): InputMode =
     when (viewMode) {
       ProjectViewMode.INBOX -> InputMode.AddQuickRecord
@@ -945,14 +951,14 @@ constructor(
 
   fun onNoteItemClick(note: NoteEntity) {
     viewModelScope.launch {
-      projectRepository.logNoteAccess(note)
+      recentItemsRepository.logNoteAccess(note)
       _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${note.id}"))
     }
   }
 
   fun onCustomListItemClick(customList: CustomListEntity) {
     viewModelScope.launch {
-      projectRepository.logCustomListAccess(customList)
+      recentItemsRepository.logCustomListAccess(customList)
       _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${customList.id}"))
     }
   }
@@ -966,7 +972,7 @@ constructor(
           enhancedNavigationManager.navigateToProject(link.target, projectName)
         }
         LinkType.OBSIDIAN -> {
-          projectRepository.logObsidianLinkAccess(link)
+          recentItemsRepository.logObsidianLinkAccess(link)
           val vaultName = settingsRepository.obsidianVaultNameFlow.first()
           if (vaultName.isNotBlank()) {
             val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
@@ -1613,15 +1619,15 @@ constructor(
     viewModelScope.launch {
       when (item.type) {
         RecentItemType.PROJECT -> {
-          projectRepository.logProjectAccess(item.target)
+          projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
           enhancedNavigationManager.navigateToProject(item.target, item.displayName)
         }
         RecentItemType.NOTE -> {
-          projectRepository.getNoteById(item.target)?.let { projectRepository.logNoteAccess(it) }
+          noteRepository.getNoteById(item.target)?.let { recentItemsRepository.logNoteAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
         }
         RecentItemType.CUSTOM_LIST -> {
-          projectRepository.getCustomListById(item.target)?.let { projectRepository.logCustomListAccess(it) }
+          projectRepository.getCustomListById(item.target)?.let { recentItemsRepository.logCustomListAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
@@ -1631,7 +1637,7 @@ constructor(
               target = item.target,
               displayName = item.displayName,
             )
-          projectRepository.logObsidianLinkAccess(link)
+          recentItemsRepository.logObsidianLinkAccess(link)
           onLinkItemClick(link)
         }
       }
@@ -1640,7 +1646,7 @@ constructor(
 
   fun onPinRecentItem(item: RecentItem) {
     viewModelScope.launch {
-      projectRepository.updateRecentItem(item.copy(isPinned = !item.isPinned))
+      recentItemsRepository.updateRecentItem(item.copy(isPinned = !item.isPinned))
     }
   }
 
@@ -1680,7 +1686,7 @@ constructor(
 
     fun onDeleteLogEntry(log: ProjectExecutionLog) {
         viewModelScope.launch {
-            projectRepository.deleteProjectExecutionLog(log)
+            projectLogRepository.deleteProjectExecutionLog(log)
         }
     }
 
@@ -1691,7 +1697,7 @@ constructor(
                 description = description,
                 details = details
             )
-            projectRepository.updateProjectExecutionLog(updatedLog)
+            projectLogRepository.updateProjectExecutionLog(updatedLog)
             onDismissEditLogEntryDialog()
         }
     }
@@ -1714,7 +1720,7 @@ constructor(
 
     fun onAddMilestone() {
         viewModelScope.launch {
-            projectRepository.addProjectLogEntry(
+            projectLogRepository.addProjectLogEntry(
                 projectId = projectIdFlow.value,
                 type = ProjectLogEntryTypeValues.MILESTONE,
                 description = "New Milestone",

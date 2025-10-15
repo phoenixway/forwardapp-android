@@ -60,6 +60,7 @@ class AttachmentsViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val settingsRepository: SettingsRepository,
     private val alarmScheduler: AlarmScheduler,
+    private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -100,7 +101,6 @@ class AttachmentsViewModel @Inject constructor(
                         project = loadedProject,
                         name = loadedProject.name,
                         tags = loadedProject.tags?.filter { it.isNotBlank() } ?: emptyList(),
-                        // reminderTime = loadedProject.reminderTime,
                         scoringStatus = loadedProject.scoringStatus,
                         isScoringEnabled = loadedProject.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                         valueImportance = loadedProject.valueImportance,
@@ -182,7 +182,7 @@ class AttachmentsViewModel @Inject constructor(
                     _uiEventFlow.send(UiEvent.OpenUri(link.target))
                 }
                 LinkType.OBSIDIAN -> {
-                    projectRepository.logObsidianLinkAccess(link)
+                    recentItemsRepository.logObsidianLinkAccess(link)
                     val vaultName = settingsRepository.obsidianVaultNameFlow.first()
                     val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
                     val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"
@@ -266,7 +266,6 @@ class AttachmentsViewModel @Inject constructor(
                 name = state.name,
                 tags = state.tags.filter { it.isNotBlank() }.map { it.trim() },
                 updatedAt = System.currentTimeMillis(),
-                // reminderTime = state.reminderTime,
                 scoringStatus = state.scoringStatus,
                 valueImportance = state.valueImportance,
                 valueImpact = state.valueImpact,
@@ -281,38 +280,10 @@ class AttachmentsViewModel @Inject constructor(
         val updatedProject = GoalScoringManager.calculateScoresForProject(tempProject)
 
         viewModelScope.launch {
-            // val oldReminderTime = originalProject?.reminderTime
-            // val newReminderTime = updatedProject.reminderTime
-            // if (newReminderTime != oldReminderTime) {
-            //     if (newReminderTime != null) {
-            //         alarmScheduler.scheduleForProject(updatedProject)
-            //     } else {
-            //         originalProject?.let { alarmScheduler.cancelForProject(it) }
-            //     }
-            // }
-
             projectRepository.updateProject(updatedProject)
         }
         return updatedProject
     }
-
-    // fun onSetReminder(
-    //     year: Int,
-    //     month: Int,
-    //     day: Int,
-    //     hour: Int,
-    //     minute: Int,
-    // ) {
-    //     val calendar =
-    //         Calendar.getInstance().apply {
-    //             set(year, month, day, hour, minute, 0)
-    //         }
-    //     _uiState.update { it.copy(reminderTime = calendar.timeInMillis) }
-    // }
-
-    // fun onClearReminder() {
-    //     _uiState.update { it.copy(reminderTime = null) }
-    // }
 
     fun onScoringStatusChange(newStatus: String) {
         _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }

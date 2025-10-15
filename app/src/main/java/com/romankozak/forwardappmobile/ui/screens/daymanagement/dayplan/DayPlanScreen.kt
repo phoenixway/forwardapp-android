@@ -211,7 +211,6 @@ private fun DayTask.toGoal(): Goal {
     completed = this.completed,
     scoringStatus = ScoringStatusValues.NOT_ASSESSED,
     displayScore = 0,
-    // reminderTime = this.dueTime,
     relatedLinks = null,
     createdAt = this.createdAt,
     updatedAt = this.createdAt,
@@ -544,7 +543,6 @@ fun TaskGoalItem(
 ) {
   val task = taskWithReminder.dayTask
   val reminder = taskWithReminder.reminder
-    //val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem())
    val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem(), reminders = listOfNotNull(reminder))
   Card(modifier = modifier.fillMaxWidth()) {
     Row(

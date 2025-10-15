@@ -130,7 +130,6 @@ fun DayTaskAsSublistItem(
 
 private fun hasStatusContent(task: DayTask): Boolean {
     return (task.priority != TaskPriority.NONE) ||
-        // (task.reminderTime != null) ||
         (task.nextOccurrenceTime != null) ||
         (!task.description.isNullOrBlank()) ||
         (task.goalId != null) ||

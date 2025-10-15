@@ -55,6 +55,8 @@ constructor(
   private val activityRepository: ActivityRepository,
   private val alarmScheduler: AlarmScheduler,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
+  private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
+  private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
 
   private val application: Application,
   private val syncRepo: SyncRepository,
@@ -320,11 +322,10 @@ constructor(
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val expensiveCalculationsFlow =
-      combine(
-          _allProjectsFlat,
-          projectRepository.getRecentItems(),
-          contextHandler.allContextsFlow,
+          val expensiveCalculationsFlow =
+            combine(
+              _allProjectsFlat,
+              recentItemsRepository.getRecentItems(),          contextHandler.allContextsFlow,
         ) { allProjects, recentItems, contexts ->
           ExpensiveCalculations(
             areAnyProjectsExpanded = allProjects.any { it.isExpanded },
@@ -838,7 +839,7 @@ constructor(
         _showRecentListsSheet.value = false
         when (item.type) {
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.PROJECT -> {
-                projectRepository.logProjectAccess(item.target)
+                projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
                 val project = _allProjectsFlat.value.find { it.id == item.target }
                 if (project != null) {
                     popToSubState(MainSubState.Hierarchy)
@@ -846,14 +847,14 @@ constructor(
                 }
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE -> {
-                projectRepository.getNoteById(item.target)?.let {
-                    projectRepository.logNoteAccess(it)
+                noteRepository.getNoteById(item.target)?.let {
+                    recentItemsRepository.logNoteAccess(it)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
                 projectRepository.getCustomListById(item.target)?.let {
-                    projectRepository.logCustomListAccess(it)
+                    recentItemsRepository.logCustomListAccess(it)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("custom_list_screen/${item.target}"))
             }
@@ -863,7 +864,7 @@ constructor(
                     displayName = item.displayName,
                     type = com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN
                 )
-                projectRepository.logObsidianLinkAccess(link)
+                recentItemsRepository.logObsidianLinkAccess(link)
                 val vaultName = settingsRepo.obsidianVaultNameFlow.first()
                 val encodedNoteName = java.net.URLEncoder.encode(item.target, "UTF-8")
                 val uri = "obsidian://new?vault=$vaultName&name=$encodedNoteName"
@@ -876,7 +877,7 @@ constructor(
   private fun toggleRecentItemPin(item: com.romankozak.forwardappmobile.data.database.models.RecentItem) {
     viewModelScope.launch {
         val updatedItem = item.copy(isPinned = !item.isPinned)
-        projectRepository.updateRecentItem(updatedItem)
+        recentItemsRepository.updateRecentItem(updatedItem)
     }
   }
 

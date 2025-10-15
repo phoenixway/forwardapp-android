@@ -21,19 +21,6 @@ import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }
 
-private data class CombinedData1(
-    val items: List<ListItem>,
-    val reminders: List<Reminder>,
-    val allGoals: List<Goal>,
-    val allProjects: List<Project>,
-    val allLinks: List<LinkItemEntity>
-)
-
-private data class CombinedData2(
-    val data1: CombinedData1,
-    val allNotes: List<NoteEntity>
-)
-
 private val GlobalSearchResultItem.typeOrder: Int
     get() =
         when (this) {
@@ -52,23 +39,21 @@ constructor(
     private val projectDao: ProjectDao,
     private val listItemDao: ListItemDao,
     private val linkItemDao: LinkItemDao,
-    private val noteDao: NoteDao,
+    private val noteRepository: NoteRepository,
     private val customListDao: CustomListDao,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val inboxRecordDao: InboxRecordDao,
     private val activityRepository: ActivityRepository,
-    private val projectManagementDao: ProjectManagementDao,
-    private val recentItemDao: RecentItemDao,
+    private val recentItemsRepository: RecentItemsRepository,
     private val reminderRepository: ReminderRepository,
     private val projectArtifactDao: ProjectArtifactDao,
+    private val projectLogRepository: ProjectLogRepository,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
     private val TAG = "CUSTOM_LIST_DEBUG"
 
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
-        projectManagementDao.getLogsForProjectStream(
-            projectId,
-        )
+        projectLogRepository.getProjectLogsStream(projectId)
 
     suspend fun toggleProjectManagement(
         projectId: String,
@@ -78,13 +63,7 @@ constructor(
         if (project.isProjectManagementEnabled == isEnabled) return
 
         updateProject(project.copy(isProjectManagementEnabled = isEnabled))
-
-        val status = if (isEnabled) "активовано" else "деактивовано"
-        addProjectLogEntry(
-            projectId = projectId,
-            type = ProjectLogEntryTypeValues.AUTOMATIC,
-            description = "Управління проектом було $status.",
-        )
+        projectLogRepository.addToggleProjectManagementLog(projectId, isEnabled)
     }
 
     suspend fun updateProjectStatus(
@@ -102,45 +81,14 @@ constructor(
                 updatedAt = System.currentTimeMillis(),
             ),
         )
-
-        val logDescription =
-            "Статус змінено на '$newStatus'." +
-                (statusText?.let { "\nКоментар: $it" } ?: "")
-
-        addProjectLogEntry(
-            projectId = projectId,
-            type = ProjectLogEntryTypeValues.STATUS_CHANGE,
-            description = logDescription,
-        )
+        projectLogRepository.addUpdateProjectStatusLog(projectId, newStatus, statusText)
     }
 
     suspend fun addProjectComment(
         projectId: String,
         comment: String,
     ) {
-        addProjectLogEntry(
-            projectId = projectId,
-            type = ProjectLogEntryTypeValues.COMMENT,
-            description = comment,
-        )
-    }
-
-    suspend fun addProjectLogEntry(
-        projectId: String,
-        type: String,
-        description: String,
-        details: String? = null,
-    ) {
-        val logEntry =
-            ProjectExecutionLog(
-                id = UUID.randomUUID().toString(),
-                projectId = projectId,
-                timestamp = System.currentTimeMillis(),
-                type = type,
-                description = description,
-                details = details,
-            )
-        projectManagementDao.insertLog(logEntry)
+        projectLogRepository.addProjectComment(projectId, comment)
     }
 
     suspend fun updateProjectViewMode(
@@ -150,61 +98,73 @@ constructor(
         projectDao.updateViewMode(projectId, viewMode.name)
     }
 
-    fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> =
-        combine(
+    fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> {
+        return combine(
             listItemDao.getItemsForProjectStream(projectId),
             reminderRepository.getAllReminders(),
             goalDao.getAllGoalsFlow(),
             projectDao.getAllProjects(),
-            linkItemDao.getAllEntitiesAsFlow()
-        ) { items: List<ListItem>,
-            reminders: List<Reminder>,
-            allGoals: List<Goal>,
-            allProjects: List<Project>,
-            allLinks: List<LinkItemEntity> ->
-            CombinedData1(items, reminders, allGoals, allProjects, allLinks)
-        }.combine(
-            noteDao.getAllAsFlow()
-        ) { data1, allNotes ->
-            CombinedData2(data1, allNotes)
-        }.combine(
+            linkItemDao.getAllEntitiesAsFlow(),
+            noteRepository.getAllAsFlow(),
             customListDao.getAllCustomListsAsFlow()
-        ) { data2, allCustomLists ->
-            val remindersMap = data2.data1.reminders.groupBy { it.entityId }
-            val goalsMap = data2.data1.allGoals.associateBy { it.id }
-            val projectsMap = data2.data1.allProjects.associateBy { it.id }
-            val linksMap = data2.data1.allLinks.associateBy { it.id }
-            val notesMap = data2.allNotes.associateBy { it.id }
-            val customListsMap = allCustomLists.associateBy { it.id }
+        ) { array ->
+            @Suppress("UNCHECKED_CAST")
+            mapToListItemContent(
+                items = array[0] as List<ListItem>,
+                reminders = array[1] as List<Reminder>,
+                goals = array[2] as List<Goal>,
+                projects = array[3] as List<Project>,
+                links = array[4] as List<LinkItemEntity>,
+                notes = array[5] as List<NoteEntity>,
+                customLists = array[6] as List<CustomListEntity>
+            )
+        }
+    }
 
-            data2.data1.items.mapNotNull { item ->
-                when (item.itemType) {
-                    ListItemTypeValues.GOAL ->
-                        goalsMap[item.entityId]?.let { goal ->
-                            val reminders = remindersMap[goal.id] ?: emptyList()
-                            ListItemContent.GoalItem(goal, reminders, item)
-                        }
-                    ListItemTypeValues.SUBLIST ->
-                        projectsMap[item.entityId]?.let { project ->
-                            val reminders = remindersMap[project.id] ?: emptyList()
-                            ListItemContent.SublistItem(project, reminders, item)
-                        }
-                    ListItemTypeValues.LINK_ITEM ->
-                        linksMap[item.entityId]?.let { link ->
-                            ListItemContent.LinkItem(link, item)
-                        }
-                    ListItemTypeValues.NOTE ->
-                        notesMap[item.entityId]?.let { note ->
-                            ListItemContent.NoteItem(note, item)
-                        }
-                    ListItemTypeValues.CUSTOM_LIST ->
-                        customListsMap[item.entityId]?.let { customList ->
-                            ListItemContent.CustomListItem(customList, item)
-                        }
-                    else -> null
-                }
+    private fun mapToListItemContent(
+        items: List<ListItem>,
+        reminders: List<Reminder>,
+        goals: List<Goal>,
+        projects: List<Project>,
+        links: List<LinkItemEntity>,
+        notes: List<NoteEntity>,
+        customLists: List<CustomListEntity>
+    ): List<ListItemContent> {
+        val remindersMap = reminders.groupBy { it.entityId }
+        val goalsMap = goals.associateBy { it.id }
+        val projectsMap = projects.associateBy { it.id }
+        val linksMap = links.associateBy { it.id }
+        val notesMap = notes.associateBy { it.id }
+        val customListsMap = customLists.associateBy { it.id }
+
+        return items.mapNotNull { item ->
+            when (item.itemType) {
+                ListItemTypeValues.GOAL ->
+                    goalsMap[item.entityId]?.let { goal ->
+                        val itemReminders = remindersMap[goal.id] ?: emptyList()
+                        ListItemContent.GoalItem(goal, itemReminders, item)
+                    }
+                ListItemTypeValues.SUBLIST ->
+                    projectsMap[item.entityId]?.let { project ->
+                        val itemReminders = remindersMap[project.id] ?: emptyList()
+                        ListItemContent.SublistItem(project, itemReminders, item)
+                    }
+                ListItemTypeValues.LINK_ITEM ->
+                    linksMap[item.entityId]?.let { link ->
+                        ListItemContent.LinkItem(link, item)
+                    }
+                ListItemTypeValues.NOTE ->
+                    notesMap[item.entityId]?.let { note ->
+                        ListItemContent.NoteItem(note, item)
+                    }
+                ListItemTypeValues.CUSTOM_LIST ->
+                    customListsMap[item.entityId]?.let { customList ->
+                        ListItemContent.CustomListItem(customList, item)
+                    }
+                else -> null
             }
         }
+    }
 
     suspend fun addGoalToProject(
         title: String,
@@ -417,10 +377,7 @@ constructor(
 
     suspend fun updateProject(project: Project) {
         projectDao.update(project)
-        val recentItem = recentItemDao.getRecentItemById(project.id)
-        if (recentItem != null) {
-            recentItemDao.logAccess(recentItem.copy(displayName = project.name))
-        }
+        recentItemsRepository.updateRecentItemDisplayName(project.id, project.name)
     }
 
     suspend fun updateProjects(projects: List<Project>): Int = if (projects.isNotEmpty()) projectDao.update(projects) else 0
@@ -505,83 +462,6 @@ constructor(
             compareBy<GlobalSearchResultItem> { it.typeOrder }
                 .thenByDescending { it.timestamp },
         )
-    }
-
-    suspend fun logProjectAccess(projectId: String) {
-        val project = getProjectById(projectId)
-        if (project != null) {
-            val existingItem = recentItemDao.getRecentItemById(project.id)
-            val recentItem = if (existingItem != null) {
-                existingItem.copy(lastAccessed = System.currentTimeMillis())
-            } else {
-                RecentItem(
-                    id = project.id,
-                    type = RecentItemType.PROJECT,
-                    lastAccessed = System.currentTimeMillis(),
-                    displayName = project.name,
-                    target = project.id
-                )
-            }
-            Log.d("Recents_Debug", "Logging project access: $recentItem")
-            recentItemDao.logAccess(recentItem)
-        }
-    }
-
-    fun getRecentItems(limit: Int = 20): Flow<List<RecentItem>> = recentItemDao.getRecentItems(limit)
-
-    suspend fun logNoteAccess(note: NoteEntity) {
-        val existingItem = recentItemDao.getRecentItemById(note.id)
-        val recentItem = if (existingItem != null) {
-            existingItem.copy(lastAccessed = System.currentTimeMillis())
-        } else {
-            RecentItem(
-                id = note.id,
-                type = RecentItemType.NOTE,
-                lastAccessed = System.currentTimeMillis(),
-                displayName = note.title,
-                target = note.id
-            )
-        }
-        Log.d("Recents_Debug", "Logging note access: $recentItem")
-        recentItemDao.logAccess(recentItem)
-    }
-
-    suspend fun logCustomListAccess(customList: CustomListEntity) {
-        val existingItem = recentItemDao.getRecentItemById(customList.id)
-        val recentItem = if (existingItem != null) {
-            existingItem.copy(lastAccessed = System.currentTimeMillis())
-        } else {
-            RecentItem(
-                id = customList.id,
-                type = RecentItemType.CUSTOM_LIST,
-                lastAccessed = System.currentTimeMillis(),
-                displayName = customList.name,
-                target = customList.id
-            )
-        }
-        Log.d("Recents_Debug", "Logging custom list access: $recentItem")
-        recentItemDao.logAccess(recentItem)
-    }
-
-    suspend fun logObsidianLinkAccess(link: RelatedLink) {
-        val existingItem = recentItemDao.getRecentItemById(link.target)
-        val recentItem = if (existingItem != null) {
-            existingItem.copy(lastAccessed = System.currentTimeMillis())
-        } else {
-            RecentItem(
-                id = link.target,
-                type = RecentItemType.OBSIDIAN_LINK,
-                lastAccessed = System.currentTimeMillis(),
-                displayName = link.displayName ?: link.target,
-                target = link.target
-            )
-        }
-        Log.d("Recents_Debug", "Logging obsidian link access: $recentItem")
-        recentItemDao.logAccess(recentItem)
-    }
-
-    suspend fun updateRecentItem(item: RecentItem) {
-        recentItemDao.logAccess(item)
     }
 
     @Transaction
@@ -721,39 +601,6 @@ constructor(
         inboxRecordDao.deleteById(record.id)
     }
 
-    // suspend fun addGoalWithReminder(
-    //     title: String,
-    //     projectId: String,
-    //     reminderTime: Long,
-    // ): Goal {
-    //     val currentTime = System.currentTimeMillis()
-    //     val newGoal =
-    //         Goal(
-    //             id = UUID.randomUUID().toString(),
-    //             text = title,
-    //             completed = false,
-    //             createdAt = currentTime,
-    //             updatedAt = currentTime,
-    //             reminderTime = reminderTime,
-    //         )
-    //     goalDao.insertGoal(newGoal)
-    //     syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
-
-    //     val newListItem =
-    //         ListItem(
-    //             id = UUID.randomUUID().toString(),
-    //             projectId = projectId,
-    //             itemType = ListItemTypeValues.GOAL,
-    //             entityId = newGoal.id,
-    //             order = -currentTime,
-    //         )
-    //     listItemDao.insertItem(newListItem)
-
-    //     val finalGoalState = goalDao.getGoalById(newGoal.id)!!
-    //     contextHandler.handleContextsOnCreate(finalGoalState)
-    //     return newGoal
-    // }
-
     suspend fun logProjectTimeSummaryForDate(
         projectId: String,
         dayToLog: Calendar,
@@ -805,7 +652,7 @@ constructor(
         val description = "Загальний час за день: $totalFormattedDuration."
         val details = detailsBuilder.toString()
 
-        addProjectLogEntry(projectId = projectId, type = ProjectLogEntryTypeValues.AUTOMATIC, description = description, details = details)
+        projectLogRepository.addProjectLogEntry(projectId = projectId, type = ProjectLogEntryTypeValues.AUTOMATIC, description = description, details = details)
     }
 
     private fun formatDuration(millis: Long): String {
@@ -835,7 +682,7 @@ constructor(
         val totalFormattedDuration = formatDuration(totalDurationMillis)
         val description = "Загальний час по проекту: $totalFormattedDuration."
 
-        addProjectLogEntry(
+        projectLogRepository.addProjectLogEntry(
             projectId = projectId,
             type = ProjectLogEntryTypeValues.AUTOMATIC,
             description = description,
@@ -864,41 +711,6 @@ constructor(
         val timeTotal = allActivities.sumOf { (it.endTime ?: 0) - (it.startTime ?: 0) }
 
         return ProjectTimeMetrics(timeToday = timeToday, timeTotal = timeTotal)
-    }
-
-    
-    suspend fun getNoteById(noteId: String): NoteEntity? = noteDao.getNoteById(noteId)
-
-    fun getNotesForProject(projectId: String): Flow<List<NoteEntity>> = noteDao.getNotesForProject(projectId)
-
-    @Transaction
-    suspend fun saveNote(note: NoteEntity) {
-        val existingNote = noteDao.getNoteById(note.id)
-        if (existingNote == null) {
-            noteDao.insert(note)
-            
-            val newListItem =
-                ListItem(
-                    id = UUID.randomUUID().toString(),
-                    projectId = note.projectId,
-                    itemType = ListItemTypeValues.NOTE,
-                    entityId = note.id,
-                    order = -System.currentTimeMillis(),
-                )
-            listItemDao.insertItem(newListItem)
-        } else {
-            noteDao.update(note.copy(updatedAt = System.currentTimeMillis()))
-            val recentItem = recentItemDao.getRecentItemById(note.id)
-            if (recentItem != null) {
-                recentItemDao.logAccess(recentItem.copy(displayName = note.title))
-            }
-        }
-    }
-
-    @Transaction
-    suspend fun deleteNote(noteId: String) {
-        noteDao.deleteNoteById(noteId)
-        listItemDao.deleteItemByEntityId(noteId)
     }
 
     
@@ -965,10 +777,7 @@ constructor(
         android.util.Log.d("CursorDebug", "Repository updating custom list. lastCursorPosition: ${list.lastCursorPosition}")
         Log.d(TAG, "updateCustomList called with list: $list")
         customListDao.updateCustomList(list)
-        val recentItem = recentItemDao.getRecentItemById(list.id)
-        if (recentItem != null) {
-            recentItemDao.logAccess(recentItem.copy(displayName = list.name))
-        }
+        recentItemsRepository.updateRecentItemDisplayName(list.id, list.name)
         Log.d(TAG, "updateCustomList finished")
     }
 
@@ -981,7 +790,7 @@ constructor(
                 ListItemTypeValues.GOAL -> goalDao.getGoalById(item.entityId) != null
                 ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
                 ListItemTypeValues.LINK_ITEM -> linkItemDao.getLinkItemById(item.entityId) != null
-                ListItemTypeValues.NOTE -> noteDao.getNoteById(item.entityId) != null
+                ListItemTypeValues.NOTE -> noteRepository.getNoteById(item.entityId) != null
                 ListItemTypeValues.CUSTOM_LIST -> customListDao.getCustomListById(item.entityId) != null
                 else -> true // Assume unknown types are valid to avoid deleting them
             }
@@ -994,14 +803,6 @@ constructor(
             listItemDao.deleteItemsByIds(itemsToDelete)
             Log.d("DB_CLEANUP", "Deleted ${itemsToDelete.size} dangling ListItem records.")
         }
-    }
-
-    suspend fun updateProjectExecutionLog(log: ProjectExecutionLog) {
-        projectManagementDao.updateLog(log)
-    }
-
-    suspend fun deleteProjectExecutionLog(log: ProjectExecutionLog) {
-        projectManagementDao.deleteLog(log)
     }
 
     fun getProjectArtifactStream(projectId: String): Flow<ProjectArtifact?> {

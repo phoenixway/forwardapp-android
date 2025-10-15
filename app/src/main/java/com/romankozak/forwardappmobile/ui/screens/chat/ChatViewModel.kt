@@ -42,7 +42,6 @@ data class ChatUiState(
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    // private val ollamaService: OllamaService,
     private val settingsRepo: SettingsRepository,
     private val chatRepo: ChatRepository,
     private val rolesRepo: RolesRepository,
@@ -102,7 +101,6 @@ class ChatViewModel @Inject constructor(
                 }
             }.collect{}
         }
-        // loadAvailableModels()
     }
 
     fun setCurrentConversation(conversationId: Long) {
@@ -171,21 +169,7 @@ class ChatViewModel @Inject constructor(
     }
 
     fun loadAvailableModels() {
-        // viewModelScope.launch {
-        //     _uiState.update { it.copy(availableModels = ModelsState.Loading) }
-        //     val url = settingsRepo.getOllamaUrl().first()
-        //     if (url.isNullOrBlank()) {
-        //         _uiState.update { it.copy(availableModels = ModelsState.Error("Server URL is not set")) }
-        //         return@launch
-        //     }
-        //
-        //     val result = ollamaService.getAvailableModels(url)
-        //     result.onSuccess { models ->
-        //         _uiState.update { it.copy(availableModels = ModelsState.Success(models)) }
-        //     }.onFailure { error ->
-        //         _uiState.update { it.copy(availableModels = ModelsState.Error("Error: ${error.message}")) }
-        //     }
-        // }
+
     }
 
     fun selectSmartModel(modelName: String) {
@@ -200,30 +184,7 @@ class ChatViewModel @Inject constructor(
     }
 
     fun sendMessage() {
-        // val messageText = _userInput.value.trim()
-        // val conversation = _uiState.value.currentConversation
-        // if (messageText.isBlank() || uiState.value.messages.any { it.isStreaming } || conversation == null) return
 
-        // viewModelScope.launch {
-        //     val userMessage = ChatMessage(conversationId = conversation.id, text = messageText, isFromUser = true)
-        //     chatRepo.addMessage(userMessage.toEntity())
-        //     _userInput.value = ""
-
-        //     val assistantMessage = ChatMessage(conversationId = conversation.id, text = "", isFromUser = false, isStreaming = true)
-        //     val assistantMessageId = chatRepo.addMessage(assistantMessage.toEntity())
-
-        //     val serviceIntent =
-        //         Intent(context, GenerationService::class.java).apply {
-        //             putExtra("assistantMessageId", assistantMessageId)
-        //             putExtra("conversationId", conversation.id)
-        //         }
-
-        //     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        //         context.startForegroundService(serviceIntent)
-        //     } else {
-        //         context.startService(serviceIntent)
-        //     }
-        // }
     }
 
     fun regenerateLastResponse() {
