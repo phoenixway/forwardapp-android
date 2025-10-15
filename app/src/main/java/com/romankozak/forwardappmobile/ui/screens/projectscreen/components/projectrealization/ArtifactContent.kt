@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 
 @Composable
@@ -43,10 +44,19 @@ fun ArtifactContent(
                 modifier = Modifier.fillMaxWidth()
             )
         } else {
-            Text(
-                text = artifact.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+            AndroidView(
+                factory = { ctx ->
+                    com.romankozak.forwardappmobile.ui.components.notesEditors.WebViewMarkdownViewer(ctx).apply {
+                        layoutParams =
+                            android.view.ViewGroup.LayoutParams(
+                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            )
+                    }
+                },
+                update = { viewer ->
+                    viewer.renderMarkdown(artifact.content)
+                },
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
