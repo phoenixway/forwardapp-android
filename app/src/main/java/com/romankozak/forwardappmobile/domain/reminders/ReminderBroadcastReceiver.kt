@@ -32,6 +32,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     lateinit var reminderRepository: ReminderRepository
 
     companion object {
+        const val EXTRA_REMINDER_ID = "EXTRA_REMINDER_ID"
         const val EXTRA_GOAL_ID = "EXTRA_GOAL_ID"
         const val EXTRA_GOAL_TEXT = "EXTRA_GOAL_TEXT"
         const val EXTRA_GOAL_DESCRIPTION = "EXTRA_GOAL_DESCRIPTION"
@@ -79,14 +80,15 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             }
         }
 
+        val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID)
         val goalId = intent.getStringExtra(Companion.EXTRA_GOAL_ID)
         val goalText = intent.getStringExtra(Companion.EXTRA_GOAL_TEXT)
         val goalDescription = intent.getStringExtra(Companion.EXTRA_GOAL_DESCRIPTION)
         val goalEmoji = intent.getStringExtra(Companion.EXTRA_GOAL_EMOJI) ?: "🎯"
         val extraInfo = intent.getStringExtra(Companion.EXTRA_INFO)
 
-        if (goalId == null || goalText == null) {
-            Log.e(Companion.tag, "Received broadcast with missing data. GoalId: $goalId, GoalText: $goalText")
+        if (reminderId == null || goalId == null || goalText == null) {
+            Log.e(Companion.tag, "Received broadcast with missing data. ReminderId: $reminderId, GoalId: $goalId, GoalText: $goalText")
             return
         }
 
@@ -110,7 +112,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         }
 
         // Показуємо тільки одне сповіщення з full-screen intent
-        showNotification(context, notificationManager, goalId, goalText, notificationText, goalEmoji, extraInfo)
+        showNotification(context, notificationManager, reminderId, goalId, goalText, notificationText, goalEmoji, extraInfo)
     }
 
     private fun startLockScreenActivity(
@@ -177,15 +179,16 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     private fun showNotification(
         context: Context,
         notificationManager: NotificationManager,
+        reminderId: String,
         goalId: String,
         goalText: String,
         goalDescription: String?,
         goalEmoji: String,
         extraInfo: String?,
     ) {
-        val completeIntent = createActionIntent(context, Companion.ACTION_COMPLETE, goalId)
-        val snoozeIntent = createActionIntent(context, Companion.ACTION_SNOOZE, goalId)
-        val dismissIntent = createActionIntent(context, Companion.ACTION_DISMISS, goalId)
+        val completeIntent = createActionIntent(context, Companion.ACTION_COMPLETE, reminderId)
+        val snoozeIntent = createActionIntent(context, Companion.ACTION_SNOOZE, reminderId)
+        val dismissIntent = createActionIntent(context, Companion.ACTION_DISMISS, reminderId)
 
         val expandedText = buildString {
             append(goalText)
@@ -252,14 +255,14 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         Log.d(Companion.tag, "Full-screen notification created for goal: $goalId")
     }
 
-    private fun createActionIntent(context: Context, action: String, goalId: String): PendingIntent {
+    private fun createActionIntent(context: Context, action: String, reminderId: String): PendingIntent {
         val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             this.action = action
-            putExtra(Companion.EXTRA_GOAL_ID, goalId)
+            putExtra(Companion.EXTRA_REMINDER_ID, reminderId)
         }
         return PendingIntent.getBroadcast(
             context,
-            Companion.getActionId(action, goalId),
+            Companion.getActionId(action, reminderId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -267,15 +270,15 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
 
     private fun handleCompleteAction(context: Context, intent: Intent) {
-        val goalId = intent.getStringExtra(Companion.EXTRA_GOAL_ID) ?: return
-        Log.d(Companion.tag, "Goal completed via notification: $goalId")
+        val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
+        Log.d(Companion.tag, "Goal completed via notification: $reminderId")
 
         CoroutineScope(Dispatchers.IO).launch {
-            reminderRepository.markAsCompleted(goalId)
+            reminderRepository.markAsCompleted(reminderId)
         }
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.cancel(Companion.getNotificationId(goalId))
+        nm.cancel(Companion.getNotificationId(reminderId))
 
         // Закриваємо активність, якщо вона відкрита
         if (ReminderLockScreenActivity.isActive) {
@@ -293,14 +296,14 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     }
 
     private fun handleSnoozeAction(context: Context, intent: Intent) {
-        val goalId = intent.getStringExtra(Companion.EXTRA_GOAL_ID) ?: return
-        Log.d(Companion.tag, "Goal snoozed via notification: $goalId")
+        val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
+        Log.d(Companion.tag, "Goal snoozed via notification: $reminderId")
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.cancel(Companion.getNotificationId(goalId))
+        nm.cancel(Companion.getNotificationId(reminderId))
 
         CoroutineScope(Dispatchers.IO).launch {
-            reminderRepository.snoozeReminder(goalId)
+            reminderRepository.snoozeReminder(reminderId)
         }
 
         // Закриваємо активність
@@ -318,15 +321,15 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     }
 
     private fun handleDismissAction(context: Context, intent: Intent) {
-        val goalId = intent.getStringExtra(Companion.EXTRA_GOAL_ID) ?: return
-        Log.d(Companion.tag, "Goal dismissed via notification: $goalId")
+        val reminderId = intent.getStringExtra(Companion.EXTRA_REMINDER_ID) ?: return
+        Log.d(Companion.tag, "Goal dismissed via notification: $reminderId")
 
         CoroutineScope(Dispatchers.IO).launch {
-            reminderRepository.dismissReminder(goalId)
+            reminderRepository.dismissReminder(reminderId)
         }
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.cancel(Companion.getNotificationId(goalId))
+        nm.cancel(Companion.getNotificationId(reminderId))
 
         // Закриваємо активність
         if (ReminderLockScreenActivity.isActive) {
