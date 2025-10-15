@@ -667,6 +667,7 @@ fun ModernInputPanel(
   onRevealInExplorer: () -> Unit,
   onCloseSearch: () -> Unit,
   onAddMilestone: () -> Unit,
+  onShowCreateCustomListDialog: () -> Unit,
   suggestions: List<String>,
   onSuggestionClick: (String) -> Unit,
 ) {
@@ -1028,19 +1029,6 @@ fun ModernInputPanel(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        AnimatedVisibility(visible = isProjectManagementEnabled && inputMode == InputMode.AddProjectLog) {
-            IconButton(
-                onClick = onAddMilestone,
-                modifier = Modifier.size(44.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Flag,
-                    contentDescription = "Add Milestone",
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-
         AnimatedVisibility(
           visible = inputValue.text.isNotBlank(),
           enter =
@@ -1083,6 +1071,7 @@ fun ModernInputPanel(
       onShowAddWebLinkDialog = onShowAddWebLinkDialog,
       onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
       onAddListShortcutClick = onAddListShortcutClick,
+      onShowCreateCustomListDialog = onShowCreateCustomListDialog,
     )
   }
 }

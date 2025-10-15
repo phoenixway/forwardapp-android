@@ -392,6 +392,7 @@ fun ProjectsScreen(
                             onRevealInExplorer = { viewModel.onRevealInExplorer(list?.id ?: "") },
                             onCloseSearch = viewModel::onCloseSearch,
                             onAddMilestone = viewModel::onAddMilestone,
+                            onShowCreateCustomListDialog = viewModel::onShowCreateCustomListDialog,
                             isViewModePanelVisible = uiState.isViewModePanelVisible,
                             onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                             suggestions = suggestions,
