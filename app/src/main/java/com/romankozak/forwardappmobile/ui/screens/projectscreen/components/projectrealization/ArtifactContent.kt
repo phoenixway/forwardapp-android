@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,12 +53,17 @@ fun ArtifactContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = { artifact?.let { onEditArtifact(it) } },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = isManagementEnabled
-        ) {
-            Text("Редагувати Артефакт")
+        Box(modifier = Modifier.fillMaxWidth()) {
+            IconButton(
+                onClick = { artifact?.let { onEditArtifact(it) } },
+                modifier = Modifier.align(Alignment.CenterEnd),
+                enabled = isManagementEnabled
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Редагувати Артефакт"
+                )
+            }
         }
     }
 }

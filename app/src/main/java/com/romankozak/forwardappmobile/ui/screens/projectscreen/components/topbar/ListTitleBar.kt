@@ -40,7 +40,7 @@ internal fun getViewModeText(viewMode: ProjectViewMode): String =
     when (viewMode) {
         ProjectViewMode.BACKLOG -> "Backlog"
         ProjectViewMode.INBOX -> "Inbox"
-        ProjectViewMode.DASHBOARD -> "Dashboard"
+        ProjectViewMode.ADVANCED -> "Advanced View"
         ProjectViewMode.ATTACHMENTS -> "Attachments"
     }
 
@@ -94,7 +94,7 @@ private fun ViewModeIndicator(
             Color(0xFFE3F2FD).copy(alpha = 0.7f),
             Color(0xFF1565C0).copy(alpha = 0.8f)
         )
-        ProjectViewMode.DASHBOARD -> Pair(
+        ProjectViewMode.ADVANCED -> Pair(
             Color(0xFFF3E5F5).copy(alpha = 0.7f),
             Color(0xFF7B1FA2).copy(alpha = 0.8f)
         )

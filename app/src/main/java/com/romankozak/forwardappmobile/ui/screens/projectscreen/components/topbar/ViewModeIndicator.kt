@@ -37,7 +37,7 @@ public fun ViewModeIndicator(
                     Color(0xFF64B5F6).copy(alpha = 0.4f),
                     Color(0xFF1565C0).copy(alpha = 0.8f),
                 )
-            ProjectViewMode.DASHBOARD ->
+            ProjectViewMode.ADVANCED ->
                 Triple(
                     Color(0xFFF3E5F5).copy(alpha = 0.7f),
                     Color(0xFFBA68C8).copy(alpha = 0.4f),

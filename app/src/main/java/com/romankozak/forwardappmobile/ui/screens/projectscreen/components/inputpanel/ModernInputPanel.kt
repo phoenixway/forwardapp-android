@@ -137,8 +137,7 @@ private fun ViewModeToggle(
 
       val availableViews =
         ProjectViewMode.values().filter {
-          it != ProjectViewMode.DASHBOARD || isProjectManagementEnabled
-        }
+                          it != ProjectViewMode.ADVANCED || isProjectManagementEnabled        }
       availableViews.forEach { viewMode ->
         val isSelected = currentView == viewMode
         IconButton(
@@ -147,7 +146,7 @@ private fun ViewModeToggle(
             val newMode =
               when (viewMode) {
                 ProjectViewMode.INBOX -> InputMode.AddQuickRecord
-                ProjectViewMode.DASHBOARD -> InputMode.AddQuickRecord
+                ProjectViewMode.ADVANCED -> InputMode.AddQuickRecord
                 else -> InputMode.AddGoal
               }
             onInputModeSelected(newMode)
@@ -164,7 +163,7 @@ private fun ViewModeToggle(
               when (viewMode) {
                 ProjectViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
                 ProjectViewMode.INBOX -> Icons.Outlined.Inbox
-                ProjectViewMode.DASHBOARD -> Icons.Outlined.Dashboard
+                ProjectViewMode.ADVANCED -> Icons.Outlined.Dashboard
                 ProjectViewMode.ATTACHMENTS -> Icons.Default.Attachment
               },
             contentDescription = viewMode.name,
