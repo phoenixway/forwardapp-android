@@ -39,7 +39,7 @@ data class ActionItem(
 )
 
 @Composable
-fun InputModeSelectionDialog(
+fun InputPanelMagicActionsDialog(
     currentInputMode: InputMode,
     isProjectManagementEnabled: Boolean,
     onDismiss: () -> Unit,

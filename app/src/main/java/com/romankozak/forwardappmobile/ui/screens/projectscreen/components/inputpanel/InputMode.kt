@@ -6,4 +6,5 @@ enum class InputMode {
     SearchGlobal,
     AddQuickRecord,
     AddProjectLog,
+    AddMilestone,
 }
