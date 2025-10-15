@@ -22,6 +22,7 @@ class ItemActionHandler
     @Inject
     constructor(
         private val projectRepository: ProjectRepository,
+        private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
         private val recentItemsRepository: RecentItemsRepository,
         val scope: CoroutineScope,
         private val projectIdFlow: StateFlow<String>,
@@ -118,7 +119,7 @@ class ItemActionHandler
         ) {
             scope.launch {
                 val updatedGoal = goal.copy(completed = isChecked, updatedAt = System.currentTimeMillis())
-                projectRepository.updateGoal(updatedGoal)
+                goalRepository.updateGoal(updatedGoal)
                 delay(100)
                 resultListener.forceRefresh()
             }

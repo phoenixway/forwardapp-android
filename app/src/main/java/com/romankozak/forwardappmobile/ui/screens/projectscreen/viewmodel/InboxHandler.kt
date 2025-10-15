@@ -24,6 +24,7 @@ interface InboxHandlerResultListener {
 
 class InboxHandler(
     private val projectRepository: ProjectRepository,
+    private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,
     private val listener: InboxHandlerResultListener,
@@ -41,7 +42,7 @@ class InboxHandler(
         scope.launch {
             projectIdFlow
                 .filter { it.isNotEmpty() }
-                .flatMapLatest { id -> projectRepository.getInboxRecordsStream(id) }
+                .flatMapLatest { id -> inboxRepository.getInboxRecordsStream(id) }
                 .collect { records ->
                     _inboxRecords.value = records.sortedBy { it.createdAt }
                 }
@@ -52,7 +53,7 @@ class InboxHandler(
         scope.launch(Dispatchers.IO) {
             val projectId = projectIdFlow.value
             if (projectId.isNotEmpty() && text.isNotBlank()) {
-                projectRepository.addInboxRecord(text, projectId)
+                inboxRepository.addInboxRecord(text, projectId)
             }
         }
         listener.updateInputState(TextFieldValue(""))
@@ -61,13 +62,13 @@ class InboxHandler(
 
     fun deleteInboxRecord(recordId: String) {
         scope.launch(Dispatchers.IO) {
-            projectRepository.deleteInboxRecordById(recordId)
+            inboxRepository.deleteInboxRecordById(recordId)
         }
     }
 
     fun promoteInboxRecordToGoal(record: InboxRecord) {
         scope.launch(Dispatchers.IO) {
-            projectRepository.promoteInboxRecordToGoal(record)
+            inboxRepository.promoteInboxRecordToGoal(record)
         }
     }
 
@@ -76,7 +77,7 @@ class InboxHandler(
         targetProjectId: String,
     ) {
         scope.launch(Dispatchers.IO) {
-            projectRepository.promoteInboxRecordToGoal(record, targetProjectId)
+            inboxRepository.promoteInboxRecordToGoal(record, targetProjectId)
         }
     }
 
@@ -85,7 +86,7 @@ class InboxHandler(
         newText: String,
     ) {
         scope.launch(Dispatchers.IO) {
-            projectRepository.updateInboxRecord(record.copy(text = newText))
+            inboxRepository.updateInboxRecord(record.copy(text = newText))
         }
     }
 

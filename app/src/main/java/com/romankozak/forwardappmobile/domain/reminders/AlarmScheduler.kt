@@ -33,8 +33,10 @@ class AlarmScheduler
         @ApplicationContext private val context: Context,
         private val projectRepositoryProvider: Provider<ProjectRepository>,
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
+        private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
     ) : AlarmSchedulerInterface {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
+        private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
         private val tag = "ReminderFlow"
 
         suspend fun schedule(reminder: Reminder) {
@@ -69,7 +71,7 @@ class AlarmScheduler
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_ID, reminder.entityId)
                     val (title, description, emoji) = when (reminder.entityType) {
                         "GOAL" -> {
-                            val goal = projectRepository.getGoalById(reminder.entityId)
+                            val goal = goalRepository.getGoalById(reminder.entityId)
                             Triple(goal?.text, goal?.description, "🎯")
                         }
                         "PROJECT" -> {

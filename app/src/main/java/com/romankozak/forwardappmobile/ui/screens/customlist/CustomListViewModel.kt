@@ -46,6 +46,7 @@ data class UnifiedCustomListUiState(
 class UnifiedCustomListViewModel @Inject constructor(
     private val application: Application,
     private val projectRepository: ProjectRepository,
+    private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -76,8 +77,8 @@ class UnifiedCustomListViewModel @Inject constructor(
         } else {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, isNewList = false) }
-                projectRepository.getCustomListById(listId)?.let { list ->
-                    projectRepository.updateCustomList(list.copy(updatedAt = System.currentTimeMillis()))
+                customListRepository.getCustomListById(listId)?.let { list ->
+                    customListRepository.updateCustomList(list.copy(updatedAt = System.currentTimeMillis()))
                     val content = TextFieldValue(list.content ?: "")
                     _uiState.update {
                         it.copy(
@@ -113,7 +114,7 @@ class UnifiedCustomListViewModel @Inject constructor(
             try {
                 if (listId == null) {
                     projectId?.let {
-                        projectRepository.createCustomList(
+                        customListRepository.createCustomList(
                             name = currentState.title.ifBlank { "New List" },
                             content = currentState.content.text,
                             projectId = it
@@ -121,12 +122,12 @@ class UnifiedCustomListViewModel @Inject constructor(
                         _events.send(UnifiedCustomListEvent.NavigateBack)
                     } ?: _events.send(UnifiedCustomListEvent.ShowError("Project ID is missing"))
                 } else {
-                    projectRepository.getCustomListById(listId)?.let { existingList ->
+                    customListRepository.getCustomListById(listId)?.let { existingList ->
                         val updatedList = existingList.copy(
                             name = currentState.title,
                             content = currentState.content.text
                         )
-                        projectRepository.updateCustomList(updatedList)
+                        customListRepository.updateCustomList(updatedList)
                         _events.send(UnifiedCustomListEvent.ShowSuccess("Saved"))
                     } ?: _events.send(UnifiedCustomListEvent.ShowError("List not found"))
                 }

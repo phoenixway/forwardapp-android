@@ -22,8 +22,10 @@ class ContextHandler
     constructor(
         private val projectRepositoryProvider: Provider<ProjectRepository>,
         private val settingsRepository: SettingsRepository,
+        private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
     ) {
         private val projectRepository: ProjectRepository by lazy { projectRepositoryProvider.get() }
+        private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
 
         private val contextTagMap = mutableMapOf<String, String>()
         private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())
@@ -138,7 +140,7 @@ class ContextHandler
                             val targetProjectIds = projectRepository.findProjectIdsByTag(tag)
                             for (projectId in targetProjectIds) {
                                 if (!projectRepository.doesLinkExist(goal.id, projectId)) {
-                                    projectRepository.createGoalLinks(listOf(goal.id), projectId)
+                                    goalRepository.createGoalLinks(listOf(goal.id), projectId)
                                 }
                             }
                         }

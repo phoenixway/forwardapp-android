@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 
 class InboxMarkdownHandler(
     private val projectRepository: ProjectRepository,
+    private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val listener: ResultListener,
 ) {
@@ -45,35 +46,35 @@ class InboxMarkdownHandler(
                         trimmedLine.startsWith("- [x]") -> {
                             val goalText = trimmedLine.removePrefix("- [x]").trim()
                             if (goalText.isNotEmpty()) {
-                                projectRepository.addGoalToProject(goalText, projectId, completed = true)
+                                goalRepository.addGoalToProject(goalText, projectId, completed = true)
                                 importedCount++
                             }
                         }
                         trimmedLine.startsWith("- [ ]") -> {
                             val goalText = trimmedLine.removePrefix("- [ ]").trim()
                             if (goalText.isNotEmpty()) {
-                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
+                                goalRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }
                         trimmedLine.startsWith("- ") -> {
                             val goalText = trimmedLine.removePrefix("- ").trim()
                             if (goalText.isNotEmpty()) {
-                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
+                                goalRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }
                         trimmedLine.startsWith("* ") -> {
                             val goalText = trimmedLine.removePrefix("* ").trim()
                             if (goalText.isNotEmpty()) {
-                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
+                                goalRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }
                         trimmedLine.startsWith("+ ") -> {
                             val goalText = trimmedLine.removePrefix("+ ").trim()
                             if (goalText.isNotEmpty()) {
-                                projectRepository.addGoalToProject(goalText, projectId, completed = false)
+                                goalRepository.addGoalToProject(goalText, projectId, completed = false)
                                 importedCount++
                             }
                         }

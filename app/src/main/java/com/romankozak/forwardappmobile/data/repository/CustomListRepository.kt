@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
+import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.CustomListDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.database.models.CustomListEntity
@@ -16,13 +17,15 @@ import javax.inject.Singleton
 class CustomListRepository @Inject constructor(
     private val customListDao: CustomListDao,
     private val listItemDao: ListItemDao,
-    private val recentItemsRepository: RecentItemsRepository
+    private val recentItemsRepository: RecentItemsRepository,
 ) {
-    private val TAG = "CUSTOM_LIST_DEBUG"
+    private val TAG = "CustomListRepository"
 
     fun getCustomListsForProject(projectId: String): Flow<List<CustomListEntity>> = customListDao.getCustomListsForProject(projectId)
 
-    @androidx.room.Transaction
+    fun getAllCustomListsAsFlow(): Flow<List<CustomListEntity>> = customListDao.getAllCustomListsAsFlow()
+
+    @Transaction
     suspend fun createCustomList(
         name: String,
         projectId: String,
@@ -47,7 +50,7 @@ class CustomListRepository @Inject constructor(
         return newList.id
     }
 
-    @androidx.room.Transaction
+    @Transaction
     suspend fun deleteCustomList(listId: String) {
         customListDao.deleteCustomListById(listId)
         listItemDao.deleteItemByEntityId(listId)
@@ -86,6 +89,4 @@ class CustomListRepository @Inject constructor(
         recentItemsRepository.updateRecentItemDisplayName(list.id, list.name)
         Log.d(TAG, "updateCustomList finished")
     }
-    
-    fun getAllCustomListsAsFlow(): Flow<List<CustomListEntity>> = customListDao.getAllCustomListsAsFlow()
 }
