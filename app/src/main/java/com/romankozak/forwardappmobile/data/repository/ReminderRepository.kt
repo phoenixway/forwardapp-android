@@ -40,7 +40,7 @@ class ReminderRepository @Inject constructor(
             creationTime = System.currentTimeMillis()
         )
         reminderDao.insert(reminder)
-        repositoryScope.launch { alarmScheduler.schedule(reminder) }
+        alarmScheduler.schedule(reminder)
     }
 
     suspend fun removeReminder(reminder: Reminder) {
@@ -50,7 +50,7 @@ class ReminderRepository @Inject constructor(
 
     suspend fun updateReminder(reminder: Reminder) {
         reminderDao.update(reminder)
-        repositoryScope.launch { alarmScheduler.schedule(reminder) }
+        alarmScheduler.schedule(reminder)
     }
 
     suspend fun clearRemindersForEntity(entityId: String) {
@@ -65,9 +65,9 @@ class ReminderRepository @Inject constructor(
         val reminder = reminderDao.getReminderById(reminderId)
         if (reminder != null) {
             val snoozeTime = System.currentTimeMillis() + 15 * 60 * 1000 // 15 minutes
-            val snoozedReminder = reminder.copy(status = "SNOOZED", snoozeUntil = snoozeTime)
+            val snoozedReminder = reminder.copy(status = "SNOOZED", snoozeUntil = snoozeTime, reminderTime = snoozeTime)
             reminderDao.update(snoozedReminder)
-            repositoryScope.launch { alarmScheduler.schedule(snoozedReminder) }
+            alarmScheduler.schedule(snoozedReminder)
         }
     }
 
