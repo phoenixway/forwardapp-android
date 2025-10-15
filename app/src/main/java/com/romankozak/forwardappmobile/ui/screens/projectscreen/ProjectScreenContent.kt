@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.AttachmentsView
@@ -82,7 +83,9 @@ fun GoalDetailContent(
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
                 onSaveArtifact = onSaveArtifact,
-                onEditArtifact = onEditArtifact
+                onEditArtifact = onEditArtifact,
+                selectedTab = uiState.selectedDashboardTab,
+                onTabSelected = viewModel::onDashboardTabSelected
             )
         }
         ProjectViewMode.ATTACHMENTS -> {

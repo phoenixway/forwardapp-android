@@ -156,6 +156,18 @@ fun InputPanelMagicActionsDialog(
                         },
                     ),
                 )
+                add(
+                    ActionItem(
+                        title = "Віха",
+                        icon = Icons.Outlined.Flag,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        isSelected = currentInputMode == InputMode.AddMilestone,
+                        action = {
+                            onInputModeSelected(InputMode.AddMilestone)
+                            onDismiss()
+                        },
+                    ),
+                )
             }
         }
 
@@ -184,19 +196,19 @@ fun InputPanelMagicActionsDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ActionGrid(
-                    title = "Пошук",
-                    items = searchActions,
-                    haptic = haptic,
-                )
-
-                ActionGrid(
-                    title = "Посилання",
+                    title = "Додатки",
                     items = linkActions,
                     haptic = haptic,
                 )
 
                 ActionGrid(
-                    title = "Додавання",
+                    title = "Режим пошуку",
+                    items = searchActions,
+                    haptic = haptic,
+                )
+
+                ActionGrid(
+                    title = "Режим додавання",
                     items = addActions,
                     haptic = haptic,
                 )

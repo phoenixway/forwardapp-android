@@ -20,16 +20,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lightbulb
 
-private enum class ProjectManagementTab(
-    val displayName: String,
-    val icon: ImageVector,
-) {
-    Dashboard("Дашборд", Icons.Default.Dashboard),
-    Artifact("Артефакт", Icons.Default.Description),
-    Log("Історія", Icons.Default.History),
-    Insights("Інсайти", Icons.Default.Lightbulb),
-}
-
 @Composable
 fun ProjectDashboardView(
     modifier: Modifier = Modifier,
@@ -44,18 +34,10 @@ fun ProjectDashboardView(
     onDeleteLog: (ProjectExecutionLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
     onEditArtifact: (ProjectArtifact) -> Unit,
+    selectedTab: ProjectManagementTab,
+    onTabSelected: (ProjectManagementTab) -> Unit,
 ) {
     if (project == null) return
-
-    var selectedTab by remember { mutableStateOf(ProjectManagementTab.Dashboard) }
-    var previousLogs by remember { mutableStateOf(projectLogs) }
-
-    LaunchedEffect(projectLogs) {
-        if (projectLogs.size > previousLogs.size) {
-            selectedTab = ProjectManagementTab.Log
-        }
-        previousLogs = projectLogs
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(
@@ -66,7 +48,7 @@ fun ProjectDashboardView(
             ProjectManagementTab.values().forEach { tab ->
                 Tab(
                     selected = selectedTab == tab,
-                    onClick = { selectedTab = tab },
+                    onClick = { onTabSelected(tab) },
                     icon = { Icon(tab.icon, contentDescription = tab.displayName) },
                 )
             }
