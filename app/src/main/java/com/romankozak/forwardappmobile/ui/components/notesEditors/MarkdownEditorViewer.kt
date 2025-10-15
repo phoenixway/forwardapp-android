@@ -6,6 +6,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.with
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -78,6 +79,7 @@ fun MarkdownEditorViewer(
                             .verticalScroll(scrollState),
                 )
             } else {
+                val isDark = isSystemInDarkTheme()
                 AndroidView(
                     factory = { ctx ->
                         WebViewMarkdownViewer(ctx).apply {
@@ -89,7 +91,7 @@ fun MarkdownEditorViewer(
                         }
                     },
                     update = { viewer ->
-                        viewer.renderMarkdown(value.text)
+                        viewer.renderMarkdown(value.text, isDark)
                     },
                     modifier = Modifier.fillMaxSize(),
                 )

@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
 
@@ -44,6 +45,7 @@ fun ArtifactContent(
                 modifier = Modifier.fillMaxWidth()
             )
         } else {
+            val isDark = isSystemInDarkTheme()
             AndroidView(
                 factory = { ctx ->
                     com.romankozak.forwardappmobile.ui.components.notesEditors.WebViewMarkdownViewer(ctx).apply {
@@ -55,7 +57,7 @@ fun ArtifactContent(
                     }
                 },
                 update = { viewer ->
-                    viewer.renderMarkdown(artifact.content)
+                    viewer.renderMarkdown(artifact.content, isDark)
                 },
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )

@@ -17,6 +17,7 @@ class WebViewMarkdownViewer
         private val webView: WebView = WebView(context)
         private var isJsReady = false
         private var pendingMarkdown: String? = null
+        private var pendingIsDark: Boolean? = null
 
         init {
             orientation = VERTICAL
@@ -25,18 +26,28 @@ class WebViewMarkdownViewer
 
             webView.settings.javaScriptEnabled = true
             webView.settings.allowFileAccess = true
+            webView.setBackgroundColor(0) // TRANSPARENT
+            webView.settings.textZoom = (100 * resources.configuration.fontScale).toInt()
 
             webView.addJavascriptInterface(JSBridge(), "AndroidBridge")
             webView.loadUrl("file:///android_asset/viewer.html")
         }
 
-        fun renderMarkdown(markdown: String) {
+        fun renderMarkdown(markdown: String, isDark: Boolean) {
             if (isJsReady) {
+                val jsTheme = if (isDark) {
+                    "document.body.classList.add('dark');"
+                } else {
+                    "document.body.classList.remove('dark');"
+                }
+                post { webView.evaluateJavascript(jsTheme, null) }
+
                 val escapedMarkdown = escapeForJS(markdown)
                 val jsCode = "window.renderMarkdown($escapedMarkdown);"
                 post { webView.evaluateJavascript(jsCode, null) }
             } else {
                 pendingMarkdown = markdown
+                pendingIsDark = isDark
             }
         }
 
@@ -53,9 +64,12 @@ class WebViewMarkdownViewer
             fun onJsReady() {
                 post {
                     isJsReady = true
-                    pendingMarkdown?.let {
-                        renderMarkdown(it)
+                    pendingMarkdown?.let { markdown ->
+                        pendingIsDark?.let { isDark ->
+                            renderMarkdown(markdown, isDark)
+                        }
                         pendingMarkdown = null
+                        pendingIsDark = null
                     }
                 }
             }
