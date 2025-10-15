@@ -239,6 +239,47 @@ constructor(
     }
 
     @Transaction
+    suspend fun addGoalWithReminder(
+        title: String,
+        projectId: String,
+        reminderTime: Long,
+    ): Goal {
+        val currentTime = System.currentTimeMillis()
+        val newGoal =
+            Goal(
+                id = UUID.randomUUID().toString(),
+                text = title,
+                completed = false,
+                createdAt = currentTime,
+                updatedAt = currentTime,
+            )
+        goalDao.insertGoal(newGoal)
+
+        val newListItem =
+            ListItem(
+                id = UUID.randomUUID().toString(),
+                projectId = projectId,
+                itemType = ListItemTypeValues.GOAL,
+                entityId = newGoal.id,
+                order = -currentTime,
+            )
+        listItemDao.insertItem(newListItem)
+
+        val reminder = Reminder(
+            entityId = newGoal.id,
+            entityType = "GOAL",
+            reminderTime = reminderTime,
+            status = "SCHEDULED",
+            creationTime = System.currentTimeMillis()
+        )
+        reminderDao.insert(reminder)
+
+        syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
+        contextHandler.handleContextsOnCreate(newGoal)
+        return newGoal
+    }
+
+    @Transaction
     suspend fun addProjectLinkToProject(
         targetProjectId: String,
         currentProjectId: String,

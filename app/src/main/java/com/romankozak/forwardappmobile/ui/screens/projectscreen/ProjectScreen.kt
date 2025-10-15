@@ -183,6 +183,23 @@ fun ProjectsScreen(
             navController = navController,
             viewModel = editorViewModel
         )
+    } else if (uiState.showUniversalEditorForCustomList) {
+        val editorViewModel: com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel = hiltViewModel()
+
+        LaunchedEffect(Unit) {
+            // Initialize with empty content for a new custom list
+            editorViewModel.onContentChange(TextFieldValue(""))
+        }
+
+        com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen(
+            title = "Створити новий список",
+            onSave = { content, _ ->
+                viewModel.onSaveCustomList(content)
+            },
+            onNavigateBack = { viewModel.onDismissCustomListEditor() },
+            navController = navController,
+            viewModel = editorViewModel
+        )
     } else {
         if (uiState.showShareDialog) {
             ShareDialog(

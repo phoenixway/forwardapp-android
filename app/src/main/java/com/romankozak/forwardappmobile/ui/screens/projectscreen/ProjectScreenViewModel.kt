@@ -123,6 +123,7 @@ data class UiState(
       val logEntryToEdit: ProjectExecutionLog? = null,
       val artifactToEdit: ProjectArtifact? = null,
       val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
+      val showUniversalEditorForCustomList: Boolean = false,
   )
   
   interface BacklogMarkdownHandlerResultListener {  fun copyToClipboard(text: String, label: String)
@@ -1651,7 +1652,7 @@ constructor(
   }
 
   fun onShowCreateCustomListDialog() {
-    _uiState.update { it.copy(showCreateCustomListDialog = true) }
+    _uiState.update { it.copy(showUniversalEditorForCustomList = true) }
   }
 
   fun onCreateCustomList(title: String) {
@@ -1694,6 +1695,18 @@ constructor(
 
     fun onDismissEditLogEntryDialog() {
         _uiState.update { it.copy(logEntryToEdit = null) }
+    }
+
+    fun onSaveCustomList(content: String) {
+        viewModelScope.launch {
+            val title = content.lines().firstOrNull()?.trim() ?: "Новий список"
+            projectRepository.createCustomList(title, projectIdFlow.value)
+            onDismissCustomListEditor()
+        }
+    }
+
+    fun onDismissCustomListEditor() {
+        _uiState.update { it.copy(showUniversalEditorForCustomList = false) }
     }
 
     fun onAddMilestone() {
