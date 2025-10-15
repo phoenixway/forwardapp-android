@@ -44,10 +44,23 @@ class AlarmScheduler
                 "AlarmScheduler: schedule() called for reminder ID: ${reminder.id}, entityId: ${reminder.entityId}, entityType: ${reminder.entityType}, reminderTime: ${reminder.reminderTime}",
             )
             val reminderTime = reminder.reminderTime
-            if (reminderTime <= System.currentTimeMillis()) {
-                Log.w(tag, "AlarmScheduler: Reminder time is in the past or now for reminder. Aborting schedule.")
+            val currentTime = System.currentTimeMillis()
+            
+            // Додаємо буфер в 2 секунди для snooze
+            if (reminderTime < currentTime - 2000) {
+                Log.w(tag, "AlarmScheduler: Reminder time is too far in the past (${currentTime - reminderTime}ms ago). Aborting schedule.")
                 return
             }
+            
+            // Якщо час у минулому але менше 2 секунд - плануємо на +5 секунд від зараз
+            val adjustedTime = if (reminderTime <= currentTime) {
+                val newTime = currentTime + 5000 // +5 секунд
+                Log.w(tag, "AlarmScheduler: Reminder time adjusted from ${reminderTime} to ${newTime} (now + 5s)")
+                newTime
+            } else {
+                reminderTime
+            }
+            
             if (!checkPermissions()) return
 
             val intent =
@@ -73,7 +86,7 @@ class AlarmScheduler
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_DESCRIPTION, description)
                     putExtra(ReminderBroadcastReceiver.EXTRA_GOAL_EMOJI, emoji)
                 }
-            setExactAlarm(ReminderBroadcastReceiver.Companion.getNotificationId(reminder.id), reminderTime, intent)
+            setExactAlarm(ReminderBroadcastReceiver.Companion.getNotificationId(reminder.id), adjustedTime, intent)
         }
 
         fun cancel(reminder: Reminder) {
