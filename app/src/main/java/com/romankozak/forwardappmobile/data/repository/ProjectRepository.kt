@@ -59,7 +59,7 @@ constructor(
     private val activityRepository: ActivityRepository,
     private val projectManagementDao: ProjectManagementDao,
     private val recentItemDao: RecentItemDao,
-    val reminderDao: ReminderDao,
+    private val reminderRepository: ReminderRepository,
     private val projectArtifactDao: ProjectArtifactDao,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
@@ -153,7 +153,7 @@ constructor(
     fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> =
         combine(
             listItemDao.getItemsForProjectStream(projectId),
-            reminderDao.getAllReminders(),
+            reminderRepository.getAllReminders(),
             goalDao.getAllGoalsFlow(),
             projectDao.getAllProjects(),
             linkItemDao.getAllEntitiesAsFlow()
@@ -265,14 +265,7 @@ constructor(
             )
         listItemDao.insertItem(newListItem)
 
-        val reminder = Reminder(
-            entityId = newGoal.id,
-            entityType = "GOAL",
-            reminderTime = reminderTime,
-            status = "SCHEDULED",
-            creationTime = System.currentTimeMillis()
-        )
-        reminderDao.insert(reminder)
+        reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
 
         syncContextMarker(newGoal.id, projectId, ContextTextAction.ADD)
         contextHandler.handleContextsOnCreate(newGoal)
