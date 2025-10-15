@@ -188,8 +188,7 @@ fun ProjectItem(
                         ) {
                             reminder?.let { 
                                 EnhancedReminderBadge(
-                                    reminderTime = it.reminderTime,
-                                    isCompleted = it.status == "COMPLETED"
+                                    reminder = it,
                                 )
                             }
 
