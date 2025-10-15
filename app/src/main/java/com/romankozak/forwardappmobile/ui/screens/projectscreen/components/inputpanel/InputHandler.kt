@@ -198,11 +198,6 @@ class InputHandler(
                         if (reminderTime != null) {
                             val newGoal = projectRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
                             newItemIdentifier = newGoal.id
-                            Log.d(
-                                TAG,
-                                "Goal object created, now scheduling: ID=${newGoal.id}, text='${newGoal.text}'",
-                            )
-                            // alarmScheduler.schedule(newGoal) // Reminders are now handled by the new system
                         } else {
                             newItemIdentifier = projectRepository.addGoalToProject(textToSave, currentProjectId)
                         }

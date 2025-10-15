@@ -20,6 +20,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import javax.inject.Provider
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.provider.Settings
@@ -30,13 +31,14 @@ class AlarmScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-        private val projectRepository: ProjectRepository,
+        private val projectRepositoryProvider: Provider<ProjectRepository>,
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
     ) : AlarmSchedulerInterface {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
         private val tag = "ReminderFlow"
 
         suspend fun schedule(reminder: Reminder) {
+            val projectRepository = projectRepositoryProvider.get()
             Log.d(
                 tag,
                 "AlarmScheduler: schedule() called for reminder ID: ${reminder.id}, entityId: ${reminder.entityId}, entityType: ${reminder.entityType}, reminderTime: ${reminder.reminderTime}",
