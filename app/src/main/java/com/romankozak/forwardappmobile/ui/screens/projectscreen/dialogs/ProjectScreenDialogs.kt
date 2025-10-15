@@ -28,6 +28,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialog
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.RemindersViewModel
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.CreateCustomListDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,6 +135,13 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
             onSetReminder = viewModel::onSetReminder,
             onRemoveReminder = { time -> viewModel.onRemoveReminder(time) },
             currentReminderTimes = uiState.remindersForDialog.map { it.reminderTime },
+        )
+    }
+
+    if (uiState.showCreateCustomListDialog) {
+        CreateCustomListDialog(
+            onDismiss = viewModel::onDismissCreateCustomListDialog,
+            onConfirm = viewModel::onCreateCustomList,
         )
     }
 }

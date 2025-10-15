@@ -1650,6 +1650,10 @@ constructor(
     _uiState.update { it.copy(showCreateCustomListDialog = false) }
   }
 
+  fun onShowCreateCustomListDialog() {
+    _uiState.update { it.copy(showCreateCustomListDialog = true) }
+  }
+
   fun onCreateCustomList(title: String) {
     viewModelScope.launch {
       _uiState.update { it.copy(showCreateCustomListDialog = false) }

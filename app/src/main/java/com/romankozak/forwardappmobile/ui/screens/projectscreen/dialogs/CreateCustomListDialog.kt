@@ -1,47 +1,56 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
-import androidx.compose.ui.res.stringResource
-import com.romankozak.forwardappmobile.R
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun CreateCustomListDialog(
     onDismiss: () -> Unit,
     onConfirm: (title: String) -> Unit,
 ) {
-    var title by remember { mutableStateOf("") }
-    val isTitleValid = title.isNotBlank()
+    var listTitle by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(R.string.create_custom_list)) },
+        title = { Text("Створити новий список") },
         text = {
             Column {
                 OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(stringResource(R.string.list_title)) },
-                    isError = !isTitleValid && title.isNotEmpty(),
+                    value = listTitle,
+                    onValueChange = { listTitle = it },
+                    label = { Text("Назва списку") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Новий список буде додано до поточного проекту.")
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { onConfirm(title) },
-                enabled = isTitleValid,
+            Button(
+                onClick = {
+                    onConfirm(listTitle)
+                    onDismiss()
+                },
+                enabled = listTitle.isNotBlank()
             ) {
-                Text(stringResource(R.string.create))
+                Text("Створити")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+            Button(onClick = onDismiss) {
+                Text("Скасувати")
             }
-        },
+        }
     )
 }

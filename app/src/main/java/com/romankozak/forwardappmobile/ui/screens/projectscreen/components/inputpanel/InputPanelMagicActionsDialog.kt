@@ -48,6 +48,7 @@ fun InputPanelMagicActionsDialog(
     onShowAddWebLinkDialog: () -> Unit,
     onShowAddObsidianLinkDialog: () -> Unit,
     onAddListShortcutClick: () -> Unit,
+    onShowCreateCustomListDialog: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -101,6 +102,15 @@ fun InputPanelMagicActionsDialog(
                 color = MaterialTheme.colorScheme.secondary,
                 action = {
                     onShowAddObsidianLinkDialog()
+                    onDismiss()
+                },
+            ),
+            ActionItem(
+                title = "List",
+                icon = Icons.Outlined.List,
+                color = MaterialTheme.colorScheme.secondary,
+                action = {
+                    onShowCreateCustomListDialog()
                     onDismiss()
                 },
             ),
