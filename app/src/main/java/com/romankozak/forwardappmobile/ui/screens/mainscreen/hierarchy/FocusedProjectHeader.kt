@@ -31,24 +31,20 @@ fun FocusedProjectHeader(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 12.dp),
+                .padding(vertical = 4.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Spacer(modifier = Modifier.size(40.dp))
             Text(
                 text = project.name,
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f).clickable(onClick = onProjectClick),
+                modifier = Modifier.weight(1f).clickable(onClick = onProjectClick).padding(start = 8.dp),
             )
             
-            
-            
-            
-            IconButton(onClick = onMoreActionsClick) {
+            IconButton(onClick = onMoreActionsClick, modifier = Modifier.size(36.dp)) {
                 Icon(Icons.Default.MoreVert, contentDescription = "More actions")
             }
         }
