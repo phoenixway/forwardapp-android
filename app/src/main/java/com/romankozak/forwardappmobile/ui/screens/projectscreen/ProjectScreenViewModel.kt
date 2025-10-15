@@ -52,6 +52,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
 import java.util.UUID
 import kotlinx.coroutines.withContext
 
@@ -121,6 +122,7 @@ data class UiState(
       val remindersForDialog: List<Reminder> = emptyList(),
       val logEntryToEdit: ProjectExecutionLog? = null,
       val artifactToEdit: ProjectArtifact? = null,
+      val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
   )
   
   interface BacklogMarkdownHandlerResultListener {  fun copyToClipboard(text: String, label: String)
@@ -623,7 +625,12 @@ constructor(
     if (text.isBlank()) return
     viewModelScope.launch(Dispatchers.IO) {
       projectRepository.addProjectComment(projectIdFlow.value, text)
-      withContext(Dispatchers.Main) { _uiState.update { it.copy(inputValue = TextFieldValue("")) } }
+      withContext(Dispatchers.Main) {
+          _uiState.update { it.copy(
+              inputValue = TextFieldValue(""),
+              selectedDashboardTab = ProjectManagementTab.Log
+          ) }
+      }
     }
   }
 
@@ -635,7 +642,12 @@ constructor(
             type = ProjectLogEntryTypeValues.MILESTONE,
             description = text,
         )
-        withContext(Dispatchers.Main) { _uiState.update { it.copy(inputValue = TextFieldValue("")) } }
+        withContext(Dispatchers.Main) {
+            _uiState.update { it.copy(
+                inputValue = TextFieldValue(""),
+                selectedDashboardTab = ProjectManagementTab.Log
+            ) }
+        }
     }
   }
 
@@ -1034,6 +1046,10 @@ constructor(
       it.copy(currentView = newView, inputMode = getInputModeForView(newView))
     }
     viewModelScope.launch { projectRepository.updateProjectViewMode(projectIdFlow.value, newView) }
+  }
+
+  fun onDashboardTabSelected(tab: ProjectManagementTab) {
+    _uiState.update { it.copy(selectedDashboardTab = tab) }
   }
 
   override fun addQuickRecord(text: String) {
