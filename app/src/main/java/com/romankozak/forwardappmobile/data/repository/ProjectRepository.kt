@@ -103,6 +103,7 @@ constructor(
         ) { array ->
             @Suppress("UNCHECKED_CAST")
             mapToListItemContent(
+                projectId = projectId,
                 items = array[0] as List<ListItem>,
                 reminders = array[1] as List<Reminder>,
                 goals = array[2] as List<Goal>,
@@ -115,6 +116,7 @@ constructor(
     }
 
     private fun mapToListItemContent(
+        projectId: String,
         items: List<ListItem>,
         reminders: List<Reminder>,
         goals: List<Goal>,
@@ -130,7 +132,7 @@ constructor(
         val notesMap = notes.associateBy { it.id }
         val customListsMap = customLists.associateBy { it.id }
 
-        return items.mapNotNull { item ->
+        val backlogItems = items.mapNotNull { item ->
             when (item.itemType) {
                 ListItemTypeValues.GOAL ->
                     goalsMap[item.entityId]?.let { goal ->
@@ -157,6 +159,21 @@ constructor(
                 else -> null
             }
         }
+
+        val childProjects = projects.filter { it.parentId == projectId }
+        val childProjectItems = childProjects.map { childProject ->
+            val listItem = ListItem(
+                id = "child-project-${childProject.id}",
+                projectId = projectId,
+                itemType = ListItemTypeValues.SUBLIST,
+                entityId = childProject.id,
+                order = -1
+            )
+            val itemReminders = remindersMap[childProject.id] ?: emptyList()
+            ListItemContent.SublistItem(childProject, itemReminders, listItem, isFromHierarchy = true)
+        }
+
+        return backlogItems + childProjectItems
     }
 
     @Transaction
