@@ -116,10 +116,28 @@ private fun ReminderItem(
             .padding(vertical = 8.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
-        Text(
-            text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(reminder.reminderTime)),
-            modifier = Modifier.weight(1f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(reminder.reminderTime)),
+            )
+            val statusText = when (reminder.status) {
+                "COMPLETED" -> "Виконано"
+                "SNOOZED" -> "Відкладено"
+                "DISMISSED" -> "Пропущено"
+                else -> if (reminder.reminderTime < System.currentTimeMillis()) "Прострочено" else "Заплановано"
+            }
+            val statusColor = when (reminder.status) {
+                "COMPLETED" -> MaterialTheme.colorScheme.primary
+                "SNOOZED" -> MaterialTheme.colorScheme.secondary
+                "DISMISSED" -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> if (reminder.reminderTime < System.currentTimeMillis()) MaterialTheme.colorScheme.error else androidx.compose.ui.graphics.Color.Unspecified
+            }
+            Text(
+                text = statusText,
+                color = statusColor,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
         IconButton(onClick = { viewModel.onEditReminder(reminder) }) {
             Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit")
         }
