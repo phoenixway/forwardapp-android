@@ -7,11 +7,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Snooze
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -52,7 +58,6 @@ fun RemindersDialog(
             onDismiss = { viewModel.onAddTimePickerDismiss() },
             onSetReminder = { time ->
                 viewModel.addReminder(time)
-                viewModel.onAddTimePickerDismiss()
             },
             onRemoveReminder = null,
             currentReminders = emptyList()
@@ -86,7 +91,12 @@ fun RemindersDialog(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                Text("Reminders", style = MaterialTheme.typography.headlineSmall)
+                val title = when (item) {
+                    is ListItemContent.GoalItem -> item.goal.text
+                    is ListItemContent.SublistItem -> item.project.name
+                    else -> "Reminders"
+                }
+                Text(title, style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(16.dp))
                 LazyColumn {
                     items(reminders) { reminder ->
@@ -114,24 +124,39 @@ private fun ReminderItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        val isPast = reminder.reminderTime < System.currentTimeMillis()
+        val statusIcon = when (reminder.status) {
+            "COMPLETED" -> Icons.Default.CheckCircle
+            "SNOOZED" -> Icons.Default.Snooze
+            "DISMISSED" -> Icons.Default.Cancel
+            else -> if (isPast) Icons.Default.Warning else Icons.Default.Schedule
+        }
+        val statusColor = when (reminder.status) {
+            "COMPLETED" -> MaterialTheme.colorScheme.primary
+            "SNOOZED" -> MaterialTheme.colorScheme.secondary
+            "DISMISSED" -> MaterialTheme.colorScheme.onSurfaceVariant
+            else -> if (isPast) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+        }
+        val statusText = when (reminder.status) {
+            "COMPLETED" -> "Виконано"
+            "SNOOZED" -> "Відкладено"
+            "DISMISSED" -> "Пропущено"
+            else -> if (isPast) "Прострочено" else "Заплановано"
+        }
+
+        Icon(
+            imageVector = statusIcon,
+            contentDescription = statusText,
+            tint = statusColor,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(reminder.reminderTime)),
             )
-            val statusText = when (reminder.status) {
-                "COMPLETED" -> "Виконано"
-                "SNOOZED" -> "Відкладено"
-                "DISMISSED" -> "Пропущено"
-                else -> if (reminder.reminderTime < System.currentTimeMillis()) "Прострочено" else "Заплановано"
-            }
-            val statusColor = when (reminder.status) {
-                "COMPLETED" -> MaterialTheme.colorScheme.primary
-                "SNOOZED" -> MaterialTheme.colorScheme.secondary
-                "DISMISSED" -> MaterialTheme.colorScheme.onSurfaceVariant
-                else -> if (reminder.reminderTime < System.currentTimeMillis()) MaterialTheme.colorScheme.error else androidx.compose.ui.graphics.Color.Unspecified
-            }
             Text(
                 text = statusText,
                 color = statusColor,

@@ -47,11 +47,6 @@ fun AttachmentsView(
                 onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) }
             )
         }
-
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            AddAttachmentButton(onAddAttachment = { viewModel.onAddAttachment(it) })
-        }
     }
 }
 
