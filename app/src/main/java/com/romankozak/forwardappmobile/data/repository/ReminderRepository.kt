@@ -74,7 +74,7 @@ class ReminderRepository @Inject constructor(
     suspend fun dismissReminder(reminderId: String) {
         val reminder = reminderDao.getReminderById(reminderId)
         if (reminder != null) {
-            val dismissedReminder = reminder.copy(status = "DISMISSED")
+            val dismissedReminder = reminder.copy(status = "DISMISSED", reminderTime = System.currentTimeMillis())
             reminderDao.update(dismissedReminder)
             alarmScheduler.cancel(reminder)
         }

@@ -109,11 +109,13 @@ fun EnhancedReminderBadge(
 
     val isCompleted = reminder.status == "COMPLETED"
     val isSnoozed = reminder.status == "SNOOZED"
-    val isPastDue = reminder.reminderTime < currentTime && !isCompleted && !isSnoozed
+    val isDismissed = reminder.status == "DISMISSED"
+    val isPastDue = reminder.reminderTime < currentTime && !isCompleted && !isSnoozed && !isDismissed
 
     val reminderText = when {
         isCompleted -> "Виконано"
         isSnoozed -> "Відкладено"
+        isDismissed -> "Пропущено"
         isPastDue -> "Прострочено"
         else -> remember(reminder.reminderTime, currentTime) {
             ReminderTextUtil.formatReminderTime(reminder.reminderTime, currentTime)
@@ -124,6 +126,7 @@ fun EnhancedReminderBadge(
         targetValue = when {
             isCompleted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
             isSnoozed -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+            isDismissed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
             isPastDue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
             else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
         },
@@ -133,6 +136,7 @@ fun EnhancedReminderBadge(
         targetValue = when {
             isCompleted -> MaterialTheme.colorScheme.primary
             isSnoozed -> MaterialTheme.colorScheme.secondary
+            isDismissed -> MaterialTheme.colorScheme.onSurfaceVariant
             isPastDue -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.tertiary
         },
@@ -154,6 +158,7 @@ fun EnhancedReminderBadge(
                 imageVector = when {
                     isCompleted -> Icons.Default.CheckCircle
                     isSnoozed -> Icons.Default.Snooze
+                    isDismissed -> Icons.Default.AlarmOff
                     isPastDue -> Icons.Default.AlarmOff
                     else -> Icons.Default.AlarmOn
                 },

@@ -26,6 +26,7 @@ fun ArtifactContent(
     artifact: ProjectArtifact?,
     isManagementEnabled: Boolean,
     onEditArtifact: (ProjectArtifact) -> Unit,
+    onSaveArtifact: () -> Unit,
 ) {
     if (!isManagementEnabled) {
         PlaceholderContent(text = "Увімкніть підтримку реалізації на Дашборді, щоб бачити артефакти.")
@@ -67,7 +68,13 @@ fun ArtifactContent(
 
         Box(modifier = Modifier.fillMaxWidth()) {
             IconButton(
-                onClick = { artifact?.let { onEditArtifact(it) } },
+                onClick = { 
+                    if (artifact != null) {
+                        onEditArtifact(artifact)
+                    } else {
+                        onSaveArtifact()
+                    }
+                },
                 modifier = Modifier.align(Alignment.CenterEnd),
                 enabled = isManagementEnabled
             ) {
