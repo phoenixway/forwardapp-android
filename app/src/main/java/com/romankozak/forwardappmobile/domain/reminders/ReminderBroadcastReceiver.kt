@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.BroadcastReceiver.PendingResult
 import android.content.Context
 import android.content.Intent
+import android.widget.RemoteViews
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.RingtoneManager
@@ -205,14 +206,6 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val snoozeIntent = createActionIntent(context, Companion.ACTION_SNOOZE, reminderId)
         val dismissIntent = createActionIntent(context, Companion.ACTION_DISMISS, reminderId)
 
-        val expandedText = buildString {
-            append(goalText)
-            if (!goalDescription.isNullOrBlank()) {
-                append("\n\n")
-                append(goalDescription)
-            }
-        }
-
         // Створюємо Full Screen Intent для показу на екрані блокування
         val fullScreenIntent = Intent(context, ReminderLockScreenActivity::class.java).apply {
             putExtra(Companion.EXTRA_GOAL_ID, goalId)
@@ -236,16 +229,21 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val collapsedView = RemoteViews(context.packageName, com.romankozak.forwardappmobile.R.layout.notification_custom)
+        collapsedView.setTextViewText(com.romankozak.forwardappmobile.R.id.notification_title, "$goalEmoji $goalText")
+        collapsedView.setTextViewText(com.romankozak.forwardappmobile.R.id.notification_description, goalDescription)
+
+        val expandedView = RemoteViews(context.packageName, com.romankozak.forwardappmobile.R.layout.notification_custom)
+        expandedView.setTextViewText(com.romankozak.forwardappmobile.R.id.notification_title, "$goalEmoji $goalText")
+        expandedView.setTextViewText(com.romankozak.forwardappmobile.R.id.notification_description, goalDescription)
+
+
         val notification = NotificationCompat.Builder(context, Companion.CHANNEL_ID)
             .setFullScreenIntent(fullScreenPendingIntent, true) // true = показувати навіть якщо екран заблокований
             .setSmallIcon(R.drawable.ic_dialog_info)
-            .setContentTitle("$goalEmoji $goalText")
-            .setContentText(goalDescription)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(expandedText)
-                    .setSummaryText("Час досягати ваших цілей!")
-            )
+            .setCustomContentView(collapsedView)
+            .setCustomBigContentView(expandedView)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setPriority(NotificationCompat.PRIORITY_MAX) // Максимальний пріоритет
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(false)

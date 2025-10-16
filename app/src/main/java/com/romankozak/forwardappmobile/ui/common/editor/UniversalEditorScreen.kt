@@ -65,7 +65,7 @@ fun UniversalEditorScreen(
   navController: NavController,
   viewModel: UniversalEditorViewModel = hiltViewModel(),
 ) {
-  var isToolbarVisible by remember { mutableStateOf(true) }
+  var isToolbarVisible by remember { mutableStateOf(false) }
   val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
   val view = LocalView.current
   val isDarkTheme = isSystemInDarkTheme()
@@ -90,10 +90,10 @@ fun UniversalEditorScreen(
   val contentFocusRequester = remember { FocusRequester() }
   val snackbarHostState = remember { SnackbarHostState() }
 
-  LaunchedEffect(Unit) {
-      delay(300) // Delay to allow UI to settle before requesting focus
-      contentFocusRequester.requestFocus()
-  }
+//  LaunchedEffect(Unit) {
+//      delay(300) // Delay to allow UI to settle before requesting focus
+//      contentFocusRequester.requestFocus()
+//  }
 
   LaunchedEffect(Unit) {
     viewModel.events.collect {

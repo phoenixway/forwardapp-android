@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,12 +56,16 @@ class AlarmScheduler
             }
             
             // Якщо час у минулому але менше 2 секунд - плануємо на +5 секунд від зараз
-            val adjustedTime = if (reminderTime <= currentTime) {
+            var adjustedTime = if (reminderTime <= currentTime) {
                 val newTime = currentTime + 5000 // +5 секунд
                 Log.w(tag, "AlarmScheduler: Reminder time adjusted from ${reminderTime} to ${newTime} (now + 5s)")
                 newTime
             } else {
                 reminderTime
+            }
+
+            if (BuildConfig.DEBUG) {
+                adjustedTime = System.currentTimeMillis() + 20000 // 20 seconds
             }
             
             if (!checkPermissions()) return

@@ -67,7 +67,8 @@ fun ProjectDashboardView(
                 ArtifactContent(
                     artifact = projectArtifact,
                     isManagementEnabled = project.isProjectManagementEnabled == true,
-                    onEditArtifact = onEditArtifact
+                    onEditArtifact = onEditArtifact,
+                    onSaveArtifact = { onSaveArtifact("") }
                 )
             }
             ProjectManagementTab.Log ->
