@@ -40,7 +40,7 @@ fun StrategicManagementBottomNav(
                     .fillMaxWidth()
                     .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 ModernBottomNavButton(
                     text = "Dashboard",
