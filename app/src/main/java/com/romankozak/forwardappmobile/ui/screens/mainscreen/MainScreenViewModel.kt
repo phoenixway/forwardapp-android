@@ -998,8 +998,12 @@ constructor(
 
   private fun saveAllContexts(updatedContexts: List<UiContext>) {
     viewModelScope.launch {
-      val customContextsToSave = updatedContexts.filter { !it.isReserved }
-      settingsRepo.saveCustomContexts(customContextsToSave)
+      val customContexts = updatedContexts.filter { !it.isReserved }
+      val reservedContexts = updatedContexts.filter { it.isReserved }
+
+      settingsRepo.saveCustomContexts(customContexts)
+      settingsRepo.saveReservedContexts(reservedContexts)
+
       contextHandler.initialize()
     }
   }

@@ -437,6 +437,45 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[customContextEmojiKey(name)] = emoji }
     }
 
+    suspend fun saveReservedContexts(contexts: List<UiContext>) {
+        for (context in contexts) {
+            val upperCaseName = context.name.uppercase()
+            val emojiKey = when (upperCaseName) {
+                "BUY" -> ContextKeys.EMOJI_BUY
+                "PM" -> ContextKeys.EMOJI_PM
+                "PAPER" -> ContextKeys.EMOJI_PAPER
+                "MENTAL" -> ContextKeys.EMOJI_MENTAL
+                "PROVIDENCE" -> ContextKeys.EMOJI_PROVIDENCE
+                "MANUAL" -> ContextKeys.EMOJI_MANUAL
+                "RESEARCH" -> ContextKeys.EMOJI_RESEARCH
+                "DEVICE" -> ContextKeys.EMOJI_DEVICE
+                "MIDDLE" -> ContextKeys.EMOJI_MIDDLE
+                "LONG" -> ContextKeys.EMOJI_LONG
+                else -> null
+            }
+            if (emojiKey != null) {
+                saveContextEmoji(emojiKey, context.emoji)
+            }
+
+            val tagKey = when (upperCaseName) {
+                "BUY" -> ContextKeys.BUY
+                "PM" -> ContextKeys.PM
+                "PAPER" -> ContextKeys.PAPER
+                "MENTAL" -> ContextKeys.MENTAL
+                "PROVIDENCE" -> ContextKeys.PROVIDENCE
+                "MANUAL" -> ContextKeys.MANUAL
+                "RESEARCH" -> ContextKeys.RESEARCH
+                "DEVICE" -> ContextKeys.DEVICE
+                "MIDDLE" -> ContextKeys.MIDDLE
+                "LONG" -> ContextKeys.LONG
+                else -> null
+            }
+            if (tagKey != null) {
+                saveContextTag(tagKey, context.tag)
+            }
+        }
+    }
+
     suspend fun saveCustomContexts(contexts: List<UiContext>) {
         val currentNames = customContextNamesFlow.first()
         val newNames = contexts.map { it.name }.toSet()
