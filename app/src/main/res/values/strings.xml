@@ -139,7 +139,7 @@
     <string name="create_link">Створити посилання</string>
     <string name="move">Перемістити</string>
     <string name="copy">Копіювати</string>
-    <string name="hint_add_quick_record">Add quick record</string>
+    <string name="hint_add_quick_record">Add record to Inbox</string>
     <string name="menu_add_quick_record">Quick record</string>
     <string name="import_from_markdown">Import from markdown</string>
     <string name="import_markdown_description">Paste markdown list</string>
