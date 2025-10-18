@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.goaledit
+package com.romankozak.forwardappmobile.ui.reminders.components
 
 import android.app.AlarmManager
 import android.content.Context

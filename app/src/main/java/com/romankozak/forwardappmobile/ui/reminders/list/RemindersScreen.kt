@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.reminders
+package com.romankozak.forwardappmobile.ui.reminders.list
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,27 +35,30 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.Goal
-
-import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
-import com.romankozak.forwardappmobile.ui.screens.reminders.components.ReminderAction
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.ProjectItem
-import com.romankozak.forwardappmobile.ui.screens.reminders.components.ReminderActionsDialog
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.ui.screens.reminders.ReminderListItem
+import com.romankozak.forwardappmobile.ui.dialogs.reminders.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.ProjectItem
+import com.romankozak.forwardappmobile.ui.reminders.components.ReminderAction
+import com.romankozak.forwardappmobile.ui.reminders.components.ReminderActionsDialog
+import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderListItem
+import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
+import com.romankozak.forwardappmobile.ui.reminders.viewmodel.RemindersUiEvent
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemindersScreen(
     navController: NavController,
-    viewModel: RemindersViewModel = hiltViewModel()
+    viewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel = hiltViewModel()
 ) {
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
-    val itemToEdit by viewModel.itemToEdit.collectAsStateWithLifecycle()
+    val showPropertiesDialog by viewModel.showPropertiesDialog.collectAsStateWithLifecycle()
+    val editingReminder by viewModel.editingReminder.collectAsStateWithLifecycle()
     val currentTimeMillis by remember { mutableStateOf(System.currentTimeMillis()) }
     var showActionsDialogForItem by remember { mutableStateOf<ReminderListItem?>(null) }
 
     LaunchedEffect(Unit) {
+        viewModel.loadReminders()
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is RemindersUiEvent.Navigate -> {
@@ -89,14 +92,11 @@ fun RemindersScreen(
                 items(reminders) { reminderItem ->
                     when (reminderItem) {
                         is ReminderListItem.GoalReminder -> {
-                            val goal = reminderItem.goal
-                            val isSnoozed = reminderItem.reminder.status == "SNOOZED"
-                            val isCompleted = reminderItem.reminder.status == "COMPLETED"
                             GoalItem(
-                                goal = goal,
+                                goal = reminderItem.goal,
                                 obsidianVaultName = "",
                                 onCheckedChange = { _ -> },
-                                onItemClick = { viewModel.onEditReminder(reminderItem) },
+                                onItemClick = { viewModel.onEditReminder(reminderItem.reminder) },
                                 onLongClick = { },
                                 onTagClick = { },
                                 onRelatedLinkClick = { },
@@ -112,14 +112,11 @@ fun RemindersScreen(
                             )
                         }
                         is ReminderListItem.ProjectReminder -> {
-                            val project = reminderItem.project
-                            val isSnoozed = reminderItem.reminder.status == "SNOOZED"
-                            val isCompleted = reminderItem.reminder.status == "COMPLETED"
                             ProjectItem(
-                                project = project,
+                                project = reminderItem.project,
                                 childProjects = emptyList(),
                                 onCheckedChange = { _ -> },
-                                onItemClick = { viewModel.onEditReminder(reminderItem) },
+                                onItemClick = { viewModel.onEditReminder(reminderItem.reminder) },
                                 onLongClick = { },
                                 onTagClick = { },
                                 onChildProjectClick = { },
@@ -136,18 +133,29 @@ fun RemindersScreen(
                                 }
                             )
                         }
+                        is ReminderListItem.SimpleReminder -> { 
+                            // Handle SimpleReminder if needed
+                        }
                     }
                 }
             }
         }
     }
 
-    itemToEdit?.let { item ->
-        ReminderPickerDialog(
-            onDismiss = { viewModel.onDismissEditReminder() },
-            onSetReminder = { timestamp -> viewModel.setReminder(item.reminder.id, timestamp) },
-            onRemoveReminder = { _ -> viewModel.clearReminder(item.reminder.id) },
-            currentReminders = listOfNotNull(item.reminder)
+    if (showPropertiesDialog) {
+        ReminderPropertiesDialog(
+            onDismiss = { viewModel.onDismissPropertiesDialog() },
+            onSetReminder = { time ->
+                val reminderToUpdate = editingReminder
+                if (reminderToUpdate != null) {
+                    viewModel.updateReminder(reminderToUpdate.copy(reminderTime = time))
+                } else {
+                    // This screen is for viewing all reminders, adding a new one doesn't make sense here.
+                }
+                viewModel.onDismissPropertiesDialog()
+            },
+            onRemoveReminder = { /* TODO */ },
+            currentReminders = editingReminder?.let { listOf(it) } ?: emptyList()
         )
     }
 
@@ -165,7 +173,7 @@ fun RemindersScreen(
                 text = "Delete",
                 icon = Icons.Outlined.Delete,
                 onClick = {
-                    viewModel.deleteReminder(item)
+                    viewModel.deleteReminder(item.reminder)
                     showActionsDialogForItem = null
                 },
                 color = MaterialTheme.colorScheme.error

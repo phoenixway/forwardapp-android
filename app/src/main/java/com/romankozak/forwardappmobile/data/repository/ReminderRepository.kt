@@ -92,4 +92,12 @@ class ReminderRepository @Inject constructor(
     fun getRemindersForEntityFlow(entityId: String): Flow<List<Reminder>> {
         return reminderDao.getRemindersForEntity(entityId)
     }
+
+    suspend fun clearAllReminders() {
+        val allReminders = reminderDao.getAllReminders().first()
+        allReminders.forEach { reminder ->
+            alarmScheduler.cancel(reminder)
+        }
+        reminderDao.deleteAll()
+    }
 }

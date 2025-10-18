@@ -213,7 +213,7 @@ fun ProjectsScreen(
         }
 
         uiState.recordForReminderDialog?.let { record ->
-            com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog(
+            com.romankozak.forwardappmobile.ui.dialogs.reminders.ReminderPropertiesDialog(
                 onDismiss = viewModel::onReminderDialogDismiss,
                 onSetReminder = viewModel::onSetReminder,
                 onRemoveReminder = { time -> viewModel.onRemoveReminder(time) },
