@@ -147,7 +147,7 @@ fun SettingsScreen(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.primary,
                     ),
-                ) { Text("Cancel") }
+                ) { Text("Close") }
                 Spacer(Modifier.width(8.dp))
                 Button(
                     enabled = isDirty,
