@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActionsHandler
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.hierarchy.ProjectHierarchyManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
+import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.SearchAndNavigationManager
@@ -633,13 +634,7 @@ constructor(
       }
 
       is MainScreenEvent.SaveSettings -> {
-        saveSettings(
-          show = event.show,
-          daily = event.daily,
-          medium = event.medium,
-          long = event.long,
-          vaultName = event.vaultName,
-        )
+        saveSettings(event.settings)
       }
       is MainScreenEvent.SaveAllContexts -> {
         saveAllContexts(event.updatedContexts)
@@ -980,19 +975,13 @@ constructor(
     }
   }
 
-  private fun saveSettings(
-    show: Boolean,
-    daily: String,
-    medium: String,
-    long: String,
-    vaultName: String,
-  ) {
+  private fun saveSettings(settings: PlanningSettings) {
     viewModelScope.launch {
-      settingsRepo.saveShowPlanningModes(show)
-      settingsRepo.saveDailyTag(daily.trim())
-      settingsRepo.saveMediumTag(medium.trim())
-      settingsRepo.saveLongTag(long.trim())
-      settingsRepo.saveObsidianVaultName(vaultName.trim())
+      settingsRepo.saveShowPlanningModes(settings.showModes)
+      settingsRepo.saveDailyTag(settings.dailyTag.trim())
+      settingsRepo.saveMediumTag(settings.mediumTag.trim())
+      settingsRepo.saveLongTag(settings.longTag.trim())
+      settingsRepo.saveObsidianVaultName(settings.vaultName.trim())
     }
   }
 

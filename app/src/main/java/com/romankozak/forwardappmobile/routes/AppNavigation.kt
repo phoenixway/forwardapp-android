@@ -41,6 +41,7 @@ import com.romankozak.forwardappmobile.ui.screens.note.NoteEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
+import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
@@ -201,15 +202,9 @@ private fun NavGraphBuilder.mainGraph(
                 navController.navigate("manage_contexts_screen")
             },
             onBack = { navController.popBackStack() },
-            onSave = { showModes, dailyTag, mediumTag, longTag, newVaultName ->
+            onSave = { settings ->
                 goalListViewModel.onEvent(
-                    MainScreenEvent.SaveSettings(
-                        show = showModes,
-                        daily = dailyTag,
-                        medium = mediumTag,
-                        long = longTag,
-                        vaultName = newVaultName,
-                    ),
+                    MainScreenEvent.SaveSettings(settings)
                 )
             },
         )

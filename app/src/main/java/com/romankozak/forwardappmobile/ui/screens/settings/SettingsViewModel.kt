@@ -155,8 +155,8 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(themeSettings = it.themeSettings.copy(themeMode = themeMode)) }
     }
 
-    fun onServerIpConfigurationModeChanged(mode: String) {
-        _uiState.update { it.copy(serverIpConfigurationMode = mode) }
+    fun onServerIpConfigurationModeChanged(isAuto: Boolean) {
+        _uiState.update { it.copy(serverIpConfigurationMode = if (isAuto) "auto" else "manual") }
     }
 
     fun onManualServerIpChanged(address: String) {
