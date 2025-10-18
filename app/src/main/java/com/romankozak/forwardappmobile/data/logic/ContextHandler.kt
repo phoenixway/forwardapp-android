@@ -56,19 +56,9 @@ class ContextHandler
             val localMarkerToEmojiMap = mutableMapOf<String, String>()
             val contextsBeingBuilt = mutableListOf<UiContext>()
 
-            val reservedContextsInfo =
-                listOf(
-                    Triple("BUY", SettingsRepository.ContextKeys.BUY, SettingsRepository.ContextKeys.EMOJI_BUY),
-                    Triple("PM", SettingsRepository.ContextKeys.PM, SettingsRepository.ContextKeys.EMOJI_PM),
-                    Triple("PAPER", SettingsRepository.ContextKeys.PAPER, SettingsRepository.ContextKeys.EMOJI_PAPER),
-                    Triple("MENTAL", SettingsRepository.ContextKeys.MENTAL, SettingsRepository.ContextKeys.EMOJI_MENTAL),
-                    Triple("PROVIDENCE", SettingsRepository.ContextKeys.PROVIDENCE, SettingsRepository.ContextKeys.EMOJI_PROVIDENCE),
-                    Triple("MANUAL", SettingsRepository.ContextKeys.MANUAL, SettingsRepository.ContextKeys.EMOJI_MANUAL),
-                    Triple("RESEARCH", SettingsRepository.ContextKeys.RESEARCH, SettingsRepository.ContextKeys.EMOJI_RESEARCH),
-                    Triple("DEVICE", SettingsRepository.ContextKeys.DEVICE, SettingsRepository.ContextKeys.EMOJI_DEVICE),
-                    Triple("MIDDLE", SettingsRepository.ContextKeys.MIDDLE, SettingsRepository.ContextKeys.EMOJI_MIDDLE),
-                    Triple("LONG", SettingsRepository.ContextKeys.LONG, SettingsRepository.ContextKeys.EMOJI_LONG),
-                )
+            val reservedContextsInfo = SettingsRepository.ContextKeys.reservedContexts.map { (name, keys) ->
+                Triple(name, keys.first, keys.second)
+            }
 
             reservedContextsInfo.forEach { (name, tagKey, emojiKey) ->
                 val tag = settingsRepository.getContextTagFlow(tagKey).first()
