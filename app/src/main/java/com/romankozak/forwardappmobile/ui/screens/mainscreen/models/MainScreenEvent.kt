@@ -6,6 +6,8 @@ import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
 
+import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
+
 sealed interface MainScreenEvent {
     
     data class SearchQueryChanged(val query: TextFieldValue) : MainScreenEvent
@@ -104,13 +106,7 @@ sealed interface MainScreenEvent {
 
     object NavigateToStrategicManagement : MainScreenEvent
 
-    data class SaveSettings(
-        val show: Boolean,
-        val daily: String,
-        val medium: String,
-        val long: String,
-        val vaultName: String,
-    ) : MainScreenEvent
+    data class SaveSettings(val settings: PlanningSettings) : MainScreenEvent
 
     data class SaveAllContexts(val updatedContexts: List<UiContext>) : MainScreenEvent
 
