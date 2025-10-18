@@ -320,7 +320,7 @@ internal fun ExpandingBottomNav(
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Str. Mngmt", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
+                ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
             }
         }
     }
