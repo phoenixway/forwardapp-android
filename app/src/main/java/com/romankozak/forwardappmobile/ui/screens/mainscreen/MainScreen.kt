@@ -422,7 +422,7 @@ private fun MainScreenTopAppBar(
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, "Menu")
                 }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                     DropdownMenuItem(
                         text = { Text("Run Wi-Fi Server") },
                         onClick = {
