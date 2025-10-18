@@ -22,12 +22,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.RecentItemType
-import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
+
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.RemindersViewModel
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,9 +73,9 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     }
 
     if (uiState.showRemindersDialog) {
-        val remindersViewModel: RemindersViewModel = hiltViewModel()
+        val remindersViewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel = hiltViewModel()
         uiState.itemForRemindersDialog?.let {
-            RemindersDialog(
+            com.romankozak.forwardappmobile.ui.reminders.dialogs.RemindersDialog(
                 viewModel = remindersViewModel,
                 item = it,
                 onDismiss = { viewModel.onDismissRemindersDialog() }
@@ -130,7 +130,7 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
     }
 
     uiState.recordForReminderDialog?.let { record ->
-        ReminderPickerDialog(
+        com.romankozak.forwardappmobile.ui.dialogs.reminders.ReminderPropertiesDialog(
             onDismiss = viewModel::onReminderDialogDismiss,
             onSetReminder = viewModel::onSetReminder,
             onRemoveReminder = { time -> viewModel.onRemoveReminder(time) },

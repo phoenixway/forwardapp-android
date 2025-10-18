@@ -43,6 +43,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.screens.sync.SyncScreen
+import com.romankozak.forwardappmobile.ui.reminders.list.RemindersScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import java.net.URLDecoder
 
@@ -406,7 +407,7 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable("reminders_screen") {
-        com.romankozak.forwardappmobile.ui.screens.reminders.RemindersScreen(navController = navController)
+        RemindersScreen(navController = navController)
     }
 
     composable(

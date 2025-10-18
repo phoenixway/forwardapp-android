@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.ui.components.SuggestionUtils
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
 import com.romankozak.forwardappmobile.ui.utils.copyToClipboard
+import com.romankozak.forwardappmobile.ui.reminders.components.ReminderSection
 import com.romankozak.forwardappmobile.ui.utils.formatDate
 
 object Scales {

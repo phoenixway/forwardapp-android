@@ -1,5 +1,5 @@
 
-package com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs
+package com.romankozak.forwardappmobile.ui.reminders.dialogs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,44 +23,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.RemindersViewModel
-import java.text.SimpleDateFormat
+import com.romankozak.forwardappmobile.ui.dialogs.reminders.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
+import com.romankozak.forwardappmobile.ui.reminders.util.ReminderTextUtil
 import java.util.*
 
 @Composable
 fun RemindersDialog(
-    viewModel: RemindersViewModel,
+    viewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel,
     item: ListItemContent,
     onDismiss: () -> Unit,
 ) {
     val reminders by viewModel.reminders.collectAsState()
-    val showTimePickerDialog by viewModel.showTimePickerDialog.collectAsState()
+    val showPropertiesDialog by viewModel.showPropertiesDialog.collectAsState()
 
     val editingReminder by viewModel.editingReminder.collectAsState()
 
-    if (editingReminder != null) {
-        ReminderPickerDialog(
-            onDismiss = { viewModel.onEditReminderDismiss() },
+    if (showPropertiesDialog) {
+        ReminderPropertiesDialog(
+            onDismiss = { viewModel.onDismissPropertiesDialog() },
             onSetReminder = { time ->
-                editingReminder?.let {
-                    viewModel.updateReminder(it.copy(reminderTime = time))
+                val reminderToUpdate = editingReminder
+                if (reminderToUpdate != null) {
+                    viewModel.updateReminder(reminderToUpdate.copy(reminderTime = time))
+                } else {
+                    viewModel.addReminder(time)
                 }
-                viewModel.onEditReminderDismiss()
+                viewModel.onDismissPropertiesDialog()
             },
-            onRemoveReminder = null,
-            currentReminders = listOfNotNull(editingReminder)
-        )
-    }
-
-    if (showTimePickerDialog) {
-        ReminderPickerDialog(
-            onDismiss = { viewModel.onAddTimePickerDismiss() },
-            onSetReminder = { time ->
-                viewModel.addReminder(time)
-            },
-            onRemoveReminder = null,
-            currentReminders = emptyList()
+            onRemoveReminder = null, // Add logic if needed
+            currentReminders = editingReminder?.let { listOf(it) } ?: emptyList()
         )
     }
 
@@ -99,15 +91,15 @@ fun RemindersDialog(
                 Text(title, style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(16.dp))
                 LazyColumn {
-                    items(reminders) { reminder ->
+                    items(reminders) { reminderItem ->
                         ReminderItem(
-                            reminder = reminder,
+                            reminder = reminderItem.reminder,
                             viewModel = viewModel
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = { viewModel.onAddTimePickerShow() }) {
+                Button(onClick = { viewModel.onShowPropertiesDialog() }) {
                     Text("Add Reminder")
                 }
             }
@@ -118,7 +110,7 @@ fun RemindersDialog(
 @Composable
 private fun ReminderItem(
     reminder: Reminder,
-    viewModel: RemindersViewModel
+    viewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
 ) {
     Row(
         modifier = Modifier
@@ -155,7 +147,7 @@ private fun ReminderItem(
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(reminder.reminderTime)),
+                text = ReminderTextUtil.formatReminderTime(reminder.reminderTime, System.currentTimeMillis()),
             )
             Text(
                 text = statusText,

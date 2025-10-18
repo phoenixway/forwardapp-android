@@ -53,7 +53,7 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.ui.common.components.EnhancedReminderBadge
+import com.romankozak.forwardappmobile.ui.reminders.components.ReminderBadge
 import androidx.compose.runtime.mutableLongStateOf
 
 @Composable
@@ -235,7 +235,7 @@ fun SubprojectItemRow(
                             )
                         }
                         is FlowItem.ReminderItem -> {
-                            EnhancedReminderBadge(
+                            ReminderBadge(
                                 reminder = item.reminder
                             )
                         }

@@ -322,7 +322,7 @@ private fun MainScreenScaffold(
     )
 
     uiState.recordForReminderDialog?.let { record ->
-        com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.ReminderPickerDialog(
+        com.romankozak.forwardappmobile.ui.dialogs.reminders.ReminderPropertiesDialog(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
             onRemoveReminder = if (record.reminderTime != null) {{ _ -> viewModel.onClearReminder() }} else null,

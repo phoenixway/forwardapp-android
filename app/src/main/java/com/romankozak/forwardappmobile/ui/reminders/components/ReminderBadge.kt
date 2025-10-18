@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.common.components
+package com.romankozak.forwardappmobile.ui.reminders.components
 
 import android.text.format.DateUtils
 import androidx.compose.animation.animateColorAsState
@@ -36,74 +36,27 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-
-object ReminderTextUtil {
-    private const val ONE_MINUTE_MILLIS = 60 * 1000L
-    private const val ONE_HOUR_MILLIS = 60 * ONE_MINUTE_MILLIS
-
-    fun formatReminderTime(
-        reminderTime: Long,
-        now: Long,
-    ): String {
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = reminderTime
-
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val formattedTime = timeFormat.format(calendar.time)
-
-        if (reminderTime < now) {
-            val relativeTime =
-                DateUtils
-                    .getRelativeTimeSpanString(
-                        reminderTime,
-                        now,
-                        DateUtils.MINUTE_IN_MILLIS,
-                    ).toString()
-            return "Пропущено ($relativeTime)"
-        }
-
-        val diff = reminderTime - now
-        if (diff < ONE_MINUTE_MILLIS) {
-            return "Через хвилину"
-        }
-        if (diff < ONE_HOUR_MILLIS) {
-            val minutes = (diff / ONE_MINUTE_MILLIS).toInt()
-            return "Через $minutes хв"
-        }
-
-        if (DateUtils.isToday(reminderTime)) {
-            return "Сьогодні о $formattedTime"
-        }
-
-        if (isTomorrow(reminderTime)) {
-            return "Завтра о $formattedTime"
-        }
-
-        val dateFormat = SimpleDateFormat("d MMM о HH:mm", Locale.forLanguageTag("uk-UA"))
-        return dateFormat.format(calendar.time)
-    }
-
-    private fun isTomorrow(time: Long): Boolean {
-        val tomorrow = Calendar.getInstance()
-        tomorrow.add(Calendar.DAY_OF_YEAR, 1)
-
-        val target = Calendar.getInstance()
-        target.timeInMillis = time
-
-        return tomorrow.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
-            tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
-    }
-}
+import com.romankozak.forwardappmobile.ui.reminders.util.ReminderTextUtil
 
 @Composable
-fun EnhancedReminderBadge(
+fun ReminderBadge(
     reminder: Reminder,
 ) {
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
+
+    LaunchedEffect(reminder.reminderTime) {
+        val reminderTime = reminder.reminderTime
         while (true) {
-            currentTime = System.currentTimeMillis()
-            delay(1000L)
+            val now = System.currentTimeMillis()
+            currentTime = now
+
+            val diff = reminderTime - now
+            val delayMillis = when {
+                diff <= 0 -> 60_000L // Оновлювати раз на хвилину, якщо пропущено
+                diff < 60_000L -> 1_000L // Оновлювати кожну секунду, якщо менше хвилини
+                else -> (diff % 60_000L).takeIf { it > 0 } ?: 60_000L // Оновлювати на початку наступної хвилини
+            }
+            delay(delayMillis)
         }
     }
 

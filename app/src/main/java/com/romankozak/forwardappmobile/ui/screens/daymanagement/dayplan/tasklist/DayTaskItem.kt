@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.ui.common.components.EnhancedReminderBadge
+import com.romankozak.forwardappmobile.ui.reminders.components.ReminderBadge
 
 
 @Composable
@@ -159,7 +159,7 @@ private fun FlowRowScope.RenderBadges(
         }
     }
     reminder?.let { 
-        EnhancedReminderBadge(
+        ReminderBadge(
             reminder = it,
         )
     }
