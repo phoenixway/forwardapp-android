@@ -312,9 +312,9 @@ internal fun ExpandingBottomNav(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+                        .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
@@ -353,8 +353,8 @@ fun ModernBottomNavButton(
                 .clip(RoundedCornerShape(12.dp))
                 .background(backgroundColor)
                 .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-                .widthIn(min = 60.dp),
+                .padding(horizontal = 4.dp, vertical = 6.dp)
+                .widthIn(min = 56.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(

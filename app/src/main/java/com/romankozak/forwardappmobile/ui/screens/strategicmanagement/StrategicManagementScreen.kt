@@ -100,6 +100,22 @@ private fun DashboardContent(
   navController: NavController,
   onRevealProject: (String) -> Unit,
 ) {
+  val motivationalPhrases = listOf(
+      "The secret of getting ahead is getting started.",
+      "The best time to plant a tree was 20 years ago. The second best time is now.",
+      "It’s not whether you get knocked down, it’s whether you get up.",
+      "The harder you work for something, the greater you’ll feel when you achieve it.",
+      "Dream bigger. Do bigger."
+  )
+  val randomPhrase = remember { motivationalPhrases.random() }
+
+  val (missionProjects, otherProjects) = remember(projects) {
+      projects.partition { it.tags?.contains("mission") == true }
+  }
+  val sortedProjects = remember(missionProjects, otherProjects) {
+      missionProjects + otherProjects
+  }
+
   Column(
     modifier =
       Modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 16.dp)
@@ -112,10 +128,11 @@ private fun DashboardContent(
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-      DashboardCard(title = "Progress", value = "72%", modifier = Modifier.weight(1f))
-      DashboardCard(title = "Weekly Tasks", value = "5/8", modifier = Modifier.weight(1f))
-    }
+    Text(
+        text = randomPhrase,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(vertical = 16.dp)
+    )
 
     Spacer(modifier = Modifier.height(32.dp))
 
@@ -127,7 +144,7 @@ private fun DashboardContent(
     )
 
     ProjectsLazyColumn(
-      projects = projects,
+      projects = sortedProjects,
       navController = navController,
       onRevealProject = onRevealProject,
       modifier = Modifier.fillMaxWidth(),
@@ -203,6 +220,61 @@ fun ProjectList(
 }
 
 @Composable
+private fun ProjectListItem(
+    project: Project,
+    onItemClick: () -> Unit,
+    onRevealClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onItemClick),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier.size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = project.name.firstOrNull()?.uppercase() ?: "P",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Text(
+                    text = project.name,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
+            }
+
+            IconButton(onClick = onRevealClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                    contentDescription = "Reveal Project",
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ProjectsLazyColumn(
   projects: List<Project>,
   navController: NavController,
@@ -211,63 +283,14 @@ private fun ProjectsLazyColumn(
 ) {
   LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
     items(projects) { project ->
-      Card(
-        modifier =
-          Modifier.fillMaxWidth().clickable {
-            navController.navigate("goal_detail_screen/${project.id}")
-          },
-        shape = MaterialTheme.shapes.large,
-        colors =
-          CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-          ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-      ) {
-        Row(
-          modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-          Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Box(
-              modifier =
-                Modifier.size(40.dp)
-                  .clip(CircleShape)
-                  .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-              contentAlignment = Alignment.Center,
-            ) {
-              Text(
-                text = project.name.firstOrNull()?.uppercase() ?: "P",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary,
-              )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Text(
-              text = project.name,
-              style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-              color = MaterialTheme.colorScheme.onSurface,
-              maxLines = 1,
-            )
-          }
-
-          IconButton(
-            onClick = {
+      ProjectListItem(
+          project = project,
+          onItemClick = { navController.navigate("goal_detail_screen/${project.id}") },
+          onRevealClick = {
               onRevealProject(project.id)
               navController.popBackStack()
-            }
-          ) {
-            Icon(
-              imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-              contentDescription = "Reveal Project",
-              modifier = Modifier.size(22.dp),
-              tint = MaterialTheme.colorScheme.primary,
-            )
           }
-        }
-      }
+      )
     }
   }
 }
