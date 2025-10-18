@@ -385,7 +385,20 @@ private fun MainScreenTopAppBar(
 ) {
     var swipeState by remember { mutableStateOf(0f) }
     TopAppBar(
-        title = { NeonTitle("Projects") },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NeonTitle("Projects")
+                if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Badge(
+                        containerColor = Color.Red,
+                        contentColor = Color.White
+                    ) {
+                        Text("Debug")
+                    }
+                }
+            }
+        },
         actions = {
             if (!isSearchActive) {
                 AnimatedVisibility(visible = canGoBack) {
