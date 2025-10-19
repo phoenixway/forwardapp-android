@@ -77,7 +77,7 @@ class ItemActionHandler
                             "goal_settings_screen/${item.goal.id}",
                         )
                     is ListItemContent.SublistItem ->
-                        resultListener.requestNavigation("project_settings_screen?projectId=${item.project.id}")
+                        resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
                     is ListItemContent.LinkItem ->
                         resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
                     is ListItemContent.NoteItem ->
