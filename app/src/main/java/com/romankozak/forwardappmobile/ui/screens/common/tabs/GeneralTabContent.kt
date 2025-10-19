@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.common.tabs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,16 +14,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +41,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
 
-@Composable
+ @Composable
 fun GeneralTabContent(
     title: TextFieldValue,
     onTitleChange: (TextFieldValue) -> Unit,
@@ -53,25 +58,28 @@ fun GeneralTabContent(
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
     ) {
-        item { Spacer(Modifier.height(4.dp)) }
-
         item {
             OutlinedTextField(
                 value = title,
                 onValueChange = onTitleChange,
                 label = { Text(titleLabel) },
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                textStyle = MaterialTheme.typography.titleMedium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                )
             )
-            HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
         }
 
         item {
             LimitedMarkdownEditor(
                 value = description,
                 onValueChange = onDescriptionChange,
-                maxHeight = 150.dp,
+                maxHeight = 200.dp,
                 onExpandClick = onExpandDescriptionClick,
                 modifier = Modifier.fillMaxWidth(),
                 onCopy = { /* TODO */ },
@@ -90,7 +98,8 @@ fun GeneralTabContent(
     }
 }
 
-@Composable
+ @OptIn(ExperimentalLayoutApi::class)
+ @Composable
 fun TagsSection(
     tags: List<String>,
     onAddTag: (String) -> Unit,
@@ -98,12 +107,33 @@ fun TagsSection(
 ) {
     var newTag by remember { mutableStateOf("") }
 
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+    ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Теги", style = MaterialTheme.typography.titleMedium)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.LocalOffer,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Теги",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
             if (tags.isNotEmpty()) {
                 FlowRow(
@@ -117,9 +147,10 @@ fun TagsSection(
                 }
             } else {
                 Text(
-                    "Теги відсутні",
+                    text = "Теги відсутні",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
 
@@ -132,36 +163,58 @@ fun TagsSection(
                     value = newTag,
                     onValueChange = { newTag = it },
                     label = { Text("Новий тег") },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
                 )
-                IconButton(onClick = {
-                    if (newTag.isNotBlank()) {
-                        onAddTag(newTag)
-                        newTag = ""
-                    }
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Додати тег")
+                FilledTonalIconButton(
+                    onClick = {
+                        if (newTag.isNotBlank()) {
+                            onAddTag(newTag.trim())
+                            newTag = ""
+                        }
+                    },
+                    enabled = newTag.isNotBlank(),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Додати тег"
+                    )
                 }
             }
         }
     }
 }
 
-@Composable
+ @Composable
 fun TagItem(tag: String, onRemove: () -> Unit) {
     Surface(
-        shape = CircleShape,
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
         ) {
-            Text(text = tag, style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(onClick = onRemove, modifier = Modifier.size(16.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Видалити тег")
+            Text(
+                text = tag,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(32.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Видалити тег",
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
