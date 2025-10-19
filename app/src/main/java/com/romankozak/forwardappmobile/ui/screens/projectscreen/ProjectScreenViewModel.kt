@@ -440,6 +440,12 @@ constructor(
   init {
     Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
 
+    viewModelScope.launch {
+        projectIdFlow.filter { it.isNotEmpty() }.collect { projectId ->
+            projectRepository.ensureChildProjectListItemsExist(projectId)
+        }
+    }
+
     savedStateHandle.get<String>("initialViewMode")?.let { modeName ->
       try {
         val viewMode = ProjectViewMode.valueOf(modeName)
