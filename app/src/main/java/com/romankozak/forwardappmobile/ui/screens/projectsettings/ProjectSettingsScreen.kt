@@ -73,7 +73,7 @@ fun ProjectSettingsScreen(
     }
 
     val tabs = when (uiState.editMode) {
-        EditMode.PROJECT -> listOf("General", "Display")
+        EditMode.PROJECT -> listOf("General", "Display", "Evaluation", "Reminders")
         EditMode.GOAL -> listOf("General", "Evaluation", "Reminders")
     }
 
