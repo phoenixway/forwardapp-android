@@ -18,7 +18,15 @@
 - Створено новий екран `ProjectSettingsScreen` з архітектурою на основі вкладок.
 - Створено `ProjectSettingsViewModel` та об'єднаний `ProjectSettingsUiState`.
 - Розпочато міграцію UI та логіки для вкладки "Загальні" (General).
-- **IN PROGRESS:** Перенесення логіки та UI для вкладки "Оцінка".
-    - Створено `EvaluationTabContent.kt` та перенесено відповідні Composable функції.
-    - Оновлено `ProjectSettingsViewModel` логікою для розрахунку оцінок.
-    - **ISSUE:** Виникли циклічні помилки компіляції в `ProjectSettingsScreen.kt`, пов'язані з неправильним використанням `SuggestionChipsRow` та обробкою тегів. Потрібно перезавантаження та новий підхід до виправлення.
+- **DONE:** Виправлено помилки компіляції, пов'язані з `SuggestionChipsRow` у `ProjectSettingsScreen.kt` (виявилося, що помилки вже не було).
+- **DONE:** Перенесено логіку та UI для вкладки "Нагадування".
+    - Видалено зайву логіку збереження нагадувань з `onSave` у `ProjectSettingsViewModel`.
+    - Оновлено `onSetReminder` та `onClearReminder` для оновлення `_uiState`.
+- **IN PROGRESS:** Універсальний екран налаштувань проекту/цілі.
+    - **DONE:** Оновлено `MASTER_PLAN.md` новими завданнями.
+    - **DONE:** Додано `EditMode` enum та поле `editMode` до `ProjectSettingsUiState`.
+    - **DONE:** Перейменовано `goalText` на `title` та `goalDescription` на `description` у `ProjectSettingsUiState` та всіх відповідних місцях у `ProjectSettingsViewModel` та `ProjectSettingsScreen`.
+    - **DONE:** Оновлено `init` блок у `ProjectSettingsViewModel` для визначення режиму редагування та завантаження відповідних даних (проекту або цілі).
+    - **DONE:** Додано метод `loadExistingProject` у `ProjectSettingsViewModel`.
+    - **DONE:** Оновлено метод `onSave` у `ProjectSettingsViewModel` для збереження проекту або цілі залежно від `editMode`.
+    - **DONE:** Оновлено `ProjectSettingsScreen.kt` для динамічної зміни заголовка та вкладок залежно від `editMode`.
