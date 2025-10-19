@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs
+package com.romankozak.forwardappmobile.ui.screens.common.tabs
 
 import androidx.compose.runtime.Composable
 import com.romankozak.forwardappmobile.ui.reminders.components.ReminderSection

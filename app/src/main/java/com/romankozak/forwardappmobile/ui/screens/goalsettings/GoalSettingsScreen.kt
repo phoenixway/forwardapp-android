@@ -10,10 +10,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.EvaluationTabContent
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.EvaluationTabUiState
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.GeneralTabContent
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.RemindersTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
+import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 
 @Composable
 fun GoalSettingsScreen(
@@ -23,7 +29,11 @@ fun GoalSettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val tabs = listOf("General", "Evaluation", "Reminders")
+    val tabs = listOf(
+        SegmentedTab("General", Icons.Default.Settings),
+        SegmentedTab("Evaluation", Icons.Default.BarChart),
+        SegmentedTab("Reminders", Icons.Default.Notifications)
+    )
     val titleText = if (uiState.isNewGoal) "New Goal" else "Edit Goal"
 
     SettingsScreen(
@@ -35,7 +45,7 @@ fun GoalSettingsScreen(
         onSave = viewModel::onSave,
         isSaveEnabled = uiState.title.text.isNotBlank()
     ) {
-        when (tabs[it]) {
+        when (tabs[it].title) {
             "General" -> GeneralTabContent(
                 title = uiState.title,
                 onTitleChange = viewModel::onTextChange,

@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.RemindersTabActions
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.EvaluationTabActions
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

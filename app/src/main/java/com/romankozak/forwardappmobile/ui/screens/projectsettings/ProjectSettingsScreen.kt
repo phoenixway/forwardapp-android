@@ -11,11 +11,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.DisplayTabContent
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.EvaluationTabContent
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.EvaluationTabUiState
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.GeneralTabContent
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.RemindersTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.DisplayTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Style
+import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 
 @Composable
 fun ProjectSettingsScreen(
@@ -44,7 +51,12 @@ fun ProjectSettingsScreen(
         }
     }
 
-    val tabs = listOf("General", "Display", "Evaluation", "Reminders")
+    val tabs = listOf(
+        SegmentedTab("General", Icons.Default.Settings),
+        SegmentedTab("Display", Icons.Default.Style),
+        SegmentedTab("Evaluation", Icons.Default.BarChart),
+        SegmentedTab("Reminders", Icons.Default.Notifications)
+    )
     val titleText = if (uiState.isNewProject) "New Project" else "Edit Project"
 
     SettingsScreen(
@@ -56,7 +68,7 @@ fun ProjectSettingsScreen(
         onSave = viewModel::onSave,
         isSaveEnabled = uiState.title.text.isNotBlank()
     ) {
-        when (tabs[it]) {
+        when (tabs[it].title) {
             "General" -> GeneralTabContent(
                 title = uiState.title,
                 onTitleChange = viewModel::onTextChange,
