@@ -18,3 +18,7 @@
 - Створено новий екран `ProjectSettingsScreen` з архітектурою на основі вкладок.
 - Створено `ProjectSettingsViewModel` та об'єднаний `ProjectSettingsUiState`.
 - Розпочато міграцію UI та логіки для вкладки "Загальні" (General).
+- **IN PROGRESS:** Перенесення логіки та UI для вкладки "Оцінка".
+    - Створено `EvaluationTabContent.kt` та перенесено відповідні Composable функції.
+    - Оновлено `ProjectSettingsViewModel` логікою для розрахунку оцінок.
+    - **ISSUE:** Виникли циклічні помилки компіляції в `ProjectSettingsScreen.kt`, пов'язані з неправильним використанням `SuggestionChipsRow` та обробкою тегів. Потрібно перезавантаження та новий підхід до виправлення.

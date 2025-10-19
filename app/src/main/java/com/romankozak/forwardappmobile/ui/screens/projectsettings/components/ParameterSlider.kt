@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.goaledit
+package com.romankozak.forwardappmobile.ui.screens.projectsettings.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
