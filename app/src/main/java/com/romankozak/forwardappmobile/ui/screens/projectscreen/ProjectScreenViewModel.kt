@@ -124,6 +124,7 @@ data class UiState(
       val artifactToEdit: ProjectArtifact? = null,
       val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
       val showUniversalEditorForCustomList: Boolean = false,
+      val showDisplayPropertiesDialog: Boolean = false,
   ) {
       val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
   }
@@ -1761,5 +1762,13 @@ constructor(
 
     fun onDismissArtifactEditor() {
         _uiState.update { it.copy(artifactToEdit = null) }
+    }
+
+    fun onShowDisplayPropertiesDialog() {
+        _uiState.update { it.copy(showDisplayPropertiesDialog = true) }
+    }
+
+    fun onDismissDisplayPropertiesDialog() {
+        _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
     }
 }

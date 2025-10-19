@@ -104,6 +104,7 @@ data class OptionsMenuActions(
   val onExportProjectState: () -> Unit,
   val onDeleteList: () -> Unit,
   val onSetReminder: () -> Unit,
+  val onShowDisplayPropertiesClick: () -> Unit,
 )
 
 // ------------------- VIEW TOGGLE ---------------------
@@ -341,6 +342,14 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                 Icons.Outlined.Alarm,
                 {
                   menu.onSetReminder()
+                  actions.onMenuExpandedChange(false)
+                },
+              ),
+              MenuItem(
+                "Властивості",
+                Icons.Outlined.Tune,
+                {
+                  menu.onShowDisplayPropertiesClick()
                   actions.onMenuExpandedChange(false)
                 },
               ),
@@ -670,6 +679,7 @@ fun ModernInputPanel(
   onCloseSearch: () -> Unit,
   onAddMilestone: () -> Unit,
   onShowCreateCustomListDialog: () -> Unit,
+  onShowDisplayPropertiesClick: () -> Unit,
   suggestions: List<String>,
   onSuggestionClick: (String) -> Unit,
 ) {
@@ -709,6 +719,7 @@ fun ModernInputPanel(
           onExportProjectState = onExportProjectState,
           onDeleteList = onDeleteList,
           onSetReminder = onSetReminder,
+          onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
         ),
     )
 
