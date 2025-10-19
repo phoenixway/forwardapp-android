@@ -12,8 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.romankozak.forwardappmobile.ui.components.WaveSegmentedControl
-
+import com.romankozak.forwardappmobile.ui.components.AdaptiveSegmentedControl
 import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,12 +48,13 @@ fun SettingsScreen(
                 SegmentedTab(tabTitle, tabIcons[index])
             }
             
-            WaveSegmentedControl(
+            AdaptiveSegmentedControl(
                 tabs = tabsWithIcons,
                 selectedTabIndex = selectedTabIndex,
                 onTabSelected = onTabSelected,
-                content = content
+                modifier = Modifier.fillMaxWidth()
             )
+            content(selectedTabIndex)
         }
     }
 }
