@@ -402,7 +402,7 @@ private fun ProjectBottomBar(
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                     onMenuExpandedChange(false)
                     Log.d("EDIT_PROJECT_DEBUG", "List id: ${project?.id}")
-                    navController.navigate("edit_list_screen/${project?.id}")
+                    navController.navigate("project_settings_screen?projectId=${project?.id}")
                 },
                 onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
                 onDeleteList = { viewModel.deleteCurrentProject() },

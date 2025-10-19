@@ -102,7 +102,7 @@ fun MainScreen(
                 is ProjectUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
                 is ProjectUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
                 is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
-                is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("edit_list_screen/${event.projectId}")
+                is ProjectUiEvent.NavigateToEditProjectScreen -> navController.navigate("project_settings_screen?projectId=${event.projectId}")
                 is ProjectUiEvent.Navigate -> navController.navigate(event.route)
                 is ProjectUiEvent.NavigateToDayPlan ->
                     navController.navigateToDayManagement(event.date, event.startTab)
