@@ -71,12 +71,21 @@ fun ProjectSettingsScreen(
         }
     }
 
-    val tabs = listOf("General", "Evaluation", "Reminders", "Display")
+    val tabs = when (uiState.editMode) {
+        EditMode.PROJECT -> listOf("General", "Display")
+        EditMode.GOAL -> listOf("General", "Evaluation", "Reminders")
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.isNewGoal) "New Goal" else "Edit Goal") },
+                title = {
+                    val titleText = when (uiState.editMode) {
+                        EditMode.PROJECT -> if (uiState.isNewGoal) "New Project" else "Edit Project"
+                        EditMode.GOAL -> if (uiState.isNewGoal) "New Goal" else "Edit Goal"
+                    }
+                    Text(titleText)
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -85,7 +94,7 @@ fun ProjectSettingsScreen(
                 actions = {
                     Button(
                         onClick = { viewModel.onSave() },
-                        enabled = uiState.goalText.text.isNotBlank(),
+                        enabled = uiState.title.text.isNotBlank(),
                     ) {
                         Text("Save")
                     }
@@ -129,7 +138,7 @@ fun ProjectSettingsScreen(
 
     if (uiState.isDescriptionEditorOpen) {
         FullScreenMarkdownEditor(
-            initialValue = uiState.goalDescription,
+            initialValue = uiState.description,
             onDismiss = { viewModel.closeDescriptionEditor() },
             onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) },
         )
@@ -154,7 +163,7 @@ private fun GeneralTabContent(
 
         item {
             EnhancedTextInputSection(
-                goalText = uiState.goalText,
+                title = uiState.title,
                 onTextChange = viewModel::onTextChange,
                 allContexts = allContexts,
                 allTags = allTags,
@@ -165,7 +174,7 @@ private fun GeneralTabContent(
 
         item {
             LimitedMarkdownEditor(
-                value = uiState.goalDescription,
+                value = uiState.description,
                 onValueChange = viewModel::onDescriptionChange,
                 maxHeight = 150.dp,
                 onExpandClick = { viewModel.openDescriptionEditor() },
@@ -190,7 +199,7 @@ private fun GeneralTabContent(
 
 @Composable
 private fun EnhancedTextInputSection(
-    goalText: TextFieldValue,
+    title: TextFieldValue,
     onTextChange: (TextFieldValue) -> Unit,
     allContexts: List<String>,
     allTags: List<String>,
@@ -201,11 +210,11 @@ private fun EnhancedTextInputSection(
     var filteredTags by remember { mutableStateOf<List<String>>(emptyList()) }
     var currentSuggestionType by remember { mutableStateOf<SuggestionType?>(null) }
 
-    LaunchedEffect(goalText) {
+    LaunchedEffect(title) {
         val suggestionState =
             processSuggestions(
-                text = goalText.text,
-                cursorPosition = goalText.selection.start,
+                text = title.text,
+                cursorPosition = title.selection.start,
                 allContexts = allContexts,
                 allTags = allTags,
             )
@@ -218,7 +227,7 @@ private fun EnhancedTextInputSection(
 
     Column(modifier = modifier) {
         OutlinedTextField(
-            value = goalText,
+            value = title,
             onValueChange = onTextChange,
             label = { Text("Назва цілі") },
             modifier = Modifier.fillMaxWidth(),
@@ -230,11 +239,11 @@ private fun EnhancedTextInputSection(
             contexts = if (currentSuggestionType == SuggestionType.CONTEXT) filteredContexts else emptyList(),
             tags = if (currentSuggestionType == SuggestionType.TAG) filteredTags else emptyList(),
             onContextClick = { context ->
-                handleContextSelection(goalText, onTextChange, context)
+                handleContextSelection(title, onTextChange, context)
                 showSuggestions = false
             },
             onTagClick = { tag ->
-                handleTagSelection(goalText, onTextChange, tag)
+                handleTagSelection(title, onTextChange, tag)
                 showSuggestions = false
             }
         )
@@ -317,14 +326,14 @@ private fun createSupportingText(
 }
 
 private fun handleTagSelection(
-    goalText: TextFieldValue,
+    title: TextFieldValue,
     onTextChange: (TextFieldValue) -> Unit,
     tag: String
 ) {
     val replacementResult =
         SuggestionUtils.replaceCurrentWord(
-            goalText.text,
-            goalText.selection.start,
+            title.text,
+            title.selection.start,
             tag,
         )
 
@@ -339,14 +348,14 @@ private fun handleTagSelection(
 }
 
 private fun handleContextSelection(
-    goalText: TextFieldValue,
+    title: TextFieldValue,
     onTextChange: (TextFieldValue) -> Unit,
     context: String,
 ) {
     val replacementResult =
         SuggestionUtils.replaceCurrentWord(
-            goalText.text,
-            goalText.selection.start,
+            title.text,
+            title.selection.start,
             "@$context",
         )
 

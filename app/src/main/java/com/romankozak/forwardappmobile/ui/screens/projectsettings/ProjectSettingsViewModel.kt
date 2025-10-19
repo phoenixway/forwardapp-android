@@ -23,10 +23,14 @@ import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 
+enum class EditMode {
+    PROJECT,
+    GOAL
+}
+
 data class ProjectSettingsUiState(
-    // Copied from GoalEditUiState
-    val goalText: TextFieldValue = TextFieldValue(""),
-    val goalDescription: TextFieldValue = TextFieldValue(""),
+    val title: TextFieldValue = TextFieldValue(""),
+    val description: TextFieldValue = TextFieldValue(""),
     val relatedLinks: List<RelatedLink> = emptyList(),
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
@@ -49,7 +53,8 @@ data class ProjectSettingsUiState(
 
     // New properties for the new screen
     val selectedTabIndex: Int = 0,
-    val showCheckboxes: Boolean = true
+    val showCheckboxes: Boolean = true,
+    val editMode: EditMode = EditMode.GOAL
 )
 
 @HiltViewModel
@@ -79,15 +84,33 @@ class ProjectSettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            val projectId: String? = savedStateHandle["projectId"]
+            val goalId: String? = savedStateHandle["goalId"]
+
+            val mode = if (goalId != null) EditMode.GOAL else EditMode.PROJECT
+            _uiState.update { it.copy(editMode = mode) }
+
             contextHandler.initialize()
             loadAvailableTags()
-            if (goalId != null) {
-                loadExistingGoal(goalId)
-                reminderRepository.getRemindersForEntityFlow(goalId).collect { reminders ->
-                    _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
+
+            when (mode) {
+                EditMode.GOAL -> {
+                    if (goalId != null) {
+                        loadExistingGoal(goalId)
+                        reminderRepository.getRemindersForEntityFlow(goalId).collect { reminders ->
+                            _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
+                        }
+                    } else {
+                        createNewGoal()
+                    }
                 }
-            } else {
-                createNewGoal()
+                EditMode.PROJECT -> {
+                    if (projectId != null) {
+                        loadExistingProject(projectId)
+                    } else {
+                        // TODO: Handle project creation
+                    }
+                }
             }
         }
     }
@@ -112,14 +135,31 @@ class ProjectSettingsViewModel @Inject constructor(
         onAddProjectAssociation(projectId)
     }
 
+    private suspend fun loadExistingProject(projectId: String) {
+        val project = projectRepository.getProjectById(projectId)
+        if (project != null) {
+            _uiState.update {
+                it.copy(
+                    title = TextFieldValue(project.name),
+                    description = TextFieldValue(project.description ?: ""),
+                    isReady = true,
+                    isNewGoal = false, // This needs to be re-evaluated
+                    showCheckboxes = project.showCheckboxes
+                )
+            }
+        } else {
+            _events.send(ProjectSettingsEvent.NavigateBack("Проект не знайдено"))
+        }
+    }
+
     private suspend fun loadExistingGoal(goalId: String) {
         val goal = goalRepository.getGoalById(goalId)
         if (goal != null) {
             currentGoal = goal
             _uiState.update {
                 it.copy(
-                    goalText = TextFieldValue(goal.text),
-                    goalDescription = TextFieldValue(goal.description ?: ""),
+                    title = TextFieldValue(goal.text),
+                    description = TextFieldValue(goal.description ?: ""),
                     relatedLinks = goal.relatedLinks ?: emptyList(),
                     isReady = true,
                     isNewGoal = false,
@@ -158,26 +198,15 @@ class ProjectSettingsViewModel @Inject constructor(
 
     fun onSave() {
         viewModelScope.launch {
-            if (_uiState.value.goalText.text.isBlank()) {
-                _events.send(ProjectSettingsEvent.NavigateBack("Назва цілі не може бути пустою"))
+            if (_uiState.value.title.text.isBlank()) {
+                val message = if (_uiState.value.editMode == EditMode.GOAL) "Назва цілі не може бути пустою" else "Назва проекту не може бути пустою"
+                _events.send(ProjectSettingsEvent.NavigateBack(message))
                 return@launch
             }
 
-            val goalFromState = buildGoalFromState(_uiState.value)
-            val goalToSave = GoalScoringManager.calculateScores(goalFromState)
-
-            if (uiState.value.reminderTime != null) {
-                reminderRepository.createReminder(goalToSave.id, "GOAL", uiState.value.reminderTime!!)
-            } else {
-                reminderRepository.clearRemindersForEntity(goalToSave.id)
-            }
-
-            if (currentGoal != null) {
-                goalRepository.updateGoal(goalToSave)
-                contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
-            } else {
-                initialProjectId ?: return@launch
-                goalRepository.addGoalToProject(goalToSave.text, initialProjectId)
+            when (_uiState.value.editMode) {
+                EditMode.GOAL -> saveGoal()
+                EditMode.PROJECT -> saveProject()
             }
 
             loadAvailableTags()
@@ -186,9 +215,34 @@ class ProjectSettingsViewModel @Inject constructor(
         }
     }
 
+    private suspend fun saveGoal() {
+        val goalFromState = buildGoalFromState(_uiState.value)
+        val goalToSave = GoalScoringManager.calculateScores(goalFromState)
+
+        if (currentGoal != null) {
+            goalRepository.updateGoal(goalToSave)
+            contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
+        } else {
+            initialProjectId ?: return
+            goalRepository.addGoalToProject(goalToSave.text, initialProjectId)
+        }
+    }
+
+    private suspend fun saveProject() {
+        val projectId: String = savedStateHandle["projectId"] ?: return
+        val project = projectRepository.getProjectById(projectId) ?: return
+
+        val updatedProject = project.copy(
+            name = _uiState.value.title.text,
+            description = _uiState.value.description.text.ifEmpty { null },
+            showCheckboxes = _uiState.value.showCheckboxes
+        )
+        projectRepository.updateProject(updatedProject)
+    }
+
     private fun buildGoalFromState(state: ProjectSettingsUiState): Goal {
         val currentTime = System.currentTimeMillis()
-        val descriptionToSave = state.goalDescription.text.ifEmpty { null }
+        val descriptionToSave = state.description.text.ifEmpty { null }
 
         val baseGoal =
             currentGoal ?: Goal(
@@ -200,7 +254,7 @@ class ProjectSettingsViewModel @Inject constructor(
             )
 
         return baseGoal.copy(
-            text = state.goalText.text,
+            text = state.title.text,
             description = descriptionToSave,
             updatedAt = currentTime,
             relatedLinks = state.relatedLinks,
@@ -216,9 +270,9 @@ class ProjectSettingsViewModel @Inject constructor(
         )
     }
 
-    fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(goalText = newValue) }
+    fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(title = newValue) }
 
-    fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(goalDescription = newValue) }
+    fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(description = newValue) }
 
     fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
 
@@ -299,7 +353,7 @@ class ProjectSettingsViewModel @Inject constructor(
     fun onDescriptionChangeAndCloseEditor(newDescription: String) {
         _uiState.update {
             it.copy(
-                goalDescription = it.goalDescription.copy(text = newDescription),
+                description = it.description.copy(text = newDescription),
                 isDescriptionEditorOpen = false,
             )
         }
@@ -336,14 +390,17 @@ class ProjectSettingsViewModel @Inject constructor(
             java.util.Calendar.getInstance().apply {
                 set(year, month, day, hour, minute, 0)
             }
+        val newReminderTime = calendar.timeInMillis
+        _uiState.update { it.copy(reminderTime = newReminderTime) }
         goalId?.let {
             viewModelScope.launch {
-                reminderRepository.createReminder(it, "GOAL", calendar.timeInMillis)
+                reminderRepository.createReminder(it, "GOAL", newReminderTime)
             }
         }
     }
 
     fun onClearReminder() {
+        _uiState.update { it.copy(reminderTime = null) }
         goalId?.let {
             viewModelScope.launch {
                 reminderRepository.clearRemindersForEntity(it)
