@@ -25,7 +25,7 @@ import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.customlist.CustomListEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.customlist.UnifiedCustomListScreen
-import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
+
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
@@ -235,8 +235,17 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
-        route = "project_settings_screen/{goalId}",
-        arguments = listOf(navArgument("goalId") { type = NavType.StringType }),
+        route = "project_settings_screen?goalId={goalId}&projectId={projectId}",
+        arguments = listOf(
+            navArgument("goalId") {
+                type = NavType.StringType
+                nullable = true
+            },
+            navArgument("projectId") {
+                type = NavType.StringType
+                nullable = true
+            }
+        ),
     ) {
         ProjectSettingsScreen(
             navController = navController,
@@ -244,17 +253,7 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
-    composable(
-        route = "edit_list_screen/{listId}",
-        arguments =
-            listOf(
-                navArgument("listId") { type = NavType.StringType },
-            ),
-    ) {
-        EditProjectScreen(
-            navController = navController,
-        )
-    }
+
 
     composable("sync_screen") {
         SyncScreen(
