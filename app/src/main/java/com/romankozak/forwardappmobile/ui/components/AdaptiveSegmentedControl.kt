@@ -107,7 +107,7 @@ fun AdaptiveSegmentedControl(
                                 tab = tab,
                                 isSelected = selectedTabIndex == index,
                                 onSelected = { onTabSelected(index) },
-                                showText = false
+                                showText = selectedTabIndex == index
                             )
                         }
                     }
