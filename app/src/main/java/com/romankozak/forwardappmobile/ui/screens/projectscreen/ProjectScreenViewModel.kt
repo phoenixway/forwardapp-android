@@ -1717,7 +1717,7 @@ constructor(
     fun onSaveCustomList(content: String) {
         viewModelScope.launch {
             val title = content.lines().firstOrNull()?.trim() ?: "Новий список"
-            customListRepository.createCustomList(title, projectIdFlow.value)
+            customListRepository.createCustomList(title, projectIdFlow.value, content)
             onDismissCustomListEditor()
         }
     }
