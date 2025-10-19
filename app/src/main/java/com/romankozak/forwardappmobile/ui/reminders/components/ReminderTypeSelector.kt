@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.dialogs.reminders.components
+package com.romankozak.forwardappmobile.ui.reminders.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.dialogs.reminders.models.ReminderType
+import com.romankozak.forwardappmobile.ui.reminders.model.ReminderType
 
 @Composable
 fun ReminderTypeSelector(

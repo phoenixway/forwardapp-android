@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.dialogs.reminders.components
+package com.romankozak.forwardappmobile.ui.reminders.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,7 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.dialogs.reminders.formatDateTime
+import com.romankozak.forwardappmobile.ui.reminders.util.ReminderTextUtil.formatDateTime
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
