@@ -124,7 +124,9 @@ data class UiState(
       val artifactToEdit: ProjectArtifact? = null,
       val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
       val showUniversalEditorForCustomList: Boolean = false,
-  )
+  ) {
+      val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
+  }
   
   interface BacklogMarkdownHandlerResultListener {  fun copyToClipboard(text: String, label: String)
 
