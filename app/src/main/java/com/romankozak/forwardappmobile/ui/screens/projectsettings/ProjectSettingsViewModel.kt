@@ -32,6 +32,7 @@ data class ProjectSettingsUiState(
     val title: TextFieldValue = TextFieldValue(""),
     val description: TextFieldValue = TextFieldValue(""),
     val relatedLinks: List<RelatedLink> = emptyList(),
+    val tags: List<String> = emptyList(),
     val isReady: Boolean = false,
     val isNewGoal: Boolean = true,
     val isScoringEnabled: Boolean = true,
@@ -142,6 +143,7 @@ class ProjectSettingsViewModel @Inject constructor(
                 it.copy(
                     title = TextFieldValue(project.name),
                     description = TextFieldValue(project.description ?: ""),
+                    tags = project.tags ?: emptyList(),
                     isReady = true,
                     isNewGoal = false, // This needs to be re-evaluated
                     showCheckboxes = project.showCheckboxes
@@ -235,6 +237,7 @@ class ProjectSettingsViewModel @Inject constructor(
         val updatedProject = project.copy(
             name = _uiState.value.title.text,
             description = _uiState.value.description.text.ifEmpty { null },
+            tags = _uiState.value.tags,
             showCheckboxes = _uiState.value.showCheckboxes
         )
         projectRepository.updateProject(updatedProject)
@@ -377,6 +380,14 @@ class ProjectSettingsViewModel @Inject constructor(
 
     fun onShowCheckboxesChange(show: Boolean) {
         _uiState.update { it.copy(showCheckboxes = show) }
+    }
+
+    fun onAddTag(tag: String) {
+        _uiState.update { it.copy(tags = it.tags + tag) }
+    }
+
+    fun onRemoveTag(tag: String) {
+        _uiState.update { it.copy(tags = it.tags - tag) }
     }
 
     fun onSetReminder(
