@@ -71,7 +71,7 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp)
             )
             
-            Spacer(modifier = Modifier.height(11.dp))
+            Spacer(modifier = Modifier.height(5.dp))
             
             HorizontalDivider()
             AnimatedContent(
