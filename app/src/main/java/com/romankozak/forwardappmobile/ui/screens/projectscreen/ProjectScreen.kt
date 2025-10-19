@@ -55,6 +55,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.input
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ProjectDisplayPropertiesDialog
 import kotlinx.coroutines.delay
 
 
@@ -224,6 +225,12 @@ private fun ProjectScaffold(
 
     GoalDetailDialogs(viewModel = viewModel)
 
+    if (uiState.showDisplayPropertiesDialog) {
+        ProjectDisplayPropertiesDialog(
+            onDismiss = viewModel::onDismissDisplayPropertiesDialog
+        )
+    }
+
     uiState.logEntryToEdit?.let { logEntry ->
         EditLogEntryDialog(
             logEntry = logEntry,
@@ -320,7 +327,8 @@ private fun ProjectScaffold(
                 onMenuExpandedChange = { menuExpanded = it },
                 reminderParseResult = reminderParseResult,
                 suggestions = suggestions,
-                project = project
+                project = project,
+                onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog
             )
         }
     ) { paddingValues ->
@@ -353,7 +361,8 @@ private fun ProjectBottomBar(
     onMenuExpandedChange: (Boolean) -> Unit,
     reminderParseResult: ReminderParseResult?,
     suggestions: List<String>,
-    project: Project?
+    project: Project?,
+    onShowDisplayPropertiesClick: () -> Unit
 ) {
     Column {
         InProgressIndicator(
@@ -424,7 +433,8 @@ private fun ProjectBottomBar(
                 isViewModePanelVisible = uiState.isViewModePanelVisible,
                 onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                 suggestions = suggestions,
-                onSuggestionClick = viewModel::onSuggestionClick
+                onSuggestionClick = viewModel::onSuggestionClick,
+                onShowDisplayPropertiesClick = onShowDisplayPropertiesClick
             )
         }
     }
