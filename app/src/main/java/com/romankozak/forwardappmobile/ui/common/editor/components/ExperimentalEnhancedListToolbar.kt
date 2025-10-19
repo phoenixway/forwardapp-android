@@ -59,6 +59,7 @@ fun ExperimentalEnhancedListToolbar(
   onBold: () -> Unit = {},
   onItalic: () -> Unit = {},
   onInsertSeparator: () -> Unit = {},
+  onToggleKeyboard: () -> Unit = {},
 ) {
   var selectedTab by remember { mutableStateOf(CommandGroup.РЕДАГУВАННЯ) }
   val haptics = LocalHapticFeedback.current
@@ -142,42 +143,49 @@ fun ExperimentalEnhancedListToolbar(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Modern tab row with chips style
-            ScrollableTabRow(
-              selectedTabIndex = selectedTab.ordinal,
-              edgePadding = 0.dp,
-              containerColor = Color.Transparent,
-              indicator = { },
-              divider = { }
-            ) {
-                CommandGroup.values().forEach { group ->
-                    val isSelected = selectedTab == group
-                    Tab(
-                        modifier = Modifier.height(40.dp),
-                        selected = isSelected,
-                        onClick = {
-                          haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                          selectedTab = group
-                        },
-                    ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) 
-                          MaterialTheme.colorScheme.primaryContainer 
-                        else 
-                          MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                      ) {
-                        Text(
-                          text = group.name,
-                          fontSize = 12.sp,
-                          fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                          color = if (isSelected)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                          else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                          modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                      }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                EnhancedToolbarButton(
+                    icon = Icons.Default.Keyboard,
+                    description = "Toggle Keyboard",
+                    onClick = onToggleKeyboard
+                )
+                ScrollableTabRow(
+                  selectedTabIndex = selectedTab.ordinal,
+                  edgePadding = 0.dp,
+                  containerColor = Color.Transparent,
+                  indicator = { },
+                  divider = { }
+                ) {
+                    CommandGroup.values().forEach { group ->
+                        val isSelected = selectedTab == group
+                        Tab(
+                            modifier = Modifier.height(40.dp),
+                            selected = isSelected,
+                            onClick = {
+                              haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                              selectedTab = group
+                            },
+                        ) {
+                          Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) 
+                              MaterialTheme.colorScheme.primaryContainer 
+                            else 
+                              MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                          ) {
+                            Text(
+                              text = group.name,
+                              fontSize = 12.sp,
+                              fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                              color = if (isSelected)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                              else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                              modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                          }
+                        }
                     }
                 }
             }
