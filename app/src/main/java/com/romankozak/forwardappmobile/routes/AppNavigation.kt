@@ -28,7 +28,7 @@ import com.romankozak.forwardappmobile.ui.screens.customlist.UnifiedCustomListSc
 import com.romankozak.forwardappmobile.ui.screens.editlist.EditProjectScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
-import com.romankozak.forwardappmobile.ui.screens.goaledit.GoalEditScreen
+import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.listchooser.FilterableListChooserScreen
@@ -235,18 +235,10 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
-        route = "goal_edit_screen/{listId}?goalId={goalId}",
-        arguments =
-            listOf(
-                navArgument("listId") { type = NavType.StringType },
-                navArgument("goalId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-            ),
+        route = "project_settings_screen/{goalId}",
+        arguments = listOf(navArgument("goalId") { type = NavType.StringType }),
     ) {
-        GoalEditScreen(
+        ProjectSettingsScreen(
             navController = navController,
             viewModel = hiltViewModel(),
         )
