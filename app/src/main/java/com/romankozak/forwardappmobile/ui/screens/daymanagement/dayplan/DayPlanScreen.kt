@@ -55,7 +55,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
-import com.romankozak.forwardappmobile.ui.dialogs.reminders.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklist.EditTaskDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem

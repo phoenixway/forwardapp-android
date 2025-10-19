@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.dialogs.reminders.models
+package com.romankozak.forwardappmobile.ui.reminders.model
 
 enum class ReminderType {
     QUICK_DURATION,

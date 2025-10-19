@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.reminders.util
 import android.text.format.DateUtils
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 object ReminderTextUtil {
@@ -61,4 +62,7 @@ object ReminderTextUtil {
         return tomorrow.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
             tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
     }
+
+    fun formatDateTime(timeMillis: Long): String =
+    SimpleDateFormat("dd.MM.yyyy 'о' HH:mm", Locale.getDefault()).format(Date(timeMillis))
 }

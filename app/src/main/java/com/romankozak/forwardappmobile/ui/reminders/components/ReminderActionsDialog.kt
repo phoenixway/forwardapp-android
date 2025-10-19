@@ -1,17 +1,8 @@
 package com.romankozak.forwardappmobile.ui.reminders.components
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,45 +19,73 @@ data class ReminderAction(
     val color: Color = Color.Unspecified
 )
 
-@Composable
+ @Composable
 fun ReminderActionsDialog(
     onDismiss: () -> Unit,
     actions: List<ReminderAction>
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Actions") },
+        title = { 
+            Text(
+                "Дії",
+                style = MaterialTheme.typography.titleMedium
+            ) 
+        },
         text = {
             FlowRow(
-                mainAxisSpacing = 8.dp,
-                crossAxisSpacing = 8.dp
+                mainAxisSpacing = 6.dp,
+                crossAxisSpacing = 6.dp,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 actions.forEach { action ->
-                    SquareButton(action)
+                    ActionButton(action)
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text("Закрити")
             }
         }
     )
 }
 
-@Composable
-fun SquareButton(action: ReminderAction) {
-    val contentColor = if (action.color != Color.Unspecified) action.color else LocalContentColor.current
-    Column(
-        modifier = Modifier
-            .size(80.dp)
-            .clickable(onClick = action.onClick)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+ @Composable
+fun ActionButton(action: ReminderAction) {
+    val contentColor = if (action.color != Color.Unspecified) {
+        action.color
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    
+    Surface(
+        modifier = Modifier.size(72.dp),
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 1.dp,
+        onClick = action.onClick
     ) {
-        Icon(action.icon, contentDescription = action.text, tint = contentColor)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(action.text, textAlign = TextAlign.Center, color = contentColor)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = action.icon,
+                contentDescription = action.text,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = action.text,
+                textAlign = TextAlign.Center,
+                color = contentColor,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 2
+            )
+        }
     }
 }

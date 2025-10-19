@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.dialogs.reminders.components
+package com.romankozak.forwardappmobile.ui.reminders.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.dialogs.reminders.models.ReminderDuration
+import com.romankozak.forwardappmobile.ui.reminders.model.ReminderDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

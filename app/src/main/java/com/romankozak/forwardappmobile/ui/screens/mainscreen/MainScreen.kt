@@ -67,6 +67,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.Expandin
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import kotlinx.coroutines.flow.collectLatest
 
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -322,7 +323,7 @@ private fun MainScreenScaffold(
     )
 
     uiState.recordForReminderDialog?.let { record ->
-        com.romankozak.forwardappmobile.ui.dialogs.reminders.ReminderPropertiesDialog(
+        ReminderPropertiesDialog(
             onDismiss = { viewModel.onReminderDialogDismiss() },
             onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
             onRemoveReminder = if (record.reminderTime != null) { { viewModel.onClearReminder() } } else null,
