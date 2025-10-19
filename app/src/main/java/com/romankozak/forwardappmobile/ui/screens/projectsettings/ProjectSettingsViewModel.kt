@@ -108,6 +108,9 @@ class ProjectSettingsViewModel @Inject constructor(
                 EditMode.PROJECT -> {
                     if (projectId != null) {
                         loadExistingProject(projectId)
+                        reminderRepository.getRemindersForEntityFlow(projectId).collect { reminders ->
+                            _uiState.update { it.copy(reminderTime = reminders.firstOrNull()?.reminderTime) }
+                        }
                     } else {
                         // TODO: Handle project creation
                     }
@@ -146,7 +149,19 @@ class ProjectSettingsViewModel @Inject constructor(
                     tags = project.tags ?: emptyList(),
                     isReady = true,
                     isNewGoal = false, // This needs to be re-evaluated
-                    showCheckboxes = project.showCheckboxes
+                    showCheckboxes = project.showCheckboxes,
+                    valueImportance = project.valueImportance,
+                    valueImpact = project.valueImpact,
+                    effort = project.effort,
+                    cost = project.cost,
+                    risk = project.risk,
+                    weightEffort = project.weightEffort,
+                    weightCost = project.weightCost,
+                    weightRisk = project.weightRisk,
+                    rawScore = project.rawScore,
+                    displayScore = project.displayScore,
+                    scoringStatus = project.scoringStatus,
+                    isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS
                 )
             }
         } else {
@@ -238,7 +253,18 @@ class ProjectSettingsViewModel @Inject constructor(
             name = _uiState.value.title.text,
             description = _uiState.value.description.text.ifEmpty { null },
             tags = _uiState.value.tags,
-            showCheckboxes = _uiState.value.showCheckboxes
+            showCheckboxes = _uiState.value.showCheckboxes,
+            valueImportance = _uiState.value.valueImportance,
+            valueImpact = _uiState.value.valueImpact,
+            effort = _uiState.value.effort,
+            cost = _uiState.value.cost,
+            risk = _uiState.value.risk,
+            weightEffort = _uiState.value.weightEffort,
+            weightCost = _uiState.value.weightCost,
+            weightRisk = _uiState.value.weightRisk,
+            rawScore = _uiState.value.rawScore,
+            displayScore = _uiState.value.displayScore,
+            scoringStatus = _uiState.value.scoringStatus
         )
         projectRepository.updateProject(updatedProject)
     }
@@ -403,16 +429,21 @@ class ProjectSettingsViewModel @Inject constructor(
             }
         val newReminderTime = calendar.timeInMillis
         _uiState.update { it.copy(reminderTime = newReminderTime) }
-        goalId?.let {
+
+        val entityId = if (_uiState.value.editMode == EditMode.GOAL) goalId else initialProjectId
+        val entityType = if (_uiState.value.editMode == EditMode.GOAL) "GOAL" else "PROJECT"
+
+        entityId?.let {
             viewModelScope.launch {
-                reminderRepository.createReminder(it, "GOAL", newReminderTime)
+                reminderRepository.createReminder(it, entityType, newReminderTime)
             }
         }
     }
 
     fun onClearReminder() {
         _uiState.update { it.copy(reminderTime = null) }
-        goalId?.let {
+        val entityId = if (_uiState.value.editMode == EditMode.GOAL) goalId else initialProjectId
+        entityId?.let {
             viewModelScope.launch {
                 reminderRepository.clearRemindersForEntity(it)
             }
