@@ -39,3 +39,20 @@
 
 ## 2025-10-19
 - **DONE:** Розширення функціоналу вкладок.
+
+## 2025-10-19
+- **DONE:** Виправлення помилок компіляції після рефакторингу екранів налаштувань.
+    - Створено `RemindersTabActions` інтерфейс.
+    - Оновлено `RemindersTabContent` для використання `RemindersTabActions`.
+    - Виправлено імпорти `RemindersTabActions` у `ProjectSettingsViewModel` та `GoalSettingsViewModel`.
+    - Перевірено, що `GoalSettingsScreen` та `ProjectSettingsScreen` коректно передають `EvaluationTabUiState`, `EvaluationTabActions` та `RemindersTabActions`.
+    - Перевірено, що `GoalSettingsViewModel` та `ProjectSettingsViewModel` коректно реалізують `EvaluationTabActions` та `RemindersTabActions`.
+    - Проект успішно компілюється.
+
+## 2025-10-19
+- **DONE:** Рефакторинг екранів налаштувань для максимального перевикористання коду.
+    - Створено спільний компонент `GeneralTabContent`.
+    - Оновлено `GoalSettingsScreen` та `ProjectSettingsScreen` для використання `GeneralTabContent`.
+    - Створено загальний компонент `SettingsScreen`.
+    - Оновлено `GoalSettingsScreen` та `ProjectSettingsScreen` для використання `SettingsScreen`.
+    - Винесено `TopAppBar` в окремий компонент `SettingsTopAppBar`.

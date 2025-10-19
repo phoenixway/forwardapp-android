@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs
+package com.romankozak.forwardappmobile.ui.screens.common.tabs
 
 data class EvaluationTabUiState(
     val valueImportance: Float,
