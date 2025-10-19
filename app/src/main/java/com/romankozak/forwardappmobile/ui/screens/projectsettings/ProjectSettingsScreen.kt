@@ -51,24 +51,21 @@ fun ProjectSettingsScreen(
         }
     }
 
-    val tabs = listOf(
-        SegmentedTab("General", Icons.Default.Settings),
-        SegmentedTab("Display", Icons.Default.Style),
-        SegmentedTab("Evaluation", Icons.Default.BarChart),
-        SegmentedTab("Reminders", Icons.Default.Notifications)
-    )
+    val tabs = listOf("General", "Display", "Evaluation", "Reminders")
+    val tabIcons = listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.BarChart, Icons.Default.Notifications)
     val titleText = if (uiState.isNewProject) "New Project" else "Edit Project"
 
     SettingsScreen(
         title = titleText,
         navController = navController,
         tabs = tabs,
+        tabIcons = tabIcons,
         selectedTabIndex = uiState.selectedTabIndex,
         onTabSelected = viewModel::onTabSelected,
         onSave = viewModel::onSave,
         isSaveEnabled = uiState.title.text.isNotBlank()
     ) {
-        when (tabs[it].title) {
+        when (tabs[it]) {
             "General" -> GeneralTabContent(
                 title = uiState.title,
                 onTitleChange = viewModel::onTextChange,

@@ -29,23 +29,21 @@ fun GoalSettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val tabs = listOf(
-        SegmentedTab("General", Icons.Default.Settings),
-        SegmentedTab("Evaluation", Icons.Default.BarChart),
-        SegmentedTab("Reminders", Icons.Default.Notifications)
-    )
+    val tabs = listOf("General", "Evaluation", "Reminders")
+    val tabIcons = listOf(Icons.Default.Settings, Icons.Default.BarChart, Icons.Default.Notifications)
     val titleText = if (uiState.isNewGoal) "New Goal" else "Edit Goal"
 
     SettingsScreen(
         title = titleText,
         navController = navController,
         tabs = tabs,
+        tabIcons = tabIcons,
         selectedTabIndex = uiState.selectedTabIndex,
         onTabSelected = viewModel::onTabSelected,
         onSave = viewModel::onSave,
         isSaveEnabled = uiState.title.text.isNotBlank()
     ) {
-        when (tabs[it].title) {
+        when (tabs[it]) {
             "General" -> GeneralTabContent(
                 title = uiState.title,
                 onTitleChange = viewModel::onTextChange,
