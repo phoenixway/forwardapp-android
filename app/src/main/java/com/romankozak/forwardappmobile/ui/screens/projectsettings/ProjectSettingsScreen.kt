@@ -2,6 +2,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectsettings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -202,9 +203,19 @@ private fun GeneralTabContent(
                     onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
                 )
             }
+        } else if (uiState.editMode == EditMode.PROJECT) {
+            item {
+                TagsSection(
+                    tags = uiState.tags,
+                    onAddTag = viewModel::onAddTag,
+                    onRemoveTag = viewModel::onRemoveTag
+                )
+            }
         }
     }
 }
+
+
 
 // --- Copied from GoalEditScreen.kt ---
 
@@ -543,6 +554,83 @@ private fun AddLinksButtons(
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagsSection(
+    tags: List<String>,
+    onAddTag: (String) -> Unit,
+    onRemoveTag: (String) -> Unit,
+) {
+    var newTag by remember { mutableStateOf("") }
+
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Теги", style = MaterialTheme.typography.titleMedium)
+
+            if (tags.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    tags.forEach { tag ->
+                        TagItem(tag = tag, onRemove = { onRemoveTag(tag) })
+                    }
+                }
+            } else {
+                Text(
+                    "Теги відсутні",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = newTag,
+                    onValueChange = { newTag = it },
+                    label = { Text("Новий тег") },
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = {
+                    if (newTag.isNotBlank()) {
+                        onAddTag(newTag)
+                        newTag = ""
+                    }
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Додати тег")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagItem(tag: String, onRemove: () -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text(text = tag, style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = onRemove, modifier = Modifier.size(16.dp)) {
+                Icon(Icons.Default.Close, contentDescription = "Видалити тег")
             }
         }
     }
