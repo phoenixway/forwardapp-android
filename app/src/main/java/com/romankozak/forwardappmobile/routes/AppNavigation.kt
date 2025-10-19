@@ -253,6 +253,20 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
+    composable(
+        route = "goal_settings_screen/{goalId}",
+        arguments = listOf(
+            navArgument("goalId") {
+                type = NavType.StringType
+            }
+        ),
+    ) {
+        com.romankozak.forwardappmobile.ui.screens.goalsettings.GoalSettingsScreen(
+            navController = navController,
+            viewModel = hiltViewModel(),
+        )
+    }
+
 
 
     composable("sync_screen") {

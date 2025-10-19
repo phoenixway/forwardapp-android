@@ -1,9 +1,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-package com.romankozak.forwardappmobile.ui.screens.projectsettings
+package com.romankozak.forwardappmobile.ui.screens.goalsettings
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -11,41 +10,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.DisplayTabContent
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.EvaluationTabContent
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.EvaluationTabUiState
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.GeneralTabContent
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.tabs.RemindersTabContent
 
 @Composable
-fun ProjectSettingsScreen(
+fun GoalSettingsScreen(
     navController: NavController,
-    viewModel: ProjectSettingsViewModel = hiltViewModel(),
+    viewModel: GoalSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    LaunchedEffect(key1 = true) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is ProjectSettingsEvent.NavigateBack -> {
-                    event.message?.let {
-                        android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("refresh_needed", true)
-                    navController.popBackStack()
-                }
-                is ProjectSettingsEvent.Navigate -> {
-                    navController.navigate(event.route)
-                }
-            }
-        }
-    }
-
-    val tabs = listOf("General", "Display", "Evaluation", "Reminders")
-    val titleText = if (uiState.isNewProject) "New Project" else "Edit Project"
+    val tabs = listOf("General", "Evaluation", "Reminders")
+    val titleText = if (uiState.isNewGoal) "New Goal" else "Edit Goal"
 
     SettingsScreen(
         title = titleText,
@@ -60,17 +39,10 @@ fun ProjectSettingsScreen(
             "General" -> GeneralTabContent(
                 title = uiState.title,
                 onTitleChange = viewModel::onTextChange,
-                titleLabel = "Назва проекту",
+                titleLabel = "Назва цілі",
                 description = uiState.description,
                 onDescriptionChange = viewModel::onDescriptionChange,
-                onExpandDescriptionClick = viewModel::openDescriptionEditor,
-                tags = uiState.tags,
-                onAddTag = viewModel::onAddTag,
-                onRemoveTag = viewModel::onRemoveTag
-            )
-            "Display" -> DisplayTabContent(
-                showCheckboxes = uiState.showCheckboxes,
-                onShowCheckboxesChange = viewModel::onShowCheckboxesChange
+                onExpandDescriptionClick = viewModel::openDescriptionEditor
             )
             "Evaluation" -> EvaluationTabContent(
                 uiState = EvaluationTabUiState(
