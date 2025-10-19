@@ -36,16 +36,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsUiState
-import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.components.ParameterSlider
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.components.Scales
 import kotlinx.coroutines.launch
 
 @Composable
 fun EvaluationTabContent(
-    uiState: ProjectSettingsUiState,
-    onViewModelAction: ProjectSettingsViewModel,
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -112,8 +110,8 @@ fun EvaluationTabContent(
 
 @Composable
 fun EvaluationTabs(
-    uiState: ProjectSettingsUiState,
-    onViewModelAction: ProjectSettingsViewModel,
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
     isEnabled: Boolean,
 ) {
     val tabTitles = listOf("Gain", "Loss", "Weights")

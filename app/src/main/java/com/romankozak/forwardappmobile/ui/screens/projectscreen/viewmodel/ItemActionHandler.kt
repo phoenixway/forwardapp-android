@@ -74,11 +74,10 @@ class ItemActionHandler
                 when (item) {
                     is ListItemContent.GoalItem ->
                         resultListener.requestNavigation(
-                            "project_settings_screen?goalId=${item.goal.id}",
+                            "goal_settings_screen/${item.goal.id}",
                         )
                     is ListItemContent.SublistItem ->
-                        
-                        resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
+                        resultListener.requestNavigation("project_settings_screen?projectId=${item.project.id}")
                     is ListItemContent.LinkItem ->
                         resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
                     is ListItemContent.NoteItem ->
