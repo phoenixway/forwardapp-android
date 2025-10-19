@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
@@ -160,20 +161,7 @@ constructor(
             }
         }
 
-        val childProjects = projects.filter { it.parentId == projectId }
-        val childProjectItems = childProjects.map { childProject ->
-            val listItem = ListItem(
-                id = "child-project-${childProject.id}",
-                projectId = projectId,
-                itemType = ListItemTypeValues.SUBLIST,
-                entityId = childProject.id,
-                order = -1
-            )
-            val itemReminders = remindersMap[childProject.id] ?: emptyList()
-            ListItemContent.SublistItem(childProject, itemReminders, listItem, isFromHierarchy = true)
-        }
-
-        return backlogItems + childProjectItems
+        return backlogItems
     }
 
     @Transaction
@@ -241,6 +229,9 @@ constructor(
                 updatedAt = System.currentTimeMillis(),
             )
         projectDao.insert(newProject)
+        if (parentId != null) {
+            listItemRepository.addProjectLinkToProject(id, parentId)
+        }
     }
 
 
@@ -260,6 +251,13 @@ constructor(
         val oldParentId = projectFromDb.parentId
 
         if (oldParentId != newParentId) {
+            if (oldParentId != null) {
+                listItemRepository.deleteLinkByEntityIdAndProjectId(projectToMove.id, oldParentId)
+            }
+            if (newParentId != null) {
+                listItemRepository.addProjectLinkToProject(projectToMove.id, newParentId)
+            }
+
             val oldSiblings =
                 (
                     if (oldParentId != null) {
@@ -345,4 +343,16 @@ constructor(
     suspend fun updateProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.updateProjectArtifact(artifact)
 
     suspend fun createProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
+
+    suspend fun ensureChildProjectListItemsExist(projectId: String) {
+        val children = projectDao.getProjectsByParentId(projectId)
+        val backlogItems = listItemRepository.getItemsForProjectStream(projectId).first()
+        val backlogSubprojectIds = backlogItems.filter { it.itemType == ListItemTypeValues.SUBLIST }.map { it.entityId }.toSet()
+
+        children.forEach { child ->
+            if (child.id !in backlogSubprojectIds) {
+                listItemRepository.addProjectLinkToProject(child.id, projectId)
+            }
+        }
+    }
 }

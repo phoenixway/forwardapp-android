@@ -7,7 +7,7 @@ sealed class ListItemContent {
 
     data class GoalItem(val goal: Goal, val reminders: List<Reminder>, override val listItem: ListItem) : ListItemContent()
 
-    data class SublistItem(val project: Project, val reminders: List<Reminder>, override val listItem: ListItem, val isFromHierarchy: Boolean = false) : ListItemContent()
+    data class SublistItem(val project: Project, val reminders: List<Reminder>, override val listItem: ListItem) : ListItemContent()
 
     data class LinkItem(val link: LinkItemEntity, override val listItem: ListItem) : ListItemContent()
 

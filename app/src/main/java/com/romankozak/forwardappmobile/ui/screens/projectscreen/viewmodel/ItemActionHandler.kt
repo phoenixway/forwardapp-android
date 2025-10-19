@@ -89,10 +89,6 @@ class ItemActionHandler
         }
 
         fun deleteItem(item: ListItemContent) {
-            if (item is ListItemContent.SublistItem && item.isFromHierarchy) {
-                resultListener.showSnackbar("Цей підпроект не можна видалити з беклогу. Видаліть його з ієрархії проектів.", null)
-                return
-            }
             scope.launch {
                 recentlyDeletedItems = listOf(item)
                 projectRepository.deleteListItems(listOf(item.listItem.id))
