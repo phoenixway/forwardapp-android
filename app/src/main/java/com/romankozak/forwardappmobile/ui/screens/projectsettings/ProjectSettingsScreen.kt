@@ -112,25 +112,25 @@ fun ProjectSettingsScreen(
                     )
                 }
             }
-            when (uiState.selectedTabIndex) {
-                0 -> GeneralTabContent(
+            when (tabs[uiState.selectedTabIndex]) {
+                "General" -> GeneralTabContent(
                     uiState = uiState,
                     viewModel = viewModel,
                     allContexts = allContexts,
                     allTags = allTags
                 )
-                1 -> EvaluationTabContent(
+                "Display" -> DisplayTabContent(
+                    showCheckboxes = uiState.showCheckboxes,
+                    onShowCheckboxesChange = viewModel::onShowCheckboxesChange
+                )
+                "Evaluation" -> EvaluationTabContent(
                     uiState = uiState,
                     onViewModelAction = viewModel
                 )
-                2 -> RemindersTabContent(
+                "Reminders" -> RemindersTabContent(
                     reminderTime = uiState.reminderTime,
                     onSetReminder = viewModel::onSetReminder,
                     onClearReminder = viewModel::onClearReminder
-                )
-                3 -> DisplayTabContent(
-                    showCheckboxes = uiState.showCheckboxes,
-                    onShowCheckboxesChange = viewModel::onShowCheckboxesChange
                 )
             }
         }
@@ -162,13 +162,22 @@ private fun GeneralTabContent(
         item { Spacer(Modifier.height(4.dp)) }
 
         item {
-            EnhancedTextInputSection(
-                title = uiState.title,
-                onTextChange = viewModel::onTextChange,
-                allContexts = allContexts,
-                allTags = allTags,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (uiState.editMode == EditMode.GOAL) {
+                EnhancedTextInputSection(
+                    title = uiState.title,
+                    onTextChange = viewModel::onTextChange,
+                    allContexts = allContexts,
+                    allTags = allTags,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                OutlinedTextField(
+                    value = uiState.title,
+                    onValueChange = viewModel::onTextChange,
+                    label = { Text("Назва проекту") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
         }
 
@@ -183,14 +192,16 @@ private fun GeneralTabContent(
             )
         }
         
-        item {
-            RelatedLinksSection(
-                relatedLinks = uiState.relatedLinks,
-                onRemoveLink = viewModel::onRemoveLinkAssociation,
-                onAddLink = viewModel::onAddLinkRequest,
-                onAddWebLink = viewModel::onAddWebLinkRequest,
-                onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
-            )
+        if (uiState.editMode == EditMode.GOAL) {
+            item {
+                RelatedLinksSection(
+                    relatedLinks = uiState.relatedLinks,
+                    onRemoveLink = viewModel::onRemoveLinkAssociation,
+                    onAddLink = viewModel::onAddLinkRequest,
+                    onAddWebLink = viewModel::onAddWebLinkRequest,
+                    onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+                )
+            }
         }
     }
 }

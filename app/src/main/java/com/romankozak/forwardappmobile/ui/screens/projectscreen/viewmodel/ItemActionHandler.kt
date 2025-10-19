@@ -74,7 +74,7 @@ class ItemActionHandler
                 when (item) {
                     is ListItemContent.GoalItem ->
                         resultListener.requestNavigation(
-                            "goal_edit_screen/$currentProjectId?goalId=${item.goal.id}",
+                            "project_settings_screen/${item.goal.id}",
                         )
                     is ListItemContent.SublistItem ->
                         

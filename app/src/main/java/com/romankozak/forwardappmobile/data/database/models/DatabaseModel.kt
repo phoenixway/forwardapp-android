@@ -224,6 +224,7 @@ data class Project(
     @ColumnInfo(defaultValue = "0.0") val rawScore: Float = 0f,
     @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
     @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
 )
 
 @Entity(

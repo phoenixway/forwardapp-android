@@ -671,3 +671,9 @@ val MIGRATION_51_52 = object : Migration(51, 52) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_artifacts_projectId` ON `project_artifacts` (`projectId`)")
     }
 }
+
+val MIGRATION_52_53 = object : Migration(52, 53) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE projects ADD COLUMN show_checkboxes INTEGER NOT NULL DEFAULT 0")
+    }
+}

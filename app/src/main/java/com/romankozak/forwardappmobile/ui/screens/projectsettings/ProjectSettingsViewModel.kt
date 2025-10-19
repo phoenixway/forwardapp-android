@@ -63,7 +63,7 @@ class ProjectSettingsViewModel @Inject constructor(
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val contextHandler: ContextHandler,
     private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val goalId: String? = savedStateHandle["goalId"]
