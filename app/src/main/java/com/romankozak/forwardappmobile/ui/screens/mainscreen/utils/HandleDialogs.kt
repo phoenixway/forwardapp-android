@@ -42,6 +42,7 @@ fun HandleDialogs(
                 onEditRequest = { onEvent(MainScreenEvent.EditRequest(it)) },
                 onAddToDayPlanRequest = { onEvent(MainScreenEvent.AddToDayPlanRequest(it)) },
                 onSetReminderRequest = { onEvent(MainScreenEvent.SetReminderRequest(it)) },
+                onFocusRequest = { onEvent(MainScreenEvent.FocusProject(it)) },
             )
         }
         is DialogState.ConfirmDelete -> {

@@ -84,6 +84,7 @@ sealed interface MainScreenEvent {
     data class EditRequest(val project: Project) : MainScreenEvent
     data class AddToDayPlanRequest(val project: Project) : MainScreenEvent
     data class SetReminderRequest(val project: Project) : MainScreenEvent
+    data class FocusProject(val project: Project) : MainScreenEvent
 
     data object GoToSettings : MainScreenEvent
 
