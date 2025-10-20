@@ -594,6 +594,13 @@ constructor(
       is MainScreenEvent.SetReminderRequest -> {
         onSetReminderForProject(event.project)
       }
+      is MainScreenEvent.FocusProject -> {
+        viewModelScope.launch {
+          searchAndNavigationManager.navigateToProject(event.project.id, uiState.value.projectHierarchy)
+          pushSubState(MainSubState.ProjectFocused(event.project.id))
+          dialogStateManager.dismissDialog()
+        }
+      }
       is MainScreenEvent.GoToSettings -> onShowSettingsScreen()
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false

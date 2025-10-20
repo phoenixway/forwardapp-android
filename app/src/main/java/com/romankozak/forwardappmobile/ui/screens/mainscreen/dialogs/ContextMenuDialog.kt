@@ -26,6 +26,7 @@ fun ContextMenuDialog(
     onEditRequest: (Project) -> Unit,
     onAddToDayPlanRequest: (Project) -> Unit,
     onSetReminderRequest: (Project) -> Unit,
+    onFocusRequest: (Project) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -41,6 +42,12 @@ fun ContextMenuDialog(
                         Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
+                )
+                HorizontalDivider()
+                DialogActionItem(
+                    text = "Фокус",
+                    icon = Icons.Default.FilterCenterFocus,
+                    onClick = { onFocusRequest(project) },
                 )
                 HorizontalDivider()
                 DialogActionItem(
