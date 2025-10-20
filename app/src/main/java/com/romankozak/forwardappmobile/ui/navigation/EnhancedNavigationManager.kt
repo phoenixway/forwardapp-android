@@ -161,10 +161,6 @@ class EnhancedNavigationManager(
         historyManager.clearHistory()
 
         
-        val homeEntry = NavigationEntry.createMainScreen()
-        historyManager.addEntry(homeEntry)
-
-        
         sendNavigationCommand(
             NavigationCommand.Navigate("goal_lists_screen") {
                 popUpTo("goal_lists_screen") { inclusive = true }
