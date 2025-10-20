@@ -103,6 +103,7 @@ fun RemindersScreen(
                                 emojiToHide = null,
                                 contextMarkerToEmojiMap = emptyMap(),
                                 isSelected = false,
+                                showCheckbox = true,
                                 reminders = listOf(reminderItem.reminder),
                                 endAction = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {

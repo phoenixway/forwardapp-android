@@ -366,6 +366,7 @@ fun GoalItem(
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
     isSelected: Boolean,
+    showCheckbox: Boolean,
     reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
@@ -390,6 +391,13 @@ fun GoalItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            AnimatedVisibility(visible = showCheckbox) {
+                Checkbox(
+                    checked = goal.completed,
+                    onCheckedChange = onCheckedChange,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
             Icon(
                 imageVector = Icons.Default.Flag,
                 contentDescription = "Goal",

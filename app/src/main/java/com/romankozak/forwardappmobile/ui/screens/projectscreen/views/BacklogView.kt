@@ -79,6 +79,7 @@ fun BacklogView(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
     val subprojectChildren by viewModel.subprojectChildren.collectAsStateWithLifecycle()
+    val project by viewModel.project.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel.uiEventFlow) {
         viewModel.uiEventFlow.collect { event ->
@@ -178,6 +179,7 @@ fun BacklogView(
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
                                 isSelected = isSelected,
+                                showCheckbox = project?.showCheckboxes ?: true,
 
                                 endAction = {
                                     MoreActionsButton(
