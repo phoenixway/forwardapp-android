@@ -44,8 +44,9 @@ fun ContextMenuDialog(
                             .padding(16.dp),
                 )
                 HorizontalDivider()
+                // Планування та фокус
                 DialogActionItem(
-                    text = "Фокус",
+                    text = "Фокусуватись на проекті",
                     icon = Icons.Default.FilterCenterFocus,
                     onClick = { onFocusRequest(project) },
                 )
@@ -62,10 +63,17 @@ fun ContextMenuDialog(
                     onClick = { onSetReminderRequest(project) },
                 )
                 HorizontalDivider()
+                // Структурні зміни
                 DialogActionItem(
                     text = "Перемістити",
                     icon = Icons.Default.MoveUp,
                     onClick = { onMoveRequest(project) },
+                )
+                HorizontalDivider()
+                DialogActionItem(
+                    text = "Додати підпроект",
+                    icon = Icons.Default.Add,
+                    onClick = { onAddSubprojectRequest(project) },
                 )
                 HorizontalDivider()
                 DialogActionItem(
@@ -77,12 +85,7 @@ fun ContextMenuDialog(
                     },
                 )
                 HorizontalDivider()
-                DialogActionItem(
-                    text = "Додати підпроект",
-                    icon = Icons.Default.Add,
-                    onClick = { onAddSubprojectRequest(project) },
-                )
-                HorizontalDivider()
+                // Небезпечна дія
                 DialogActionItem(
                     text = "Видалити",
                     icon = Icons.Default.Delete,
