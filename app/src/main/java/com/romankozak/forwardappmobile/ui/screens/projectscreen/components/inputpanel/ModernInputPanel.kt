@@ -153,6 +153,7 @@ private fun ViewModeToggle(
                 else -> InputMode.AddGoal
               }
             onInputModeSelected(newMode)
+            onToggleNavPanelMode()
           },
           modifier =
             Modifier.size(36.dp)
