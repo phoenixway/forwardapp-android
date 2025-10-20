@@ -363,6 +363,7 @@ fun GoalItem(
     onTagClick: (String) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     modifier: Modifier = Modifier,
+    showCheckbox: Boolean = false,
     emojiToHide: String? = null,
     contextMarkerToEmojiMap: Map<String, String>,
     isSelected: Boolean,
@@ -390,6 +391,14 @@ fun GoalItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (showCheckbox) {
+                Checkbox(
+                    checked = goal.completed,
+                    onCheckedChange = onCheckedChange,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
             Icon(
                 imageVector = Icons.Default.Flag,
                 contentDescription = "Goal",
@@ -400,7 +409,7 @@ fun GoalItem(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier =
+                modifier = 
                     Modifier
                         .weight(1f)
                         .pointerInput(onItemClick, onLongClick) {
@@ -409,8 +418,7 @@ fun GoalItem(
                                 onTap = { onItemClick() },
                             )
                         },
-            ) {
-                MarkdownText(
+            ) {                MarkdownText(
                     text = parsedData.mainText,
                     isCompleted = goal.completed,
                     obsidianVaultName = obsidianVaultName,

@@ -165,6 +165,7 @@ fun BacklogView(
                                 goal = content.goal,
                                 reminders = content.reminders,
                                 obsidianVaultName = obsidianVaultName,
+                                showCheckbox = uiState.showCheckboxes,
                                 onCheckedChange = { isChecked ->
                                     viewModel.itemActionHandler.toggleGoalCompletedWithState(
                                         content.goal,
@@ -193,6 +194,7 @@ fun BacklogView(
                                 subprojectContent = content,
                                 reminders = content.reminders,
                                 isSelected = isSelected,
+                                showCheckbox = uiState.showCheckboxes,
                                 onClick = { viewModel.itemActionHandler.onItemClick(content) },
                                 onLongClick = { viewModel.toggleSelection(content.listItem.id) },
                                 onCheckedChange = { isCompleted ->

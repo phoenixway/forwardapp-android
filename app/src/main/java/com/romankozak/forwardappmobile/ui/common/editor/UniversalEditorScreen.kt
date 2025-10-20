@@ -101,7 +101,6 @@ fun UniversalEditorScreen(
     viewModel.events.collect {
       when (it) {
         is UniversalEditorEvent.ShowLocation -> {
-          // НОВИЙ ОБРОБНИК
           val projectId = it.projectId
           android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in ATTACHMENTS mode")
           navController.navigate("goal_detail_screen/$projectId?initialViewMode=${com.romankozak.forwardappmobile.data.database.models.ProjectViewMode.ATTACHMENTS.name}")
@@ -280,25 +279,19 @@ private fun Editor(
   val accentColor = MaterialTheme.colorScheme.primary
   val density = LocalDensity.current
 
-  // Відстежуємо висоту IME
   val imeHeight = WindowInsets.ime.getBottom(density)
   val isImeVisible = imeHeight > 0
 
-  // Затримка для стабілізації після змін IME та layout
   LaunchedEffect(content.selection, textLayoutResult, imeHeight, isToolbarVisible) {
-    // Чекаємо завершення анімації IME та layout
     delay(100)
 
     textLayoutResult?.let { layoutResult ->
       if (layoutResult.lineCount > 0) {
         val cursorRect = layoutResult.getCursorRect(content.selection.start)
-
-        // Додаємо додатковий відступ, щоб курсор не був впритул до панелі
         val extraPadding = with(density) { 24.dp.toPx() }
         val adjustedRect = cursorRect.copy(
           bottom = cursorRect.bottom + extraPadding
         )
-
         bringIntoViewRequester.bringIntoView(adjustedRect)
       }
     }
@@ -320,21 +313,31 @@ private fun Editor(
           .fillMaxHeight()
           .focusRequester(contentFocusRequester)
           .bringIntoViewRequester(bringIntoViewRequester)
-          .pointerInput(Unit) {
-              detectTapGestures { offset ->
-                  textLayoutResult?.let { layoutResult ->
+          .pointerInput(content.text) {
+              detectTapGestures {
+                  offset ->
+                  textLayoutResult?.let {
+                      layoutResult ->
                       val clickedOffset = layoutResult.getOffsetForPosition(offset)
                       val lineIndex = layoutResult.getLineForOffset(clickedOffset)
-                      val line = content.text.lines()[lineIndex]
+                      val lines = content.text.lines()
+                      
+                      if (lineIndex >= lines.size) return@detectTapGestures
+                      
+                      val line = lines[lineIndex]
                       val trimmedLine = line.trimStart()
                       
-                      val checkboxRegex = Regex("""^-\s\[( |x)\]\s?.*""", RegexOption.IGNORE_CASE)
+                      val checkboxRegex = Regex("""^-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
                       if (checkboxRegex.matches(trimmedLine)) {
                           val lineStartOffset = layoutResult.getLineStart(lineIndex)
-                          val offsetInLine = clickedOffset - lineStartOffset
                           val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
-
-                          if (offsetInLine >= originalIndentLength && offsetInLine < originalIndentLength + 6) {
+                          
+                          val offsetInLine = clickedOffset - lineStartOffset
+                          
+                          val checkboxStart = originalIndentLength
+                          val checkboxEnd = originalIndentLength + 8
+                          
+                          if (offsetInLine >= checkboxStart && offsetInLine < checkboxEnd) {
                               onToggleCheckbox(lineIndex)
                           }
                       }
@@ -342,7 +345,8 @@ private fun Editor(
               }
           }
           .drawBehind {
-            textLayoutResult?.let { layoutResult ->
+            textLayoutResult?.let {
+              layoutResult ->
               val currentLine =
                 content.selection.start.let { offset -> layoutResult.getLineForOffset(offset) }
               if (currentLine < layoutResult.lineCount) {
@@ -377,7 +381,6 @@ private fun ShowToolbarButton(onClick: () -> Unit) {
       modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      // Top accent line
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -389,7 +392,6 @@ private fun ShowToolbarButton(onClick: () -> Unit) {
           )
       )
       
-      // Drag handle
       Box(
         modifier = Modifier
           .height(40.dp)
@@ -413,337 +415,166 @@ private fun ShowToolbarButton(onClick: () -> Unit) {
 }
 
 private class ListVisualTransformation(
-
   private val collapsedLines: Set<Int>,
-
   private val textColor: Color,
-
   private val accentColor: Color,
-
 ) : VisualTransformation {
 
   override fun filter(text: AnnotatedString): TransformedText {
-
     val originalText = text.text
-
     val lines = originalText.lines()
-
     val visibleLines = mutableListOf<IndexedValue<String>>()
 
-
-
     var i = 0
-
     while (i < lines.size) {
-
       val line = lines[i]
-
       visibleLines.add(IndexedValue(i, line))
-
       if (collapsedLines.contains(i)) {
-
         val indent = line.takeWhile { it.isWhitespace() }.length
-
         i++
-
         while (
-
           i < lines.size &&
-
             (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
-
         ) {
-
           i++
-
         }
-
       } else {
-
         i++
-
       }
-
     }
 
-
-
     val transformedText = buildAnnotatedString {
-
       visibleLines.forEachIndexed { visibleIndex, indexedValue ->
-
         val (_, line) = indexedValue
 
-
-
-        val headingRegex = Regex("""^(\s*)(#+\s)(.*)"""
-
-)
-
-        val bulletRegex = Regex("""^(\s*)\*\s(.*)"""
-
-)
-
-        val numberedRegex = Regex("""^(\s*)(\d+)\.\s(.*)"""
-
-)
-
+        val headingRegex = Regex("""^(\s*)(#+\s)(.*)""")
+        val bulletRegex = Regex("""^(\s*)\*\s(.*)""")
+        val numberedRegex = Regex("""^(\s*)(\d+)\.\s(.*)""")
         val checkedRegex = Regex("""^(\s*)-\s\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
-
-        val uncheckedRegex = Regex("""^(\s*)-\s\[\s\]\s(.*)"""
-
-        )        
-
-        
-
-        val boldRegex = Regex("""(\*\*|__)(.*?)\1"""
-
-)
-
-        val italicRegex = Regex("""(\*|_)(.*?)\1"""
-
-)
-
-
+        val uncheckedRegex = Regex("""^(\s*)-\s\[\s\]\s(.*)""")
+        val boldRegex = Regex("""(\\*\\*|__)(.*?)\1""")
+        val italicRegex = Regex("""(\\*|_)(.*?)\1""")
 
         var matched = false
 
-
-
         if (!matched) {
-
           headingRegex.find(line)?.let {
-
             val (indent, hashes, content) = it.destructured
-
             append(indent)
-
             withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) {
-
               append(hashes)
-
             }
-
             withStyle(SpanStyle(color = textColor, fontWeight = FontWeight.Bold)) {
-
               append(content)
-
             }
-
             matched = true
-
           }
-
         }
 
-
-
         if (!matched) {
-
           bulletRegex.find(line)?.let {
-
             val (indent, content) = it.destructured
-
             append(indent)
-
             withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("• ") }
-
             withStyle(SpanStyle(color = textColor)) { append(content) }
-
             matched = true
-
           }
-
         }
-
+        
         if (!matched) {
-
           numberedRegex.find(line)?.let {
-
             val (indent, number, content) = it.destructured
-
             append(indent)
-
             withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) {
-
               append("$number. ")
-
             }
-
             withStyle(SpanStyle(color = textColor)) { append(content) }
-
             matched = true
-
           }
-
         }
-
+        
         if (!matched) {
-
           uncheckedRegex.find(line)?.let {
-
             val (indent, content) = it.destructured
-
             append(indent)
-
             withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☐ ") }
-
             withStyle(SpanStyle(color = textColor)) { append(content) }
-
             matched = true
-
           }
-
         }
-
+        
         if (!matched) {
-
           checkedRegex.find(line)?.let {
-
             val (indent, content) = it.destructured
-
             append(indent)
-
             withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☑ ") }
-
             withStyle(SpanStyle(color = textColor)) { append(content) }
-
             matched = true
-
           }
-
         }
-
-
 
         if (!matched) {
-
-          var lastIndex = 0
-
           val annotatedString = buildAnnotatedString {
-
             append(line)
-
             boldRegex.findAll(line).forEach { matchResult ->
-
               addStyle(
-
                 style = SpanStyle(fontWeight = FontWeight.Bold),
-
                 start = matchResult.range.first,
-
                 end = matchResult.range.last + 1
-
               )
-
             }
-
             italicRegex.findAll(line).forEach { matchResult ->
-
               addStyle(
-
                 style = SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
-
                 start = matchResult.range.first,
-
                 end = matchResult.range.last + 1
-
               )
-
             }
-
           }
-
           append(annotatedString)
-
         }
-
-
 
         if (visibleIndex < visibleLines.size - 1) {
-
           append("\n")
-
         }
-
       }
-
     }
 
-
-
     val offsetMapping =
-
       object : OffsetMapping {
-
         override fun originalToTransformed(offset: Int): Int {
-
           if (offset <= 0) return 0
-
           val prefix = originalText.substring(0, offset)
-
           val parts = prefix.lines()
-
           val originalLineIndex = parts.size - 1
-
           val charInLine = parts.lastOrNull()?.length ?: 0
-
-
 
           var transformedLineStart = 0
-
           var found = false
-
           for (v in visibleLines) {
-
             if (v.index == originalLineIndex) {
-
               found = true
-
               break
-
             }
-
             transformedLineStart += v.value.length + 1
-
           }
-
           if (!found) return transformedText.length
-
           return (transformedLineStart + charInLine).coerceIn(0, transformedText.length)
-
         }
-
-
 
         override fun transformedToOriginal(offset: Int): Int {
-
           if (offset <= 0) return 0
-
           val prefix = transformedText.substring(0, offset)
-
           val parts = prefix.lines()
-
           val transformedLineIndex = parts.size - 1
-
           val charInLine = parts.lastOrNull()?.length ?: 0
-
           if (transformedLineIndex >= visibleLines.size) return originalText.length
-
           val originalLineIndex = visibleLines[transformedLineIndex].index
-
           val originalLineStart = lines.take(originalLineIndex).sumOf { it.length + 1 }
-
           return (originalLineStart + charInLine).coerceIn(0, originalText.length)
-
         }
-
       }
 
-
-
     return TransformedText(transformedText, offsetMapping)
-
   }
-
 }
