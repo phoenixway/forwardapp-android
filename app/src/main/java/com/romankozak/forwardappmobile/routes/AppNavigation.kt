@@ -118,7 +118,11 @@ private fun NavGraphBuilder.mainGraph(
 
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
-
+        LaunchedEffect(Unit) {
+            if (appNavigationViewModel.navigationManager.getNavigationHistory().isEmpty()) {
+                appNavigationViewModel.navigationManager.navigateToMainScreen(isInitial = true)
+            }
+        }
 
         MainScreen(
             navController = navController,
