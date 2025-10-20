@@ -406,45 +406,9 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
 
 // ------------------- BACK/FORWARD ---------------------
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun BackForwardButton(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
-    val shouldShowButton = state.inputMode != InputMode.SearchInList && (state.canGoBack)
 
-    AnimatedVisibility(visible = shouldShowButton) {
-        Box(
-            modifier = Modifier.size(40.dp)
-                .clip(CircleShape)
-                .clickable(
-                    enabled = state.canGoBack,
-                    onClick = { if (state.canGoBack) actions.onBackClick() },
-                    indication = ripple(bounded = false),
-                    interactionSource = remember { MutableInteractionSource() },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            BackForwardIcon(state = state, showForwardIcon = false, contentColor = contentColor)
-        }
-    }
-}
 
-@Composable
-private fun BackForwardIcon(state: NavPanelState, showForwardIcon: Boolean, contentColor: Color) {
-    val iconColor by
-        animateColorAsState(
-            targetValue = if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.3f),
-            label = "backIconColor",
-        )
-    val iconScale by
-        animateFloatAsState(targetValue = if (state.canGoBack) 1.2f else 1.0f, label = "backIconScale")
 
-    Icon(
-        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-        contentDescription = "Назад",
-        modifier = Modifier.size(20.dp).scale(iconScale),
-        tint = iconColor,
-    )
-}
 
 // ------------------- NAV BAR ---------------------
 
@@ -467,8 +431,6 @@ private fun NavigationBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // --- LEFT SIDE ---
-            BackForwardButton(state, actions, contentColor)
-
             IconButton(onClick = actions.onHomeClick, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Filled.Home,
