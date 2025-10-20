@@ -17,7 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeader
@@ -80,7 +85,7 @@ fun TaskList(
                     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
                         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
                         Surface(shadowElevation = elevation, shape = MaterialTheme.shapes.medium) {
-                            TaskGoalItem(
+                            TaskItem(
                                 taskWithReminder = taskWithReminder,
                                 onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
                                 onLongPress = { onTaskLongPress(taskWithReminder) },
@@ -134,7 +139,7 @@ private fun EmptyTasksState(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TaskGoalItem(
+fun TaskItem(
     taskWithReminder: DayTaskWithReminder,
     onToggle: () -> Unit,
     onLongPress: () -> Unit,
@@ -142,38 +147,45 @@ fun TaskGoalItem(
     dragHandle: @Composable () -> Unit,
 ) {
     val task = taskWithReminder.dayTask
-    val reminder = taskWithReminder.reminder
-    val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem(), reminders = listOfNotNull(reminder))
+    val alpha = if (task.completed) 0.6f else 1f
 
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = task.completed,
-                    onCheckedChange = { onToggle() },
-                    modifier = Modifier.padding(end = 8.dp),
+            Checkbox(
+                checked = task.completed,
+                onCheckedChange = { onToggle() },
+                modifier = Modifier.padding(end = 12.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = if (task.completed) TextDecoration.LineThrough else null,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Box(modifier = Modifier.weight(1f)) {
-                    GoalItem(
-                        goal = goalContent.goal,
-                        obsidianVaultName = "",
-                        onCheckedChange = { _ -> },
-                        onItemClick = { },
-                        onLongClick = { onLongPress() },
-                        onTagClick = { },
-                        onRelatedLinkClick = { },
-                        modifier = Modifier,
-                        emojiToHide = null,
-                        contextMarkerToEmojiMap = emptyMap(),
-                        isSelected = false,
-                        reminders = listOfNotNull(reminder),
-                        endAction = { }
+                if (!task.description.isNullOrBlank()) {
+                    Text(
+                        text = task.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
+                TaskMetaInfo(task = task, modifier = Modifier.padding(top = 8.dp))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 dragHandle()
@@ -189,26 +201,46 @@ fun TaskGoalItem(
     }
 }
 
-private fun DayTask.toGoal(): Goal {
-  return Goal(
-    id = this.id,
-    text = this.title,
-    description = this.description,
-    completed = this.completed,
-    scoringStatus = ScoringStatusValues.NOT_ASSESSED,
-    displayScore = 0,
-    relatedLinks = null,
-    createdAt = this.createdAt,
-    updatedAt = this.createdAt,
-  )
+@Composable
+private fun TaskMetaInfo(task: DayTask, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        task.estimatedDurationMinutes?.takeIf { it > 0 }?.let {
+            MetaInfoChip(icon = Icons.Outlined.Timer, text = "$it хв")
+        }
+        if (task.priority != TaskPriority.NONE) {
+            MetaInfoChip(icon = Icons.Outlined.Flag, text = task.priority.name.lowercase().replaceFirstChar { it.titlecase() }, color = task.priority.toColor())
+        }
+    }
 }
 
-fun DayTask.toListItem(): ListItem {
-  return ListItem(
-    id = this.id,
-    projectId = this.projectId ?: this.dayPlanId,
-    itemType = this.taskType ?: ListItemTypeValues.GOAL,
-    entityId = this.entityId ?: this.goalId ?: this.id,
-    order = this.order,
-  )
+@Composable
+private fun MetaInfoChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = color
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+fun TaskPriority.toColor(): Color {
+    return when (this) {
+        TaskPriority.CRITICAL -> Color.Red
+        TaskPriority.HIGH -> Color(0xFFFFA500) // Orange
+        TaskPriority.MEDIUM -> Color.Blue
+        TaskPriority.LOW -> Color.Gray
+        TaskPriority.NONE -> Color.Transparent
+    }
 }
