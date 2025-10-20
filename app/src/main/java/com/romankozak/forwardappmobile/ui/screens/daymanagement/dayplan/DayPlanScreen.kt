@@ -176,30 +176,6 @@ fun CompactDayPlanHeader(
   }
 }
 
-private fun DayTask.toGoal(): Goal {
-  return Goal(
-    id = this.id,
-    text = this.title,
-    description = this.description,
-    completed = this.completed,
-    scoringStatus = ScoringStatusValues.NOT_ASSESSED,
-    displayScore = 0,
-    relatedLinks = null,
-    createdAt = this.createdAt,
-    updatedAt = this.createdAt,
-  )
-}
-
-fun DayTask.toListItem(): ListItem {
-  return ListItem(
-    id = this.id,
-    projectId = this.projectId ?: this.dayPlanId,
-    itemType = this.taskType ?: ListItemTypeValues.GOAL,
-    entityId = this.entityId ?: this.goalId ?: this.id,
-    order = this.order,
-  )
-}
-
 @Composable
 fun DayPlanScreen(
   dayPlanId: String,
@@ -501,78 +477,6 @@ private fun LoadingState(modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
-    }
-  }
-}
-
- @OptIn(ExperimentalFoundationApi::class)
- @Composable
-fun TaskGoalItem(
-  taskWithReminder: DayTaskWithReminder,
-  onToggle: () -> Unit,
-  onLongPress: () -> Unit,
-  isDragging: Boolean = false,
-  reorderableState: ReorderableLazyListState? = null,
-  modifier: Modifier = Modifier,
-) {
-  val task = taskWithReminder.dayTask
-  val reminder = taskWithReminder.reminder
-   val goalContent = ListItemContent.GoalItem(goal = task.toGoal(), listItem = task.toListItem(), reminders = listOfNotNull(reminder))
-  Card(modifier = modifier.fillMaxWidth()) {
-    Row(
-      modifier = Modifier.fillMaxWidth().padding(8.dp),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-      Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(
-          checked = task.completed,
-          onCheckedChange = { onToggle() },
-          modifier = Modifier.padding(end = 8.dp),
-        )
-        Box(modifier = Modifier.weight(1f)) {
-          GoalItem(
-            goal = goalContent.goal,
-            obsidianVaultName = "",
-            onCheckedChange = { _ -> },
-            onItemClick = { },
-            onLongClick = { onLongPress() },
-            onTagClick = { },
-            onRelatedLinkClick = { },
-            modifier = Modifier,
-            emojiToHide = null,
-            contextMarkerToEmojiMap = emptyMap(),
-            isSelected = false,
-            reminders = listOfNotNull(reminder),
-            endAction = { }
-          )
-        }
-        if (task.recurringTaskId != null) {
-          Icon(
-            imageVector = Icons.Filled.Repeat,
-            contentDescription = "Повторюване завдання",
-            modifier = Modifier.size(16.dp).padding(start = 4.dp),
-            tint = MaterialTheme.colorScheme.outline,
-          )
-        }
-      }
-      if (reorderableState != null) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Icon(
-            Icons.Outlined.DragHandle,
-            contentDescription = "Перетягнути для зміни порядку",
-            modifier = Modifier.padding(end = 8.dp).size(24.dp),
-            tint = MaterialTheme.colorScheme.outline,
-          )
-          IconButton(onClick = onLongPress, modifier = Modifier.size(48.dp)) {
-            Icon(
-              Icons.Default.MoreVert,
-              contentDescription = "Більше опцій",
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
-        }
-      }
     }
   }
 }
