@@ -31,7 +31,9 @@ fun GoalSettingsScreen(
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
+        android.util.Log.d("GoalSettingsDebug", "LaunchedEffect started")
         viewModel.events.collect {
+            android.util.Log.d("GoalSettingsDebug", "Event received: $it")
             when (it) {
                 is com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent.NavigateBack -> navController.popBackStack()
                 is com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent.Navigate -> navController.navigate(it.route)

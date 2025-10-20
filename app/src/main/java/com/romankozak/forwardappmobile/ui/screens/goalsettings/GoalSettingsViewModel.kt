@@ -19,7 +19,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -41,8 +42,8 @@ class GoalSettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(GoalSettingsUiState())
     val uiState: StateFlow<GoalSettingsUiState> = _uiState.asStateFlow()
 
-    private val _events = Channel<ProjectSettingsEvent>()
-    val events = _events.receiveAsFlow()
+    private val _events = MutableSharedFlow<ProjectSettingsEvent>(replay = 1)
+    val events = _events.asSharedFlow()
 
     private var currentGoal: Goal? = null
 
@@ -117,7 +118,7 @@ class GoalSettingsViewModel @Inject constructor(
                 )
             }
         } else {
-            // TODO: _events.send(ProjectSettingsEvent.NavigateBack("Ціль не знайдено"))
+            _events.tryEmit(ProjectSettingsEvent.NavigateBack("Ціль не знайдено"))
         }
     }
 
@@ -135,16 +136,20 @@ class GoalSettingsViewModel @Inject constructor(
 
     fun onSave() {
         viewModelScope.launch {
+            android.util.Log.d("GoalSettingsDebug", "onSave called")
             if (_uiState.value.title.text.isBlank()) {
-                // TODO: _events.send(ProjectSettingsEvent.NavigateBack("Назва цілі не може бути пустою"))
+                _events.tryEmit(ProjectSettingsEvent.NavigateBack("Назва цілі не може бути пустою"))
                 return@launch
             }
 
+            android.util.Log.d("GoalSettingsDebug", "Calling saveGoal()")
             saveGoal()
+            android.util.Log.d("GoalSettingsDebug", "Finished saveGoal()")
 
             loadAvailableTags()
 
-            // TODO: _events.send(ProjectSettingsEvent.NavigateBack("Збережено"))
+            android.util.Log.d("GoalSettingsDebug", "Sending NavigateBack event")
+            _events.tryEmit(ProjectSettingsEvent.NavigateBack("Збережено"))
         }
     }
 
@@ -237,7 +242,7 @@ class GoalSettingsViewModel @Inject constructor(
                     .filter { it.type == LinkType.PROJECT }
                     .joinToString(",") { it.target }
             val title = URLEncoder.encode("Додати посилання на проект", "UTF-8")
-            _events.send(ProjectSettingsEvent.Navigate("list_chooser_screen/$title?disabledIds=$disabledIds"))
+            _events.tryEmit(ProjectSettingsEvent.Navigate("list_chooser_screen/$title?disabledIds=$disabledIds"))
         }
     }
 
@@ -282,13 +287,13 @@ class GoalSettingsViewModel @Inject constructor(
 
     fun onAddWebLinkRequest() {
         viewModelScope.launch {
-            _events.send(ProjectSettingsEvent.NavigateBack("Додавання веб-посилань буде реалізовано пізніше"))
+            _events.tryEmit(ProjectSettingsEvent.NavigateBack("Додавання веб-посилань буде реалізовано пізніше"))
         }
     }
 
     fun onAddObsidianLinkRequest() {
         viewModelScope.launch {
-            _events.send(ProjectSettingsEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
+            _events.tryEmit(ProjectSettingsEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
         }
     }
 
