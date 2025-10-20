@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.goalsettings
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,6 +29,15 @@ fun GoalSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect {
+            when (it) {
+                is com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent.NavigateBack -> navController.popBackStack()
+                is com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent.Navigate -> navController.navigate(it.route)
+            }
+        }
+    }
 
     val tabs = listOf("General", "Evaluation", "Reminders")
     val tabIcons = listOf(Icons.Default.Settings, Icons.Default.BarChart, Icons.Default.Notifications)
