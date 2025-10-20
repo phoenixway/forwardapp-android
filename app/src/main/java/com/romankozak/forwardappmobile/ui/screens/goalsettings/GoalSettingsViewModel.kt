@@ -144,7 +144,7 @@ class GoalSettingsViewModel @Inject constructor(
 
             loadAvailableTags()
 
-            // TODO: _events.send(ProjectSettingsEvent.NavigateBack("Збережено"))
+            _events.send(ProjectSettingsEvent.NavigateBack("Збережено"))
         }
     }
 

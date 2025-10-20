@@ -19,7 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
-import com.romankozak.forwardappmobile.ui.components.SegmentedTab
+import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun GoalSettingsScreen(
@@ -28,6 +29,15 @@ fun GoalSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect {
+            when (it) {
+                is ProjectSettingsEvent.NavigateBack -> navController.popBackStack()
+                is ProjectSettingsEvent.Navigate -> navController.navigate(it.route)
+            }
+        }
+    }
 
     val tabs = listOf("General", "Evaluation", "Reminders")
     val tabIcons = listOf(Icons.Default.Settings, Icons.Default.BarChart, Icons.Default.Notifications)
