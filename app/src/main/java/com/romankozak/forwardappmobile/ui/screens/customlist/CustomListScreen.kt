@@ -203,6 +203,7 @@ fun UnifiedCustomListScreen(
                 onCutLine = viewModel::onCutLine,
                 onPasteLine = viewModel::onPasteLine,
                 onToggleBullet = viewModel::onToggleBullet,
+                onToggleCheckbox = {},
                 onUndo = viewModel::onUndo,
                 onRedo = viewModel::onRedo,
                 onToggleVisibility = { isToolbarVisible = !isToolbarVisible },

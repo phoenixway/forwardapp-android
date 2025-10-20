@@ -335,6 +335,74 @@ class UniversalEditorViewModel @Inject constructor(private val application: Appl
     )
   }
 
+  fun onToggleCheckbox() {
+    val cur = _uiState.value.content
+    val (lineStart, lineIndex) = findLineStartAndIndex(cur.text, cur.selection.start)
+    val lines = cur.text.lines().toMutableList()
+    if (lineIndex >= lines.size) return
+
+    val line = lines[lineIndex]
+    val originalIndent = line.takeWhile { it.isWhitespace() }
+    val trimmedLine = line.trimStart()
+
+    val uncheckedRegex = Regex("""^-\s\[\s\]\s?(.*)""")
+    val checkedRegex = Regex("""^-\s\[x\]\s?(.*)""", RegexOption.IGNORE_CASE)
+
+    var selectionOffset = 0
+
+    when {
+        uncheckedRegex.matches(trimmedLine) -> {
+            val content = uncheckedRegex.find(trimmedLine)!!.destructured.component1()
+            lines[lineIndex] = "$originalIndent- [x] $content"
+        }
+        checkedRegex.matches(trimmedLine) -> {
+            val content = checkedRegex.find(trimmedLine)!!.destructured.component1()
+            lines[lineIndex] = "$originalIndent- [ ] $content"
+        }
+        else -> {
+            lines[lineIndex] = "$originalIndent- [ ] $trimmedLine"
+            selectionOffset = 2
+        }
+    }
+    val newText = lines.joinToString("\n")
+    val newSelection = TextRange(
+        (cur.selection.start + selectionOffset).coerceAtMost(newText.length),
+        (cur.selection.end + selectionOffset).coerceAtMost(newText.length)
+    )
+    onContentChange(TextFieldValue(newText, newSelection))
+  }
+
+  fun onToggleCheckbox(lineIndex: Int) {
+    val cur = _uiState.value.content
+    val lines = cur.text.lines().toMutableList()
+    if (lineIndex >= lines.size) return
+
+    val line = lines[lineIndex]
+    val originalIndent = line.takeWhile { it.isWhitespace() }
+    val trimmedLine = line.trimStart()
+
+    val uncheckedRegex = Regex("""^-\s\[\s\]\s?(.*)""")
+    val checkedRegex = Regex("""^-\s\[x\]\s?(.*)""", RegexOption.IGNORE_CASE)
+
+    when {
+        uncheckedRegex.matches(trimmedLine) -> {
+            val content = uncheckedRegex.find(trimmedLine)!!.destructured.component1()
+            lines[lineIndex] = "$originalIndent- [x] $content"
+        }
+        checkedRegex.matches(trimmedLine) -> {
+            val content = checkedRegex.find(trimmedLine)!!.destructured.component1()
+            lines[lineIndex] = "$originalIndent- [ ] $content"
+        }
+        else -> {
+            // Do nothing if the line is not a checkbox
+            return
+        }
+    }
+    val newText = lines.joinToString("\n")
+    // Keep selection
+    onContentChange(TextFieldValue(newText, cur.selection))
+  }
+
   // Helper function to get marker info
   private fun getMarkerInfo(line: String): Pair<String, String>? {
     val patterns =

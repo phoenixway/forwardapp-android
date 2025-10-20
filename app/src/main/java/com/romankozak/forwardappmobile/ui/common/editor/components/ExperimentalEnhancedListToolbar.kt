@@ -48,6 +48,7 @@ fun ExperimentalEnhancedListToolbar(
   onPasteLine: () -> Unit,
   // Other actions
   onToggleBullet: () -> Unit,
+  onToggleCheckbox: () -> Unit,
   onUndo: () -> Unit = {},
   onRedo: () -> Unit = {},
   onToggleVisibility: () -> Unit = {},
@@ -274,6 +275,14 @@ fun ExperimentalEnhancedListToolbar(
                                   onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onToggleBullet()
+                                  },
+                                )
+                                EnhancedToolbarButton(
+                                  icon = Icons.Default.Checklist,
+                                  description = "Чекбокс",
+                                  onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onToggleCheckbox()
                                   },
                                 )
                             }

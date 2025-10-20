@@ -56,6 +56,9 @@ import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalE
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorEvent
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+
 import kotlinx.coroutines.delay
 
 @Composable
@@ -165,6 +168,7 @@ fun UniversalEditorScreen(
                 onCutLine = viewModel::onCutLine,
                 onPasteLine = viewModel::onPasteLine,
                 onToggleBullet = viewModel::onToggleBullet,
+                onToggleCheckbox = viewModel::onToggleCheckbox,
                 onUndo = viewModel::onUndo,
                 onRedo = viewModel::onRedo,
                 onToggleVisibility = { isToolbarVisible = false },
@@ -202,6 +206,7 @@ fun UniversalEditorScreen(
       Editor(
         content = uiState.content,
         onContentChange = { viewModel.onContentChange(it) },
+        onToggleCheckbox = viewModel::onToggleCheckbox,
         contentFocusRequester = contentFocusRequester,
         isToolbarVisible = isToolbarVisible,
         readOnly = readOnly,
@@ -262,6 +267,7 @@ private fun EditorTopAppBar(
 private fun Editor(
   content: TextFieldValue,
   onContentChange: (TextFieldValue) -> Unit,
+  onToggleCheckbox: (Int) -> Unit,
   contentFocusRequester: FocusRequester,
   isToolbarVisible: Boolean,
   readOnly: Boolean,
@@ -314,6 +320,27 @@ private fun Editor(
           .fillMaxHeight()
           .focusRequester(contentFocusRequester)
           .bringIntoViewRequester(bringIntoViewRequester)
+          .pointerInput(Unit) {
+              detectTapGestures { offset ->
+                  textLayoutResult?.let { layoutResult ->
+                      val clickedOffset = layoutResult.getOffsetForPosition(offset)
+                      val lineIndex = layoutResult.getLineForOffset(clickedOffset)
+                      val line = content.text.lines()[lineIndex]
+                      val trimmedLine = line.trimStart()
+                      
+                      val checkboxRegex = Regex("""^-\s\[( |x)\]\s?.*""", RegexOption.IGNORE_CASE)
+                      if (checkboxRegex.matches(trimmedLine)) {
+                          val lineStartOffset = layoutResult.getLineStart(lineIndex)
+                          val offsetInLine = clickedOffset - lineStartOffset
+                          val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
+
+                          if (offsetInLine >= originalIndentLength && offsetInLine < originalIndentLength + 6) {
+                              onToggleCheckbox(lineIndex)
+                          }
+                      }
+                  }
+              }
+          }
           .drawBehind {
             textLayoutResult?.let { layoutResult ->
               val currentLine =
@@ -461,13 +488,13 @@ private class ListVisualTransformation(
 
 )
 
-        val checkedRegex = Regex("""^(\s*)\[x\]\s(.*)"""
+        val checkedRegex = Regex("""^(\s*)-\s\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
 
-, RegexOption.IGNORE_CASE)
+        val uncheckedRegex = Regex("""^(\s*)-\s\[\s\]\s(.*)"""
 
-        val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)"""
+        )        
 
-)
+        
 
         val boldRegex = Regex("""(\*\*|__)(.*?)\1"""
 
