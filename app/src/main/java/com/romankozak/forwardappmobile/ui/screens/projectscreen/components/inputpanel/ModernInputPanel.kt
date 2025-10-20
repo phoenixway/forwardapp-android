@@ -409,91 +409,41 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BackForwardButton(state: NavPanelState, actions: NavPanelActions, contentColor: Color) {
-  val shouldShowButton =
-    state.inputMode != InputMode.SearchInList && (state.canGoBack || state.canGoForward)
+    val shouldShowButton = state.inputMode != InputMode.SearchInList && (state.canGoBack)
 
-  AnimatedVisibility(visible = shouldShowButton) {
-    val haptic = LocalHapticFeedback.current
-    var showForwardIcon by remember { mutableStateOf(false) }
-
-    LaunchedEffect(showForwardIcon) {
-      if (showForwardIcon) {
-        delay(400L)
-        showForwardIcon = false
-      }
-    }
-
-    Box(
-      modifier =
-        Modifier.size(40.dp)
-          .clip(CircleShape)
-          .combinedClickable(
-            enabled = state.canGoBack || state.canGoForward,
-            onClick = { if (state.canGoBack) actions.onBackClick() },
-            onLongClick = {
-              if (state.canGoForward) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                showForwardIcon = true
-                actions.onForwardClick()
-              }
-            },
-            indication = ripple(bounded = false),
-            interactionSource = remember { MutableInteractionSource() },
-          ),
-      contentAlignment = Alignment.Center,
-    ) {
-      BackForwardIcon(state = state, showForwardIcon = showForwardIcon, contentColor = contentColor)
-
-      if (state.canGoForward && !showForwardIcon) {
-        AnimatedVisibility(
-          visible = true,
-          modifier = Modifier.align(Alignment.BottomEnd),
-          enter = fadeIn() + scaleIn(),
-          exit = fadeOut() + scaleOut(),
+    AnimatedVisibility(visible = shouldShowButton) {
+        Box(
+            modifier = Modifier.size(40.dp)
+                .clip(CircleShape)
+                .clickable(
+                    enabled = state.canGoBack,
+                    onClick = { if (state.canGoBack) actions.onBackClick() },
+                    indication = ripple(bounded = false),
+                    interactionSource = remember { MutableInteractionSource() },
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-          Box(
-            modifier =
-              Modifier.padding(4.dp)
-                .size(6.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                .border(width = 1.dp, color = contentColor.copy(alpha = 0.5f), shape = CircleShape)
-          )
+            BackForwardIcon(state = state, showForwardIcon = false, contentColor = contentColor)
         }
-      }
     }
-  }
 }
 
 @Composable
 private fun BackForwardIcon(state: NavPanelState, showForwardIcon: Boolean, contentColor: Color) {
-  val iconColor by
-    animateColorAsState(
-      targetValue = if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.3f),
-      label = "backIconColor",
-    )
-  val iconScale by
-    animateFloatAsState(targetValue = if (state.canGoBack) 1.2f else 1.0f, label = "backIconScale")
+    val iconColor by
+        animateColorAsState(
+            targetValue = if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.3f),
+            label = "backIconColor",
+        )
+    val iconScale by
+        animateFloatAsState(targetValue = if (state.canGoBack) 1.2f else 1.0f, label = "backIconScale")
 
-  AnimatedContent(
-    targetState = showForwardIcon,
-    transitionSpec = {
-      (slideInHorizontally { it / 2 } + fadeIn()) togetherWith
-        (slideOutHorizontally { -it / 2 } + fadeOut())
-    },
-    label = "BackForwardIconAnimation",
-  ) { isForward ->
     Icon(
-      imageVector =
-        if (isForward) {
-          Icons.AutoMirrored.Filled.ArrowForward
-        } else {
-          Icons.AutoMirrored.Filled.ArrowBack
-        },
-      contentDescription = "Назад (довге натискання - Вперед)",
-      modifier = Modifier.size(20.dp).scale(if (isForward) 1.2f else iconScale),
-      tint = if (isForward) MaterialTheme.colorScheme.primary else iconColor,
+        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+        contentDescription = "Назад",
+        modifier = Modifier.size(20.dp).scale(iconScale),
+        tint = iconColor,
     )
-  }
 }
 
 // ------------------- NAV BAR ---------------------
@@ -529,21 +479,21 @@ private fun NavigationBar(
             }
 
             Row {
-                AnimatedVisibility(visible = showRecents) {
-                    IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
-                        Icon(
-                            Icons.Outlined.Restore,
-                            "Недавні",
-                            tint = contentColor.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
                 AnimatedVisibility(visible = showReveal) {
                     IconButton(onClick = actions.onRevealInExplorer, modifier = Modifier.size(40.dp)) {
                         Icon(
                             Icons.Outlined.RemoveRedEye,
                             "Показати у списку",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                AnimatedVisibility(visible = showRecents) {
+                    IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            Icons.Outlined.Restore,
+                            "Недавні",
                             tint = contentColor.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp),
                         )
