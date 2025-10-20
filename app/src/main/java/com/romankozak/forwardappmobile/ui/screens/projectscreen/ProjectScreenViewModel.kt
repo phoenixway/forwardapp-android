@@ -125,6 +125,7 @@ data class UiState(
       val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
       val showUniversalEditorForCustomList: Boolean = false,
       val showDisplayPropertiesDialog: Boolean = false,
+      val showCheckboxes: Boolean = false,
   ) {
       val isSelectionModeActive: Boolean get() = selectedItemIds.isNotEmpty()
   }
@@ -459,6 +460,7 @@ constructor(
     viewModelScope.launch {
       project.collect { proj ->
         if (proj != null) {
+          _uiState.update { it.copy(showCheckboxes = proj.showCheckboxes) }
           val isManagementEnabled = proj.isProjectManagementEnabled ?: false
           val currentView = uiState.value.currentView
           if (!isManagementEnabled && currentView == ProjectViewMode.ADVANCED) {

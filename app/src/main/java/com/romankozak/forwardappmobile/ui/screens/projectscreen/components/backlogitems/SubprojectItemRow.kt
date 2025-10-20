@@ -55,6 +55,7 @@ import kotlinx.coroutines.delay
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.ui.reminders.components.ReminderBadge
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.material3.Checkbox
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -111,6 +112,7 @@ fun SubprojectItemRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    showCheckbox: Boolean = false,
     onCheckedChange: (Boolean) -> Unit,
     onTagClick: (String) -> Unit = {},
     childProjects: List<Project> = emptyList(),
@@ -159,14 +161,22 @@ fun SubprojectItemRow(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-        Icon(
-            imageVector = Icons.Default.AccountTree,
-            contentDescription = "Subproject",
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(24.dp)
-        )
+            if (showCheckbox) {
+                Checkbox(
+                    checked = subproject.isCompleted,
+                    onCheckedChange = onCheckedChange,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Icon(
+                imageVector = Icons.Default.AccountTree,
+                contentDescription = "Subproject",
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(24.dp)
+            )
 
-        Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
         Column(
             modifier = Modifier
