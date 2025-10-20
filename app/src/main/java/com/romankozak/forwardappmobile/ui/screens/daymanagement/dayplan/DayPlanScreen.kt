@@ -100,33 +100,6 @@ private fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = 
   }
 }
 
-@Composable
-private fun EmptyTasksState(modifier: Modifier = Modifier) {
-  Column(
-    modifier = modifier,
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.Center,
-  ) {
-    Icon(
-      Icons.Outlined.Checklist,
-      contentDescription = null,
-      modifier = Modifier.size(80.dp),
-      tint = MaterialTheme.colorScheme.outline,
-    )
-    Spacer(modifier = Modifier.height(16.dp))
-    Text(
-      text = "Завдань ще немає",
-      style = MaterialTheme.typography.titleMedium,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-      text = "Натисніть кнопку '+'/Додати перше завдання",
-      style = MaterialTheme.typography.bodyMedium,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      textAlign = TextAlign.Center,
-    )
-  }
-}
 
 @Composable
 fun CompactDayPlanHeader(
@@ -378,6 +351,7 @@ fun DayPlanScreen(
                               viewModel.updateTasksOrder(dayPlan.id, reorderedList)
                             }
                           },
+                          onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) },
                           onNavigateToPreviousDay = { viewModel.navigateToPreviousDay() },
                           onNavigateToNextDay = { viewModel.navigateToNextDay() },
                           isNextDayNavigationEnabled = !uiState.isToday,
