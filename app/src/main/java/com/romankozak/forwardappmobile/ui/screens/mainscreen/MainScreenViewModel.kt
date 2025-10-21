@@ -29,7 +29,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.SearchAndNavigationManager
+
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.DialogStateManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncManager
@@ -115,14 +115,13 @@ constructor(
     projectRepository
       .getAllProjectsFlow()
       .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-  private val searchAndNavigationManager =
-    SearchAndNavigationManager(
-      projectRepository,
-      viewModelScope,
-      savedStateHandle,
-      _uiEventChannel,
-      _allProjectsFlat,
+  init {
+    searchUseCase.initialize(
+      scope = viewModelScope,
+      uiEventChannel = _uiEventChannel,
+      allProjectsFlat = _allProjectsFlat
     )
+  }
   private val hierarchyManager = ProjectHierarchyManager()
   private val wifiSyncManager =
     WifiSyncManager(syncRepo, settingsRepo, application, viewModelScope, _uiEventChannel)
@@ -157,11 +156,11 @@ constructor(
           if (_isProcessingReveal.value) return@launch
           _isProcessingReveal.value = true
           try {
-            when (val result = searchAndNavigationManager.revealProjectInHierarchy(value)) {
+            when (val result = searchUseCase.revealProjectInHierarchy(value)) {
               is RevealResult.Success -> {
                 pushSubState(MainSubState.ProjectFocused(value))
                 if (result.shouldFocus) {
-                  searchAndNavigationManager.navigateToProject(
+                  searchUseCase.navigateToProject(
                     result.projectId,
                     uiState.value.projectHierarchy,
                   )
@@ -228,7 +227,7 @@ constructor(
     }
 
     val debouncedSearchQueryText =
-      searchAndNavigationManager.searchQuery.map { it.text }.debounce(100L).distinctUntilChanged()
+      searchUseCase.searchQuery.map { it.text }.debounce(100L).distinctUntilChanged()
 
     val instantSubStateStack = _subStateStack
 
@@ -346,9 +345,9 @@ constructor(
       val coreUiStateFlow =
         combine(
           instantSubStateStack,
-          searchAndNavigationManager.searchQuery,
+          searchUseCase.searchQuery,
           coreHierarchyFlow,
-          searchAndNavigationManager.currentBreadcrumbs,
+          searchUseCase.currentBreadcrumbs,
           planningModeManager.planningMode,
         ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
           CoreUiState(
@@ -380,7 +379,7 @@ constructor(
           dialogUiStateFlow,
           expensiveCalculationsFlow,
           searchResultsFlow,
-          searchAndNavigationManager.searchHistory,
+          searchUseCase.searchHistory,
           planningSettingsState,
           wifiSyncManager.showWifiServerDialog,
           wifiSyncManager.wifiServerAddress,
@@ -464,7 +463,7 @@ constructor(
   fun onEvent(event: MainScreenEvent) {
     when (event) {
       is MainScreenEvent.SearchQueryChanged -> {
-        searchAndNavigationManager.onSearchQueryChanged(event.query)
+        searchUseCase.onSearchQueryChanged(event.query)
         if (!isSearchActive()) {
           pushSubState(MainSubState.LocalSearch(event.query.text))
         } else {
@@ -473,7 +472,7 @@ constructor(
       }
       is MainScreenEvent.SearchFromHistory -> {
         pushSubState(MainSubState.LocalSearch(event.query))
-        searchAndNavigationManager.onSearchQueryFromHistory(event.query)
+        searchUseCase.onSearchQueryFromHistory(event.query)
       }
       is MainScreenEvent.GlobalSearchPerform -> onPerformGlobalSearch(event.query)
       is MainScreenEvent.SearchResultClick -> onSearchResultClick(event.projectId)
@@ -494,12 +493,12 @@ constructor(
       }
 
       is MainScreenEvent.BreadcrumbNavigation -> {
-        searchAndNavigationManager.navigateToBreadcrumb(event.breadcrumb)
+        searchUseCase.navigateToBreadcrumb(event.breadcrumb)
         // This line ensures the UI's focus state is updated to the new project.
         replaceCurrentSubState(MainSubState.ProjectFocused(event.breadcrumb.id))
       }
       is MainScreenEvent.ClearBreadcrumbNavigation -> {
-        searchAndNavigationManager.clearNavigation()
+        searchUseCase.clearNavigation()
         popToSubState(MainSubState.Hierarchy)
       }
 
@@ -599,7 +598,7 @@ constructor(
       }
       is MainScreenEvent.FocusProject -> {
         viewModelScope.launch {
-          searchAndNavigationManager.navigateToProject(event.project.id, uiState.value.projectHierarchy)
+          searchUseCase.navigateToProject(event.project.id, uiState.value.projectHierarchy)
           pushSubState(MainSubState.ProjectFocused(event.project.id))
           dialogStateManager.dismissDialog()
         }
@@ -673,13 +672,13 @@ constructor(
           // Switch to "All" mode to ensure the project isn't filtered out by a planning mode
           planningModeManager.changeMode(PlanningMode.All)
 
-          when (val result = searchAndNavigationManager.revealProjectInHierarchy(event.projectId)) {
+          when (val result = searchUseCase.revealProjectInHierarchy(event.projectId)) {
             is RevealResult.Success -> {
               android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
               pushSubState(MainSubState.ProjectFocused(result.projectId))
               if (result.shouldFocus) {
                 android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
-                searchAndNavigationManager.navigateToProject(
+                searchUseCase.navigateToProject(
                   result.projectId,
                   uiState.value.projectHierarchy,
                 )
@@ -730,14 +729,14 @@ constructor(
     when {
       currentStack.lastOrNull() is MainSubState.ProjectFocused -> {
         popSubState()
-        searchAndNavigationManager.clearNavigation()
+        searchUseCase.clearNavigation()
       }
       currentStack.lastOrNull() is MainSubState.LocalSearch -> {
         popSubState()
-        searchAndNavigationManager.onSearchQueryChanged(TextFieldValue(""))
+        searchUseCase.onSearchQueryChanged(TextFieldValue(""))
       }
       uiState.value.currentBreadcrumbs.isNotEmpty() -> {
-        searchAndNavigationManager.clearNavigation()
+        searchUseCase.clearNavigation()
       }
       uiState.value.areAnyProjectsExpanded -> {
         viewModelScope.launch { actionsHandler.collapseAllProjects(_allProjectsFlat.value) }
@@ -753,14 +752,14 @@ constructor(
     viewModelScope.launch {
       _isProcessingReveal.value = true
       try {
-        when (val result = searchAndNavigationManager.revealProjectInHierarchy(projectId)) {
+        when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
           is RevealResult.Success -> {
-            searchAndNavigationManager.navigateToProject(
+            searchUseCase.navigateToProject(
               result.projectId,
               uiState.value.projectHierarchy,
             )
             replaceCurrentSubState(MainSubState.ProjectFocused(result.projectId))
-            searchAndNavigationManager.onSearchQueryChanged(TextFieldValue(""))
+            searchUseCase.onSearchQueryChanged(TextFieldValue(""))
             projectToRevealAndScroll = result.projectId
           }
           is RevealResult.Failure -> {
@@ -805,10 +804,10 @@ constructor(
 
   private fun onPerformGlobalSearch(query: String) {
     if (query.isNotBlank()) {
-      searchAndNavigationManager.onSearchQueryFromHistory(query)
+      searchUseCase.onSearchQueryFromHistory(query)
       if (isSearchActive()) {
         popToSubState(MainSubState.Hierarchy)
-        searchAndNavigationManager.onToggleSearch(isActive = false)
+        searchUseCase.onToggleSearch(isActive = false)
       }
       enhancedNavigationManager?.navigateToGlobalSearch(query)
       _showSearchDialog.value = false
@@ -818,7 +817,7 @@ constructor(
   private fun onPlanningModeChange(mode: PlanningMode) {
     if (isSearchActive()) {
       popToSubState(MainSubState.Hierarchy)
-      searchAndNavigationManager.onToggleSearch(isActive = false)
+      searchUseCase.onToggleSearch(isActive = false)
     }
     planningModeManager.changeMode(mode)
   }
@@ -1031,7 +1030,7 @@ constructor(
     createClearExecutionContext(
       currentProjects = _allProjectsFlat.value,
       subStateStack = _subStateStack,
-      searchAndNavigationManager = searchAndNavigationManager,
+      searchUseCase = searchUseCase,
       planningModeManager = planningModeManager,
       enhancedNavigationManager = enhancedNavigationManager,
       uiEventChannel = _uiEventChannel,

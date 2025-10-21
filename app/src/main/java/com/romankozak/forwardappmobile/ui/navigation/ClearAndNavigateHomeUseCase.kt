@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.SearchAndNavigationManager
+
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +39,7 @@ sealed class ClearResult {
 data class ClearExecutionContext(
     val currentProjects: List<Project>,
     val subStateStack: MutableStateFlow<List<MainSubState>>,
-    val searchAndNavigationManager: SearchAndNavigationManager,
+    val searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
     val planningModeManager: PlanningModeManager,
     val enhancedNavigationManager: EnhancedNavigationManager?,
     val uiEventChannel: Channel<ProjectUiEvent>,
@@ -119,16 +119,16 @@ class ClearAndNavigateHomeUseCase
             withContext(Dispatchers.Main.immediate) {
                 Log.d(TAG, "Clearing UI state to home")
                 context.subStateStack.value = listOf(MainSubState.Hierarchy)
-                context.searchAndNavigationManager.clearAllSearchState()
-                context.searchAndNavigationManager.clearNavigation()
+                context.searchUseCase.clearAllSearchState()
+                context.searchUseCase.clearNavigation()
             }
         }
 
         private suspend fun clearSearchAndNavigation(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
                 Log.d(TAG, "Clearing search and navigation")
-                context.searchAndNavigationManager.clearAllSearchState()
-                context.searchAndNavigationManager.clearNavigation()
+                context.searchUseCase.clearAllSearchState()
+                context.searchUseCase.clearNavigation()
             }
         }
 
@@ -180,7 +180,7 @@ class ClearAndNavigateHomeUseCase
         suspend fun closeSearchAndNavigateHome(
             currentProjects: List<Project>,
             subStateStack: MutableStateFlow<List<MainSubState>>,
-            searchAndNavigationManager: SearchAndNavigationManager,
+            searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
             planningModeManager: PlanningModeManager,
             enhancedNavigationManager: EnhancedNavigationManager?,
             uiEventChannel: Channel<ProjectUiEvent>,
@@ -189,7 +189,7 @@ class ClearAndNavigateHomeUseCase
                 ClearExecutionContext(
                     currentProjects = currentProjects,
                     subStateStack = subStateStack,
-                    searchAndNavigationManager = searchAndNavigationManager,
+                    searchUseCase = searchUseCase,
                     planningModeManager = planningModeManager,
                     enhancedNavigationManager = enhancedNavigationManager,
                     uiEventChannel = uiEventChannel,
@@ -234,7 +234,7 @@ class ClearAndNavigateHomeUseCase
 fun createClearExecutionContext(
     currentProjects: List<Project>,
     subStateStack: MutableStateFlow<List<MainSubState>>,
-    searchAndNavigationManager: SearchAndNavigationManager,
+    searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
     planningModeManager: PlanningModeManager,
     enhancedNavigationManager: EnhancedNavigationManager?,
     uiEventChannel: Channel<ProjectUiEvent>,
@@ -242,7 +242,7 @@ fun createClearExecutionContext(
     ClearExecutionContext(
         currentProjects = currentProjects,
         subStateStack = subStateStack,
-        searchAndNavigationManager = searchAndNavigationManager,
+        searchUseCase = searchUseCase,
         planningModeManager = planningModeManager,
         enhancedNavigationManager = enhancedNavigationManager,
         uiEventChannel = uiEventChannel,
