@@ -10,12 +10,19 @@
 
 ## Phase 2: ViewModel Refactoring
 - [ ] Refactor `MainScreenViewModel` using a UseCase-based architecture.
-- [ ] Create a `SearchUseCase` to handle search logic.
-- [ ] Create a `HierarchyUseCase` to manage the project hierarchy.
-- [ ] Create a `DialogUseCase` to manage dialogs.
-- [ ] Create a `PlanningUseCase` to handle planning modes.
-- [ ] Create a `SyncUseCase` to manage Wi-Fi sync.
-- [ ] Create a `ProjectActionsUseCase` to handle project actions.
+- [x] Create a `SearchUseCase` to handle search logic.
+- [x] Create a `HierarchyUseCase` to manage the project hierarchy.
+- [x] Create a `DialogUseCase` to manage dialogs.
+- [x] Create a `PlanningUseCase` to handle planning modes.
+- [x] Create a `SyncUseCase` to manage Wi-Fi sync.
+- [x] Create a `ProjectActionsUseCase` to handle project actions.
+- [ ] Migrate search and navigation logic to `SearchUseCase`.
+- [ ] Migrate hierarchy logic to `HierarchyUseCase`.
+- [ ] Migrate dialog logic to `DialogUseCase`.
+- [ ] Migrate planning logic to `PlanningUseCase`.
+- [ ] Migrate sync logic to `SyncUseCase`.
+- [ ] Migrate project actions logic to `ProjectActionsUseCase`.
+- [ ] Update `MainScreenViewModel` to use the new UseCases.
 
 ## Phase 3: Theming and Styling
 - [ ] Create a Compose Theme.
