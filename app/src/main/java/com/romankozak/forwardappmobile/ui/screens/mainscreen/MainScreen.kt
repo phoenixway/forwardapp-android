@@ -402,12 +402,12 @@ private fun MainScreenTopAppBar(
         },
         actions = {
             if (!isSearchActive) {
-                AnimatedVisibility(visible = canGoBack) {
+                AnimatedVisibility(visible = false) {
                     IconButton(onClick = onGoBack) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад")
                     }
                 }
-                AnimatedVisibility(visible = canGoForward) {
+                AnimatedVisibility(visible = false) {
                     IconButton(onClick = onGoForward) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Вперед")
                     }
