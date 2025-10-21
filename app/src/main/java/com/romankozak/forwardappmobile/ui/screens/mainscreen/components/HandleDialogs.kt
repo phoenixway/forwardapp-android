@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.mainscreen.utils
+package com.romankozak.forwardappmobile.ui.screens.mainscreen.components
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable

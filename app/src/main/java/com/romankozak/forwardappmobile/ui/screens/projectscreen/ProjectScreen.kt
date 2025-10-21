@@ -56,6 +56,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topba
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ProjectDisplayPropertiesDialog
+import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
 
 
@@ -484,79 +485,5 @@ fun Modifier.glitch(trigger: Any): Modifier = composed {
     this.graphicsLayer {
         translationX = glitchAmount
         translationY = (Math.random() * glitchAmount - glitchAmount / 2).toFloat()
-    }
-}
-
-@Composable
-private fun InProgressIndicator(
-    ongoingActivity: ActivityRecord?,
-    onStopClick: () -> Unit,
-    onReminderClick: () -> Unit,
-    onIndicatorClick: () -> Unit
-) {
-    AnimatedVisibility(
-        visible = ongoingActivity != null,
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically(),
-    ) {
-        if (ongoingActivity != null) {
-            var elapsedTime by remember { mutableLongStateOf(System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)) }
-
-            LaunchedEffect(key1 = ongoingActivity.id) {
-                while (true) {
-                    elapsedTime = System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)
-                    delay(1000L)
-                }
-            }
-            val timeString = formatElapsedTime(elapsedTime)
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onIndicatorClick),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = ongoingActivity.text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    IconButton(onClick = onReminderClick) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Встановити нагадування")
-                    }
-                    IconButton(onClick = onStopClick) {
-                        Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
-                    }
-                    val context = LocalContext.current
-                    IconButton(onClick = {
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        val uri = android.net.Uri.fromParts("package", context.packageName, null)
-                        intent.data = uri
-                        context.startActivity(intent)
-                    }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Налаштування")
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun formatElapsedTime(elapsedTime: Long): String {
-    val hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(elapsedTime)
-    val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(elapsedTime) % 60
-    val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60
-    return if (hours > 0) {
-        String.format(java.util.Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 }
