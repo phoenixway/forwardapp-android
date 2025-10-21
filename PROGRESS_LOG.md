@@ -12,4 +12,5 @@
 - **РОЗПОЧАТО:** Рефакторинг `MainScreenViewModel`.
   - **ПЛАН:** Розбити `MainScreenViewModel` на менші, більш сфокусовані UseCase'и.
   - **ЗРОБЛЕНО:** Створено пусті класи для `SearchUseCase`, `HierarchyUseCase`, `DialogUseCase`, `PlanningUseCase`, `SyncUseCase`, `ProjectActionsUseCase`.
-  - **НАСТУПНИЙ КРОК:** Розпочати міграцію логіки пошуку та навігації з `SearchAndNavigationManager` та `MainScreenViewModel` до `SearchUseCase`.
+  - **ЗАВЕРШЕНО:** Міграція логіки пошуку та навігації з `MainScreenViewModel` до `SearchUseCase`.
+  - **НАСТУПНИЙ КРОК:** Міграція логіки ієрархії до `HierarchyUseCase`.

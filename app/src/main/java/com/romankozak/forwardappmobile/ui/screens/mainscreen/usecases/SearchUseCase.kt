@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @ViewModelScoped
 class SearchUseCase @Inject constructor(
@@ -54,6 +56,7 @@ class SearchUseCase @Inject constructor(
         private const val MAX_SEARCH_HISTORY = 10
         private const val ACTIVE_SEARCH_QUERY_TEXT_KEY = "active_search_query_text"
         private const val IS_SEARCH_ACTIVE_KEY = "is_search_active"
+        private const val CAME_FROM_GLOBAL_SEARCH_KEY = "came_from_global_search"
     }
 
     private val _isPendingStateRestoration = MutableStateFlow(false)
@@ -72,6 +75,9 @@ class SearchUseCase @Inject constructor(
 
     val searchHistory: StateFlow<List<String>> =
         savedStateHandle.getStateFlow(SEARCH_HISTORY_KEY, emptyList())
+
+    private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
+    val subStateStack = _subStateStack.asStateFlow()
 
     private fun initializeSearchState() {
         scope.launch {
@@ -105,9 +111,15 @@ class SearchUseCase @Inject constructor(
     fun onSearchQueryChanged(query: TextFieldValue) {
         savedStateHandle[ACTIVE_SEARCH_QUERY_TEXT_KEY] = query.text
         _searchQuery.value = query
+        if (!isSearchActive()) {
+          pushSubState(MainSubState.LocalSearch(query.text))
+        } else {
+          replaceCurrentSubState(MainSubState.LocalSearch(query.text))
+        }
     }
 
     fun onSearchQueryFromHistory(query: String) {
+        pushSubState(MainSubState.LocalSearch(query))
         onSearchQueryChanged(TextFieldValue(query, TextRange(query.length)))
         onToggleSearch(true)
     }
@@ -178,11 +190,13 @@ class SearchUseCase @Inject constructor(
     fun navigateToBreadcrumb(breadcrumbItem: BreadcrumbItem) {
         currentBreadcrumbs.update { it.take(breadcrumbItem.level + 1) }
         focusedProjectId.value = breadcrumbItem.id
+        replaceCurrentSubState(MainSubState.ProjectFocused(breadcrumbItem.id))
     }
 
     fun clearNavigation() {
         focusedProjectId.value = null
         currentBreadcrumbs.value = emptyList()
+        popToSubState(MainSubState.Hierarchy)
     }
 
     private fun addSearchQueryToHistory(query: String) {
@@ -199,5 +213,126 @@ class SearchUseCase @Inject constructor(
         mutableHistory.add(0, query)
         val newHistory = mutableHistory.take(MAX_SEARCH_HISTORY)
         savedStateHandle[SEARCH_HISTORY_KEY] = newHistory
+    }
+
+    fun onCloseSearch() {
+        onToggleSearch(false)
+    }
+
+    fun onSearchResultClick(projectId: String, currentHierarchy: ListHierarchyData) {
+        scope.launch {
+            when (val result = revealProjectInHierarchy(projectId)) {
+                is RevealResult.Success -> {
+                    navigateToProject(
+                        result.projectId,
+                        currentHierarchy,
+                    )
+                    onSearchQueryChanged(TextFieldValue(""))
+                }
+                is RevealResult.Failure -> {
+                    uiEventChannel.send(ProjectUiEvent.ShowToast("Не вдалося показати локацію"))
+                }
+            }
+        }
+    }
+
+    fun onPerformGlobalSearch(query: String) {
+        if (query.isNotBlank()) {
+            onSearchQueryFromHistory(query)
+            if (isSearchActive.value) {
+                onToggleSearch(isActive = false)
+            }
+            scope.launch { uiEventChannel.send(ProjectUiEvent.NavigateToGlobalSearch(query)) }
+        }
+    }
+
+    fun pushSubState(subState: MainSubState) {
+        val currentStack = _subStateStack.value
+        if (currentStack.lastOrNull() != subState) {
+            _subStateStack.value = currentStack + subState
+        }
+    }
+
+    fun popSubState(): MainSubState? {
+        val currentStack = _subStateStack.value
+        return if (currentStack.size > 1) {
+            val popped = currentStack.last()
+            _subStateStack.value = currentStack.dropLast(1)
+            popped
+        } else {
+            null
+        }
+    }
+
+    fun replaceCurrentSubState(newState: MainSubState) {
+        val currentStack = _subStateStack.value
+        _subStateStack.value = currentStack.dropLast(1) + newState
+    }
+
+    fun popToSubState(targetState: MainSubState) {
+        val currentStack = _subStateStack.value
+        val targetIndex = currentStack.indexOfLast { it == targetState }
+        if (targetIndex >= 0) {
+            _subStateStack.value = currentStack.take(targetIndex + 1)
+        } else {
+            _subStateStack.value = listOf(targetState)
+        }
+    }
+
+    fun isSearchActive(): Boolean {
+        return _subStateStack.value.any { it is MainSubState.LocalSearch }
+    }
+
+    fun handleBackNavigation(areAnyProjectsExpanded: Boolean, collapseAllProjects: () -> Unit, goBack: () -> Unit) {
+        val currentStack = _subStateStack.value
+        when {
+            currentStack.lastOrNull() is MainSubState.ProjectFocused -> {
+                popSubState()
+                clearNavigation()
+            }
+            currentStack.lastOrNull() is MainSubState.LocalSearch -> {
+                popSubState()
+                onSearchQueryChanged(TextFieldValue(""))
+            }
+            currentBreadcrumbs.value.isNotEmpty() -> {
+                clearNavigation()
+            }
+            areAnyProjectsExpanded -> {
+                collapseAllProjects()
+            }
+            else -> {
+                goBack()
+            }
+        }
+    }
+
+    fun handleNavigationResult(key: String, value: String, projectHierarchy: ListHierarchyData, onProjectToReveal: (String) -> Unit) {
+        when (key) {
+            "project_to_reveal" -> {
+                scope.launch {
+                    savedStateHandle[CAME_FROM_GLOBAL_SEARCH_KEY] = true
+
+                    when (val result = revealProjectInHierarchy(value)) {
+                        is RevealResult.Success -> {
+                            pushSubState(MainSubState.ProjectFocused(value))
+                            if (result.shouldFocus) {
+                                navigateToProject(
+                                    result.projectId,
+                                    projectHierarchy,
+                                )
+                            } else {
+                                onProjectToReveal(result.projectId)
+                                if (isSearchActive()) {
+                                    popToSubState(MainSubState.Hierarchy)
+                                }
+                            }
+                        }
+                        is RevealResult.Failure -> {
+                            uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
+                        }
+                    }
+                }
+            }
+        }
     }
 }
