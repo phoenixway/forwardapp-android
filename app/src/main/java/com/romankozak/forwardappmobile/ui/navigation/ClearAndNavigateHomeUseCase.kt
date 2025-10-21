@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,7 +39,7 @@ sealed class ClearResult {
 
 data class ClearExecutionContext(
     val currentProjects: List<Project>,
-    val subStateStack: MutableStateFlow<List<MainSubState>>,
+    val subStateStack: StateFlow<List<MainSubState>>,
     val searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
     val planningModeManager: PlanningModeManager,
     val enhancedNavigationManager: EnhancedNavigationManager?,
@@ -118,7 +119,7 @@ class ClearAndNavigateHomeUseCase
         private suspend fun clearUIStateToHome(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
                 Log.d(TAG, "Clearing UI state to home")
-                context.subStateStack.value = listOf(MainSubState.Hierarchy)
+                context.searchUseCase.popToSubState(MainSubState.Hierarchy)
                 context.searchUseCase.clearAllSearchState()
                 context.searchUseCase.clearNavigation()
             }
@@ -134,8 +135,7 @@ class ClearAndNavigateHomeUseCase
 
         private suspend fun resetSubStateToHierarchy(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
-                Log.d(TAG, "Resetting substate to hierarchy")
-                context.subStateStack.value = listOf(MainSubState.Hierarchy)
+                context.searchUseCase.popToSubState(MainSubState.Hierarchy)
             }
         }
 
@@ -176,26 +176,7 @@ class ClearAndNavigateHomeUseCase
 
         
 
-        @Deprecated("Use execute() with ClearCommand instead", ReplaceWith("execute(ClearCommand.Home, context)"))
-        suspend fun closeSearchAndNavigateHome(
-            currentProjects: List<Project>,
-            subStateStack: MutableStateFlow<List<MainSubState>>,
-            searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
-            planningModeManager: PlanningModeManager,
-            enhancedNavigationManager: EnhancedNavigationManager?,
-            uiEventChannel: Channel<ProjectUiEvent>,
-        ): ClearResult {
-            val context =
-                ClearExecutionContext(
-                    currentProjects = currentProjects,
-                    subStateStack = subStateStack,
-                    searchUseCase = searchUseCase,
-                    planningModeManager = planningModeManager,
-                    enhancedNavigationManager = enhancedNavigationManager,
-                    uiEventChannel = uiEventChannel,
-                )
-            return execute(ClearCommand.Home, context)
-        }
+
 
         @Deprecated("Use execute() with ClearCommand instead")
         suspend operator fun invoke(
@@ -233,7 +214,7 @@ class ClearAndNavigateHomeUseCase
 
 fun createClearExecutionContext(
     currentProjects: List<Project>,
-    subStateStack: MutableStateFlow<List<MainSubState>>,
+    subStateStack: StateFlow<List<MainSubState>>,
     searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
     planningModeManager: PlanningModeManager,
     enhancedNavigationManager: EnhancedNavigationManager?,

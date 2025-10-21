@@ -75,7 +75,6 @@ constructor(
 ) : ViewModel() {
   companion object {
     private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
-    private const val CAME_FROM_GLOBAL_SEARCH_KEY = "came_from_global_search"
     private const val TAG = "MainScreenVM_DEBUG"
   }
 
@@ -135,84 +134,15 @@ constructor(
   private val projectBeingMovedId =
     savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
 
-  private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
-
   private fun initializeNavigationResultHandling() {
     enhancedNavigationManager?.let { navManager ->
       viewModelScope.launch {
         navManager.navigationResults.collect { result ->
-          handleNavigationResult(result.key, result.value)
-        }
-      }
-    }
-  }
-
-  private fun handleNavigationResult(key: String, value: String) {
-    when (key) {
-      "project_to_reveal" -> {
-        viewModelScope.launch {
-          savedStateHandle[CAME_FROM_GLOBAL_SEARCH_KEY] = true
-
-          if (_isProcessingReveal.value) return@launch
-          _isProcessingReveal.value = true
-          try {
-            when (val result = searchUseCase.revealProjectInHierarchy(value)) {
-              is RevealResult.Success -> {
-                pushSubState(MainSubState.ProjectFocused(value))
-                if (result.shouldFocus) {
-                  searchUseCase.navigateToProject(
-                    result.projectId,
-                    uiState.value.projectHierarchy,
-                  )
-                } else {
-                  projectToRevealAndScroll = result.projectId
-                  if (isSearchActive()) {
-                    popToSubState(MainSubState.Hierarchy)
-                  }
-                }
-              }
-              is RevealResult.Failure -> {
-                _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
-              }
+            searchUseCase.handleNavigationResult(result.key, result.value, uiState.value.projectHierarchy) {
+                projectToRevealAndScroll = it
             }
-          } finally {
-            _isProcessingReveal.value = false
-          }
         }
       }
-    }
-  }
-
-  private fun pushSubState(subState: MainSubState) {
-    val currentStack = _subStateStack.value
-    if (currentStack.lastOrNull() != subState) {
-      _subStateStack.value = currentStack + subState
-    }
-  }
-
-  private fun popSubState(): MainSubState? {
-    val currentStack = _subStateStack.value
-    return if (currentStack.size > 1) {
-      val popped = currentStack.last()
-      _subStateStack.value = currentStack.dropLast(1)
-      popped
-    } else {
-      null
-    }
-  }
-
-  private fun replaceCurrentSubState(newState: MainSubState) {
-    val currentStack = _subStateStack.value
-    _subStateStack.value = currentStack.dropLast(1) + newState
-  }
-
-  private fun popToSubState(targetState: MainSubState) {
-    val currentStack = _subStateStack.value
-    val targetIndex = currentStack.indexOfLast { it == targetState }
-    if (targetIndex >= 0) {
-      _subStateStack.value = currentStack.take(targetIndex + 1)
-    } else {
-      _subStateStack.value = listOf(targetState)
     }
   }
 
@@ -229,8 +159,6 @@ constructor(
     val debouncedSearchQueryText =
       searchUseCase.searchQuery.map { it.text }.debounce(100L).distinctUntilChanged()
 
-    val instantSubStateStack = _subStateStack
-
     val planningSettingsState =
       combine(
           settingsRepo.showPlanningModesFlow,
@@ -246,7 +174,7 @@ constructor(
       combine(
           _allProjectsFlat,
           debouncedSearchQueryText,
-          instantSubStateStack.map { stack -> stack.any { it is MainSubState.LocalSearch } },
+          searchUseCase.subStateStack.map { stack -> stack.any { it is MainSubState.LocalSearch } },
           planningModeManager.planningMode,
         ) { flatList, query, searchActive, mode ->
           FilterState(
@@ -344,7 +272,7 @@ constructor(
 
       val coreUiStateFlow =
         combine(
-          instantSubStateStack,
+          searchUseCase.subStateStack,
           searchUseCase.searchQuery,
           coreHierarchyFlow,
           searchUseCase.currentBreadcrumbs,
@@ -456,26 +384,12 @@ constructor(
     val allContexts: List<UiContext> = emptyList(),
   )
 
-  private fun isSearchActive(): Boolean {
-    return _subStateStack.value.any { it is MainSubState.LocalSearch }
-  }
-
   fun onEvent(event: MainScreenEvent) {
     when (event) {
-      is MainScreenEvent.SearchQueryChanged -> {
-        searchUseCase.onSearchQueryChanged(event.query)
-        if (!isSearchActive()) {
-          pushSubState(MainSubState.LocalSearch(event.query.text))
-        } else {
-          replaceCurrentSubState(MainSubState.LocalSearch(event.query.text))
-        }
-      }
-      is MainScreenEvent.SearchFromHistory -> {
-        pushSubState(MainSubState.LocalSearch(event.query))
-        searchUseCase.onSearchQueryFromHistory(event.query)
-      }
-      is MainScreenEvent.GlobalSearchPerform -> onPerformGlobalSearch(event.query)
-      is MainScreenEvent.SearchResultClick -> onSearchResultClick(event.projectId)
+      is MainScreenEvent.SearchQueryChanged -> searchUseCase.onSearchQueryChanged(event.query)
+      is MainScreenEvent.SearchFromHistory -> searchUseCase.onSearchQueryFromHistory(event.query)
+      is MainScreenEvent.GlobalSearchPerform -> searchUseCase.onPerformGlobalSearch(event.query)
+      is MainScreenEvent.SearchResultClick -> searchUseCase.onSearchResultClick(event.projectId, uiState.value.projectHierarchy)
 
       is MainScreenEvent.ProjectClick -> onProjectClicked(event.projectId)
       is MainScreenEvent.ProjectMenuRequest -> dialogStateManager.onMenuRequested(event.project)
@@ -486,21 +400,14 @@ constructor(
             fromId = event.fromId,
             toId = event.toId,
             position = event.position,
-            isSearchActive = isSearchActive(),
+            isSearchActive = searchUseCase.isSearchActive(),
             allProjects = _allProjectsFlat.value,
           )
         }
       }
 
-      is MainScreenEvent.BreadcrumbNavigation -> {
-        searchUseCase.navigateToBreadcrumb(event.breadcrumb)
-        // This line ensures the UI's focus state is updated to the new project.
-        replaceCurrentSubState(MainSubState.ProjectFocused(event.breadcrumb.id))
-      }
-      is MainScreenEvent.ClearBreadcrumbNavigation -> {
-        searchUseCase.clearNavigation()
-        popToSubState(MainSubState.Hierarchy)
-      }
+      is MainScreenEvent.BreadcrumbNavigation -> searchUseCase.navigateToBreadcrumb(event.breadcrumb)
+      is MainScreenEvent.ClearBreadcrumbNavigation -> searchUseCase.clearNavigation()
 
       is MainScreenEvent.PlanningModeChange -> onPlanningModeChange(event.mode)
 
@@ -599,7 +506,7 @@ constructor(
       is MainScreenEvent.FocusProject -> {
         viewModelScope.launch {
           searchUseCase.navigateToProject(event.project.id, uiState.value.projectHierarchy)
-          pushSubState(MainSubState.ProjectFocused(event.project.id))
+          searchUseCase.pushSubState(MainSubState.ProjectFocused(event.project.id))
           dialogStateManager.dismissDialog()
         }
       }
@@ -657,7 +564,7 @@ constructor(
         onAddNewProjectConfirmed(event.name, event.parentId)
         dialogStateManager.dismissDialog()
       }
-      is MainScreenEvent.CloseSearch -> onCloseSearch()
+      is MainScreenEvent.CloseSearch -> searchUseCase.onCloseSearch()
       is MainScreenEvent.NavigateToProject -> onNavigateToProject(event.projectId)
       is MainScreenEvent.CollapseAll -> onCollapseAll()
       is MainScreenEvent.UpdateLightTheme -> updateLightTheme(event.themeName)
@@ -675,7 +582,7 @@ constructor(
           when (val result = searchUseCase.revealProjectInHierarchy(event.projectId)) {
             is RevealResult.Success -> {
               android.util.Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}")
-              pushSubState(MainSubState.ProjectFocused(result.projectId))
+              searchUseCase.pushSubState(MainSubState.ProjectFocused(result.projectId))
               if (result.shouldFocus) {
                 android.util.Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
                 searchUseCase.navigateToProject(
@@ -685,8 +592,8 @@ constructor(
               } else {
                 android.util.Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
                 projectToRevealAndScroll = result.projectId
-                if (isSearchActive()) {
-                  popToSubState(MainSubState.Hierarchy)
+                if (searchUseCase.isSearchActive()) {
+                  searchUseCase.popToSubState(MainSubState.Hierarchy)
                 }
               }
             }
@@ -701,76 +608,15 @@ constructor(
     }
   }
 
-  private fun onCloseSearch() {
-    if (_isProcessingReveal.value) return
-
-    viewModelScope.launch {
-      _isProcessingReveal.value = true
-      try {
-        val result =
-          clearAndNavigateHomeUseCase.execute(
-            command = ClearCommand.CloseSearch,
-            context = createClearContext(),
-          )
-
-        if (result is ClearResult.Error) {
-          _uiEventChannel.send(
-            ProjectUiEvent.ShowToast("Помилка закриття пошуку: ${result.message}")
-          )
-        }
-      } finally {
-        _isProcessingReveal.value = false
-      }
-    }
-  }
 
   private fun handleBackNavigation() {
-    val currentStack = _subStateStack.value
-    when {
-      currentStack.lastOrNull() is MainSubState.ProjectFocused -> {
-        popSubState()
-        searchUseCase.clearNavigation()
-      }
-      currentStack.lastOrNull() is MainSubState.LocalSearch -> {
-        popSubState()
-        searchUseCase.onSearchQueryChanged(TextFieldValue(""))
-      }
-      uiState.value.currentBreadcrumbs.isNotEmpty() -> {
-        searchUseCase.clearNavigation()
-      }
-      uiState.value.areAnyProjectsExpanded -> {
-        viewModelScope.launch { actionsHandler.collapseAllProjects(_allProjectsFlat.value) }
-      }
-      else -> {
-        enhancedNavigationManager?.goBack()
-      }
-    }
+    searchUseCase.handleBackNavigation(
+        areAnyProjectsExpanded = uiState.value.areAnyProjectsExpanded,
+        collapseAllProjects = { viewModelScope.launch { actionsHandler.collapseAllProjects(_allProjectsFlat.value) } },
+        goBack = { enhancedNavigationManager?.goBack() }
+    )
   }
 
-  private fun onSearchResultClick(projectId: String) {
-    if (_isProcessingReveal.value) return
-    viewModelScope.launch {
-      _isProcessingReveal.value = true
-      try {
-        when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
-          is RevealResult.Success -> {
-            searchUseCase.navigateToProject(
-              result.projectId,
-              uiState.value.projectHierarchy,
-            )
-            replaceCurrentSubState(MainSubState.ProjectFocused(result.projectId))
-            searchUseCase.onSearchQueryChanged(TextFieldValue(""))
-            projectToRevealAndScroll = result.projectId
-          }
-          is RevealResult.Failure -> {
-            _uiEventChannel.send(ProjectUiEvent.ShowToast("Не вдалося показати локацію"))
-          }
-        }
-      } finally {
-        _isProcessingReveal.value = false
-      }
-    }
-  }
 
   private fun onProjectClicked(projectId: String) {
     viewModelScope.launch {
@@ -802,21 +648,10 @@ constructor(
     }
   }
 
-  private fun onPerformGlobalSearch(query: String) {
-    if (query.isNotBlank()) {
-      searchUseCase.onSearchQueryFromHistory(query)
-      if (isSearchActive()) {
-        popToSubState(MainSubState.Hierarchy)
-        searchUseCase.onToggleSearch(isActive = false)
-      }
-      enhancedNavigationManager?.navigateToGlobalSearch(query)
-      _showSearchDialog.value = false
-    }
-  }
 
   private fun onPlanningModeChange(mode: PlanningMode) {
-    if (isSearchActive()) {
-      popToSubState(MainSubState.Hierarchy)
+    if (searchUseCase.isSearchActive()) {
+      searchUseCase.popToSubState(MainSubState.Hierarchy)
       searchUseCase.onToggleSearch(isActive = false)
     }
     planningModeManager.changeMode(mode)
@@ -847,7 +682,7 @@ constructor(
                 projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
                 val project = _allProjectsFlat.value.find { it.id == item.target }
                 if (project != null) {
-                    popToSubState(MainSubState.Hierarchy)
+                    searchUseCase.popToSubState(MainSubState.Hierarchy)
                     enhancedNavigationManager?.navigateToProject(item.target, project.name)
                 }
             }
@@ -950,7 +785,7 @@ constructor(
       }
       val targetProject = _allProjectsFlat.value.find { it.tags?.contains(targetTag) == true }
       if (targetProject != null) {
-        popToSubState(MainSubState.Hierarchy)
+        searchUseCase.popToSubState(MainSubState.Hierarchy)
         enhancedNavigationManager?.navigateToProject(targetProject.id, targetProject.name)
       } else {
         _uiEventChannel.send(ProjectUiEvent.ShowToast("Проект с тегом '#$targetTag' не найден"))
@@ -1029,7 +864,7 @@ constructor(
   private fun createClearContext() =
     createClearExecutionContext(
       currentProjects = _allProjectsFlat.value,
-      subStateStack = _subStateStack,
+      subStateStack = searchUseCase.subStateStack,
       searchUseCase = searchUseCase,
       planningModeManager = planningModeManager,
       enhancedNavigationManager = enhancedNavigationManager,

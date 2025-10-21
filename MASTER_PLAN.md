@@ -16,7 +16,7 @@
 - [x] Create a `PlanningUseCase` to handle planning modes.
 - [x] Create a `SyncUseCase` to manage Wi-Fi sync.
 - [x] Create a `ProjectActionsUseCase` to handle project actions.
-- [ ] Migrate search and navigation logic to `SearchUseCase`.
+- [x] Migrate search and navigation logic to `SearchUseCase`.
 - [ ] Migrate hierarchy logic to `HierarchyUseCase`.
 - [ ] Migrate dialog logic to `DialogUseCase`.
 - [ ] Migrate planning logic to `PlanningUseCase`.
