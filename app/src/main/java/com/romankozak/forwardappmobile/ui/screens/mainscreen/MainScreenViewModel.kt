@@ -46,10 +46,13 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
+
 @HiltViewModel
 class MainScreenViewModel
 @Inject
 constructor(
+  private val searchUseCase: SearchUseCase,
   private val projectRepository: ProjectRepository,
   private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
   private val settingsRepo: SettingsRepository,
