@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
 
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
+
 import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -217,11 +219,14 @@ constructor(
 private val ActivityRecord.isOngoing: Boolean
   get() = this.startTime != null && this.endTime == null
 
+
+
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class BacklogViewModel
 @Inject
 constructor(
+  private val searchUseCase: SearchUseCase,
   private val application: Application,
   private val projectRepository: ProjectRepository,
   private val settingsRepository: SettingsRepository,
@@ -1508,14 +1513,7 @@ constructor(
             com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState.Hierarchy
           )
         ),
-      searchAndNavigationManager =
-        com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.SearchAndNavigationManager(
-          projectRepository,
-          viewModelScope,
-          savedStateHandle,
-          Channel<com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent>(),
-          _allProjects,
-        ),
+      searchUseCase = searchUseCase, // This will be injected
       planningModeManager =
         com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager(),
       enhancedNavigationManager = enhancedNavigationManager,
