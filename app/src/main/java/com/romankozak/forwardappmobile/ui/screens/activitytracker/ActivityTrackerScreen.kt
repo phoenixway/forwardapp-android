@@ -40,6 +40,7 @@ import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.dialogs.formatDuration
+import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
@@ -62,7 +63,8 @@ private val ActivityRecord.isOngoing: Boolean
 fun ActivityTrackerScreen(
     navController: NavController,
     viewModel: ActivityTrackerViewModel = hiltViewModel(),
-) {
+)
+{
     val log by viewModel.activityLog.collectAsStateWithLifecycle()
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
@@ -97,6 +99,9 @@ fun ActivityTrackerScreen(
                 ) {
                     InProgressIndicator(
                         ongoingActivity = lastOngoingActivity,
+                        onStopClick = viewModel::onToggleStartStop,
+                        onReminderClick = { lastOngoingActivity?.let { viewModel.onSetReminder(it) } },
+                        onIndicatorClick = { } 
                     )
                     ActivityInputBar(
                         text = inputText,
@@ -168,7 +173,8 @@ private fun ActivityTrackerTopAppBar(
     onNavigateBack: () -> Unit,
     onClearLogRequest: () -> Unit,
     onExportRequest: () -> Unit,
-) {
+)
+{
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text("Трекер Активності") },
@@ -198,7 +204,8 @@ private fun ActivityLog(
     onRestart: (ActivityRecord) -> Unit,
     onDelete: (ActivityRecord) -> Unit,
     onSetReminder: (ActivityRecord) -> Unit,
-) {
+)
+{
     val groupedByDate = remember(log) { log.groupBy { toDateHeader(it.createdAt) } }
     val lazyListState = rememberLazyListState()
 
@@ -254,7 +261,8 @@ private fun LogEntryItem(
     onRestart: (ActivityRecord) -> Unit,
     onDelete: (ActivityRecord) -> Unit,
     onSetReminder: (ActivityRecord) -> Unit,
-) {
+)
+{
     if (record.isTimeless) {
         OutlinedCard(
             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -371,7 +379,8 @@ private fun TextWithBadgeLayout(
     text: String,
     textStyle: TextStyle,
     badge: @Composable () -> Unit,
-) {
+)
+{
     val textMeasurer = rememberTextMeasurer()
     SubcomposeLayout(modifier = modifier) { constraints ->
         val badgePlaceable = subcompose("badge", badge).firstOrNull()?.measure(Constraints())
@@ -442,66 +451,14 @@ private fun TextWithBadgeLayout(
 }
 
 @Composable
-private fun InProgressIndicator(ongoingActivity: ActivityRecord?) {
-    AnimatedVisibility(
-        visible = ongoingActivity != null,
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically(),
-    ) {
-        if (ongoingActivity != null) {
-            var elapsedTime by remember { mutableLongStateOf(System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)) }
-
-            LaunchedEffect(key1 = ongoingActivity.id) {
-                while (true) {
-                    elapsedTime = System.currentTimeMillis() - (ongoingActivity.startTime ?: 0L)
-                    delay(1000L)
-                }
-            }
-            val timeString = formatElapsedTime(elapsedTime)
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Default.HourglassTop, contentDescription = "В процесі", tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = ongoingActivity.text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(text = timeString, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun formatElapsedTime(elapsedTime: Long): String {
-    val hours = TimeUnit.MILLISECONDS.toHours(elapsedTime)
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(elapsedTime) % 60
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60
-    return if (hours > 0) {
-        String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
-    }
-}
-
-@Composable
 private fun ActivityInputBar(
     text: String,
     isActivityOngoing: Boolean,
     onTextChange: (String) -> Unit,
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
-) {
+)
+{
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 3.dp,
@@ -599,7 +556,8 @@ private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
 private fun copyToClipboard(
     context: Context,
     text: String,
-) {
+)
+{
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("Activity Log", text)
     clipboard.setPrimaryClip(clip)
@@ -613,7 +571,8 @@ private fun EditRecordDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, Long?, Long?) -> Unit,
     isLastTimedRecord: Boolean,
-) {
+)
+{
     var text by remember(record) { mutableStateOf(record.text) }
     var startTime by remember(record) { mutableStateOf(record.startTime) }
     var endTime by remember(record) { mutableStateOf(record.endTime) }
