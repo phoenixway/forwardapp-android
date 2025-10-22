@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
@@ -27,7 +26,6 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActi
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.navigation.RevealResult
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncManager
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.utils.flattenHierarchy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
@@ -44,6 +42,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.HierarchyU
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.NavigationUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SettingsUseCase
@@ -67,9 +66,9 @@ constructor(
   private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
 
   private val application: Application,
-  private val syncRepo: SyncRepository,
   private val savedStateHandle: SavedStateHandle,
   private val planningUseCase: PlanningUseCase,
+  private val syncUseCase: SyncUseCase,
   private val actionsHandler: ProjectActionsHandler,
   private val navigationUseCase: NavigationUseCase,
   private val themingUseCase: ThemingUseCase,
@@ -126,9 +125,12 @@ constructor(
       scope = viewModelScope,
       allProjectsFlat = _allProjectsFlat,
     )
+    syncUseCase.initialize(
+      scope = viewModelScope,
+      application = application,
+      uiEventChannel = _uiEventChannel,
+    )
   }
-  private val wifiSyncManager =
-    WifiSyncManager(syncRepo, settingsRepo, application, viewModelScope, _uiEventChannel)
 
   private val _isProcessingReveal = navigationUseCase.isProcessingReveal
   private var projectToRevealAndScroll: String? = null
@@ -213,6 +215,19 @@ constructor(
             _uiEventChannel.send(ProjectUiEvent.ScrollToIndex(index))
           }
         }
+    }
+
+    viewModelScope.launch {
+      syncUseCase.syncUiState.collect { syncState ->
+        _uiState.update { current ->
+          current.copy(
+            showWifiServerDialog = syncState.showWifiServerDialog,
+            wifiServerAddress = syncState.wifiServerAddress,
+            showWifiImportDialog = syncState.showWifiImportDialog,
+            desktopAddress = syncState.desktopAddress,
+          )
+        }
+      }
     }
 
 
@@ -373,8 +388,8 @@ constructor(
       is MainScreenEvent.ShowSearchDialog -> _showSearchDialog.value = true
       is MainScreenEvent.DismissSearchDialog -> _showSearchDialog.value = false
 
-      is MainScreenEvent.ShowWifiServerDialog -> wifiSyncManager.onShowWifiServerDialog()
-      is MainScreenEvent.ShowWifiImportDialog -> wifiSyncManager.onShowWifiImportDialog()
+      is MainScreenEvent.ShowWifiServerDialog -> syncUseCase.onShowWifiServerDialog()
+      is MainScreenEvent.ShowWifiImportDialog -> syncUseCase.onShowWifiImportDialog()
       is MainScreenEvent.ExportToFile ->
         viewModelScope.launch {
           val result = actionsHandler.exportToFile()
@@ -414,11 +429,11 @@ constructor(
       is MainScreenEvent.SaveAllContexts -> {
         settingsUseCase.saveAllContexts(viewModelScope, event.updatedContexts)
       }
-      is MainScreenEvent.DismissWifiServerDialog -> wifiSyncManager.onDismissWifiServerDialog()
-      is MainScreenEvent.DismissWifiImportDialog -> wifiSyncManager.onDismissWifiImportDialog()
+      is MainScreenEvent.DismissWifiServerDialog -> syncUseCase.onDismissWifiServerDialog()
+      is MainScreenEvent.DismissWifiImportDialog -> syncUseCase.onDismissWifiImportDialog()
       is MainScreenEvent.DesktopAddressChange ->
-        wifiSyncManager.onDesktopAddressChange(event.address)
-      is MainScreenEvent.PerformWifiImport -> wifiSyncManager.performWifiImport(event.address)
+        syncUseCase.onDesktopAddressChange(event.address)
+      is MainScreenEvent.PerformWifiImport -> syncUseCase.performWifiImport(event.address)
       is MainScreenEvent.AddProjectConfirm -> {
         viewModelScope.launch {
           actionsHandler.addNewProject(
