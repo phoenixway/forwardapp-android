@@ -573,18 +573,39 @@ fun EditRecurringTaskDialog(
   onConfirmEditSingle: (DayTaskWithReminder) -> Unit,
   onConfirmEditAll: (DayTaskWithReminder) -> Unit,
 ) {
-  val task = taskWithReminder.dayTask
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text("Редагувати повторюване завдання?") },
-    text = { Text("Ви хочете редагувати тільки це завдання, чи це і всі наступні?") },
-    confirmButton = {
-      Column {
-        Button(onClick = { onConfirmEditSingle(taskWithReminder) }) { Text("Тільки це завдання") }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { onConfirmEditAll(taskWithReminder) }) { Text("Це і всі наступні") }
+    title = { Text("Редагувати повторюване завдання") },
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Це завдання є частиною серії. Виберіть, що саме потрібно змінити.")
+
+        Row(
+          modifier =
+            Modifier
+              .fillMaxWidth()
+              .clip(MaterialTheme.shapes.medium)
+              .clickable { onConfirmEditSingle(taskWithReminder) }
+              .padding(vertical = 12.dp, horizontal = 16.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Text("Тільки це завдання")
+        }
+
+        Row(
+          modifier =
+            Modifier
+              .fillMaxWidth()
+              .clip(MaterialTheme.shapes.medium)
+              .clickable { onConfirmEditAll(taskWithReminder) }
+              .padding(vertical = 12.dp, horizontal = 16.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Text("Це та всі наступні завдання")
+        }
       }
     },
+    confirmButton = {},
     dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
   )
 }
@@ -596,21 +617,40 @@ fun DeleteRecurringTaskDialog(
   onConfirmDeleteSingle: (DayTaskWithReminder) -> Unit,
   onConfirmDeleteAll: (DayTaskWithReminder) -> Unit,
 ) {
-  val task = taskWithReminder.dayTask
   AlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Видалити повторюване завдання?") },
-    text = { Text("Ви хочете видалити тільки це завдання, чи це і всі наступні?") },
-    confirmButton = {
-      Column(modifier = Modifier.padding(8.dp)) {
-        Button(onClick = { onConfirmDeleteSingle(taskWithReminder) }) { Text("Тільки це завдання") }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { onConfirmDeleteAll(taskWithReminder) }) { Text("Це і всі наступні") }
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = onDismiss) { Text("Скасувати") }
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Це завдання є частиною серії. Виберіть, що саме потрібно видалити.")
+
+        Button(
+          onClick = { onConfirmDeleteSingle(taskWithReminder) },
+          modifier = Modifier.fillMaxWidth(),
+          colors =
+            ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.errorContainer,
+              contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ),
+        ) {
+          Text("Тільки це завдання")
+        }
+
+        Button(
+          onClick = { onConfirmDeleteAll(taskWithReminder) },
+          modifier = Modifier.fillMaxWidth(),
+          colors =
+            ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.errorContainer,
+              contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ),
+        ) {
+          Text("Це та всі наступні")
+        }
       }
     },
-    dismissButton = null,
+    confirmButton = {},
+    dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
   )
 }
 
@@ -651,7 +691,7 @@ fun TaskOptionsBottomSheet(
 ) {
   val task = taskWithReminder.dayTask
   ModalBottomSheet(onDismissRequest = onDismiss) {
-    Column {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
       ListItem(
         headlineContent = { Text("Редагувати") },
         leadingContent = { Icon(Icons.Outlined.Edit, contentDescription = null) },
@@ -665,11 +705,15 @@ fun TaskOptionsBottomSheet(
       ListItem(
         headlineContent = { Text("Перенести на завтра") },
         leadingContent = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
-        modifier = Modifier.clickable {
+        modifier =
+          Modifier.clickable {
             onMoveToTomorrow()
             onDismiss()
-        },
+          },
       )
+
+      HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
       ListItem(
         headlineContent = { Text("Встановити нагадування") },
         leadingContent = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
@@ -703,7 +747,9 @@ fun TaskOptionsBottomSheet(
             },
         )
       }
-      HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+      HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
       ListItem(
         headlineContent = { Text("Видалити", color = MaterialTheme.colorScheme.error) },
         leadingContent = {
@@ -719,7 +765,7 @@ fun TaskOptionsBottomSheet(
             onDismiss()
           },
       )
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.navigationBarsPadding())
     }
   }
 }
