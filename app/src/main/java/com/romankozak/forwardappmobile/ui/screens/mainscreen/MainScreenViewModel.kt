@@ -150,6 +150,37 @@ constructor(
       navigationSnapshot = navigationSnapshot,
     )
     initializeAndCollectStates()
+    viewModelScope.launch {
+      _allProjectsFlat.collect { projects ->
+        android.util.Log.d("HierarchyDebug", "_allProjectsFlat size=${projects.size}")
+      }
+    }
+    viewModelScope.launch {
+      planningUseCase.filterStateFlow.collect { state ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "filterStateFlow flat=${state.flatList.size} ready=${planningUseCase.isReadyForFiltering.value}",
+        )
+      }
+    }
+    viewModelScope.launch {
+      mainScreenStateUseCase.projectHierarchy.collect { hierarchy ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "projectHierarchy flow emit: topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
+        )
+      }
+    }
+    viewModelScope.launch {
+      kotlinx.coroutines.delay(1500)
+      val filterState = planningUseCase.filterStateFlow.first()
+      val filterSize = filterState.flatList.size
+      android.util.Log.d("HierarchyDebug", "Delayed check: filterState flat=$filterSize")
+      android.util.Log.d(
+        "HierarchyDebug",
+        "Delayed check: hierarchyState topLevel=${mainScreenStateUseCase.projectHierarchy.value.topLevelProjects.size}",
+      )
+    }
   }
   private var projectToRevealAndScroll: String? = null
   private var navigationStateJob: Job? = null
