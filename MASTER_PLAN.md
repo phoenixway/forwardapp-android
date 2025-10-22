@@ -22,7 +22,7 @@
 - [x] Migrate planning logic to `PlanningUseCase`.
 - [x] Migrate sync logic to `SyncUseCase`.
 - [x] Migrate project actions logic to `ProjectActionsUseCase`.
-- [ ] Update `MainScreenViewModel` to use the new UseCases.
+- [x] Update `MainScreenViewModel` to use the new UseCases.
 
 ## Phase 3: Theming and Styling
 - [ ] Create a Compose Theme.
