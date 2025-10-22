@@ -52,6 +52,9 @@ class PlanningUseCase @Inject constructor(
     )
     @OptIn(ExperimentalCoroutinesApi::class)
     val filterStateFlow: Flow<FilterState> = _internalFilterFlow.flatMapLatest { it }
+        .onEach { // Add logging
+            android.util.Log.d("HierarchyDebug", ">>> filterStateFlow emitted value: flat=${it.flatList.size}")
+        }
 
     val planningMode = planningModeManager.planningMode
 

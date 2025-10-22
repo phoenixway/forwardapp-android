@@ -76,20 +76,19 @@ constructor(
 
     val hierarchyState =
       combine(
-            planningUseCase.filterStateFlow,
-            planningUseCase.planningModeManager.expandedInDailyMode,
-            planningUseCase.planningModeManager.expandedInMediumMode,
-            planningUseCase.planningModeManager.expandedInLongMode,
-          ) { filterState, expandedDaily, expandedMedium, expandedLong ->
+            planningUseCase.filterStateFlow.onEach {
+                android.util.Log.d("HierarchyDebug", "<<< hierarchyState received value: flat=${it.flatList.size}")
+            },
+          ) { (filterState) ->
             android.util.Log.d(
               "HierarchyDebug",
               "coreHierarchyFlow combine triggered: filterFlat=${filterState.flatList.size}, mode=${filterState.mode}",
             )
             val hierarchy = hierarchyUseCase.createProjectHierarchy(
               filterState,
-              expandedDaily,
-              expandedMedium,
-              expandedLong,
+              emptySet(),
+              emptySet(),
+              emptySet(),
             )
             android.util.Log.d(
               "HierarchyDebug",
