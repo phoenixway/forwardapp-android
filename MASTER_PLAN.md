@@ -20,7 +20,7 @@
 - [x] Migrate hierarchy logic to `HierarchyUseCase`.
 - [x] Migrate dialog logic to `DialogUseCase`.
 - [x] Migrate planning logic to `PlanningUseCase`.
-- [ ] Migrate sync logic to `SyncUseCase`.
+- [x] Migrate sync logic to `SyncUseCase`.
 - [ ] Migrate project actions logic to `ProjectActionsUseCase`.
 - [ ] Update `MainScreenViewModel` to use the new UseCases.
 
