@@ -34,9 +34,9 @@ class PlanningModeManager
         fun toggleExpandedInPlanningMode(project: Project) {
             val currentStateFlow =
                 when (_planningMode.value) {
-                    is PlanningMode.Daily -> _expandedInDailyMode
-                    is PlanningMode.Medium -> _expandedInMediumMode
-                    is PlanningMode.Long -> _expandedInLongMode
+                    PlanningMode.Today -> _expandedInDailyMode
+                    PlanningMode.Medium -> _expandedInMediumMode
+                    PlanningMode.Long -> _expandedInLongMode
                     else -> return
                 }
 

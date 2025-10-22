@@ -114,9 +114,9 @@ fun MainScreenContent(
                 val emptyText =
                     remember(uiState.planningMode, uiState.planningSettings) {
                         when (uiState.planningMode) {
-                            is PlanningMode.Daily -> "No projects with tag '#${uiState.planningSettings.dailyTag}'"
-                            is PlanningMode.Medium -> "No projects with tag '#${uiState.planningSettings.mediumTag}'"
-                            is PlanningMode.Long -> "No projects with tag '#${uiState.planningSettings.longTag}'"
+                            PlanningMode.Today -> "No projects with tag '#${uiState.planningSettings.dailyTag}'"
+                            PlanningMode.Medium -> "No projects with tag '#${uiState.planningSettings.mediumTag}'"
+                            PlanningMode.Long -> "No projects with tag '#${uiState.planningSettings.longTag}'"
                             else -> "Create your first project"
                         }
                     }

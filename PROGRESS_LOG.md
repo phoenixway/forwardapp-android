@@ -13,4 +13,7 @@
   - **ПЛАН:** Розбити `MainScreenViewModel` на менші, більш сфокусовані UseCase'и.
   - **ЗРОБЛЕНО:** Створено пусті класи для `SearchUseCase`, `HierarchyUseCase`, `DialogUseCase`, `PlanningUseCase`, `SyncUseCase`, `ProjectActionsUseCase`.
   - **ЗАВЕРШЕНО:** Міграція логіки пошуку та навігації з `MainScreenViewModel` до `SearchUseCase`.
-  - **НАСТУПНИЙ КРОК:** Міграція логіки ієрархії до `HierarchyUseCase`.
+  - **ЗАВЕРШЕНО:** Міграція логіки ієрархії до `HierarchyUseCase`.
+  - **ЗАВЕРШЕНО:** Міграція логіки діалогів до `DialogUseCase`.
+  - **ЗАВЕРШЕНО:** Логіку планування перенесено до `PlanningUseCase`; ViewModel тепер ініціалізує та використовує єдині планувальні потоки.
+  - **НОТАТКА:** `make check-compile` все ще падає через наявні в гілці помилки (відсутні обробники `onEvent` тощо); додаткових регресій від міграції планування не виявлено.

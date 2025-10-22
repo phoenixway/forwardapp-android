@@ -17,9 +17,9 @@
 - [x] Create a `SyncUseCase` to manage Wi-Fi sync.
 - [x] Create a `ProjectActionsUseCase` to handle project actions.
 - [x] Migrate search and navigation logic to `SearchUseCase`.
-- [ ] Migrate hierarchy logic to `HierarchyUseCase`.
-- [ ] Migrate dialog logic to `DialogUseCase`.
-- [ ] Migrate planning logic to `PlanningUseCase`.
+- [x] Migrate hierarchy logic to `HierarchyUseCase`.
+- [x] Migrate dialog logic to `DialogUseCase`.
+- [x] Migrate planning logic to `PlanningUseCase`.
 - [ ] Migrate sync logic to `SyncUseCase`.
 - [ ] Migrate project actions logic to `ProjectActionsUseCase`.
 - [ ] Update `MainScreenViewModel` to use the new UseCases.

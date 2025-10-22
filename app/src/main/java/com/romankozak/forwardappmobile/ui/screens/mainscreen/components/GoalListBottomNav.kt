@@ -50,13 +50,13 @@ private fun PlanningModeSelector(
         remember {
             listOf(
                 "All" to (Icons.AutoMirrored.Outlined.List to PlanningMode.All),
-                "Daily" to (Icons.Outlined.Today to PlanningMode.Daily),
+                "Today" to (Icons.Outlined.Today to PlanningMode.Today),
                 "Medium" to (Icons.Outlined.QueryStats to PlanningMode.Medium),
                 "Long" to (Icons.Outlined.TrackChanges to PlanningMode.Long),
             )
         }
 
-    val (currentText, currentData) = planningModes.first { it.second.second::class == currentMode::class }
+    val (currentText, currentData) = planningModes.first { it.second.second == currentMode }
     val (currentIcon, _) = currentData
 
     Box {
