@@ -463,7 +463,7 @@ private fun rememberSimpleDragDropState(
     onMove: (Int, Int) -> Unit,
 ): SimpleDragDropState {
     val scope = rememberCoroutineScope()
-    return remember(lazyListState) {
+    return remember(lazyListState, onMove) {
         SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
     }
 }
