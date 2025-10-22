@@ -193,11 +193,29 @@ constructor(
         projectId: String,
     ) = listItemRepository.deleteLinkByEntityIdAndProjectId(entityId, projectId)
 
-    fun getAllProjectsFlow(): Flow<List<Project>> = projectDao.getAllProjects()
+    fun getAllProjectsFlow(): Flow<List<Project>> =
+        projectDao
+            .getAllProjects()
+            .map { projects -> projects.map { it.withNormalizedParentId() } }
 
-    suspend fun getProjectById(id: String): Project? = projectDao.getProjectById(id)
+    suspend fun getProjectById(id: String): Project? =
+        projectDao.getProjectById(id)?.withNormalizedParentId()
 
-    fun getProjectByIdFlow(id: String): Flow<Project?> = projectDao.getProjectByIdStream(id)
+    fun getProjectByIdFlow(id: String): Flow<Project?> =
+        projectDao.getProjectByIdStream(id).map { project -> project?.withNormalizedParentId() }
+
+    private fun Project.withNormalizedParentId(): Project {
+        val normalizedParentId =
+            parentId
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+
+        return if (normalizedParentId != parentId) {
+            copy(parentId = normalizedParentId)
+        } else {
+            this
+        }
+    }
 
     suspend fun updateProject(project: Project) {
         projectDao.update(project)

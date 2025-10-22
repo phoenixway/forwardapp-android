@@ -151,8 +151,6 @@ constructor(
     )
     initializeAndCollectStates()
   }
-
-  private val isProcessingReveal = navigationUseCase.isProcessingReveal
   private var projectToRevealAndScroll: String? = null
   private var navigationStateJob: Job? = null
   private var navigationResultJob: Job? = null
@@ -224,7 +222,7 @@ constructor(
       combine(
           mainScreenStateUseCase.projectHierarchy,
           planningUseCase.filterStateFlow,
-          isProcessingReveal,
+          navigationUseCase.isProcessingReveal,
         ) { hierarchy, filterState, processingReveal ->
           val projectId = projectToRevealAndScroll
           if (projectId != null && !filterState.searchActive && !processingReveal) {

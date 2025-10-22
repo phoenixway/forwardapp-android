@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -67,10 +66,13 @@ fun MainScreenTopAppBar(
                 if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Badge(
-                        containerColor = Color.Red,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     ) {
-                        Text("Debug")
+                        Text(
+                            text = "Debug",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
                     }
                 }
             }

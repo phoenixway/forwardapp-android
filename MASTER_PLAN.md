@@ -27,5 +27,9 @@
 - [x] Cache settings-driven flows (e.g., `obsidianVaultName`) before building UI state.
 
 ## Phase 3: Theming and Styling
-- [ ] Create a Compose Theme.
+- [x] Create a Compose Theme.
 - [ ] Apply the theme to all Composables.
+
+## Phase 4: Day Plan UX Enhancements
+- [x] Redesign the Day Plan header with points-centric progress and quick actions.
+- [x] Refresh Day Plan task cards to follow the revamped visual language.
