@@ -20,37 +20,66 @@ class NavigationUseCase @Inject constructor(
     private val searchUseCase: SearchUseCase,
     private val planningUseCase: PlanningUseCase,
 ) {
-    var enhancedNavigationManager: EnhancedNavigationManager? = null
-    var uiEventChannel: Channel<ProjectUiEvent>? = null
-    var allProjectsFlat: StateFlow<List<Project>>? = null
+    private var enhancedNavigationManager: EnhancedNavigationManager? = null
+    private var uiEventChannel: Channel<ProjectUiEvent>? = null
+    private var allProjectsFlat: StateFlow<List<Project>>? = null
 
     private val _isProcessingReveal = MutableStateFlow(false)
     val isProcessingReveal: StateFlow<Boolean> = _isProcessingReveal
 
+    private val _isAttached = MutableStateFlow(false)
+    val isAttached: StateFlow<Boolean> = _isAttached
+
+    fun attach(
+        enhancedNavigationManager: EnhancedNavigationManager,
+        uiEventChannel: Channel<ProjectUiEvent>,
+        allProjectsFlat: StateFlow<List<Project>>,
+    ) {
+        this.enhancedNavigationManager = enhancedNavigationManager
+        this.uiEventChannel = uiEventChannel
+        this.allProjectsFlat = allProjectsFlat
+        _isAttached.value = true
+    }
+
+    fun detach() {
+        enhancedNavigationManager = null
+        uiEventChannel = null
+        allProjectsFlat = null
+        _isProcessingReveal.value = false
+        _isAttached.value = false
+    }
+
     private fun createClearContext(currentProjects: List<Project>) =
-        createClearExecutionContext(
-            currentProjects = currentProjects,
-            subStateStack = searchUseCase.subStateStack,
-            searchUseCase = searchUseCase,
-            planningUseCase = planningUseCase,
-            enhancedNavigationManager = enhancedNavigationManager,
-            uiEventChannel = uiEventChannel ?: error("NavigationUseCase uiEventChannel not initialized"),
-        )
+        enhancedNavigationManager?.let { manager ->
+            uiEventChannel?.let { channel ->
+                createClearExecutionContext(
+                    currentProjects = currentProjects,
+                    subStateStack = searchUseCase.subStateStack,
+                    searchUseCase = searchUseCase,
+                    planningUseCase = planningUseCase,
+                    enhancedNavigationManager = manager,
+                    uiEventChannel = channel,
+                )
+            }
+        }
 
     fun onNavigateHome(scope: CoroutineScope) {
-        if (_isProcessingReveal.value) return
+        if (!_isAttached.value || _isProcessingReveal.value) return
 
         scope.launch {
+            val context =
+                createClearContext(allProjectsFlat?.value ?: emptyList()) ?: return@launch
+            val channel = uiEventChannel ?: return@launch
             _isProcessingReveal.value = true
             try {
                 val result =
                     clearAndNavigateHomeUseCase.execute(
                         command = ClearCommand.Home,
-                        context = createClearContext(allProjectsFlat?.value ?: emptyList()),
+                        context = context,
                     )
 
                 if (result is ClearResult.Error) {
-                    uiEventChannel?.send(
+                    channel.send(
                         ProjectUiEvent.ShowToast("Помилка навігації: ${result.message}")
                     )
                 }
@@ -61,9 +90,12 @@ class NavigationUseCase @Inject constructor(
     }
 
     fun onNavigateToProject(scope: CoroutineScope, projectId: String) {
-        if (_isProcessingReveal.value) return
+        if (!_isAttached.value || _isProcessingReveal.value) return
 
         scope.launch {
+            val context =
+                createClearContext(allProjectsFlat?.value ?: emptyList()) ?: return@launch
+            val channel = uiEventChannel ?: return@launch
             _isProcessingReveal.value = true
             try {
                 val project = allProjectsFlat?.value?.find { it.id == projectId }
@@ -72,11 +104,11 @@ class NavigationUseCase @Inject constructor(
                 val result =
                     clearAndNavigateHomeUseCase.execute(
                         command = ClearCommand.NavigateToProject(projectId, projectName),
-                        context = createClearContext(allProjectsFlat?.value ?: emptyList()),
+                        context = context,
                     )
 
                 if (result is ClearResult.Error) {
-                    uiEventChannel?.send(
+                    channel.send(
                         ProjectUiEvent.ShowToast("Помилка навігації до проєкту: ${result.message}")
                     )
                 }
@@ -87,23 +119,26 @@ class NavigationUseCase @Inject constructor(
     }
 
     fun onCollapseAll(scope: CoroutineScope) {
-        if (_isProcessingReveal.value) return
+        if (!_isAttached.value || _isProcessingReveal.value) return
 
         scope.launch {
+            val context =
+                createClearContext(allProjectsFlat?.value ?: emptyList()) ?: return@launch
+            val channel = uiEventChannel ?: return@launch
             _isProcessingReveal.value = true
             try {
                 val result =
                     clearAndNavigateHomeUseCase.execute(
                         command = ClearCommand.CollapseAll,
-                        context = createClearContext(allProjectsFlat?.value ?: emptyList()),
+                        context = context,
                     )
 
                 when (result) {
                     is ClearResult.Success -> {
-                        uiEventChannel?.send(ProjectUiEvent.ShowToast("Всі проєкти згорнуто"))
+                        channel.send(ProjectUiEvent.ShowToast("Всі проєкти згорнуто"))
                     }
                     is ClearResult.Error -> {
-                        uiEventChannel?.send(ProjectUiEvent.ShowToast("Помилка згортання: ${result.message}"))
+                        channel.send(ProjectUiEvent.ShowToast("Помилка згортання: ${result.message}"))
                     }
                 }
             } finally {

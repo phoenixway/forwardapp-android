@@ -5,7 +5,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -15,10 +14,6 @@ import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
-import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
-import com.romankozak.forwardappmobile.ui.navigation.ClearCommand
-import com.romankozak.forwardappmobile.ui.navigation.ClearResult
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
@@ -29,14 +24,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.update
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.HierarchyUseCase
-
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectActionsUseCase
@@ -44,6 +38,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SyncUseCas
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.NavigationUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SettingsUseCase
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.MainScreenStateUseCase
 
 @HiltViewModel
 class MainScreenViewModel
@@ -53,10 +48,8 @@ constructor(
   private val settingsRepo: SettingsRepository,
   private val searchUseCase: SearchUseCase,
   private val dialogUseCase: DialogUseCase,
-  private val hierarchyUseCase: HierarchyUseCase,
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val contextHandler: ContextHandler,
-  private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
   private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
   private val activityRepository: ActivityRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
@@ -71,6 +64,7 @@ constructor(
   private val navigationUseCase: NavigationUseCase,
   private val themingUseCase: ThemingUseCase,
   private val settingsUseCase: SettingsUseCase,
+  private val mainScreenStateUseCase: MainScreenStateUseCase,
 ) : ViewModel() {
   companion object {
     private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
@@ -79,18 +73,32 @@ constructor(
 
   var enhancedNavigationManager: EnhancedNavigationManager? = null
     set(value) {
+      if (field === value) return
+
+      field?.let {
+        navigationStateJob?.cancel()
+        navigationResultJob?.cancel()
+        navigationSnapshot.value = MainScreenStateUseCase.NavigationSnapshot()
+        navigationUseCase.detach()
+      }
+
       field = value
-      if (value != null && !isInitialized) {
-        isInitialized = true
-        initializeAndCollectStates()
-        initializeNavigationResultHandling()
+      if (value != null) {
+        navigationUseCase.attach(
+          enhancedNavigationManager = value,
+          uiEventChannel = _uiEventChannel,
+          allProjectsFlat = _allProjectsFlat,
+        )
+        observeNavigationManager(value)
+        initializeNavigationResultHandling(value)
       }
     }
 
-  private var isInitialized = false
+  private val navigationSnapshot =
+    MutableStateFlow(MainScreenStateUseCase.NavigationSnapshot())
 
-  private val _uiState = MutableStateFlow(MainScreenUiState())
-  val uiState: StateFlow<MainScreenUiState> = _uiState.asStateFlow()
+  val uiState: StateFlow<MainScreenUiState>
+    get() = mainScreenStateUseCase.uiState
 
   val lastOngoingActivity: StateFlow<com.romankozak.forwardappmobile.data.database.models.ActivityRecord?> =
       activityRepository
@@ -113,6 +121,11 @@ constructor(
     projectRepository
       .getAllProjectsFlow()
       .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+  private val _showRecentListsSheet = MutableStateFlow(false)
+  private val _isBottomNavExpanded = MutableStateFlow(false)
+  private val _showSearchDialog = MutableStateFlow(false)
+  private val projectBeingMovedId =
+    savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
   init {
     searchUseCase.initialize(
       scope = viewModelScope,
@@ -128,51 +141,21 @@ constructor(
       application = application,
       uiEventChannel = _uiEventChannel,
     )
+    mainScreenStateUseCase.initialize(
+      scope = viewModelScope,
+      allProjectsFlat = _allProjectsFlat,
+      showRecentListsSheet = _showRecentListsSheet,
+      isBottomNavExpanded = _isBottomNavExpanded,
+      showSearchDialog = _showSearchDialog,
+      navigationSnapshot = navigationSnapshot,
+    )
+    initializeAndCollectStates()
   }
 
   private val isProcessingReveal = navigationUseCase.isProcessingReveal
   private var projectToRevealAndScroll: String? = null
-  private val _showRecentListsSheet = MutableStateFlow(false)
-  private val _isBottomNavExpanded = MutableStateFlow(false)
-  private val _showSearchDialog = MutableStateFlow(false)
-  private val projectBeingMovedId =
-    savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
-
-  private val coreHierarchyFlow =
-    combine(
-      planningUseCase.filterStateFlow,
-      planningUseCase.planningModeManager.expandedInDailyMode,
-      planningUseCase.planningModeManager.expandedInMediumMode,
-      planningUseCase.planningModeManager.expandedInLongMode,
-    ) { filterState, expandedDaily, expandedMedium, expandedLong ->
-      hierarchyUseCase.createProjectHierarchy(
-        filterState,
-        expandedDaily,
-        expandedMedium,
-        expandedLong,
-      )
-    }
-    .stateIn(viewModelScope, SharingStarted.Lazily, ListHierarchyData())
-
-  private val searchResultsFlow =
-    combine(planningUseCase.filterStateFlow, coreHierarchyFlow) { filterState, hierarchy ->
-      hierarchyUseCase.createSearchResults(filterState, hierarchy)
-    }
-      .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-  private val expensiveCalculationsFlow =
-    combine(
-        _allProjectsFlat,
-        recentItemsRepository.getRecentItems(),
-        contextHandler.allContextsFlow,
-      ) { allProjects, recentItems, contexts ->
-        ExpensiveCalculations(
-          areAnyProjectsExpanded = allProjects.any { it.isExpanded },
-          recentItems = recentItems,
-          allContexts = contexts,
-        )
-      }
-      .stateIn(viewModelScope, SharingStarted.Lazily, ExpensiveCalculations())
+  private var navigationStateJob: Job? = null
+  private var navigationResultJob: Job? = null
 
   private fun onContextSelected(name: String) {
     viewModelScope.launch {
@@ -183,19 +166,49 @@ constructor(
     }
   }
 
-  private fun initializeNavigationResultHandling() {
-    enhancedNavigationManager?.let { navManager ->
-      navigationUseCase.enhancedNavigationManager = navManager
-      navigationUseCase.uiEventChannel = _uiEventChannel
-      navigationUseCase.allProjectsFlat = _allProjectsFlat
+  private fun observeNavigationManager(navManager: EnhancedNavigationManager) {
+    navigationSnapshot.update {
+      it.copy(
+        canGoBack = navManager.canGoBack.value,
+        canGoForward = navManager.canGoForward.value,
+        showNavigationMenu = navManager.showNavigationMenu.value,
+      )
+    }
+    navigationStateJob?.cancel()
+    navigationStateJob =
       viewModelScope.launch {
-        navManager.navigationResults.collect { result ->
-            searchUseCase.handleNavigationResult(result.key, result.value, uiState.value.projectHierarchy) {
-                projectToRevealAndScroll = it
-            }
+        launch {
+          navManager.canGoBack.collect { value ->
+            navigationSnapshot.update { snapshot -> snapshot.copy(canGoBack = value) }
+          }
+        }
+        launch {
+          navManager.canGoForward.collect { value ->
+            navigationSnapshot.update { snapshot -> snapshot.copy(canGoForward = value) }
+          }
+        }
+        launch {
+          navManager.showNavigationMenu.collect { value ->
+            navigationSnapshot.update { snapshot -> snapshot.copy(showNavigationMenu = value) }
+          }
         }
       }
-    }
+  }
+
+  private fun initializeNavigationResultHandling(navManager: EnhancedNavigationManager) {
+    navigationResultJob?.cancel()
+    navigationResultJob =
+      viewModelScope.launch {
+        navManager.navigationResults.collect { result ->
+          searchUseCase.handleNavigationResult(
+            result.key,
+            result.value,
+            uiState.value.projectHierarchy,
+          ) {
+            projectToRevealAndScroll = it
+          }
+        }
+      }
   }
 
   private fun initializeAndCollectStates() {
@@ -208,24 +221,25 @@ constructor(
     }
 
     viewModelScope.launch {
-      combine(coreHierarchyFlow, planningUseCase.filterStateFlow, isProcessingReveal) {
-          hierarchy,
-          filterState,
-          isProcessingReveal ->
+      combine(
+          mainScreenStateUseCase.projectHierarchy,
+          planningUseCase.filterStateFlow,
+          isProcessingReveal,
+        ) { hierarchy, filterState, processingReveal ->
           val projectId = projectToRevealAndScroll
-          if (projectId != null && !filterState.searchActive && !isProcessingReveal) {
+          if (projectId != null && !filterState.searchActive && !processingReveal) {
             projectToRevealAndScroll = null
-            projectId
+            hierarchy to projectId
           } else {
             null
           }
         }
         .filterNotNull()
-        .collect { projectId ->
+        .collect { (hierarchy, projectId) ->
           val displayedProjects =
             flattenHierarchy(
-              coreHierarchyFlow.value.topLevelProjects,
-              coreHierarchyFlow.value.childMap,
+              hierarchy.topLevelProjects,
+              hierarchy.childMap,
             )
           val index = displayedProjects.indexOfFirst { it.id == projectId }
           if (index != -1) {
@@ -233,123 +247,7 @@ constructor(
           }
         }
     }
-
-    viewModelScope.launch {
-      val coreUiStateFlow =
-        combine(
-            searchUseCase.subStateStack,
-            searchUseCase.searchQuery,
-            coreHierarchyFlow,
-            searchUseCase.currentBreadcrumbs,
-            planningUseCase.planningMode,
-          ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
-            CoreUiState(
-              subStateStack = subStateStack,
-              searchQuery = searchQuery,
-              projectHierarchy = hierarchy,
-              currentBreadcrumbs = breadcrumbs,
-              planningMode = planningMode,
-            )
-          }
-
-      val dialogUiStateFlow =
-        combine(
-            dialogUseCase.dialogState,
-            _showRecentListsSheet,
-            _isBottomNavExpanded,
-            _showSearchDialog,
-          ) { dialogState, showRecentLists, bottomNavExpanded, showSearchDialog ->
-            DialogUiState(
-              dialogState = dialogState,
-              showRecentListsSheet = showRecentLists,
-              isBottomNavExpanded = bottomNavExpanded,
-              showSearchDialog = showSearchDialog,
-            )
-          }
-
-      combine(
-          coreUiStateFlow,
-          dialogUiStateFlow,
-          expensiveCalculationsFlow,
-          searchResultsFlow,
-          searchUseCase.searchHistory,
-          planningUseCase.planningSettingsState,
-          syncUseCase.syncUiState,
-          navigationUseCase.isProcessingReveal,
-          planningUseCase.isReadyForFiltering,
-          dialogUseCase.recordForReminderDialog,
-        ) { values: Array<Any?> ->
-          val coreState = values[0] as CoreUiState
-          val dialogState = values[1] as DialogUiState
-          val expensiveCalcs = values[2] as ExpensiveCalculations
-          @Suppress("UNCHECKED_CAST") val searchResults = values[3] as List<SearchResult>
-          @Suppress("UNCHECKED_CAST") val searchHistory = values[4] as List<String>
-          val planningSettings = values[5] as PlanningSettingsState
-          val syncState = values[6] as SyncUseCase.SyncUiState
-          val isProcessingRevealValue = values[7] as Boolean
-          val isReadyForFiltering = values[8] as Boolean
-          val recordForReminder =
-            values[9] as com.romankozak.forwardappmobile.data.database.models.ActivityRecord?
-
-          val navManager = enhancedNavigationManager
-          val obsidianVaultName = settingsRepo.obsidianVaultNameFlow.firstOrNull() ?: ""
-
-          MainScreenUiState(
-            subStateStack = coreState.subStateStack,
-            searchQuery = coreState.searchQuery,
-            searchHistory = searchHistory,
-            projectHierarchy = coreState.projectHierarchy,
-            currentBreadcrumbs = coreState.currentBreadcrumbs,
-            areAnyProjectsExpanded = expensiveCalcs.areAnyProjectsExpanded,
-            planningMode = coreState.planningMode,
-            planningSettings = planningSettings,
-            dialogState = dialogState.dialogState,
-            showRecentListsSheet = dialogState.showRecentListsSheet,
-            isBottomNavExpanded = dialogState.isBottomNavExpanded,
-            recentItems = expensiveCalcs.recentItems,
-            allContexts = expensiveCalcs.allContexts,
-            searchResults = searchResults,
-            canGoBack = navManager?.canGoBack?.value ?: false,
-            canGoForward = navManager?.canGoForward?.value ?: false,
-            showNavigationMenu = navManager?.showNavigationMenu?.value ?: false,
-            isProcessingReveal = isProcessingRevealValue,
-            isReadyForFiltering = isReadyForFiltering,
-            obsidianVaultName = obsidianVaultName,
-            appStatistics = AppStatistics(),
-            showWifiServerDialog = syncState.showWifiServerDialog,
-            wifiServerAddress = syncState.wifiServerAddress,
-            showWifiImportDialog = syncState.showWifiImportDialog,
-            desktopAddress = syncState.desktopAddress,
-            showSearchDialog = dialogState.showSearchDialog,
-            recordForReminderDialog = recordForReminder,
-          )
-        }
-        .collect { newState -> _uiState.value = newState }
-    }
   }
-
-
-  data class CoreUiState(
-    val subStateStack: List<MainSubState>,
-    val searchQuery: TextFieldValue,
-    val projectHierarchy: ListHierarchyData,
-    val currentBreadcrumbs: List<BreadcrumbItem>,
-    val planningMode: PlanningMode,
-  )
-
-  data class DialogUiState(
-    val dialogState: DialogState,
-    val showRecentListsSheet: Boolean,
-    val isBottomNavExpanded: Boolean,
-    val showSearchDialog: Boolean,
-  )
-
-  data class ExpensiveCalculations(
-    val areAnyProjectsExpanded: Boolean = false,
-    val recentItems: List<com.romankozak.forwardappmobile.data.database.models.RecentItem> = emptyList(),
-    val allContexts: List<UiContext> = emptyList(),
-  )
-
   fun onEvent(event: MainScreenEvent) {
     when (event) {
       is MainScreenEvent.SearchQueryChanged -> searchUseCase.onSearchQueryChanged(event.query)
@@ -710,5 +608,12 @@ constructor(
 
   private fun onNavigateToProject(projectId: String) {
     navigationUseCase.onNavigateToProject(viewModelScope, projectId)
+  }
+
+  override fun onCleared() {
+    navigationStateJob?.cancel()
+    navigationResultJob?.cancel()
+    navigationUseCase.detach()
+    super.onCleared()
   }
 }
