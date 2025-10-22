@@ -217,6 +217,8 @@ class SearchUseCase @Inject constructor(
 
     fun onCloseSearch() {
         onToggleSearch(false)
+        popToSubState(MainSubState.Hierarchy)
+        clearNavigation()
     }
 
     fun onSearchResultClick(projectId: String, currentHierarchy: ListHierarchyData) {
