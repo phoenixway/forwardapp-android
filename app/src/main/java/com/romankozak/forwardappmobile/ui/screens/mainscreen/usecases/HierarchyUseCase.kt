@@ -14,6 +14,11 @@ import javax.inject.Inject
 
 class HierarchyUseCase @Inject constructor() {
 
+    private fun String?.normalizedParentId(): String? =
+        this
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+
     fun createProjectHierarchy(
         filterState: FilterState,
         expandedDaily: Set<String>?,
@@ -43,12 +48,31 @@ class HierarchyUseCase @Inject constructor() {
     }
 
     private fun createRegularHierarchy(flatList: List<Project>): ListHierarchyData {
-        val topLevel = flatList.filter { it.parentId == null }.sortedBy { it.order }
-        val childMap = flatList.filter { it.parentId != null }.groupBy { it.parentId!! }
+        if (flatList.isEmpty()) {
+            return ListHierarchyData(
+                allProjects = flatList,
+                topLevelProjects = emptyList(),
+                childMap = emptyMap(),
+            )
+        }
+
+        val projectsById = flatList.associateBy { it.id }
+        val topLevel = mutableListOf<Project>()
+        val childMap = mutableMapOf<String, MutableList<Project>>()
+
+        flatList.forEach { project ->
+            val parentId = project.parentId.normalizedParentId()
+            if (parentId != null && projectsById.containsKey(parentId)) {
+                childMap.getOrPut(parentId) { mutableListOf() }.add(project)
+            } else {
+                topLevel.add(project)
+            }
+        }
+
         return ListHierarchyData(
             allProjects = flatList,
-            topLevelProjects = topLevel,
-            childMap = childMap,
+            topLevelProjects = topLevel.sortedBy { it.order },
+            childMap = childMap.mapValues { (_, projects) -> projects.sortedBy { it.order } },
         )
     }
 
@@ -101,16 +125,24 @@ class HierarchyUseCase @Inject constructor() {
             visibleProjects.map { project ->
                 project.copy(isExpanded = currentExpandedIds.contains(project.id))
             }
-        val topLevel =
-            displayProjects.filter {
-                it.parentId == null || it.parentId !in visibleIds
-            }.sortedBy { it.order }
-        val childMap = displayProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
+
+        val projectsById = displayProjects.associateBy { it.id }
+        val topLevel = mutableListOf<Project>()
+        val childMap = mutableMapOf<String, MutableList<Project>>()
+
+        displayProjects.forEach { project ->
+            val parentId = project.parentId.normalizedParentId()
+            if (parentId != null && projectsById.containsKey(parentId)) {
+                childMap.getOrPut(parentId) { mutableListOf() }.add(project)
+            } else {
+                topLevel.add(project)
+            }
+        }
 
         return ListHierarchyData(
             allProjects = flatList,
-            topLevelProjects = topLevel,
-            childMap = childMap,
+            topLevelProjects = topLevel.sortedBy { it.order },
+            childMap = childMap.mapValues { (_, projects) -> projects.sortedBy { it.order } },
         )
     }
 
