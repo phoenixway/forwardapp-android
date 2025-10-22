@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Link
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsEvent
 import androidx.compose.runtime.LaunchedEffect
 
@@ -39,8 +40,8 @@ fun GoalSettingsScreen(
         }
     }
 
-    val tabs = listOf("General", "Evaluation", "Reminders")
-    val tabIcons = listOf(Icons.Default.Settings, Icons.Default.BarChart, Icons.Default.Notifications)
+    val tabs = listOf("General", "Evaluation", "Reminders", "Links")
+    val tabIcons = listOf(Icons.Default.Settings, Icons.Default.BarChart, Icons.Default.Notifications, Icons.Default.Link)
     val titleText = if (uiState.isNewGoal) "New Goal" else "Edit Goal"
 
     SettingsScreen(
@@ -81,6 +82,13 @@ fun GoalSettingsScreen(
             "Reminders" -> RemindersTabContent(
                 reminderTime = uiState.reminderTime,
                 onViewModelAction = viewModel
+            )
+            "Links" -> LinksTabContent(
+                links = uiState.relatedLinks,
+                onAddProjectLink = viewModel::onAddLinkRequest,
+                onAddWebLink = viewModel::onAddWebLinkRequest,
+                onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+                onRemoveLink = viewModel::onRemoveLinkAssociation
             )
         }
     }
