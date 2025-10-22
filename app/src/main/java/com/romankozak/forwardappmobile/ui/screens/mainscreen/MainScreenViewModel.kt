@@ -154,6 +154,26 @@ constructor(
     }
     .stateIn(viewModelScope, SharingStarted.Lazily, ListHierarchyData())
 
+  private val searchResultsFlow =
+    combine(planningUseCase.filterStateFlow, coreHierarchyFlow) { filterState, hierarchy ->
+      hierarchyUseCase.createSearchResults(filterState, hierarchy)
+    }
+      .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+  private val expensiveCalculationsFlow =
+    combine(
+        _allProjectsFlat,
+        recentItemsRepository.getRecentItems(),
+        contextHandler.allContextsFlow,
+      ) { allProjects, recentItems, contexts ->
+        ExpensiveCalculations(
+          areAnyProjectsExpanded = allProjects.any { it.isExpanded },
+          recentItems = recentItems,
+          allContexts = contexts,
+        )
+      }
+      .stateIn(viewModelScope, SharingStarted.Lazily, ExpensiveCalculations())
+
   private fun onContextSelected(name: String) {
     viewModelScope.launch {
       val tag = contextHandler.getContextTag(name)
@@ -215,16 +235,96 @@ constructor(
     }
 
     viewModelScope.launch {
-      syncUseCase.syncUiState.collect { syncState ->
-        _uiState.update { current ->
-          current.copy(
+      val coreUiStateFlow =
+        combine(
+            searchUseCase.subStateStack,
+            searchUseCase.searchQuery,
+            coreHierarchyFlow,
+            searchUseCase.currentBreadcrumbs,
+            planningUseCase.planningMode,
+          ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
+            CoreUiState(
+              subStateStack = subStateStack,
+              searchQuery = searchQuery,
+              projectHierarchy = hierarchy,
+              currentBreadcrumbs = breadcrumbs,
+              planningMode = planningMode,
+            )
+          }
+
+      val dialogUiStateFlow =
+        combine(
+            dialogUseCase.dialogState,
+            _showRecentListsSheet,
+            _isBottomNavExpanded,
+            _showSearchDialog,
+          ) { dialogState, showRecentLists, bottomNavExpanded, showSearchDialog ->
+            DialogUiState(
+              dialogState = dialogState,
+              showRecentListsSheet = showRecentLists,
+              isBottomNavExpanded = bottomNavExpanded,
+              showSearchDialog = showSearchDialog,
+            )
+          }
+
+      combine(
+          coreUiStateFlow,
+          dialogUiStateFlow,
+          expensiveCalculationsFlow,
+          searchResultsFlow,
+          searchUseCase.searchHistory,
+          planningUseCase.planningSettingsState,
+          syncUseCase.syncUiState,
+          navigationUseCase.isProcessingReveal,
+          planningUseCase.isReadyForFiltering,
+          dialogUseCase.recordForReminderDialog,
+        ) { values: Array<Any?> ->
+          val coreState = values[0] as CoreUiState
+          val dialogState = values[1] as DialogUiState
+          val expensiveCalcs = values[2] as ExpensiveCalculations
+          @Suppress("UNCHECKED_CAST") val searchResults = values[3] as List<SearchResult>
+          @Suppress("UNCHECKED_CAST") val searchHistory = values[4] as List<String>
+          val planningSettings = values[5] as PlanningSettingsState
+          val syncState = values[6] as SyncUseCase.SyncUiState
+          val isProcessingRevealValue = values[7] as Boolean
+          val isReadyForFiltering = values[8] as Boolean
+          val recordForReminder =
+            values[9] as com.romankozak.forwardappmobile.data.database.models.ActivityRecord?
+
+          val navManager = enhancedNavigationManager
+          val obsidianVaultName = settingsRepo.obsidianVaultNameFlow.firstOrNull() ?: ""
+
+          MainScreenUiState(
+            subStateStack = coreState.subStateStack,
+            searchQuery = coreState.searchQuery,
+            searchHistory = searchHistory,
+            projectHierarchy = coreState.projectHierarchy,
+            currentBreadcrumbs = coreState.currentBreadcrumbs,
+            areAnyProjectsExpanded = expensiveCalcs.areAnyProjectsExpanded,
+            planningMode = coreState.planningMode,
+            planningSettings = planningSettings,
+            dialogState = dialogState.dialogState,
+            showRecentListsSheet = dialogState.showRecentListsSheet,
+            isBottomNavExpanded = dialogState.isBottomNavExpanded,
+            recentItems = expensiveCalcs.recentItems,
+            allContexts = expensiveCalcs.allContexts,
+            searchResults = searchResults,
+            canGoBack = navManager?.canGoBack?.value ?: false,
+            canGoForward = navManager?.canGoForward?.value ?: false,
+            showNavigationMenu = navManager?.showNavigationMenu?.value ?: false,
+            isProcessingReveal = isProcessingRevealValue,
+            isReadyForFiltering = isReadyForFiltering,
+            obsidianVaultName = obsidianVaultName,
+            appStatistics = AppStatistics(),
             showWifiServerDialog = syncState.showWifiServerDialog,
             wifiServerAddress = syncState.wifiServerAddress,
             showWifiImportDialog = syncState.showWifiImportDialog,
             desktopAddress = syncState.desktopAddress,
+            showSearchDialog = dialogState.showSearchDialog,
+            recordForReminderDialog = recordForReminder,
           )
         }
-      }
+        .collect { newState -> _uiState.value = newState }
     }
   }
 
