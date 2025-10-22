@@ -333,24 +333,10 @@ private fun OptionsMenu(state: NavPanelState, actions: NavPanelActions, contentC
                 isVisible = state.isProjectManagementEnabled,
               ),
               MenuItem(
-                "Недавні проекти",
-                Icons.Outlined.Restore,
-                {
-                },
-              ),
-              MenuItem(
                 "Встановити нагадування",
                 Icons.Outlined.Alarm,
                 {
                   menu.onSetReminder()
-                  actions.onMenuExpandedChange(false)
-                },
-              ),
-              MenuItem(
-                "Властивості",
-                Icons.Outlined.Tune,
-                {
-                  menu.onShowDisplayPropertiesClick()
                   actions.onMenuExpandedChange(false)
                 },
               ),
