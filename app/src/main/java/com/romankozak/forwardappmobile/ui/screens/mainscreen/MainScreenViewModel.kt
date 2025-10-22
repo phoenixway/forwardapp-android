@@ -20,8 +20,6 @@ import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.ClearCommand
 import com.romankozak.forwardappmobile.ui.navigation.ClearResult
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.ui.navigation.createClearExecutionContext
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.actions.ProjectActionsHandler
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.*
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
@@ -35,13 +33,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.HierarchyUseCase
 
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectActionsUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.NavigationUseCase
@@ -69,7 +67,7 @@ constructor(
   private val savedStateHandle: SavedStateHandle,
   private val planningUseCase: PlanningUseCase,
   private val syncUseCase: SyncUseCase,
-  private val actionsHandler: ProjectActionsHandler,
+  private val projectActionsUseCase: ProjectActionsUseCase,
   private val navigationUseCase: NavigationUseCase,
   private val themingUseCase: ThemingUseCase,
   private val settingsUseCase: SettingsUseCase,
@@ -132,7 +130,7 @@ constructor(
     )
   }
 
-  private val _isProcessingReveal = navigationUseCase.isProcessingReveal
+  private val isProcessingReveal = navigationUseCase.isProcessingReveal
   private var projectToRevealAndScroll: String? = null
   private val _showRecentListsSheet = MutableStateFlow(false)
   private val _isBottomNavExpanded = MutableStateFlow(false)
@@ -158,11 +156,10 @@ constructor(
 
   private fun onContextSelected(name: String) {
     viewModelScope.launch {
-      val query = contextHandler.getContextSearchQuery(name)
-      if (query != null) {
-        searchUseCase.onSearchQueryChanged(TextFieldValue(query))
-        searchUseCase.onToggleSearch(true)
-      }
+      val tag = contextHandler.getContextTag(name)
+      val query = tag?.let { if (it.startsWith("#")) it else "#$it" } ?: name
+      searchUseCase.onSearchQueryChanged(TextFieldValue(query))
+      searchUseCase.onToggleSearch(true)
     }
   }
 
@@ -191,7 +188,7 @@ constructor(
     }
 
     viewModelScope.launch {
-      combine(coreHierarchyFlow, planningUseCase.filterStateFlow, _isProcessingReveal) {
+      combine(coreHierarchyFlow, planningUseCase.filterStateFlow, isProcessingReveal) {
           hierarchy,
           filterState,
           isProcessingReveal ->
@@ -229,6 +226,7 @@ constructor(
         }
       }
     }
+  }
 
 
   data class CoreUiState(
@@ -264,7 +262,7 @@ constructor(
       is MainScreenEvent.ToggleProjectExpanded -> onToggleExpanded(event.project)
       is MainScreenEvent.ProjectReorder -> {
         viewModelScope.launch {
-          actionsHandler.onProjectReorder(
+          projectActionsUseCase.onProjectReorder(
             fromId = event.fromId,
             toId = event.toId,
             position = event.position,
@@ -303,7 +301,7 @@ constructor(
       is MainScreenEvent.DeleteRequest -> dialogUseCase.onDeleteRequest(event.project)
       is MainScreenEvent.MoveRequest -> {
         viewModelScope.launch {
-          val route = actionsHandler.getMoveProjectRoute(event.project, _allProjectsFlat.value)
+          val route = projectActionsUseCase.getMoveProjectRoute(event.project, _allProjectsFlat.value)
           savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = event.project.id
           dialogUseCase.dismissDialog()
           _uiEventChannel.send(ProjectUiEvent.Navigate(route))
@@ -311,7 +309,7 @@ constructor(
       }
       is MainScreenEvent.DeleteConfirm -> {
         viewModelScope.launch {
-          actionsHandler.onDeleteProjectConfirmed(
+          projectActionsUseCase.onDeleteProjectConfirmed(
             event.project,
             uiState.value.projectHierarchy.childMap,
           )
@@ -320,7 +318,7 @@ constructor(
       }
       is MainScreenEvent.MoveConfirm -> {
         viewModelScope.launch {
-          actionsHandler.onListChooserResult(
+          projectActionsUseCase.onListChooserResult(
             newParentId = event.newParentId,
             projectBeingMovedId = projectBeingMovedId.value,
             allProjects = _allProjectsFlat.value,
@@ -330,7 +328,7 @@ constructor(
       }
       is MainScreenEvent.FullImportConfirm -> {
         viewModelScope.launch {
-          val result = actionsHandler.onFullImportConfirmed(event.uri)
+          val result = projectActionsUseCase.onFullImportConfirmed(event.uri)
           dialogUseCase.dismissDialog()
           _uiEventChannel.send(
             if (result.isSuccess) {
@@ -392,7 +390,7 @@ constructor(
       is MainScreenEvent.ShowWifiImportDialog -> syncUseCase.onShowWifiImportDialog()
       is MainScreenEvent.ExportToFile ->
         viewModelScope.launch {
-          val result = actionsHandler.exportToFile()
+          val result = projectActionsUseCase.exportToFile()
           _uiEventChannel.send(
             if (result.isSuccess) {
               ProjectUiEvent.ShowToast(result.getOrNull() ?: "Export successful")
@@ -436,7 +434,7 @@ constructor(
       is MainScreenEvent.PerformWifiImport -> syncUseCase.performWifiImport(event.address)
       is MainScreenEvent.AddProjectConfirm -> {
         viewModelScope.launch {
-          actionsHandler.addNewProject(
+          projectActionsUseCase.addNewProject(
             id = UUID.randomUUID().toString(),
             name = event.name,
             parentId = event.parentId,
@@ -492,7 +490,7 @@ constructor(
   private fun handleBackNavigation() {
     searchUseCase.handleBackNavigation(
         areAnyProjectsExpanded = uiState.value.areAnyProjectsExpanded,
-        collapseAllProjects = { viewModelScope.launch { actionsHandler.collapseAllProjects(_allProjectsFlat.value) } },
+        collapseAllProjects = { viewModelScope.launch { projectActionsUseCase.collapseAllProjects(_allProjectsFlat.value) } },
         goBack = { enhancedNavigationManager?.goBack() }
     )
   }
@@ -508,24 +506,7 @@ constructor(
   }
 
   private fun onHomeClicked() {
-    if (_isProcessingReveal.value) return
-
-    viewModelScope.launch {
-      _isProcessingReveal.value = true
-      try {
-        val result =
-          clearAndNavigateHomeUseCase.execute(
-            command = ClearCommand.Home,
-            context = createClearContext(),
-          )
-
-        if (result is ClearResult.Error) {
-          _uiEventChannel.send(ProjectUiEvent.ShowToast("Помилка навігації: ${result.message}"))
-        }
-      } finally {
-        _isProcessingReveal.value = false
-      }
-    }
+    navigationUseCase.onNavigateHome(viewModelScope)
   }
 
 
@@ -533,7 +514,7 @@ constructor(
   private fun onToggleExpanded(project: Project) {
     viewModelScope.launch {
       if (uiState.value.planningMode == PlanningMode.All) {
-        actionsHandler.onToggleExpanded(project)
+        projectActionsUseCase.onToggleExpanded(project)
       } else {
         planningUseCase.toggleExpandedInPlanningMode(project)
       }
@@ -543,7 +524,7 @@ constructor(
   private fun onBottomNavExpandedChange(isExpanded: Boolean) {
     viewModelScope.launch {
       _isBottomNavExpanded.value = isExpanded
-      withContext(ioDispatcher) { settingsRepo.saveBottomNavExpanded(isExpanded) }
+      projectActionsUseCase.onBottomNavExpandedChange(isExpanded)
     }
   }
 
@@ -615,39 +596,19 @@ constructor(
       }
   }
 
-  private fun createClearContext() =
-    createClearExecutionContext(
-      currentProjects = _allProjectsFlat.value,
-      subStateStack = searchUseCase.subStateStack,
-      searchUseCase = searchUseCase,
-      planningUseCase = planningUseCase,
-      enhancedNavigationManager = enhancedNavigationManager,
-      uiEventChannel = _uiEventChannel,
-    )
+  fun onReminderDialogDismiss() {
+    dialogUseCase.onReminderDialogDismiss()
+  }
+
+  fun onSetReminder(timestamp: Long) {
+    dialogUseCase.onSetReminder(viewModelScope, timestamp)
+  }
+
+  fun onClearReminder() {
+    dialogUseCase.onClearReminder(viewModelScope)
+  }
 
   private fun onNavigateToProject(projectId: String) {
-    if (_isProcessingReveal.value) return
-
-    viewModelScope.launch {
-      _isProcessingReveal.value = true
-      try {
-        val project = _allProjectsFlat.value.find { it.id == projectId }
-        val projectName = project?.name ?: "Unknown Project"
-
-        val result =
-          clearAndNavigateHomeUseCase.execute(
-            command = ClearCommand.NavigateToProject(projectId, projectName),
-            context = createClearContext(),
-          )
-
-        if (result is ClearResult.Error) {
-          _uiEventChannel.send(
-            ProjectUiEvent.ShowToast("Помилка навігації до проєкту: ${result.message}")
-          )
-        }
-      } finally {
-        _isProcessingReveal.value = false
-      }
-    }
+    navigationUseCase.onNavigateToProject(viewModelScope, projectId)
   }
 }

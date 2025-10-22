@@ -34,8 +34,31 @@ class NavigationUseCase @Inject constructor(
             searchUseCase = searchUseCase,
             planningUseCase = planningUseCase,
             enhancedNavigationManager = enhancedNavigationManager,
-            uiEventChannel = uiEventChannel,
+            uiEventChannel = uiEventChannel ?: error("NavigationUseCase uiEventChannel not initialized"),
         )
+
+    fun onNavigateHome(scope: CoroutineScope) {
+        if (_isProcessingReveal.value) return
+
+        scope.launch {
+            _isProcessingReveal.value = true
+            try {
+                val result =
+                    clearAndNavigateHomeUseCase.execute(
+                        command = ClearCommand.Home,
+                        context = createClearContext(allProjectsFlat?.value ?: emptyList()),
+                    )
+
+                if (result is ClearResult.Error) {
+                    uiEventChannel?.send(
+                        ProjectUiEvent.ShowToast("Помилка навігації: ${result.message}")
+                    )
+                }
+            } finally {
+                _isProcessingReveal.value = false
+            }
+        }
+    }
 
     fun onNavigateToProject(scope: CoroutineScope, projectId: String) {
         if (_isProcessingReveal.value) return

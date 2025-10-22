@@ -41,7 +41,8 @@ data class ClearExecutionContext(
     val currentProjects: List<Project>,
     val subStateStack: StateFlow<List<MainSubState>>,
     val searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
-    val planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase,
+    val planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase?,
+    val planningModeManager: com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager?,
     val enhancedNavigationManager: EnhancedNavigationManager?,
     val uiEventChannel: Channel<ProjectUiEvent>,
 )
@@ -155,8 +156,13 @@ class ClearAndNavigateHomeUseCase
         private suspend fun resetPlanningModeToDefault(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
                 Log.d(TAG, "Resetting planning mode to default")
-                context.planningUseCase.onPlanningModeChange(PlanningMode.All)
-                context.planningUseCase.planningModeManager.resetExpansionStates()
+                context.planningUseCase?.let {
+                    it.onPlanningModeChange(PlanningMode.All)
+                    it.planningModeManager.resetExpansionStates()
+                } ?: context.planningModeManager?.let {
+                    it.changeMode(PlanningMode.All)
+                    it.resetExpansionStates()
+                }
             }
         }
 
@@ -216,7 +222,8 @@ fun createClearExecutionContext(
     currentProjects: List<Project>,
     subStateStack: StateFlow<List<MainSubState>>,
     searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
-    planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase,
+    planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase? = null,
+    planningModeManager: com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager? = null,
     enhancedNavigationManager: EnhancedNavigationManager?,
     uiEventChannel: Channel<ProjectUiEvent>,
 ): ClearExecutionContext =
@@ -225,6 +232,7 @@ fun createClearExecutionContext(
         subStateStack = subStateStack,
         searchUseCase = searchUseCase,
         planningUseCase = planningUseCase,
+        planningModeManager = planningModeManager,
         enhancedNavigationManager = enhancedNavigationManager,
         uiEventChannel = uiEventChannel,
     )

@@ -67,7 +67,7 @@ class PlanningUseCase @Inject constructor(
                 settingsRepository.longTagFlow,
             ) { show, daily, medium, long ->
                 PlanningSettingsState(
-                    showPlanningModes = show,
+                    showModes = show,
                     dailyTag = daily,
                     mediumTag = medium,
                     longTag = long,
@@ -82,22 +82,34 @@ class PlanningUseCase @Inject constructor(
                 stack.any { it is MainSubState.LocalSearch }
             }
 
-        filterStateFlowInternal =
+        val baseFilterState =
             combine(
                 allProjectsFlat,
                 debouncedSearchQuery,
                 isLocalSearchActive,
                 planningMode,
                 planningSettingsStateInternal,
-                _isReadyForFiltering,
-            ) { flatList, query, searchActive, mode, settings, isReady ->
+            ) { flatList, query, searchActive, mode, settings ->
                 FilterState(
                     flatList = flatList,
-                    query = if (isReady) query else "",
-                    searchActive = if (isReady) searchActive else false,
-                    mode = if (isReady) mode else PlanningMode.All,
+                    query = query,
+                    searchActive = searchActive,
+                    mode = mode,
                     settings = settings,
                 )
+            }
+
+        filterStateFlowInternal =
+            combine(baseFilterState, _isReadyForFiltering) { state, isReady ->
+                if (isReady) {
+                    state
+                } else {
+                    state.copy(
+                        query = "",
+                        searchActive = false,
+                        mode = PlanningMode.All,
+                    )
+                }
             }.stateIn(
                 scope,
                 SharingStarted.Lazily,

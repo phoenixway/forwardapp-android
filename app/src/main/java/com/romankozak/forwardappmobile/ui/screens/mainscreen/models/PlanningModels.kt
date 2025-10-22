@@ -8,8 +8,8 @@ enum class PlanningMode {
 }
 
 data class PlanningSettingsState(
-    val showPlanningModes: Boolean,
-    val dailyTag: String,
-    val mediumTag: String,
-    val longTag: String
+    val showModes: Boolean = false,
+    val dailyTag: String = "",
+    val mediumTag: String = "",
+    val longTag: String = "",
 )
