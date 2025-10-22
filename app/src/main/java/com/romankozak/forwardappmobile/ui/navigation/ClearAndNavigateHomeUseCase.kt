@@ -41,7 +41,7 @@ data class ClearExecutionContext(
     val currentProjects: List<Project>,
     val subStateStack: StateFlow<List<MainSubState>>,
     val searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
-    val planningModeManager: PlanningModeManager,
+    val planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase,
     val enhancedNavigationManager: EnhancedNavigationManager?,
     val uiEventChannel: Channel<ProjectUiEvent>,
 )
@@ -155,8 +155,8 @@ class ClearAndNavigateHomeUseCase
         private suspend fun resetPlanningModeToDefault(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
                 Log.d(TAG, "Resetting planning mode to default")
-                context.planningModeManager.changeMode(PlanningMode.All)
-                context.planningModeManager.resetExpansionStates()
+                context.planningUseCase.onPlanningModeChange(PlanningMode.All)
+                context.planningUseCase.planningModeManager.resetExpansionStates()
             }
         }
 
@@ -216,7 +216,7 @@ fun createClearExecutionContext(
     currentProjects: List<Project>,
     subStateStack: StateFlow<List<MainSubState>>,
     searchUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase,
-    planningModeManager: PlanningModeManager,
+    planningUseCase: com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCase,
     enhancedNavigationManager: EnhancedNavigationManager?,
     uiEventChannel: Channel<ProjectUiEvent>,
 ): ClearExecutionContext =
@@ -224,7 +224,7 @@ fun createClearExecutionContext(
         currentProjects = currentProjects,
         subStateStack = subStateStack,
         searchUseCase = searchUseCase,
-        planningModeManager = planningModeManager,
+        planningUseCase = planningUseCase,
         enhancedNavigationManager = enhancedNavigationManager,
         uiEventChannel = uiEventChannel,
     )
