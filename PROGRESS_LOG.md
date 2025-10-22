@@ -19,3 +19,6 @@
   - **ЗАВЕРШЕНО:** Логіку Wi-Fi синхронізації перенесено до `SyncUseCase`; ViewModel делегує показ діалогів та виклики імпорту через новий use case.
   - **ЗАВЕРШЕНО:** Усі операції над проєктами (створення, переміщення, reorder, експорт/імпорт) винесено до `ProjectActionsUseCase`; Hilt більше не інжектить `ProjectActionsHandler`.
   - **ЗАВЕРШЕНО:** Перепідключено події між `MainScreen`, `AppNavigation` та `MainScreenViewModel`; `make check-compile` проходить (лише попередження від залежностей).
+  - **НОВЕ:** Проведено code review `MainScreenViewModel` та use case'ів.
+    - Виявлено потребу винести збирання `MainScreenUiState` в окремий use case, кешувати налаштування (`obsidianVaultName`) перед `combine`, а також захистити `NavigationUseCase` від викликів до повної ініціалізації.
+    - **ЗАВЕРШЕНО:** Реалізовано `MainScreenStateUseCase`, кеш налаштувань та безпечний `NavigationUseCase.attach`; `make check-compile` пройдено.

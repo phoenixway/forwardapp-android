@@ -9,7 +9,7 @@
 - [x] Assemble the main screen from the individual Composables.
 
 ## Phase 2: ViewModel Refactoring
-- [ ] Refactor `MainScreenViewModel` using a UseCase-based architecture.
+- [x] Extract a dedicated `MainScreenStateUseCase` to assemble `MainScreenUiState`.
 - [x] Create a `SearchUseCase` to handle search logic.
 - [x] Create a `HierarchyUseCase` to manage the project hierarchy.
 - [x] Create a `DialogUseCase` to manage dialogs.
@@ -23,6 +23,8 @@
 - [x] Migrate sync logic to `SyncUseCase`.
 - [x] Migrate project actions logic to `ProjectActionsUseCase`.
 - [x] Update `MainScreenViewModel` to use the new UseCases.
+- [x] Guard navigation actions until `NavigationUseCase` is fully attached.
+- [x] Cache settings-driven flows (e.g., `obsidianVaultName`) before building UI state.
 
 ## Phase 3: Theming and Styling
 - [ ] Create a Compose Theme.

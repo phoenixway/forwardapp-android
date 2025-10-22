@@ -327,7 +327,7 @@ private fun Editor(
                       val line = lines[lineIndex]
                       val trimmedLine = line.trimStart()
                       
-                      val checkboxRegex = Regex("""^-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
+                      val checkboxRegex = Regex("""^\s*-\s\[[ x]\]\s?.*""", RegexOption.IGNORE_CASE)
                       if (checkboxRegex.matches(trimmedLine)) {
                           val lineStartOffset = layoutResult.getLineStart(lineIndex)
                           val originalIndentLength = line.takeWhile { it.isWhitespace() }.length
@@ -452,8 +452,8 @@ private class ListVisualTransformation(
         val numberedRegex = Regex("""^(\s*)(\d+)\.\s(.*)""")
         val checkedRegex = Regex("""^(\s*)-\s\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
         val uncheckedRegex = Regex("""^(\s*)-\s\[\s\]\s(.*)""")
-        val boldRegex = Regex("""(\\*\\*|__)(.*?)\1""")
-        val italicRegex = Regex("""(\\*|_)(.*?)\1""")
+        val boldRegex = Regex("""(\*\*|__)(.*?)\1""")
+        val italicRegex = Regex("""(\*|_)(.*?)\1""")
 
         var matched = false
 
