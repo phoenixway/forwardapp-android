@@ -11,15 +11,16 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 
 class PlanningUseCase @Inject constructor(
     val planningModeManager: PlanningModeManager,
@@ -32,23 +33,25 @@ class PlanningUseCase @Inject constructor(
     private val _isReadyForFiltering = MutableStateFlow(false)
     val isReadyForFiltering: StateFlow<Boolean> = _isReadyForFiltering.asStateFlow()
 
-    private var planningSettingsStateInternal: StateFlow<PlanningSettingsState> =
-        MutableStateFlow(PlanningSettingsState())
-    val planningSettingsState: StateFlow<PlanningSettingsState>
-        get() = planningSettingsStateInternal
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _internalPlanningSettingsFlow = MutableStateFlow<Flow<PlanningSettingsState>>(flowOf(PlanningSettingsState()))
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val planningSettingsState: Flow<PlanningSettingsState> = _internalPlanningSettingsFlow.flatMapLatest { it }
 
-    private var filterStateFlowInternal: StateFlow<FilterState> =
-        MutableStateFlow(
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _internalFilterFlow = MutableStateFlow<Flow<FilterState>>(
+        flowOf(
             FilterState(
                 flatList = emptyList(),
                 query = "",
                 searchActive = false,
                 mode = PlanningMode.All,
                 settings = PlanningSettingsState(),
-            ),
+            )
         )
-    val filterStateFlow: StateFlow<FilterState>
-        get() = filterStateFlowInternal
+    )
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val filterStateFlow: Flow<FilterState> = _internalFilterFlow.flatMapLatest { it }
 
     val planningMode = planningModeManager.planningMode
 
@@ -59,20 +62,19 @@ class PlanningUseCase @Inject constructor(
     ) {
         if (isInitialized) return
 
-        planningSettingsStateInternal =
-            combine(
-                settingsRepository.showPlanningModesFlow,
-                settingsRepository.dailyTagFlow,
-                settingsRepository.mediumTagFlow,
-                settingsRepository.longTagFlow,
-            ) { show, daily, medium, long ->
-                PlanningSettingsState(
-                    showModes = show,
-                    dailyTag = daily,
-                    mediumTag = medium,
-                    longTag = long,
-                )
-            }.stateIn(scope, SharingStarted.Lazily, PlanningSettingsState())
+        _internalPlanningSettingsFlow.value = combine(
+            settingsRepository.showPlanningModesFlow,
+            settingsRepository.dailyTagFlow,
+            settingsRepository.mediumTagFlow,
+            settingsRepository.longTagFlow,
+        ) { show, daily, medium, long ->
+            PlanningSettingsState(
+                showModes = show,
+                dailyTag = daily,
+                mediumTag = medium,
+                longTag = long,
+            )
+        }
 
         val debouncedSearchQuery =
             searchUseCase.searchQuery.map { it.text }.debounce(100L).distinctUntilChanged()
@@ -88,8 +90,12 @@ class PlanningUseCase @Inject constructor(
                 debouncedSearchQuery,
                 isLocalSearchActive,
                 planningMode,
-                planningSettingsStateInternal,
+                planningSettingsState,
             ) { flatList, query, searchActive, mode, settings ->
+                android.util.Log.d(
+                    "HierarchyDebug",
+                    "baseFilterState combine flat=${flatList.size} query='$query' searchActive=$searchActive mode=$mode",
+                )
                 FilterState(
                     flatList = flatList,
                     query = query,
@@ -99,33 +105,26 @@ class PlanningUseCase @Inject constructor(
                 )
             }
 
-        filterStateFlowInternal =
-            combine(baseFilterState, _isReadyForFiltering) { state, isReady ->
-                if (isReady) {
-                    state
-                } else {
-                    state.copy(
-                        query = "",
-                        searchActive = false,
-                        mode = PlanningMode.All,
-                    )
-                }
-            }.stateIn(
-                scope,
-                SharingStarted.Lazily,
-                FilterState(
+        _internalFilterFlow.value = combine(baseFilterState, _isReadyForFiltering) { state, isReady ->
+            if (isReady) {
+                android.util.Log.d("HierarchyDebug", "filterStateFlow emitting READY with flat=${state.flatList.size}")
+                state
+            } else {
+                android.util.Log.d("HierarchyDebug", "filterStateFlow emitting NOT READY with flat=${state.flatList.size}")
+                state.copy(
                     flatList = emptyList(),
                     query = "",
                     searchActive = false,
                     mode = PlanningMode.All,
-                    settings = PlanningSettingsState(),
-                ),
-            )
+                )
+            }
+        }
 
         isInitialized = true
     }
 
     fun markReadyForFiltering() {
+        android.util.Log.d("HierarchyDebug", "markReadyForFiltering called")
         _isReadyForFiltering.value = true
     }
 
