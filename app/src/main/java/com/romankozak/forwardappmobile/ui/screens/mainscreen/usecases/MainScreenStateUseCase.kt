@@ -22,8 +22,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @ViewModelScoped
 class MainScreenStateUseCase
@@ -71,24 +74,41 @@ constructor(
         .obsidianVaultNameFlow
         .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
 
-    val coreHierarchyFlow =
+    val hierarchyState =
       combine(
-          planningUseCase.filterStateFlow,
-          planningUseCase.planningModeManager.expandedInDailyMode,
-          planningUseCase.planningModeManager.expandedInMediumMode,
-          planningUseCase.planningModeManager.expandedInLongMode,
-        ) { filterState, expandedDaily, expandedMedium, expandedLong ->
-          hierarchyUseCase.createProjectHierarchy(
-            filterState,
-            expandedDaily,
-            expandedMedium,
-            expandedLong,
-          )
-        }
-        .stateIn(scope, SharingStarted.Lazily, ListHierarchyData())
+            planningUseCase.filterStateFlow,
+            planningUseCase.planningModeManager.expandedInDailyMode,
+            planningUseCase.planningModeManager.expandedInMediumMode,
+            planningUseCase.planningModeManager.expandedInLongMode,
+          ) { filterState, expandedDaily, expandedMedium, expandedLong ->
+            android.util.Log.d(
+              "HierarchyDebug",
+              "coreHierarchyFlow combine triggered: filterFlat=${filterState.flatList.size}, mode=${filterState.mode}",
+            )
+            val hierarchy = hierarchyUseCase.createProjectHierarchy(
+              filterState,
+              expandedDaily,
+              expandedMedium,
+              expandedLong,
+            )
+            android.util.Log.d(
+              "HierarchyDebug",
+              "coreHierarchyFlow emit -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
+            )
+            hierarchy
+          }
+          .stateIn(scope, SharingStarted.WhileSubscribed(5_000), ListHierarchyData())
+    scope.launch {
+      planningUseCase.filterStateFlow.collect { state ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "filterState observed in MainScreenStateUseCase flat=${state.flatList.size} mode=${state.mode}",
+        )
+      }
+    }
 
     val searchResultsFlow =
-      combine(planningUseCase.filterStateFlow, coreHierarchyFlow) { filterState, hierarchy ->
+      combine(planningUseCase.filterStateFlow, hierarchyState) { filterState, hierarchy ->
         hierarchyUseCase.createSearchResults(filterState, hierarchy)
       }
         .stateIn(scope, SharingStarted.Lazily, emptyList())
@@ -111,7 +131,7 @@ constructor(
       combine(
           searchUseCase.subStateStack,
           searchUseCase.searchQuery,
-          coreHierarchyFlow,
+          hierarchyState,
           searchUseCase.currentBreadcrumbs,
           planningUseCase.planningMode,
         ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
@@ -202,7 +222,7 @@ constructor(
         }
         .stateIn(scope, SharingStarted.Eagerly, MainScreenUiState())
 
-    projectHierarchyInternal = coreHierarchyFlow
+    projectHierarchyInternal = hierarchyState
     searchResultsInternal = searchResultsFlow
 
     isInitialized = true
