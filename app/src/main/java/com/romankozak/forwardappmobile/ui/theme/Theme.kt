@@ -176,7 +176,7 @@ object ThemeManager {
     )
 
     fun getTheme(name: ThemeName): AppTheme {
-        return themes.first { it.name == name }
+        return themes.firstOrNull { it.name == name } ?: themes.first()
     }
 }
 
@@ -197,12 +197,26 @@ fun ForwardAppMobileTheme(
     val colorScheme = if (useDarkTheme) appTheme.darkColors else appTheme.lightColors
     val inputPanelColors = if (useDarkTheme) appTheme.inputPanelDarkColors else appTheme.inputPanelLightColors
 
-
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            @Suppress("DEPRECATION")
+            window.statusBarColor = Color.Transparent.toArgb()
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = Color.Transparent.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !useDarkTheme
+                isAppearanceLightNavigationBars = !useDarkTheme
+            }
+        }
+    }
 
     CompositionLocalProvider(LocalInputPanelColors provides inputPanelColors) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,
+            shapes = Shapes,
             content = content
         )
     }
