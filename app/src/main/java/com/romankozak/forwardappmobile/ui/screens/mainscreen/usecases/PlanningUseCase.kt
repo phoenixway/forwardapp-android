@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
+import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@ViewModelScoped
 class PlanningUseCase
 @Inject
 constructor(
@@ -106,80 +108,57 @@ constructor(
 
     baseFilterState
       .onEach { state ->
+        var ready = _isReadyForFiltering.value
         if (state.flatList.isNotEmpty()) {
           android.util.Log.d(
             "HierarchyDebug",
             "PlanningUseCase storing lastNonEmptyProjects size=${state.flatList.size}",
           )
           lastNonEmptyProjects.value = state.flatList
-        }
-        if (!_isReadyForFiltering.value && state.flatList.isNotEmpty()) {
-          android.util.Log.d(
-            "HierarchyDebug",
-            "PlanningUseCase marking ready due to non-empty flatList size=${state.flatList.size}",
-          )
-          _isReadyForFiltering.value = true
-        }
-
-        val ready = _isReadyForFiltering.value
-        if (ready && state.flatList.isEmpty()) {
-          android.util.Log.d(
-            "HierarchyDebug",
-            "PlanningUseCase ready with empty flatList; using cached size=${lastNonEmptyProjects.value.size}",
-          )
-        }
-        _filterStateFlow.value =
-          if (ready) {
-            val effectiveFlatList =
-              if (
-                state.flatList.isEmpty() &&
-                  lastNonEmptyProjects.value.isNotEmpty() &&
-                  !state.searchActive &&
-                  state.mode == PlanningMode.All
-              ) {
-                android.util.Log.d(
-                  "HierarchyDebug",
-                  "PlanningUseCase applying fallback with cached projects size=${lastNonEmptyProjects.value.size}",
-                )
-                lastNonEmptyProjects.value
-              } else {
-                state.flatList
-              }
-            val emitted = state.copy(flatList = effectiveFlatList, isReady = true)
+          if (!ready) {
             android.util.Log.d(
               "HierarchyDebug",
-              "PlanningUseCase emitting ready=$ready flat=${emitted.flatList.size}",
+              "PlanningUseCase marking ready due to non-empty flatList size=${state.flatList.size}",
             )
-            emitted
-          } else {
-            val emitted =
-              state.copy(
-              flatList = emptyList(),
-              query = "",
-              searchActive = false,
-              mode = PlanningMode.All,
-              isReady = false,
-            )
-            android.util.Log.d(
-              "HierarchyDebug",
-              "PlanningUseCase emitting ready=$ready flat=${emitted.flatList.size}",
-            )
-            emitted
+            _isReadyForFiltering.value = true
+            ready = true
           }
-      }
-      .launchIn(scope)
+        } else if (!ready) {
+          android.util.Log.d(
+            "HierarchyDebug",
+            "PlanningUseCase still waiting for projects (current flatList empty)",
+          )
+        }
 
-    scope.launch {
-      delay(750)
-      if (!_isReadyForFiltering.value) {
+        val effectiveFlatList =
+          if (
+            state.flatList.isEmpty() &&
+              lastNonEmptyProjects.value.isNotEmpty() &&
+              !state.searchActive &&
+              state.mode == PlanningMode.All &&
+              ready
+          ) {
+            android.util.Log.d(
+              "HierarchyDebug",
+              "PlanningUseCase applying fallback with cached projects size=${lastNonEmptyProjects.value.size}",
+            )
+            lastNonEmptyProjects.value
+          } else {
+            state.flatList
+          }
+
+        val emitted =
+          state.copy(
+            flatList = effectiveFlatList,
+            isReady = ready,
+          )
         android.util.Log.d(
           "HierarchyDebug",
-          "PlanningUseCase marking ready after timeout (flatList size=${lastNonEmptyProjects.value.size})",
+          "PlanningUseCase emitting ready=${emitted.isReady} flat=${emitted.flatList.size}",
         )
-        _isReadyForFiltering.value = true
-        _filterStateFlow.update { current -> current.copy(isReady = true) }
+        _filterStateFlow.value = emitted
       }
-    }
+      .launchIn(scope)
   }
 
   fun onPlanningModeChange(mode: PlanningMode) {
