@@ -45,6 +45,7 @@ class HierarchyUseCaseTest {
                 searchActive = false,
                 mode = PlanningMode.Today,
                 settings = PlanningSettingsState(dailyTag = "focus"),
+                isReady = true,
             )
 
         val hierarchy =

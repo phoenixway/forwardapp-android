@@ -33,7 +33,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 class SearchUseCase @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val savedStateHandle: SavedStateHandle,
-) {
+): PlanningSearchAdapter {
     private lateinit var scope: CoroutineScope
     private lateinit var uiEventChannel: Channel<ProjectUiEvent>
     private lateinit var allProjectsFlat: StateFlow<List<Project>>
@@ -63,7 +63,7 @@ class SearchUseCase @Inject constructor(
     val isPendingStateRestoration = _isPendingStateRestoration.asStateFlow()
 
     private val _searchQuery = MutableStateFlow(TextFieldValue(""))
-    val searchQuery = _searchQuery.asStateFlow()
+    override val searchQuery = _searchQuery.asStateFlow()
 
     private val _isSearchActive = MutableStateFlow(false)
     val isSearchActive = _isSearchActive.asStateFlow()
@@ -77,7 +77,7 @@ class SearchUseCase @Inject constructor(
         savedStateHandle.getStateFlow(SEARCH_HISTORY_KEY, emptyList())
 
     private val _subStateStack = MutableStateFlow<List<MainSubState>>(listOf(MainSubState.Hierarchy))
-    val subStateStack = _subStateStack.asStateFlow()
+    override val subStateStack = _subStateStack.asStateFlow()
 
     private fun initializeSearchState() {
         scope.launch {
@@ -93,7 +93,7 @@ class SearchUseCase @Inject constructor(
         }
     }
 
-    fun onToggleSearch(isActive: Boolean) {
+    override fun onToggleSearch(isActive: Boolean) {
         savedStateHandle[IS_SEARCH_ACTIVE_KEY] = isActive
         _isSearchActive.value = isActive
         if (isActive) {
@@ -271,7 +271,7 @@ class SearchUseCase @Inject constructor(
         _subStateStack.value = currentStack.dropLast(1) + newState
     }
 
-    fun popToSubState(targetState: MainSubState) {
+    override fun popToSubState(targetState: MainSubState) {
         val currentStack = _subStateStack.value
         val targetIndex = currentStack.indexOfLast { it == targetState }
         if (targetIndex >= 0) {
@@ -281,7 +281,7 @@ class SearchUseCase @Inject constructor(
         }
     }
 
-    fun isSearchActive(): Boolean {
+    override fun isSearchActive(): Boolean {
         return _subStateStack.value.any { it is MainSubState.LocalSearch }
     }
 

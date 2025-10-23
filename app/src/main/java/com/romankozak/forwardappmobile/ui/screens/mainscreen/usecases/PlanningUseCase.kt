@@ -1,15 +1,15 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.state.PlanningModeManager
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
+import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,20 +19,21 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class PlanningUseCase
 @Inject
 constructor(
   val planningModeManager: PlanningModeManager,
-  private val searchUseCase: SearchUseCase,
-  private val settingsRepository: SettingsRepository,
+  private val searchAdapter: PlanningSearchAdapter,
+  private val settingsProvider: PlanningSettingsProvider,
 ) {
   private var isInitialized = false
 
   private val _isReadyForFiltering = MutableStateFlow(false)
   val isReadyForFiltering: StateFlow<Boolean> = _isReadyForFiltering.asStateFlow()
 
-  // Використовуємо MutableStateFlow як основу
   private val _planningSettingsState = MutableStateFlow(PlanningSettingsState())
   val planningSettingsState: StateFlow<PlanningSettingsState> = _planningSettingsState.asStateFlow()
 
@@ -44,6 +45,7 @@ constructor(
         searchActive = false,
         mode = PlanningMode.All,
         settings = PlanningSettingsState(),
+        isReady = false,
       )
     )
   val filterStateFlow: StateFlow<FilterState> = _filterStateFlow.asStateFlow()
@@ -57,10 +59,10 @@ constructor(
 
     // Оновлюємо _planningSettingsState через .onEach
     combine(
-        settingsRepository.showPlanningModesFlow,
-        settingsRepository.dailyTagFlow,
-        settingsRepository.mediumTagFlow,
-        settingsRepository.longTagFlow,
+        settingsProvider.showPlanningModesFlow,
+        settingsProvider.dailyTagFlow,
+        settingsProvider.mediumTagFlow,
+        settingsProvider.longTagFlow,
       ) { show, daily, medium, long ->
         PlanningSettingsState(
           showModes = show,
@@ -73,10 +75,10 @@ constructor(
       .launchIn(scope)
 
     val debouncedSearchQuery =
-      searchUseCase.searchQuery.map { it.text }.debounce(100L).distinctUntilChanged()
+      searchAdapter.searchQuery.map { it.text }.debounce(100L).distinctUntilChanged()
 
     val isLocalSearchActive =
-      searchUseCase.subStateStack.map { stack -> stack.any { it is MainSubState.LocalSearch } }
+      searchAdapter.subStateStack.map { stack -> stack.any { it is MainSubState.LocalSearch } }
 
     val baseFilterState =
       combine(
@@ -96,43 +98,46 @@ constructor(
           searchActive = searchActive,
           mode = mode,
           settings = settings,
+          isReady = false,
         )
       }
 
-    // Оновлюємо _filterStateFlow через .onEach
-    combine(baseFilterState, _isReadyForFiltering) { state, isReady ->
-        if (isReady) {
-          android.util.Log.d(
-            "HierarchyDebug",
-            "filterStateFlow emitting READY with flat=${state.flatList.size}",
-          )
-          state
-        } else {
-          android.util.Log.d(
-            "HierarchyDebug",
-            "filterStateFlow emitting NOT READY with flat=${state.flatList.size}",
-          )
-          state.copy(
-            flatList = emptyList(),
-            query = "",
-            searchActive = false,
-            mode = PlanningMode.All,
-          )
-        }
-      }
-      .onEach { newState -> _filterStateFlow.value = newState }
-      .launchIn(scope)
-  }
 
-  fun markReadyForFiltering() {
-    android.util.Log.d("HierarchyDebug", "markReadyForFiltering called")
-    _isReadyForFiltering.value = true
+    baseFilterState
+      .onEach { state ->
+        if (!_isReadyForFiltering.value && state.flatList.isNotEmpty()) {
+          _isReadyForFiltering.value = true
+        }
+
+        val ready = _isReadyForFiltering.value
+        _filterStateFlow.value =
+          if (ready) {
+            state.copy(isReady = true)
+          } else {
+            state.copy(
+              flatList = emptyList(),
+              query = "",
+              searchActive = false,
+              mode = PlanningMode.All,
+              isReady = false,
+            )
+          }
+      }
+      .launchIn(scope)
+
+    scope.launch {
+      delay(750)
+      if (!_isReadyForFiltering.value) {
+        _isReadyForFiltering.value = true
+        _filterStateFlow.update { current -> current.copy(isReady = true) }
+      }
+    }
   }
 
   fun onPlanningModeChange(mode: PlanningMode) {
-    if (searchUseCase.isSearchActive()) {
-      searchUseCase.popToSubState(MainSubState.Hierarchy)
-      searchUseCase.onToggleSearch(isActive = false)
+    if (searchAdapter.isSearchActive()) {
+      searchAdapter.popToSubState(MainSubState.Hierarchy)
+      searchAdapter.onToggleSearch(isActive = false)
     }
     planningModeManager.changeMode(mode)
   }
