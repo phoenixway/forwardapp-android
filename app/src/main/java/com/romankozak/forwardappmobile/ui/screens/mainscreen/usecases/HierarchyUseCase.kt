@@ -25,30 +25,43 @@ class HierarchyUseCase @Inject constructor() {
         expandedMedium: Set<String>?,
         expandedLong: Set<String>?,
     ): ListHierarchyData {
-        return try {
-            val (flatList, _, _, mode, settings) = filterState
-            val isPlanningModeActive = mode != PlanningMode.All
+        Log.d(
+            "HierarchyDebug",
+            "createProjectHierarchy: flatSize=${filterState.flatList.size}, mode=${filterState.mode}, searchActive=${filterState.searchActive}",
+        )
+        val result =
+            try {
+                val (flatList, _, _, mode, settings) = filterState
+                val isPlanningModeActive = mode != PlanningMode.All
 
-            if (!isPlanningModeActive) {
-                return createRegularHierarchy(flatList)
+                val hierarchy =
+                    if (!isPlanningModeActive) {
+                        createRegularHierarchy(flatList)
+                    } else {
+                        createPlanningHierarchy(
+                            flatList,
+                            mode,
+                            settings,
+                            expandedDaily,
+                            expandedMedium,
+                            expandedLong,
+                        )
+                    }
+                Log.d(
+                    "HierarchyDebug",
+                    "createProjectHierarchy result -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
+                )
+                hierarchy
+            } catch (e: Exception) {
+                Log.e("HierarchyDebug", "Exception in createProjectHierarchy", e)
+                ListHierarchyData()
             }
-
-            createPlanningHierarchy(
-                flatList,
-                mode,
-                settings,
-                expandedDaily,
-                expandedMedium,
-                expandedLong,
-            )
-        } catch (e: Exception) {
-            Log.e("ProjectHierarchyManager", "Exception in createProjectHierarchy", e)
-            ListHierarchyData()
-        }
+        return result
     }
 
     private fun createRegularHierarchy(flatList: List<Project>): ListHierarchyData {
         if (flatList.isEmpty()) {
+            Log.d("HierarchyDebug", "createRegularHierarchy: empty flat list")
             return ListHierarchyData(
                 allProjects = flatList,
                 topLevelProjects = emptyList(),
@@ -59,15 +72,25 @@ class HierarchyUseCase @Inject constructor() {
         val projectsById = flatList.associateBy { it.id }
         val topLevel = mutableListOf<Project>()
         val childMap = mutableMapOf<String, MutableList<Project>>()
+        var orphanCount = 0
 
         flatList.forEach { project ->
-            val parentId = project.parentId.normalizedParentId()
-            if (parentId != null && projectsById.containsKey(parentId)) {
+            if (hasValidParent(project, projectsById)) {
+                val parentId = project.parentId.normalizedParentId()!!
                 childMap.getOrPut(parentId) { mutableListOf() }.add(project)
             } else {
+                val parentId = project.parentId.normalizedParentId()
+                if (parentId != null && !projectsById.containsKey(parentId)) {
+                    orphanCount++
+                }
                 topLevel.add(project)
             }
         }
+
+        Log.d(
+            "HierarchyDebug",
+            "createRegularHierarchy: flat=${flatList.size}, topLevel=${topLevel.size}, childParents=${childMap.size}, orphans=$orphanCount",
+        )
 
         return ListHierarchyData(
             allProjects = flatList,
@@ -101,13 +124,28 @@ class HierarchyUseCase @Inject constructor() {
                 emptyList()
             }
 
+        val childrenByParentId: Map<String?, List<Project>> =
+            flatList.groupBy { it.parentId.normalizedParentId() }
+        val descendantIds = mutableSetOf<String>()
+
+        fun collectDescendants(projectId: String) {
+            val children = childrenByParentId[projectId] ?: emptyList()
+            for (child in children) {
+                if (descendantIds.add(child.id)) {
+                    collectDescendants(child.id)
+                }
+            }
+        }
+
+        matchingProjects.forEach { collectDescendants(it.id) }
+
         val ancestorIds = mutableSetOf<String>()
         val visitedAncestors = mutableSetOf<String>()
         matchingProjects.forEach { project ->
             findAncestorsRecursive(project.id, projectLookup, ancestorIds, visitedAncestors)
         }
 
-        val visibleIds = ancestorIds + matchingProjects.map { it.id }
+        val visibleIds = ancestorIds + matchingProjects.map { it.id } + descendantIds
 
         val currentExpandedState =
             when (mode) {
@@ -131,8 +169,8 @@ class HierarchyUseCase @Inject constructor() {
         val childMap = mutableMapOf<String, MutableList<Project>>()
 
         displayProjects.forEach { project ->
-            val parentId = project.parentId.normalizedParentId()
-            if (parentId != null && projectsById.containsKey(parentId)) {
+            if (hasValidParent(project, projectsById)) {
+                val parentId = project.parentId.normalizedParentId()!!
                 childMap.getOrPut(parentId) { mutableListOf() }.add(project)
             } else {
                 topLevel.add(project)
@@ -243,5 +281,23 @@ class HierarchyUseCase @Inject constructor() {
             topLevelProjects = topLevel,
             childMap = childMap,
         )
+    }
+
+    private fun hasValidParent(
+        project: Project,
+        projectsById: Map<String, Project>,
+    ): Boolean {
+        val firstParentId = project.parentId.normalizedParentId() ?: return false
+        if (firstParentId == project.id) return false
+        var currentParentId = firstParentId
+        val visited = mutableSetOf(project.id)
+
+        while (true) {
+            if (!visited.add(currentParentId)) return false
+            val parentProject = projectsById[currentParentId] ?: return false
+            val nextParentId = parentProject.parentId.normalizedParentId() ?: return true
+            if (nextParentId == currentParentId) return false
+            currentParentId = nextParentId
+        }
     }
 }

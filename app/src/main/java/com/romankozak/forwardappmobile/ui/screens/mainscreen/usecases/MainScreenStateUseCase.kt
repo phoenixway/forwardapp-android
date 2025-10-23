@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -76,27 +75,31 @@ constructor(
 
     val hierarchyState =
       combine(
-            planningUseCase.filterStateFlow.onEach {
-                android.util.Log.d("HierarchyDebug", "<<< hierarchyState received value: flat=${it.flatList.size}")
-            },
-          ) { (filterState) ->
-            android.util.Log.d(
-              "HierarchyDebug",
-              "coreHierarchyFlow combine triggered: filterFlat=${filterState.flatList.size}, mode=${filterState.mode}",
-            )
-            val hierarchy = hierarchyUseCase.createProjectHierarchy(
-              filterState,
-              emptySet(),
-              emptySet(),
-              emptySet(),
-            )
-            android.util.Log.d(
-              "HierarchyDebug",
-              "coreHierarchyFlow emit -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
-            )
-            hierarchy
-          }
-          .stateIn(scope, SharingStarted.WhileSubscribed(5_000), ListHierarchyData())
+          planningUseCase.filterStateFlow,
+          planningUseCase.planningModeManager.expandedInDailyMode,
+          planningUseCase.planningModeManager.expandedInMediumMode,
+          planningUseCase.planningModeManager.expandedInLongMode,
+        ) { filterState, expandedDaily, expandedMedium, expandedLong ->
+          android.util.Log.d(
+            "HierarchyDebug",
+            "coreHierarchyFlow combine triggered: filterFlat=${filterState.flatList.size}, mode=${filterState.mode}",
+          )
+          hierarchyUseCase.createProjectHierarchy(
+            filterState,
+            expandedDaily,
+            expandedMedium,
+            expandedLong,
+          )
+        }
+        .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())
+    scope.launch {
+      hierarchyState.collect { hierarchy ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "coreHierarchyFlow emit -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
+        )
+      }
+    }
     scope.launch {
       planningUseCase.filterStateFlow.collect { state ->
         android.util.Log.d(
