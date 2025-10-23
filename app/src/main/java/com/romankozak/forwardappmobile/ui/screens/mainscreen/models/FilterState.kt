@@ -6,4 +6,5 @@ data class FilterState(
     val searchActive: Boolean,
     val mode: PlanningMode,
     val settings: PlanningSettingsState,
+    val isReady: Boolean = false,
 )

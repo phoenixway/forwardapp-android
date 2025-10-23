@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningSettingsProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +43,7 @@ sealed class ServerDiscoveryState {
 @Singleton
 class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+): PlanningSettingsProvider {
 
     // --- SERVER ADDRESS MANAGEMENT ---
     private val serverIpConfigurationModeKey = stringPreferencesKey("server_ip_configuration_mode") // "auto" or "manual"
@@ -249,7 +250,7 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[obsidianVaultNameKey] = name }
     }
 
-    val showPlanningModesFlow: Flow<Boolean> =
+    override val showPlanningModesFlow: Flow<Boolean> =
         context.dataStore.data
             .map { preferences ->
                 try {
@@ -264,7 +265,7 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[showPlanningModesKey] = show }
     }
 
-    val dailyTagFlow: Flow<String> =
+    override val dailyTagFlow: Flow<String> =
         context.dataStore.data
             .map { preferences -> preferences[dailyTagKey] ?: "daily" }
 
@@ -272,7 +273,7 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[dailyTagKey] = tag }
     }
 
-    val mediumTagFlow: Flow<String> =
+    override val mediumTagFlow: Flow<String> =
         context.dataStore.data
             .map { preferences -> preferences[mediumTagKey] ?: "medium" }
 
@@ -280,7 +281,7 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { settings -> settings[mediumTagKey] = tag }
     }
 
-    val longTagFlow: Flow<String> =
+    override val longTagFlow: Flow<String> =
         context.dataStore.data
             .map { preferences -> preferences[longTagKey] ?: "long" }
 

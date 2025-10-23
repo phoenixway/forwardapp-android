@@ -117,10 +117,10 @@ constructor(
   private val _uiEventChannel = Channel<ProjectUiEvent>()
   val uiEventFlow = _uiEventChannel.receiveAsFlow()
 
+  private val allProjectsFlow = projectRepository.getAllProjectsFlow()
+
   private val _allProjectsFlat =
-    projectRepository
-      .getAllProjectsFlow()
-      .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    allProjectsFlow.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
   private val _showRecentListsSheet = MutableStateFlow(false)
   private val _isBottomNavExpanded = MutableStateFlow(false)
   private val _showSearchDialog = MutableStateFlow(false)
@@ -159,7 +159,7 @@ constructor(
       planningUseCase.filterStateFlow.collect { state ->
         android.util.Log.d(
           "HierarchyDebug",
-          "filterStateFlow flat=${state.flatList.size} ready=${planningUseCase.isReadyForFiltering.value}",
+          "filterStateFlow flat=${state.flatList.size} ready=${state.isReady}",
         )
       }
     }
@@ -246,7 +246,6 @@ constructor(
       settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
         _isBottomNavExpanded.value = savedState
       }
-      planningUseCase.markReadyForFiltering()
     }
 
     viewModelScope.launch {

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -109,7 +110,14 @@ fun MainScreenContent(
                         uiState.projectHierarchy.childMap.isEmpty()
                 }
 
-            if (isListEmpty) {
+            if (!uiState.isReadyForFiltering && isListEmpty) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (isListEmpty) {
                 
                 val emptyText =
                     remember(uiState.planningMode, uiState.planningSettings) {

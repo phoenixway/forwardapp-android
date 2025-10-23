@@ -77,22 +77,24 @@ constructor(
     val hierarchyState =
       combine(
           planningUseCase.filterStateFlow,
-          allProjectsFlat,
           planningUseCase.planningModeManager.expandedInDailyMode,
           planningUseCase.planningModeManager.expandedInMediumMode,
           planningUseCase.planningModeManager.expandedInLongMode,
-        ) { filterState, allProjects, expandedDaily, expandedMedium, expandedLong ->
-          val normalizedFilterState = filterState.withHierarchyFallback(allProjects)
+        ) { filterState, expandedDaily, expandedMedium, expandedLong ->
           android.util.Log.d(
             "HierarchyDebug",
-            "coreHierarchyFlow combine triggered: filterFlat=${normalizedFilterState.flatList.size}, mode=${normalizedFilterState.mode}",
+            "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}",
           )
-          hierarchyUseCase.createProjectHierarchy(
-            normalizedFilterState,
-            expandedDaily,
-            expandedMedium,
-            expandedLong,
-          )
+          if (!filterState.isReady) {
+            ListHierarchyData()
+          } else {
+            hierarchyUseCase.createProjectHierarchy(
+              filterState,
+              expandedDaily,
+              expandedMedium,
+              expandedLong,
+            )
+          }
         }
         .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())
     scope.launch {
@@ -107,14 +109,18 @@ constructor(
       planningUseCase.filterStateFlow.collect { state ->
         android.util.Log.d(
           "HierarchyDebug",
-          "filterState observed in MainScreenStateUseCase flat=${state.flatList.size} mode=${state.mode}",
+          "filterState observed in MainScreenStateUseCase flat=${state.flatList.size} mode=${state.mode} ready=${state.isReady}",
         )
       }
     }
 
     val searchResultsFlow =
       combine(planningUseCase.filterStateFlow, hierarchyState) { filterState, hierarchy ->
-        hierarchyUseCase.createSearchResults(filterState, hierarchy)
+        if (!filterState.isReady) {
+          emptyList()
+        } else {
+          hierarchyUseCase.createSearchResults(filterState, hierarchy)
+        }
       }
         .stateIn(scope, SharingStarted.Lazily, emptyList())
 
@@ -262,14 +268,4 @@ constructor(
     val recentItems: List<RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
   )
-}
-
-internal fun FilterState.withHierarchyFallback(
-  allProjects: List<Project>,
-): FilterState {
-  if (flatList.isNotEmpty()) return this
-  if (allProjects.isEmpty()) return this
-  if (searchActive) return this
-  if (mode != PlanningMode.All) return this
-  return copy(flatList = allProjects)
 }
