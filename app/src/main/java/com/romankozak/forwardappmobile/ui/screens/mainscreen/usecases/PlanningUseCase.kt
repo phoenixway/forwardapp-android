@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// ViewModel scope гарантує, що MainScreenViewModel та його use-case-и ділять один екземпляр.
 @ViewModelScoped
 class PlanningUseCase
 @Inject
