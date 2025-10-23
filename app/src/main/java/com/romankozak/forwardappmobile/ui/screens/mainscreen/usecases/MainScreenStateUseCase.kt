@@ -25,6 +25,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -75,59 +78,108 @@ constructor(
         .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
 
     var lastNonEmptyHierarchy: ListHierarchyData? = null
-
-    val hierarchyState =
+    var lastNonEmptyFlatList: List<Project> = emptyList()
+    val expansionState =
       combine(
-          planningUseCase.filterStateFlow,
-          allProjectsFlat,
           planningUseCase.planningModeManager.expandedInDailyMode,
           planningUseCase.planningModeManager.expandedInMediumMode,
           planningUseCase.planningModeManager.expandedInLongMode,
-        ) { filterState, allProjects, expandedDaily, expandedMedium, expandedLong ->
+        ) { expandedDaily, expandedMedium, expandedLong ->
+          ExpansionState(
+            expandedDaily = expandedDaily,
+            expandedMedium = expandedMedium,
+            expandedLong = expandedLong,
+          )
+        }
+        .stateIn(
+          scope,
+          SharingStarted.Eagerly,
+          ExpansionState(emptySet(), emptySet(), emptySet()),
+        )
+
+    val readyFilterState =
+      planningUseCase.filterStateFlow
+        .onEach { state ->
           android.util.Log.d(
             "HierarchyDebug",
-            "coreHierarchyFlow inputs: filterFlat=${filterState.flatList.size}, filterReady=${filterState.isReady}, allProjects=${allProjects.size}",
+            "readyFilterState input flat=${state.flatList.size} ready=${state.isReady}",
           )
-          val normalizedState = filterState.withHierarchyFallback(allProjects)
+        }
+        .filter { state ->
           android.util.Log.d(
             "HierarchyDebug",
-            "coreHierarchyFlow combine triggered: flat=${normalizedState.flatList.size}, mode=${normalizedState.mode}, ready=${normalizedState.isReady}",
+            "readyFilterState filter evaluating flat=${state.flatList.size} ready=${state.isReady}",
           )
-          if (!normalizedState.isReady) {
-            val fallback = lastNonEmptyHierarchy ?: ListHierarchyData()
+          val ready = state.isReady
+          if (!ready) {
             android.util.Log.d(
               "HierarchyDebug",
-              "coreHierarchyFlow not ready -> returning cached hierarchy topLevel=${fallback.topLevelProjects.size}",
+              "coreHierarchyFlow filter not ready -> returning cached hierarchy topLevel=${lastNonEmptyHierarchy?.topLevelProjects?.size ?: 0}",
             )
-            fallback
-          } else {
-            val hierarchy =
-              hierarchyUseCase.createProjectHierarchy(
-              normalizedState,
-              expandedDaily,
-              expandedMedium,
-              expandedLong,
-            )
-            if (
-              hierarchy.topLevelProjects.isEmpty() &&
-                hierarchy.childMap.isEmpty()
-            ) {
-              val fallback = lastNonEmptyHierarchy ?: hierarchy
-              android.util.Log.d(
-                "HierarchyDebug",
-                "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}",
-              )
-              fallback
-            } else {
-              lastNonEmptyHierarchy = hierarchy
-              android.util.Log.d(
-                "HierarchyDebug",
-                "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}",
-              )
-              hierarchy
-            }
           }
+          ready
         }
+        .map { state ->
+          android.util.Log.d(
+            "HierarchyDebug",
+            "readyFilterState accepted flat=${state.flatList.size} ready=${state.isReady}",
+          )
+          val normalizedFlatList =
+            when {
+              state.flatList.isNotEmpty() -> {
+                lastNonEmptyFlatList = state.flatList
+                state.flatList
+              }
+              lastNonEmptyFlatList.isNotEmpty() &&
+                !state.searchActive &&
+                state.mode == PlanningMode.All -> {
+                android.util.Log.d(
+                  "HierarchyDebug",
+                  "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}",
+                )
+                lastNonEmptyFlatList
+              }
+              else -> state.flatList
+            }
+          android.util.Log.d(
+            "HierarchyDebug",
+            "readyFilterState normalized flat=${normalizedFlatList.size}",
+          )
+          if (normalizedFlatList === state.flatList) state else state.copy(flatList = normalizedFlatList)
+        }
+
+    val hierarchyState =
+      combine(readyFilterState, expansionState) { filterState, expansion ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}",
+        )
+        val hierarchy =
+          hierarchyUseCase.createProjectHierarchy(
+            filterState,
+            expansion.expandedDaily,
+            expansion.expandedMedium,
+            expansion.expandedLong,
+          )
+        if (
+          hierarchy.topLevelProjects.isEmpty() &&
+            hierarchy.childMap.isEmpty()
+        ) {
+          val fallback = lastNonEmptyHierarchy ?: hierarchy
+          android.util.Log.d(
+            "HierarchyDebug",
+            "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}",
+          )
+          fallback
+        } else {
+          lastNonEmptyHierarchy = hierarchy
+          android.util.Log.d(
+            "HierarchyDebug",
+            "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}",
+          )
+          hierarchy
+        }
+      }
         .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())
     scope.launch {
       hierarchyState.collect { hierarchy ->
@@ -279,6 +331,12 @@ constructor(
 
   val searchResults: StateFlow<List<SearchResult>>
     get() = searchResultsInternal
+
+  private data class ExpansionState(
+    val expandedDaily: Set<String>,
+    val expandedMedium: Set<String>,
+    val expandedLong: Set<String>,
+  )
 
   private data class CoreUiState(
     val subStateStack: List<MainSubState>,
