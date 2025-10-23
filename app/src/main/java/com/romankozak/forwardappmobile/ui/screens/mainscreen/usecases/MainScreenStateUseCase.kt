@@ -11,9 +11,9 @@ import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.AppStatistics
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
@@ -77,8 +77,6 @@ constructor(
         .obsidianVaultNameFlow
         .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
 
-    var lastNonEmptyHierarchy: ListHierarchyData? = null
-    var lastNonEmptyFlatList: List<Project> = emptyList()
     val expansionState =
       combine(
           planningUseCase.planningModeManager.expandedInDailyMode,
@@ -97,90 +95,14 @@ constructor(
           ExpansionState(emptySet(), emptySet(), emptySet()),
         )
 
-    val readyFilterState =
-      planningUseCase.filterStateFlow
-        .onEach { state ->
-          android.util.Log.d(
-            "HierarchyDebug",
-            "readyFilterState input flat=${state.flatList.size} ready=${state.isReady}",
-          )
-        }
-        .filter { state ->
-          android.util.Log.d(
-            "HierarchyDebug",
-            "readyFilterState filter evaluating flat=${state.flatList.size} ready=${state.isReady}",
-          )
-          val ready = state.isReady
-          if (!ready) {
-            android.util.Log.d(
-              "HierarchyDebug",
-              "coreHierarchyFlow filter not ready -> returning cached hierarchy topLevel=${lastNonEmptyHierarchy?.topLevelProjects?.size ?: 0}",
-            )
-          }
-          ready
-        }
-        .map { state ->
-          android.util.Log.d(
-            "HierarchyDebug",
-            "readyFilterState accepted flat=${state.flatList.size} ready=${state.isReady}",
-          )
-          val normalizedFlatList =
-            when {
-              state.flatList.isNotEmpty() -> {
-                lastNonEmptyFlatList = state.flatList
-                state.flatList
-              }
-              lastNonEmptyFlatList.isNotEmpty() &&
-                !state.searchActive &&
-                state.mode == PlanningMode.All -> {
-                android.util.Log.d(
-                  "HierarchyDebug",
-                  "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}",
-                )
-                lastNonEmptyFlatList
-              }
-              else -> state.flatList
-            }
-          android.util.Log.d(
-            "HierarchyDebug",
-            "readyFilterState normalized flat=${normalizedFlatList.size}",
-          )
-          if (normalizedFlatList === state.flatList) state else state.copy(flatList = normalizedFlatList)
-        }
-
     val hierarchyState =
-      combine(readyFilterState, expansionState) { filterState, expansion ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}",
+      HierarchyStateBuilder(hierarchyUseCase)
+        .buildHierarchyState(
+          scope = scope,
+          filterStates = planningUseCase.filterStateFlow,
+          expansionStates = expansionState,
         )
-        val hierarchy =
-          hierarchyUseCase.createProjectHierarchy(
-            filterState,
-            expansion.expandedDaily,
-            expansion.expandedMedium,
-            expansion.expandedLong,
-          )
-        if (
-          hierarchy.topLevelProjects.isEmpty() &&
-            hierarchy.childMap.isEmpty()
-        ) {
-          val fallback = lastNonEmptyHierarchy ?: hierarchy
-          android.util.Log.d(
-            "HierarchyDebug",
-            "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}",
-          )
-          fallback
-        } else {
-          lastNonEmptyHierarchy = hierarchy
-          android.util.Log.d(
-            "HierarchyDebug",
-            "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}",
-          )
-          hierarchy
-        }
-      }
-        .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())
+
     scope.launch {
       hierarchyState.collect { hierarchy ->
         android.util.Log.d(
@@ -272,10 +194,8 @@ constructor(
           val coreState = values[0] as CoreUiState
           val dialogState = values[1] as DialogUiState
           val expensiveCalcs = values[2] as ExpensiveCalculations
-          @Suppress("UNCHECKED_CAST")
-          val searchResults = values[3] as List<SearchResult>
-          @Suppress("UNCHECKED_CAST")
-          val searchHistory = values[4] as List<String>
+          @Suppress("UNCHECKED_CAST") val searchResults = values[3] as List<SearchResult>
+          @Suppress("UNCHECKED_CAST") val searchHistory = values[4] as List<String>
           val planningSettings = values[5] as PlanningSettingsState
           val syncState = values[6] as SyncUseCase.SyncUiState
           val isProcessingRevealValue = values[7] as Boolean
@@ -332,7 +252,7 @@ constructor(
   val searchResults: StateFlow<List<SearchResult>>
     get() = searchResultsInternal
 
-  private data class ExpansionState(
+  internal data class ExpansionState(
     val expandedDaily: Set<String>,
     val expandedMedium: Set<String>,
     val expandedLong: Set<String>,
@@ -358,4 +278,118 @@ constructor(
     val recentItems: List<RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
   )
+}
+
+/**
+ * Координує побудову ієрархії для головного екрану, кешуючи останній валідний snapshot.
+ *
+ * Зберігає:
+ * - [lastNonEmptyFlatList] — використовується, коли `PlanningUseCase` переходить у ready-стан із порожнім flatList;
+ * - [lastNonEmptyHierarchy] — дозволяє повертати останню згенеровану ієрархію, поки стан ще не готовий.
+ *
+ * Логи `HierarchyDebug` залишено без змін, аби не втратити діагностику, якою користується команда.
+ */
+internal class HierarchyStateBuilder(
+  private val hierarchyUseCase: HierarchyUseCase,
+) {
+  private var lastNonEmptyFlatList: List<Project> = emptyList()
+  private var lastNonEmptyHierarchy: ListHierarchyData? = null
+
+  fun buildHierarchyState(
+    scope: CoroutineScope,
+    filterStates: StateFlow<FilterState>,
+    expansionStates: StateFlow<MainScreenStateUseCase.ExpansionState>,
+  ): StateFlow<ListHierarchyData> {
+    val readyFilterState = prepareReadyFilterState(filterStates)
+
+    return combine(readyFilterState, expansionStates) { filterState, expansion ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}",
+        )
+        val hierarchy =
+          hierarchyUseCase.createProjectHierarchy(
+            filterState,
+            expansion.expandedDaily,
+            expansion.expandedMedium,
+            expansion.expandedLong,
+          )
+        if (
+          hierarchy.topLevelProjects.isEmpty() &&
+            hierarchy.childMap.isEmpty()
+        ) {
+          val fallback = lastNonEmptyHierarchy ?: hierarchy
+          android.util.Log.d(
+            "HierarchyDebug",
+            "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}",
+          )
+          fallback
+        } else {
+          lastNonEmptyHierarchy = hierarchy
+          android.util.Log.d(
+            "HierarchyDebug",
+            "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}",
+          )
+          hierarchy
+        }
+      }
+      .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())
+  }
+
+  internal fun prepareReadyFilterState(
+    filterStates: StateFlow<FilterState>,
+  ) =
+    filterStates
+      .onEach { state ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "readyFilterState input flat=${state.flatList.size} ready=${state.isReady}",
+        )
+      }
+      .filter { state ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "readyFilterState filter evaluating flat=${state.flatList.size} ready=${state.isReady}",
+        )
+        val ready = state.isReady
+        if (!ready) {
+          android.util.Log.d(
+            "HierarchyDebug",
+            "coreHierarchyFlow filter not ready -> returning cached hierarchy topLevel=${lastNonEmptyHierarchy?.topLevelProjects?.size ?: 0}",
+          )
+        }
+        ready
+      }
+      .map { state ->
+        android.util.Log.d(
+          "HierarchyDebug",
+          "readyFilterState accepted flat=${state.flatList.size} ready=${state.isReady}",
+        )
+        val normalizedFlatList =
+          when {
+            state.flatList.isNotEmpty() -> {
+              lastNonEmptyFlatList = state.flatList
+              state.flatList
+            }
+            lastNonEmptyFlatList.isNotEmpty() &&
+              !state.searchActive &&
+              state.mode == PlanningMode.All -> {
+              android.util.Log.d(
+                "HierarchyDebug",
+                "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}",
+              )
+              lastNonEmptyFlatList
+            }
+            else -> state.flatList
+          }
+        android.util.Log.d(
+          "HierarchyDebug",
+          "readyFilterState normalized flat=${normalizedFlatList.size}",
+        )
+        if (normalizedFlatList === state.flatList) {
+          state
+        } else {
+          state.copy(flatList = normalizedFlatList)
+        }
+      }
 }
