@@ -222,8 +222,20 @@ class ProjectTypeConverter {
     }
 }
 
+class ReservedGroupConverter {
+    @TypeConverter
+    fun fromReservedGroup(reservedGroup: ReservedGroup?): String? {
+        return reservedGroup?.groupName
+    }
+
+    @TypeConverter
+    fun toReservedGroup(groupName: String?): ReservedGroup? {
+        return ReservedGroup.fromString(groupName)
+    }
+}
+
 @Entity(tableName = "projects")
-@TypeConverters(ProjectTypeConverter::class)
+@TypeConverters(ProjectTypeConverter::class, ReservedGroupConverter::class)
 data class Project(
     @PrimaryKey val id: String,
     val name: String,
@@ -255,7 +267,7 @@ data class Project(
     @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
     @ColumnInfo(name = "project_type", defaultValue = "'DEFAULT'") val projectType: ProjectType = ProjectType.DEFAULT,
-    @ColumnInfo(name = "reserved_group") val reservedGroup: String? = null
+    @ColumnInfo(name = "reserved_group") val reservedGroup: ReservedGroup? = null
 )
 
 @Entity(

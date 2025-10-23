@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.ui.screens.strategicmanagement
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.ui.screens.strategicmanagement.usecases.GetStrategicProjectsUseCase
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -15,7 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class StrategicManagementViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository
+    private val getStrategicProjects: GetStrategicProjectsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StrategicManagementUiState())
@@ -46,7 +47,7 @@ class StrategicManagementViewModel @Inject constructor(
     }
 
     private suspend fun loadDashboardProjects() {
-        val strategicProjects = projectRepository.getProjectsByReservedGroup("strategic")
+        val strategicProjects = getStrategicProjects()
         _uiState.update { it.copy(dashboardProjects = strategicProjects) }
     }
 
