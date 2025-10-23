@@ -105,18 +105,16 @@ constructor(
 
     scope.launch {
       hierarchyState.collect { hierarchy ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "coreHierarchyFlow emit -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
-        )
+        HierarchyDebugLogger.d {
+          "coreHierarchyFlow emit -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}"
+        }
       }
     }
     scope.launch {
       planningUseCase.filterStateFlow.collect { state ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "filterState observed in MainScreenStateUseCase flat=${state.flatList.size} mode=${state.mode} ready=${state.isReady}",
-        )
+        HierarchyDebugLogger.d {
+          "filterState observed in MainScreenStateUseCase flat=${state.flatList.size} mode=${state.mode} ready=${state.isReady}"
+        }
       }
     }
 
@@ -303,10 +301,9 @@ internal class HierarchyStateBuilder(
     val readyFilterState = prepareReadyFilterState(filterStates)
 
     return combine(readyFilterState, expansionStates) { filterState, expansion ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}",
-        )
+        HierarchyDebugLogger.d {
+          "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}"
+        }
         val hierarchy =
           hierarchyUseCase.createProjectHierarchy(
             filterState,
@@ -319,17 +316,15 @@ internal class HierarchyStateBuilder(
             hierarchy.childMap.isEmpty()
         ) {
           val fallback = lastNonEmptyHierarchy ?: hierarchy
-          android.util.Log.d(
-            "HierarchyDebug",
-            "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}",
-          )
+          HierarchyDebugLogger.d {
+            "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}"
+          }
           fallback
         } else {
           lastNonEmptyHierarchy = hierarchy
-          android.util.Log.d(
-            "HierarchyDebug",
-            "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}",
-          )
+          HierarchyDebugLogger.d {
+            "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}"
+          }
           hierarchy
         }
       }
@@ -341,30 +336,26 @@ internal class HierarchyStateBuilder(
   ) =
     filterStates
       .onEach { state ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "readyFilterState input flat=${state.flatList.size} ready=${state.isReady}",
-        )
+        HierarchyDebugLogger.d {
+          "readyFilterState input flat=${state.flatList.size} ready=${state.isReady}"
+        }
       }
       .filter { state ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "readyFilterState filter evaluating flat=${state.flatList.size} ready=${state.isReady}",
-        )
+        HierarchyDebugLogger.d {
+          "readyFilterState filter evaluating flat=${state.flatList.size} ready=${state.isReady}"
+        }
         val ready = state.isReady
         if (!ready) {
-          android.util.Log.d(
-            "HierarchyDebug",
-            "coreHierarchyFlow filter not ready -> returning cached hierarchy topLevel=${lastNonEmptyHierarchy?.topLevelProjects?.size ?: 0}",
-          )
+          HierarchyDebugLogger.d {
+            "coreHierarchyFlow filter not ready -> returning cached hierarchy topLevel=${lastNonEmptyHierarchy?.topLevelProjects?.size ?: 0}"
+          }
         }
         ready
       }
       .map { state ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "readyFilterState accepted flat=${state.flatList.size} ready=${state.isReady}",
-        )
+        HierarchyDebugLogger.d {
+          "readyFilterState accepted flat=${state.flatList.size} ready=${state.isReady}"
+        }
         val normalizedFlatList =
           when {
             state.flatList.isNotEmpty() -> {
@@ -374,18 +365,16 @@ internal class HierarchyStateBuilder(
             lastNonEmptyFlatList.isNotEmpty() &&
               !state.searchActive &&
               state.mode == PlanningMode.All -> {
-              android.util.Log.d(
-                "HierarchyDebug",
-                "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}",
-              )
+              HierarchyDebugLogger.d {
+                "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}"
+              }
               lastNonEmptyFlatList
             }
             else -> state.flatList
           }
-        android.util.Log.d(
-          "HierarchyDebug",
-          "readyFilterState normalized flat=${normalizedFlatList.size}",
-        )
+        HierarchyDebugLogger.d {
+          "readyFilterState normalized flat=${normalizedFlatList.size}"
+        }
         if (normalizedFlatList === state.flatList) {
           state
         } else {

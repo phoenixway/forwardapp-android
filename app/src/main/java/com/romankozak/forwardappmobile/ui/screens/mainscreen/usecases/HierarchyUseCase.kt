@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
-import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.ListHierarchyData
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
@@ -25,10 +24,9 @@ class HierarchyUseCase @Inject constructor() {
         expandedMedium: Set<String>?,
         expandedLong: Set<String>?,
     ): ListHierarchyData {
-        Log.d(
-            "HierarchyDebug",
-            "createProjectHierarchy: flatSize=${filterState.flatList.size}, mode=${filterState.mode}, searchActive=${filterState.searchActive}",
-        )
+        HierarchyDebugLogger.d {
+            "createProjectHierarchy: flatSize=${filterState.flatList.size}, mode=${filterState.mode}, searchActive=${filterState.searchActive}"
+        }
         val result =
             try {
                 val (flatList, _, _, mode, settings) = filterState
@@ -47,13 +45,12 @@ class HierarchyUseCase @Inject constructor() {
                             expandedLong,
                         )
                     }
-                Log.d(
-                    "HierarchyDebug",
-                    "createProjectHierarchy result -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
-                )
+                HierarchyDebugLogger.d {
+                    "createProjectHierarchy result -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}"
+                }
                 hierarchy
             } catch (e: Exception) {
-                Log.e("HierarchyDebug", "Exception in createProjectHierarchy", e)
+                HierarchyDebugLogger.e("Exception in createProjectHierarchy", e)
                 ListHierarchyData()
             }
         return result
@@ -61,7 +58,7 @@ class HierarchyUseCase @Inject constructor() {
 
     private fun createRegularHierarchy(flatList: List<Project>): ListHierarchyData {
         if (flatList.isEmpty()) {
-            Log.d("HierarchyDebug", "createRegularHierarchy: empty flat list")
+            HierarchyDebugLogger.d { "createRegularHierarchy: empty flat list" }
             return ListHierarchyData(
                 allProjects = flatList,
                 topLevelProjects = emptyList(),
@@ -87,10 +84,9 @@ class HierarchyUseCase @Inject constructor() {
             }
         }
 
-        Log.d(
-            "HierarchyDebug",
-            "createRegularHierarchy: flat=${flatList.size}, topLevel=${topLevel.size}, childParents=${childMap.size}, orphans=$orphanCount",
-        )
+        HierarchyDebugLogger.d {
+            "createRegularHierarchy: flat=${flatList.size}, topLevel=${topLevel.size}, childParents=${childMap.size}, orphans=$orphanCount"
+        }
 
         return ListHierarchyData(
             allProjects = flatList,

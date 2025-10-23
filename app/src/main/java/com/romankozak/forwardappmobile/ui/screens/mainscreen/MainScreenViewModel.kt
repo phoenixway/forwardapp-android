@@ -38,6 +38,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SyncUseCas
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.NavigationUseCase
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SettingsUseCase
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.HierarchyDebugLogger
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.MainScreenStateUseCase
 
 @HiltViewModel
@@ -152,34 +153,31 @@ constructor(
     initializeAndCollectStates()
     viewModelScope.launch {
       _allProjectsFlat.collect { projects ->
-        android.util.Log.d("HierarchyDebug", "_allProjectsFlat size=${projects.size}")
+        HierarchyDebugLogger.d { "_allProjectsFlat size=${projects.size}" }
       }
     }
     viewModelScope.launch {
       planningUseCase.filterStateFlow.collect { state ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "filterStateFlow flat=${state.flatList.size} ready=${state.isReady}",
-        )
+        HierarchyDebugLogger.d {
+          "filterStateFlow flat=${state.flatList.size} ready=${state.isReady}"
+        }
       }
     }
     viewModelScope.launch {
       mainScreenStateUseCase.projectHierarchy.collect { hierarchy ->
-        android.util.Log.d(
-          "HierarchyDebug",
-          "projectHierarchy flow emit: topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}",
-        )
+        HierarchyDebugLogger.d {
+          "projectHierarchy flow emit: topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}"
+        }
       }
     }
     viewModelScope.launch {
       kotlinx.coroutines.delay(1500)
       val filterState = planningUseCase.filterStateFlow.first()
       val filterSize = filterState.flatList.size
-      android.util.Log.d("HierarchyDebug", "Delayed check: filterState flat=$filterSize")
-      android.util.Log.d(
-        "HierarchyDebug",
-        "Delayed check: hierarchyState topLevel=${mainScreenStateUseCase.projectHierarchy.value.topLevelProjects.size}",
-      )
+      HierarchyDebugLogger.d { "Delayed check: filterState flat=$filterSize" }
+      HierarchyDebugLogger.d {
+        "Delayed check: hierarchyState topLevel=${mainScreenStateUseCase.projectHierarchy.value.topLevelProjects.size}"
+      }
     }
   }
   private var projectToRevealAndScroll: String? = null

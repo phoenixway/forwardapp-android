@@ -23,7 +23,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help
+.PHONY: all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 
@@ -172,6 +172,7 @@ help:
 	@echo "---"
 	@echo "  make debug-cycle    - (Найчастіша команда) Зібрати, встановити та запустити DEBUG версію."
 	@echo "  make all            - Зібрати, встановити та запустити RELEASE версію."
+	@echo "  make test           - Виконати unit й instrumentation тести."
 	@echo ""
 	@echo "  make clean          - Очистити проєкт."
 	@echo ""
@@ -187,4 +188,27 @@ run-server:
 	@echo "🐍  Запускаю Python сервер..."
 	@python main.py
 
-
+# Запустити повний набір тестів (unit + instrumentation)
+test:
+	@echo "🧪  Запускаю unit-тести..."
+	@if ./gradlew :app:testDebugUnitTest ; then \
+		echo "✅  Unit-тести пройдено успішно."; \
+	else \
+		echo "❌  Unit-тести впали. Перевір лог вище."; \
+		exit 1; \
+	fi
+	@echo "📱  Перевіряю наявність пристрою $(DEVICE_ID)..."
+	@if adb devices | grep -w "$(DEVICE_ID)" >/dev/null 2>&1 ; then \
+		echo "✅  Пристрій знайдено."; \
+	else \
+		echo "❌  Пристрій $(DEVICE_ID) не під’єднаний. Підключіть його або змініть DEVICE_ID."; \
+		exit 1; \
+	fi
+	@echo "🤖  Запускаю instrumentation-тести на $(DEVICE_ID)..."
+	@if ANDROID_SERIAL=$(DEVICE_ID) ./gradlew :app:connectedDebugAndroidTest ; then \
+		echo "✅  Instrumentation-тести пройдено успішно."; \
+	else \
+		echo "❌  Instrumentation-тести впали. Перевір лог вище."; \
+		exit 1; \
+	fi
+	@echo "🎉  Усі тести пройдено!"
