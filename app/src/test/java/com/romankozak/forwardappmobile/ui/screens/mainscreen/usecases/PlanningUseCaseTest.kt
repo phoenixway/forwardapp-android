@@ -36,7 +36,6 @@ class PlanningUseCaseTest {
         advanceTimeBy(1)
         advanceUntilIdle()
 
-        println("ready after timeout = ${'$'}{useCase.isReadyForFiltering.value}")
         assertTrue(useCase.isReadyForFiltering.value)
         assertEquals(listOf(project), useCase.filterStateFlow.value.flatList)
     }
@@ -63,6 +62,28 @@ class PlanningUseCaseTest {
 
         assertTrue(useCase.isReadyForFiltering.value)
         assertEquals(listOf(project), useCase.filterStateFlow.value.flatList)
+    }
+
+    @Test
+    fun reusesLastProjectsWhenFilterBecomesEmpty() = runTest {
+        val root = project("root")
+        val child = project("child", parentId = "root")
+        val projectsFlow = MutableStateFlow(listOf(root, child))
+        val useCase = planningUseCase()
+
+        useCase.initialize(backgroundScope, projectsFlow)
+        advanceTimeBy(150)
+        advanceUntilIdle()
+
+        assertTrue(useCase.isReadyForFiltering.value)
+        assertEquals(listOf(root, child), useCase.filterStateFlow.value.flatList)
+
+        projectsFlow.value = emptyList()
+        advanceTimeBy(1)
+        advanceUntilIdle()
+
+        assertTrue(useCase.isReadyForFiltering.value)
+        assertEquals(listOf(root, child), useCase.filterStateFlow.value.flatList)
     }
 
     private fun planningUseCase(): PlanningUseCase =
