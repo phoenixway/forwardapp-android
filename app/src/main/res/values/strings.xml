@@ -166,4 +166,13 @@
     <string name="list_title">List title</string>
 
     <string name="set_reminder_title">Set reminder</string>
+    <string name="special_project_name">special</string>
+    <string name="strategic_group_name">strategic</string>
+    <string name="mission_project_name">mission</string>
+    <string name="long_term_strategy_project_name">long-term-strategy</string>
+    <string name="medium_term_program_project_name">medium-term-program</string>
+    <string name="active_quests_project_name">active-quests</string>
+    <string name="strategic_goals_project_name">strategic-goals</string>
+    <string name="strategic_review_project_name">strategic-review</string>
+    <string name="inbox_project_name">inbox</string>
 </resources>

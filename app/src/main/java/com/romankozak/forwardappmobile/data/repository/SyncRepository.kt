@@ -174,7 +174,7 @@ constructor(
                 backup.projects.map { projectFromBackup ->
                     projectFromBackup.copy(
                         projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
-                        reservedGroup = projectFromBackup.reservedGroup,
+                        reservedGroup = com.romankozak.forwardappmobile.data.database.models.ReservedGroup.fromString(projectFromBackup.reservedGroup?.groupName),
                         defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
                         isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
                         projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
@@ -251,7 +251,7 @@ constructor(
                 backup.projectExecutionLogs?.let { projectManagementDao.insertAllLogs(it) }
                 recentItemsToInsert?.let { recentItemDao.insertAll(it) }
 
-                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao).prePopulate()
+                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, context).prePopulate()
 
                 Log.d(IMPORT_TAG, "Вставка даних завершена.")
             }

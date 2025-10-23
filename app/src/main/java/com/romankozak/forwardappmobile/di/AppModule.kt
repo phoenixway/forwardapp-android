@@ -35,7 +35,7 @@ object DatabaseModule {
             override fun onOpen(dbSupport: SupportSQLiteDatabase) {
                 super.onOpen(dbSupport)
                 scope.launch(Dispatchers.IO) {
-                    val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao())
+                    val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao(), context)
                     databaseInitializer.prePopulate()
                 }
             }

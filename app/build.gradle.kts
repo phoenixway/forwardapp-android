@@ -181,6 +181,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
 
     // Additional libraries
     implementation(libs.accompanist.flowlayout)
