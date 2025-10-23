@@ -65,6 +65,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE project_type = :projectType")
     suspend fun getProjectsByType(projectType: String): List<Project>
 
+    @Query("SELECT * FROM projects WHERE reserved_group = :reservedGroup")
+    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project>
+
     @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getProjectIdsByTag(tag: String): List<String>
 

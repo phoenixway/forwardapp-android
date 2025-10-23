@@ -46,8 +46,8 @@ class StrategicManagementViewModel @Inject constructor(
     }
 
     private suspend fun loadDashboardProjects() {
-        val beaconProjects = projectRepository.getProjectsByType(com.romankozak.forwardappmobile.data.database.models.ProjectType.BEACON)
-        _uiState.update { it.copy(dashboardProjects = beaconProjects) }
+        val strategicProjects = projectRepository.getProjectsByReservedGroup("strategic")
+        _uiState.update { it.copy(dashboardProjects = strategicProjects) }
     }
 
 
