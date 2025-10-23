@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
-import android.util.Log
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
@@ -11,9 +10,8 @@ internal fun FilterState.withHierarchyFallback(allProjects: List<Project>): Filt
   if (allProjects.isEmpty()) return this
   if (searchActive) return this
   if (mode != PlanningMode.All) return this
-  Log.d(
-    "HierarchyDebug",
-    "FilterStateExtensions applying hierarchy fallback with allProjects size=${allProjects.size}",
-  )
+  HierarchyDebugLogger.d {
+    "FilterStateExtensions applying hierarchy fallback with allProjects size=${allProjects.size}"
+  }
   return copy(flatList = allProjects)
 }

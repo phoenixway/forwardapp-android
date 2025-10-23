@@ -111,24 +111,21 @@ constructor(
       .onEach { state ->
         var ready = _isReadyForFiltering.value
         if (state.flatList.isNotEmpty()) {
-          android.util.Log.d(
-            "HierarchyDebug",
-            "PlanningUseCase storing lastNonEmptyProjects size=${state.flatList.size}",
-          )
+          HierarchyDebugLogger.d {
+            "PlanningUseCase storing lastNonEmptyProjects size=${state.flatList.size}"
+          }
           lastNonEmptyProjects.value = state.flatList
           if (!ready) {
-            android.util.Log.d(
-              "HierarchyDebug",
-              "PlanningUseCase marking ready due to non-empty flatList size=${state.flatList.size}",
-            )
+            HierarchyDebugLogger.d {
+              "PlanningUseCase marking ready due to non-empty flatList size=${state.flatList.size}"
+            }
             _isReadyForFiltering.value = true
             ready = true
           }
         } else if (!ready) {
-          android.util.Log.d(
-            "HierarchyDebug",
-            "PlanningUseCase still waiting for projects (current flatList empty)",
-          )
+          HierarchyDebugLogger.d {
+            "PlanningUseCase still waiting for projects (current flatList empty)"
+          }
         }
 
         val effectiveFlatList =
@@ -139,10 +136,9 @@ constructor(
               state.mode == PlanningMode.All &&
               ready
           ) {
-            android.util.Log.d(
-              "HierarchyDebug",
-              "PlanningUseCase applying fallback with cached projects size=${lastNonEmptyProjects.value.size}",
-            )
+            HierarchyDebugLogger.d {
+              "PlanningUseCase applying fallback with cached projects size=${lastNonEmptyProjects.value.size}"
+            }
             lastNonEmptyProjects.value
           } else {
             state.flatList
@@ -153,10 +149,9 @@ constructor(
             flatList = effectiveFlatList,
             isReady = ready,
           )
-        android.util.Log.d(
-          "HierarchyDebug",
-          "PlanningUseCase emitting ready=${emitted.isReady} flat=${emitted.flatList.size}",
-        )
+        HierarchyDebugLogger.d {
+          "PlanningUseCase emitting ready=${emitted.isReady} flat=${emitted.flatList.size}"
+        }
         _filterStateFlow.value = emitted
       }
       .launchIn(scope)
