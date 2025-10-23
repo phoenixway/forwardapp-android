@@ -7,7 +7,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -21,13 +20,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material.icons.outlined.Notifications
@@ -43,8 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -158,160 +153,114 @@ fun CompactDayPlanHeader(
       if (totalPointsAvailable > 0) {
         "${(progress * 100).roundToInt()}%"
       } else {
-        "-"
+        null
       }
     }
-  val gradient =
-    remember(colorScheme) {
-      Brush.linearGradient(
-        colors =
-          listOf(
-            colorScheme.primaryContainer.copy(alpha = 0.95f),
-            colorScheme.secondaryContainer.copy(alpha = 0.9f),
-          ),
-      )
-    }
-  val headerContentColor = colorScheme.onPrimaryContainer
 
   Surface(
-    modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-    shape = MaterialTheme.shapes.extraLarge,
-    tonalElevation = 8.dp,
-    shadowElevation = 10.dp,
-    color = Color.Transparent,
+    modifier =
+      modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 12.dp),
+    shape = MaterialTheme.shapes.large,
+    tonalElevation = 4.dp,
+    color = colorScheme.surfaceColorAtElevation(2.dp),
   ) {
-    Box(
+    Column(
       modifier =
         Modifier
-          .background(
-            brush = gradient,
-            shape = MaterialTheme.shapes.extraLarge,
-          )
-          .padding(horizontal = 20.dp, vertical = 20.dp),
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp, vertical = 12.dp),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-      Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-          FilledTonalIconButton(
-            onClick = onNavigateToPreviousDay,
-            colors =
-              IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = colorScheme.surface.copy(alpha = 0.9f),
-                contentColor = colorScheme.onSurface,
-              ),
-          ) {
-            Icon(
-              imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-              contentDescription = "Попередній день",
-            )
-          }
-          Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-          ) {
-            Text(
-              text =
-                formattedDate.replaceFirstChar {
-                  if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
-                },
-              style = MaterialTheme.typography.headlineSmall,
-              color = headerContentColor,
-              fontWeight = FontWeight.SemiBold,
-              textAlign = TextAlign.Center,
-            )
-            Text(
-              text = "Прогрес за балами: $progressLabel",
-              style = MaterialTheme.typography.bodySmall,
-              color = headerContentColor.copy(alpha = 0.85f),
-            )
-          }
-          FilledTonalIconButton(
-            onClick = onNavigateToNextDay,
-            enabled = isNextDayNavigationEnabled,
-            colors =
-              IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = colorScheme.surface.copy(alpha = 0.9f),
-                contentColor = colorScheme.onSurface,
-                disabledContainerColor = colorScheme.surface.copy(alpha = 0.4f),
-                disabledContentColor = colorScheme.onSurface.copy(alpha = 0.4f),
-              ),
-          ) {
-            Icon(
-              imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-              contentDescription = "Наступний день",
-            )
-          }
-          FilledTonalIconButton(
-            onClick = onSettingsClick,
-            colors =
-              IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = colorScheme.surface.copy(alpha = 0.9f),
-                contentColor = colorScheme.onSurface,
-              ),
-          ) {
-            Icon(
-              imageVector = Icons.Filled.Settings,
-              contentDescription = "Налаштування плану дня",
-            )
-          }
-          FilledTonalButton(
-            onClick = onAddTaskClick,
-            colors =
-              ButtonDefaults.filledTonalButtonColors(
-                containerColor = colorScheme.surface,
-                contentColor = colorScheme.onSurface,
-              ),
-          ) {
-            Icon(Icons.Filled.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Нове завдання")
-          }
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+      ) {
+        IconButton(onClick = onNavigateToPreviousDay) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Попередній день",
+          )
         }
-
-        FlowRow(
-          horizontalArrangement = Arrangement.spacedBy(12.dp),
-          verticalArrangement = Arrangement.spacedBy(12.dp),
+        Column(
+          modifier = Modifier.weight(1f),
+          horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          HeaderInfoChip(
-            icon = Icons.Filled.CheckCircle,
-            text = pointsLabel,
-            contentColor = headerContentColor,
-          )
-          HeaderInfoChip(
-            icon = Icons.Outlined.Checklist,
-            text = tasksLabel,
-            contentColor = headerContentColor,
-          )
-          dayPlan?.let {
-            HeaderInfoChip(
-              icon = Icons.Outlined.Today,
-              text = "ID плану: ${it.id.take(8)}",
-              contentColor = headerContentColor.copy(alpha = 0.8f),
-            )
-          }
-        }
-
-        if (totalPointsAvailable > 0) {
-          LinearProgressIndicator(
-            progress = { progress },
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(999.dp)),
-            trackColor = headerContentColor.copy(alpha = 0.2f),
-            color = colorScheme.primary,
-          )
-        } else {
           Text(
-            text = "Додайте бали до завдань, щоб відслідковувати ефективність дня.",
+            text =
+              formattedDate.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
+              },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = colorScheme.onSurface,
+          )
+          Text(
+            text =
+              progressLabel?.let { "Прогрес: $it" }
+                ?: tasksLabel,
             style = MaterialTheme.typography.bodySmall,
-            color = headerContentColor.copy(alpha = 0.85f),
+            color = colorScheme.onSurfaceVariant,
           )
         }
+        IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = "Наступний день",
+            tint =
+              if (isNextDayNavigationEnabled) {
+                colorScheme.onSurface
+              } else {
+                colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+              },
+          )
+        }
+      }
+
+      FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.Center,
+      ) {
+        HeaderInfoChip(
+          icon = Icons.Filled.CheckCircle,
+          text = pointsLabel,
+          contentColor = colorScheme.primary,
+        )
+        HeaderInfoChip(
+          icon = Icons.Outlined.Checklist,
+          text = tasksLabel,
+          contentColor = colorScheme.onSurface,
+        )
+        progressLabel?.let { label ->
+          HeaderInfoChip(
+            icon = Icons.Filled.Star,
+            text = label,
+            contentColor = colorScheme.tertiary,
+          )
+        }
+        AssistChip(
+          onClick = onAddTaskClick,
+          label = { Text("Нове завдання") },
+          leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
+        )
+        AssistChip(
+          onClick = onSettingsClick,
+          label = { Text("Налаштування") },
+          leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+        )
+      }
+
+      if (totalPointsAvailable > 0) {
+        LinearProgressIndicator(
+          progress = { progress },
+          modifier = Modifier.fillMaxWidth(),
+          trackColor = colorScheme.surfaceVariant,
+          color = colorScheme.primary,
+        )
       }
     }
   }
@@ -322,15 +271,26 @@ private fun HeaderInfoChip(icon: ImageVector, text: String, contentColor: Color)
   Surface(
     color = contentColor.copy(alpha = 0.12f),
     contentColor = contentColor,
-    shape = RoundedCornerShape(14.dp),
+    shape = RoundedCornerShape(12.dp),
+    tonalElevation = 0.dp,
+    shadowElevation = 0.dp,
   ) {
     Row(
-      modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+      modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-      Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-      Text(text = text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
+      Icon(
+        icon,
+        contentDescription = null,
+        modifier = Modifier.size(14.dp),
+        tint = contentColor,
+      )
+      Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Medium,
+      )
     }
   }
 }

@@ -2,21 +2,16 @@ package com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.tasklis
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,20 +36,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.database.models.DayPlan
+import com.romankozak.forwardappmobile.data.database.models.DayTask
+import com.romankozak.forwardappmobile.data.database.models.TaskPriority
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.CompactDayPlanHeader
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayTaskWithReminder
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -140,7 +133,6 @@ fun TaskList(
                                         contentDescription = "Перетягнути",
                                         modifier = Modifier
                                             .draggableHandle()
-                                            .padding(end = 8.dp)
                                             .size(24.dp),
                                         tint = MaterialTheme.colorScheme.outline,
                                     )
@@ -199,40 +191,19 @@ fun TaskItem(
     dragHandle: @Composable () -> Unit,
 ) {
     val task = taskWithReminder.dayTask
-    val priorityColor = task.priority.priorityIndicatorColor()
     val contentAlpha = if (task.completed) 0.6f else 1f
 
-    Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .heightIn(min = 76.dp)
-                .height(IntrinsicSize.Min),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = taskContainerColor(task),
+        tonalElevation = if (task.completed) 0.dp else 4.dp,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxHeight()
-                    .width(6.dp)
-                    .background(
-                        brush =
-                            Brush.verticalGradient(
-                                colors =
-                                    listOf(
-                                        priorityColor,
-                                        priorityColor.copy(alpha = 0.6f),
-                                    ),
-                            ),
-                        shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
-                    ),
-        )
-
         Row(
             modifier =
                 Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
@@ -249,41 +220,47 @@ fun TaskItem(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                DayPlanMarkdownText(
                     text = task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    textDecoration = if (task.completed) TextDecoration.LineThrough else null,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    style =
+                        MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
+                        ),
+                    isCompleted = task.completed,
                 )
-                if (!task.description.isNullOrBlank()) {
-                    Text(
-                        text = task.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
+
+                task.description?.takeIf { it.isNotBlank() }?.let { description ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    DayPlanMarkdownText(
+                        text = description,
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+                            ),
+                        isCompleted = task.completed,
                     )
                 }
+
                 TaskMetaInfo(
                     taskWithReminder = taskWithReminder,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 dragHandle()
-                IconButton(onClick = onLongPress, modifier = Modifier.size(44.dp)) {
+                IconButton(
+                    onClick = onLongPress,
+                    modifier = Modifier.size(40.dp),
+                ) {
                     Icon(
-                        Icons.Default.MoreVert,
+                        Icons.Filled.MoreVert,
                         contentDescription = "Більше опцій",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -297,46 +274,52 @@ fun TaskItem(
 @Composable
 private fun TaskMetaInfo(taskWithReminder: DayTaskWithReminder, modifier: Modifier = Modifier) {
     val task = taskWithReminder.dayTask
+    val metaItems =
+        buildList<MetaInfoItem> {
+            task.points.takeIf { it > 0 }?.let { points ->
+                add(
+                    MetaInfoItem(
+                        icon = Icons.Filled.Star,
+                        text = "$points балів",
+                        tint = MaterialTheme.colorScheme.secondary,
+                    ),
+                )
+            }
+            task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
+                add(MetaInfoItem(icon = Icons.Outlined.Timer, text = "$minutes хв"))
+            }
+            if (task.priority != TaskPriority.NONE) {
+                add(
+                    MetaInfoItem(
+                        icon = Icons.Outlined.Flag,
+                        text = task.priority
+                            .name
+                            .lowercase()
+                            .replaceFirstChar { it.titlecase() },
+                        tint = task.priority.priorityIndicatorColor(),
+                    ),
+                )
+            }
+            if (task.recurringTaskId != null) {
+                add(MetaInfoItem(icon = Icons.Outlined.Repeat, text = "Повторюється"))
+            }
+            if (taskWithReminder.reminder != null) {
+                add(MetaInfoItem(icon = Icons.Outlined.Notifications, text = "Нагадування"))
+            }
+        }
+
+    if (metaItems.isEmpty()) return
 
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        task.points.takeIf { it > 0 }?.let { points ->
+        metaItems.forEach { item ->
             MetaInfoChip(
-                icon = Icons.Filled.Star,
-                text = "$points балів",
-                contentColor = MaterialTheme.colorScheme.secondary,
-            )
-        }
-
-        task.estimatedDurationMinutes?.takeIf { it > 0 }?.let {
-            MetaInfoChip(
-                icon = Icons.Outlined.Timer,
-                text = "$it хв",
-            )
-        }
-
-        if (task.priority != TaskPriority.NONE) {
-            MetaInfoChip(
-                icon = Icons.Outlined.Flag,
-                text = task.priority.name.lowercase().replaceFirstChar { it.titlecase() },
-                contentColor = task.priority.priorityIndicatorColor(),
-            )
-        }
-
-        if (task.recurringTaskId != null) {
-            MetaInfoChip(
-                icon = Icons.Outlined.Repeat,
-                text = "Повторюється",
-            )
-        }
-
-        if (taskWithReminder.reminder != null) {
-            MetaInfoChip(
-                icon = Icons.Outlined.Notifications,
-                text = "Нагадування",
+                icon = item.icon,
+                text = item.text,
+                contentColor = item.tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -349,24 +332,37 @@ private fun MetaInfoChip(
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         contentColor = contentColor,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(14.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = contentColor,
+            )
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
             )
         }
     }
 }
+
+private data class MetaInfoItem(
+    val icon: ImageVector,
+    val text: String,
+    val tint: Color? = null,
+)
 
 @Composable
 private fun taskContainerColor(dayTask: DayTask): Color {
