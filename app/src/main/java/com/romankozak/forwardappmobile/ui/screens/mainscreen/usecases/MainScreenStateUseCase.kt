@@ -74,26 +74,58 @@ constructor(
         .obsidianVaultNameFlow
         .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
 
+    var lastNonEmptyHierarchy: ListHierarchyData? = null
+
     val hierarchyState =
       combine(
           planningUseCase.filterStateFlow,
+          allProjectsFlat,
           planningUseCase.planningModeManager.expandedInDailyMode,
           planningUseCase.planningModeManager.expandedInMediumMode,
           planningUseCase.planningModeManager.expandedInLongMode,
-        ) { filterState, expandedDaily, expandedMedium, expandedLong ->
+        ) { filterState, allProjects, expandedDaily, expandedMedium, expandedLong ->
           android.util.Log.d(
             "HierarchyDebug",
-            "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}",
+            "coreHierarchyFlow inputs: filterFlat=${filterState.flatList.size}, filterReady=${filterState.isReady}, allProjects=${allProjects.size}",
           )
-          if (!filterState.isReady) {
-            ListHierarchyData()
+          val normalizedState = filterState.withHierarchyFallback(allProjects)
+          android.util.Log.d(
+            "HierarchyDebug",
+            "coreHierarchyFlow combine triggered: flat=${normalizedState.flatList.size}, mode=${normalizedState.mode}, ready=${normalizedState.isReady}",
+          )
+          if (!normalizedState.isReady) {
+            val fallback = lastNonEmptyHierarchy ?: ListHierarchyData()
+            android.util.Log.d(
+              "HierarchyDebug",
+              "coreHierarchyFlow not ready -> returning cached hierarchy topLevel=${fallback.topLevelProjects.size}",
+            )
+            fallback
           } else {
-            hierarchyUseCase.createProjectHierarchy(
-              filterState,
+            val hierarchy =
+              hierarchyUseCase.createProjectHierarchy(
+              normalizedState,
               expandedDaily,
               expandedMedium,
               expandedLong,
             )
+            if (
+              hierarchy.topLevelProjects.isEmpty() &&
+                hierarchy.childMap.isEmpty()
+            ) {
+              val fallback = lastNonEmptyHierarchy ?: hierarchy
+              android.util.Log.d(
+                "HierarchyDebug",
+                "coreHierarchyFlow produced empty hierarchy, fallback topLevel=${fallback.topLevelProjects.size}",
+              )
+              fallback
+            } else {
+              lastNonEmptyHierarchy = hierarchy
+              android.util.Log.d(
+                "HierarchyDebug",
+                "coreHierarchyFlow updated hierarchy topLevel=${hierarchy.topLevelProjects.size} childParents=${hierarchy.childMap.size}",
+              )
+              hierarchy
+            }
           }
         }
         .stateIn(scope, SharingStarted.Eagerly, ListHierarchyData())

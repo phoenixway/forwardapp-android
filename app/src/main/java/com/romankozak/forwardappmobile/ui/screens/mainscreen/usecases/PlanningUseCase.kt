@@ -51,6 +51,7 @@ constructor(
   val filterStateFlow: StateFlow<FilterState> = _filterStateFlow.asStateFlow()
 
   val planningMode = planningModeManager.planningMode
+  private val lastNonEmptyProjects = MutableStateFlow<List<Project>>(emptyList())
 
   @OptIn(FlowPreview::class)
   fun initialize(scope: CoroutineScope, allProjectsFlat: StateFlow<List<Project>>) {
@@ -105,22 +106,65 @@ constructor(
 
     baseFilterState
       .onEach { state ->
+        if (state.flatList.isNotEmpty()) {
+          android.util.Log.d(
+            "HierarchyDebug",
+            "PlanningUseCase storing lastNonEmptyProjects size=${state.flatList.size}",
+          )
+          lastNonEmptyProjects.value = state.flatList
+        }
         if (!_isReadyForFiltering.value && state.flatList.isNotEmpty()) {
+          android.util.Log.d(
+            "HierarchyDebug",
+            "PlanningUseCase marking ready due to non-empty flatList size=${state.flatList.size}",
+          )
           _isReadyForFiltering.value = true
         }
 
         val ready = _isReadyForFiltering.value
+        if (ready && state.flatList.isEmpty()) {
+          android.util.Log.d(
+            "HierarchyDebug",
+            "PlanningUseCase ready with empty flatList; using cached size=${lastNonEmptyProjects.value.size}",
+          )
+        }
         _filterStateFlow.value =
           if (ready) {
-            state.copy(isReady = true)
+            val effectiveFlatList =
+              if (
+                state.flatList.isEmpty() &&
+                  lastNonEmptyProjects.value.isNotEmpty() &&
+                  !state.searchActive &&
+                  state.mode == PlanningMode.All
+              ) {
+                android.util.Log.d(
+                  "HierarchyDebug",
+                  "PlanningUseCase applying fallback with cached projects size=${lastNonEmptyProjects.value.size}",
+                )
+                lastNonEmptyProjects.value
+              } else {
+                state.flatList
+              }
+            val emitted = state.copy(flatList = effectiveFlatList, isReady = true)
+            android.util.Log.d(
+              "HierarchyDebug",
+              "PlanningUseCase emitting ready=$ready flat=${emitted.flatList.size}",
+            )
+            emitted
           } else {
-            state.copy(
+            val emitted =
+              state.copy(
               flatList = emptyList(),
               query = "",
               searchActive = false,
               mode = PlanningMode.All,
               isReady = false,
             )
+            android.util.Log.d(
+              "HierarchyDebug",
+              "PlanningUseCase emitting ready=$ready flat=${emitted.flatList.size}",
+            )
+            emitted
           }
       }
       .launchIn(scope)
@@ -128,6 +172,10 @@ constructor(
     scope.launch {
       delay(750)
       if (!_isReadyForFiltering.value) {
+        android.util.Log.d(
+          "HierarchyDebug",
+          "PlanningUseCase marking ready after timeout (flatList size=${lastNonEmptyProjects.value.size})",
+        )
         _isReadyForFiltering.value = true
         _filterStateFlow.update { current -> current.copy(isReady = true) }
       }
