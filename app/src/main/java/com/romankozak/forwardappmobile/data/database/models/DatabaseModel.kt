@@ -194,7 +194,35 @@ data class Goal(
 
 
 
+enum class ProjectType {
+    DEFAULT,
+    BEACON;
+
+    companion object {
+        fun fromString(value: String?): ProjectType {
+            return try {
+                if (value == null) ProjectType.DEFAULT else valueOf(value)
+            } catch (e: IllegalArgumentException) {
+                ProjectType.DEFAULT
+            }
+        }
+    }
+}
+
+class ProjectTypeConverter {
+    @TypeConverter
+    fun fromProjectType(projectType: ProjectType?): String {
+        return (projectType ?: ProjectType.DEFAULT).name
+    }
+
+    @TypeConverter
+    fun toProjectType(value: String?): ProjectType {
+        return ProjectType.fromString(value)
+    }
+}
+
 @Entity(tableName = "projects")
+@TypeConverters(ProjectTypeConverter::class)
 data class Project(
     @PrimaryKey val id: String,
     val name: String,
@@ -225,6 +253,7 @@ data class Project(
     @ColumnInfo(defaultValue = "0") val displayScore: Int = 0,
     @ColumnInfo(name = "scoring_status") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     @ColumnInfo(name = "show_checkboxes", defaultValue = "0") val showCheckboxes: Boolean = false,
+    @ColumnInfo(name = "project_type", defaultValue = "'DEFAULT'") val projectType: ProjectType = ProjectType.DEFAULT
 )
 
 @Entity(

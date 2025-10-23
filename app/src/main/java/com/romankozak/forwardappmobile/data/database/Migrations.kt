@@ -677,3 +677,9 @@ val MIGRATION_52_53 = object : Migration(52, 53) {
         db.execSQL("ALTER TABLE projects ADD COLUMN show_checkboxes INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_53_54 = object : Migration(53, 54) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE projects ADD COLUMN project_type TEXT NOT NULL DEFAULT 'DEFAULT'")
+    }
+}

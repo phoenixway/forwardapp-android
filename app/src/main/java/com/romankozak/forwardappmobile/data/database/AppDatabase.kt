@@ -36,10 +36,10 @@ import com.romankozak.forwardappmobile.data.database.models.*
         NoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 52,
+    version = 54,
     exportSchema = true,
 )
-@TypeConverters(Converters::class, DailyPlanConverters::class)
+@TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
 

@@ -73,15 +73,6 @@ fun StrategicManagementScreen(
             )
           }
 
-          StrategicManagementTab.ELEMENTS -> {
-            ProjectList(
-              projects = uiState.elementsProjects,
-              navController = navController,
-              onRevealProject = {
-                mainScreenViewModel.onEvent(MainScreenEvent.RevealProjectInHierarchy(it))
-              },
-            )
-          }
 
           StrategicManagementTab.INSIGHTS -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -178,46 +169,6 @@ private fun DashboardCard(title: String, value: String, modifier: Modifier = Mod
   }
 }
 
-@Composable
-fun ProjectList(
-  projects: List<Project>,
-  navController: NavController,
-  onRevealProject: (String) -> Unit,
-) {
-  Column(
-    modifier =
-      Modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 16.dp)
-  ) {
-    Text(
-      text = "Elements",
-      style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-      color = MaterialTheme.colorScheme.onBackground,
-    )
-
-    Spacer(modifier = Modifier.height(24.dp))
-
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-      DashboardCard(title = "Progress", value = "72%", modifier = Modifier.weight(1f))
-      DashboardCard(title = "Weekly Tasks", value = "5/8", modifier = Modifier.weight(1f))
-    }
-
-    Spacer(modifier = Modifier.height(32.dp))
-
-    Text(
-      text = "All Projects",
-      style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-      color = MaterialTheme.colorScheme.onBackground,
-      modifier = Modifier.padding(bottom = 16.dp),
-    )
-
-    ProjectsLazyColumn(
-      projects = projects,
-      navController = navController,
-      onRevealProject = onRevealProject,
-      modifier = Modifier.fillMaxWidth(),
-    )
-  }
-}
 
 @Composable
 private fun ProjectListItem(
