@@ -229,7 +229,7 @@ constructor(
         if (projectsToDelete.isEmpty()) return
         val projectIds = projectsToDelete.map { it.id }
         listItemRepository.deleteItemsForProjects(projectIds)
-        projectsToDelete.forEach { projectDao.delete(it) }
+        projectsToDelete.forEach { projectDao.delete(it.id) }
     }
 
     suspend fun createProjectWithId(
@@ -314,6 +314,8 @@ constructor(
     ): String = listItemRepository.addLinkItemToProjectFromLink(projectId, link)
 
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
+
+    suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectDao.getProjectsByType(projectType.name)
 
     suspend fun getAllProjects(): List<Project> = projectDao.getAll()
 

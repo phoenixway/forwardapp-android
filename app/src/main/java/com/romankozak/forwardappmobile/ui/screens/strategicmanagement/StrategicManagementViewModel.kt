@@ -36,12 +36,7 @@ class StrategicManagementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                coroutineScope {
-                    val dashboardJob = async { loadDashboardProjects() }
-                    val elementsJob = async { loadElementsProjects() }
-                    dashboardJob.await()
-                    elementsJob.await()
-                }
+                loadDashboardProjects()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.message) }
             } finally {
@@ -51,48 +46,9 @@ class StrategicManagementViewModel @Inject constructor(
     }
 
     private suspend fun loadDashboardProjects() {
-        val longTermIds = projectRepository.findProjectIdsByTag("long-term-strategy")
-        val middleTermIds = projectRepository.findProjectIdsByTag("middle-term-backlog")
-        val activeQuestsIds = projectRepository.findProjectIdsByTag("active-quests")
-        val missionIds = projectRepository.findProjectIdsByTag("mission")
-        val projectIds = (longTermIds + middleTermIds + activeQuestsIds + missionIds).distinct()
-
-        val strReviewIds = projectRepository.findProjectIdsByTag("strategic-review")
-        val strReviewProjectIds = strReviewIds.distinct()
-
-        val allProjects = projectRepository.getAllProjects()
-
-        val projects = projectIds.mapNotNull { id -> allProjects.find { it.id == id } }
-        val strReviewProjects = strReviewProjectIds.mapNotNull { id -> allProjects.find { it.id == id } }
-
-        _uiState.update { it.copy(dashboardProjects = projects + strReviewProjects) }
+        val beaconProjects = projectRepository.getProjectsByType(com.romankozak.forwardappmobile.data.database.models.ProjectType.BEACON)
+        _uiState.update { it.copy(dashboardProjects = beaconProjects) }
     }
 
-    private suspend fun loadElementsProjects() {
-        val allProjects = projectRepository.getAllProjects()
-        val mediumIds = projectRepository.findProjectIdsByTag("medium")
-        val longIds = projectRepository.findProjectIdsByTag("long")
-        val strIds = projectRepository.findProjectIdsByTag("str")
-        val rootProjectIds = (mediumIds + longIds + strIds).distinct()
 
-        val elementsProjects = getProjectsWithChildren(rootProjectIds, allProjects)
-
-        _uiState.update { it.copy(elementsProjects = elementsProjects) }
-    }
-
-    private fun getProjectsWithChildren(rootProjectIds: List<String>, allProjects: List<Project>): List<Project> {
-        val elementsProjects = mutableListOf<Project>()
-        val projectsToAdd = rootProjectIds.mapNotNull { projectId -> allProjects.find { it.id == projectId } }.toMutableList()
-        val processedProjects = mutableSetOf<String>()
-
-        while (projectsToAdd.isNotEmpty()) {
-            val currentProject = projectsToAdd.removeAt(0)
-            if (processedProjects.add(currentProject.id)) {
-                elementsProjects.add(currentProject)
-                val children = allProjects.filter { it.parentId == currentProject.id }
-                projectsToAdd.addAll(children)
-            }
-        }
-        return elementsProjects.distinctBy { it.id }
-    }
 }

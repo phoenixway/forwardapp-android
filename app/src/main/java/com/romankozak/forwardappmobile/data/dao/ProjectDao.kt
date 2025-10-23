@@ -32,10 +32,10 @@ interface ProjectDao {
     @Update
     suspend fun update(projects: List<Project>): Int
 
-    @Delete
-    suspend fun delete(project: Project)
+    @Query("DELETE FROM projects WHERE id = :id AND project_type = 'DEFAULT'")
+    suspend fun delete(id: String)
 
-    @Query("DELETE FROM projects WHERE id = :projectId")
+    @Query("DELETE FROM projects WHERE id = :projectId AND project_type = 'DEFAULT'")
     suspend fun deleteProjectById(projectId: String)
 
     @Query("SELECT * FROM projects WHERE id IN (:projectIds)")
@@ -61,6 +61,9 @@ interface ProjectDao {
 
     @Query("SELECT * FROM projects WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getProjectsByTag(tag: String): List<Project>
+
+    @Query("SELECT * FROM projects WHERE project_type = :projectType")
+    suspend fun getProjectsByType(projectType: String): List<Project>
 
     @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getProjectIdsByTag(tag: String): List<String>

@@ -48,12 +48,6 @@ fun StrategicManagementBottomNav(
                     isSelected = currentTab == StrategicManagementTab.DASHBOARD,
                     onClick = { onTabSelected(StrategicManagementTab.DASHBOARD) }
                 )
-                ModernBottomNavButton(
-                    text = "Elements",
-                    icon = Icons.Outlined.DonutSmall,
-                    isSelected = currentTab == StrategicManagementTab.ELEMENTS,
-                    onClick = { onTabSelected(StrategicManagementTab.ELEMENTS) }
-                )
                 ModernBottomNavButton(text = "Projects", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(
                     text = "Insights",
