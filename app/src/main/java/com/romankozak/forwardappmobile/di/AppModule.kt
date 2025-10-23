@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.di
 
 import android.content.Context
@@ -25,85 +23,79 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-        @Provides
-        @Singleton
-        fun provideAppDatabase(
-            @ApplicationContext context: Context,
-            scope: CoroutineScope
-        ): AppDatabase {
-            lateinit var db: AppDatabase
-            val callback = object : RoomDatabase.Callback() {
-                override fun onCreate(dbSupport: SupportSQLiteDatabase) {
-                    super.onCreate(dbSupport)
-                    scope.launch(Dispatchers.IO) {
-                        val projectDao = db.projectDao()
-                        val projects = listOf(
-                            Project(id = UUID.randomUUID().toString(), name = "Місія", description = null, parentId = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null, projectType = ProjectType.BEACON),
-                            Project(id = UUID.randomUUID().toString(), name = "Довгострокова стратегія", description = null, parentId = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null, projectType = ProjectType.BEACON),
-                            Project(id = UUID.randomUUID().toString(), name = "Середньострокова програма", description = null, parentId = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null, projectType = ProjectType.BEACON),
-                            Project(id = UUID.randomUUID().toString(), name = "Активні квести", description = null, parentId = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null, projectType = ProjectType.BEACON),
-                            Project(id = UUID.randomUUID().toString(), name = "Стратегічні цілі", description = null, parentId = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null, projectType = ProjectType.BEACON),
-                            Project(id = UUID.randomUUID().toString(), name = "Стратегічний огляд", description = null, parentId = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null, projectType = ProjectType.BEACON),
-                            Project(id = UUID.randomUUID().toString(), name = "Inbox", description = null, parentId = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null, projectType = ProjectType.BEACON)
-                        )
-                        projectDao.insertProjects(projects)
-                    }
+    private lateinit var db: AppDatabase
+
+    @Provides
+    @Singleton
+    fun provideAppDatabase(
+        @ApplicationContext context: Context,
+        scope: CoroutineScope
+    ): AppDatabase {
+        val callback = object : RoomDatabase.Callback() {
+            override fun onOpen(dbSupport: SupportSQLiteDatabase) {
+                super.onOpen(dbSupport)
+                scope.launch(Dispatchers.IO) {
+                    val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao())
+                    databaseInitializer.prePopulate()
                 }
             }
-    
-            db = Room.databaseBuilder(
-                context,
-                AppDatabase::class.java,
-                "forward_app_database",
-            ).fallbackToDestructiveMigration().addMigrations(
-                MIGRATION_8_9,
-                MIGRATION_10_11,
-                MIGRATION_11_12,
-                MIGRATION_12_13,
-                MIGRATION_13_14,
-                MIGRATION_14_15,
-                MIGRATION_15_16,
-                MIGRATION_16_17,
-                MIGRATION_17_18,
-                MIGRATION_18_19,
-                MIGRATION_19_20,
-                MIGRATION_20_21,
-                MIGRATION_21_22,
-                MIGRATION_22_23,
-                MIGRATION_23_24,
-                MIGRATION_24_25,
-                MIGRATION_25_26,
-                MIGRATION_26_27,
-                MIGRATION_27_28,
-                MIGRATION_28_29,
-                MIGRATION_29_30,
-                MIGRATION_30_31,
-                MIGRATION_31_32,
-                MIGRATION_32_33,
-                MIGRATION_33_34, // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
-    
-                MIGRATION_34_35,
-                MIGRATION_35_36,
-                MIGRATION_36_37,
-                MIGRATION_37_38,
-                MIGRATION_38_39,
-                MIGRATION_39_40,
-                MIGRATION_40_41,
-                MIGRATION_41_42,
-                MIGRATION_42_43,
-                MIGRATION_44_45,
-                MIGRATION_45_46,
-                MIGRATION_46_47,
-                MIGRATION_47_48,
-                MIGRATION_48_49,
-                MIGRATION_49_50,
-                MIGRATION_50_51,
-                MIGRATION_51_52,
-                MIGRATION_52_53,
-                MIGRATION_53_54
-            ).addCallback(callback).build()
-            return db
         }
+
+        db = Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "forward_app_database",
+        ).addMigrations(
+            MIGRATION_8_9,
+            MIGRATION_10_11,
+            MIGRATION_11_12,
+            MIGRATION_12_13,
+            MIGRATION_13_14,
+            MIGRATION_14_15,
+            MIGRATION_15_16,
+            MIGRATION_16_17,
+            MIGRATION_17_18,
+            MIGRATION_18_19,
+            MIGRATION_19_20,
+            MIGRATION_20_21,
+            MIGRATION_21_22,
+            MIGRATION_22_23,
+            MIGRATION_23_24,
+            MIGRATION_24_25,
+            MIGRATION_25_26,
+            MIGRATION_26_27,
+            MIGRATION_27_28,
+            MIGRATION_28_29,
+            MIGRATION_29_30,
+            MIGRATION_30_31,
+            MIGRATION_31_32,
+            MIGRATION_32_33,
+            MIGRATION_33_34, // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
+
+            MIGRATION_34_35,
+            MIGRATION_35_36,
+            MIGRATION_36_37,
+            MIGRATION_37_38,
+            MIGRATION_38_39,
+            MIGRATION_39_40,
+            MIGRATION_40_41,
+            MIGRATION_41_42,
+            MIGRATION_42_43,
+            MIGRATION_44_45,
+            MIGRATION_45_46,
+            MIGRATION_46_47,
+            MIGRATION_47_48,
+            MIGRATION_48_49,
+            MIGRATION_49_50,
+            MIGRATION_50_51,
+            MIGRATION_51_52,
+            MIGRATION_52_53,
+            MIGRATION_53_54,
+            MIGRATION_54_55
+        ).addCallback(callback).build()
+        return db
+    }
+
     @Provides
     fun provideConversationFolderDao(db: AppDatabase): ConversationFolderDao = db.conversationFolderDao()
 
@@ -155,10 +147,7 @@ object DatabaseModule {
     @Provides
     fun provideRecurringTaskDao(db: AppDatabase): RecurringTaskDao = db.recurringTaskDao()
 
-
-
     @Provides
     fun provideReminderDao(db: AppDatabase): ReminderDao = db.reminderDao()
-
 
 }

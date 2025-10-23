@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
+import com.romankozak.forwardappmobile.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -172,6 +173,8 @@ constructor(
             val cleanedProjects =
                 backup.projects.map { projectFromBackup ->
                     projectFromBackup.copy(
+                        projectType = projectFromBackup.projectType ?: ProjectType.DEFAULT,
+                        reservedGroup = projectFromBackup.reservedGroup,
                         defaultViewModeName = projectFromBackup.defaultViewModeName ?: ProjectViewMode.BACKLOG.name,
                         isProjectManagementEnabled = projectFromBackup.isProjectManagementEnabled ?: false,
                         projectStatus = projectFromBackup.projectStatus ?: ProjectStatusValues.NO_PLAN,
@@ -247,6 +250,8 @@ constructor(
                 backup.inboxRecords?.let { inboxRecordDao.insertAll(it) }
                 backup.projectExecutionLogs?.let { projectManagementDao.insertAllLogs(it) }
                 recentItemsToInsert?.let { recentItemDao.insertAll(it) }
+
+                com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao).prePopulate()
 
                 Log.d(IMPORT_TAG, "Вставка даних завершена.")
             }

@@ -61,6 +61,8 @@
 
 **Приклад:**
 ```bash
-sed -i '330s/.*/                      val checkboxRegex = Regex("""^-\\s\\[[ x]\\]\\s?.*""", RegexOption.IGNORE_CASE)/' /path/to/file.kt
+sed -i '330s/.*/                      val checkboxRegex = Regex("""^-\\s\[[ x]\]\\s?.*""", RegexOption.IGNORE_CASE)/' /path/to/file.kt
 ```
 Цей підхід є надійнішим для складних замін і дозволяє уникнути проблем з інтерпретацією рядків твоїми інструментами.
+
+- Після завершення кожної значимої успішної зміни пропонувати перевіряти чи компілюється через `make debug-cycle`

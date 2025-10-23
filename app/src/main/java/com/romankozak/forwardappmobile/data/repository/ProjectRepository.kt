@@ -265,6 +265,9 @@ constructor(
         projectToMove: Project,
         newParentId: String?,
     ) {
+        if (projectToMove.projectType != ProjectType.DEFAULT) {
+            return
+        }
         val projectFromDb = projectDao.getProjectById(projectToMove.id) ?: return
         val oldParentId = projectFromDb.parentId
 
@@ -316,6 +319,8 @@ constructor(
     suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
 
     suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectDao.getProjectsByType(projectType.name)
+
+    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project> = projectDao.getProjectsByReservedGroup(reservedGroup)
 
     suspend fun getAllProjects(): List<Project> = projectDao.getAll()
 

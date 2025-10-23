@@ -674,12 +674,25 @@ val MIGRATION_51_52 = object : Migration(51, 52) {
 
 val MIGRATION_52_53 = object : Migration(52, 53) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE projects ADD COLUMN show_checkboxes INTEGER NOT NULL DEFAULT 0")
+        val cursor = db.query("PRAGMA table_info(projects)")
+        val columns = mutableListOf<String>()
+        while (cursor.moveToNext()) {
+            columns.add(cursor.getString(cursor.getColumnIndexOrThrow("name")))
+        }
+        if (!columns.contains("show_checkboxes")) {
+            db.execSQL("ALTER TABLE projects ADD COLUMN show_checkboxes INTEGER NOT NULL DEFAULT 0")
+        }
     }
 }
 
 val MIGRATION_53_54 = object : Migration(53, 54) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE projects ADD COLUMN project_type TEXT NOT NULL DEFAULT 'DEFAULT'")
+    }
+}
+
+val MIGRATION_54_55 = object : Migration(54, 55) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE projects ADD COLUMN reserved_group TEXT")
     }
 }
