@@ -33,3 +33,6 @@
 ## Phase 4: Day Plan UX Enhancements
 - [x] Redesign the Day Plan header with points-centric progress and quick actions.
 - [x] Refresh Day Plan task cards to follow the revamped visual language.
+
+## Phase 5: Stabilization
+- [x] Ensure planning hierarchy shows descendants of tagged projects so branches are not missing on the main screen.
