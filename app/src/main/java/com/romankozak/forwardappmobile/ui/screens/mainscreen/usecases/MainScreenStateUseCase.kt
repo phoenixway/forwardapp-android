@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.BreadcrumbIt
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.FilterState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.SearchResult
@@ -76,16 +77,18 @@ constructor(
     val hierarchyState =
       combine(
           planningUseCase.filterStateFlow,
+          allProjectsFlat,
           planningUseCase.planningModeManager.expandedInDailyMode,
           planningUseCase.planningModeManager.expandedInMediumMode,
           planningUseCase.planningModeManager.expandedInLongMode,
-        ) { filterState, expandedDaily, expandedMedium, expandedLong ->
+        ) { filterState, allProjects, expandedDaily, expandedMedium, expandedLong ->
+          val normalizedFilterState = filterState.withHierarchyFallback(allProjects)
           android.util.Log.d(
             "HierarchyDebug",
-            "coreHierarchyFlow combine triggered: filterFlat=${filterState.flatList.size}, mode=${filterState.mode}",
+            "coreHierarchyFlow combine triggered: filterFlat=${normalizedFilterState.flatList.size}, mode=${normalizedFilterState.mode}",
           )
           hierarchyUseCase.createProjectHierarchy(
-            filterState,
+            normalizedFilterState,
             expandedDaily,
             expandedMedium,
             expandedLong,
@@ -259,4 +262,14 @@ constructor(
     val recentItems: List<RecentItem> = emptyList(),
     val allContexts: List<UiContext> = emptyList(),
   )
+}
+
+internal fun FilterState.withHierarchyFallback(
+  allProjects: List<Project>,
+): FilterState {
+  if (flatList.isNotEmpty()) return this
+  if (allProjects.isEmpty()) return this
+  if (searchActive) return this
+  if (mode != PlanningMode.All) return this
+  return copy(flatList = allProjects)
 }
