@@ -39,6 +39,7 @@ class DatabaseInitializer @Inject constructor(
             parentId = specialProjectId,
             isExpanded = false,
             projectType = ProjectType.RESERVED,
+            reservedGroup = "strategic_group",
             description = null,
             createdAt = System.currentTimeMillis(),
             updatedAt = null,
@@ -48,21 +49,22 @@ class DatabaseInitializer @Inject constructor(
         val projects = mutableListOf(
             specialProject,
             strategicGroupProject,
-            Project(id = UUID.randomUUID().toString(), name = "Місія", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "Довгострокова стратегія", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "Середньострокова програма", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "Активні квести", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "Стратегічні цілі", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = "Стратегічний огляд", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "mission", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "long-term-strategy", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "medium-term-program", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "active-quests", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "strategic-goals", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "strategic-review", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = "strategic", description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
         )
 
         val inboxProjectId = UUID.randomUUID().toString()
         val inboxProject = Project(
             id = inboxProjectId,
-            name = "Inbox",
+            name = "inbox",
             parentId = specialProjectId,
             isExpanded = false,
             projectType = ProjectType.RESERVED,
+            reservedGroup = "inbox",
             description = null,
             createdAt = System.currentTimeMillis(),
             updatedAt = null,
