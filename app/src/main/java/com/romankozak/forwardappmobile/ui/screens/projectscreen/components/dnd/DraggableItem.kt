@@ -39,17 +39,7 @@ fun DraggableItem(
 
     val itemModifier =
         modifier
-            .pointerInput(dragDropState, item.listItem.id) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { dragDropState.onDragStart(item) },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragDropState.onDrag(dragAmount.y)
-                    },
-                    onDragEnd = { dragDropState.onDragEnd() },
-                    onDragCancel = { dragDropState.onDragEnd() },
-                )
-            }.graphicsLayer {
+            .graphicsLayer {
                 val offset = dragDropState.getItemOffset(item)
                 translationY = offset
                 scaleX = scale
