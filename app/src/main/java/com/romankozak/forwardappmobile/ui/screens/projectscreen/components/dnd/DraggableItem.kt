@@ -2,15 +2,12 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
-
 
 @Composable
 fun DraggableItem(
@@ -50,3 +47,4 @@ fun DraggableItem(
     Box(modifier = itemModifier) {
         content(isDragging)
     }
+}
