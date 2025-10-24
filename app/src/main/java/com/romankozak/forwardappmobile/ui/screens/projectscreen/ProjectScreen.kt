@@ -50,7 +50,7 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
+
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.EditLogEntryDialog

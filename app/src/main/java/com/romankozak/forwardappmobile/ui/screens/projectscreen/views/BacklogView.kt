@@ -30,7 +30,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attac
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SubprojectItemRow
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.InteractiveListItem
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 
