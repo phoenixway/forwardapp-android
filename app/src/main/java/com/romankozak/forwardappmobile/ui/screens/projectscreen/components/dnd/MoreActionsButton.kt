@@ -10,6 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.geometry.Offset
+
 @Composable
 fun MoreActionsButton(
     onMoreClick: () -> Unit,
@@ -17,9 +21,7 @@ fun MoreActionsButton(
     item: ListItemContent,
     modifier: Modifier = Modifier
 ) {
-    var isLongPressed by remember { mutableStateOf(false) }
-
-    val icon = if (isLongPressed || dragDropState.initialIndexOfDraggedItem != -1) {
+    val icon = if (dragDropState.isDragging) {
         Icons.Default.DragHandle
     } else {
         Icons.Default.MoreVert
@@ -29,14 +31,17 @@ fun MoreActionsButton(
         imageVector = icon,
         contentDescription = "More actions",
         modifier = modifier
-            .pointerInput(dragDropState, item) {
-                detectTapGestures(
-                    onLongPress = {
-                        isLongPressed = true
-                        dragDropState.onDragStart(item)
+            .pointerInput(dragDropState, item, onMoreClick) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { dragDropState.onDragStart(item) },
+                    onDrag = { change: PointerInputChange, dragAmount: Offset ->
+                        change.consume()
+                        dragDropState.onDrag(dragAmount.y)
                     },
-                    onTap = { onMoreClick() }
+                    onDragEnd = { dragDropState.onDragEnd() },
+                    onDragCancel = { dragDropState.onDragEnd() }
                 )
             }
+            .pointerInput(onMoreClick) { detectTapGestures(onTap = { onMoreClick() }) }
     )
 }

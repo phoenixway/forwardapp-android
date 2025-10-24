@@ -2,7 +2,9 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.DraggableItem
-import androidx.compose.runtime.key
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -64,10 +66,10 @@ fun InteractiveListItem(
         index = index,
         dragDropState = dragDropState,
         modifier = modifier,
-    ) {
-        key(swipeEnabled) {
+    ) { isDragging ->
+        Box {
             SwipeableListItem(
-                isDragging = it,
+                isDragging = isDragging,
                 isAnyItemDragging = dragDropState.isDragging,
                 swipeEnabled = swipeEnabled,
                 isAnotherItemSwiped = isAnotherItemSwiped,
@@ -88,26 +90,28 @@ fun InteractiveListItem(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(modifier = Modifier.weight(1f)) {
-                            content(it)
+                            content(isDragging)
                         }
                     }
                 },
             )
-        }
 
+            val isTarget =
+                dragDropState.isDragging &&
+                    dragDropState.targetIndexOfDraggedItem == index &&
+                    dragDropState.initialIndexOfDraggedItem != index
 
-        val isTarget =
-            dragDropState.isDragging &&
-                dragDropState.targetIndexOfDraggedItem == index &&
-                dragDropState.initialIndexOfDraggedItem != index
+            if (isTarget) {
+                val isDraggingDown = dragDropState.initialIndexOfDraggedItem < dragDropState.targetIndexOfDraggedItem
+                val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
-        if (isTarget) {
-            val isDraggingDown = dragDropState.initialIndexOfDraggedItem < dragDropState.targetIndexOfDraggedItem
-            val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
-
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.align(align)) {
-                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .align(align)
+                )
             }
         }
     }
