@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.DraggableItem
 import androidx.compose.foundation.background

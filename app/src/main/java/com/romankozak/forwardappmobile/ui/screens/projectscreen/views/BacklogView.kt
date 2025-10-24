@@ -42,7 +42,6 @@ fun BacklogView(
     viewModel: BacklogViewModel,
     uiState: UiState,
     listState: LazyListState,
-    dragDropState: SimpleDragDropState,
     listContent: List<ListItemContent>,
     isAttachmentsExpanded: Boolean,
     swipeEnabled: Boolean,
@@ -53,6 +52,11 @@ fun BacklogView(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
     val subprojectChildren by viewModel.subprojectChildren.collectAsStateWithLifecycle()
+    val dragState by viewModel.dragState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(listState) {
+        viewModel.setLazyListState(listState)
+    }
 
     LaunchedEffect(viewModel.uiEventFlow) {
         viewModel.uiEventFlow.collect { event ->
@@ -100,7 +104,7 @@ fun BacklogView(
                 InteractiveListItem(
                     item = content,
                     index = index,
-                    dragDropState = dragDropState,
+                    dragState = dragState,
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
                     swipeEnabled = swipeEnabled,
@@ -156,8 +160,10 @@ fun BacklogView(
 
                                 endAction = {
                                     MoreActionsButton(
-                                        dragDropState = dragDropState,
-                                        item = content,
+                                        isDragging = isDragging,
+                                        onDragStart = { offset -> viewModel.onDragStart(offset, index) },
+                                        onDrag = { offset -> viewModel.onDrag(offset) },
+                                        onDragEnd = { viewModel.onDragEnd() },
                                         onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                     )
                                 }
@@ -181,8 +187,10 @@ fun BacklogView(
                                 emojiToHide = currentListContextEmojiToHide,
                                 endAction = {
                                     MoreActionsButton(
-                                        dragDropState = dragDropState,
-                                        item = content,
+                                        isDragging = isDragging,
+                                        onDragStart = { offset -> viewModel.onDragStart(offset, index) },
+                                        onDrag = { offset -> viewModel.onDrag(offset) },
+                                        onDragEnd = { viewModel.onDragEnd() },
                                         onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                     )
                                 }
