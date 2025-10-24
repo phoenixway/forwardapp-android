@@ -27,24 +27,23 @@ fun GoalDetailContent(
     uiState: UiState,
     listState: LazyListState,
     inboxListState: LazyListState,
-    dragDropState: SimpleDragDropState,
     onEditLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
     onEditArtifact: (com.romankozak.forwardappmobile.data.database.models.ProjectArtifact) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val projectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
+    val dragState by viewModel.dragState.collectAsStateWithLifecycle()
 
-    val calculatedSwipeEnabled = !isSelectionModeActive && !dragDropState.isDragging
+    val calculatedSwipeEnabled = !isSelectionModeActive && !dragState.dragInProgress
     Log.v(
         TAG,
-        "РЕКОМПОЗИЦІЯ ЕКРАНУ: isSelectionModeActive=$isSelectionModeActive, dragDropState.isDragging=${dragDropState.isDragging}, calculatedSwipeEnabled=$calculatedSwipeEnabled",
+        "РЕКОМПОЗИЦІЯ ЕКРАНУ: isSelectionModeActive=$isSelectionModeActive, dragState.dragInProgress=${dragState.dragInProgress}, calculatedSwipeEnabled=$calculatedSwipeEnabled",
     )
 
     when (uiState.currentView) {
@@ -54,7 +53,6 @@ fun GoalDetailContent(
                 viewModel = viewModel,
                 uiState = uiState,
                 listState = listState,
-                dragDropState = dragDropState,
                 listContent = listContent,
                 isAttachmentsExpanded = false, // This is no longer used
                 swipeEnabled = calculatedSwipeEnabled,

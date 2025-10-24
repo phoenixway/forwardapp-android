@@ -205,10 +205,7 @@ private fun ProjectScaffold(
         )
     }
 
-    val dragDropState = rememberSimpleDragDropState(
-        lazyListState = listState,
-        onMove = viewModel::moveItem,
-    )
+    
 
     val draggableItems = remember(listContent) {
         listContent.filterNot { it is ListItemContent.LinkItem }
@@ -220,7 +217,6 @@ private fun ProjectScaffold(
         snackbarHostState = snackbarHostState,
         listState = listState,
         inboxListState = inboxListState,
-        dragDropState = dragDropState,
         coroutineScope = coroutineScope
     )
 
@@ -341,7 +337,6 @@ private fun ProjectScaffold(
             uiState = uiState,
             listState = listState,
             inboxListState = inboxListState,
-            dragDropState = dragDropState,
             onEditLog = viewModel::onEditLogEntry,
             onDeleteLog = viewModel::onDeleteLogEntry,
             onSaveArtifact = viewModel::onSaveArtifact,
@@ -457,16 +452,7 @@ private fun TransparentSystemBars(isDarkTheme: Boolean = isSystemInDarkTheme()) 
     }
 }
 
-@Composable
-private fun rememberSimpleDragDropState(
-    lazyListState: LazyListState,
-    onMove: (Int, Int) -> Unit,
-): SimpleDragDropState {
-    val scope = rememberCoroutineScope()
-    return remember(lazyListState, onMove) {
-        SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
-    }
-}
+
 
 fun Modifier.glitch(trigger: Any): Modifier = composed {
     var glitchAmount by remember { mutableFloatStateOf(0f) }
