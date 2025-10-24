@@ -1,35 +1,32 @@
 # Master Plan
 
-## Refactor Drag-and-Drop Functionality
+## Refactor Drag-and-Drop for Testability
 
-### 1. Centralize Drag-and-Drop State Management
+### 1. Extract Drag-and-Drop Logic into a `DragDropManager`
 
-- **Goal:** Create a single source of truth for the drag-and-drop state to simplify logic and improve testability.
+- **Goal:** Decouple the drag-and-drop logic from the UI to enable unit testing.
 - **Tasks:**
-    - [x] **Create `DragState` data class:** Define a new data class in `SimpleDragDropState.kt` to hold all information about the drag operation (initial index, current index, target index, dragged item info, etc.).
-    - [x] **Replace individual state variables:** In `SimpleDragDropState.kt`, replace `draggedDistance`, `draggedItemLayoutInfo`, and `draggedItemIndex` with a single `dragState` variable of type `DragState?`.
-    - [x] **Update `SimpleDragDropState` methods:** Refactor `onDragStart`, `onDrag`, and `onDragEnd` to use the new `dragState` data class for all state modifications.
+    - [x] **Create `DragDropManager` class:** Create a new class that will be responsible for managing the dnd state and handling dnd events. This class will not have any dependency on Composables.
+    - [x] **Move dnd logic to `DragDropManager`:** Move the logic from `SimpleDragDropState` to the new `DragDropManager`.
+    - [x] **Use interfaces for dependencies:** The `DragDropManager` will depend on interfaces for things like the list state, so that they can be easily mocked in unit tests.
 
-### 2. Decouple Gesture Detection from UI Components
+### 2. Integrate `DragDropManager` with the ViewModel
 
-- **Goal:** Separate the drag gesture detection from the `DraggableItem` composable to make the components more reusable and easier to test.
+- **Goal:** Use the ViewModel as the single source of truth for the UI.
 - **Tasks:**
-    - [x] **Move gesture detector to `MoreActionsButton.kt`:** Relocate the `pointerInput` modifier with `detectDragGesturesAfterLongPress` from `DraggableItem.kt` to the `MoreActionsButton.kt` composable. This will make the drag handle explicit.
-    - [x] **Update `DraggableItem.kt`:** Remove the gesture detection logic from `DraggableItem.kt`. The component should now only be responsible for its visual representation during the drag operation (e.g., translation, scale, elevation).
-    - [x] **Update `BacklogView.kt`:** Adjust the `MoreActionsButton` usage in `BacklogView.kt` to reflect the new signature and pass the necessary parameters.
+    - [x] **Integrate `DragDropManager` into `BacklogViewModel`:** The `BacklogViewModel` will own the `DragDropManager` and will expose the dnd state to the UI.
+    - [x] **Update `BacklogViewModel` to handle dnd events:** The ViewModel will receive user events (drag start, drag, drag end) from the UI and delegate them to the `DragDropManager`.
 
-### 3. Improve Drag-and-Drop Logic and Stability
+### 3. Simplify UI Components
 
-- **Goal:** Enhance the reliability and predictability of the drag-and-drop operation.
+- **Goal:** The UI components should only be responsible for displaying the state and sending user events.
 - **Tasks:**
-    - [x] **Refine `findHoveredItemIndex`:** Improve the logic in `SimpleDragDropState.kt` for finding the item over which the dragged item is currently hovering.
-    - [x] **Remove `delay` from `onDragEnd`:** Remove the `delay(200)` from the `onDragEnd` function in `SimpleDragDropState.kt` to prevent race conditions and make the state update more immediate and predictable.
-    - [x] **Add a target indicator:** In `InteractiveListItem.kt`, add a visual indicator to show the target position of the dragged item.
+    - [x] **Update `BacklogView.kt`:** The `BacklogView` will observe the dnd state from the `BacklogViewModel` and send user events to it.
+    - [x] **Update `InteractiveListItem.kt` and `MoreActionsButton.kt`:** These components will be simplified to only display the state and send events to the `BacklogView`.
 
-### 4. Add Unit Tests for Drag-and-Drop
+### 4. Add Unit Tests for `DragDropManager`
 
-- **Goal:** Create unit tests for the drag-and-drop functionality to ensure its correctness and prevent future regressions.
+- **Goal:** Create unit tests for the drag-and-drop logic to ensure its correctness and prevent future regressions.
 - **Tasks:**
-    - [x] **Create `BacklogScreenDndTest.kt`:** Create a new test file for the backlog screen's drag-and-drop functionality.
-    - [x] **Write a test case for a simple drag-and-drop operation:** In `BacklogScreenDndTest.kt`, write a test that simulates a drag-and-drop operation and verifies that the `onMove` callback is invoked with the correct parameters.
-    - [x] **Mock dependencies:** Use `mockito-kotlin` to mock the necessary dependencies for the test.
+    - [x] **Create `DragDropManagerTest.kt`:** Create a new test file for the `DragDropManager`.
+    - [x] **Write unit tests for the dnd logic:** Write unit tests that verify the correctness of the dnd state transitions and the `onMove` callback.

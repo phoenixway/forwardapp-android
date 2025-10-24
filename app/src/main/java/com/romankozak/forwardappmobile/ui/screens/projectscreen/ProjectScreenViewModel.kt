@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
 
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragDropManager
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.LazyListStateProviderImpl
+import androidx.compose.foundation.lazy.LazyListState
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
 
 import android.app.Application
 import android.content.ClipData
@@ -271,6 +274,12 @@ constructor(
 
   private val _isProcessingHome = MutableStateFlow(false)
 
+    private val lazyListStateProvider = LazyListStateProviderImpl()
+    private lateinit var dragDropManager: DragDropManager
+
+    val dragState: StateFlow<DragState?>
+        get() = dragDropManager.dragState
+
   private val _allTags = MutableStateFlow<List<String>>(emptyList())
   val allTags: StateFlow<List<String>> = _allTags.asStateFlow()
 
@@ -531,7 +540,12 @@ constructor(
     loadAllContexts()
 
 
-  }
+        dragDropManager = DragDropManager(
+            scope = viewModelScope,
+            listInfoProvider = lazyListStateProvider,
+            onMove = { from, to -> moveItem(from, to) }
+        )
+    }
 
   private fun loadAllTags() {
     viewModelScope.launch(Dispatchers.IO) {
@@ -1776,5 +1790,21 @@ constructor(
 
     fun onDismissDisplayPropertiesDialog() {
         _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
+    }
+
+    fun setLazyListState(lazyListState: LazyListState) {
+        lazyListStateProvider.lazyListState = lazyListState
+    }
+
+    fun onDragStart(item: ListItemContent) {
+        dragDropManager.onDragStart(item)
+    }
+
+    fun onDrag(dragAmount: Float) {
+        dragDropManager.onDrag(dragAmount)
+    }
+
+    fun onDragEnd() {
+        dragDropManager.onDragEnd()
     }
 }

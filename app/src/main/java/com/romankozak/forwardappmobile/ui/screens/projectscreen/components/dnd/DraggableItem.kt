@@ -14,14 +14,11 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 @Composable
 fun DraggableItem(
-    item: ListItemContent,
-    index: Int,
-    dragDropState: SimpleDragDropState,
+    isDragging: Boolean,
+    offset: Float,
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
-    val isDragging = dragDropState.draggedItemIndex == index
-
     val elevation by animateFloatAsState(
         targetValue = if (isDragging) 16f else 0f,
         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
@@ -42,7 +39,6 @@ fun DraggableItem(
         modifier
             .zIndex(if (isDragging) 1f else 0f)
             .graphicsLayer {
-                val offset = dragDropState.getItemOffset(item)
                 translationY = offset
                 scaleX = scale
                 scaleY = scale
