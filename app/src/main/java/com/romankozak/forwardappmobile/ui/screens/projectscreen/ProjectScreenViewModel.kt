@@ -449,7 +449,7 @@ constructor(
 
   private var pendingActivityForReminder: ActivityRecord? = null
 
-
+  private val isMoving = MutableStateFlow(false)
 
   init {
     Log.d(TAG, "ViewModel instance created: ${this.hashCode()}")
@@ -521,7 +521,11 @@ constructor(
     }
 
     viewModelScope.launch {
-      databaseContentStream.collect { dbContent -> _listContent.value = dbContent }
+        combine(databaseContentStream, isMoving) { dbContent, moving ->
+            if (!moving) {
+                _listContent.value = dbContent
+            }
+        }.collect()
     }
 
     viewModelScope.launch {
@@ -920,23 +924,33 @@ constructor(
   }
 
   fun moveItem(fromIndex: Int, toIndex: Int) {
-    val currentContent = _listContent.value
-    val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
-    if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) return
-    if (fromIndex == toIndex) return
-    val movedItem = draggableItems.removeAt(fromIndex)
-    draggableItems.add(toIndex, movedItem)
-    val newFullList = mutableListOf<ListItemContent>()
-    val reorderedDraggablesIterator = draggableItems.iterator()
-    currentContent.forEach { originalItem ->
-      if (originalItem is ListItemContent.LinkItem) {
-        newFullList.add(originalItem)
-      } else if (reorderedDraggablesIterator.hasNext()) {
-        newFullList.add(reorderedDraggablesIterator.next())
-      }
+    viewModelScope.launch {
+        isMoving.value = true
+        val currentContent = _listContent.value
+        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
+        if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) {
+            isMoving.value = false
+            return@launch
+        }
+        if (fromIndex == toIndex) {
+            isMoving.value = false
+            return@launch
+        }
+        val movedItem = draggableItems.removeAt(fromIndex)
+        draggableItems.add(toIndex, movedItem)
+        val newFullList = mutableListOf<ListItemContent>()
+        val reorderedDraggablesIterator = draggableItems.iterator()
+        currentContent.forEach { originalItem ->
+            if (originalItem is ListItemContent.LinkItem) {
+                newFullList.add(originalItem)
+            } else if (reorderedDraggablesIterator.hasNext()) {
+                newFullList.add(reorderedDraggablesIterator.next())
+            }
+        }
+        _listContent.value = newFullList
+        saveListOrder(newFullList)
+        isMoving.value = false
     }
-    _listContent.value = newFullList
-    viewModelScope.launch { saveListOrder(newFullList) }
   }
 
   fun onMoveToTop(item: ListItemContent) {
