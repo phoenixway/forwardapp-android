@@ -17,4 +17,7 @@ abstract class ViewModelModule {
 
   @Binds
   abstract fun bindPlanningSettingsProvider(settingsRepository: SettingsRepository): PlanningSettingsProvider
+
+  @Binds
+  abstract fun bindSearchUseCase(searchUseCase: SearchUseCase): SearchUseCase
 }
