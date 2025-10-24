@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd
 
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -22,12 +23,26 @@ class DragDropManager(
     fun onDragStart(offset: Offset, index: Int) {
         dragJob?.cancel()
         dragJob = scope.launch {
+            val draggedItemInfo = lazyListInfoProvider.lazyListItemInfo.firstOrNull { it.index == index }
+            
+            val draggedItemHeight = try {
+                draggedItemInfo?.size?.let { size ->
+                    val heightField = size::class.java.getDeclaredField("height")
+                    heightField.isAccessible = true
+                    (heightField.get(size) as Int).toFloat()
+                } ?: 0f
+            } catch (e: Exception) {
+                Log.e("DND_DEBUG", "Error getting height: ", e)
+                0f
+            }
+            
             _dragState.update {
                 it.copy(
                     dragInProgress = true,
                     dragAmount = offset,
                     draggedItemIndex = index,
-                    targetItemIndex = index
+                    targetItemIndex = index,
+                    draggedItemHeight = draggedItemHeight
                 )
             }
         }
@@ -55,7 +70,8 @@ class DragDropManager(
         dragJob = scope.launch {
             val draggedItemIndex = _dragState.value.draggedItemIndex
             val targetItemIndex = _dragState.value.targetItemIndex
-            if (draggedItemIndex != null && targetItemIndex != null && draggedItemIndex != targetItemIndex) {
+            if (draggedItemIndex != null && targetItemIndex != null && 
+                draggedItemIndex != targetItemIndex) {
                 onMove(draggedItemIndex, targetItemIndex)
             }
             _dragState.update {
@@ -71,15 +87,33 @@ class DragDropManager(
 
     private fun getTargetIndex(dragAmount: Offset, draggedItemIndex: Int): Int {
         val listInfo = lazyListInfoProvider.lazyListItemInfo
-        val draggedItem = listInfo.firstOrNull { it.index == draggedItemIndex } ?: return -1
+        val draggedItem = listInfo.firstOrNull { 
+            it.index == draggedItemIndex 
+        } ?: return -1
 
-        val draggedItemCenter = draggedItem.offset + draggedItem.size / 2
+        val draggedItemCenter = draggedItem.offset + (try {
+            draggedItem.size.let { size ->
+                val heightField = size::class.java.getDeclaredField("height")
+                heightField.isAccessible = true
+                (heightField.get(size) as Int) / 2
+            }
+        } catch (e: Exception) {
+            0
+        })
         val dragPosition = draggedItemCenter + dragAmount.y
 
         val itemsToSearch = if (dragAmount.y < 0) listInfo.asReversed() else listInfo
 
         return itemsToSearch.minByOrNull {
-            val itemCenter = it.offset + it.size / 2
+            val itemCenter = it.offset + (try {
+                it.size.let { size ->
+                    val heightField = size::class.java.getDeclaredField("height")
+                    heightField.isAccessible = true
+                    (heightField.get(size) as Int) / 2
+                }
+            } catch (e: Exception) {
+                0
+            })
             kotlin.math.abs(itemCenter - dragPosition)
         }?.index ?: -1
     }

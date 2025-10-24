@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
+import androidx.compose.ui.platform.LocalDensity
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.DraggableItem
@@ -16,14 +17,19 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 @Composable
 fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
     dragState: DragState?,
+    listState: androidx.compose.foundation.lazy.LazyListState,
     isSelected: Boolean,
     isHighlighted: Boolean,
     swipeEnabled: Boolean,
@@ -63,13 +69,16 @@ fun InteractiveListItem(
     val isDragging = dragState?.draggedItemIndex == index
 
     fun getItemOffset(): Float {
-        if (dragState == null) return 0f
-        if (dragState.draggedItemIndex == null || dragState.targetItemIndex == null) return 0f
+        if (dragState?.draggedItemIndex == null || dragState.targetItemIndex == null) {
+            return 0f
+        }
 
-        return when (index) {
-            dragState.draggedItemIndex -> dragState.dragAmount.y
-            in (dragState.draggedItemIndex + 1)..dragState.targetItemIndex -> -100f // Use actual item height
-            in dragState.targetItemIndex until dragState.draggedItemIndex -> 100f // Use actual item height
+        val itemHeight = dragState.draggedItemHeight
+
+        return when {
+            index == dragState.draggedItemIndex -> dragState.dragAmount.y
+            dragState.draggedItemIndex < index && index <= dragState.targetItemIndex -> -itemHeight
+            dragState.targetItemIndex <= index && index < dragState.draggedItemIndex -> itemHeight
             else -> 0f
         }
     }

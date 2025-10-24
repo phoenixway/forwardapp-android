@@ -105,6 +105,7 @@ fun BacklogView(
                     item = content,
                     index = index,
                     dragState = dragState,
+                    listState = listState,
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
                     swipeEnabled = swipeEnabled,
