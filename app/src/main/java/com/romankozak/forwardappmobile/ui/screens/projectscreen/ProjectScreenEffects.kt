@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
+
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.utils.handleRelatedLinkClick
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
