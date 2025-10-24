@@ -1,0 +1,65 @@
+package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+
+@Composable
+fun DraggableItem(
+    item: ListItemContent,
+    index: Int,
+    dragDropState: SimpleDragDropState,
+    modifier: Modifier = Modifier,
+    content: @Composable (isDragging: Boolean) -> Unit,
+) {
+    val isDragging = dragDropState.draggedItemIndex == index
+
+    val elevation by animateFloatAsState(
+        targetValue = if (isDragging) 16f else 0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        label = "elevation",
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isDragging) 1.05f else 1f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "scale",
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isDragging) 0.8f else 1f,
+        animationSpec = spring(dampingRatio = 0.9f, stiffness = 500f),
+        label = "alpha",
+    )
+
+    val itemModifier =
+        modifier
+            .pointerInput(dragDropState, item.listItem.id) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { dragDropState.onDragStart(item) },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        dragDropState.onDrag(dragAmount.y)
+                    },
+                    onDragEnd = { dragDropState.onDragEnd() },
+                    onDragCancel = { dragDropState.onDragEnd() },
+                )
+            }.graphicsLayer {
+                val offset = dragDropState.getItemOffset(item)
+                translationY = offset
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+                shadowElevation = elevation
+                clip = false
+            }
+
+    Box(modifier = itemModifier) {
+        content(isDragging)
+    }
+}

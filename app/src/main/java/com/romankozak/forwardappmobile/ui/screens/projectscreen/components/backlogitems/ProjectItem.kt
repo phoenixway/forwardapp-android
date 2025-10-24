@@ -58,32 +58,7 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 
-@Composable
-private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
-        shadowElevation = 1.dp,
-        tonalElevation = 2.dp,
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(6.dp)
-                .semantics {
-                    contentDescription = "Містить нотатку"
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-    }
-}
+
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
