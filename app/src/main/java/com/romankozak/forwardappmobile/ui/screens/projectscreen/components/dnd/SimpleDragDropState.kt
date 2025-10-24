@@ -5,13 +5,12 @@ import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 private const val TAG = "DND_DEBUG"
 
@@ -21,88 +20,106 @@ class SimpleDragDropState(
     private val scope: CoroutineScope,
     private val onMove: (Int, Int) -> Unit,
 ) {
-    private var draggedDistance by mutableFloatStateOf(0f)
-    private var draggedItemLayoutInfo by mutableStateOf<LazyListItemInfo?>(null)
+    private var dragState by mutableStateOf<DragState?>(null)
     private var autoScrollJob: Job? = null
 
-    var draggedItemIndex by mutableIntStateOf(-1)
-        private set
-
     val isDragging: Boolean
-        get() = draggedItemIndex != -1
+        get() = dragState != null
+
+    val initialIndexOfDraggedItem: Int
+        get() = dragState?.initialIndex ?: -1
+
+    val draggedItemIndex: Int
+        get() = dragState?.currentIndex ?: -1
+
+    val targetIndexOfDraggedItem: Int
+        get() = dragState?.targetIndex ?: -1
 
     fun onDragStart(item: ListItemContent) {
         if (isDragging) return
 
-        val itemInfo = state.layoutInfo.visibleItemsInfo.find { it.key == item.listItem.id }
-        if (itemInfo != null) {
-            draggedItemLayoutInfo = itemInfo
-            draggedItemIndex = itemInfo.index
-            Log.d(TAG, "▶️ [onDragStart] START. ItemId: ${item.listItem.id}, Index: ${itemInfo.index}")
-        } else {
-            Log.w(TAG, "[onDragStart] WARNING: Could not find layout info for dragged item: ${item.listItem.id}")
-        }
+        state.layoutInfo.visibleItemsInfo
+            .find { it.key == item.listItem.id }
+            ?.also { info ->
+                dragState = DragState(
+                    initialIndex = info.index,
+                    currentIndex = info.index,
+                    targetIndex = info.index,
+                    draggedItemLayoutInfo = info
+                )
+                Log.d(TAG, "▶️ [onDragStart] START. ItemId: ${item.listItem.id}, Index: ${info.index}")
+            } ?: Log.w(TAG, "[onDragStart] WARNING: Could not find layout info for dragged item: ${item.listItem.id}")
     }
 
     fun onDrag(dragAmount: Float) {
-        if (!isDragging) return
-
-        draggedDistance += dragAmount
-        Log.d(TAG, "[onDrag] Drag amount: $dragAmount, Total distance: $draggedDistance")
-
-        val draggedItem = draggedItemLayoutInfo
-        if (draggedItem == null) {
-            Log.w(TAG, "[onDrag] SKIPPING: draggedItemLayoutInfo is null.")
-            return
-        }
-
-        val startOffset = draggedItem.offset + draggedDistance
-        val endOffset = startOffset + draggedItem.size
-
-        val hoveredItem =
-            state.layoutInfo.visibleItemsInfo.find { item ->
-                if (item.key == draggedItem.key) return@find false
-
-                val delta = (startOffset + endOffset) / 2f
-                val itemStart = item.offset
-                val itemEnd = item.offset + item.size
-                delta.toInt() in itemStart..itemEnd
+        dragState?.let {
+            dragState = it.copy(draggedDistance = it.draggedDistance + dragAmount)
+            val newTarget = findHoveredItemIndex()
+            if (newTarget != null && newTarget != it.targetIndex) {
+                dragState = it.copy(targetIndex = newTarget)
+                Log.d(TAG, "[onDrag] New target index: $newTarget")
             }
-
-        if (hoveredItem != null && hoveredItem.index != draggedItemIndex) {
-            val fromIndex = draggedItemIndex
-            val toIndex = hoveredItem.index
-            Log.d(TAG, "[onDrag] Attempting to move from $fromIndex to $toIndex")
-            onMove(fromIndex, toIndex)
-            draggedItemIndex = toIndex
-            Log.d(TAG, "[onDrag] Item moved to index: $toIndex")
         }
     }
 
+    private fun findHoveredItemIndex(): Int? {
+        val currentDragState = dragState ?: return null
+        val draggedItem = currentDragState.draggedItemLayoutInfo ?: return null
+
+        val startOffset = draggedItem.offset + currentDragState.draggedDistance
+        val endOffset = startOffset + draggedItem.size
+
+        return state.layoutInfo.visibleItemsInfo.find { item ->
+            if (item.index == currentDragState.initialIndex) return@find false
+            val delta = (startOffset + endOffset) / 2f
+            delta.toInt() in item.offset..(item.offset + item.size)
+        }?.index
+    }
+
     fun onDragEnd() {
-        Log.d(TAG, "⏹️ [onDragEnd] END.")
-        reset()
+        Log.d(TAG, "⏹️ [onDragEnd] END. ===========================")
+        dragState?.let {
+            if (it.initialIndex != -1 && it.targetIndex != -1 && it.initialIndex != it.targetIndex) {
+                Log.i(TAG, "[onDragEnd] Executing move: ${it.initialIndex} -> ${it.targetIndex}")
+                onMove(it.initialIndex, it.targetIndex)
+            }
+        }
+        scope.launch {
+            // No delay needed anymore, reset is now safer
+            reset()
+        }
+        Log.d(TAG, "[onDragEnd] ===================================")
     }
 
     fun reset() {
         Log.d(TAG, "[reset] Resetting drag state.")
-        draggedDistance = 0f
-        draggedItemLayoutInfo = null
-        draggedItemIndex = -1
+        dragState = null
         autoScrollJob?.cancel()
         autoScrollJob = null
     }
 
     fun getItemOffset(item: ListItemContent): Float {
-        if (!isDragging) return 0f
+        val currentDragState = dragState ?: return 0f
+        val itemInfo = state.layoutInfo.visibleItemsInfo.find { it.key == item.listItem.id }
+        val itemIndex = itemInfo?.index ?: return 0f
 
-        val draggedItemKey = draggedItemLayoutInfo?.key ?: return 0f
+        val draggedIndex = currentDragState.initialIndex
+        val targetIndex = currentDragState.targetIndex
+        val draggedItemSize = (currentDragState.draggedItemLayoutInfo?.size ?: 0).toFloat()
 
-        if (item.listItem.id == draggedItemKey) {
-            Log.d(TAG, "[getItemOffset] Applying offset $draggedDistance to item ${item.listItem.id}")
-            return draggedDistance
+        return when {
+            itemIndex == draggedIndex -> currentDragState.draggedDistance
+            draggedIndex < targetIndex && itemIndex in (draggedIndex + 1)..targetIndex -> -draggedItemSize
+            draggedIndex > targetIndex && itemIndex in targetIndex until draggedIndex -> draggedItemSize
+            else -> 0f
         }
-
-        return 0f
     }
+
+    private data class DragState(
+        val initialIndex: Int,
+        val currentIndex: Int,
+        val targetIndex: Int,
+        val draggedDistance: Float = 0f,
+        val draggedItemLayoutInfo: LazyListItemInfo?
+    )
 }

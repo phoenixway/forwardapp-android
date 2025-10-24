@@ -38,7 +38,8 @@ import kotlinx.coroutines.flow.flow
 @Composable
 private fun MoreActionsButton(
     modifier: Modifier = Modifier,
-    onLongClick: () -> Unit,
+    dragDropState: SimpleDragDropState,
+    item: ListItemContent,
     onClick: () -> Unit,
 ) {
     Box(
@@ -46,9 +47,9 @@ private fun MoreActionsButton(
             modifier
                 .fillMaxHeight()
                 .padding(vertical = 4.dp, horizontal = 8.dp)
-                .pointerInput(Unit) {
+                .pointerInput(dragDropState, item) {
                     detectTapGestures(
-                        onLongPress = { onLongClick() },
+                        onLongPress = { dragDropState.onDragStart(item) },
                         onTap = { onClick() },
                     )
                 },
@@ -182,8 +183,9 @@ fun BacklogView(
 
                                 endAction = {
                                     MoreActionsButton(
+                                        dragDropState = dragDropState,
+                                        item = content,
                                         onClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
-                                        onLongClick = { dragDropState.onDragStart(content) },
                                     )
                                 }
                             )
@@ -206,8 +208,9 @@ fun BacklogView(
                                 emojiToHide = currentListContextEmojiToHide,
                                 endAction = {
                                     MoreActionsButton(
+                                        dragDropState = dragDropState,
+                                        item = content,
                                         onClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
-                                        onLongClick = { dragDropState.onDragStart(content) },
                                     )
                                 }
                             )
