@@ -65,7 +65,7 @@ fun GoalItem(
 ) {
     val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
-    val viewModel: GoalItemViewModel = viewModel(factory = GoalItemViewModelFactory(goal, parsedData, reminder))
+    val viewModel: GoalItemViewModel = viewModel(key = goal.hashCode().toString(), factory = GoalItemViewModelFactory(goal, parsedData, reminder))
     val shouldShowStatusIcons by viewModel.shouldShowStatusIcons.collectAsState()
 
     Surface(
