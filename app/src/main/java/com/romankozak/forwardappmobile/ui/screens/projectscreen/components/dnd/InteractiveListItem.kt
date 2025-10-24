@@ -22,7 +22,7 @@ import androidx.compose.runtime.Composable
 fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
-    dragDropState: SimpleDragDropState,
+    dragState: DragState?,
     isSelected: Boolean,
     isHighlighted: Boolean,
     swipeEnabled: Boolean,
@@ -59,18 +59,29 @@ fun InteractiveListItem(
         label = "interactive_item_background",
     )
 
-    val isDraggable = item is ListItemContent.GoalItem || item is ListItemContent.SublistItem
+    val isDragging = dragState?.draggedItemIndex == index
+
+    fun getItemOffset(): Float {
+        if (dragState == null) return 0f
+        if (dragState.draggedItemIndex == null || dragState.targetItemIndex == null) return 0f
+
+        return when (index) {
+            dragState.draggedItemIndex -> dragState.dragAmount.y
+            in (dragState.draggedItemIndex + 1)..dragState.targetItemIndex -> -100f // Use actual item height
+            in dragState.targetItemIndex until dragState.draggedItemIndex -> 100f // Use actual item height
+            else -> 0f
+        }
+    }
 
     DraggableItem(
-        item = item,
-        index = index,
-        dragDropState = dragDropState,
+        isDragging = isDragging,
+        yOffset = getItemOffset(),
         modifier = modifier,
     ) { isDragging ->
         Box {
             SwipeableListItem(
                 isDragging = isDragging,
-                isAnyItemDragging = dragDropState.isDragging,
+                isAnyItemDragging = dragState?.dragInProgress == true,
                 swipeEnabled = swipeEnabled,
                 isAnotherItemSwiped = isAnotherItemSwiped,
                 resetTrigger = resetTrigger,
@@ -96,13 +107,12 @@ fun InteractiveListItem(
                 },
             )
 
-            val isTarget =
-                dragDropState.isDragging &&
-                    dragDropState.targetIndexOfDraggedItem == index &&
-                    dragDropState.initialIndexOfDraggedItem != index
+            val isTarget = dragState?.dragInProgress == true &&
+                dragState.targetItemIndex == index &&
+                dragState.draggedItemIndex != index
 
             if (isTarget) {
-                val isDraggingDown = dragDropState.initialIndexOfDraggedItem < dragDropState.targetIndexOfDraggedItem
+                val isDraggingDown = dragState?.draggedItemIndex != null && dragState.targetItemIndex != null && dragState.draggedItemIndex < dragState.targetItemIndex
                 val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
                 Box(
