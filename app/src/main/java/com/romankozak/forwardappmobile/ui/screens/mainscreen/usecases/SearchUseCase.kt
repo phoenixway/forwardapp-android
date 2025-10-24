@@ -219,6 +219,7 @@ class SearchUseCase @Inject constructor(
         onToggleSearch(false)
         popToSubState(MainSubState.Hierarchy)
         clearNavigation()
+        scope.launch { uiEventChannel.send(ProjectUiEvent.HideKeyboard) }
     }
 
     fun onSearchResultClick(projectId: String, currentHierarchy: ListHierarchyData) {
@@ -293,8 +294,7 @@ class SearchUseCase @Inject constructor(
                 clearNavigation()
             }
             currentStack.lastOrNull() is MainSubState.LocalSearch -> {
-                popSubState()
-                onSearchQueryChanged(TextFieldValue(""))
+                onCloseSearch()
             }
             currentBreadcrumbs.value.isNotEmpty() -> {
                 clearNavigation()
