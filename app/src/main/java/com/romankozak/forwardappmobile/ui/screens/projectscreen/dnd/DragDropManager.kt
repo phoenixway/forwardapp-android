@@ -74,9 +74,11 @@ class DragDropManager(
         val draggedItem = listInfo.firstOrNull { it.index == draggedItemIndex } ?: return -1
 
         val draggedItemCenter = draggedItem.offset + draggedItem.size / 2
-        val dragPosition = draggedItemCenter.toFloat() + dragAmount.y
+        val dragPosition = draggedItemCenter + dragAmount.y
 
-        return listInfo.minByOrNull {
+        val itemsToSearch = if (dragAmount.y < 0) listInfo.asReversed() else listInfo
+
+        return itemsToSearch.minByOrNull {
             val itemCenter = it.offset + it.size / 2
             kotlin.math.abs(itemCenter - dragPosition)
         }?.index ?: -1
