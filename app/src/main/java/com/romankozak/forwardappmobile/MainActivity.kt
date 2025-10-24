@@ -63,10 +63,14 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var contextUtils: ContextUtils
 
+    @Inject
+    lateinit var contextHandler: com.romankozak.forwardappmobile.data.logic.ContextHandler
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
             remoteConfigManager.fetchAndActivate()
+            contextHandler.initialize()
         }
         enableEdgeToEdge()
         WindowCompat.getInsetsController(window, window.decorView).apply {

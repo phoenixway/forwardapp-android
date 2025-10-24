@@ -8,6 +8,8 @@ class IconProvider @Inject constructor(
     private val remoteConfigManager: RemoteConfigManager
 ) {
     fun getIconMappings(): Map<String, List<String>> {
-        return remoteConfigManager.getIconMappings()
+        val mappings = remoteConfigManager.getIconMappings()
+        android.util.Log.d("IconProvider", "Icon mappings from RemoteConfigManager: $mappings")
+        return mappings
     }
 }
