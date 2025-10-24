@@ -1,14 +1,17 @@
 package com.romankozak.forwardappmobile.ui.common
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class ParsedTextData(
     val icons: List<String>,
     val mainText: String,
 )
 
-object ContextUtils {
+@Singleton
+class ContextUtils @Inject constructor(
+    private val iconProvider: IconProvider
+) {
     fun parseTextAndExtractIcons(
         text: String,
         contextMarkerToEmojiMap: Map<String, String>,
@@ -18,18 +21,7 @@ object ContextUtils {
 
         val allMarkersToIcons = mutableMapOf<String, String>()
 
-        val hardcodedIconsData =
-            mapOf(
-                "🔥" to listOf("@critical", "! ", "!"),
-                "⭐" to listOf("@day", "+"),
-                "📌" to listOf("@week", "++"),
-                "🗓️" to listOf("@month"),
-                "🎯" to listOf("+++ "),
-                "🔭" to listOf("~ ", "~"),
-                "✨" to listOf("@str"),
-                "🌫️" to listOf("@unclear"),
-                "❓" to listOf("??"),
-            )
+        val hardcodedIconsData = iconProvider.getIconMappings()
         hardcodedIconsData.forEach { (icon, markers) ->
             markers.forEach { marker ->
                 allMarkersToIcons[marker] = icon
@@ -55,12 +47,5 @@ object ContextUtils {
         val cleanedText = currentText.replace(Regex("\\s+"), " ").trim()
 
         return ParsedTextData(icons = foundIcons.toList(), mainText = cleanedText)
-    }
-}
-
-@Composable
-fun rememberParsedText(text: String, contextMarkerToEmojiMap: Map<String, String>): ParsedTextData {
-    return remember(text, contextMarkerToEmojiMap) {
-        ContextUtils.parseTextAndExtractIcons(text, contextMarkerToEmojiMap)
     }
 }

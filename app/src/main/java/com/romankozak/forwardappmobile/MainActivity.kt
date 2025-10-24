@@ -40,6 +40,11 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import androidx.core.net.toUri
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.ui.common.LocalContextUtils
+import com.romankozak.forwardappmobile.ui.common.ContextUtils
+import androidx.compose.runtime.CompositionLocalProvider
+import com.romankozak.forwardappmobile.ui.common.RemoteConfigManager
+import androidx.lifecycle.lifecycleScope
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -52,8 +57,17 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settingsRepository: com.romankozak.forwardappmobile.data.repository.SettingsRepository
 
+    @Inject
+    lateinit var remoteConfigManager: RemoteConfigManager
+
+    @Inject
+    lateinit var contextUtils: ContextUtils
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            remoteConfigManager.fetchAndActivate()
+        }
         enableEdgeToEdge()
         WindowCompat.getInsetsController(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.navigationBars())
@@ -68,8 +82,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeSettings by settingsRepository.themeSettings.collectAsState(initial = com.romankozak.forwardappmobile.ui.theme.ThemeSettings())
             ForwardAppMobileTheme(themeSettings = themeSettings) {
-                // Вся навігація тепер інкапсульована тут
-                AppNavigation(syncDataViewModel = syncDataViewModel)
+                CompositionLocalProvider(LocalContextUtils provides contextUtils) {
+                    AppNavigation(syncDataViewModel = syncDataViewModel)
+                }
             }
         }
     }
