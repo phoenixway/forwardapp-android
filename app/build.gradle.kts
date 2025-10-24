@@ -120,6 +120,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.remote.config)
 
     // Основні Compose бібліотеки
     implementation(libs.androidx.ui)

@@ -18,4 +18,10 @@ object NetworkModule {
     fun provideNetworkDiscoveryManager(@ApplicationContext context: Context): NetworkDiscoveryManager {
         return NetworkDiscoveryManager(context)
     }
+
+    @Provides
+    @Singleton
+    fun provideGson(): com.google.gson.Gson {
+        return com.google.gson.Gson()
+    }
 }
