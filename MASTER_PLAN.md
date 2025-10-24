@@ -1,35 +1,48 @@
 # Master Plan
 
-## Refactor Drag-and-Drop Functionality
+## Refactor Drag-and-Drop for Testability (Revised)
 
-### 1. Centralize Drag-and-Drop State Management
+### 1. Extract Drag-and-Drop Logic into a `DragDropManager`
 
-- **Goal:** Create a single source of truth for the drag-and-drop state to simplify logic and improve testability.
-- **Tasks:**
-    - [x] **Create `DragState` data class:** Define a new data class in `SimpleDragDropState.kt` to hold all information about the drag operation (initial index, current index, target index, dragged item info, etc.).
-    - [x] **Replace individual state variables:** In `SimpleDragDropState.kt`, replace `draggedDistance`, `draggedItemLayoutInfo`, and `draggedItemIndex` with a single `dragState` variable of type `DragState?`.
-    - [x] **Update `SimpleDragDropState` methods:** Refactor `onDragStart`, `onDrag`, and `onDragEnd` to use the new `dragState` data class for all state modifications.
+-   **Goal:** Decouple the drag-and-drop logic from the UI to enable unit testing, while maintaining existing package structure for use cases.
+-   **Tasks:**
+    -   [ ] **Create `DragState` data class:** Create `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/dnd/DragState.kt`. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Create `LazyListInfoProvider` interface:** Create `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/dnd/LazyListInfoProvider.kt`. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Create `LazyListStateProviderImpl` class:** Create `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/dnd/LazyListStateProviderImpl.kt`. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Create `DragDropManager` class:** Create `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/dnd/DragDropManager.kt`. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Delete `SimpleDragDropState.kt`:** Delete `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/components/dnd/SimpleDragDropState.kt`. (Compile and verify: Run `make debug-cycle` after each step.)
 
-### 2. Decouple Gesture Detection from UI Components
+### 2. Integrate `DragDropManager` with `ProjectScreenViewModel`
 
-- **Goal:** Separate the drag gesture detection from the `DraggableItem` composable to make the components more reusable and easier to test.
-- **Tasks:**
-    - [x] **Move gesture detector to `MoreActionsButton.kt`:** Relocate the `pointerInput` modifier with `detectDragGesturesAfterLongPress` from `DraggableItem.kt` to the `MoreActionsButton.kt` composable. This will make the drag handle explicit.
-    - [x] **Update `DraggableItem.kt`:** Remove the gesture detection logic from `DraggableItem.kt`. The component should now only be responsible for its visual representation during the drag operation (e.g., translation, scale, elevation).
-    - [x] **Update `BacklogView.kt`:** Adjust the `MoreActionsButton` usage in `BacklogView.kt` to reflect the new signature and pass the necessary parameters.
+-   **Goal:** Use `ProjectScreenViewModel` as the single source of truth for the UI, integrating the new `DragDropManager`.
+-   **Tasks:**
+    -   [ ] **Update `ProjectScreenViewModel.kt` imports:** Add imports for `DragDropManager`, `LazyListStateProviderImpl`, `LazyListState`, and `DragState`. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Add `DragDropManager` properties to `ProjectScreenViewModel`:** Add `lazyListStateProvider` and `dragDropManager` instances, and expose `dragState` as a `StateFlow`. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Initialize `DragDropManager` in `ProjectScreenViewModel` `init` block:** Initialize the `dragDropManager` with `viewModelScope`, `lazyListStateProvider`, and the `moveItem` callback. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Add D&D event handlers to `ProjectScreenViewModel`:** Implement `setLazyListState`, `onDragStart`, `onDrag`, and `onDragEnd` functions. (Compile and verify: Run `make debug-cycle` after each step.)
 
-### 3. Improve Drag-and-Drop Logic and Stability
+### 3. Update UI Components to use `DragDropManager`
 
-- **Goal:** Enhance the reliability and predictability of the drag-and-drop operation.
-- **Tasks:**
-    - [x] **Refine `findHoveredItemIndex`:** Improve the logic in `SimpleDragDropState.kt` for finding the item over which the dragged item is currently hovering.
-    - [x] **Remove `delay` from `onDragEnd`:** Remove the `delay(200)` from the `onDragEnd` function in `SimpleDragDropState.kt` to prevent race conditions and make the state update more immediate and predictable.
-    - [x] **Add a target indicator:** In `InteractiveListItem.kt`, add a visual indicator to show the target position of the dragged item.
+-   **Goal:** Simplify UI components to observe state and send events to `ProjectScreenViewModel`.
+-   **Tasks:**
+    -   [ ] **Refactor `MoreActionsButton.kt`:** Remove `dragDropState` dependency, add `isDragging`, `onDragStart`, `onDrag`, `onDragEnd` as parameters. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Refactor `DraggableItem.kt`:** Remove `dragDropState` dependency, add `isDragging` and `offset` as parameters. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Refactor `InteractiveListItem.kt`:** Remove `dragDropState` dependency, add `dragState: DragState?` as parameter, move `getItemOffset` logic into a helper function, update `DraggableItem` call and `isTarget` logic. (Compile and verify: Run `make debug-cycle` after each step.)
+    -   [ ] **Refactor `BacklogView.kt`:** Remove `dragDropState` parameter, get `dragState` from `viewModel`, call `viewModel.setLazyListState(listState)` in `LaunchedEffect`, update `MoreActionsButton` and `InteractiveListItem` calls. (Compile and verify: Run `make debug-cycle` after each step.)
 
-### 4. Add Unit Tests for Drag-and-Drop
+### 4. Fix the D&D Bug (Item returning to original position)
 
-- **Goal:** Create unit tests for the drag-and-drop functionality to ensure its correctness and prevent future regressions.
-- **Tasks:**
-    - [x] **Create `BacklogScreenDndTest.kt`:** Create a new test file for the backlog screen's drag-and-drop functionality.
-    - [x] **Write a test case for a simple drag-and-drop operation:** In `BacklogScreenDndTest.kt`, write a test that simulates a drag-and-drop operation and verifies that the `onMove` callback is invoked with the correct parameters.
-    - [x] **Mock dependencies:** Use `mockito-kotlin` to mock the necessary dependencies for the test.
+-   **Goal:** Identify and fix the bug where the dragged item returns to its original position upon release.
+-   **Tasks:**
+    -   [ ] **Investigate `moveItem` logic:** Analyze `moveItem` and `saveListOrder` in `ProjectScreenViewModel` to ensure correct list reordering and persistence.
+    -   [ ] **Debug `DragDropManager`:** Verify that `onMove` is called with correct indices and that `dragState` is updated as expected.
+    -   [ ] **Implement fix:** Apply necessary changes to `DragDropManager` or `ProjectScreenViewModel` to ensure the item's position is correctly updated and persisted.
+    -   [ ] **Compile and verify:** Run `make debug-cycle` after implementing the fix.
+
+### 5. Update Unit Tests for Drag-and-Drop
+
+-   **Goal:** Update existing unit tests and add new ones for the `DragDropManager`.
+-   **Tasks:**
+    -   [ ] **Update `BacklogScreenDndTest.kt`:** Refactor to use `ProjectScreenViewModel` and its D&D event handlers.
+    -   [ ] **Create `DragDropManagerTest.kt`:** Add unit tests for the `DragDropManager`'s logic.
+    -   [ ] **Compile and verify:** Run `make debug-cycle` after each test update.
