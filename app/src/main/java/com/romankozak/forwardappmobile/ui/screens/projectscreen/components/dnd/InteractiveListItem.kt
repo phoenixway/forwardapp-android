@@ -94,19 +94,7 @@ fun InteractiveListItem(
                 },
             )
         }
-        val isTarget =
-            dragDropState.isDragging &&
-                dragDropState.targetIndexOfDraggedItem == index &&
-                dragDropState.initialIndexOfDraggedItem != index
 
-        if (isTarget) {
-            val isDraggingDown = dragDropState.initialIndexOfDraggedItem < dragDropState.targetIndexOfDraggedItem
-            val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.align(align)) {
-                }
-            }
-        }
     }
 }
