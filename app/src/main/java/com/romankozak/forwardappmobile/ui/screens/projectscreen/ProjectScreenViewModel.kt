@@ -1,6 +1,13 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
 
+<<<<<<< HEAD
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.SearchUseCase
+=======
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragDropManager
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.LazyListStateProviderImpl
+import androidx.compose.foundation.lazy.LazyListState
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
+>>>>>>> parent of 71511bf (refactor(usecases): Move HierarchyDebugLogger to domain package)
 
 import android.app.Application
 import android.content.ClipData

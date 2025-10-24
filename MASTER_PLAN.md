@@ -30,6 +30,11 @@
 
 - **Goal:** Create unit tests for the drag-and-drop functionality to ensure its correctness and prevent future regressions.
 - **Tasks:**
+<<<<<<< HEAD
     - [x] **Create `BacklogScreenDndTest.kt`:** Create a new test file for the backlog screen's drag-and-drop functionality.
     - [x] **Write a test case for a simple drag-and-drop operation:** In `BacklogScreenDndTest.kt`, write a test that simulates a drag-and-drop operation and verifies that the `onMove` callback is invoked with the correct parameters.
     - [x] **Mock dependencies:** Use `mockito-kotlin` to mock the necessary dependencies for the test.
+=======
+    - [x] **Create `DragDropManagerTest.kt`:** Create a new test file for the `DragDropManager`.
+    - [x] **Write unit tests for the dnd logic:** Write unit tests that verify the correctness of the dnd state transitions and the `onMove` callback.
+>>>>>>> parent of 71511bf (refactor(usecases): Move HierarchyDebugLogger to domain package)
