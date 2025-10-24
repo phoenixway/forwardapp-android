@@ -17,11 +17,13 @@ import androidx.compose.ui.geometry.Offset
 @Composable
 fun MoreActionsButton(
     onMoreClick: () -> Unit,
-    dragDropState: SimpleDragDropState,
-    item: ListItemContent,
+    isDragging: Boolean,
+    onDragStart: (Offset) -> Unit,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val icon = if (dragDropState.isDragging) {
+    val icon = if (isDragging) {
         Icons.Default.DragHandle
     } else {
         Icons.Default.MoreVert
@@ -31,15 +33,15 @@ fun MoreActionsButton(
         imageVector = icon,
         contentDescription = "More actions",
         modifier = modifier
-            .pointerInput(dragDropState, item, onMoreClick) {
+            .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
-                    onDragStart = { dragDropState.onDragStart(item) },
-                    onDrag = { change: PointerInputChange, dragAmount: Offset ->
+                    onDragStart = { offset -> onDragStart(offset) },
+                    onDrag = { change, dragAmount ->
                         change.consume()
-                        dragDropState.onDrag(dragAmount.y)
+                        onDrag(dragAmount)
                     },
-                    onDragEnd = { dragDropState.onDragEnd() },
-                    onDragCancel = { dragDropState.onDragEnd() }
+                    onDragEnd = onDragEnd,
+                    onDragCancel = onDragEnd
                 )
             }
             .pointerInput(onMoreClick) { detectTapGestures(onTap = { onMoreClick() }) }
