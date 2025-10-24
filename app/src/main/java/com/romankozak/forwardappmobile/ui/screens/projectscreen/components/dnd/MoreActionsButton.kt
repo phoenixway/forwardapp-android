@@ -19,7 +19,7 @@ fun MoreActionsButton(
 ) {
     var isLongPressed by remember { mutableStateOf(false) }
 
-    val icon = if (isLongPressed || dragDropState.initialIndexOfDraggedItem != -1) {
+    val icon = if (isLongPressed || dragDropState.isDragging) {
         Icons.Default.DragHandle
     } else {
         Icons.Default.MoreVert
