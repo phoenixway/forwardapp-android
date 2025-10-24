@@ -12,13 +12,9 @@ import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.UiState
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.BacklogView
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.ProjectScreenViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.mockito.kotlin.whenever
 
 @RunWith(AndroidJUnit4::class)
 class BacklogScreenDndTest {
@@ -28,7 +24,13 @@ class BacklogScreenDndTest {
 
     @Test
     fun testDragAndDrop() {
-        val mockOnMove: (Int, Int) -> Unit = mock()
+        val viewModel: ProjectScreenViewModel = mock()
+        val dragState = MutableStateFlow<DragState?>(null)
+        whenever(viewModel.dragState).thenReturn(dragState)
+        whenever(viewModel.obsidianVaultName).thenReturn(MutableStateFlow(""))
+        whenever(viewModel.contextMarkerToEmojiMap).thenReturn(MutableStateFlow(emptyMap()))
+        whenever(viewModel.currentProjectContextEmojiToHide).thenReturn(MutableStateFlow(null))
+        whenever(viewModel.subprojectChildren).thenReturn(MutableStateFlow(emptyMap()))
 
         val items = (1..10).map {
             ListItemContent.GoalItem(
@@ -40,20 +42,11 @@ class BacklogScreenDndTest {
 
         composeTestRule.setContent {
             val listState = rememberLazyListState()
-            val scope = rememberCoroutineScope()
-            val dragDropState = remember {
-                SimpleDragDropState(
-                    state = listState,
-                    scope = scope,
-                    onMove = mockOnMove
-                )
-            }
 
             BacklogView(
-                viewModel = mock(),
+                viewModel = viewModel,
                 uiState = UiState(),
                 listState = listState,
-                dragDropState = dragDropState,
                 listContent = items,
                 isAttachmentsExpanded = false,
                 swipeEnabled = false
@@ -64,14 +57,13 @@ class BacklogScreenDndTest {
             longClick()
         }
 
-        composeTestRule.onNodeWithText("Goal 5").performGesture {
-            moveTo(center)
-        }
+        // Simulate drag
+        dragState.value = DragState(1, 1, 4, 0f, null)
 
         composeTestRule.onNodeWithText("Goal 5").performGesture {
             up()
         }
 
-        verify(mockOnMove).invoke(1, 4)
+        verify(viewModel).moveItem(1, 4)
     }
 }

@@ -18,11 +18,13 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
+
 @Composable
 fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
-    dragDropState: SimpleDragDropState,
+    dragState: DragState?,
     isSelected: Boolean,
     isHighlighted: Boolean,
     swipeEnabled: Boolean,
@@ -59,18 +61,17 @@ fun InteractiveListItem(
         label = "interactive_item_background",
     )
 
-    val isDraggable = item is ListItemContent.GoalItem || item is ListItemContent.SublistItem
+    val isDragging = dragState?.draggedItemLayoutInfo?.index == index
 
     DraggableItem(
-        item = item,
-        index = index,
-        dragDropState = dragDropState,
+        isDragging = isDragging,
+        offset = getItemOffset(dragState, index),
         modifier = modifier,
-    ) { isDragging ->
+    ) { 
         Box {
             SwipeableListItem(
                 isDragging = isDragging,
-                isAnyItemDragging = dragDropState.isDragging,
+                isAnyItemDragging = dragState != null,
                 swipeEnabled = swipeEnabled,
                 isAnotherItemSwiped = isAnotherItemSwiped,
                 resetTrigger = resetTrigger,
@@ -97,12 +98,12 @@ fun InteractiveListItem(
             )
 
             val isTarget =
-                dragDropState.isDragging &&
-                    dragDropState.targetIndexOfDraggedItem == index &&
-                    dragDropState.initialIndexOfDraggedItem != index
+                dragState != null &&
+                    dragState.targetIndex == index &&
+                    dragState.initialIndex != index
 
             if (isTarget) {
-                val isDraggingDown = dragDropState.initialIndexOfDraggedItem < dragDropState.targetIndexOfDraggedItem
+                val isDraggingDown = dragState!!.initialIndex < dragState.targetIndex
                 val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
 
                 Box(
@@ -114,5 +115,20 @@ fun InteractiveListItem(
                 )
             }
         }
+    }
+}
+
+private fun getItemOffset(dragState: DragState?, itemIndex: Int): Float {
+    val currentDragState = dragState ?: return 0f
+
+    val draggedIndex = currentDragState.initialIndex
+    val targetIndex = currentDragState.targetIndex
+    val draggedItemSize = (currentDragState.draggedItemLayoutInfo?.size ?: 0).toFloat()
+
+    return when {
+        itemIndex == draggedIndex -> currentDragState.draggedDistance
+        draggedIndex < targetIndex && itemIndex in (draggedIndex + 1)..targetIndex -> -draggedItemSize
+        draggedIndex > targetIndex && itemIndex in targetIndex until draggedIndex -> draggedItemSize
+        else -> 0f
     }
 }
