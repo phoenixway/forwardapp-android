@@ -31,9 +31,10 @@ class BacklogScreenDndTest {
     fun testDragAndDrop() {
         val mockViewModel: BacklogViewModel = mock()
         val items = (1..10).map {
+            val goalId = "$it"
             ListItemContent.GoalItem(
-                goal = Goal(id = "$it", text = "Goal $it"),
-                listItem = ListItem(id = "$it", projectId = "0", itemType = "goal", order = it.toLong()),
+                goal = Goal(id = goalId, text = "Goal $it", completed = false, createdAt = 0L, updatedAt = 0L),
+                listItem = ListItem(id = "$it", projectId = "0", itemType = "goal", order = it.toLong(), entityId = goalId),
                 reminders = emptyList()
             )
         }
