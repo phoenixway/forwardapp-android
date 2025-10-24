@@ -28,6 +28,7 @@ object ContextUtils {
                 "🔭" to listOf("~ ", "~"),
                 "✨" to listOf("@str"),
                 "🌫️" to listOf("@unclear"),
+                "❓" to listOf("??"),
             )
         hardcodedIconsData.forEach { (icon, markers) ->
             markers.forEach { marker ->
