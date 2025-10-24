@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.back
 
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import androidx.compose.material.icons.filled.AccountTree
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -79,6 +80,7 @@ fun ProjectItem(
     reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
+    android.util.Log.d("ProjectItem", "ProjectItem composable called for project: ${project.name}")
     val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(project.name, contextMarkerToEmojiMap)
 

@@ -33,7 +33,7 @@ class RemoteConfigManager @Inject constructor(
 
     fun getIconMappings(): Map<String, List<String>> {
         val json = remoteConfig.getString("hardcoded_icons")
-        return if (json.isNotEmpty()) {
+        return if (json.isNotBlank() && json != "{}") {
             val type = object : TypeToken<Map<String, List<String>>>() {}.type
             gson.fromJson(json, type)
         } else {
