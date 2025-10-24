@@ -18,32 +18,37 @@ import androidx.compose.ui.geometry.Offset
 fun MoreActionsButton(
     onMoreClick: () -> Unit,
     isDragging: Boolean,
+    isDraggable: Boolean,
     onDragStart: (Offset) -> Unit,
     onDrag: (Offset) -> Unit,
     onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val icon = if (isDragging) {
+    val icon = if (isDragging && isDraggable) {
         Icons.Default.DragHandle
     } else {
         Icons.Default.MoreVert
     }
 
+    var updatedModifier = modifier.pointerInput(onMoreClick) { detectTapGestures(onTap = { onMoreClick() }) }
+
+    if (isDraggable) {
+        updatedModifier = updatedModifier.pointerInput(Unit) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = { offset -> onDragStart(offset) },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    onDrag(dragAmount)
+                },
+                onDragEnd = onDragEnd,
+                onDragCancel = onDragEnd
+            )
+        }
+    }
+
     Icon(
         imageVector = icon,
         contentDescription = "More actions",
-        modifier = modifier
-            .pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { offset -> onDragStart(offset) },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount)
-                    },
-                    onDragEnd = onDragEnd,
-                    onDragCancel = onDragEnd
-                )
-            }
-            .pointerInput(onMoreClick) { detectTapGestures(onTap = { onMoreClick() }) }
+        modifier = updatedModifier
     )
 }

@@ -33,6 +33,7 @@ fun InteractiveListItem(
     isSelected: Boolean,
     isHighlighted: Boolean,
     swipeEnabled: Boolean,
+    isDraggable: Boolean,
     isAnotherItemSwiped: Boolean,
     resetTrigger: Int,
     onSwipeStart: () -> Unit,
@@ -66,73 +67,98 @@ fun InteractiveListItem(
         label = "interactive_item_background",
     )
 
-    val isDragging = dragState?.draggedItemIndex == index
+    if (isDraggable) {
+        val isDragging = dragState?.draggedItemIndex == index
 
-    fun getItemOffset(): Float {
-        if (dragState?.draggedItemIndex == null || dragState.targetItemIndex == null) {
-            return 0f
-        }
+        fun getItemOffset(): Float {
+            if (dragState?.draggedItemIndex == null || dragState.targetItemIndex == null) {
+                return 0f
+            }
 
-        val itemHeight = dragState.draggedItemHeight
+            val itemHeight = dragState.draggedItemHeight
 
-        return when {
-            index == dragState.draggedItemIndex -> dragState.dragAmount.y
-            dragState.draggedItemIndex < index && index <= dragState.targetItemIndex -> -itemHeight
-            dragState.targetItemIndex <= index && index < dragState.draggedItemIndex -> itemHeight
-            else -> 0f
-        }
-    }
-
-    DraggableItem(
-        isDragging = isDragging,
-        yOffset = getItemOffset(),
-        modifier = modifier,
-    ) { isDragging ->
-        Box {
-            SwipeableListItem(
-                isDragging = isDragging,
-                isAnyItemDragging = dragState?.dragInProgress == true,
-                swipeEnabled = swipeEnabled,
-                isAnotherItemSwiped = isAnotherItemSwiped,
-                resetTrigger = resetTrigger,
-                onSwipeStart = onSwipeStart,
-                onDelete = onDelete,
-                onMoreActionsRequest = onMoreActionsRequest,
-                onMoveToTopRequest = onMoveToTopRequest,
-                onGoalTransportRequest = { onShowGoalTransportMenu(item) },
-                onStartTrackingRequest = onStartTrackingRequest,
-                onAddToDayPlanRequest = onAddToDayPlanRequest,
-                onCopyContentRequest = onCopyContentRequest,
-                onToggleCompleted = onToggleCompleted,
-                backgroundColor = backgroundColor,
-                content = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            content(isDragging)
-                        }
-                    }
-                },
-            )
-
-            val isTarget = dragState?.dragInProgress == true &&
-                dragState.targetItemIndex == index &&
-                dragState.draggedItemIndex != index
-
-            if (isTarget) {
-                val isDraggingDown = dragState?.draggedItemIndex != null && dragState.targetItemIndex != null && dragState.draggedItemIndex < dragState.targetItemIndex
-                val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .align(align)
-                )
+            return when {
+                index == dragState.draggedItemIndex -> dragState.dragAmount.y
+                dragState.draggedItemIndex < index && index <= dragState.targetItemIndex -> -itemHeight
+                dragState.targetItemIndex <= index && index < dragState.draggedItemIndex -> itemHeight
+                else -> 0f
             }
         }
+
+        DraggableItem(
+            isDragging = isDragging,
+            yOffset = getItemOffset(),
+            modifier = modifier,
+        ) { isDraggingValue ->
+            Box {
+                SwipeableListItemWrapper(isDraggingValue, swipeEnabled, isAnotherItemSwiped, resetTrigger, onSwipeStart, onDelete, onMoreActionsRequest, onMoveToTopRequest, { onShowGoalTransportMenu(item) }, onStartTrackingRequest, onAddToDayPlanRequest, onCopyContentRequest, onToggleCompleted, backgroundColor, content)
+
+                val isTarget = dragState?.dragInProgress == true &&
+                    dragState.targetItemIndex == index &&
+                    dragState.draggedItemIndex != index
+
+                if (isTarget) {
+                    val isDraggingDown = dragState?.draggedItemIndex != null && dragState.targetItemIndex != null && dragState.draggedItemIndex < dragState.targetItemIndex
+                    val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .align(align)
+                    )
+                }
+            }
+        }
+    } else {
+        SwipeableListItemWrapper(false, swipeEnabled, isAnotherItemSwiped, resetTrigger, onSwipeStart, onDelete, onMoreActionsRequest, onMoveToTopRequest, { onShowGoalTransportMenu(item) }, onStartTrackingRequest, onAddToDayPlanRequest, onCopyContentRequest, onToggleCompleted, backgroundColor, content)
     }
+}
+
+@Composable
+private fun SwipeableListItemWrapper(
+    isDragging: Boolean,
+    swipeEnabled: Boolean,
+    isAnotherItemSwiped: Boolean,
+    resetTrigger: Int,
+    onSwipeStart: () -> Unit,
+    onDelete: () -> Unit,
+    onMoreActionsRequest: () -> Unit,
+    onMoveToTopRequest: () -> Unit,
+    onGoalTransportRequest: () -> Unit,
+    onStartTrackingRequest: () -> Unit,
+    onAddToDayPlanRequest: () -> Unit,
+    onCopyContentRequest: () -> Unit,
+    onToggleCompleted: () -> Unit,
+    backgroundColor: androidx.compose.ui.graphics.Color,
+    content: @Composable (isDragging: Boolean) -> Unit
+) {
+    SwipeableListItem(
+        isDragging = isDragging,
+        isAnyItemDragging = isDragging,
+        swipeEnabled = swipeEnabled,
+        isAnotherItemSwiped = isAnotherItemSwiped,
+        resetTrigger = resetTrigger,
+        onSwipeStart = onSwipeStart,
+        onDelete = onDelete,
+        onMoreActionsRequest = onMoreActionsRequest,
+        onMoveToTopRequest = onMoveToTopRequest,
+        onGoalTransportRequest = onGoalTransportRequest,
+        onStartTrackingRequest = onStartTrackingRequest,
+        onAddToDayPlanRequest = onAddToDayPlanRequest,
+        onCopyContentRequest = onCopyContentRequest,
+        onToggleCompleted = onToggleCompleted,
+        backgroundColor = backgroundColor,
+        content = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    content(isDragging)
+                }
+            }
+        },
+    )
 }

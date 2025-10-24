@@ -69,18 +69,11 @@ fun BacklogView(
         }
     }
 
-    val attachmentItems =
-        remember(listContent) {
-            listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
-        }
-    val draggableItems =
-        remember(listContent) {
-            listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
-        }
+    val items = listContent
 
     Column(modifier = modifier.fillMaxSize()) {
         AttachmentsSection(
-            attachments = attachmentItems,
+            attachments = items.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem },
             isExpanded = isAttachmentsExpanded,
             onAddAttachment = { viewModel.onAddAttachment(it) },
             onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
@@ -93,13 +86,21 @@ fun BacklogView(
             modifier = Modifier.fillMaxWidth().weight(1f),
         ) {
             itemsIndexed(
-                items = draggableItems,
+                items = items,
                 key = { _, item -> item.listItem.id },
             ) { index, content ->
                 val isSelected = content.listItem.id in uiState.selectedItemIds
                 val isHighlighted =
                     (uiState.itemToHighlight == content.listItem.id) ||
                         (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
+                val isDraggable = content !is ListItemContent.LinkItem && content !is ListItemContent.NoteItem && content !is ListItemContent.CustomListItem
+
+                if (!isDraggable) {
+                    // Non-draggable items are rendered by AttachmentsSection, so we do nothing here.
+                    // This maintains the integrity of indices for the draggable items.
+                    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {}
+                    return@itemsIndexed
+                }
 
                 InteractiveListItem(
                     item = content,
@@ -109,6 +110,7 @@ fun BacklogView(
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
                     swipeEnabled = swipeEnabled,
+                    isDraggable = isDraggable,
                     isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id),
                     resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0,
                     onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) },
@@ -162,6 +164,7 @@ fun BacklogView(
                                 endAction = {
                                     MoreActionsButton(
                                         isDragging = isDragging,
+                                        isDraggable = isDraggable,
                                         onDragStart = { offset -> viewModel.onDragStart(offset, index) },
                                         onDrag = { offset -> viewModel.onDrag(offset) },
                                         onDragEnd = { viewModel.onDragEnd() },
@@ -189,6 +192,7 @@ fun BacklogView(
                                 endAction = {
                                     MoreActionsButton(
                                         isDragging = isDragging,
+                                        isDraggable = isDraggable,
                                         onDragStart = { offset -> viewModel.onDragStart(offset, index) },
                                         onDrag = { offset -> viewModel.onDrag(offset) },
                                         onDragEnd = { viewModel.onDragEnd() },
