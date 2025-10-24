@@ -16,33 +16,34 @@ class ContextUtils @Inject constructor(
         text: String,
         contextMarkerToEmojiMap: Map<String, String>,
     ): ParsedTextData {
-        var currentText = text
-        val foundIcons = mutableSetOf<String>()
-
         val allMarkersToIcons = mutableMapOf<String, String>()
-
         val hardcodedIconsData = iconProvider.getIconMappings()
         hardcodedIconsData.forEach { (icon, markers) ->
             markers.forEach { marker ->
                 allMarkersToIcons[marker] = icon
             }
         }
-
         allMarkersToIcons.putAll(contextMarkerToEmojiMap)
 
-        val sortedMarkers = allMarkersToIcons.keys.sortedByDescending { it.length }
+        val foundIcons = mutableSetOf<String>()
+        var currentText = text
 
-        sortedMarkers.forEach { marker ->
-            val icon = allMarkersToIcons[marker] ?: return@forEach
-            val regexOptions = if (marker.startsWith("@")) setOf(RegexOption.IGNORE_CASE) else emptySet()
-            val regex = Regex("(?<=(^|\\s))${Regex.escape(marker)}(?=(\\s|$))", regexOptions)
+        val pattern = allMarkersToIcons.keys
+            .sortedByDescending { it.length }
+            .joinToString("|") { Regex.escape(it) }
 
-            if (regex.containsMatchIn(currentText)) {
+        val regex = Regex("(?<=(^|\\s))($pattern)(?=(\\s|$))", setOf(RegexOption.IGNORE_CASE))
+        val matches = regex.findAll(currentText)
+
+        matches.forEach {
+            val marker = it.groupValues[2]
+            val icon = allMarkersToIcons[marker] ?: allMarkersToIcons[marker.lowercase()]
+            if (icon != null) {
                 foundIcons.add(icon)
-                currentText = currentText.replace(regex, " ")
             }
         }
 
+        currentText = currentText.replace(regex, " ")
         currentText = currentText.replace(Regex("\\[icon::\\s*([^]]+?)\\s*]"), "")
         val cleanedText = currentText.replace(Regex("\\s+"), " ").trim()
 
