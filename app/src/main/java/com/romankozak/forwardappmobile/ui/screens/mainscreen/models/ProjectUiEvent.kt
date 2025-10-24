@@ -22,6 +22,7 @@ sealed interface ProjectUiEvent {
     data class ShowToast(val message: String) : ProjectUiEvent
 
     data object FocusSearchField : ProjectUiEvent
+    data object HideKeyboard : ProjectUiEvent
 
     data class OpenUri(val uri: String) : ProjectUiEvent
     data class ScrollToIndex(val index: Int) : ProjectUiEvent

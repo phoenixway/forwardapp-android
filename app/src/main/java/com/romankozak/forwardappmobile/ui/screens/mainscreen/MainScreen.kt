@@ -89,6 +89,7 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val focusManager = LocalFocusManager.current
 
     
     LaunchedEffect(Unit) {
@@ -110,6 +111,9 @@ fun MainScreen(
                     navController.navigateToStrategicManagement()
                 is ProjectUiEvent.FocusSearchField -> {
                     
+                }
+                is ProjectUiEvent.HideKeyboard -> {
+                    focusManager.clearFocus()
                 }
                 is ProjectUiEvent.OpenUri -> {
                     val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, event.uri.toUri())
