@@ -6,5 +6,6 @@ data class DragState(
     val dragInProgress: Boolean = false,
     val dragAmount: Offset = Offset.Zero,
     val draggedItemIndex: Int? = null,
-    val targetItemIndex: Int? = null
+    val targetItemIndex: Int? = null,
+    val draggedItemHeight: Float = 0f
 )
