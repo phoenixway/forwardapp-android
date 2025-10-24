@@ -10,7 +10,11 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragDropManager
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.LazyListStateProviderImpl
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -298,6 +302,10 @@ constructor(
   val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
   val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
 
+  private lateinit var lazyListState: LazyListState
+  private lateinit var dragDropManager: DragDropManager
+  val dragState: StateFlow<DragState> get() = dragDropManager.dragState
+
   private val _uiState =
     MutableStateFlow(
       UiState(
@@ -528,10 +536,15 @@ constructor(
 
     viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
     loadAllTags()
-    loadAllContexts()
-
-
-  }
+        loadAllContexts()
+    
+        lazyListState = LazyListState(0, 0)
+        dragDropManager = DragDropManager(
+            scope = viewModelScope,
+            lazyListInfoProvider = LazyListStateProviderImpl(lazyListState),
+            onMove = { from, to -> moveItem(from, to) }
+        )
+      }
 
   private fun loadAllTags() {
     viewModelScope.launch(Dispatchers.IO) {
@@ -1776,5 +1789,21 @@ constructor(
 
     fun onDismissDisplayPropertiesDialog() {
         _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
+    }
+
+    fun setLazyListState(state: LazyListState) {
+        lazyListState = state
+    }
+
+    fun onDragStart(offset: androidx.compose.ui.geometry.Offset, index: Int) {
+        dragDropManager.onDragStart(offset, index)
+    }
+
+    fun onDrag(offset: androidx.compose.ui.geometry.Offset) {
+        dragDropManager.onDrag(offset)
+    }
+
+    fun onDragEnd() {
+        dragDropManager.onDragEnd()
     }
 }
