@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 @Composable
@@ -39,6 +40,7 @@ fun DraggableItem(
 
     val itemModifier =
         modifier
+            .zIndex(if (isDragging) 1f else 0f)
             .graphicsLayer {
                 val offset = dragDropState.getItemOffset(item)
                 translationY = offset

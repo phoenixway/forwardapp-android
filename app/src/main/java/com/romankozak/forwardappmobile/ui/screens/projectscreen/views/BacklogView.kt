@@ -34,34 +34,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.S
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun MoreActionsButton(
-    modifier: Modifier = Modifier,
-    dragDropState: SimpleDragDropState,
-    item: ListItemContent,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier =
-            modifier
-                .fillMaxHeight()
-                .padding(vertical = 4.dp, horizontal = 8.dp)
-                .pointerInput(dragDropState, item) {
-                    detectTapGestures(
-                        onLongPress = { dragDropState.onDragStart(item) },
-                        onTap = { onClick() },
-                    )
-                },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Default.MoreVert,
-            contentDescription = "Більше",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-        )
-    }
-}
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.MoreActionsButton
 
 @Composable
 fun BacklogView(
@@ -185,7 +158,7 @@ fun BacklogView(
                                     MoreActionsButton(
                                         dragDropState = dragDropState,
                                         item = content,
-                                        onClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                        onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                     )
                                 }
                             )
@@ -210,7 +183,7 @@ fun BacklogView(
                                     MoreActionsButton(
                                         dragDropState = dragDropState,
                                         item = content,
-                                        onClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                        onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                     )
                                 }
                             )
