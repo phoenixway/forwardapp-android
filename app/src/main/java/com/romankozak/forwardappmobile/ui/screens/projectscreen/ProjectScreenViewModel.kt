@@ -554,7 +554,6 @@ constructor(
         lazyListInfoProvider = LazyListStateProviderImpl(lazyListState)
         dragDropManager = DragDropManager(
             scope = viewModelScope,
-            lazyListInfoProvider = lazyListInfoProvider,
             onMove = { from, to -> moveItem(from, to) },
             scrollBy = { lazyListState.scrollBy(it) }
         )
@@ -1823,18 +1822,5 @@ constructor(
         (this.lazyListInfoProvider as LazyListStateProviderImpl).state = state
     }
 
-    fun onDragStart(offset: androidx.compose.ui.geometry.Offset, index: Int) {
-        val item = listContent.value.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }.getOrNull(index)
-        Log.d(TAG, "onDragStart: offset=$offset, index=$index, item=$item")
-        dragDropManager.onDragStart(offset, index)
-    }
 
-    fun onDrag(offset: androidx.compose.ui.geometry.Offset) {
-        dragDropManager.onDrag(offset)
-    }
-
-    fun onDragEnd() {
-        Log.d(TAG, "onDragEnd")
-        dragDropManager.onDragEnd()
-    }
 }

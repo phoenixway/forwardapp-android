@@ -154,157 +154,160 @@ fun SubprojectItemRow(
             BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
         },
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (showCheckbox) {
-                Checkbox(
-                    checked = subproject.isCompleted,
-                    onCheckedChange = onCheckedChange,
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showCheckbox) {
+                    Checkbox(
+                        checked = subproject.isCompleted,
+                        onCheckedChange = onCheckedChange,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Icon(
+                    imageVector = Icons.Default.AccountTree,
+                    contentDescription = "Subproject",
+                    tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Icon(
-                imageVector = Icons.Default.AccountTree,
-                contentDescription = "Subproject",
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(24.dp)
-            )
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .pointerInput(onClick, onLongClick) {
-                    detectTapGestures(
-                        onLongPress = { onLongClick() },
-                        onTap = { onClick() },
-                    )
-                },
-        ) {
-            val textColor = if (subproject.isCompleted) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-            val textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null
-
-            Text(
-                text = parsedData.mainText,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = textColor,
-                textDecoration = textDecoration,
-            )
-
-            val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
-                (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                (reminder != null) ||
-                (parsedData.icons.isNotEmpty()) ||
-                childProjects.isNotEmpty()
-
-            val items = remember(childProjects, subproject, parsedData, emojiToHide, currentTimeMillis, reminder) {
-                buildList<FlowItem> {
-                    reminder?.let { add(FlowItem.ReminderItem(it)) }
-                    childProjects.forEach { add(FlowItem.ChildProject(it)) }
-                    add(FlowItem.ScoreStatus(subproject.scoringStatus, subproject.displayScore))
-                    parsedData.icons
-                        .filterNot { icon -> icon == emojiToHide }
-                        .forEachIndexed { index, icon -> add(FlowItem.IconEmoji(icon, index)) }
-                    subproject.tags?.filter { it.isNotBlank() }?.forEach { add(FlowItem.Tag(it)) }
-                }
-            }
-
-            if (hasExtraContent) {
-                ExpandableFlowRow(
-                    items = items,
-                    maxLinesWhenCollapsed = 2,
-                    horizontalSpacing = 6.dp,
-                    verticalSpacing = 4.dp,
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp),
-                ) { item ->
-                    when (item) {
-                        is FlowItem.SublistIcon -> item.item()
-                        is FlowItem.ChildProject -> {
-                            RelatedLinkChip(
-                                link = RelatedLink(
-                                    type = LinkType.PROJECT,
-                                    target = item.project.id,
-                                    displayName = item.project.name,
-                                ),
-                                onClick = { onChildProjectClick(item.project) },
+                        .padding(end = 48.dp) // Reserve space for the handle
+                        .pointerInput(onClick, onLongClick) {
+                            detectTapGestures(
+                                onLongPress = { onLongClick() },
+                                onTap = { onClick() },
                             )
+                        },
+                ) {
+                    val textColor = if (subproject.isCompleted) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                    val textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null
+
+                    Text(
+                        text = parsedData.mainText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = textColor,
+                        textDecoration = textDecoration,
+                    )
+
+                    val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
+                        (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                        (reminder != null) ||
+                        (parsedData.icons.isNotEmpty()) ||
+                        childProjects.isNotEmpty()
+
+                    val items = remember(childProjects, subproject, parsedData, emojiToHide, currentTimeMillis, reminder) {
+                        buildList<FlowItem> {
+                            reminder?.let { add(FlowItem.ReminderItem(it)) }
+                            childProjects.forEach { add(FlowItem.ChildProject(it)) }
+                            add(FlowItem.ScoreStatus(subproject.scoringStatus, subproject.displayScore))
+                            parsedData.icons
+                                .filterNot { icon -> icon == emojiToHide }
+                                .forEachIndexed { index, icon -> add(FlowItem.IconEmoji(icon, index)) }
+                            subproject.tags?.filter { it.isNotBlank() }?.forEach { add(FlowItem.Tag(it)) }
                         }
-                        is FlowItem.ReminderItem -> {
-                            ReminderBadge(
-                                reminder = item.reminder
-                            )
-                        }
-                        is FlowItem.ScoreStatus -> {
-                            EnhancedScoreStatusBadge(
-                                scoringStatus = item.scoringStatus,
-                                displayScore = item.displayScore,
-                            )
-                        }
-                        is FlowItem.IconEmoji -> {
-                            key(item.icon) {
-                                var delayedVisible by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    delay(item.index * 50L)
-                                    delayedVisible = true
+                    }
+
+                    if (hasExtraContent) {
+                        ExpandableFlowRow(
+                            items = items,
+                            maxLinesWhenCollapsed = 2,
+                            horizontalSpacing = 6.dp,
+                            verticalSpacing = 4.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp),
+                        ) { item ->
+                            when (item) {
+                                is FlowItem.SublistIcon -> item.item()
+                                is FlowItem.ChildProject -> {
+                                    RelatedLinkChip(
+                                        link = RelatedLink(
+                                            type = LinkType.PROJECT,
+                                            target = item.project.id,
+                                            displayName = item.project.name,
+                                        ),
+                                        onClick = { onChildProjectClick(item.project) },
+                                    )
                                 }
-                                AnimatedVisibility(
-                                    visible = delayedVisible,
-                                    enter = scaleIn(
-                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    ) + fadeIn(),
-                                ) {
-                                    AnimatedContextEmoji(
-                                        emoji = item.icon,
+                                is FlowItem.ReminderItem -> {
+                                    ReminderBadge(
+                                        reminder = item.reminder
+                                    )
+                                }
+                                is FlowItem.ScoreStatus -> {
+                                    EnhancedScoreStatusBadge(
+                                        scoringStatus = item.scoringStatus,
+                                        displayScore = item.displayScore,
+                                    )
+                                }
+                                is FlowItem.IconEmoji -> {
+                                    key(item.icon) {
+                                        var delayedVisible by remember { mutableStateOf(false) }
+                                        LaunchedEffect(Unit) {
+                                            delay(item.index * 50L)
+                                            delayedVisible = true
+                                        }
+                                        AnimatedVisibility(
+                                            visible = delayedVisible,
+                                            enter = scaleIn(
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            ) + fadeIn(),
+                                        ) {
+                                            AnimatedContextEmoji(
+                                                emoji = item.icon,
+                                            )
+                                        }
+                                    }
+                                }
+                                is FlowItem.Tag -> {
+                                    val formattedTag = "#${item.tag.trim().trimStart('#')}"
+                                    ModernTagChip(
+                                        text = formattedTag,
+                                        onClick = { onTagClick(formattedTag) },
+                                        tagType = TagType.PROJECT,
                                     )
                                 }
                             }
                         }
-                        is FlowItem.Tag -> {
-                            val formattedTag = "#${item.tag.trim().trimStart('#')}"
-                            ModernTagChip(
-                                text = formattedTag,
-                                onClick = { onTagClick(formattedTag) },
-                                tagType = TagType.PROJECT,
+                    }
+
+                    if (!subproject.description.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        ) {
+                            Text(
+                                text = subproject.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                maxLines = if (isSelected) Int.MAX_VALUE else 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(8.dp),
                             )
                         }
                     }
                 }
             }
-
-            if (!subproject.description.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                ) {
-                    Text(
-                        text = subproject.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        maxLines = if (isSelected) Int.MAX_VALUE else 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(8.dp),
-                    )
-                }
+            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                endAction()
             }
         }
-        endAction()
-    }
 }}

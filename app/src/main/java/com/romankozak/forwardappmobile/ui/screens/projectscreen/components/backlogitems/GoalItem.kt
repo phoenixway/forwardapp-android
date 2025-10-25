@@ -82,75 +82,78 @@ fun GoalItem(
             BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
         },
     ) {
-        Row(
+        Box(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (showCheckbox) {
-                Checkbox(
-                    checked = goal.completed,
-                    onCheckedChange = onCheckedChange,
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showCheckbox) {
+                    Checkbox(
+                        checked = goal.completed,
+                        onCheckedChange = onCheckedChange,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Icon(
+                    imageVector = Icons.Default.Flag,
+                    contentDescription = "Goal",
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Icon(
-                imageVector = Icons.Default.Flag,
-                contentDescription = "Goal",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-            Column(
-                modifier = 
-                    Modifier
-                        .weight(1f)
-                        .pointerInput(onItemClick, onLongClick) {
-                            detectTapGestures(
-                                onLongPress = { onLongClick() },
-                                onTap = { onItemClick() },
+                Column(
+                    modifier = 
+                        Modifier
+                            .padding(end = 48.dp) // Reserve space for the handle
+                            .pointerInput(onItemClick, onLongClick) {
+                                detectTapGestures(
+                                    onLongPress = { onLongClick() },
+                                    onTap = { onItemClick() },
+                                )
+                            },
+                ) {                MarkdownText(
+                        text = parsedData.mainText,
+                        isCompleted = goal.completed,
+                        obsidianVaultName = obsidianVaultName,
+                        onTagClick = onTagClick,
+                        onTextClick = onItemClick,
+                        onLongClick = onLongClick,
+                        maxLines = 4,
+                        style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                lineHeight = 16.sp,
+                                letterSpacing = 0.1.sp,
+                                fontSize = 12.sp,
+                                fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                            ),
+                    )
+
+                    AnimatedVisibility(
+                        visible = shouldShowStatusIcons,
+                        enter =
+                            slideInVertically(
+                                initialOffsetY = { height -> -height },
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            ) + fadeIn(),
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            StatusIconsRow(
+                                goal = goal,
+                                parsedData = parsedData,
+                                reminder = reminder,
+                                emojiToHide = emojiToHide,
+                                onRelatedLinkClick = onRelatedLinkClick
                             )
-                        },
-            ) {                MarkdownText(
-                    text = parsedData.mainText,
-                    isCompleted = goal.completed,
-                    obsidianVaultName = obsidianVaultName,
-                    onTagClick = onTagClick,
-                    onTextClick = onItemClick,
-                    onLongClick = onLongClick,
-                    maxLines = 4,
-                    style =
-                        MaterialTheme.typography.bodySmall.copy(
-                            lineHeight = 16.sp,
-                            letterSpacing = 0.1.sp,
-                            fontSize = 12.sp,
-                            fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
-                        ),
-                )
-
-                AnimatedVisibility(
-                    visible = shouldShowStatusIcons,
-                    enter =
-                        slideInVertically(
-                            initialOffsetY = { height -> -height },
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        ) + fadeIn(),
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        StatusIconsRow(
-                            goal = goal,
-                            parsedData = parsedData,
-                            reminder = reminder,
-                            emojiToHide = emojiToHide,
-                            onRelatedLinkClick = onRelatedLinkClick
-                        )
+                        }
                     }
                 }
             }
-            endAction()
+            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                endAction()
+            }
         }
     }
 }
