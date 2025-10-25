@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ class DragDropManager(
     fun onDragStart(offset: Offset, index: Int) {
         dragJob?.cancel()
         dragJob = scope.launch {
+            delay(100)
             val draggedItemInfo = lazyListInfoProvider.lazyListItemInfo.firstOrNull { it.index == index }
             
             val draggedItemHeight = try {
@@ -35,6 +37,7 @@ class DragDropManager(
                 Log.e("DND_DEBUG", "Error getting height: ", e)
                 0f
             }
+            android.util.Log.d("DND_DEBUG", "onDragStart: calculated height=$draggedItemHeight")
             
             _dragState.update {
                 it.copy(
