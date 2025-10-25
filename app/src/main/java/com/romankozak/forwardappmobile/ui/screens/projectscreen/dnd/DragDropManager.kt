@@ -87,41 +87,21 @@ class DragDropManager(
     }
 
     private fun getTargetIndex(dragAmount: Offset, draggedItemIndex: Int): Int {
-        Log.d("DND_DEBUG", "getTargetIndex: START. dragAmount=$dragAmount, draggedItemIndex=$draggedItemIndex")
-
         val listInfo = lazyListInfoProvider.lazyListItemInfo
-        Log.d("DND_DEBUG", "getTargetIndex: Visible items count: ${listInfo.size}. Indices: ${listInfo.map { it.index }}")
-        if (listInfo.isEmpty()) {
-            Log.w("DND_DEBUG", "getTargetIndex: listInfo is empty, returning -1")
-            return -1
-        }
+        if (listInfo.isEmpty()) return -1
 
-        val draggedItem = listInfo.firstOrNull { it.index == draggedItemIndex }
-        if (draggedItem == null) {
-            Log.w("DND_DEBUG", "getTargetIndex: Dragged item with index $draggedItemIndex not found in visible items. Returning -1")
-            return -1
-        }
+        val draggedItem = listInfo.firstOrNull { it.index == draggedItemIndex } ?: return -1
 
-        // Використовуємо збережену висоту
         val draggedItemHeight = lazyListInfoProvider.getItemHeight(draggedItemIndex) ?: 80f
         val draggedItemCenter = draggedItem.offset + (draggedItemHeight / 2)
         val dragPosition = draggedItemCenter + dragAmount.y
 
-        Log.d("DND_DEBUG", "getTargetIndex: draggedItem.offset=${draggedItem.offset}, draggedItemHeight=$draggedItemHeight")
-        Log.d("DND_DEBUG", "getTargetIndex: draggedItemCenter=$draggedItemCenter, dragAmount.y=${dragAmount.y}, dragPosition=$dragPosition")
-
-
-        val targetItem = listInfo.minByOrNull { item ->
-            val itemHeight = lazyListInfoProvider.getItemHeight(item.index) ?: 80f
-            val itemCenter = item.offset + (itemHeight / 2)
-            val distance = kotlin.math.abs(itemCenter - dragPosition)
-
-            Log.d("DND_DEBUG", "getTargetIndex: Checking item index=${item.index}, item.offset=${item.offset}, itemHeight=$itemHeight, itemCenter=$itemCenter, distance=$distance")
-            distance
-        }
-
-        val resultIndex = targetItem?.index ?: -1
-        Log.d("DND_DEBUG", "getTargetIndex: END. Found target item index: ${targetItem?.index}. Returning: $resultIndex")
-        return resultIndex
+        return listInfo
+            .filter { it.index != draggedItemIndex }
+            .minByOrNull { item ->
+                val itemHeight = lazyListInfoProvider.getItemHeight(item.index) ?: 80f
+                val itemCenter = item.offset + (itemHeight / 2)
+                kotlin.math.abs(itemCenter - dragPosition)
+            }?.index ?: -1
     }
 }

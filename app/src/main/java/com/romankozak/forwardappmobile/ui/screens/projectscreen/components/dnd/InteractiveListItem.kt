@@ -129,22 +129,7 @@ fun InteractiveListItem(
                 },
             )
 
-            val isTarget = dragState?.dragInProgress == true &&
-                dragState.targetItemIndex == index &&
-                dragState.draggedItemIndex != index
 
-            if (isTarget) {
-                val isDraggingDown = dragState?.draggedItemIndex != null && dragState.targetItemIndex != null && dragState.draggedItemIndex < dragState.targetItemIndex
-                val align = if (isDraggingDown) Alignment.BottomCenter else Alignment.TopCenter
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .align(align)
-                )
-            }
         }
     }
 }
