@@ -1,3 +1,1 @@
-- **РОЗПОЧАТО → ЗАВЕРШЕНО:** Відновлено відображення ієрархії проєктів на головному екрані після імпорту.
-  - **ЩО ЗРОБЛЕНО:** Переписано `PlanningUseCase`, щоб readiness визначалася автоматично через контракти `PlanningSearchAdapter` та `PlanningSettingsProvider`, повернено контрольований fallback у `MainScreenStateUseCase` для порожніх фільтрів, а UI тепер показує спінер лише до першого валідного snapshot'а.
-  - **ТЕСТИ:** `./gradlew :app:testDebugUnitTest --tests com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.PlanningUseCaseTest`
+- [x] Проаналізувати файл [CURRENT_PROBLEM.md](CURRENT_PROBLEM.md) і запропонувати вирішення проблеми.
