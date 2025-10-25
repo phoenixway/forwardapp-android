@@ -137,7 +137,6 @@ fun BacklogView(
                             else -> {}
                         }
                     },
-                    onItemHeightMeasured = { idx, height -> viewModel.onItemHeightMeasured(idx, height) }, // Новий рядок
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {

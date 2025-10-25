@@ -47,7 +47,6 @@ fun InteractiveListItem(
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onCopyContentRequest: () -> Unit,
     onToggleCompleted: () -> Unit,
-    onItemHeightMeasured: (Int, Float) -> Unit, // Новий параметр
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
@@ -92,13 +91,7 @@ fun InteractiveListItem(
     DraggableItem(
         isDragging = isDragging,
         yOffset = getItemOffset(),
-        modifier = modifier.onSizeChanged { size ->
-            // Вимірюємо висоту та передаємо її вгору
-            val heightInPx = size.height.toFloat()
-            if (heightInPx > 0f) {
-                onItemHeightMeasured(index, heightInPx)
-            }
-        },
+        modifier = modifier,
     ) { isDragging ->
         Box {
             SwipeableListItem(

@@ -6,6 +6,4 @@ interface LazyListInfoProvider {
     val lazyListItemInfo: List<LazyListItemInfo>
     val viewportEndOffset: Int
     val viewportStartOffset: Int
-    fun updateItemHeight(index: Int, height: Float) // Новий метод
-    fun getItemHeight(index: Int): Float? // Новий метод
 }
