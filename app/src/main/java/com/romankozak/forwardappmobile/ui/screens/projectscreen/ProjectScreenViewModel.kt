@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragDropManager
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.LazyListInfoProvider
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.LazyListStateProviderImpl
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -303,6 +304,7 @@ constructor(
   val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
 
   private lateinit var lazyListState: LazyListState
+  private lateinit var lazyListInfoProvider: LazyListInfoProvider
   private lateinit var dragDropManager: DragDropManager
   val dragState: StateFlow<DragState> get() = dragDropManager.dragState
 
@@ -543,11 +545,13 @@ constructor(
         loadAllContexts()
     
         lazyListState = LazyListState(0, 0)
+        lazyListInfoProvider = LazyListStateProviderImpl(lazyListState)
         dragDropManager = DragDropManager(
             scope = viewModelScope,
-            lazyListInfoProvider = LazyListStateProviderImpl(lazyListState),
+            lazyListInfoProvider = lazyListInfoProvider,
             onMove = { from, to -> moveItem(from, to) }
         )
+        Log.d(TAG, "DragDropManager initialized.")
       }
 
   private fun loadAllTags() {
@@ -924,20 +928,29 @@ constructor(
   }
 
   fun moveItem(fromIndex: Int, toIndex: Int) {
+    Log.d(TAG, "moveItem: Attempting to move from $fromIndex to $toIndex")
     viewModelScope.launch {
         isMoving.value = true
         val currentContent = _listContent.value
+        Log.d(TAG, "moveItem: Current list size: ${currentContent.size}")
         val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
+
         if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) {
+            Log.e(TAG, "moveItem: Invalid indices. fromIndex=$fromIndex, toIndex=$toIndex, draggableItems size=${draggableItems.size}")
             isMoving.value = false
             return@launch
         }
         if (fromIndex == toIndex) {
+            Log.d(TAG, "moveItem: fromIndex and toIndex are the same. No move needed.")
             isMoving.value = false
             return@launch
         }
+
+        Log.d(TAG, "moveItem: Before move: ${draggableItems.map { it.listItem.id }}")
         val movedItem = draggableItems.removeAt(fromIndex)
         draggableItems.add(toIndex, movedItem)
+        Log.d(TAG, "moveItem: After move: ${draggableItems.map { it.listItem.id }}")
+
         val newFullList = mutableListOf<ListItemContent>()
         val reorderedDraggablesIterator = draggableItems.iterator()
         currentContent.forEach { originalItem ->
@@ -948,6 +961,7 @@ constructor(
             }
         }
         _listContent.value = newFullList
+        Log.d(TAG, "moveItem: Updated listContent. New size: ${newFullList.size}")
         saveListOrder(newFullList)
         isMoving.value = false
     }
@@ -963,10 +977,12 @@ constructor(
 
   private suspend fun saveListOrder(listToSave: List<ListItemContent>) =
     withContext(Dispatchers.IO) {
+      Log.d(TAG, "[saveListOrder] Starting to save order for ${listToSave.size} items.")
       try {
         val updatedItems =
           listToSave.mapIndexed { index, content -> content.listItem.copy(order = index.toLong()) }
         listItemRepository.updateListItemsOrder(updatedItems)
+        Log.d(TAG, "[saveListOrder] Successfully saved new order to the database.")
       } catch (e: Exception) {
         Log.e(TAG, "[saveListOrder] Failed to save list order", e)
       }
@@ -1807,17 +1823,31 @@ constructor(
 
     fun setLazyListState(state: LazyListState) {
         lazyListState = state
+        lazyListInfoProvider = LazyListStateProviderImpl(state)
+        dragDropManager = DragDropManager(
+            scope = viewModelScope,
+            lazyListInfoProvider = lazyListInfoProvider,
+            onMove = { from, to -> moveItem(from, to) }
+        )
     }
 
     fun onDragStart(offset: androidx.compose.ui.geometry.Offset, index: Int) {
+        Log.d(TAG, "onDragStart: offset=$offset, index=$index")
         dragDropManager.onDragStart(offset, index)
     }
 
     fun onDrag(offset: androidx.compose.ui.geometry.Offset) {
+        Log.d(TAG, "onDrag: offset=$offset")
         dragDropManager.onDrag(offset)
     }
 
     fun onDragEnd() {
+        Log.d(TAG, "onDragEnd")
         dragDropManager.onDragEnd()
+    }
+
+    fun onItemHeightMeasured(index: Int, height: Float) {
+        Log.d(TAG, "onItemHeightMeasured: index=$index, height=$height")
+        lazyListInfoProvider.updateItemHeight(index, height)
     }
 }
