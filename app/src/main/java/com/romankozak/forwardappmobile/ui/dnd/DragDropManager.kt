@@ -89,12 +89,14 @@ class DragDropManager(
 
     private fun calculateTargetIndex(dragAmount: Offset, draggedItemIndex: Int): Int? {
         val draggedItem = lazyListInfoProvider.lazyListItemInfo.firstOrNull { it.index == draggedItemIndex } ?: return null
-        val dragAbsoluteY = draggedItem.offset + dragAmount.y
+        val dragAbsoluteY = draggedItem.offset + dragAmount.y + lazyListInfoProvider.firstVisibleItemScrollOffset
+        Log.d("DragDropManager", "dragAbsoluteY: $dragAbsoluteY, draggedItem.offset: ${draggedItem.offset}, dragAmount.y: ${dragAmount.y}, firstVisibleItemScrollOffset: ${lazyListInfoProvider.firstVisibleItemScrollOffset}")
 
         return lazyListInfoProvider.lazyListItemInfo
             .filter { it.index != draggedItemIndex }
             .minByOrNull { item ->
-                val itemCenter = item.offset + item.size / 2
+                val itemCenter = item.offset + item.size / 2 + lazyListInfoProvider.firstVisibleItemScrollOffset
+                Log.d("DragDropManager", "item.offset: ${item.offset}, item.center: $itemCenter")
                 kotlin.math.abs(itemCenter - dragAbsoluteY)
             }?.index
     }
