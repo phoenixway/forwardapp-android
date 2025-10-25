@@ -963,6 +963,7 @@ constructor(
         _listContent.value = newFullList
         Log.d(TAG, "moveItem: Updated listContent. New size: ${newFullList.size}")
         saveListOrder(newFullList)
+        kotlinx.coroutines.delay(200)
         isMoving.value = false
     }
   }
