@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
 import androidx.compose.ui.platform.LocalDensity
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
+import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.DraggableItem
 import androidx.compose.foundation.background
@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalDensity
 fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
-    dragState: DragState?,
+    dragState: DragAndDropState?,
     listState: androidx.compose.foundation.lazy.LazyListState,
     isSelected: Boolean,
     isHighlighted: Boolean,
@@ -72,25 +72,11 @@ fun InteractiveListItem(
     )
 
     val isDragging = dragState?.draggedItemIndex == index
-
-    fun getItemOffset(): Float {
-        if (dragState?.draggedItemIndex == null || dragState.targetItemIndex == null) {
-            return 0f
-        }
-
-        val itemHeight = dragState.draggedItemHeight
-
-        return when {
-            index == dragState.draggedItemIndex -> dragState.dragAmount.y
-            dragState.draggedItemIndex < index && index <= dragState.targetItemIndex -> -itemHeight
-            dragState.targetItemIndex <= index && index < dragState.draggedItemIndex -> itemHeight
-            else -> 0f
-        }
-    }
+    val yOffset = dragState?.itemOffsets?.get(index) ?: 0f
 
     DraggableItem(
         isDragging = isDragging,
-        yOffset = getItemOffset(),
+        yOffset = yOffset,
         modifier = modifier,
     ) { isDragging ->
         Box {

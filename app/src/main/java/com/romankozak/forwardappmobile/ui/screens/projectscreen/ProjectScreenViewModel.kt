@@ -10,12 +10,13 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragDropManager
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.DragState
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.LazyListInfoProvider
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd.LazyListStateProviderImpl
+import com.romankozak.forwardappmobile.ui.dnd.DragDropManager
+import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
+import com.romankozak.forwardappmobile.ui.dnd.LazyListInfoProvider
+import com.romankozak.forwardappmobile.ui.dnd.LazyListStateProviderImpl
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -306,7 +307,7 @@ constructor(
   private lateinit var lazyListState: LazyListState
   private lateinit var lazyListInfoProvider: LazyListStateProviderImpl
   private lateinit var dragDropManager: DragDropManager
-  val dragState: StateFlow<DragState> get() = dragDropManager.dragState
+  val dragState: StateFlow<DragAndDropState> get() = dragDropManager.dragState
 
   private val _uiState =
     MutableStateFlow(
@@ -543,10 +544,12 @@ constructor(
         loadAllContexts()
     
         lazyListState = LazyListState(0, 0)
+        lazyListInfoProvider = LazyListStateProviderImpl(lazyListState)
         dragDropManager = DragDropManager(
             scope = viewModelScope,
-            lazyListState = lazyListState,
-            onMove = { from, to -> moveItem(from, to) }
+            lazyListInfoProvider = lazyListInfoProvider,
+            onMove = { from, to -> moveItem(from, to) },
+            scrollBy = { lazyListState.scrollBy(it) }
         )
         Log.d(TAG, "DragDropManager initialized.")
       }
@@ -925,36 +928,26 @@ constructor(
   }
 
   fun moveItem(fromIndex: Int, toIndex: Int) {
-    Log.d(TAG, "moveItem: Attempting to move from $fromIndex to $toIndex")
     viewModelScope.launch {
         val currentContent = _listContent.value
-        Log.d(TAG, "moveItem: Current list size: ${currentContent.size}")
-        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }.toMutableList()
+        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
 
         if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) {
-            Log.e(TAG, "moveItem: Invalid indices. fromIndex=$fromIndex, toIndex=$toIndex, draggableItems size=${draggableItems.size}")
-            return@launch
-        }
-        if (fromIndex == toIndex) {
-            Log.d(TAG, "moveItem: fromIndex and toIndex are the same. No move needed.")
             return@launch
         }
 
-        Log.d(TAG, "moveItem: Before move: ${draggableItems.map { it.listItem.id }}")
-        val movedItem = draggableItems.removeAt(fromIndex)
-        draggableItems.add(toIndex, movedItem)
-        Log.d(TAG, "moveItem: After move: ${draggableItems.map { it.listItem.id }}")
+        val itemToMove = draggableItems[fromIndex]
+        val itemAtTarget = draggableItems[toIndex]
 
-        val newFullList = mutableListOf<ListItemContent>()
-        val reorderedDraggablesIterator = draggableItems.iterator()
-        currentContent.forEach { originalItem ->
-            if (originalItem is ListItemContent.LinkItem) {
-                newFullList.add(originalItem)
-            } else if (reorderedDraggablesIterator.hasNext()) {
-                newFullList.add(reorderedDraggablesIterator.next())
-            }
-        }
-        saveListOrder(newFullList)
+        val actualFromIndex = currentContent.indexOf(itemToMove)
+        val actualToIndex = currentContent.indexOf(itemAtTarget)
+
+        val mutableList = currentContent.toMutableList()
+        val movedItem = mutableList.removeAt(actualFromIndex)
+        mutableList.add(actualToIndex, movedItem)
+
+        _listContent.value = mutableList
+        saveListOrder(mutableList)
     }
   }
 
@@ -1814,10 +1807,12 @@ constructor(
 
     fun setLazyListState(state: LazyListState) {
         lazyListState = state
+        lazyListInfoProvider = LazyListStateProviderImpl(lazyListState)
         dragDropManager = DragDropManager(
             scope = viewModelScope,
-            lazyListState = lazyListState,
-            onMove = { from, to -> moveItem(from, to) }
+            lazyListInfoProvider = lazyListInfoProvider,
+            onMove = { from, to -> moveItem(from, to) },
+            scrollBy = { lazyListState.scrollBy(it) }
         )
     }
 
