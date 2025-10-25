@@ -7,7 +7,7 @@ kotlin = "2.2.20"
 ksp = "2.2.20-2.0.3"
 
 # Compose -> Використовуємо актуальну стабільну версію BOM
-androidx-compose-bom = "2024.12.01"
+androidx-compose-bom = "2024.02.01"
 
 # AndroidX Libraries
 coreKtx = "1.13.1"

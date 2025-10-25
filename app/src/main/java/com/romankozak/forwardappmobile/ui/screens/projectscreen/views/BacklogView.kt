@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
@@ -143,7 +144,7 @@ fun BacklogView(
                             else -> {}
                         }
                     },
-                    modifier = Modifier.draggableItem(dragDropManager, index)
+                    modifier = Modifier.draggableItem(dragDropManager, index).animateItem()
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
