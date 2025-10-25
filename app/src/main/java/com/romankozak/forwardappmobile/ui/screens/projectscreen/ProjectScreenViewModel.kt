@@ -17,6 +17,8 @@ import com.romankozak.forwardappmobile.ui.dnd.DragDropManager
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.ui.dnd.LazyListInfoProvider
 import com.romankozak.forwardappmobile.ui.dnd.LazyListStateProviderImpl
+import com.romankozak.forwardappmobile.ui.dnd.DnDVisualsManager
+import com.romankozak.forwardappmobile.ui.dnd.DnDVisualState
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -306,8 +308,12 @@ constructor(
 
   private lateinit var lazyListState: LazyListState
   private lateinit var lazyListInfoProvider: LazyListStateProviderImpl
-  private lateinit var dragDropManager: DragDropManager
+  lateinit var dragDropManager: DragDropManager
   val dragState: StateFlow<DragAndDropState> get() = dragDropManager.dragState
+
+  private lateinit var dndVisualsManager: DnDVisualsManager
+  val dndVisualState: StateFlow<DnDVisualState>
+
 
   private val _uiState =
     MutableStateFlow(
@@ -552,6 +558,11 @@ constructor(
             scrollBy = { lazyListState.scrollBy(it) }
         )
         Log.d(TAG, "DragDropManager initialized.")
+
+        dndVisualsManager = DnDVisualsManager(lazyListInfoProvider)
+        dndVisualState = dragState
+            .map { dndVisualsManager.calculateDnDVisualState(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DnDVisualState())
       }
 
   private fun loadAllTags() {

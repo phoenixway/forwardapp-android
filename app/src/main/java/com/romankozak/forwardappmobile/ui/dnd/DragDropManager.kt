@@ -29,7 +29,6 @@ class DragDropManager(
             it.copy(
                 dragInProgress = true,
                 draggedItemIndex = index,
-                draggedItemHeight = draggedItem.size.toFloat(),
                 dragAmount = offset
             )
         }
@@ -45,26 +44,9 @@ class DragDropManager(
 
             val newTargetIndex = calculateTargetIndex(currentDragPosition, draggedItemIndex)
 
-            val itemOffsets = mutableMapOf<Int, Float>()
-            if (newTargetIndex != null && newTargetIndex >= 0) {
-                _dragState.value.run {
-                    val draggedItemHeight = draggedItemHeight
-                    lazyListInfoProvider.lazyListItemInfo.forEach { item ->
-                        val itemIndex = item.index
-                        itemOffsets[itemIndex] = when {
-                            itemIndex == draggedItemIndex -> currentDragPosition.y
-                            draggedItemIndex < itemIndex && itemIndex <= newTargetIndex -> -draggedItemHeight
-                            newTargetIndex <= itemIndex && itemIndex < draggedItemIndex -> draggedItemHeight
-                            else -> 0f
-                        }
-                    }
-                }
-            }
-
             _dragState.update {
                 it.copy(
-                    targetItemIndex = newTargetIndex,
-                    itemOffsets = itemOffsets
+                    targetItemIndex = newTargetIndex
                 )
             }
 
@@ -90,13 +72,11 @@ class DragDropManager(
     private fun calculateTargetIndex(dragAmount: Offset, draggedItemIndex: Int): Int? {
         val draggedItem = lazyListInfoProvider.lazyListItemInfo.firstOrNull { it.index == draggedItemIndex } ?: return null
         val dragAbsoluteY = draggedItem.offset + dragAmount.y + lazyListInfoProvider.firstVisibleItemScrollOffset
-        Log.d("DragDropManager", "dragAbsoluteY: $dragAbsoluteY, draggedItem.offset: ${draggedItem.offset}, dragAmount.y: ${dragAmount.y}, firstVisibleItemScrollOffset: ${lazyListInfoProvider.firstVisibleItemScrollOffset}")
 
         return lazyListInfoProvider.lazyListItemInfo
             .filter { it.index != draggedItemIndex }
             .minByOrNull { item ->
                 val itemCenter = item.offset + item.size / 2 + lazyListInfoProvider.firstVisibleItemScrollOffset
-                Log.d("DragDropManager", "item.offset: ${item.offset}, item.center: $itemCenter")
                 kotlin.math.abs(itemCenter - dragAbsoluteY)
             }?.index
     }
@@ -114,9 +94,7 @@ class DragDropManager(
                 dragInProgress = false,
                 draggedItemIndex = null,
                 targetItemIndex = null,
-                dragAmount = Offset.Zero,
-                draggedItemHeight = 0f,
-                itemOffsets = emptyMap()
+                dragAmount = Offset.Zero
             )
         }
     }
