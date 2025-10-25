@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
 
 import android.util.Log

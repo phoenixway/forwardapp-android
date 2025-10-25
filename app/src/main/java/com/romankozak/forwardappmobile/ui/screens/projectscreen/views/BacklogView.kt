@@ -2,44 +2,35 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.views
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-
+import com.romankozak.forwardappmobile.ui.dnd.dragHandle
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.UiState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentsSection
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SubprojectItemRow
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.InteractiveListItem
-
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flow
-
-import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
-import com.romankozak.forwardappmobile.ui.dnd.draggableItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.MoreActionsButton
 import kotlinx.coroutines.flow.StateFlow
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BacklogView(
     modifier: Modifier = Modifier,
@@ -58,7 +49,7 @@ fun BacklogView(
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
     val subprojectChildren by viewModel.subprojectChildren.collectAsStateWithLifecycle()
-    val dragState by viewModel.dragState.collectAsStateWithLifecycle()
+    val dragState by viewModel.dragState.collectAsState()
 
     LaunchedEffect(listState) {
         viewModel.setLazyListState(listState)
@@ -84,6 +75,8 @@ fun BacklogView(
             listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
         }
 
+    val scope = rememberCoroutineScope()
+
     Column(modifier = modifier.fillMaxSize()) {
         AttachmentsSection(
             attachments = attachmentItems,
@@ -106,6 +99,8 @@ fun BacklogView(
                 val isHighlighted =
                     (uiState.itemToHighlight == content.listItem.id) ||
                         (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
+                
+                var isDragHandleActive by remember { mutableStateOf(false) }
 
                 InteractiveListItem(
                     item = content,
@@ -116,6 +111,7 @@ fun BacklogView(
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
                     swipeEnabled = swipeEnabled,
+                    isDragHandleActive = isDragHandleActive,
                     isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id),
                     resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0,
                     onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) },
@@ -144,7 +140,7 @@ fun BacklogView(
                             else -> {}
                         }
                     },
-                    modifier = Modifier.draggableItem(dragDropManager, index).animateItem()
+                    modifier = Modifier.animateItem()
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
@@ -166,11 +162,17 @@ fun BacklogView(
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
                                 isSelected = isSelected,
-
                                 endAction = {
                                     MoreActionsButton(
                                         isDragging = isDragging,
                                         onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                        dragHandleModifier = Modifier.dragHandle(
+                                            dragDropManager = dragDropManager,
+                                            itemIndex = index,
+                                            lazyListState = listState,
+                                            scope = scope,
+                                            onDragStateChanged = { isDragHandleActive = it }
+                                        )
                                     )
                                 }
                             )
@@ -195,6 +197,13 @@ fun BacklogView(
                                     MoreActionsButton(
                                         isDragging = isDragging,
                                         onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                        dragHandleModifier = Modifier.dragHandle(
+                                            dragDropManager = dragDropManager,
+                                            itemIndex = index,
+                                            lazyListState = listState,
+                                            scope = scope,
+                                            onDragStateChanged = { isDragHandleActive = it }
+                                        )
                                     )
                                 }
                             )

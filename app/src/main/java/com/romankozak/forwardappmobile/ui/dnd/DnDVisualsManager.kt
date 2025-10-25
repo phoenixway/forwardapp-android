@@ -32,7 +32,7 @@ class DnDVisualsManager(
             lazyListInfoProvider.lazyListItemInfo.forEach { item ->
                 val itemIndex = item.index
                 itemOffsets[itemIndex] = when {
-                    itemIndex == draggedItemIndex -> dragAmount.y
+                    itemIndex == draggedItemIndex -> dragAmount.y - dragAndDropState.initialItemOffset - dragAndDropState.dragOffsetInItem
                     draggedItemIndex < itemIndex && itemIndex <= targetItemIndex -> -draggedItemHeight
                     targetItemIndex <= itemIndex && itemIndex < draggedItemIndex -> draggedItemHeight
                     else -> 0f
