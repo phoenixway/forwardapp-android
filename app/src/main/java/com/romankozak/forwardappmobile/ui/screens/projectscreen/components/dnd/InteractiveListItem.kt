@@ -24,6 +24,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+
 @Composable
 fun InteractiveListItem(
     item: ListItemContent,
@@ -44,9 +47,12 @@ fun InteractiveListItem(
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onCopyContentRequest: () -> Unit,
     onToggleCompleted: () -> Unit,
+    onItemHeightMeasured: (Int, Float) -> Unit, // Новий параметр
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
+    val density = LocalDensity.current
+    
     val isCompleted =
         when (item) {
             is ListItemContent.GoalItem -> item.goal.completed
@@ -86,7 +92,13 @@ fun InteractiveListItem(
     DraggableItem(
         isDragging = isDragging,
         yOffset = getItemOffset(),
-        modifier = modifier,
+        modifier = modifier.onSizeChanged { size ->
+            // Вимірюємо висоту та передаємо її вгору
+            val heightInPx = size.height.toFloat()
+            if (heightInPx > 0f) {
+                onItemHeightMeasured(index, heightInPx)
+            }
+        },
     ) { isDragging ->
         Box {
             SwipeableListItem(
