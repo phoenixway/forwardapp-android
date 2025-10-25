@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
 import androidx.compose.ui.platform.LocalDensity
+import android.util.Log
+import kotlinx.coroutines.flow.StateFlow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.ui.dnd.DnDVisualState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
@@ -32,7 +35,8 @@ import androidx.compose.ui.platform.LocalDensity
 fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
-    dndVisualState: DnDVisualState,
+    dragAndDropState: DragAndDropState,
+    dndVisualState: StateFlow<DnDVisualState>,
     listState: androidx.compose.foundation.lazy.LazyListState,
     isSelected: Boolean,
     isHighlighted: Boolean,
@@ -52,6 +56,7 @@ fun InteractiveListItem(
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
     val density = LocalDensity.current
+    val currentDnDVisualState by dndVisualState.collectAsStateWithLifecycle()
     
     val isCompleted =
         when (item) {
@@ -72,42 +77,41 @@ fun InteractiveListItem(
         label = "interactive_item_background",
     )
 
-    val isDragging = dndVisualState.isDragging && dndVisualState.itemOffsets.containsKey(index)
-    val yOffset = dndVisualState.itemOffsets[index] ?: 0f
+    val isDraggingThisItem = currentDnDVisualState.isDragging && dragAndDropState.draggedItemIndex == index
+    val yOffset = currentDnDVisualState.itemOffsets[index] ?: 0f
 
     DraggableItem(
-        isDragging = isDragging,
+        isDragging = isDraggingThisItem,
         yOffset = yOffset,
-        modifier = modifier,
+        modifier = if (isDraggingThisItem) modifier.height(with(density) { currentDnDVisualState.draggedItemHeight.toDp() }) else modifier,
     ) { isDragging ->
-        Box {
-            SwipeableListItem(
-                isDragging = isDragging,
-                isAnyItemDragging = dndVisualState.isDragging,
-                swipeEnabled = swipeEnabled,
-                isAnotherItemSwiped = isAnotherItemSwiped,
-                resetTrigger = resetTrigger,
-                onSwipeStart = onSwipeStart,
-                onDelete = onDelete,
-                onMoreActionsRequest = onMoreActionsRequest,
-                onMoveToTopRequest = onMoveToTopRequest,
-                onGoalTransportRequest = { onShowGoalTransportMenu(item) },
-                onStartTrackingRequest = onStartTrackingRequest,
-                onAddToDayPlanRequest = onAddToDayPlanRequest,
-                onCopyContentRequest = onCopyContentRequest,
-                onToggleCompleted = onToggleCompleted,
-                backgroundColor = backgroundColor,
-                content = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            content(isDragging)
-                        }
+        SwipeableListItem(
+            modifier = Modifier,
+            isDragging = isDraggingThisItem,
+            isAnyItemDragging = currentDnDVisualState.isDragging,
+            swipeEnabled = swipeEnabled,
+            isAnotherItemSwiped = isAnotherItemSwiped,
+            resetTrigger = resetTrigger,
+            onSwipeStart = onSwipeStart,
+            onDelete = onDelete,
+            onMoreActionsRequest = onMoreActionsRequest,
+            onMoveToTopRequest = onMoveToTopRequest,
+            onGoalTransportRequest = { onShowGoalTransportMenu(item) },
+            onStartTrackingRequest = onStartTrackingRequest,
+            onAddToDayPlanRequest = onAddToDayPlanRequest,
+            onCopyContentRequest = onCopyContentRequest,
+            onToggleCompleted = onToggleCompleted,
+            backgroundColor = backgroundColor,
+            content = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        content(isDragging)
                     }
-                },
-            )
-        }
+                }
+            },
+        )
     }
 }

@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.ui.dnd
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 
-class LazyListStateProviderImpl(private val state: LazyListState) : LazyListInfoProvider {
+class LazyListStateProviderImpl(var state: LazyListState) : LazyListInfoProvider {
     private val itemHeightsMap = mutableMapOf<Int, Float>()
 
     override val lazyListItemInfo: List<LazyListItemInfo>

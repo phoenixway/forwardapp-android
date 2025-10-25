@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.dnd
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.lazy.LazyListItemInfo
+import android.util.Log
 
 class DnDVisualsManager(
     private val lazyListInfoProvider: LazyListInfoProvider
