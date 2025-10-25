@@ -10,17 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.geometry.Offset
 
 @Composable
 fun MoreActionsButton(
     onMoreClick: () -> Unit,
     isDragging: Boolean,
-    onDragStart: (Offset) -> Unit,
-    onDrag: (Offset) -> Unit,
-    onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val icon = if (isDragging) {
@@ -33,17 +28,6 @@ fun MoreActionsButton(
         imageVector = icon,
         contentDescription = "More actions",
         modifier = modifier
-            .pointerInput(onDragStart) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { offset -> onDragStart(offset) },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount)
-                    },
-                    onDragEnd = onDragEnd,
-                    onDragCancel = onDragEnd
-                )
-            }
             .pointerInput(onMoreClick) { detectTapGestures(onTap = { onMoreClick() }) }
     )
 }

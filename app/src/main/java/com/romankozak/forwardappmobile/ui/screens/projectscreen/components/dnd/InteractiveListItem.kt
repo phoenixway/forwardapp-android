@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
 import androidx.compose.ui.platform.LocalDensity
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
+import com.romankozak.forwardappmobile.ui.dnd.DnDVisualState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.DraggableItem
 import androidx.compose.foundation.background
@@ -31,7 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 fun InteractiveListItem(
     item: ListItemContent,
     index: Int,
-    dragState: DragAndDropState?,
+    dndVisualState: DnDVisualState,
     listState: androidx.compose.foundation.lazy.LazyListState,
     isSelected: Boolean,
     isHighlighted: Boolean,
@@ -71,8 +72,8 @@ fun InteractiveListItem(
         label = "interactive_item_background",
     )
 
-    val isDragging = dragState?.draggedItemIndex == index
-    val yOffset = dragState?.itemOffsets?.get(index) ?: 0f
+    val isDragging = dndVisualState.isDragging && dndVisualState.itemOffsets.containsKey(index)
+    val yOffset = dndVisualState.itemOffsets[index] ?: 0f
 
     DraggableItem(
         isDragging = isDragging,
@@ -82,7 +83,7 @@ fun InteractiveListItem(
         Box {
             SwipeableListItem(
                 isDragging = isDragging,
-                isAnyItemDragging = dragState?.dragInProgress == true,
+                isAnyItemDragging = dndVisualState.isDragging,
                 swipeEnabled = swipeEnabled,
                 isAnotherItemSwiped = isAnotherItemSwiped,
                 resetTrigger = resetTrigger,
@@ -107,8 +108,6 @@ fun InteractiveListItem(
                     }
                 },
             )
-
-
         }
     }
 }

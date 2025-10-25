@@ -6,3 +6,20 @@
     - [x] Спростити `InteractiveListItem` для відображення стану.
 - [x] **Написати Unit-тести для `DragDropManager`**.
 - [x] **Виправити неправильну позицію елемента, що перетягується, біля верхнього краю списку.**
+- [x] **Перенести логіку управління dnd частково в модифікатор.**
+- [x] **Подальше відокремлення UI-логіки від бізнес-логіки DnD:**
+    - [x] **Створити `DnDVisualState`:** Новий клас даних, який буде містити лише візуальні аспекти DnD (наприклад, `itemOffsets`, `draggedItemHeight`, `isDragging`). Цей стан буде обчислюватися та використовуватися *лише* UI-компонентами.
+    - [x] **Модифікувати `DragAndDropState`:** Зробити його суто логічним, прибравши з нього `itemOffsets` та `draggedItemHeight`. Він буде містити `dragInProgress`, `draggedItemIndex`, `targetItemIndex`.
+    - [x] **Створити `DnDVisualsManager` (або `DnDVisualsCalculator`):** Новий клас, відповідальний за обчислення `DnDVisualState` на основі `DragAndDropState` та `LazyListInfoProvider`. Цей менеджер буде "чистим" класом без залежностей від Compose UI, що дозволить легко тестувати його Unit-тестами.
+    - [x] **Оновити `DraggableItemModifier`:** Він буде отримувати `DragDropManager` та `index` і використовувати їх для детектування жестів.
+    - [x] **Оновити `DragDropManager`:**
+        -   Прибрати логіку обчислення `itemOffsets` та `draggedItemHeight`.
+        -   Його `dragState` тепер буде `StateFlow<DragAndDropState>`.
+        -   Він буде відповідати лише за оновлення логічного `DragAndDropState` та ініціацію `onMove`.
+    - [x] **Оновити `ProjectScreenViewModel`:**
+        -   Він буде ініціалізувати `DnDVisualsManager`.
+        -   Він буде надавати `DragAndDropState` та `DnDVisualState` (або `DnDVisualsManager`) для UI.
+    - [x] **Оновити `InteractiveListItem`:** Він буде отримувати `DragAndDropState` та `DnDVisualState` (або `DnDVisualsManager`) і використовувати їх для відображення.
+    - [x] **Написати Unit-тести для `DnDVisualsManager`:** Перевірити коректність обчислення візуальних зміщень та інших ефектів.
+    - [x] **Перевірити Unit-тести для `DragDropManager`:** Переконатися, що вони все ще коректні та покривають оновлену логіку.
+    - [x] **Провести інтеграційне тестування:** Запустити додаток та перевірити функціональність DnD вручну.

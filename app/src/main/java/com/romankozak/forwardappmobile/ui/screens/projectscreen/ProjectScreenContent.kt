@@ -57,6 +57,8 @@ fun GoalDetailContent(
                 listContent = listContent,
                 isAttachmentsExpanded = false, // This is no longer used
                 swipeEnabled = calculatedSwipeEnabled,
+                dragDropManager = viewModel.dragDropManager,
+                dndVisualState = viewModel.dndVisualState.collectAsStateWithLifecycle().value,
             )
         }
         ProjectViewMode.INBOX -> {

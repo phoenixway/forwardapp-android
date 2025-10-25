@@ -35,6 +35,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
+import com.romankozak.forwardappmobile.ui.dnd.draggableItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.MoreActionsButton
 
 @Composable
@@ -46,6 +47,8 @@ fun BacklogView(
     listContent: List<ListItemContent>,
     isAttachmentsExpanded: Boolean,
     swipeEnabled: Boolean,
+    dragDropManager: com.romankozak.forwardappmobile.ui.dnd.DragDropManager,
+    dndVisualState: com.romankozak.forwardappmobile.ui.dnd.DnDVisualState,
 ) {
     Log.d("ATTACHMENT_DEBUG", "UI: BacklogView recomposing with isAttachmentsExpanded = $isAttachmentsExpanded")
 
@@ -105,7 +108,7 @@ fun BacklogView(
                 InteractiveListItem(
                     item = content,
                     index = index,
-                    dragState = dragState,
+                    dndVisualState = dndVisualState,
                     listState = listState,
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
@@ -138,6 +141,7 @@ fun BacklogView(
                             else -> {}
                         }
                     },
+                    modifier = Modifier.draggableItem(dragDropManager, index)
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
@@ -163,9 +167,6 @@ fun BacklogView(
                                 endAction = {
                                     MoreActionsButton(
                                         isDragging = isDragging,
-                                        onDragStart = { offset -> viewModel.onDragStart(offset, index) },
-                                        onDrag = { offset -> viewModel.onDrag(offset) },
-                                        onDragEnd = { viewModel.onDragEnd() },
                                         onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                     )
                                 }
@@ -190,9 +191,6 @@ fun BacklogView(
                                 endAction = {
                                     MoreActionsButton(
                                         isDragging = isDragging,
-                                        onDragStart = { offset -> viewModel.onDragStart(offset, index) },
-                                        onDrag = { offset -> viewModel.onDrag(offset) },
-                                        onDragEnd = { viewModel.onDragEnd() },
                                         onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                     )
                                 }
