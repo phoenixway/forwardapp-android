@@ -933,7 +933,7 @@ constructor(
         isMoving.value = true
         val currentContent = _listContent.value
         Log.d(TAG, "moveItem: Current list size: ${currentContent.size}")
-        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
+        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }.toMutableList()
 
         if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) {
             Log.e(TAG, "moveItem: Invalid indices. fromIndex=$fromIndex, toIndex=$toIndex, draggableItems size=${draggableItems.size}")
