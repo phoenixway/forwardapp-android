@@ -312,7 +312,8 @@ constructor(
   val dragState: StateFlow<DragAndDropState> get() = dragDropManager.dragState
 
   private lateinit var dndVisualsManager: DnDVisualsManager
-  val dndVisualState: StateFlow<DnDVisualState>
+  private val _dndVisualState = MutableStateFlow(DnDVisualState())
+  val dndVisualState: StateFlow<DnDVisualState> get() = _dndVisualState
 
 
   private val _uiState =
@@ -557,12 +558,13 @@ constructor(
             onMove = { from, to -> moveItem(from, to) },
             scrollBy = { lazyListState.scrollBy(it) }
         )
-        Log.d(TAG, "DragDropManager initialized.")
-
         dndVisualsManager = DnDVisualsManager(lazyListInfoProvider)
-        dndVisualState = dragState
-            .map { dndVisualsManager.calculateDnDVisualState(it) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DnDVisualState())
+        viewModelScope.launch {
+            dragState
+                .map { dndVisualsManager.calculateDnDVisualState(it) }
+                .collect { _dndVisualState.value = it }
+        }
+        Log.d(TAG, "DragDropManager initialized.")
       }
 
   private fun loadAllTags() {
@@ -1817,14 +1819,8 @@ constructor(
     }
 
     fun setLazyListState(state: LazyListState) {
-        lazyListState = state
-        lazyListInfoProvider = LazyListStateProviderImpl(lazyListState)
-        dragDropManager = DragDropManager(
-            scope = viewModelScope,
-            lazyListInfoProvider = lazyListInfoProvider,
-            onMove = { from, to -> moveItem(from, to) },
-            scrollBy = { lazyListState.scrollBy(it) }
-        )
+        this.lazyListState = state
+        (this.lazyListInfoProvider as LazyListStateProviderImpl).state = state
     }
 
     fun onDragStart(offset: androidx.compose.ui.geometry.Offset, index: Int) {

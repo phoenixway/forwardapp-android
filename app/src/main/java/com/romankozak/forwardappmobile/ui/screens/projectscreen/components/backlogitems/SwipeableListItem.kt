@@ -297,13 +297,20 @@ fun SwipeableListItem(
             }
 
             
-            Surface(
-                modifier =
+            val surfaceModifier =
+                if (isDragging) {
+                    Modifier.fillMaxWidth()
+                } else {
                     Modifier
                         .fillMaxWidth()
                         .offset { IntOffset(offset.roundToInt(), 0) }
                         .shadow(elevation = shadowElevation.dp, shape = dynamicShape)
                         .graphicsLayer { rotationZ = (offset / 50f).coerceIn(-2f, 2f) }
+                }
+
+            Surface(
+                modifier =
+                    surfaceModifier
                         .anchoredDraggable(
                             state = swipeState,
                             orientation = Orientation.Horizontal,

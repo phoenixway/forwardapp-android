@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.flow
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.ui.dnd.draggableItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.MoreActionsButton
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun BacklogView(
@@ -48,7 +49,7 @@ fun BacklogView(
     isAttachmentsExpanded: Boolean,
     swipeEnabled: Boolean,
     dragDropManager: com.romankozak.forwardappmobile.ui.dnd.DragDropManager,
-    dndVisualState: com.romankozak.forwardappmobile.ui.dnd.DnDVisualState,
+    dndVisualState: StateFlow<com.romankozak.forwardappmobile.ui.dnd.DnDVisualState>,
 ) {
     Log.d("ATTACHMENT_DEBUG", "UI: BacklogView recomposing with isAttachmentsExpanded = $isAttachmentsExpanded")
 
@@ -108,6 +109,7 @@ fun BacklogView(
                 InteractiveListItem(
                     item = content,
                     index = index,
+                    dragAndDropState = dragState,
                     dndVisualState = dndVisualState,
                     listState = listState,
                     isSelected = isSelected,
