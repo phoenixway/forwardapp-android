@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.projectscreen.dnd
+package com.romankozak.forwardappmobile.ui.dnd
 
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
@@ -12,4 +12,13 @@ class LazyListStateProviderImpl(private val state: LazyListState) : LazyListInfo
 
     override val viewportStartOffset: Int
         get() = state.layoutInfo.viewportStartOffset
+
+    override val firstVisibleItemIndex: Int
+        get() = state.firstVisibleItemIndex
+
+    override val firstVisibleItemScrollOffset: Int
+        get() = state.firstVisibleItemScrollOffset
+
+    override val viewportSize: androidx.compose.ui.unit.IntSize
+        get() = state.layoutInfo.viewportSize
 }

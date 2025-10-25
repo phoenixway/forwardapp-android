@@ -1,0 +1,8 @@
+- [x] **Рефакторинг архітектури Drag-and-Drop:**
+    - [x] Створити інтерфейс `LazyListInfoProvider` для абстрагування `LazyListState`.
+    - [x] Перенести логіку розрахунку зміщень з `InteractiveListItem` до `DragDropManager`.
+    - [x] Створити `DragAndDropState` для зберігання всього стану dnd.
+    - [x] Оновити `ProjectScreenViewModel` для використання нової архітектури.
+    - [x] Спростити `InteractiveListItem` для відображення стану.
+- [x] **Написати Unit-тести для `DragDropManager`**.
+- [ ] **Виправити неправильну позицію елемента, що перетягується, біля верхнього краю списку.**

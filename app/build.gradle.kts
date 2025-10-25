@@ -1,5 +1,7 @@
 import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -103,6 +105,11 @@ android {
         }
     }
 
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+    systemProperties.put("mockk.mock-maker-inline", "true")
 }
 
 dependencies {
