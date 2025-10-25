@@ -33,7 +33,7 @@ fun MoreActionsButton(
         imageVector = icon,
         contentDescription = "More actions",
         modifier = modifier
-            .pointerInput(Unit) {
+            .pointerInput(onDragStart) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset -> onDragStart(offset) },
                     onDrag = { change, dragAmount ->

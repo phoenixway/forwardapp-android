@@ -1832,7 +1832,8 @@ constructor(
     }
 
     fun onDragStart(offset: androidx.compose.ui.geometry.Offset, index: Int) {
-        Log.d(TAG, "onDragStart: offset=$offset, index=$index")
+        val item = listContent.value.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }.getOrNull(index)
+        Log.d(TAG, "onDragStart: offset=$offset, index=$index, item=$item")
         dragDropManager.onDragStart(offset, index)
     }
 
