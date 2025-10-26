@@ -7,7 +7,8 @@ Refactor the drag-and-drop (dnd) functionality to be clean, modular, testable, a
 
 - [ ] **Task 1.1: Fine-tune and rigorously test the auto-scroll feature.**
     - [ ] Sub-task 1.1.1: Test auto-scrolling at different speeds and with varying list sizes.
-    - [ ] Sub-task 1.1.2: Identify and fix any remaining edge cases or performance bottlenecks.
+    - [x] Sub-task 1.1.2: Identify and fix any remaining edge cases or performance bottlenecks.
+    - [ ] **Note:** While the drop functionality now works, there is a visual glitch where the drag shadow is not in sync with the finger during auto-scroll.
 
 ## Phase 2: Enhance User Experience (UX)
 
