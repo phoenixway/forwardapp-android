@@ -52,7 +52,7 @@ fun GoalDetailContent(
                 viewModel = viewModel,
                 uiState = uiState,
                 listState = listState,
-                listContent = listContent,
+                
                 isAttachmentsExpanded = false, // This is no longer used
                 swipeEnabled = calculatedSwipeEnabled,
                 dragDropManager = viewModel.dragDropManager,
