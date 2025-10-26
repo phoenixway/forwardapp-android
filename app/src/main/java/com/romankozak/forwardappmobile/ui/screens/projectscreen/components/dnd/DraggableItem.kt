@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ fun DraggableItem(
 
     val itemModifier =
         modifier
+            .animateContentSize()
             .zIndex(if (isDragging) 1f else 0f)
             .graphicsLayer {
                 translationY = yOffset

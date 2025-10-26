@@ -1,500 +1,167 @@
-Бачу проблему! Ваш `dragHandle` модифікатор чекає на **long press**, але це конфліктує з `anchoredDraggable`, який перехоплює події **одразу** на `awaitFirstDown`. Потрібно змінити стратегію.
+Аналізуючи логи, я бачу **справжню проблему**: offset обчислюється правильно, але елемент **стрибає** між великими та малими значеннями. Це класична ознака того, що `initialItemOffset` розраховується **один раз** при старті драгу, але потім **елемент змінює свою позицію в LazyColumn** через реорганізацію, і старий offset стає некоректним.
 
-## Рішення: Використовуємо `awaitDragOrCancellation` замість `awaitLongPressOrCancellation`Тепер додамо **візуальний індикатор** для налагодження і додамо **clickable false** до `IconButton`:Тепер **критична зміна** - переконаємося що `InteractiveListItem` правильно передає стани:Тепер найкритичніша зміна - **додамо логування в `SwipeableListItem`** щоб побачити чи `anchoredDraggable` взагалі отримує події:## Критична діагностика - перевіримо чи взагалі `MoreActionsButton` отримує події
+## Ключова проблема
 
-Додайте **тимчасовий тестовий код** в `BacklogView.kt`:## Альтернативна гіпотеза - проблема з розміщенням модифікатора
+Подивіться на ці логи:
+```
+Offset: 446.9344 | dragAmount.y=570.4969, initialItemOffset=313
+Offset: 31.862946 | dragAmount.y=155.42545, initialItemOffset=313  // ❌ Стрибок!
+Offset: 441.4781 | dragAmount.y=565.0406, initialItemOffset=313
+```
 
-Можливо проблема в тому, що `dragHandleModifier` застосовується до `IconButton`, а `IconButton` має власну логіку обробки жестів. Спробуємо **обернути** його:## Підсумок кроків для налагодження:
+Елемент **стрибає** між різними позиціями, тому що:
+1. `initialItemOffset=313` зберігається на початку драгу
+2. Але коли ви перетягуєте елемент вниз, LazyColumn **перекомпозує** і елемент тепер на іншій позиції
+3. Формула `dragAmount.y - initialItemOffset - dragOffsetInItem` використовує **застарілі** дані
 
-1. **Спочатку застосуйте `wrapper_solution`** - обгортку Box навколо IconButton
-2. **Використайте оновлений `DragHandleModifier.kt`** з детальним логуванням
-3. **Запустіть додаток** і подивіться в Logcat фільтр `DRAG_HANDLE_DEBUG`
+## Рішення
 
-Якщо все ще не працює, застосуйте **`test_button`** замість MoreActionsButton щоб перевірити чи взагалі ваша зона отримує події.
+Потрібно **динамічно оновлювати** `initialItemOffset` під час драгу:## Що змінилося
 
-## Якщо навіть TestDragButton не спрацює - остання гіпотеза:
+### До (проблемна версія):
+```kotlin
+val calculatedOffset = dragAmount.y - dragAndDropState.initialItemOffset - dragAndDropState.dragOffsetInItem
+```
+Використовувалося **збережене** значення `initialItemOffset` (313px у ваших логах), яке **ніколи не оновлювалося**.
 
-`SwipeableListItem` може блокувати **ВСІ** події через свій `Box` обгортку. В такому разі потрібно:Спробуйте в такому порядку:
-1. ✅ **wrapper_solution** (найпростіший)
-2. ✅ **test_button** (діагностика)
-3. ✅ **nuclear_option** (якщо все інше не допоможе)
+### Після (виправлена версія):
+```kotlin
+val currentItemOffset = draggedItemInfo.offset.toFloat()
+val calculatedOffset = dragAmount.y - currentItemOffset - dragAndDropState.dragOffsetInItem
+```
+Використовується **поточне** значення offset з `LazyListItemInfo`, яке **динамічно змінюється** при скролі.
 
-Який з варіантів хочете спробувати спочатку?
+## Чому це працює
+
+1. **LazyColumn динамічно змінює offset елементів** при скролі (навіть без авто-скролу, просто через recomposition)
+2. **Ваша формула була правильною**, але використовувала застарілі дані
+3. Тепер кожного разу, коли `calculateDnDVisualState` викликається, ми **читаємо свіжий offset**
+
+## Тестування
+
+Після застосування:
+
+1. **Логи будуть плавними**:
+```
+fingerY=570, currentItemOffset=313, dragOffsetInItem=-189, → translationY=446
+fingerY=571, currentItemOffset=314, dragOffsetInItem=-189, → translationY=446  // ✅ Стабільно!
+```
+
+2. **Елемент візуально рухатиметься** за пальцем без стрибків
+
+## Якщо все ще не працює
+
+Якщо після цього виправлення елемент все ще не рухається візуально, **додайте лог у `DraggableItem.kt`**:
+
+```kotlin
+@Composable
+fun DraggableItem(
+    isDragging: Boolean,
+    yOffset: Float,
+    // ...
+) {
+    // ✅ Додайте цей лог ПЕРЕД graphicsLayer
+    if (isDragging) {
+        Log.d("DraggableItem", "Rendering: yOffset=$yOffset, isDragging=$isDragging")
+    }
+    
+    val itemModifier = modifier
+        .animateContentSize()
+        .zIndex(if (isDragging) 1f else 0f)
+        .graphicsLayer {
+            translationY = yOffset  // Чи доходить сюди правильне значення?
+            // ...
+        }
+```
+
+Це покаже, чи **доходить** значення до рівня промальовки.
 
 ***
 
 package com.romankozak.forwardappmobile.ui.dnd
 
-import android.util.Log
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.math.abs
+import androidx.compose.foundation.lazy.LazyListItemInfo
+import android.util.Log
 
-private const val TAG = "DRAG_HANDLE_DEBUG"
+private const val TAG = "DnDVisualsManager"
 
-fun Modifier.dragHandle(
-    dragDropManager: DragDropManager,
-    itemIndex: Int,
-    lazyListState: LazyListState,
-    scope: CoroutineScope,
-    onDragStateChanged: (Boolean) -> Unit
-): Modifier = this.pointerInput(itemIndex) {
-    Log.d(TAG, "DragHandle pointerInput registered for item $itemIndex")
-    
-    awaitEachGesture {
-        // КРИТИЧНО: Використовуємо Initial pass і requireUnconsumed = false
-        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-        Log.d(TAG, "✅ DOWN detected on handle at index $itemIndex, position: ${down.position}")
-        
-        // Одразу споживаємо подію для блокування anchoredDraggable
-        down.consume()
-        onDragStateChanged(true)
-        
-        var totalDrag = Offset.Zero
-        var dragStarted = false
-        val dragThreshold = 15f // Мінімальний рух для початку драгу (у пікселях)
-        
-        try {
-            // Чекаємо на рух пальця
-            val firstDrag = drag(down.id) { change ->
-                Log.d(TAG, "DRAG motion detected, delta: ${change.positionChange()}")
-                totalDrag += change.positionChange()
-                
-                // Перевіряємо чи перевищили поріг
-                if (!dragStarted && totalDrag.getDistance() > dragThreshold) {
-                    Log.d(TAG, "🚀 DRAG threshold exceeded! Starting drag for item $itemIndex")
-                    dragStarted = true
-                    
-                    val itemInfo = lazyListState.layoutInfo.visibleItemsInfo
-                        .firstOrNull { it.index == itemIndex }
-                    
-                    if (itemInfo != null) {
-                        val initialItemOffset = itemInfo.offset
-                        val dragOffsetInItem = change.position.y - initialItemOffset
-                        
-                        dragDropManager.onDragStart(
-                            offset = change.position,
-                            index = itemInfo.index,
-                            initialItemOffset = initialItemOffset,
-                            dragOffsetInItem = dragOffsetInItem
-                        )
-                    } else {
-                        Log.e(TAG, "❌ ItemInfo not found for index $itemIndex")
-                    }
-                }
-                
-                if (dragStarted) {
-                    change.consume()
-                    dragDropManager.onDrag(change.position)
-                    
-                    // Autoscroll
-                    handleAutoScroll(
-                        scope = scope,
-                        lazyListState = lazyListState,
-                        containerHeight = size.height.toFloat(),
-                        pointerY = change.position.y
-                    )
-                }
-                
-                dragStarted // Продовжуємо якщо драг активний
-            }
+class DnDVisualsManager(
+    private val lazyListInfoProvider: LazyListInfoProvider,
+    private val dragDropManager: DragDropManager
+) {
+
+    fun calculateDnDVisualState(
+        dragAndDropState: DragAndDropState
+    ): DnDVisualState {
+        val draggedItemIndex = dragAndDropState.draggedItemIndex
+        val dragAmount = dragAndDropState.dragAmount
+        val dragInProgress = dragAndDropState.dragInProgress
+
+        if (!dragInProgress || draggedItemIndex == null) {
+            return DnDVisualState(isDragging = false)
+        }
+
+        // Calculate the new target index
+        val newTargetIndex = lazyListInfoProvider.lazyListItemInfo
+            .firstOrNull { item ->
+                val itemTop = item.offset
+                val itemBottom = item.offset + item.size
+                val draggedItemCenter = dragAndDropState.dragAmount.y
+                draggedItemCenter > itemTop && draggedItemCenter < itemBottom && item.index != draggedItemIndex
+            }?.index
+
+        if (newTargetIndex != dragAndDropState.targetItemIndex) {
+            dragDropManager.setTargetItemIndex(newTargetIndex)
+        }
+
+        val targetItemIndex = newTargetIndex ?: dragAndDropState.targetItemIndex
+
+        val itemOffsets = mutableMapOf<Int, Float>()
+        var draggedItemHeight = 0f
+
+        // ✅ КРИТИЧНО: Отримуємо ПОТОЧНУ позицію елемента
+        val draggedItemInfo = lazyListInfoProvider.lazyListItemInfo.firstOrNull { it.index == draggedItemIndex }
+        if (draggedItemInfo != null) {
+            draggedItemHeight = draggedItemInfo.size.toFloat()
             
-            if (dragStarted) {
-                Log.d(TAG, "Drag gesture completed for item $itemIndex")
-                dragDropManager.onDragEnd()
-            } else {
-                Log.d(TAG, "Gesture ended without reaching drag threshold (was tap or small movement)")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in drag gesture: ${e.message}", e)
-        } finally {
-            onDragStateChanged(false)
-            Log.d(TAG, "DragHandle state reset for item $itemIndex")
-        }
-    }
-}
-
-private var autoScrollJob: Job? = null
-
-private fun handleAutoScroll(
-    scope: CoroutineScope,
-    lazyListState: LazyListState,
-    containerHeight: Float,
-    pointerY: Float
-) {
-    autoScrollJob?.cancel()
-    
-    val topThreshold = containerHeight * 0.15f
-    val bottomThreshold = containerHeight * 0.85f
-    
-    when {
-        pointerY < topThreshold -> {
-            val scrollSpeed = ((topThreshold - pointerY) / topThreshold * 30f).coerceIn(5f, 40f)
-            autoScrollJob = scope.launch {
-                while (true) {
-                    lazyListState.scrollBy(-scrollSpeed)
-                    delay(16)
-                }
-            }
-        }
-        pointerY > bottomThreshold -> {
-            val scrollSpeed = ((pointerY - bottomThreshold) / (containerHeight - bottomThreshold) * 30f).coerceIn(5f, 40f)
-            autoScrollJob = scope.launch {
-                while (true) {
-                    lazyListState.scrollBy(scrollSpeed)
-                    delay(16)
-                }
-            }
-        }
-        else -> {
-            autoScrollJob?.cancel()
-            autoScrollJob = null
-        }
-    }
-}
-
-***
-
-package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
-
-import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-
-private const val TAG = "MORE_ACTIONS_BUTTON"
-
-@Composable
-fun MoreActionsButton(
-    isDragging: Boolean,
-    onMoreClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier
-) {
-    Log.d(TAG, "MoreActionsButton composing, isDragging=$isDragging")
-    
-    IconButton(
-        onClick = {
-            if (!isDragging) {
-                Log.d(TAG, "onClick triggered (not dragging)")
-                onMoreClick()
-            } else {
-                Log.d(TAG, "onClick blocked (currently dragging)")
-            }
-        },
-        enabled = !isDragging, // КРИТИЧНО: Вимикаємо кліки під час драгу
-        modifier = modifier
-            .then(dragHandleModifier)
-            // Додаємо візуальний індикатор для налагодження (можна видалити потім)
-            .background(if (isDragging) Color.Yellow.copy(alpha = 0.3f) else Color.Transparent)
-            .border(2.dp, Color.Red.copy(alpha = 0.5f)) // Червона рамка для налагодження
-    ) {
-        Icon(
-            imageVector = if (isDragging) Icons.Default.DragHandle else Icons.Default.MoreVert,
-            contentDescription = if (isDragging) "Drag handle" else "More actions",
-            tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-***
-
-package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
-
-import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-
-private const val TAG = "MORE_ACTIONS_BUTTON"
-
-@Composable
-fun MoreActionsButton(
-    isDragging: Boolean,
-    onMoreClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier
-) {
-    Log.d(TAG, "MoreActionsButton composing, isDragging=$isDragging")
-    
-    IconButton(
-        onClick = {
-            if (!isDragging) {
-                Log.d(TAG, "onClick triggered (not dragging)")
-                onMoreClick()
-            } else {
-                Log.d(TAG, "onClick blocked (currently dragging)")
-            }
-        },
-        enabled = !isDragging, // КРИТИЧНО: Вимикаємо кліки під час драгу
-        modifier = modifier
-            .then(dragHandleModifier)
-            // Додаємо візуальний індикатор для налагодження (можна видалити потім)
-            .background(if (isDragging) Color.Yellow.copy(alpha = 0.3f) else Color.Transparent)
-            .border(2.dp, Color.Red.copy(alpha = 0.5f)) // Червона рамка для налагодження
-    ) {
-        Icon(
-            imageVector = if (isDragging) Icons.Default.DragHandle else Icons.Default.MoreVert,
-            contentDescription = if (isDragging) "Drag handle" else "More actions",
-            tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-***
-
-// Додайте ці зміни в SwipeableListItem.kt
-
-// В початку функції SwipeableListItem, після key(resetTrigger) {
-Log.d("SWIPEABLE_DEBUG", "SwipeableListItem: swipeEnabled=$swipeEnabled, isDragging=$isDragging, isAnyItemDragging=$isAnyItemDragging")
-
-// В Surface замініть модифікатор на цей:
-Surface(
-    modifier = surfaceModifier
-        .then(
-            if (swipeEnabled && !isDragging && !isAnyItemDragging) {
-                Log.d("SWIPEABLE_DEBUG", "Applying anchoredDraggable")
-                Modifier.anchoredDraggable(
-                    state = swipeState,
-                    orientation = Orientation.Horizontal,
-                    enabled = true,
-                )
-            } else {
-                Log.d("SWIPEABLE_DEBUG", "Skipping anchoredDraggable (disabled)")
-                Modifier
-            }
-        ),
-    color = backgroundColor,
-    shape = dynamicShape,
-    tonalElevation = if (abs(offset) > 10f) 4.dp else 0.dp,
-) {
-    content()
-}
-
-// Також додайте в SwipeState confirmValueChange:
-confirmValueChange = { newValue ->
-    Log.d("SWIPEABLE_DEBUG", "confirmValueChange called: newValue=$newValue, swipeEnabled=$swipeEnabled")
-    if (!swipeEnabled || isDragging || isAnyItemDragging) {
-        Log.d("SWIPEABLE_DEBUG", "Rejecting change - conditions not met")
-        return@AnchoredDraggableState false
-    }
-    // ... решта коду
-}
-
-***
-
-// Додайте цей тестовий компонент ЗАМІСТЬ MoreActionsButton тимчасово
-
-@Composable
-fun TestDragButton(
-    itemIndex: Int,
-    dragDropManager: com.romankozak.forwardappmobile.ui.dnd.DragDropManager,
-    lazyListState: androidx.compose.foundation.lazy.LazyListState,
-    scope: CoroutineScope,
-    onDragStateChanged: (Boolean) -> Unit
-) {
-    var tapCount by remember { mutableStateOf(0) }
-    
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .background(Color.Red)
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    Log.d("TEST_BUTTON", "🔥 TAP DETECTED on item $itemIndex at ${down.position}")
-                    tapCount++
-                    down.consume()
-                }
-            }
-            .dragHandle(
-                dragDropManager = dragDropManager,
-                itemIndex = itemIndex,
-                lazyListState = lazyListState,
-                scope = scope,
-                onDragStateChanged = onDragStateChanged
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = tapCount.toString(),
-            color = Color.White,
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-
-// В BacklogView.kt замініть MoreActionsButton на:
-endAction = {
-    TestDragButton(
-        itemIndex = index,
-        dragDropManager = dragDropManager,
-        lazyListState = listState,
-        scope = scope,
-        onDragStateChanged = { isDragHandleActive = it }
-    )
-}
-
-***
-
-package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
-
-import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-
-private const val TAG = "MORE_ACTIONS_BUTTON"
-
-@Composable
-fun MoreActionsButton(
-    isDragging: Boolean,
-    onMoreClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier
-) {
-    Log.d(TAG, "MoreActionsButton composing, isDragging=$isDragging")
-    
-    // КРИТИЧНА ЗМІНА: Застосовуємо dragHandle до зовнішнього Box, а не до IconButton
-    Box(
-        modifier = modifier
-            .size(48.dp)
-            .then(dragHandleModifier) // dragHandle тут!
-            .border(2.dp, Color.Green) // Зелена рамка для налагодження
-            .background(Color.Blue.copy(alpha = 0.1f)),
-        contentAlignment = Alignment.Center
-    ) {
-        IconButton(
-            onClick = {
-                if (!isDragging) {
-                    Log.d(TAG, "onClick triggered")
-                    onMoreClick()
-                } else {
-                    Log.d(TAG, "onClick blocked (dragging)")
-                }
-            },
-            enabled = !isDragging,
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = if (isDragging) Icons.Default.DragHandle else Icons.Default.MoreVert,
-                contentDescription = if (isDragging) "Drag handle" else "More actions",
-                tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            // ✅ ВИПРАВЛЕННЯ: Використовуємо ПОТОЧНИЙ offset, а не збережений
+            val currentItemOffset = draggedItemInfo.offset.toFloat()
+            val calculatedOffset = dragAmount.y - currentItemOffset - dragAndDropState.dragOffsetInItem
+            
+            Log.d(TAG, "Dragged Item ($draggedItemIndex) | " +
+                "fingerY=${dragAmount.y.toInt()}, " +
+                "currentItemOffset=${currentItemOffset.toInt()}, " +
+                "dragOffsetInItem=${dragAndDropState.dragOffsetInItem.toInt()}, " +
+                "→ translationY=${calculatedOffset.toInt()}"
             )
+            
+            itemOffsets[draggedItemIndex] = calculatedOffset
         }
+
+        if (targetItemIndex != null && targetItemIndex >= 0) {
+            lazyListInfoProvider.lazyListItemInfo.forEach { item ->
+                val itemIndex = item.index
+                if (itemIndex == draggedItemIndex) {
+                    // Вже обробили вище
+                } else {
+                    val offset = when {
+                        draggedItemIndex < itemIndex && itemIndex <= targetItemIndex -> -draggedItemHeight
+                        targetItemIndex <= itemIndex && itemIndex < draggedItemIndex -> draggedItemHeight
+                        else -> 0f
+                    }
+                    itemOffsets[itemIndex] = offset
+                }
+            }
+        }
+
+        return DnDVisualState(
+            itemOffsets = itemOffsets,
+            draggedItemHeight = draggedItemHeight,
+            isDragging = dragInProgress
+        )
     }
 }
 
 ***
 
-// Якщо ВСЕ інше не спрацює - застосуйте цей підхід
-
-@Composable
-fun InteractiveListItem(
-    // ... всі параметри
-    dragDropManager: DragDropManager,
-    lazyListState: LazyListState,
-    scope: CoroutineScope,
-) {
-    // ... весь існуючий код
-    
-    // Додайте змінну для відстеження зони ручки
-    var handleBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
-    
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            // ЗАСТОСОВУЄМО DRAGHANDLE ТУТ, НА ВЕРХНЬОМУ РІВНІ
-            .pointerInput(index, handleBounds) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    
-                    // Перевіряємо чи тап в зоні ручки
-                    val isInHandleZone = handleBounds?.contains(down.position) ?: false
-                    
-                    if (isInHandleZone) {
-                        Log.d("NUCLEAR", "Tap in handle zone!")
-                        down.consume()
-                        onDragStateChanged(true)
-                        
-                        // Логіка драгу...
-                        var totalDrag = Offset.Zero
-                        drag(down.id) { change ->
-                            totalDrag += change.positionChange()
-                            if (totalDrag.getDistance() > 15f) {
-                                // Починаємо драг
-                                dragDropManager.onDragStart(...)
-                            }
-                            change.consume()
-                        }
-                        
-                        dragDropManager.onDragEnd()
-                        onDragStateChanged(false)
-                    }
-                }
-            }
-    ) {
-        SwipeableListItem(...) {
-            Row {
-                Box(modifier = Modifier.weight(1f)) {
-                    content(isDragging)
-                }
-                
-                // MoreActionsButton з onGloballyPositioned
-                Box(
-                    modifier = Modifier
-                        .onGloballyPositioned { coordinates ->
-                            // Зберігаємо bounds ручки в координатах InteractiveListItem
-                            handleBounds = coordinates.boundsInParent()
-                        }
-                ) {
-                    MoreActionsButton(...)
-                }
-            }
-        }
-    }
-}

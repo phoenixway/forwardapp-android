@@ -106,12 +106,12 @@ fun Modifier.dragHandle(
                     change.consume()
                     dragDropManager.onDrag(change.position)
                     
-                    handleAutoScroll(
-                        scope = scope,
-                        lazyListState = lazyListState,
-                        containerHeight = size.height.toFloat(),
-                        pointerY = change.position.y
-                    )
+                    // handleAutoScroll(
+                    //     scope = scope,
+                    //     lazyListState = lazyListState,
+                    //     containerHeight = size.height.toFloat(),
+                    //     pointerY = change.position.y
+                    // )
                 }
             }
             

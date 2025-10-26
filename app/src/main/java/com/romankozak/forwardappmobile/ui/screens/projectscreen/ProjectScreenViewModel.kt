@@ -557,7 +557,7 @@ constructor(
             onMove = { from, to -> moveItem(from, to) },
             scrollBy = { lazyListState.scrollBy(it) }
         )
-        dndVisualsManager = DnDVisualsManager(lazyListInfoProvider)
+        dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
         viewModelScope.launch {
             dragState
                 .map { dndVisualsManager.calculateDnDVisualState(it) }
