@@ -311,9 +311,7 @@ constructor(
   lateinit var dragDropManager: DragDropManager
   val dragState: StateFlow<DragAndDropState> get() = dragDropManager.dragState
 
-  private lateinit var dndVisualsManager: DnDVisualsManager
-  private val _dndVisualState = MutableStateFlow(DnDVisualState())
-  val dndVisualState: StateFlow<DnDVisualState> get() = _dndVisualState
+  lateinit var dndVisualsManager: DnDVisualsManager
 
 
   private val _uiState =
@@ -558,11 +556,6 @@ constructor(
             scrollBy = { lazyListState.scrollBy(it) }
         )
         dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
-        viewModelScope.launch {
-            dragState
-                .map { dndVisualsManager.calculateDnDVisualState(it) }
-                .collect { _dndVisualState.value = it }
-        }
         Log.d(TAG, "DragDropManager initialized.")
       }
 

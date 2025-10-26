@@ -6,18 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.dnd.dragHandle
@@ -29,6 +26,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backl
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.InteractiveListItem
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.MoreActionsButton
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -41,10 +39,7 @@ fun BacklogView(
     isAttachmentsExpanded: Boolean,
     swipeEnabled: Boolean,
     dragDropManager: com.romankozak.forwardappmobile.ui.dnd.DragDropManager,
-    dndVisualState: StateFlow<com.romankozak.forwardappmobile.ui.dnd.DnDVisualState>,
 ) {
-    Log.d("ATTACHMENT_DEBUG", "UI: BacklogView recomposing with isAttachmentsExpanded = $isAttachmentsExpanded")
-
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
@@ -68,152 +63,230 @@ fun BacklogView(
         }
     }
 
-    val attachmentItems =
-        remember(listContent) {
-            listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
+    // ✅ Оновлюємо targetIndex при русі
+    LaunchedEffect(dragState.dragAmount) {
+        if (dragState.dragInProgress) {
+            viewModel.dndVisualsManager.calculateTargetIndex(dragState) // This is how the targetIndex is updated
         }
-    val draggableItems =
-        remember(listContent) {
-            listContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
+    }
+
+    val attachmentItems = remember(listContent) {
+        listContent.filter { 
+            it is ListItemContent.LinkItem || 
+            it is ListItemContent.NoteItem || 
+            it is ListItemContent.CustomListItem 
         }
+    }
+    val draggableItems = remember(listContent) {
+        listContent.filterNot { 
+            it is ListItemContent.LinkItem || 
+            it is ListItemContent.NoteItem || 
+            it is ListItemContent.CustomListItem 
+        }
+    }
 
     val scope = rememberCoroutineScope()
 
-    Column(modifier = modifier.fillMaxSize()) {
-        AttachmentsSection(
-            attachments = attachmentItems,
-            isExpanded = isAttachmentsExpanded,
-            onAddAttachment = { viewModel.onAddAttachment(it) },
-            onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
-            onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
-            onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) },
-        )
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            AttachmentsSection(
+                attachments = attachmentItems,
+                isExpanded = isAttachmentsExpanded,
+                onAddAttachment = { viewModel.onAddAttachment(it) },
+                onDeleteItem = { viewModel.itemActionHandler.deleteItem(it) },
+                onItemClick = { viewModel.itemActionHandler.onItemClick(it) },
+                onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(it) },
+            )
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            userScrollEnabled = !isAnyDragHandleActive
-        ) {
-            itemsIndexed(
-                items = draggableItems,
-                key = { _, item -> item.listItem.id },
-            ) { index, content ->
-                val isSelected = content.listItem.id in uiState.selectedItemIds
-                val isHighlighted =
-                    (uiState.itemToHighlight == content.listItem.id) ||
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                userScrollEnabled = !isAnyDragHandleActive
+            ) {
+                itemsIndexed(
+                    items = draggableItems,
+                    key = { _, item -> item.listItem.id },
+                ) { index, content ->
+                    val isSelected = content.listItem.id in uiState.selectedItemIds
+                    val isHighlighted = (uiState.itemToHighlight == content.listItem.id) ||
                         (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
 
-                InteractiveListItem(
-                    item = content,
-                    index = index,
-                    dragAndDropState = dragState,
-                    dndVisualState = dndVisualState,
-                    listState = listState,
-                    isSelected = isSelected,
-                    isHighlighted = isHighlighted,
-                    swipeEnabled = swipeEnabled && !isAnyDragHandleActive,
-                    isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id),
-                    resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0,
-                    onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) },
-                    onDelete = { viewModel.itemActionHandler.deleteItem(content) },
-                    onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
-                    onMoveToTopRequest = { viewModel.onMoveToTop(content) },
-                    onAddToDayPlanRequest = { viewModel.addItemToDailyPlan(content) },
-                    onShowGoalTransportMenu = { itemToTransport ->
-                        viewModel.itemActionHandler.onGoalTransportInitiated(
-                            itemToTransport,
-                            onCopyContentToClipboard = {
-                                viewModel.itemActionHandler.copyContentRequest(itemToTransport)
-                            },
-                        )
-                    },
-                    onStartTrackingRequest = { viewModel.onStartTrackingRequest(content) },
-                    onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(content) },
-                    onToggleCompleted = {
+                    InteractiveListItem(
+                        item = content,
+                        index = index,
+                        dragAndDropState = dragState,
+                        listState = listState,
+                        isSelected = isSelected,
+                        isHighlighted = isHighlighted,
+                        swipeEnabled = swipeEnabled && !isAnyDragHandleActive,
+                        isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id),
+                        resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0,
+                        onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) },
+                        onDelete = { viewModel.itemActionHandler.deleteItem(content) },
+                        onMoreActionsRequest = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                        onMoveToTopRequest = { viewModel.onMoveToTop(content) },
+                        onAddToDayPlanRequest = { viewModel.addItemToDailyPlan(content) },
+                        onShowGoalTransportMenu = { itemToTransport ->
+                            viewModel.itemActionHandler.onGoalTransportInitiated(
+                                itemToTransport,
+                                onCopyContentToClipboard = {
+                                    viewModel.itemActionHandler.copyContentRequest(itemToTransport)
+                                },
+                            )
+                        },
+                        onStartTrackingRequest = { viewModel.onStartTrackingRequest(content) },
+                        onCopyContentRequest = { viewModel.itemActionHandler.copyContentRequest(content) },
+                        onToggleCompleted = {
+                            when (content) {
+                                is ListItemContent.GoalItem -> {
+                                    viewModel.itemActionHandler.toggleGoalCompletedWithState(content.goal, !content.goal.completed)
+                                }
+                                is ListItemContent.SublistItem -> {
+                                    viewModel.onSubprojectCompletedChanged(content.project, !content.project.isCompleted)
+                                }
+                                else -> {}
+                            }
+                        },
+                        modifier = Modifier
+                    ) { isDragging ->
                         when (content) {
                             is ListItemContent.GoalItem -> {
-                                viewModel.itemActionHandler.toggleGoalCompletedWithState(content.goal, !content.goal.completed)
+                                GoalItem(
+                                    goal = content.goal,
+                                    reminders = content.reminders,
+                                    obsidianVaultName = obsidianVaultName,
+                                    showCheckbox = uiState.showCheckboxes,
+                                    onCheckedChange = { isChecked ->
+                                        viewModel.itemActionHandler.toggleGoalCompletedWithState(
+                                            content.goal,
+                                            isChecked,
+                                        )
+                                    },
+                                    onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                    onLongClick = { viewModel.toggleSelection(content.listItem.id) },
+                                    onTagClick = { tag -> viewModel.onTagClicked(tag) },
+                                    onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
+                                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                    emojiToHide = currentListContextEmojiToHide,
+                                    isSelected = isSelected,
+                                    endAction = {
+                                        MoreActionsButton(
+                                            isDragging = isDragging,
+                                            onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                            dragHandleModifier = Modifier.dragHandle(
+                                                dragDropManager = dragDropManager,
+                                                itemIndex = index,
+                                                lazyListState = listState,
+                                                scope = scope,
+                                                onDragStateChanged = { isAnyDragHandleActive = it }
+                                            )
+                                        )
+                                    }
+                                )
                             }
                             is ListItemContent.SublistItem -> {
-                                viewModel.onSubprojectCompletedChanged(content.project, !content.project.isCompleted)
+                                val children = subprojectChildren[content.project.id] ?: emptyList()
+                                SubprojectItemRow(
+                                    subprojectContent = content,
+                                    reminders = content.reminders,
+                                    isSelected = isSelected,
+                                    showCheckbox = uiState.showCheckboxes,
+                                    onClick = { viewModel.itemActionHandler.onItemClick(content) },
+                                    onLongClick = { viewModel.toggleSelection(content.listItem.id) },
+                                    onCheckedChange = { isCompleted ->
+                                        viewModel.onSubprojectCompletedChanged(content.project, !content.project.isCompleted)
+                                    },
+                                    childProjects = children,
+                                    onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
+                                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                    emojiToHide = currentListContextEmojiToHide,
+                                    endAction = {
+                                        MoreActionsButton(
+                                            isDragging = isDragging,
+                                            onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
+                                            dragHandleModifier = Modifier.dragHandle(
+                                                dragDropManager = dragDropManager,
+                                                itemIndex = index,
+                                                lazyListState = listState,
+                                                scope = scope,
+                                                onDragStateChanged = { isAnyDragHandleActive = it }
+                                            )
+                                        )
+                                    }
+                                )
                             }
-                            else -> {}
+                            else -> {
+                                Log.w("BacklogScreen", "Unsupported type: ${content::class.simpleName}")
+                            }
                         }
-                    },
+                    }
+                }
+            }
+        }
+
+        // ✅ GHOST ELEMENT - render here
+        if (dragState.dragInProgress && dragState.draggedItemIndex != null) {
+            val draggedItem = draggableItems.getOrNull(dragState.draggedItemIndex!!)
+            if (draggedItem != null) {
+                Box(
                     modifier = Modifier
-                ) { isDragging ->
-                    when (content) {
+                        .offset { IntOffset(0, dragState.ghostScreenY.roundToInt()) }
+                        .zIndex(999f)
+                        .graphicsLayer {
+                            alpha = 0.9f
+                            shadowElevation = 16f
+                            
+                        }
+                ) {
+                    // Render the same content
+                    when (draggedItem) {
                         is ListItemContent.GoalItem -> {
                             GoalItem(
-                                goal = content.goal,
-                                reminders = content.reminders,
+                                goal = draggedItem.goal,
+                                reminders = draggedItem.reminders,
                                 obsidianVaultName = obsidianVaultName,
                                 showCheckbox = uiState.showCheckboxes,
-                                onCheckedChange = { isChecked ->
-                                    viewModel.itemActionHandler.toggleGoalCompletedWithState(
-                                        content.goal,
-                                        isChecked,
-                                    )
-                                },
-                                onItemClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                onLongClick = { viewModel.toggleSelection(content.listItem.id) },
-                                onTagClick = { tag -> viewModel.onTagClicked(tag) },
-                                onRelatedLinkClick = { link -> viewModel.onLinkItemClick(link) },
+                                onCheckedChange = {},
+                                onItemClick = {},
+                                onLongClick = {},
+                                onTagClick = {},
+                                onRelatedLinkClick = {},
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
-                                isSelected = isSelected,
+                                isSelected = false,
                                 endAction = {
                                     MoreActionsButton(
-                                        isDragging = isDragging,
-                                        onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
-                                        dragHandleModifier = Modifier.dragHandle(
-                                            dragDropManager = dragDropManager,
-                                            itemIndex = index,
-                                            lazyListState = listState,
-                                            scope = scope,
-                                            onDragStateChanged = { isAnyDragHandleActive = it }
-                                        )
+                                        isDragging = true,
+                                        onMoreClick = {},
+                                        dragHandleModifier = Modifier
                                     )
                                 }
                             )
                         }
                         is ListItemContent.SublistItem -> {
-                            val children = subprojectChildren[content.project.id] ?: emptyList()
+                            val children = subprojectChildren[draggedItem.project.id] ?: emptyList()
                             SubprojectItemRow(
-                                subprojectContent = content,
-                                reminders = content.reminders,
-                                isSelected = isSelected,
+                                subprojectContent = draggedItem,
+                                reminders = draggedItem.reminders,
+                                isSelected = false,
                                 showCheckbox = uiState.showCheckboxes,
-                                onClick = { viewModel.itemActionHandler.onItemClick(content) },
-                                onLongClick = { viewModel.toggleSelection(content.listItem.id) },
-                                onCheckedChange = { isCompleted ->
-                                    viewModel.onSubprojectCompletedChanged(content.project, isCompleted)
-                                },
+                                onClick = {},
+                                onLongClick = {},
+                                onCheckedChange = {},
                                 childProjects = children,
-                                onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
+                                onChildProjectClick = {},
                                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                                 emojiToHide = currentListContextEmojiToHide,
                                 endAction = {
                                     MoreActionsButton(
-                                        isDragging = isDragging,
-                                        onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
-                                        dragHandleModifier = Modifier.dragHandle(
-                                            dragDropManager = dragDropManager,
-                                            itemIndex = index,
-                                            lazyListState = listState,
-                                            scope = scope,
-                                            onDragStateChanged = { isAnyDragHandleActive = it }
-                                        )
+                                        isDragging = true,
+                                        onMoreClick = {},
+                                        dragHandleModifier = Modifier
                                     )
                                 }
                             )
                         }
-                        else -> {
-                            Log.w(
-                                "BacklogScreen",
-                                "Unsupported type in draggableItems list: ${content::class.simpleName}",
-                            )
-                        }
+                        else -> {}
                     }
                 }
             }

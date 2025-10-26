@@ -18,17 +18,24 @@ class DragDropManager(
     private val _dragState = MutableStateFlow(DragAndDropState())
     val dragState: StateFlow<DragAndDropState> = _dragState.asStateFlow()
 
-    private var dragJob: Job? = null
     private var autoScrollJob: Job? = null
 
-    fun onDragStart(offset: Offset, index: Int, initialItemOffset: Int, dragOffsetInItem: Float) {
+    fun onDragStart(
+        offset: Offset,
+        index: Int,
+        initialItemOffset: Int,
+        dragOffsetInItem: Float,
+        itemHeight: Float
+    ) {
         _dragState.update {
             it.copy(
                 dragInProgress = true,
                 draggedItemIndex = index,
                 dragAmount = offset,
                 initialItemOffset = initialItemOffset,
-                dragOffsetInItem = dragOffsetInItem
+                dragOffsetInItem = dragOffsetInItem,
+                draggedItemHeight = itemHeight,
+                ghostScreenY = offset.y - dragOffsetInItem
             )
         }
 
@@ -37,33 +44,35 @@ class DragDropManager(
             while (true) {
                 delay(16)
                 val fingerY = _dragState.value.dragAmount.y
-                // This is a hack, I don't have access to the viewport height here.
-                // I will assume a fixed height for now.
                 val viewportHeight = 2000f
                 val hotZone = viewportHeight * 0.2f
 
-                val scrollAmount =
-                    if (fingerY < hotZone) {
+                val scrollAmount = when {
+                    fingerY < hotZone -> {
                         val distance = hotZone - fingerY
                         -(distance / hotZone) * 100f
-                    } else if (fingerY > viewportHeight - hotZone) {
+                    }
+                    fingerY > viewportHeight - hotZone -> {
                         val distance = fingerY - (viewportHeight - hotZone)
                         (distance / hotZone) * 100f
-                    } else {
-                        0f
                     }
+                    else -> 0f
+                }
 
                 if (scrollAmount != 0f) {
-                    scope.launch {
-                        scrollBy(scrollAmount)
-                    }
+                    scope.launch { scrollBy(scrollAmount) }
                 }
             }
         }
     }
 
     fun onDrag(position: Offset) {
-        _dragState.update { it.copy(dragAmount = position) }
+        _dragState.update {
+            it.copy(
+                dragAmount = position,
+                ghostScreenY = position.y - it.dragOffsetInItem
+            )
+        }
     }
 
     fun onDragEnd() {

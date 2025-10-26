@@ -90,12 +90,14 @@ fun Modifier.dragHandle(
                     if (itemInfo != null) {
                         val initialItemOffset = itemInfo.offset
                         val dragOffsetInItem = change.position.y - initialItemOffset
+                        val itemHeight = itemInfo.size.toFloat()
                         
                         dragDropManager.onDragStart(
                             offset = change.position,
                             index = itemInfo.index,
                             initialItemOffset = initialItemOffset,
-                            dragOffsetInItem = dragOffsetInItem
+                            dragOffsetInItem = dragOffsetInItem,
+                            itemHeight = itemHeight
                         )
                     } else {
                         Log.e(TAG, "❌ ItemInfo not found for index $itemIndex")
