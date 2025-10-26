@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.ui.dnd
 
-import android.util.Log
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.Modifier
@@ -31,8 +30,6 @@ fun Modifier.dragHandle(
                         val initialItemOffset = itemInfo.offset
                         val dragOffsetInItem = (it + positionInRoot).y - initialItemOffset
                         val itemHeight = itemInfo.size.toFloat()
-                        Log.d("DragHandleModifier", "offset: $it, positionInRoot: $positionInRoot, dragOffsetInItem: $dragOffsetInItem, itemHeight: $itemHeight")
-                        Log.d("DragHandleModifier", "Calling dragDropManager.onDragStart with offset: ${it + positionInRoot}")
                         dragDropManager.onDragStart(
                             offset = it + positionInRoot,
                             index = itemInfo.index,
@@ -40,7 +37,8 @@ fun Modifier.dragHandle(
                             dragOffsetInItem = dragOffsetInItem,
                             itemHeight = itemHeight
                         )
-                    }                },
+                    }
+                },
                 onDragEnd = {
                     dragDropManager.onDragEnd()
                     onDragStateChanged(false)
