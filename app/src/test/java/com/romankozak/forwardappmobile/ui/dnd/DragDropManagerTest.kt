@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
+import androidx.compose.ui.unit.IntSize
 
 @ExperimentalCoroutinesApi
 class DragDropManagerTest {
@@ -22,6 +23,8 @@ class DragDropManagerTest {
 
     @Before
     fun setUp() {
+        every { lazyListInfoProvider.viewportSize } returns IntSize(1080, 2000)
+        every { lazyListInfoProvider.lazyListItemInfo } returns emptyList()
         dragDropManager = DragDropManager(
             scope = testScope,
             lazyListInfoProvider = lazyListInfoProvider,
@@ -43,7 +46,7 @@ class DragDropManagerTest {
 
 
         // When
-        dragDropManager.onDragStart(offset, index)
+        dragDropManager.onDragStart(offset, index, 0, 0f, 100f)
 
         // Then
         val state = dragDropManager.dragState.value
@@ -57,14 +60,14 @@ class DragDropManagerTest {
         // Given
         val startOffset = Offset(10f, 20f)
         val dragOffset = Offset(5f, 15f)
-        dragDropManager.onDragStart(startOffset, 0)
+        dragDropManager.onDragStart(startOffset, 0, 0, 0f, 100f)
 
         // When
         dragDropManager.onDrag(dragOffset)
 
         // Then
         val state = dragDropManager.dragState.value
-        assert(state.dragAmount == startOffset + dragOffset)
+        assert(state.dragAmount == dragOffset)
     }
 
     @Test
@@ -72,21 +75,8 @@ class DragDropManagerTest {
         // Given
         val from = 0
         val to = 1
-        dragDropManager.onDragStart(Offset.Zero, from)
-        // Simulate drag to a new target
-        val itemInfo1 = mockk<LazyListItemInfo> {
-            every { size } returns 100
-            every { index } returns 0
-            every { offset } returns 0
-        }
-        val itemInfo2 = mockk<LazyListItemInfo> {
-            every { size } returns 100
-            every { index } returns 1
-            every { offset } returns 100
-        }
-        every { lazyListInfoProvider.lazyListItemInfo } returns listOf(itemInfo1, itemInfo2)
-        dragDropManager.onDrag(Offset(0f, 110f))
-
+        dragDropManager.onDragStart(Offset.Zero, from, 0, 0f, 100f)
+        dragDropManager.setTargetItemIndex(to)
 
         // When
         dragDropManager.onDragEnd()

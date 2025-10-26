@@ -557,7 +557,8 @@ constructor(
                 Log.d(TAG, "onMove called with from: $from, to: $to")
                 moveItem(from, to) 
             },
-            scrollBy = { lazyListState.scrollBy(it) }
+            scrollBy = { lazyListState.scrollBy(it) },
+            lazyListInfoProvider = lazyListInfoProvider
         )
         dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
 

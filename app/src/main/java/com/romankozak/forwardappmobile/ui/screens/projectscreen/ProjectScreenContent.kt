@@ -37,7 +37,7 @@ fun GoalDetailContent(
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val projectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
-    val dragState: DragAndDropState by viewModel.dragState.collectAsStateWithLifecycle()
+    val dragState by viewModel.dragState.collectAsStateWithLifecycle()
 
     val calculatedSwipeEnabled = !isSelectionModeActive && !dragState.dragInProgress
     Log.v(
