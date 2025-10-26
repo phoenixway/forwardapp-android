@@ -13,9 +13,9 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.proje
 
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.AttachmentsView
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.BacklogView
+
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.InboxView
-import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
+
 
 private const val TAG = "BACKLOG_UI_DEBUG"
 
@@ -37,24 +37,31 @@ fun GoalDetailContent(
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val projectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
-    val dragState by viewModel.dragState.collectAsStateWithLifecycle()
 
-    val calculatedSwipeEnabled = !isSelectionModeActive && !dragState.dragInProgress
-    Log.v(
-        TAG,
-        "РЕКОМПОЗИЦІЯ ЕКРАНУ: isSelectionModeActive=$isSelectionModeActive, dragState.dragInProgress=${dragState.dragInProgress}, calculatedSwipeEnabled=$calculatedSwipeEnabled",
-    )
+
 
     when (uiState.currentView) {
         ProjectViewMode.BACKLOG -> {
-            BacklogView(
+            val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+            com.romankozak.forwardappmobile.ui.features.backlog.BacklogListScreen(
+                items = listContent,
                 modifier = modifier,
-                viewModel = viewModel,
-                uiState = uiState,
-                listState = listState,
-                isAttachmentsExpanded = false, // This is no longer used
-                swipeEnabled = calculatedSwipeEnabled,
-                reorderableState = viewModel.reorderableState,
+                onMove = { from, to -> viewModel.onMove(from, to) },
+                onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
+                onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },
+                onCheckedChange = { item, isChecked ->
+                    when (item) {
+                        is ListItemContent.GoalItem -> viewModel.itemActionHandler.toggleGoalCompletedWithState(item.goal, isChecked)
+                        is ListItemContent.SublistItem -> viewModel.onSubprojectCompletedChanged(item.project, isChecked)
+                        else -> {}
+                    }
+                },
+                onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
+                onMoveToTop = { item -> viewModel.onMoveToTop(item) },
+                onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
+                onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
+                onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
+                onCopyContent = { item -> viewModel.itemActionHandler.copyContentRequest(item) },
             )
         }
         ProjectViewMode.INBOX -> {
