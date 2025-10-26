@@ -1,39 +1,57 @@
-# Master Plan: Drag-and-Drop Refactoring
+# Master Plan: Інтеграція нової DND бібліотеки для Беклогу
 
-## Goal
-Overhaul the drag-and-drop (dnd) functionality to create a clean, modular, testable, and high-performance system based on proven architectural patterns.
+## Мета
+Замінити існуючу реалізацію drag-and-drop (dnd) на зовнішню бібліотеку, винести UI беклогу в окремий файл та замінити свайп-жести на стандартне меню для дій з елементами.
 
-## Phase 1: Immediate Fix & Foundation
+---
 
-- [ ] **Task 1.1: Fix Shadow Desynchronization.**
-    - [ ] **Sub-task 1.1.1:** Implement the scroll compensation formula to keep the drag shadow perfectly aligned with the user's finger during auto-scroll.
-      - `shadow_offset = (initial_item_pos - current_item_pos) + finger_offset`
+### **Фаза 1: Підготовка та інтеграція бібліотеки**
 
-## Phase 2: Architectural Refactoring
+- [ ] **Завдання 1.1: Створити новий файл для фічі беклогу.**
+  - Створити файл `BacklogList.kt` у відповідному пакеті (наприклад, `.../features/backlog/`) для розміщення нових composables.
 
-- [ ] **Task 2.1: Implement a Central State Holder.**
-    - [ ] **Sub-task 2.1.1:** Create a `ReorderableState` class that acts as the single source of truth for all dnd operations (dragged item, offsets, scroll state).
-    - [ ] **Sub-task 2.1.2:** Ensure the state holder's lifecycle is tied to the list, not individual items.
+- [ ] **Завдання 1.2: Вибрати та додати бібліотеку для dnd.**
+  - Провести пошук та вибрати відповідну бібліотеку для Jetpack Compose (наприклад, `compose-reorderable`).
+  - Додати залежність у `app/build.gradle.kts`.
 
-- [ ] **Task 2.2: Isolate Gesture Detection.**
-    - [ ] **Sub-task 2.2.1:** Refactor the `pointerInput` modifier to only detect raw drag events.
-    - [ ] **Sub-task 2.2.2:** Delegate all event handling (`onDragStart`, `onDrag`, `onDragEnd`) to the central `ReorderableState` holder.
+- [ ] **Завдання 1.3: Створити базовий UI в новому файлі.**
+  - Створити `BacklogListScreen` composable всередині `BacklogList.kt`.
+  - Створити `BacklogItem` composable, який буде відображати один елемент списку.
 
-- [ ] **Task 2.3: Create a Dedicated Scroller Module.**
-    - [ ] **Sub-task 2.3.1:** Develop an independent `Scroller` class responsible for programmatic scrolling.
-    - [ ] **Sub-task 2.3.2:** Implement a smooth scrolling loop using `animateScrollBy` with `LinearEasing`, managed via a coroutine.
+---
 
-## Phase 3: Enhance User Experience (UX) & Visuals
+### **Фаза 2: Реалізація нового функціоналу**
 
-- [ ] **Task 3.1: Rework Drop Target Visualization.**
-    - [ ] **Sub-task 3.1.1:** Use `Modifier.animateItemPlacement()` to have sibling items animate smoothly out of the way, creating a natural space for the drop.
-    - [ ] **Sub-task 3.1.2:** Remove any static placeholder or marker.
+- [ ] **Завдання 2.1: Реалізувати список з dnd.**
+  - Використовуючи обрану бібліотеку, реалізувати список, що підтримує сортування перетягуванням.
 
-- [ ] **Task 3.2: Optimize Drag Visuals.**
-    - [ ] **Sub-task 3.2.1:** Use `Modifier.graphicsLayer` for efficient translation of the dragged item.
-    - [ ] **Sub-task 3.2.2:** Use `Modifier.zIndex()` to ensure the dragged item always appears above other elements.
+- [ ] **Завдання 2.2: Замінити свайп-дії на Bottom Sheet.**
+  - Додати іконку "more_vert" до кожного `BacklogItem`.
+  - Створити Bottom Sheet, який буде показувати дії, раніше доступні через свайп (наприклад, "Видалити", "Редагувати").
+  - Підключити логіку відкриття Bottom Sheet по кліку на іконку.
 
-## Phase 4: Testing
+---
 
-- [ ] **Task 4.1: Develop Unit Tests.**
-    - [ ] **Sub-task 4.1.1:** Write comprehensive unit tests for the `ReorderableState` holder and the `Scroller` module to ensure their logic is robust.
+### **Фаза 3: Інтеграція та заміна**
+
+- [ ] **Завдання 3.1: Інтегрувати новий composable у головний екран.**
+  - Замінити стару реалізацію списку беклогу на новий `BacklogListScreen`.
+
+- [ ] **Завдання 3.2: Підключити дані та події.**
+  - Передати дані (список елементів беклогу) у новий composable.
+  - Налаштувати обробку подій: оновлення порядку елементів у ViewModel після dnd та виконання дій з Bottom Sheet.
+
+---
+
+### **Фаза 4: Очищення та верифікація**
+
+- [ ] **Завдання 4.1: Видалити старий код.**
+  - Повністю видалити кастомну реалізацію dnd (`DragDropManager`, `DragHandleModifier` тощо), якщо вона більше не використовується в інших частинах додатку.
+
+- [ ] **Завдання 4.2: Провести тестування.**
+  - Перевірити, що drag-and-drop працює плавно.
+  - Перевірити, що Bottom Sheet відкривається, а його дії виконуються коректно.
+  - Переконатися, що UI виглядає правильно на різних екранах.
+
+- [ ] **Завдання 4.3: Запропонувати зробити коміт.**
+  - Після успішного завершення всіх робіт запропонувати зафіксувати зміни в Git.

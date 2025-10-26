@@ -13,11 +13,7 @@ import androidx.lifecycle.ViewModel
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
-import com.romankozak.forwardappmobile.ui.dnd.LazyListInfoProvider
-import com.romankozak.forwardappmobile.ui.dnd.LazyListStateProviderImpl
-import com.romankozak.forwardappmobile.ui.dnd.ReorderableState
-import androidx.compose.runtime.snapshotFlow
+
 
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -307,9 +303,8 @@ constructor(
   val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
 
   private lateinit var lazyListState: LazyListState
-  private lateinit var lazyListInfoProvider: LazyListStateProviderImpl
-  lateinit var reorderableState: ReorderableState
-  val dragState: StateFlow<DragAndDropState> get() = snapshotFlow { reorderableState.dndState }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DragAndDropState())
+
+
 
 
   private val _uiState =
@@ -548,7 +543,7 @@ constructor(
         loadAllContexts()
     
         lazyListState = LazyListState(0, 0)
-        initializeDragDrop(lazyListState)
+
 
 
       }
@@ -926,40 +921,21 @@ constructor(
     _uiState.update { it.copy(newlyAddedItemId = null) }
   }
 
-  fun moveItem(fromIndex: Int, toIndex: Int) {
-    Log.d(TAG, "moveItem called with fromIndex: $fromIndex, toIndex: $toIndex")
+  fun onMove(fromIndex: Int, toIndex: Int) {
+    Log.d(TAG, "onMove called with fromIndex: $fromIndex, toIndex: $toIndex")
     viewModelScope.launch {
-        val currentContent = _listContent.value
-        val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
-
-        if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) {
-            return@launch
-        }
-
-        val itemToMove = draggableItems[fromIndex]
-        val itemAtTarget = draggableItems[toIndex]
-
-        Log.d(TAG, "itemToMove: ${itemToMove.listItem.id}, itemAtTarget: ${itemAtTarget.listItem.id}")
-
-        val actualFromIndex = currentContent.indexOf(itemToMove)
-        val actualToIndex = currentContent.indexOf(itemAtTarget)
-
-        Log.d(TAG, "actualFromIndex: $actualFromIndex, actualToIndex: $actualToIndex")
-
-        val mutableList = currentContent.toMutableList()
-        val movedItem = mutableList.removeAt(actualFromIndex)
-        mutableList.add(actualToIndex, movedItem)
-
-        _listContent.value = mutableList
-        Log.d(TAG, "_listContent updated")
-        saveListOrder(mutableList)
+        val currentContent = _listContent.value.toMutableList()
+        val movedItem = currentContent.removeAt(fromIndex)
+        currentContent.add(toIndex, movedItem)
+        _listContent.value = currentContent
+        saveListOrder(currentContent)
     }
   }
 
   fun onMoveToTop(item: ListItemContent) {
     val fromIndex = _listContent.value.indexOf(item)
     if (fromIndex != -1) {
-        moveItem(fromIndex, 0)
+        onMove(fromIndex, 0)
         viewModelScope.launch { _uiEventFlow.send(UiEvent.ScrollTo(0)) }
     }
   }
@@ -1810,23 +1786,7 @@ constructor(
         _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
     }
 
-    fun setLazyListState(state: LazyListState) {
-        this.lazyListState = state
-        initializeDragDrop(state)
-    }
 
-    private fun initializeDragDrop(state: LazyListState) {
-        this.lazyListInfoProvider = LazyListStateProviderImpl(state)
-        this.reorderableState = ReorderableState(
-            scope = viewModelScope,
-            onMove = { from, to ->
-                Log.d(TAG, "onMove called with from: $from, to: $to")
-                moveItem(from, to)
-            },
-            scrollBy = { state.scrollBy(it) },
-            lazyListInfoProvider = lazyListInfoProvider
-        )
-    }
 
 
 }
