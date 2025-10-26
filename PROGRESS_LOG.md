@@ -36,3 +36,6 @@
 - The root cause of the issue was identified as a stale `LazyListState` being used by the `DragDropManager`. The `DragDropManager` was initialized in the `ViewModel`'s `init` block with a `LazyListState` that was different from the one used by the UI.
 - The fix involved refactoring the `DragDropManager` initialization into a separate function that is called whenever the `LazyListState` is set from the UI. This ensures that the `DragDropManager` is always using the correct `LazyListState`.
 - After implementing the fix and verifying with logs, the auto-scroll and drag-and-drop functionalities are now working as expected.
+
+**New Issue:**
+- While the drop functionality now works, there is a visual glitch where the drag shadow is not in sync with the finger during auto-scroll. The shadow moves much faster than the finger, and sometimes flies off the screen.
