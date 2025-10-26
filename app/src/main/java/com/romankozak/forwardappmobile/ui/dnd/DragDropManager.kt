@@ -15,7 +15,9 @@ class DragDropManager(
     private val scope: CoroutineScope,
     private val onMove: (Int, Int) -> Unit,
     private val scrollBy: suspend (Float) -> Unit,
-    private val lazyListInfoProvider: LazyListInfoProvider
+    private val lazyListInfoProvider: LazyListInfoProvider,
+    private val hotZonePercentage: Float = 0.2f,
+    private val maxScrollSpeed: Float = 100f
 ) {
     init {
         Log.d("DragDropManager", "DragDropManager created")
@@ -41,7 +43,8 @@ class DragDropManager(
                 initialItemOffset = initialItemOffset,
                 dragOffsetInItem = dragOffsetInItem,
                 draggedItemHeight = itemHeight,
-                ghostScreenY = offset.y - dragOffsetInItem
+                ghostScreenY = offset.y - dragOffsetInItem,
+                totalScrollAmount = 0f
             )
         }
 
@@ -52,25 +55,28 @@ class DragDropManager(
                 delay(16)
                 val fingerY = _dragState.value.dragAmount.y
                 val viewportHeight = lazyListInfoProvider.viewportSize.height.toFloat()
-                val hotZone = viewportHeight * 0.2f
+                val hotZone = viewportHeight * hotZonePercentage
 
                 Log.d("DragDropManager", "fingerY: $fingerY, viewportHeight: $viewportHeight, hotZone: $hotZone")
 
                 val scrollAmount = when {
                     fingerY < hotZone -> {
                         val distance = hotZone - fingerY
-                        -(distance / hotZone) * 100f
+                        -(distance / hotZone) * maxScrollSpeed
                     }
                     fingerY > viewportHeight - hotZone -> {
                         val distance = fingerY - (viewportHeight - hotZone)
-                        (distance / hotZone) * 100f
+                        (distance / hotZone) * maxScrollSpeed
                     }
                     else -> 0f
                 }
 
                 if (scrollAmount != 0f) {
                     Log.d("DragDropManager", "scrolling by $scrollAmount")
-                    scope.launch { scrollBy(scrollAmount) }
+                    scope.launch { 
+                        scrollBy(scrollAmount) 
+                        _dragState.update { it.copy(totalScrollAmount = it.totalScrollAmount + scrollAmount) }
+                    }
                 }
             }
         }

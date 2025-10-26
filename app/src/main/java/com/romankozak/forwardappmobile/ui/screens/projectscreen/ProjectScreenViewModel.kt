@@ -1832,7 +1832,10 @@ constructor(
                 moveItem(from, to)
             },
             scrollBy = { state.scrollBy(it) },
-            lazyListInfoProvider = lazyListInfoProvider
+            lazyListInfoProvider = lazyListInfoProvider,
+            // TODO: Make these configurable
+            hotZonePercentage = 0.2f,
+            maxScrollSpeed = 100f
         )
         this.dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
     }

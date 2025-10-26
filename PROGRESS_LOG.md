@@ -1,3 +1,24 @@
+## 2025-10-26 (Evening)
+
+### Strategy Update: Adopt Proven D&D Architecture
+
+**Analysis:**
+- An analysis of the `sh.calvin.reorderable` library was conducted via `Gemini_Reorderable_Analysis.md`.
+- The analysis revealed a clean, modular architecture and a specific formula to solve our primary visual glitch (shadow desynchronization during auto-scroll).
+
+**Decision:**
+- The drag-and-drop feature will be refactored to adopt the architectural patterns from the analyzed library.
+- This decision aligns perfectly with the goals of the master plan.
+
+**Immediate Action:**
+- The first step will be to fix the shadow desynchronization by implementing the scroll compensation formula:
+  `shadow_offset = (initial_item_pos - current_item_pos) + finger_offset`
+
+**Documentation:**
+- `MASTER_PLAN.md` and `CURRENT_PROBLEM.md` have been updated to reflect this new, more detailed strategy.
+
+---
+
 ## 2025-10-26
 
 ### Fixed: Auto-scroll issue in drag and drop
