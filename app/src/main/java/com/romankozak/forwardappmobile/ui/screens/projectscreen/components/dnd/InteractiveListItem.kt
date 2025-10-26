@@ -13,9 +13,12 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material3.Divider
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
+
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -38,6 +41,7 @@ fun LazyItemScope.InteractiveListItem(
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onCopyContentRequest: () -> Unit,
     onToggleCompleted: () -> Unit,
+    isTarget: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable (isDragging: Boolean) -> Unit,
 ) {
@@ -60,38 +64,48 @@ fun LazyItemScope.InteractiveListItem(
 
     val isDraggingThisItem = dragAndDropState.dragInProgress && dragAndDropState.draggedItemIndex == index
 
-    val itemModifier = if (isDraggingThisItem) {
-        modifier.graphicsLayer { alpha = 0f }  // Invisible, but occupies space
-    } else {
-        modifier.animateItem()
-    }
+    Box(modifier = modifier) {
+        if (isTarget) {
+            Divider(
+                color = MaterialTheme.colorScheme.primary,
+                thickness = 2.dp,
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
+            )
+        }
 
-    SwipeableListItem(
-        modifier = itemModifier,
-        isDragging = isDraggingThisItem,
-        isAnyItemDragging = dragAndDropState.dragInProgress,
-        swipeEnabled = swipeEnabled,
-        isAnotherItemSwiped = isAnotherItemSwiped,
-        resetTrigger = resetTrigger,
-        onSwipeStart = onSwipeStart,
-        onDelete = onDelete,
-        onMoreActionsRequest = onMoreActionsRequest,
-        onMoveToTopRequest = onMoveToTopRequest,
-        onGoalTransportRequest = { onShowGoalTransportMenu(item) },
-        onStartTrackingRequest = onStartTrackingRequest,
-        onAddToDayPlanRequest = onAddToDayPlanRequest,
-        onCopyContentRequest = onCopyContentRequest,
-        onToggleCompleted = onToggleCompleted,
-        backgroundColor = backgroundColor,
-        content = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    content(isDraggingThisItem)
+        val itemModifier = if (isDraggingThisItem) {
+            Modifier.graphicsLayer { alpha = 0f }  // Invisible, but occupies space
+        } else {
+            Modifier.animateItem()
+        }
+
+        SwipeableListItem(
+            modifier = itemModifier,
+            isDragging = isDraggingThisItem,
+            isAnyItemDragging = dragAndDropState.dragInProgress,
+            swipeEnabled = swipeEnabled,
+            isAnotherItemSwiped = isAnotherItemSwiped,
+            resetTrigger = resetTrigger,
+            onSwipeStart = onSwipeStart,
+            onDelete = onDelete,
+            onMoreActionsRequest = onMoreActionsRequest,
+            onMoveToTopRequest = onMoveToTopRequest,
+            onGoalTransportRequest = { onShowGoalTransportMenu(item) },
+            onStartTrackingRequest = onStartTrackingRequest,
+            onAddToDayPlanRequest = onAddToDayPlanRequest,
+            onCopyContentRequest = onCopyContentRequest,
+            onToggleCompleted = onToggleCompleted,
+            backgroundColor = backgroundColor,
+            content = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        content(isDraggingThisItem)
+                    }
                 }
-            }
-        },
-    )
+            },
+        )
+    }
 }

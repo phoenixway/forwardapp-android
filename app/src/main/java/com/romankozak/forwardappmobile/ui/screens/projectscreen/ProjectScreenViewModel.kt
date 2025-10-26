@@ -530,6 +530,7 @@ constructor(
 
     viewModelScope.launch {
         databaseContentStream.collect { dbContent ->
+            Log.d(TAG, "databaseContentStream collected, list size: ${dbContent.size}")
             _listContent.value = dbContent
         }
     }
@@ -552,7 +553,10 @@ constructor(
         lazyListInfoProvider = LazyListStateProviderImpl(lazyListState)
         dragDropManager = DragDropManager(
             scope = viewModelScope,
-            onMove = { from, to -> moveItem(from, to) },
+            onMove = { from, to -> 
+                Log.d(TAG, "onMove called with from: $from, to: $to")
+                moveItem(from, to) 
+            },
             scrollBy = { lazyListState.scrollBy(it) }
         )
         dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
@@ -940,6 +944,7 @@ constructor(
   }
 
   fun moveItem(fromIndex: Int, toIndex: Int) {
+    Log.d(TAG, "moveItem called with fromIndex: $fromIndex, toIndex: $toIndex")
     viewModelScope.launch {
         val currentContent = _listContent.value
         val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
@@ -951,14 +956,19 @@ constructor(
         val itemToMove = draggableItems[fromIndex]
         val itemAtTarget = draggableItems[toIndex]
 
+        Log.d(TAG, "itemToMove: ${itemToMove.listItem.id}, itemAtTarget: ${itemAtTarget.listItem.id}")
+
         val actualFromIndex = currentContent.indexOf(itemToMove)
         val actualToIndex = currentContent.indexOf(itemAtTarget)
+
+        Log.d(TAG, "actualFromIndex: $actualFromIndex, actualToIndex: $actualToIndex")
 
         val mutableList = currentContent.toMutableList()
         val movedItem = mutableList.removeAt(actualFromIndex)
         mutableList.add(actualToIndex, movedItem)
 
         _listContent.value = mutableList
+        Log.d(TAG, "_listContent updated")
         saveListOrder(mutableList)
     }
   }

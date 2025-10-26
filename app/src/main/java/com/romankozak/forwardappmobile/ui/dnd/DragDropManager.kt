@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.ui.dnd
 
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -67,6 +68,7 @@ class DragDropManager(
     }
 
     fun onDrag(position: Offset) {
+        Log.d("DragDropManager", "onDrag called with position: $position")
         _dragState.update { 
             it.copy(
                 dragAmount = position,
@@ -79,6 +81,8 @@ class DragDropManager(
         autoScrollJob?.cancel()
         val draggedItemIndex = _dragState.value.draggedItemIndex
         val targetItemIndex = _dragState.value.targetItemIndex
+
+        Log.d("DragDropManager", "onDragEnd called. draggedItemIndex: $draggedItemIndex, targetItemIndex: $targetItemIndex")
 
         if (draggedItemIndex != null && targetItemIndex != null && draggedItemIndex != targetItemIndex) {
             onMove(draggedItemIndex, targetItemIndex)

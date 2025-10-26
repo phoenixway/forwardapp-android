@@ -35,11 +35,11 @@ fun BacklogView(
     viewModel: BacklogViewModel,
     uiState: UiState,
     listState: LazyListState,
-    listContent: List<ListItemContent>,
     isAttachmentsExpanded: Boolean,
     swipeEnabled: Boolean,
     dragDropManager: com.romankozak.forwardappmobile.ui.dnd.DragDropManager,
 ) {
+    val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
@@ -117,6 +117,7 @@ fun BacklogView(
                         listState = listState,
                         isSelected = isSelected,
                         isHighlighted = isHighlighted,
+                        isTarget = dragState.targetItemIndex == index,
                         swipeEnabled = swipeEnabled && !isAnyDragHandleActive,
                         isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id),
                         resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0,

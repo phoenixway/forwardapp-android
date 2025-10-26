@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.ui.dnd
 
 import android.util.Log
 
+
+
 private const val TAG = "DnDVisualsManager"
 
 class DnDVisualsManager(
@@ -10,7 +12,7 @@ class DnDVisualsManager(
 ) {
     fun calculateTargetIndex(dragAndDropState: DragAndDropState) {
         val draggedItemIndex = dragAndDropState.draggedItemIndex
-        val dragAmount = dragAndDropState.dragAmount
+        val ghostScreenY = dragAndDropState.ghostScreenY
 
         if (!dragAndDropState.dragInProgress || draggedItemIndex == null) return
 
@@ -18,8 +20,7 @@ class DnDVisualsManager(
             .firstOrNull { item ->
                 val itemTop = item.offset
                 val itemBottom = item.offset + item.size
-                val fingerY = dragAmount.y
-                fingerY > itemTop && fingerY < itemBottom && item.index != draggedItemIndex
+                ghostScreenY > itemTop && ghostScreenY < itemBottom && item.index != draggedItemIndex
             }?.index
 
         if (newTargetIndex != dragAndDropState.targetItemIndex) {
