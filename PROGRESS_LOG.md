@@ -20,10 +20,19 @@
     - Added logging to `dragHandle` modifier and `onDragStart` to verify its execution.
 
 **Current Status & Problem:**
-Despite the implemented fixes and added logging, the logs from `DragDropManager.kt` are not appearing in the application's output. This indicates that the changes made to `DragDropManager.kt` are not being correctly applied during the build process. Logs from `DragHandleModifier.kt` confirm that the drag gesture is detected and `onDragStart` is called, but the `DragDropManager`'s internal logic (including auto-scroll) is not being executed as expected.
+- The auto-scroll issue was initially thought to be a build system caching problem, leading to the creation of `NewDragDropManager.kt` and extensive refactoring. This approach was reverted.
+- The core problem was identified as incorrect coordinate calculation in `DragHandleModifier.kt`, where `change.position` (relative to the composable) was used instead of `change.positionOnScreen` (relative to the screen).
+- After attempting to fix this, a new issue arose: `positionOnScreen` was an unresolved reference.
+- The current state is that `DragHandleModifier.kt` is using `onGloballyPositioned` to get the `positionInRoot` and adding it to `it` and `change.position`. This has resolved the visual shadow issue.
+- However, logs from `DragDropManager` are still not appearing, even though `DragHandleModifier` confirms `dragDropManager` is not null. This suggests that the `onDragStart` method of `DragDropManager` is not being called, or its internal logs are not being printed.
 
 **Next Steps:**
-- Revert temporary logging in `DragHandleModifier.kt`.
-- Delete and recreate `DragDropManager.kt` to force recompilation.
-- Perform a clean build.
-- Re-verify logs after user reproduces the issue.
+- **Action 1: Add comprehensive logging to `DragDropManager.kt` and `DragHandleModifier.kt`** to trace the execution flow and pinpoint where the logs are being lost. This includes logging the `offset`, `positionInRoot`, `dragOffsetInItem`, and the final `offset` passed to `dragDropManager.onDragStart`.
+- **Action 2: Investigate the `LazyListStateProviderImpl` and `LazyListInfoProvider`** to ensure they are correctly providing the `viewportSize` and `lazyListItemInfo`.
+- **Action 3: Perform a clean build of the project (`make clean` then `make debug-cycle`).**
+- **Action 4: Ask the user to reproduce the issue and provide new logs** to confirm that the `DragDropManager` logs are now appearing and auto-scroll is functioning correctly.
+
+**Resolution:**
+- The root cause of the issue was identified as a stale `LazyListState` being used by the `DragDropManager`. The `DragDropManager` was initialized in the `ViewModel`'s `init` block with a `LazyListState` that was different from the one used by the UI.
+- The fix involved refactoring the `DragDropManager` initialization into a separate function that is called whenever the `LazyListState` is set from the UI. This ensures that the `DragDropManager` is always using the correct `LazyListState`.
+- After implementing the fix and verifying with logs, the auto-scroll and drag-and-drop functionalities are now working as expected.
