@@ -50,6 +50,8 @@ fun BacklogView(
     val currentListContextEmojiToHide by viewModel.currentProjectContextEmojiToHide.collectAsStateWithLifecycle()
     val subprojectChildren by viewModel.subprojectChildren.collectAsStateWithLifecycle()
     val dragState by viewModel.dragState.collectAsState()
+    
+    var isAnyDragHandleActive by remember { mutableStateOf(false) }
 
     LaunchedEffect(listState) {
         viewModel.setLazyListState(listState)
@@ -90,6 +92,7 @@ fun BacklogView(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxWidth().weight(1f),
+            userScrollEnabled = !isAnyDragHandleActive
         ) {
             itemsIndexed(
                 items = draggableItems,
@@ -99,8 +102,6 @@ fun BacklogView(
                 val isHighlighted =
                     (uiState.itemToHighlight == content.listItem.id) ||
                         (content is ListItemContent.GoalItem && content.goal.id == uiState.goalToHighlight)
-                
-                var isDragHandleActive by remember { mutableStateOf(false) }
 
                 InteractiveListItem(
                     item = content,
@@ -110,8 +111,7 @@ fun BacklogView(
                     listState = listState,
                     isSelected = isSelected,
                     isHighlighted = isHighlighted,
-                    swipeEnabled = swipeEnabled,
-                    isDragHandleActive = isDragHandleActive,
+                    swipeEnabled = swipeEnabled && !isAnyDragHandleActive,
                     isAnotherItemSwiped = (uiState.swipedItemId != null) && (uiState.swipedItemId != content.listItem.id),
                     resetTrigger = uiState.resetTriggers[content.listItem.id] ?: 0,
                     onSwipeStart = { viewModel.onSwipeStart(content.listItem.id) },
@@ -140,7 +140,7 @@ fun BacklogView(
                             else -> {}
                         }
                     },
-                    modifier = Modifier.animateItem()
+                    modifier = Modifier
                 ) { isDragging ->
                     when (content) {
                         is ListItemContent.GoalItem -> {
@@ -171,7 +171,7 @@ fun BacklogView(
                                             itemIndex = index,
                                             lazyListState = listState,
                                             scope = scope,
-                                            onDragStateChanged = { isDragHandleActive = it }
+                                            onDragStateChanged = { isAnyDragHandleActive = it }
                                         )
                                     )
                                 }
@@ -202,7 +202,7 @@ fun BacklogView(
                                             itemIndex = index,
                                             lazyListState = listState,
                                             scope = scope,
-                                            onDragStateChanged = { isDragHandleActive = it }
+                                            onDragStateChanged = { isAnyDragHandleActive = it }
                                         )
                                     )
                                 }

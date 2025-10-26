@@ -62,11 +62,8 @@ class DragDropManager(
         }
     }
 
-    fun onDrag(offset: Offset) {
-        dragJob?.cancel()
-        dragJob = scope.launch {
-            _dragState.update { it.copy(dragAmount = it.dragAmount + offset) }
-        }
+    fun onDrag(position: Offset) {
+        _dragState.update { it.copy(dragAmount = position) }
     }
 
     fun onDragEnd() {
