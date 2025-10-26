@@ -17,6 +17,9 @@ class DragDropManager(
     private val scrollBy: suspend (Float) -> Unit,
     private val lazyListInfoProvider: LazyListInfoProvider
 ) {
+    init {
+        Log.d("DragDropManager", "DragDropManager created")
+    }
     private val _dragState = MutableStateFlow(DragAndDropState())
     val dragState: StateFlow<DragAndDropState> = _dragState.asStateFlow()
 
@@ -29,7 +32,7 @@ class DragDropManager(
         dragOffsetInItem: Float,
         itemHeight: Float
     ) {
-        Log.d("DragDropManager", "onDragStart called")
+        Log.d("DragDropManager", "onDragStart called with offset: $offset, index: $index, initialItemOffset: $initialItemOffset, dragOffsetInItem: $dragOffsetInItem, itemHeight: $itemHeight")
         _dragState.update {
             it.copy(
                 dragInProgress = true,

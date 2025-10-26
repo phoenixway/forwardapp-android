@@ -550,17 +550,7 @@ constructor(
         loadAllContexts()
     
         lazyListState = LazyListState(0, 0)
-        lazyListInfoProvider = LazyListStateProviderImpl(lazyListState)
-        dragDropManager = DragDropManager(
-            scope = viewModelScope,
-            onMove = { from, to -> 
-                Log.d(TAG, "onMove called with from: $from, to: $to")
-                moveItem(from, to) 
-            },
-            scrollBy = { lazyListState.scrollBy(it) },
-            lazyListInfoProvider = lazyListInfoProvider
-        )
-        dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
+        initializeDragDrop(lazyListState)
 
         viewModelScope.launch {
             dragState.collect { state ->
@@ -1830,7 +1820,21 @@ constructor(
 
     fun setLazyListState(state: LazyListState) {
         this.lazyListState = state
-        (this.lazyListInfoProvider as LazyListStateProviderImpl).state = state
+        initializeDragDrop(state)
+    }
+
+    private fun initializeDragDrop(state: LazyListState) {
+        this.lazyListInfoProvider = LazyListStateProviderImpl(state)
+        this.dragDropManager = DragDropManager(
+            scope = viewModelScope,
+            onMove = { from, to ->
+                Log.d(TAG, "onMove called with from: $from, to: $to")
+                moveItem(from, to)
+            },
+            scrollBy = { state.scrollBy(it) },
+            lazyListInfoProvider = lazyListInfoProvider
+        )
+        this.dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
     }
 
 
