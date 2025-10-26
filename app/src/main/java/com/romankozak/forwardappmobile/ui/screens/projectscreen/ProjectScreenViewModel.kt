@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.ui.dnd.LazyListInfoProvider
 import com.romankozak.forwardappmobile.ui.dnd.LazyListStateProviderImpl
 import com.romankozak.forwardappmobile.ui.dnd.DnDVisualsManager
-import com.romankozak.forwardappmobile.ui.dnd.DnDVisualState
+
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
@@ -556,7 +556,14 @@ constructor(
             scrollBy = { lazyListState.scrollBy(it) }
         )
         dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
-        Log.d(TAG, "DragDropManager initialized.")
+
+        viewModelScope.launch {
+            dragState.collect { state ->
+                if (state.dragInProgress) {
+                    dndVisualsManager.calculateTargetIndex(state)
+                }
+            }
+        }
       }
 
   private fun loadAllTags() {

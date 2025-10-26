@@ -21,9 +21,9 @@ class DragDropManager(
     private var autoScrollJob: Job? = null
 
     fun onDragStart(
-        offset: Offset,
-        index: Int,
-        initialItemOffset: Int,
+        offset: Offset, 
+        index: Int, 
+        initialItemOffset: Int, 
         dragOffsetInItem: Float,
         itemHeight: Float
     ) {
@@ -67,7 +67,7 @@ class DragDropManager(
     }
 
     fun onDrag(position: Offset) {
-        _dragState.update {
+        _dragState.update { 
             it.copy(
                 dragAmount = position,
                 ghostScreenY = position.y - it.dragOffsetInItem
