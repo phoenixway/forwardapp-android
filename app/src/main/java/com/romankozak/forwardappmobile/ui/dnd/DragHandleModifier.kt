@@ -13,7 +13,8 @@ fun Modifier.dragHandle(
     itemIndex: Int,
     lazyListState: LazyListState,
     scope: CoroutineScope,
-    onDragStateChanged: (Boolean) -> Unit
+    onDragStateChanged: (Boolean) -> Unit,
+    lazyColumnPosition: androidx.compose.ui.geometry.Offset
 ): Modifier {
     var positionInRoot = androidx.compose.ui.geometry.Offset.Zero
     return this
@@ -27,13 +28,14 @@ fun Modifier.dragHandle(
                     val itemInfo = lazyListState.layoutInfo.visibleItemsInfo
                         .firstOrNull { it.index == itemIndex }
                     if (itemInfo != null) {
-                        val initialItemOffset = itemInfo.offset
-                        val dragOffsetInItem = (it + positionInRoot).y - initialItemOffset
+                        val itemAbsoluteY = lazyColumnPosition.y + itemInfo.offset
+                        val fingerAbsoluteY = (it + positionInRoot).y
+                        val dragOffsetInItem = fingerAbsoluteY - itemAbsoluteY
                         val itemHeight = itemInfo.size.toFloat()
                         state.onDragStart(
                             offset = it + positionInRoot,
                             index = itemInfo.index,
-                            initialItemOffset = initialItemOffset,
+                            initialItemOffset = itemInfo.offset,
                             dragOffsetInItem = dragOffsetInItem,
                             itemHeight = itemHeight
                         )
