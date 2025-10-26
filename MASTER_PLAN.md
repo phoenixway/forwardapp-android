@@ -1,41 +1,25 @@
-- [x] **Рефакторинг архітектури Drag-and-Drop:**
-    - [x] Створити інтерфейс `LazyListInfoProvider` для абстрагування `LazyListState`.
-    - [x] Перенести логіку розрахунку зміщень з `InteractiveListItem` до `DragDropManager`.
-    - [x] Створити `DragAndDropState` для зберігання всього стану dnd.
-    - [x] Оновити `ProjectScreenViewModel` для використання нової архітектури.
-    - [x] Спростити `InteractiveListItem` для відображення стану.
-- [x] **Написати Unit-тести для `DragDropManager`**.
-- [x] **Виправити неправильну позицію елемента, що перетягується, біля верхнього краю списку.**
-- [x] **Перенести логіку управління dnd частково в модифікатор.**
-- [x] **Подальше відокремлення UI-логіки від бізнес-логіки DnD:**
-    - [x] **Створити `DnDVisualState`:** Новий клас даних, який буде містити лише візуальні аспекти DnD (наприклад, `itemOffsets`, `draggedItemHeight`, `isDragging`). Цей стан буде обчислюватися та використовуватися *лише* UI-компонентами.
-    - [x] **Модифікувати `DragAndDropState`:** Зробити його суто логічним, прибравши з нього `itemOffsets` та `draggedItemHeight`. Він буде містити `dragInProgress`, `draggedItemIndex`, `targetItemIndex`.
-    - [x] **Створити `DnDVisualsManager` (або `DnDVisualsCalculator`):** Новий клас, відповідальний за обчислення `DnDVisualState` на основі `DragAndDropState` та `LazyListInfoProvider`. Цей менеджер буде "чистим" класом без залежностей від Compose UI, що дозволить легко тестувати його Unit-тестами.
-    - [x] **Оновити `DraggableItemModifier`:** Він буде отримувати `DragDropManager` та `index` і використовувати їх для детектування жестів.
-    - [x] **Оновити `DragDropManager`:**
-        -   Прибрати логіку обчислення `itemOffsets` та `draggedItemHeight`.
-        -   Його `dragState` тепер буде `StateFlow<DragAndDropState>`.
-        -   Він буде відповідати лише за оновлення логічного `DragAndDropState` та ініціацію `onMove`.
-    - [x] **Оновити `ProjectScreenViewModel`:**
-        -   Він буде ініціалізувати `DnDVisualsManager`.
-        -   Він буде надавати `DragAndDropState` та `DnDVisualState` (або `DnDVisualsManager`) для UI.
-    - [x] **Оновити `InteractiveListItem`:** Він буде отримувати `DragAndDropState` та `DnDVisualState` (або `DnDVisualsManager`) і використовувати їх для відображення.
-    - [x] **Написати Unit-тести для `DnDVisualsManager`:** Перевірити коректність обчислення візуальних зміщень та інших ефектів.
-    - [x] **Перевірити Unit-тести для `DragDropManager`:** Переконатися, що вони все ще коректні та покривають оновлену логіку.
-    - [x] **Провести інтеграційне тестування:** Запустити додаток та перевірити функціональність DnD вручну.
-- [x] **Виправлення відсутності візуальних ефектів DnD та мерехтіння списку:**
-    - [x] Вирішено проблему з `UninitializedPropertyAccessException` для `_dndVisualState`.
-    - [x] Додано `animateItem()` для плавної анімації елементів списку.
-- [x] **Архітектурний рефакторинг DnD для виправлення автоскролу та позиціонування:**
-    - [x] Створити новий модифікатор `dragContainer` для компонента-обгортки.
-    - [x] Реалізувати в `dragContainer` логіку розпізнавання жестів по всій поверхні екрану.
-    - [x] Інтегрувати в `dragContainer` логіку автопрокрутки, яка не буде перериватися.
-    - [x] Видалити застарілу логіку жестів з `BacklogView.kt` та `lazyColumnDragDropGestureHandler.kt`.
-    - [x] Застосувати `dragContainer` до батьківського компонента в `ProjectScreen.kt`.
-    - [x] Виправити розрахунок `targetItemIndex` для коректного розсування елементів.
-    - [x] Виправити позиціонування тіні, врахувавши початкове зміщення пальця всередині елемента.
-    - [x] **Виправити розпізнавання довгого натискання:** Дослідити та виправити проблему з `awaitLongPressOrCancellation`.
-    - [x] Провести інтеграційне тестування.
-- [ ] **Виправити непрацюючий клік на ручці перетягування (не з'являється меню).**
-- [ ] **Реалізувати фактичне переміщення елемента під час перетягування (зараз тільки візуальна ініціація).**
-- [ ] **Виправити поведінку свайпів (половина свайпів повертається в початкове положення).**
+# Master Plan: Refactor Drag and Drop
+
+## Goal:
+Refactor the drag and drop functionality in the backlog view to use the "Ghost Element Pattern" as described in `check.txt`. This will fix the jerky animations and make the code cleaner and more maintainable.
+
+## Steps:
+
+- [ ] **Step 1: Replace dnd-related files with the content from `check.txt`**
+    - [ ] `app/src/main/java/com/romankozak/forwardappmobile/ui/dnd/DragAndDropState.kt`
+    - [ ] `app/src/main/java/com/romankozak/forwardappmobile/ui/dnd/DragDropManager.kt`
+    - [ ] `app/src/main/java/com/romankozak/forwardappmobile/ui/dnd/DnDVisualsManager.kt`
+    - [ ] `app/src/main/java/com/romankozak/forwardappmobile/ui/screens/projectscreen/components/dnd/InteractiveListItem.kt`
+    - [ ] `app/src/main/java/com/romankozak/forwardappmobile/ui/dnd/DragHandleModifier.kt`
+
+- [ ] **Step 2: Update `BacklogView.kt`**
+    - [ ] Replace the existing `BacklogView.kt` with the version from `check.txt`.
+
+- [ ] **Step 3: Update `ProjectScreenContent.kt`**
+    - [ ] Remove the `dndVisualState` parameter from the `BacklogView` call.
+
+- [ ] **Step 4: Update `BacklogViewModel.kt`**
+    - [ ] Replace the `dndVisualsManager` initialization and the `dragState` collection with the version from `check.txt`.
+
+- [ ] **Step 5: Verify compilation**
+    - [ ] Run a build to ensure all the changes compile correctly.

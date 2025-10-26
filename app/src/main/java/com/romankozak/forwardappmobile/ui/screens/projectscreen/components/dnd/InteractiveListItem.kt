@@ -3,15 +3,8 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.animateItemPlacement
-import androidx.compose.foundation.lazy.animateItemPlacement
-import androidx.compose.foundation.lazy.animateItemPlacement
-import androidx.compose.foundation.lazy.animateItemPlacement
-import androidx.compose.foundation.lazy.animateItemPlacement
-import androidx.compose.foundation.lazy.animateItemPlacement
-import androidx.compose.foundation.lazy.animateItemPlacement
-import androidx.compose.foundation.lazy.animateItemPlacement
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -20,15 +13,13 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.StateFlow
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.SwipeableListItem
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun InteractiveListItem(
+fun LazyItemScope.InteractiveListItem(
     item: ListItemContent,
     index: Int,
     dragAndDropState: DragAndDropState,
@@ -72,7 +63,7 @@ fun InteractiveListItem(
     val itemModifier = if (isDraggingThisItem) {
         modifier.graphicsLayer { alpha = 0f }  // Invisible, but occupies space
     } else {
-        modifier.animateItemPlacement()  // Natural LazyColumn animation
+        modifier.animateItem()
     }
 
     SwipeableListItem(

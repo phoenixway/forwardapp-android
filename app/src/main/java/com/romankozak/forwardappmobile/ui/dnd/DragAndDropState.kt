@@ -9,6 +9,7 @@ data class DragAndDropState(
     val dragAmount: Offset = Offset.Zero,
     val initialItemOffset: Int = 0,
     val dragOffsetInItem: Float = 0f,
+    // ✅ НОВЕ: Дані для рендерингу ghost елемента
     val draggedItemHeight: Float = 0f,
-    val ghostScreenY: Float = 0f
+    val ghostScreenY: Float = 0f  // Абсолютна Y позиція на екрані
 )

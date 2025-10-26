@@ -63,10 +63,9 @@ fun BacklogView(
         }
     }
 
-    // ✅ Оновлюємо targetIndex при русі
     LaunchedEffect(dragState.dragAmount) {
         if (dragState.dragInProgress) {
-            viewModel.dndVisualsManager.calculateTargetIndex(dragState) // This is how the targetIndex is updated
+            viewModel.dndVisualsManager.calculateTargetIndex(dragState)
         }
     }
 
@@ -194,7 +193,7 @@ fun BacklogView(
                                     onClick = { viewModel.itemActionHandler.onItemClick(content) },
                                     onLongClick = { viewModel.toggleSelection(content.listItem.id) },
                                     onCheckedChange = { isCompleted ->
-                                        viewModel.onSubprojectCompletedChanged(content.project, !content.project.isCompleted)
+                                        viewModel.onSubprojectCompletedChanged(content.project, isCompleted)
                                     },
                                     childProjects = children,
                                     onChildProjectClick = { child -> viewModel.onChildProjectClick(child) },
@@ -224,69 +223,70 @@ fun BacklogView(
             }
         }
 
-        // ✅ GHOST ELEMENT - render here
         if (dragState.dragInProgress && dragState.draggedItemIndex != null) {
-            val draggedItem = draggableItems.getOrNull(dragState.draggedItemIndex!!)
-            if (draggedItem != null) {
-                Box(
-                    modifier = Modifier
-                        .offset { IntOffset(0, dragState.ghostScreenY.roundToInt()) }
-                        .zIndex(999f)
-                        .graphicsLayer {
-                            alpha = 0.9f
-                            shadowElevation = 16f
-                            
+            val draggedIndex = dragState.draggedItemIndex
+            if (draggedIndex != null) {
+                val draggedItem = draggableItems.getOrNull(draggedIndex)
+                if (draggedItem != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset { IntOffset(0, dragState.ghostScreenY.roundToInt()) }
+                            .zIndex(999f)
+                            .graphicsLayer {
+                                alpha = 0.9f
+                                shadowElevation = 16f
+                            }
+                    ) {
+                        when (draggedItem) {
+                            is ListItemContent.GoalItem -> {
+                                GoalItem(
+                                    goal = draggedItem.goal,
+                                    reminders = draggedItem.reminders,
+                                    obsidianVaultName = obsidianVaultName,
+                                    showCheckbox = uiState.showCheckboxes,
+                                    onCheckedChange = {},
+                                    onItemClick = {},
+                                    onLongClick = {},
+                                    onTagClick = {},
+                                    onRelatedLinkClick = {},
+                                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                    emojiToHide = currentListContextEmojiToHide,
+                                    isSelected = false,
+                                    endAction = {
+                                        MoreActionsButton(
+                                            isDragging = true,
+                                            onMoreClick = {},
+                                            dragHandleModifier = Modifier
+                                        )
+                                    }
+                                )
+                            }
+                            is ListItemContent.SublistItem -> {
+                                val children = subprojectChildren[draggedItem.project.id] ?: emptyList()
+                                SubprojectItemRow(
+                                    subprojectContent = draggedItem,
+                                    reminders = draggedItem.reminders,
+                                    isSelected = false,
+                                    showCheckbox = uiState.showCheckboxes,
+                                    onClick = {},
+                                    onLongClick = {},
+                                    onCheckedChange = {},
+                                    childProjects = children,
+                                    onChildProjectClick = {},
+                                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                                    emojiToHide = currentListContextEmojiToHide,
+                                    endAction = {
+                                        MoreActionsButton(
+                                            isDragging = true,
+                                            onMoreClick = {},
+                                            dragHandleModifier = Modifier
+                                        )
+                                    }
+                                )
+                            }
+                            else -> {}
                         }
-                ) {
-                    // Render the same content
-                    when (draggedItem) {
-                        is ListItemContent.GoalItem -> {
-                            GoalItem(
-                                goal = draggedItem.goal,
-                                reminders = draggedItem.reminders,
-                                obsidianVaultName = obsidianVaultName,
-                                showCheckbox = uiState.showCheckboxes,
-                                onCheckedChange = {},
-                                onItemClick = {},
-                                onLongClick = {},
-                                onTagClick = {},
-                                onRelatedLinkClick = {},
-                                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                                emojiToHide = currentListContextEmojiToHide,
-                                isSelected = false,
-                                endAction = {
-                                    MoreActionsButton(
-                                        isDragging = true,
-                                        onMoreClick = {},
-                                        dragHandleModifier = Modifier
-                                    )
-                                }
-                            )
-                        }
-                        is ListItemContent.SublistItem -> {
-                            val children = subprojectChildren[draggedItem.project.id] ?: emptyList()
-                            SubprojectItemRow(
-                                subprojectContent = draggedItem,
-                                reminders = draggedItem.reminders,
-                                isSelected = false,
-                                showCheckbox = uiState.showCheckboxes,
-                                onClick = {},
-                                onLongClick = {},
-                                onCheckedChange = {},
-                                childProjects = children,
-                                onChildProjectClick = {},
-                                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                                emojiToHide = currentListContextEmojiToHide,
-                                endAction = {
-                                    MoreActionsButton(
-                                        isDragging = true,
-                                        onMoreClick = {},
-                                        dragHandleModifier = Modifier
-                                    )
-                                }
-                            )
-                        }
-                        else -> {}
                     }
                 }
             }
