@@ -13,11 +13,11 @@ import androidx.lifecycle.ViewModel
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.ui.dnd.DragDropManager
 import com.romankozak.forwardappmobile.ui.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.ui.dnd.LazyListInfoProvider
 import com.romankozak.forwardappmobile.ui.dnd.LazyListStateProviderImpl
-import com.romankozak.forwardappmobile.ui.dnd.DnDVisualsManager
+import com.romankozak.forwardappmobile.ui.dnd.ReorderableState
+import androidx.compose.runtime.snapshotFlow
 
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -308,10 +308,8 @@ constructor(
 
   private lateinit var lazyListState: LazyListState
   private lateinit var lazyListInfoProvider: LazyListStateProviderImpl
-  lateinit var dragDropManager: DragDropManager
-  val dragState: StateFlow<DragAndDropState> get() = dragDropManager.dragState
-
-  lateinit var dndVisualsManager: DnDVisualsManager
+  lateinit var reorderableState: ReorderableState
+  val dragState: StateFlow<DragAndDropState> get() = snapshotFlow { reorderableState.dndState }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DragAndDropState())
 
 
   private val _uiState =
@@ -552,13 +550,7 @@ constructor(
         lazyListState = LazyListState(0, 0)
         initializeDragDrop(lazyListState)
 
-        viewModelScope.launch {
-            dragState.collect { state ->
-                if (state.dragInProgress) {
-                    dndVisualsManager.calculateTargetIndex(state)
-                }
-            }
-        }
+
       }
 
   private fun loadAllTags() {
@@ -1825,19 +1817,15 @@ constructor(
 
     private fun initializeDragDrop(state: LazyListState) {
         this.lazyListInfoProvider = LazyListStateProviderImpl(state)
-        this.dragDropManager = DragDropManager(
+        this.reorderableState = ReorderableState(
             scope = viewModelScope,
             onMove = { from, to ->
                 Log.d(TAG, "onMove called with from: $from, to: $to")
                 moveItem(from, to)
             },
             scrollBy = { state.scrollBy(it) },
-            lazyListInfoProvider = lazyListInfoProvider,
-            // TODO: Make these configurable
-            hotZonePercentage = 0.2f,
-            maxScrollSpeed = 100f
+            lazyListInfoProvider = lazyListInfoProvider
         )
-        this.dndVisualsManager = DnDVisualsManager(lazyListInfoProvider, dragDropManager)
     }
 
 

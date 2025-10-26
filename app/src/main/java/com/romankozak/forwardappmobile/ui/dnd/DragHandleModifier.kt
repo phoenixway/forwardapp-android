@@ -9,7 +9,7 @@ import androidx.compose.ui.layout.positionInRoot
 import kotlinx.coroutines.CoroutineScope
 
 fun Modifier.dragHandle(
-    dragDropManager: DragDropManager,
+    state: ReorderableState,
     itemIndex: Int,
     lazyListState: LazyListState,
     scope: CoroutineScope,
@@ -30,7 +30,7 @@ fun Modifier.dragHandle(
                         val initialItemOffset = itemInfo.offset
                         val dragOffsetInItem = (it + positionInRoot).y - initialItemOffset
                         val itemHeight = itemInfo.size.toFloat()
-                        dragDropManager.onDragStart(
+                        state.onDragStart(
                             offset = it + positionInRoot,
                             index = itemInfo.index,
                             initialItemOffset = initialItemOffset,
@@ -40,15 +40,15 @@ fun Modifier.dragHandle(
                     }
                 },
                 onDragEnd = {
-                    dragDropManager.onDragEnd()
+                    state.onDragEnd()
                     onDragStateChanged(false)
                 },
                 onDragCancel = {
-                    dragDropManager.onDragEnd()
+                    state.onDragEnd()
                     onDragStateChanged(false)
                 },
                 onDrag = { change, dragAmount ->
-                    dragDropManager.onDrag(change.position + positionInRoot)
+                    state.onDrag(change.position + positionInRoot)
                     change.consume()
                 }
             )

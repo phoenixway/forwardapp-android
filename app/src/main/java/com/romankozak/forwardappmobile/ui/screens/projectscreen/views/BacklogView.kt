@@ -37,7 +37,7 @@ fun BacklogView(
     listState: LazyListState,
     isAttachmentsExpanded: Boolean,
     swipeEnabled: Boolean,
-    dragDropManager: com.romankozak.forwardappmobile.ui.dnd.DragDropManager,
+    reorderableState: com.romankozak.forwardappmobile.ui.dnd.ReorderableState,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
@@ -60,12 +60,6 @@ fun BacklogView(
                 }
                 else -> {}
             }
-        }
-    }
-
-    LaunchedEffect(dragState.dragAmount) {
-        if (dragState.dragInProgress) {
-            viewModel.dndVisualsManager.calculateTargetIndex(dragState)
         }
     }
 
@@ -174,7 +168,7 @@ fun BacklogView(
                                             isDragging = isDragging,
                                             onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                             dragHandleModifier = Modifier.dragHandle(
-                                                dragDropManager = dragDropManager,
+                                                state = viewModel.reorderableState,
                                                 itemIndex = index,
                                                 lazyListState = listState,
                                                 scope = scope,
@@ -205,7 +199,7 @@ fun BacklogView(
                                             isDragging = isDragging,
                                             onMoreClick = { viewModel.itemActionHandler.onGoalActionInitiated(content) },
                                             dragHandleModifier = Modifier.dragHandle(
-                                                dragDropManager = dragDropManager,
+                                                state = viewModel.reorderableState,
                                                 itemIndex = index,
                                                 lazyListState = listState,
                                                 scope = scope,
