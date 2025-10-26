@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 class DragDropManager(
     private val scope: CoroutineScope,
     private val onMove: (Int, Int) -> Unit,
-    private val scrollBy: suspend (Float) -> Unit
+    private val scrollBy: suspend (Float) -> Unit,
+    private val lazyListInfoProvider: LazyListInfoProvider
 ) {
     private val _dragState = MutableStateFlow(DragAndDropState())
     val dragState: StateFlow<DragAndDropState> = _dragState.asStateFlow()
@@ -22,12 +23,13 @@ class DragDropManager(
     private var autoScrollJob: Job? = null
 
     fun onDragStart(
-        offset: Offset, 
-        index: Int, 
-        initialItemOffset: Int, 
+        offset: Offset,
+        index: Int,
+        initialItemOffset: Int,
         dragOffsetInItem: Float,
         itemHeight: Float
     ) {
+        Log.d("DragDropManager", "onDragStart called")
         _dragState.update {
             it.copy(
                 dragInProgress = true,
@@ -42,11 +44,14 @@ class DragDropManager(
 
         autoScrollJob?.cancel()
         autoScrollJob = scope.launch {
+            Log.d("DragDropManager", "autoScrollJob started")
             while (true) {
                 delay(16)
                 val fingerY = _dragState.value.dragAmount.y
-                val viewportHeight = 2000f
+                val viewportHeight = lazyListInfoProvider.viewportSize.height.toFloat()
                 val hotZone = viewportHeight * 0.2f
+
+                Log.d("DragDropManager", "fingerY: $fingerY, viewportHeight: $viewportHeight, hotZone: $hotZone")
 
                 val scrollAmount = when {
                     fingerY < hotZone -> {
@@ -61,6 +66,7 @@ class DragDropManager(
                 }
 
                 if (scrollAmount != 0f) {
+                    Log.d("DragDropManager", "scrolling by $scrollAmount")
                     scope.launch { scrollBy(scrollAmount) }
                 }
             }
@@ -69,7 +75,7 @@ class DragDropManager(
 
     fun onDrag(position: Offset) {
         Log.d("DragDropManager", "onDrag called with position: $position")
-        _dragState.update { 
+        _dragState.update {
             it.copy(
                 dragAmount = position,
                 ghostScreenY = position.y - it.dragOffsetInItem
@@ -78,6 +84,7 @@ class DragDropManager(
     }
 
     fun onDragEnd() {
+        Log.d("DragDropManager", "onDragEnd called")
         autoScrollJob?.cancel()
         val draggedItemIndex = _dragState.value.draggedItemIndex
         val targetItemIndex = _dragState.value.targetItemIndex
