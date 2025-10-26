@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.dnd.dragHandle
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
@@ -79,6 +82,7 @@ fun BacklogView(
     }
 
     val scope = rememberCoroutineScope()
+    var lazyColumnPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -93,7 +97,7 @@ fun BacklogView(
 
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { lazyColumnPosition = it.positionInRoot() },
                 userScrollEnabled = !isAnyDragHandleActive
             ) {
                 itemsIndexed(
@@ -172,7 +176,8 @@ fun BacklogView(
                                                 itemIndex = index,
                                                 lazyListState = listState,
                                                 scope = scope,
-                                                onDragStateChanged = { isAnyDragHandleActive = it }
+                                                onDragStateChanged = { isAnyDragHandleActive = it },
+                                                lazyColumnPosition = lazyColumnPosition
                                             )
                                         )
                                     }
@@ -203,7 +208,8 @@ fun BacklogView(
                                                 itemIndex = index,
                                                 lazyListState = listState,
                                                 scope = scope,
-                                                onDragStateChanged = { isAnyDragHandleActive = it }
+                                                onDragStateChanged = { isAnyDragHandleActive = it },
+                                                lazyColumnPosition = lazyColumnPosition
                                             )
                                         )
                                     }
