@@ -244,6 +244,7 @@ data class Project(
     val createdAt: Long,
     val updatedAt: Long?,
     val tags: List<String>? = null,
+    val relatedLinks: List<RelatedLink>? = null,
     @ColumnInfo(name = "is_expanded", defaultValue = "1") val isExpanded: Boolean = true,
     @ColumnInfo(name = "goal_order", defaultValue = "0") val order: Long = 0,
     @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0") val isAttachmentsExpanded: Boolean = false,

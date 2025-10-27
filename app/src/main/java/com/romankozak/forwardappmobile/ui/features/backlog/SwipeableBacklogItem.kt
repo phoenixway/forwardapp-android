@@ -57,6 +57,7 @@ fun SwipeableBacklogItem(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
+    onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -231,6 +232,7 @@ fun SwipeableBacklogItem(
             onLongClick = { onLongClick(item) },
             onMoreClick = { onMoreClick(item) },
             onCheckedChange = { onCheckedChange(item, it) },
+            onRelatedLinkClick = onRelatedLinkClick,
             showCheckbox = showCheckboxes,
             isSelected = isDragging
         )

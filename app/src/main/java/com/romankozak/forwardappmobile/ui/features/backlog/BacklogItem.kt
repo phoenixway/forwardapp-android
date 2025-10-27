@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
@@ -54,6 +55,7 @@ fun BacklogItem(
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean,
 ) {
@@ -68,6 +70,7 @@ fun BacklogItem(
                 onLongClick = onLongClick,
                 onMoreClick = onMoreClick,
                 onCheckedChange = onCheckedChange,
+                onRelatedLinkClick = onRelatedLinkClick,
                 showCheckbox = showCheckbox,
                 isSelected = isSelected
             )
@@ -81,6 +84,7 @@ fun BacklogItem(
                 onLongClick = onLongClick,
                 onMoreClick = onMoreClick,
                 onCheckedChange = onCheckedChange,
+                onRelatedLinkClick = onRelatedLinkClick,
                 showCheckbox = showCheckbox,
                 isSelected = isSelected
             )
@@ -101,6 +105,7 @@ private fun InternalGoalItem(
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean
 ) {
@@ -181,7 +186,7 @@ private fun InternalGoalItem(
                                 parsedData = parsedData,
                                 reminder = reminder,
                                 emojiToHide = null, // Simplified
-                                onRelatedLinkClick = { /* TODO */ }
+                                onRelatedLinkClick = onRelatedLinkClick
                             )
                         }
                     }
@@ -213,6 +218,7 @@ private fun InternalSubprojectItem(
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean
 ) {
@@ -271,6 +277,28 @@ private fun InternalSubprojectItem(
                         overflow = TextOverflow.Ellipsis,
                         textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null
                     )
+
+                    val shouldShowStatusIcons =
+                        (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                            (parsedData.icons.isNotEmpty()) ||
+                            (!subproject.description.isNullOrBlank()) ||
+                            (!subproject.relatedLinks.isNullOrEmpty())
+
+                    AnimatedVisibility(
+                        visible = shouldShowStatusIcons,
+                        enter = slideInVertically(animationSpec = spring()) { -it } + fadeIn(),
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            StatusIconsRow(
+                                project = subproject,
+                                parsedData = parsedData,
+                                reminder = null, // Subprojects don't have reminders directly
+                                emojiToHide = null, // Simplified
+                                onRelatedLinkClick = onRelatedLinkClick
+                            )
+                        }
+                    }
                 }
 
                 IconButton(

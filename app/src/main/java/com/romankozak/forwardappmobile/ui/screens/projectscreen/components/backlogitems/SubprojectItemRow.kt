@@ -5,15 +5,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.background
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,10 +18,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SubdirectoryArrowRight
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -33,82 +28,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
-import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.ui.reminders.components.ReminderBadge
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.material3.Checkbox
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.AnimatedContextEmoji
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedScoreStatusBadge
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.ModernTagChip
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.TagType
 
-@Composable
-private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
-    Box(
-        modifier =
-            modifier
-                .semantics { contentDescription = "Підсписок" }
-                .padding(2.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(22.dp)
-                    .background(
-                        brush =
-                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                colors = 
-                                    listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                                    ),
-                            ),
-                        shape = CircleShape,
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Default.SubdirectoryArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(14.dp),
-            )
-        }
-    }
-}
-
- 
-
-private sealed class FlowItem {
-    data class SublistIcon(val item: @Composable () -> Unit) : FlowItem()
-    data class ChildProject(val project: Project) : FlowItem()
-    data class ReminderItem(val reminder: Reminder) : FlowItem()
-    data class ScoreStatus(val scoringStatus: String, val displayScore: Int) : FlowItem()
-    data class IconEmoji(val icon: String, val index: Int) : FlowItem()
-    data class Tag(val tag: String) : FlowItem()
-}
-
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SubprojectItemRow(
     subprojectContent: ListItemContent.SublistItem,
@@ -119,8 +55,7 @@ fun SubprojectItemRow(
     showCheckbox: Boolean = false,
     onCheckedChange: (Boolean) -> Unit,
     onTagClick: (String) -> Unit = {},
-    childProjects: List<Project> = emptyList(),
-    onChildProjectClick: (Project) -> Unit = {},
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     contextMarkerToEmojiMap: Map<String, String>,
     emojiToHide: String?,
     reminders: List<Reminder> = emptyList(),
@@ -142,6 +77,13 @@ fun SubprojectItemRow(
         reminders.maxByOrNull { it.reminderTime }
     }
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
+
+    val shouldShowStatusIcons =
+        (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+            (reminder != null) ||
+            (parsedData.icons.isNotEmpty()) ||
+            (!subproject.description.isNullOrBlank()) ||
+            (!subproject.relatedLinks.isNullOrEmpty())
 
     Surface(
         modifier =
@@ -208,85 +150,23 @@ fun SubprojectItemRow(
                         textDecoration = textDecoration,
                     )
 
-                    val hasExtraContent = !subproject.tags.isNullOrEmpty() ||
-                        (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                        (reminder != null) ||
-                        (parsedData.icons.isNotEmpty()) ||
-                        childProjects.isNotEmpty()
-
-                    val items = remember(childProjects, subproject, parsedData, emojiToHide, currentTimeMillis, reminder) {
-                        buildList<FlowItem> {
-                            reminder?.let { add(FlowItem.ReminderItem(it)) }
-                            childProjects.forEach { add(FlowItem.ChildProject(it)) }
-                            add(FlowItem.ScoreStatus(subproject.scoringStatus, subproject.displayScore))
-                            parsedData.icons
-                                .filterNot { icon -> icon == emojiToHide }
-                                .forEachIndexed { index, icon -> add(FlowItem.IconEmoji(icon, index)) }
-                            subproject.tags?.filter { it.isNotBlank() }?.forEach { add(FlowItem.Tag(it)) }
-                        }
-                    }
-
-                    if (hasExtraContent) {
-                        ExpandableFlowRow(
-                            items = items,
-                            maxLinesWhenCollapsed = 2,
-                            horizontalSpacing = 6.dp,
-                            verticalSpacing = 4.dp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
-                        ) { item ->
-                            when (item) {
-                                is FlowItem.SublistIcon -> item.item()
-                                is FlowItem.ChildProject -> {
-                                    EnhancedRelatedLinkChip(
-                                        link = RelatedLink(
-                                            type = LinkType.PROJECT,
-                                            target = item.project.id,
-                                            displayName = item.project.name,
-                                        ),
-                                        onClick = { onChildProjectClick(item.project) },
-                                    )
-                                }
-                                is FlowItem.ReminderItem -> {
-                                    ReminderBadge(
-                                        reminder = item.reminder
-                                    )
-                                }
-                                is FlowItem.ScoreStatus -> {
-                                    EnhancedScoreStatusBadge(
-                                        scoringStatus = item.scoringStatus,
-                                        displayScore = item.displayScore,
-                                    )
-                                }
-                                is FlowItem.IconEmoji -> {
-                                    key(item.icon) {
-                                        var delayedVisible by remember { mutableStateOf(false) }
-                                        LaunchedEffect(Unit) {
-                                            delay(item.index * 50L)
-                                            delayedVisible = true
-                                        }
-                                        AnimatedVisibility(
-                                            visible = delayedVisible,
-                                            enter = scaleIn(
-                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                            ) + fadeIn(),
-                                        ) {
-                                            AnimatedContextEmoji(
-                                                emoji = item.icon,
-                                            )
-                                        }
-                                    }
-                                }
-                                is FlowItem.Tag -> {
-                                    val formattedTag = "#${item.tag.trim().trimStart('#')}"
-                                    ModernTagChip(
-                                        text = formattedTag,
-                                        onClick = { onTagClick(formattedTag) },
-                                        tagType = TagType.PROJECT,
-                                    )
-                                }
-                            }
+                    AnimatedVisibility(
+                        visible = shouldShowStatusIcons,
+                        enter =
+                            slideInVertically(
+                                initialOffsetY = { height -> -height },
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            ) + fadeIn(),
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            StatusIconsRow(
+                                project = subproject,
+                                parsedData = parsedData,
+                                reminder = reminder,
+                                emojiToHide = emojiToHide,
+                                onRelatedLinkClick = onRelatedLinkClick
+                            )
                         }
                     }
 
@@ -314,4 +194,5 @@ fun SubprojectItemRow(
                 endAction()
             }
         }
-}}
+    }
+}

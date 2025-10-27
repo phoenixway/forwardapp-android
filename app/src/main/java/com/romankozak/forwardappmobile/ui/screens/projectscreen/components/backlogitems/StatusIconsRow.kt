@@ -1,21 +1,16 @@
 package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.data.database.models.Goal
-import com.romankozak.forwardappmobile.data.database.models.Reminder
-import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -23,13 +18,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun StatusIconsRow(
-    goal: Goal,
+private fun InternalStatusIconsRow(
+    relatedLinks: List<RelatedLink>?,
+    scoringStatus: String,
+    displayScore: Int,
+    description: String?,
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
@@ -47,8 +52,8 @@ fun StatusIconsRow(
         }
 
         EnhancedScoreStatusBadge(
-            scoringStatus = goal.scoringStatus,
-            displayScore = goal.displayScore,
+            scoringStatus = scoringStatus,
+            displayScore = displayScore,
         )
 
         parsedData.icons
@@ -72,11 +77,11 @@ fun StatusIconsRow(
                 }
             }
 
-        if (!goal.description.isNullOrBlank()) {
+        if (!description.isNullOrBlank()) {
             NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
         }
 
-        goal.relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
+        relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
             key(link.target + link.type?.name) {
                 var delayedVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
@@ -95,4 +100,44 @@ fun StatusIconsRow(
             }
         }
     }
+}
+
+@Composable
+fun StatusIconsRow(
+    goal: Goal,
+    parsedData: ParsedTextData,
+    reminder: Reminder?,
+    emojiToHide: String?,
+    onRelatedLinkClick: (RelatedLink) -> Unit
+) {
+    InternalStatusIconsRow(
+        relatedLinks = goal.relatedLinks,
+        scoringStatus = goal.scoringStatus,
+        displayScore = goal.displayScore,
+        description = goal.description,
+        parsedData = parsedData,
+        reminder = reminder,
+        emojiToHide = emojiToHide,
+        onRelatedLinkClick = onRelatedLinkClick
+    )
+}
+
+@Composable
+fun StatusIconsRow(
+    project: Project,
+    parsedData: ParsedTextData,
+    reminder: Reminder?,
+    emojiToHide: String?,
+    onRelatedLinkClick: (RelatedLink) -> Unit
+) {
+    InternalStatusIconsRow(
+        relatedLinks = project.relatedLinks,
+        scoringStatus = project.scoringStatus,
+        displayScore = project.displayScore,
+        description = project.description,
+        parsedData = parsedData,
+        reminder = reminder,
+        emojiToHide = emojiToHide,
+        onRelatedLinkClick = onRelatedLinkClick
+    )
 }
