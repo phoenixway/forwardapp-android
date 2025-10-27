@@ -58,11 +58,11 @@ fun GoalDetailContent(
                     }
                 },
                 onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
+                onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
                 onMoveToTop = { item -> viewModel.onMoveToTop(item) },
                 onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
-                onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
                 onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
-                onCopyContent = { item -> viewModel.itemActionHandler.copyContentRequest(item) },
+                onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
             )
         }
         ProjectViewMode.INBOX -> {

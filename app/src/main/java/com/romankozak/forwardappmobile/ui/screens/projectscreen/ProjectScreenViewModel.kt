@@ -1346,6 +1346,15 @@ constructor(
     }
   }
 
+  fun onDeleteEverywhere(item: ListItemContent) {
+    viewModelScope.launch {
+        if (item is ListItemContent.GoalItem) {
+            goalRepository.deleteGoal(item.goal.id)
+        }
+    }
+  }
+
+
   fun addItemToDailyPlan(itemContent: ListItemContent) {
     viewModelScope.launch {
       val today = System.currentTimeMillis()

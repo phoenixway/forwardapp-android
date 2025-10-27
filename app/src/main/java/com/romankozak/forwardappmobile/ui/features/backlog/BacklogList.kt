@@ -28,17 +28,16 @@ fun BacklogListScreen(
     onLongClick: (ListItemContent) -> Unit,
     onCheckedChange: (ListItemContent, Boolean) -> Unit,
     onDelete: (ListItemContent) -> Unit,
+    onDeleteEverywhere: (ListItemContent) -> Unit,
     onMoveToTop: (ListItemContent) -> Unit,
     onAddToDayPlan: (ListItemContent) -> Unit,
-    onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
-    onCopyContent: (ListItemContent) -> Unit,
+    onShowGoalTransportMenu: (ListItemContent) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to -> onMove(from.index, to.index) }
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<ListItemContent?>(null) }
-    val hapticFeedback = LocalHapticFeedback.current
 
     if (showBottomSheet && selectedItemForActions != null) {
         BacklogItemActionsBottomSheet(
@@ -48,31 +47,34 @@ fun BacklogListScreen(
             onAddToDayPlan = { onAddToDayPlan(selectedItemForActions!!) },
             onShowGoalTransportMenu = { onShowGoalTransportMenu(selectedItemForActions!!) },
             onStartTracking = { onStartTracking(selectedItemForActions!!) },
-            onCopyContent = { onCopyContent(selectedItemForActions!!) },
+            onCopyContent = { },
         )
     }
 
     LazyColumn(
         state = lazyListState,
         modifier = modifier
-         //   .reorderable(reorderableState)
-           // .detectReorderAfterLongPress(reorderableState)
     ) {
         items(items, key = { it.listItem.id }) { item ->
             ReorderableItem(reorderableState, key = item.listItem.id) { isDragging ->
-                BacklogItem(
+                SwipeableBacklogItem(
                     item = item,
                     reorderableScope = this,
-                    modifier = Modifier,
+                    showCheckboxes = showCheckboxes,
+                    isDragging = isDragging,
                     onItemClick = { onItemClick(item) },
                     onLongClick = { onLongClick(item) },
                     onMoreClick = { 
                         selectedItemForActions = item
                         showBottomSheet = true 
                     },
-                    onCheckedChange = { isChecked -> onCheckedChange(item, isChecked) },
-                    showCheckbox = showCheckboxes,
-                    isSelected = isDragging
+                    onCheckedChange = onCheckedChange,
+                    onDelete = { onDelete(item) },
+                    onDeleteEverywhere = { onDeleteEverywhere(item) },
+                    onMoveToTop = { onMoveToTop(item) },
+                    onAddToDayPlan = { onAddToDayPlan(item) },
+onStartTracking = { onStartTracking(item) },
+                    onShowGoalTransportMenu = { onShowGoalTransportMenu(item) }
                 )
             }
         }

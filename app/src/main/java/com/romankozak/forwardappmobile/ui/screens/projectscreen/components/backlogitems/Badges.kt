@@ -2,13 +2,20 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.back
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -17,12 +24,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.AlarmOff
+import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,13 +41,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -44,44 +58,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.data.database.models.LinkType
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
+import kotlinx.coroutines.delay
 
-@Composable
-fun RelatedLinkChip(
-    link: RelatedLink,
-    onClick: () -> Unit,
-) {
-    val icon =
-        when (link.type) {
-            LinkType.PROJECT -> Icons.Default.ListAlt
-            LinkType.URL -> Icons.Default.Link
-            LinkType.OBSIDIAN -> Icons.Default.Book
-            null -> Icons.Default.BrokenImage
-        }
-    Box(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(imageVector = icon, contentDescription = link.type?.name ?: "Link", modifier = Modifier.size(14.dp))
-            Text(
-                text = link.displayName ?: link.target,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
+
+
+
 
 @Composable
 fun EnhancedScoreStatusBadge(
@@ -93,12 +77,12 @@ fun EnhancedScoreStatusBadge(
             if (displayScore > 0) {
                 val animatedColor by animateColorAsState(
                     targetValue =
-                        when {
-                            displayScore >= 80 -> Color(0xFF4CAF50)
-                            displayScore >= 60 -> Color(0xFFFF9800)
-                            displayScore >= 40 -> Color(0xFFFFEB3B)
-                            else -> Color(0xFFE91E63)
-                        },
+                    when {
+                        displayScore >= 80 -> Color(0xFF4CAF50)
+                        displayScore >= 60 -> Color(0xFFFF9800)
+                        displayScore >= 40 -> Color(0xFFFFEB3B)
+                        else -> Color(0xFFE91E63)
+                    },
                     label = "score_color",
                 )
 
@@ -111,19 +95,19 @@ fun EnhancedScoreStatusBadge(
                 AnimatedVisibility(
                     visible = isVisible,
                     enter =
-                        slideInHorizontally(
-                            initialOffsetX = { fullWidth -> -fullWidth },
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        ) + fadeIn(),
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -fullWidth },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    ) + fadeIn(),
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = animatedColor.copy(alpha = 0.15f),
                         border = BorderStroke(0.6.dp, animatedColor.copy(alpha = 0.3f)),
                         modifier =
-                            Modifier.semantics {
-                                contentDescription = "Оцінка: $displayScore з 100"
-                            },
+                        Modifier.semantics {
+                            contentDescription = "Оцінка: $displayScore з 100"
+                        },
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
@@ -138,12 +122,12 @@ fun EnhancedScoreStatusBadge(
                             )
                             Text(
                                 text = "$displayScore/100",
-                                style =
-                                    MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.2.sp,
-                                        fontSize = 10.sp,
-                                    ),
+                                style = 
+                                MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.2.sp,
+                                    fontSize = 10.sp,
+                                ),
                                 color = animatedColor,
                             )
                         }
@@ -156,19 +140,19 @@ fun EnhancedScoreStatusBadge(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 modifier =
-                    Modifier
-                        .semantics {
-                            contentDescription = "Неможливо оцінити"
-                        },
+                Modifier
+                    .semantics {
+                        contentDescription = "Неможливо оцінити"
+                    },
             ) {
                 Icon(
                     imageVector = Icons.Default.FlashOff,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier =
-                        Modifier
-                            .size(16.dp)
-                            .padding(3.dp),
+                    Modifier
+                        .size(16.dp)
+                        .padding(3.dp),
                 )
             }
         }
