@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -32,16 +33,16 @@ fun StatusIconsRow(
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
-    onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit
+    onRelatedLinkClick: (RelatedLink) -> Unit
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        reminder?.let {
+        if (reminder != null) {
             EnhancedReminderBadge(
-                reminder = it,
+                reminder = reminder,
             )
         }
 

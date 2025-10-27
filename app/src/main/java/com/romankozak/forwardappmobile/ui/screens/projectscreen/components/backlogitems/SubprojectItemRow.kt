@@ -56,6 +56,10 @@ import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.ui.reminders.components.ReminderBadge
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.material3.Checkbox
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.AnimatedContextEmoji
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.EnhancedScoreStatusBadge
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.ModernTagChip
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.TagType
 
 @Composable
 private fun EnhancedSublistIconBadge(modifier: Modifier = Modifier) {
@@ -235,7 +239,7 @@ fun SubprojectItemRow(
                             when (item) {
                                 is FlowItem.SublistIcon -> item.item()
                                 is FlowItem.ChildProject -> {
-                                    RelatedLinkChip(
+                                    EnhancedRelatedLinkChip(
                                         link = RelatedLink(
                                             type = LinkType.PROJECT,
                                             target = item.project.id,

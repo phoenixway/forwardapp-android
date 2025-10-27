@@ -1,5 +1,9 @@
 package com.romankozak.forwardappmobile.ui.features.backlog
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -7,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -15,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,8 +38,11 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.StatusIconsRow
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
@@ -54,6 +61,7 @@ fun BacklogItem(
         is ListItemContent.GoalItem -> {
             InternalGoalItem(
                 goal = item.goal,
+                reminders = item.reminders,
                 reorderableScope = reorderableScope,
                 modifier = modifier,
                 onItemClick = onItemClick,
@@ -86,6 +94,7 @@ fun BacklogItem(
 @Composable
 private fun InternalGoalItem(
     goal: Goal,
+    reminders: List<Reminder>,
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
@@ -152,6 +161,30 @@ private fun InternalGoalItem(
                         onLongClick = onLongClick,
                         maxLines = 4
                     )
+
+                    val reminder = reminders.firstOrNull()
+                    val shouldShowStatusIcons =
+                        (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                            (reminder != null) ||
+                            (parsedData.icons.isNotEmpty()) ||
+                            (!goal.description.isNullOrBlank()) ||
+                            (!goal.relatedLinks.isNullOrEmpty())
+
+                    AnimatedVisibility(
+                        visible = shouldShowStatusIcons,
+                        enter = slideInVertically(animationSpec = spring()) { -it } + fadeIn(),
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            StatusIconsRow(
+                                goal = goal,
+                                parsedData = parsedData,
+                                reminder = reminder,
+                                emojiToHide = null, // Simplified
+                                onRelatedLinkClick = { /* TODO */ }
+                            )
+                        }
+                    }
                 }
 
                 IconButton(
