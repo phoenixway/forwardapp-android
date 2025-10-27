@@ -722,7 +722,8 @@ constructor(
             .filterIsInstance<ListItemContent.LinkItem>()
             .map { it.link.linkData }
             .find { it.target == target }
-onRelatedLinkClick(link)
+        if (link != null) {
+          onLinkItemClick(link)
         }
       } else {
 
@@ -991,8 +992,8 @@ onRelatedLinkClick(link)
     }
   }
 
-  fun onRelatedLinkClick(link: RelatedLink) {
-    Log.d(TAG, "onRelatedLinkClick: Clicked link with type=${link.type}, target=${link.target}")
+  fun onLinkItemClick(link: RelatedLink) {
+    Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
     viewModelScope.launch {
       when (link.type) {
         LinkType.PROJECT -> {
@@ -1668,7 +1669,7 @@ onRelatedLinkClick(link)
               displayName = item.displayName,
             )
           recentItemsRepository.logObsidianLinkAccess(link)
-          onRelatedLinkClick(link)
+          onLinkItemClick(link)
         }
       }
     }

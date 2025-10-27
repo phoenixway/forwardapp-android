@@ -47,7 +47,6 @@ fun GoalItem(
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
     val viewModel: GoalItemViewModel = viewModel(key = goal.hashCode().toString(), factory = GoalItemViewModelFactory(goal, parsedData, reminder))
     val shouldShowStatusIcons by viewModel.shouldShowStatusIcons.collectAsState()
-    android.util.Log.d("GoalItem", "Goal related links: ${goal.relatedLinks}")
 
     Surface(
         modifier = modifier
