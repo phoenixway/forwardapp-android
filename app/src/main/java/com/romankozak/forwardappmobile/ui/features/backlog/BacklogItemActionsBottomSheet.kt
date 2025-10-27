@@ -22,11 +22,6 @@ import androidx.compose.runtime.Composable
 @Composable
 fun BacklogItemActionsBottomSheet(
     onDismiss: () -> Unit,
-    onDelete: () -> Unit,
-    onMoveToTop: () -> Unit,
-    onAddToDayPlan: () -> Unit,
-    onShowGoalTransportMenu: () -> Unit,
-    onStartTracking: () -> Unit,
     onCopyContent: () -> Unit,
     onRemindersClick: () -> Unit,
 ) {
@@ -37,31 +32,7 @@ fun BacklogItemActionsBottomSheet(
         sheetState = modalBottomSheetState,
     ) {
         Column {
-            ListItem(
-                headlineContent = { Text("Delete") },
-                leadingContent = { Icon(Icons.Default.Delete, contentDescription = "Delete") },
-                modifier = androidx.compose.ui.Modifier.clickable { onDelete(); onDismiss() }
-            )
-            ListItem(
-                headlineContent = { Text("Move to top") },
-                leadingContent = { Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move to top") },
-                modifier = androidx.compose.ui.Modifier.clickable { onMoveToTop(); onDismiss() }
-            )
-            ListItem(
-                headlineContent = { Text("Add to day plan") },
-                leadingContent = { Icon(Icons.Default.PlaylistAdd, contentDescription = "Add to day plan") },
-                modifier = androidx.compose.ui.Modifier.clickable { onAddToDayPlan(); onDismiss() }
-            )
-            ListItem(
-                headlineContent = { Text("Transport goal") },
-                leadingContent = { Icon(Icons.Default.Send, contentDescription = "Transport goal") },
-                modifier = androidx.compose.ui.Modifier.clickable { onShowGoalTransportMenu(); onDismiss() }
-            )
-            ListItem(
-                headlineContent = { Text("Start tracking") },
-                leadingContent = { Icon(Icons.Default.Timer, contentDescription = "Start tracking") },
-                modifier = androidx.compose.ui.Modifier.clickable { onStartTracking(); onDismiss() }
-            )
+
             ListItem(
                 headlineContent = { Text("Copy content") },
                 leadingContent = { Icon(Icons.Default.ContentCopy, contentDescription = "Copy content") },

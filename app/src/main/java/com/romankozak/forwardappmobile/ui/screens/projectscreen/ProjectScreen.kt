@@ -50,6 +50,8 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.reminders.dialogs.RemindersDialog
+import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
 
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
@@ -148,6 +150,7 @@ private fun ProjectScaffold(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+    val reminderViewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val project by viewModel.project.collectAsStateWithLifecycle()
@@ -161,7 +164,7 @@ private fun ProjectScaffold(
     val inboxListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(false) }
-    var showRemindersDialog by remember { mutableStateOf(false) }
+    var showRemindersListDialog by remember { mutableStateOf(false) }
     var selectedItemForReminders by remember { mutableStateOf<ListItemContent?>(null) }
 
     val targetBackgroundColor = MaterialTheme.colorScheme.surface
@@ -346,26 +349,17 @@ private fun ProjectScaffold(
             onSaveArtifact = viewModel::onSaveArtifact,
             onEditArtifact = viewModel::onEditArtifact,
             onRemindersClick = { item ->
-                viewModel.onSetReminderForItem(item)
-                showRemindersDialog = true
+                selectedItemForReminders = item
+                showRemindersListDialog = true
             }
         )
     }
 
-    if (showRemindersDialog) {
-        ReminderPropertiesDialog(
-            onDismiss = { showRemindersDialog = false; selectedItemForReminders = null; viewModel.onReminderDialogDismiss() },
-            onSetReminder = { time ->
-                viewModel.onSetReminder(time)
-                showRemindersDialog = false
-                selectedItemForReminders = null
-            },
-            onRemoveReminder = {
-                viewModel.onClearReminder()
-                showRemindersDialog = false
-                selectedItemForReminders = null
-            },
-            currentReminders = viewModel.uiState.value.remindersForDialog,
+    if (showRemindersListDialog && selectedItemForReminders != null) {
+        RemindersDialog(
+            viewModel = reminderViewModel,
+            item = selectedItemForReminders!!,
+            onDismiss = { showRemindersListDialog = false }
         )
     }
 }

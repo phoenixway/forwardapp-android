@@ -44,11 +44,6 @@ fun BacklogListScreen(
     if (showBottomSheet && selectedItemForActions != null) {
         BacklogItemActionsBottomSheet(
             onDismiss = { showBottomSheet = false },
-            onDelete = { onDelete(selectedItemForActions!!) },
-            onMoveToTop = { onMoveToTop(selectedItemForActions!!) },
-            onAddToDayPlan = { onAddToDayPlan(selectedItemForActions!!) },
-            onShowGoalTransportMenu = { onShowGoalTransportMenu(selectedItemForActions!!) },
-            onStartTracking = { onStartTracking(selectedItemForActions!!) },
             onCopyContent = { },
             onRemindersClick = { onRemindersClick(selectedItemForActions!!) },
         )
