@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -57,6 +58,7 @@ fun SwipeableBacklogItem(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -232,6 +234,7 @@ fun SwipeableBacklogItem(
             onMoreClick = { onMoreClick(item) },
             onCheckedChange = { onCheckedChange(item, it) },
             showCheckbox = showCheckboxes,
+            onRelatedLinkClick = onRelatedLinkClick,
             isSelected = isDragging
         )
     }

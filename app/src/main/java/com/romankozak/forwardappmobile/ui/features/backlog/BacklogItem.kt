@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
@@ -43,7 +44,7 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.MarkdownText
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.StatusIconsRow
-import sh.calvin.reorderable.ReorderableCollectionItemScope
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 
 @Composable
 fun BacklogItem(
@@ -56,6 +57,7 @@ fun BacklogItem(
     onCheckedChange: (Boolean) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     when (item) {
         is ListItemContent.GoalItem -> {
@@ -69,7 +71,8 @@ fun BacklogItem(
                 onMoreClick = onMoreClick,
                 onCheckedChange = onCheckedChange,
                 showCheckbox = showCheckbox,
-                isSelected = isSelected
+                isSelected = isSelected,
+                onRelatedLinkClick = onRelatedLinkClick
             )
         }
         is ListItemContent.SublistItem -> {
@@ -102,7 +105,8 @@ private fun InternalGoalItem(
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
     showCheckbox: Boolean,
-    isSelected: Boolean
+    isSelected: Boolean,
+    onRelatedLinkClick: (RelatedLink) -> Unit
 ) {
     val parsedData = rememberParsedText(goal.text, emptyMap()) // Simplified
     val hapticFeedback = LocalHapticFeedback.current
@@ -181,7 +185,7 @@ private fun InternalGoalItem(
                                 parsedData = parsedData,
                                 reminder = reminder,
                                 emojiToHide = null, // Simplified
-                                onRelatedLinkClick = { /* TODO */ }
+                                onRelatedLinkClick = onRelatedLinkClick
                             )
                         }
                     }

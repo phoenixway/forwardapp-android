@@ -342,7 +342,8 @@ private fun ProjectScaffold(
             onEditLog = viewModel::onEditLogEntry,
             onDeleteLog = viewModel::onDeleteLogEntry,
             onSaveArtifact = viewModel::onSaveArtifact,
-            onEditArtifact = viewModel::onEditArtifact
+            onEditArtifact = viewModel::onEditArtifact,
+            onRelatedLinkClick = viewModel::onRelatedLinkClick
         )
     }
 }
