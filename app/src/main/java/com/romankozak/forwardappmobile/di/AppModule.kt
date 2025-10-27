@@ -45,7 +45,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database",
-        ).addMigrations(
+        ).fallbackToDestructiveMigration().addMigrations(
             MIGRATION_8_9,
             MIGRATION_10_11,
             MIGRATION_11_12,
@@ -91,7 +91,8 @@ object DatabaseModule {
             MIGRATION_51_52,
             MIGRATION_52_53,
             MIGRATION_53_54,
-            MIGRATION_54_55
+            MIGRATION_54_55,
+            MIGRATION_56_55
         ).addCallback(callback).build()
         return db
     }

@@ -531,6 +531,11 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun getSettingsMap(): Map<String, String> {
+        val preferences = context.dataStore.data.first()
+        return preferences.asMap().map { (key, value) -> key.name to value.toString() }.toMap()
+    }
+
     val rolesFolderUriFlow: Flow<String> =
         context.dataStore.data
             .map { preferences -> preferences[ROLES_FOLDER_URI_KEY] ?: "" }

@@ -8,7 +8,8 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.room.withTransaction
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.CustomListDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
@@ -20,8 +21,9 @@ import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
-import com.romankozak.forwardappmobile.data.database.models.DatabaseContent
-import com.romankozak.forwardappmobile.data.database.models.FullAppBackup
+import com.romankozak.forwardappmobile.data.sync.DatabaseContent
+import com.romankozak.forwardappmobile.data.sync.SettingsContent
+import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.Project
@@ -94,7 +96,9 @@ constructor(
     private val recentItemDao: RecentItemDao,
 ) {
     private val TAG = "SyncRepository"
-    private val gson = Gson()
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(com.romankozak.forwardappmobile.data.database.models.ReservedGroup::class.java, ReservedGroupAdapter())
+        .create()
     private val client: HttpClient by lazy {
         HttpClient(CIO) {
             install(ContentNegotiation) { gson() }
@@ -129,7 +133,14 @@ constructor(
             Result.failure(e)
         }
 
-    suspend fun createFullBackupJsonString(): String {
+        suspend fun createFullBackupJsonString(): String {
+        val recentProjectEntries = recentItemDao.getAll().map { recentItem ->
+            com.romankozak.forwardappmobile.data.sync.RecentProjectEntry(
+                projectId = recentItem.target,
+                timestamp = recentItem.lastAccessed
+            )
+        }
+
         val databaseContent =
             DatabaseContent(
                 goals = goalDao.getAll(),
@@ -142,9 +153,10 @@ constructor(
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
-                recentProjectEntries = null
+                recentProjectEntries = recentProjectEntries
             )
-        val fullBackup = FullAppBackup(database = databaseContent)
+        val settingsContent = SettingsContent(settings = settingsRepository.getSettingsMap())
+        val fullBackup = FullAppBackup(database = databaseContent, settings = settingsContent)
         return gson.toJson(fullBackup)
     }
 
@@ -166,6 +178,7 @@ constructor(
 
             Log.d(IMPORT_TAG, "Починаємо розбір JSON в об'єкт FullAppBackup...")
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+            Log.d(IMPORT_TAG, "Backup schema version: ${backupData.backupSchemaVersion}")
             val backup = backupData.database
             Log.d(IMPORT_TAG, "JSON успішно розібрано.")
 
@@ -241,9 +254,9 @@ constructor(
                 goalDao.insertGoals(backup.goals)
                 projectDao.insertProjects(cleanedProjects)
                 listItemDao.insertItems(cleanedListItems)
-                backup.notes?.let { noteDao.insertAll(it.orEmpty()) }
-                backup.customLists?.let { customListDao.insertAllCustomLists(it.orEmpty()) }
-                backup.customListItems?.let { customListDao.insertAllListItems(it.orEmpty()) }
+                backup.notes?.let { noteDao.insertAll(it) }
+                backup.customLists?.let { customListDao.insertAllCustomLists(it) }
+                backup.customListItems?.let { customListDao.insertAllListItems(it) }
 
                 backup.activityRecords?.let { activityRecordDao.insertAll(it) }
                 backup.linkItemEntities?.let { linkItemDao.insertAll(it) }
@@ -259,7 +272,7 @@ constructor(
             Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
             return Result.success("Backup imported successfully!")
         } catch (e: Exception) {
-            Log.e(IMPORT_TAG, "Під час імпорту сталася критична помилка.", e)
+            Log.e(IMPORT_TAG, "Під час імпорту сталася критична помилка. Повідомлення: ${e.message}", e)
             return Result.failure(e)
         }
     }

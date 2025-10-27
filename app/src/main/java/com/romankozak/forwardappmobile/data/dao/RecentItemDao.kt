@@ -23,6 +23,9 @@ interface RecentItemDao {
     suspend fun getRecentItemById(id: String): RecentItem?
 
 
+    @Query("SELECT * FROM recent_items")
+    fun getAll(): List<RecentItem>
+
     @Query("DELETE FROM recent_items")
     suspend fun deleteAll()
 }
