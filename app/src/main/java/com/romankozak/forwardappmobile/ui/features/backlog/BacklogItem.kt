@@ -118,15 +118,15 @@ private fun InternalGoalItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
                     modifier = with(reorderableScope) {
-                        Modifier.draggableHandle(
+                        Modifier.longPressDraggableHandle(
                             onDragStarted = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                             }
                         )
                     },
-                    onClick = {}
+                    onClick = onMoreClick
                 ) {
-                    Icon(imageVector = Icons.Rounded.DragHandle, contentDescription = "Reorder")
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
                 }
                 if (showCheckbox) {
                     Checkbox(
@@ -163,13 +163,6 @@ private fun InternalGoalItem(
                         onTextClick = onItemClick,
                         onLongClick = onLongClick,
                         maxLines = 4
-                    )
-                }
-
-                IconButton(onClick = onMoreClick) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More actions"
                     )
                 }
             }
@@ -212,15 +205,15 @@ private fun InternalSubprojectItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
                     modifier = with(reorderableScope) {
-                        Modifier.draggableHandle(
+                        Modifier.longPressDraggableHandle(
                             onDragStarted = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                             }
                         )
                     },
-                    onClick = {}
+                    onClick = onMoreClick
                 ) {
-                    Icon(imageVector = Icons.Rounded.DragHandle, contentDescription = "Reorder")
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
                 }
                 if (showCheckbox) {
                     Checkbox(
@@ -255,13 +248,6 @@ private fun InternalSubprojectItem(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null
-                    )
-                }
-
-                IconButton(onClick = onMoreClick) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More actions"
                     )
                 }
             }
