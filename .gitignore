@@ -3,3 +3,4 @@
 ktlint
 google-cloud-sdk*
 loggy.log
+app/schemas/
