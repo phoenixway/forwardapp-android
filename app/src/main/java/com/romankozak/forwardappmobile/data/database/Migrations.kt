@@ -696,3 +696,8 @@ val MIGRATION_54_55 = object : Migration(54, 55) {
         db.execSQL("ALTER TABLE projects ADD COLUMN reserved_group TEXT")
     }
 }
+
+val MIGRATION_56_55 = object : Migration(56, 55) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+    }
+}

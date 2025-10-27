@@ -1,0 +1,41 @@
+10-27 15:15:37.844 16782 17113 D SyncRepository_IMPORT: Починаємо імпорт з URI: content://com.android.externalstorage.documents/document/primary%3ADownload%2FForwardApp%2Fforward_app_full_backup_20251027_124146.json
+10-27 15:15:37.924 16782 17113 D SyncRepository_IMPORT: Файл успішно прочитано.
+10-27 15:15:37.924 16782 17113 D SyncRepository_IMPORT: Починаємо розбір JSON в об'єкт FullAppBackup...
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: Під час імпорту сталася критична помилка. Повідомлення: java.lang.IllegalStateException: Expected a string but was BEGIN_OBJECT at line 1 column 1961720 path $.database.projects[419].reservedGroup
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: See https://github.com/google/gson/blob/main/Troubleshooting.md#unexpected-json-structure
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected a string but was BEGIN_OBJECT at line 1 column 1961720 path $.database.projects[419].reservedGroup
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: See https://github.com/google/gson/blob/main/Troubleshooting.md#unexpected-json-structure
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:520)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.TypeAdapterRuntimeTypeWrapper.read(TypeAdapterRuntimeTypeWrapper.java:40)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.CollectionTypeAdapterFactory$Adapter.read(CollectionTypeAdapterFactory.java:83)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.CollectionTypeAdapterFactory$Adapter.read(CollectionTypeAdapterFactory.java:59)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$2.readIntoField(ReflectiveTypeAdapterFactory.java:267)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$FieldReflectionAdapter.readField(ReflectiveTypeAdapterFactory.java:558)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:516)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$2.readIntoField(ReflectiveTypeAdapterFactory.java:267)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$FieldReflectionAdapter.readField(ReflectiveTypeAdapterFactory.java:558)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:516)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.Gson.fromJson(Gson.java:1361)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.Gson.fromJson(Gson.java:1262)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.Gson.fromJson(Gson.java:1171)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.Gson.fromJson(Gson.java:1107)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.romankozak.forwardappmobile.data.repository.SyncRepository.importFullBackupFromFile-gIAlu-s(SyncRepository.kt:180)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases.ProjectActionsUseCase$onFullImportConfirmed$2.invokeSuspend(ProjectActionsUseCase.kt:139)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:111)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:99)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:811)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:715)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: Caused by: java.lang.IllegalStateException: Expected a string but was BEGIN_OBJECT at line 1 column 1961720 path $.database.projects[419].reservedGroup
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: See https://github.com/google/gson/blob/main/Troubleshooting.md#unexpected-json-structure
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.stream.JsonReader.unexpectedTokenError(JsonReader.java:1768)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.stream.JsonReader.nextString(JsonReader.java:917)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter.read(ReservedGroupAdapter.kt:23)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter.read(ReservedGroupAdapter.kt:9)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$2.readIntoField(ReflectiveTypeAdapterFactory.java:267)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$FieldReflectionAdapter.readField(ReflectiveTypeAdapterFactory.java:558)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:516)
+10-27 15:15:38.403 16782 17113 E SyncRepository_IMPORT: 	... 23 more
