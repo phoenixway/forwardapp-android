@@ -10,8 +10,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -34,6 +37,7 @@ fun BacklogListScreen(
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to -> onMove(from.index, to.index) }
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<ListItemContent?>(null) }
+    val hapticFeedback = LocalHapticFeedback.current
 
     if (showBottomSheet && selectedItemForActions != null) {
         BacklogItemActionsBottomSheet(
@@ -57,6 +61,7 @@ fun BacklogListScreen(
             ReorderableItem(reorderableState, key = item.listItem.id) { isDragging ->
                 BacklogItem(
                     item = item,
+                    reorderableScope = this,
                     modifier = Modifier,
                     onItemClick = { onItemClick(item) },
                     onLongClick = { onLongClick(item) },
