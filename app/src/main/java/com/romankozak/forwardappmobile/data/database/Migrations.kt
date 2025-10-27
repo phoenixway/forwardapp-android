@@ -409,3 +409,15 @@ val MIGRATION_55_56 = object : Migration(55, 56) {
         db.execSQL("ALTER TABLE projects ADD COLUMN relatedLinks TEXT")
     }
 }
+
+val MIGRATION_57_58 = object : Migration(57, 58) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Empty migration for schema changes
+    }
+}
+
+val MIGRATION_58_59 = object : Migration(58, 59) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Empty migration for schema changes
+    }
+}
