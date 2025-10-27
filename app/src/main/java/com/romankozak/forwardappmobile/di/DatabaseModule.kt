@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -14,6 +16,12 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    private val MIGRATION_55_56 = object : Migration(55, 56) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE projects ADD COLUMN relatedLinks TEXT")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -21,7 +29,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database"
-        ).build()
+        ).addMigrations(MIGRATION_55_56).build()
     }
 
     @Provides
