@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,7 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,10 +36,12 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.backlogitems.MarkdownText
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
 fun BacklogItem(
     item: ListItemContent,
+    reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -49,6 +54,7 @@ fun BacklogItem(
         is ListItemContent.GoalItem -> {
             InternalGoalItem(
                 goal = item.goal,
+                reorderableScope = reorderableScope,
                 modifier = modifier,
                 onItemClick = onItemClick,
                 onLongClick = onLongClick,
@@ -61,6 +67,7 @@ fun BacklogItem(
         is ListItemContent.SublistItem -> {
             InternalSubprojectItem(
                 subproject = item.project,
+                reorderableScope = reorderableScope,
                 modifier = modifier,
                 onItemClick = onItemClick,
                 onLongClick = onLongClick,
@@ -79,6 +86,7 @@ fun BacklogItem(
 @Composable
 private fun InternalGoalItem(
     goal: Goal,
+    reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -88,6 +96,7 @@ private fun InternalGoalItem(
     isSelected: Boolean
 ) {
     val parsedData = rememberParsedText(goal.text, emptyMap()) // Simplified
+    val hapticFeedback = LocalHapticFeedback.current
 
     Surface(
         modifier = modifier
@@ -107,6 +116,18 @@ private fun InternalGoalItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    modifier = with(reorderableScope) {
+                        Modifier.draggableHandle(
+                            onDragStarted = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        )
+                    },
+                    onClick = {}
+                ) {
+                    Icon(imageVector = Icons.Rounded.DragHandle, contentDescription = "Reorder")
+                }
                 if (showCheckbox) {
                     Checkbox(
                         checked = goal.completed,
@@ -159,6 +180,7 @@ private fun InternalGoalItem(
 @Composable
 private fun InternalSubprojectItem(
     subproject: Project,
+    reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -168,6 +190,7 @@ private fun InternalSubprojectItem(
     isSelected: Boolean
 ) {
     val parsedData = rememberParsedText(subproject.name, emptyMap()) // Simplified
+    val hapticFeedback = LocalHapticFeedback.current
 
     Surface(
         modifier = modifier
@@ -187,6 +210,18 @@ private fun InternalSubprojectItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    modifier = with(reorderableScope) {
+                        Modifier.draggableHandle(
+                            onDragStarted = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        )
+                    },
+                    onClick = {}
+                ) {
+                    Icon(imageVector = Icons.Rounded.DragHandle, contentDescription = "Reorder")
+                }
                 if (showCheckbox) {
                     Checkbox(
                         checked = subproject.isCompleted,
