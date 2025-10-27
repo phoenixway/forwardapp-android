@@ -30,6 +30,7 @@ fun GoalDetailContent(
     onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
     onEditArtifact: (com.romankozak.forwardappmobile.data.database.models.ProjectArtifact) -> Unit,
+    onRemindersClick: (ListItemContent) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
@@ -64,6 +65,7 @@ fun GoalDetailContent(
                 onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                 onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
+                onRemindersClick = onRemindersClick,
             )
         }
         ProjectViewMode.INBOX -> {
