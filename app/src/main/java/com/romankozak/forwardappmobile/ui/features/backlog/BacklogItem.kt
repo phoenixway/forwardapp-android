@@ -116,18 +116,6 @@ private fun InternalGoalItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    modifier = with(reorderableScope) {
-                        Modifier.longPressDraggableHandle(
-                            onDragStarted = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                        )
-                    },
-                    onClick = onMoreClick
-                ) {
-                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
-                }
                 if (showCheckbox) {
                     Checkbox(
                         checked = goal.completed,
@@ -164,6 +152,19 @@ private fun InternalGoalItem(
                         onLongClick = onLongClick,
                         maxLines = 4
                     )
+                }
+
+                IconButton(
+                    modifier = with(reorderableScope) {
+                        Modifier.longPressDraggableHandle(
+                            onDragStarted = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        )
+                    },
+                    onClick = onMoreClick
+                ) {
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
                 }
             }
         }
@@ -203,18 +204,6 @@ private fun InternalSubprojectItem(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    modifier = with(reorderableScope) {
-                        Modifier.longPressDraggableHandle(
-                            onDragStarted = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                        )
-                    },
-                    onClick = onMoreClick
-                ) {
-                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
-                }
                 if (showCheckbox) {
                     Checkbox(
                         checked = subproject.isCompleted,
@@ -249,6 +238,19 @@ private fun InternalSubprojectItem(
                         overflow = TextOverflow.Ellipsis,
                         textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null
                     )
+                }
+
+                IconButton(
+                    modifier = with(reorderableScope) {
+                        Modifier.longPressDraggableHandle(
+                            onDragStarted = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        )
+                    },
+                    onClick = onMoreClick
+                ) {
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
                 }
             }
         }

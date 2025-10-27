@@ -46,6 +46,7 @@ fun GoalDetailContent(
             com.romankozak.forwardappmobile.ui.features.backlog.BacklogListScreen(
                 items = listContent,
                 modifier = modifier,
+                showCheckboxes = uiState.showCheckboxes,
                 onMove = { from, to -> viewModel.onMove(from, to) },
                 onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },

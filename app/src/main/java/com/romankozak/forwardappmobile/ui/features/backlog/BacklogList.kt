@@ -22,6 +22,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 fun BacklogListScreen(
     items: List<ListItemContent>,
     modifier: Modifier = Modifier,
+    showCheckboxes: Boolean,
     onMove: (from: Int, to: Int) -> Unit,
     onItemClick: (ListItemContent) -> Unit,
     onLongClick: (ListItemContent) -> Unit,
@@ -70,7 +71,7 @@ fun BacklogListScreen(
                         showBottomSheet = true 
                     },
                     onCheckedChange = { isChecked -> onCheckedChange(item, isChecked) },
-                    showCheckbox = true, // Or get from state
+                    showCheckbox = showCheckboxes,
                     isSelected = isDragging
                 )
             }
