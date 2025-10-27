@@ -161,6 +161,8 @@ private fun ProjectScaffold(
     val inboxListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(false) }
+    var showRemindersDialog by remember { mutableStateOf(false) }
+    var selectedItemForReminders by remember { mutableStateOf<ListItemContent?>(null) }
 
     val targetBackgroundColor = MaterialTheme.colorScheme.surface
     val animatedBackgroundColor by animateColorAsState(
@@ -342,7 +344,28 @@ private fun ProjectScaffold(
             onEditLog = viewModel::onEditLogEntry,
             onDeleteLog = viewModel::onDeleteLogEntry,
             onSaveArtifact = viewModel::onSaveArtifact,
-            onEditArtifact = viewModel::onEditArtifact
+            onEditArtifact = viewModel::onEditArtifact,
+            onRemindersClick = { item ->
+                viewModel.onSetReminderForItem(item)
+                showRemindersDialog = true
+            }
+        )
+    }
+
+    if (showRemindersDialog) {
+        ReminderPropertiesDialog(
+            onDismiss = { showRemindersDialog = false; selectedItemForReminders = null; viewModel.onReminderDialogDismiss() },
+            onSetReminder = { time ->
+                viewModel.onSetReminder(time)
+                showRemindersDialog = false
+                selectedItemForReminders = null
+            },
+            onRemoveReminder = {
+                viewModel.onClearReminder()
+                showRemindersDialog = false
+                selectedItemForReminders = null
+            },
+            currentReminders = viewModel.uiState.value.remindersForDialog,
         )
     }
 }

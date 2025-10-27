@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -27,6 +28,7 @@ fun BacklogItemActionsBottomSheet(
     onShowGoalTransportMenu: () -> Unit,
     onStartTracking: () -> Unit,
     onCopyContent: () -> Unit,
+    onRemindersClick: () -> Unit,
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState()
 
@@ -64,6 +66,11 @@ fun BacklogItemActionsBottomSheet(
                 headlineContent = { Text("Copy content") },
                 leadingContent = { Icon(Icons.Default.ContentCopy, contentDescription = "Copy content") },
                 modifier = androidx.compose.ui.Modifier.clickable { onCopyContent(); onDismiss() }
+            )
+            ListItem(
+                headlineContent = { Text("Reminders") },
+                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = "Reminders") },
+                modifier = androidx.compose.ui.Modifier.clickable { onRemindersClick(); onDismiss() }
             )
         }
     }

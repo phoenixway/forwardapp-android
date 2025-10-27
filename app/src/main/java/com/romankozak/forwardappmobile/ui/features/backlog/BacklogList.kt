@@ -34,6 +34,7 @@ fun BacklogListScreen(
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
+    onRemindersClick: (ListItemContent) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to -> onMove(from.index, to.index) }
@@ -49,6 +50,7 @@ fun BacklogListScreen(
             onShowGoalTransportMenu = { onShowGoalTransportMenu(selectedItemForActions!!) },
             onStartTracking = { onStartTracking(selectedItemForActions!!) },
             onCopyContent = { },
+            onRemindersClick = { onRemindersClick(selectedItemForActions!!) },
         )
     }
 
