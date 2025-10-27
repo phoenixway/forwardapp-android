@@ -8,7 +8,8 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.room.withTransaction
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.CustomListDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
@@ -94,7 +95,9 @@ constructor(
     private val recentItemDao: RecentItemDao,
 ) {
     private val TAG = "SyncRepository"
-    private val gson = Gson()
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(com.romankozak.forwardappmobile.data.database.models.ReservedGroup::class.java, ReservedGroupAdapter())
+        .create()
     private val client: HttpClient by lazy {
         HttpClient(CIO) {
             install(ContentNegotiation) { gson() }
