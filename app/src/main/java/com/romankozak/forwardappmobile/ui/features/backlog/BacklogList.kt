@@ -18,8 +18,6 @@ import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
-
 @Composable
 fun BacklogListScreen(
     items: List<ListItemContent>,
@@ -35,7 +33,6 @@ fun BacklogListScreen(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
-    onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to -> onMove(from.index, to.index) }
@@ -77,8 +74,7 @@ fun BacklogListScreen(
                     onMoveToTop = { onMoveToTop(item) },
                     onAddToDayPlan = { onAddToDayPlan(item) },
 onStartTracking = { onStartTracking(item) },
-                    onShowGoalTransportMenu = { onShowGoalTransportMenu(item) },
-                    onRelatedLinkClick = { onRelatedLinkClick(it) }
+                    onShowGoalTransportMenu = { onShowGoalTransportMenu(item) }
                 )
             }
         }
