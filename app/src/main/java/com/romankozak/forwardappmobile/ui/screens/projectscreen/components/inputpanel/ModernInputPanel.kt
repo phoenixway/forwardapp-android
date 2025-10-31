@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -1040,6 +1041,11 @@ fun ModernInputPanel(
           exit = fadeOut() + scaleOut(targetScale = 0.8f),
         ) {
           val sendButtonBackgroundColor = panelColors.accentColor
+          val sendIconColor =
+            remember(sendButtonBackgroundColor) {
+              val luminance = sendButtonBackgroundColor.luminance()
+              if (luminance > 0.55f) Color(0xFF1C1B1F) else Color.White
+            }
 
           IconButton(
             onClick = onSubmit,
@@ -1048,7 +1054,7 @@ fun ModernInputPanel(
                 .background(color = sendButtonBackgroundColor, shape = CircleShape),
             colors =
               IconButtonDefaults.iconButtonColors(
-                contentColor = panelColors.containerColor
+                contentColor = sendIconColor
               ),
           ) {
             Icon(
