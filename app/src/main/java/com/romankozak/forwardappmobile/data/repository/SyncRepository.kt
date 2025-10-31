@@ -259,6 +259,8 @@ constructor(
                 Log.d(IMPORT_TAG, "Вставка даних завершена.")
             }
 
+            runPostBackupMigration()
+
             Log.i(IMPORT_TAG, "Імпорт бекапу успішно завершено.")
             return Result.success("Backup imported successfully!")
         } catch (e: Exception) {
@@ -402,5 +404,10 @@ constructor(
                 "Привʼязка" -> listItemDao.insertItem(change.entity as ListItem)
             }
         }
+    }
+
+    suspend fun runPostBackupMigration() {
+        val db = appDatabase.openHelper.writableDatabase
+        com.romankozak.forwardappmobile.data.database.migrateSpecialProjects(db)
     }
 }

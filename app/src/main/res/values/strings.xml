@@ -1,16 +1,7 @@
 <resources>
     <string name="app_name">ForwardApp</string>
     <string name="title_activity_kimera">KimeraActivity</string>
-    <string name="special_project_name">Спеціальні</string>
-    <string name="inbox_project_name">Вхідні</string>
-    <string name="strategic_group_name">Стратегічні</string>
-    <string name="mission_project_name">Місія</string>
-    <string name="long_term_strategy_project_name">Довгострокова стратегія</string>
-    <string name="medium_term_program_project_name">Середньострокова програма</string>
-    <string name="active_quests_project_name">Активні квести</string>
-    <string name="strategic_goals_project_name">Стратегічні цілі</string>
-    <string name="strategic_review_project_name">Стратегічний огляд</string>
-    <string name="main_beacons_group_name">Головні маяки</string>
+
     <string name="edit_description">Редагувати опис</string>
     <string name="cancel">Скасувати</string>
     <string name="toggle_to_preview_mode">Перемкнути в режим попереднього перегляду</string>

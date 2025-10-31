@@ -424,55 +424,6 @@ val MIGRATION_58_59 = object : Migration(58, 59) {
 
 val MIGRATION_59_60 = object : Migration(59, 60) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        val specialProjectIdCursor = db.query("SELECT id FROM projects WHERE project_type = 'SYSTEM' LIMIT 1")
-        var specialProjectId: String? = null
-        if (specialProjectIdCursor.moveToFirst()) {
-            specialProjectId = specialProjectIdCursor.getString(specialProjectIdCursor.getColumnIndexOrThrow("id"))
-        }
-        specialProjectIdCursor.close()
-
-        if (specialProjectId != null) {
-            // Find strategic group
-            val strategicGroupIdCursor = db.query("SELECT id FROM projects WHERE parentId = ? AND reserved_group = 'StrategicGroup' LIMIT 1", arrayOf(specialProjectId))
-            var strategicGroupId: String? = null
-            if (strategicGroupIdCursor.moveToFirst()) {
-                strategicGroupId = strategicGroupIdCursor.getString(strategicGroupIdCursor.getColumnIndexOrThrow("id"))
-            }
-            strategicGroupIdCursor.close()
-
-            if (strategicGroupId != null) {
-                // Find mission project
-                val missionProjectIdCursor = db.query("SELECT id FROM projects WHERE parentId = ? AND reserved_group = 'MainBeacons' LIMIT 1", arrayOf(strategicGroupId))
-                var missionProjectId: String? = null
-                if (missionProjectIdCursor.moveToFirst()) {
-                    missionProjectId = missionProjectIdCursor.getString(missionProjectIdCursor.getColumnIndexOrThrow("id"))
-                }
-                missionProjectIdCursor.close()
-
-                if (missionProjectId != null) {
-                    // Find or create main_beacons_group
-                    val mainBeaconsGroupIdCursor = db.query("SELECT id FROM projects WHERE parentId = ? AND reserved_group = 'MainBeaconsGroup' LIMIT 1", arrayOf(specialProjectId))
-                    var mainBeaconsGroupId: String? = null
-                    if (mainBeaconsGroupIdCursor.moveToFirst()) {
-                        mainBeaconsGroupId = mainBeaconsGroupIdCursor.getString(mainBeaconsGroupIdCursor.getColumnIndexOrThrow("id"))
-                    }
-                    mainBeaconsGroupIdCursor.close()
-
-                    if (mainBeaconsGroupId == null) {
-                        mainBeaconsGroupId = java.util.UUID.randomUUID().toString()
-                        db.execSQL(
-                            "INSERT INTO projects (id, name, parentId, is_expanded, project_type, reserved_group, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            arrayOf(mainBeaconsGroupId, "main_beacons_group", specialProjectId, 0, "RESERVED", "MainBeaconsGroup", System.currentTimeMillis(), "NOT_ASSESSED")
-                        )
-                    }
-
-                    // Update mission project's parent
-                    db.execSQL(
-                        "UPDATE projects SET parentId = ? WHERE id = ?",
-                        arrayOf(mainBeaconsGroupId, missionProjectId)
-                    )
-                }
-            }
-        }
+        migrateSpecialProjects(db)
     }
 }
