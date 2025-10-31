@@ -25,7 +25,7 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 enum class AttachmentType {
-    CUSTOM_LIST,
+    NOTES,
     WEB_LINK,
     OBSIDIAN_LINK,
     PROJECT_LINK,
@@ -224,7 +224,7 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
             onDismissRequest = { showAddMenu = false },
             modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
         ) {
-            AttachmentTypeMenuItem(R.string.attachment_type_custom_list, AttachmentType.CUSTOM_LIST) { type ->
+            AttachmentTypeMenuItem(R.string.attachment_type_notes, AttachmentType.NOTES) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }

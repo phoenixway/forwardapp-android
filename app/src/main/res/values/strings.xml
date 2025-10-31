@@ -89,7 +89,7 @@
     <string name="delete_attachment_description">Видалити додаток</string>
     <string name="add_attachment_description">Додати новий додаток</string>
     <string name="add_attachment_button">Додати додаток</string>
-    <string name="attachment_type_custom_list">Список</string>
+    <string name="attachment_type_notes">Нотатки</string>
     <string name="attachment_type_web_link">Веб-посилання</string>
     <string name="attachment_type_obsidian">Посилання Obsidian</string>
     <string name="attachment_type_project_link">Посилання на проєкт</string>

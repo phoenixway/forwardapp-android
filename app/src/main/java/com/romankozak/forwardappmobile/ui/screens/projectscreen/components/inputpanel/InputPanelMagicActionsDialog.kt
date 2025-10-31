@@ -106,7 +106,7 @@ fun InputPanelMagicActionsDialog(
                 },
             ),
             ActionItem(
-                title = "List",
+                title = "Note",
                 icon = Icons.Outlined.List,
                 color = MaterialTheme.colorScheme.secondary,
                 action = {
