@@ -36,7 +36,7 @@ constructor(
     private val reminderRepository: ReminderRepository,
     private val projectLogRepository: ProjectLogRepository,
     private val searchRepository: SearchRepository,
-    private val customListRepository: CustomListRepository,
+    private val noteDocumentRepository: NoteDocumentRepository,
     private val goalRepository: GoalRepository,
     private val inboxRepository: InboxRepository,
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
@@ -100,7 +100,7 @@ constructor(
             projectDao.getAllProjects(),
             listItemRepository.getAllEntitiesAsFlow(),
             legacyNoteRepository.getAllAsFlow(),
-            customListRepository.getAllCustomListsAsFlow()
+            noteDocumentRepository.getAllDocumentsAsFlow()
         ) { array ->
             @Suppress("UNCHECKED_CAST")
             mapToListItemContent(
@@ -111,7 +111,7 @@ constructor(
                 projects = array[3] as List<Project>,
                 links = array[4] as List<LinkItemEntity>,
                 notes = array[5] as List<LegacyNoteEntity>,
-                customLists = array[6] as List<CustomListEntity>
+                noteDocuments = array[6] as List<NoteDocumentEntity>
             )
         }
     }
@@ -124,14 +124,14 @@ constructor(
         projects: List<Project>,
         links: List<LinkItemEntity>,
         notes: List<LegacyNoteEntity>,
-        customLists: List<CustomListEntity>
+        noteDocuments: List<NoteDocumentEntity>
     ): List<ListItemContent> {
         val remindersMap = reminders.groupBy { it.entityId }
         val goalsMap = goals.associateBy { it.id }
         val projectsMap = projects.associateBy { it.id }
         val linksMap = links.associateBy { it.id }
         val notesMap = notes.associateBy { it.id }
-        val customListsMap = customLists.associateBy { it.id }
+        val noteDocumentsMap = noteDocuments.associateBy { it.id }
 
         val backlogItems = items.mapNotNull { item ->
             when (item.itemType) {
@@ -154,8 +154,8 @@ constructor(
                         ListItemContent.NoteItem(note, item)
                     }
                 ListItemTypeValues.CUSTOM_LIST ->
-                    customListsMap[item.entityId]?.let { customList ->
-                        ListItemContent.CustomListItem(customList, item)
+                    noteDocumentsMap[item.entityId]?.let { document ->
+                        ListItemContent.NoteDocumentItem(document, item)
                     }
                 else -> null
             }
@@ -349,7 +349,7 @@ constructor(
                 ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
                 ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
                 ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
-                ListItemTypeValues.CUSTOM_LIST -> customListRepository.getCustomListById(item.entityId) != null
+                ListItemTypeValues.CUSTOM_LIST -> noteDocumentRepository.getDocumentById(item.entityId) != null
                 else -> true // Assume unknown types are valid to avoid deleting them
             }
             if (!entityExists) {

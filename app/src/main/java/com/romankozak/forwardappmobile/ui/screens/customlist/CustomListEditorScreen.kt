@@ -15,12 +15,12 @@ fun CustomListEditorScreen(
 ) {
   val listId: String? = navController.currentBackStackEntry?.arguments?.getString("listId")
 
-  LaunchedEffect(listId) { listId?.let { viewModel.loadCustomList(it) } }
+  LaunchedEffect(listId) { listId?.let { viewModel.loadDocument(it) } }
 
   UniversalEditorScreen(
     title = stringResource(R.string.note_editor_edit_title),
     onSave = { content, cursorPosition ->
-      viewModel.saveCustomList(content, cursorPosition)
+      viewModel.saveDocument(content, cursorPosition)
       navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
       navController.popBackStack()
     },

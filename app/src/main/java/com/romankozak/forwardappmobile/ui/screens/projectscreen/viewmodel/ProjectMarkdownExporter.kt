@@ -58,7 +58,7 @@ class ProjectMarkdownExporter
                                         "- [Л] [$displayName](${item.link.linkData.target})"
                                     }
                                     is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-                                    is ListItemContent.CustomListItem -> "- [К] ${item.customList.name}"
+                                    is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
                                 }
                             appendLine(line)
                         }

@@ -11,7 +11,7 @@ import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.dao.CustomListDao
+import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
@@ -91,7 +91,7 @@ constructor(
     private val settingsRepository: SettingsRepository,
     private val projectManagementDao: ProjectManagementDao,
     private val noteDao: LegacyNoteDao,
-    private val customListDao: CustomListDao,
+    private val noteDocumentDao: NoteDocumentDao,
     private val recentItemDao: RecentItemDao,
 ) {
     private val TAG = "SyncRepository"
@@ -139,8 +139,8 @@ constructor(
                 projects = projectDao.getAll(),
                 listItems = listItemDao.getAll(),
                 notes = noteDao.getAll(),
-                customLists = customListDao.getAllCustomLists(),
-                customListItems = customListDao.getAllListItems(),
+                documents = noteDocumentDao.getAllDocuments(),
+                documentItems = noteDocumentDao.getAllDocumentItems(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
@@ -235,8 +235,8 @@ constructor(
                 projectDao.deleteAll()
                 goalDao.deleteAll()
                 noteDao.deleteAll()
-                customListDao.deleteAllCustomLists()
-                customListDao.deleteAllListItems()
+                noteDocumentDao.deleteAllDocuments()
+                noteDocumentDao.deleteAllDocumentItems()
                 recentItemDao.deleteAll()
                 Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
@@ -245,8 +245,8 @@ constructor(
                 projectDao.insertProjects(cleanedProjects)
                 listItemDao.insertItems(cleanedListItems)
                 backup.notes?.let { noteDao.insertAll(it.orEmpty()) }
-                backup.customLists?.let { customListDao.insertAllCustomLists(it.orEmpty()) }
-                backup.customListItems?.let { customListDao.insertAllListItems(it.orEmpty()) }
+                backup.documents?.let { noteDocumentDao.insertAllDocuments(it.orEmpty()) }
+                backup.documentItems?.let { noteDocumentDao.insertAllDocumentItems(it.orEmpty()) }
 
                 backup.activityRecords?.let { activityRecordDao.insertAll(it) }
                 backup.linkItemEntities?.let { linkItemDao.insertAll(it) }

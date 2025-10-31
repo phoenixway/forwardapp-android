@@ -6,6 +6,23 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.data.dao.ProjectDao
+import com.romankozak.forwardappmobile.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.ReminderDao
+import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
+import com.romankozak.forwardappmobile.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.data.dao.ProjectArtifactDao
+import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
+import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
+import com.romankozak.forwardappmobile.data.dao.ChatDao
+import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -187,7 +204,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideCustomListDao(appDatabase: AppDatabase) = appDatabase.customListDao()
+    fun provideCustomListDao(appDatabase: AppDatabase): NoteDocumentDao = appDatabase.noteDocumentDao()
 
     @Provides
     @Singleton

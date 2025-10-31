@@ -37,7 +37,7 @@ fun ProjectAttachmentsScreen(
     viewModel: BacklogViewModel = hiltViewModel(),
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    val attachments = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem }
+    val attachments = listContent.filter { it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.NoteDocumentItem }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
@@ -169,7 +169,7 @@ private fun AttachmentItemCard(
                     onDelete = { onDeleteItem(item) },
                 )
             }
-            is ListItemContent.CustomListItem -> {
+            is ListItemContent.NoteDocumentItem -> {
                 CustomListItemRow(
                     customListItem = item,
                     onClick = { onItemClick(item) },

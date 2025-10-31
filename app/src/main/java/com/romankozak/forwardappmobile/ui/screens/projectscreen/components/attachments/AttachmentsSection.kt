@@ -181,7 +181,7 @@ private fun AttachmentItemCard(
                     onCopyContentRequest = onCopyContentRequest,
                 )
             }
-            is ListItemContent.CustomListItem -> {
+            is ListItemContent.NoteDocumentItem -> {
                 CustomListItemRow(
                     customListItem = item,
                     onClick = { onItemClick(item) },

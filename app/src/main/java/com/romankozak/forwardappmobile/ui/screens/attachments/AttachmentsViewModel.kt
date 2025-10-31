@@ -126,7 +126,7 @@ class AttachmentsViewModel @Inject constructor(
         if (projectId.isNotEmpty()) {
             projectRepository.getProjectContentStream(projectId).map { content ->
                 content.filter { item ->
-                    item is ListItemContent.LinkItem || item is ListItemContent.CustomListItem
+                    item is ListItemContent.LinkItem || item is ListItemContent.NoteDocumentItem
                 }
             }
         } else {
