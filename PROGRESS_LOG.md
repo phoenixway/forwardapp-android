@@ -6,3 +6,4 @@
 2024-11-28: прибрав застарілі NoteDao/NoteFts, перейменував залежності на LegacyNoteDao в SyncRepository та оновив WARP.md. `make check-compile` не запустився через обмежений мережевий доступ.
 2024-11-28: перейменував екосистему custom list → NoteDocument (таблиці, маршрути, екрани), додав міграцію 60→61, створив адаптер legacy нотаток і оновив UI на нову модель.
 2024-11-28: прибрав fallback-маршрути `custom_list_*` із `AppNavigation` та видалив застарілі `.old` екрани, аби позбутись дубльованих шляхів після переходу на NoteDocument.
+2024-11-28: перейменував backup-моделі на `legacyNotes`, синхронізував SyncRepository/FullAppBackup з note documents і перевірив компіляцію (`./gradlew :app:compileDebugKotlin`).
