@@ -123,14 +123,14 @@ data class UiState(
   val recordForReminderDialog: ActivityRecord? = null,
   val projectTimeMetrics: ProjectTimeMetrics? = null,
   val showShareDialog: Boolean = false,
-  val showCreateCustomListDialog: Boolean = false,
+  val showCreateNoteDocumentDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: ListItemContent? = null,
       val remindersForDialog: List<Reminder> = emptyList(),
       val logEntryToEdit: ProjectExecutionLog? = null,
       val artifactToEdit: ProjectArtifact? = null,
       val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
-      val showUniversalEditorForCustomList: Boolean = false,
+      val showNoteDocumentEditor: Boolean = false,
       val showDisplayPropertiesDialog: Boolean = false,
       val showCheckboxes: Boolean = false,
   ) {
@@ -986,10 +986,10 @@ constructor(
     }
   }
 
-  fun onCustomListItemClick(customList: NoteDocumentEntity) {
+  fun onNoteDocumentItemClick(noteDocument: NoteDocumentEntity) {
     viewModelScope.launch {
-      recentItemsRepository.logNoteDocumentAccess(customList)
-      _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${customList.id}"))
+      recentItemsRepository.logNoteDocumentAccess(noteDocument)
+      _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${noteDocument.id}"))
     }
   }
 
@@ -1043,7 +1043,7 @@ constructor(
       AttachmentType.NOTES -> {
         viewModelScope.launch {
           _uiEventFlow.send(
-            UiEvent.Navigate("custom_list_edit_screen?projectId=${projectIdFlow.value}")
+            UiEvent.Navigate("note_document_edit_screen?projectId=${projectIdFlow.value}")
           )
         }
       }
@@ -1650,9 +1650,9 @@ constructor(
           enhancedNavigationManager.navigateToProject(item.target, item.displayName)
         }
         RecentItemType.NOTE -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
-        RecentItemType.CUSTOM_LIST -> {
+        RecentItemType.NOTE_DOCUMENT -> {
           noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it) }
-          _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))
+          _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
           val link =
@@ -1680,19 +1680,19 @@ constructor(
     }
   }
 
-  fun onDismissCreateCustomListDialog() {
-    _uiState.update { it.copy(showCreateCustomListDialog = false) }
+  fun onDismissCreateNoteDocumentDialog() {
+    _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
   }
 
-  fun onShowCreateCustomListDialog() {
-    _uiState.update { it.copy(showUniversalEditorForCustomList = true) }
+  fun onShowCreateNoteDocumentDialog() {
+    _uiState.update { it.copy(showNoteDocumentEditor = true) }
   }
 
-  fun onCreateCustomList(title: String) {
+  fun onCreateNoteDocument(title: String) {
     viewModelScope.launch {
-      _uiState.update { it.copy(showCreateCustomListDialog = false) }
+      _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
       _uiEventFlow.send(
-        UiEvent.Navigate("custom_list_edit_screen?projectId=${projectIdFlow.value}")
+        UiEvent.Navigate("note_document_edit_screen?projectId=${projectIdFlow.value}")
       )
     }
   }
@@ -1730,16 +1730,16 @@ constructor(
         _uiState.update { it.copy(logEntryToEdit = null) }
     }
 
-    fun onSaveCustomList(content: String) {
+    fun onSaveNoteDocument(content: String) {
         viewModelScope.launch {
-            val title = content.lines().firstOrNull()?.trim() ?: "Новий список"
+            val title = content.lines().firstOrNull()?.trim() ?: "Новий документ"
             noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
-            onDismissCustomListEditor()
+            onDismissNoteDocumentEditor()
         }
     }
 
-    fun onDismissCustomListEditor() {
-        _uiState.update { it.copy(showUniversalEditorForCustomList = false) }
+    fun onDismissNoteDocumentEditor() {
+        _uiState.update { it.copy(showNoteDocumentEditor = false) }
     }
 
     fun onAddMilestone() {

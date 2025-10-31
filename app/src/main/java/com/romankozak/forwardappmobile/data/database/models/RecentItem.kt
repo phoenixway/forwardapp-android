@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 enum class RecentItemType {
     PROJECT,
     NOTE,
-    CUSTOM_LIST,
+    NOTE_DOCUMENT,
     OBSIDIAN_LINK
 }
 

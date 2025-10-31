@@ -117,14 +117,14 @@ fun ProjectsScreen(
                 viewModel = editorViewModel
             )
         }
-        uiState.showUniversalEditorForCustomList -> {
+        uiState.showNoteDocumentEditor -> {
             LaunchedEffect(Unit) {
                 editorViewModel.onContentChange(TextFieldValue(""))
             }
             UniversalEditorScreen(
-                title = "Створити новий список",
-                onSave = { content, _ -> viewModel.onSaveCustomList(content) },
-                onNavigateBack = { viewModel.onDismissCustomListEditor() },
+                title = "Створити новий документ",
+                onSave = { content, _ -> viewModel.onSaveNoteDocument(content) },
+                onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
                 viewModel = editorViewModel
             )
@@ -444,7 +444,7 @@ private fun ProjectBottomBar(
                 onRevealInExplorer = { viewModel.onRevealInExplorer(project?.id ?: "") },
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
-                onShowCreateCustomListDialog = viewModel::onShowCreateCustomListDialog,
+                onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
                 isViewModePanelVisible = uiState.isViewModePanelVisible,
                 onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                 suggestions = suggestions,

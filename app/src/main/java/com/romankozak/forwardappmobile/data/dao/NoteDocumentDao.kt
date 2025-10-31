@@ -18,13 +18,13 @@ interface NoteDocumentDao {
     @Update
     suspend fun updateDocument(document: NoteDocumentEntity)
 
-    @Query("SELECT * FROM custom_lists WHERE id = :documentId")
+    @Query("SELECT * FROM note_documents WHERE id = :documentId")
     suspend fun getDocumentById(documentId: String): NoteDocumentEntity?
 
-    @Query("SELECT * FROM custom_lists WHERE projectId = :projectId ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM note_documents WHERE projectId = :projectId ORDER BY updatedAt DESC")
     fun getDocumentsForProject(projectId: String): Flow<List<NoteDocumentEntity>>
 
-    @Query("DELETE FROM custom_lists WHERE id = :documentId")
+    @Query("DELETE FROM note_documents WHERE id = :documentId")
     suspend fun deleteDocumentById(documentId: String)
 
     
@@ -40,36 +40,36 @@ interface NoteDocumentDao {
     @Update
     suspend fun updateListItems(items: List<NoteDocumentItemEntity>)
 
-    @Query("SELECT * FROM custom_list_items WHERE id = :itemId")
+    @Query("SELECT * FROM note_document_items WHERE id = :itemId")
     suspend fun getListItemById(itemId: String): NoteDocumentItemEntity?
 
-    @Query("SELECT * FROM custom_list_items WHERE listId = :documentId ORDER BY itemOrder ASC")
+    @Query("SELECT * FROM note_document_items WHERE listId = :documentId ORDER BY itemOrder ASC")
     fun getItemsForDocument(documentId: String): Flow<List<NoteDocumentItemEntity>>
 
-    @Query("DELETE FROM custom_list_items WHERE id = :itemId")
+    @Query("DELETE FROM note_document_items WHERE id = :itemId")
     suspend fun deleteListItemById(itemId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllDocuments(items: List<NoteDocumentEntity>)
 
-    @Query("DELETE FROM custom_lists")
+    @Query("DELETE FROM note_documents")
     suspend fun deleteAllDocuments()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllDocumentItems(items: List<NoteDocumentItemEntity>)
 
-    @Query("DELETE FROM custom_list_items")
+    @Query("DELETE FROM note_document_items")
     suspend fun deleteAllDocumentItems()
 
-    @Query("SELECT * FROM custom_lists")
+    @Query("SELECT * FROM note_documents")
     suspend fun getAllDocuments(): List<NoteDocumentEntity>
 
-    @Query("SELECT * FROM custom_lists")
+    @Query("SELECT * FROM note_documents")
     fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>>
 
-    @Query("SELECT * FROM custom_list_items")
+    @Query("SELECT * FROM note_document_items")
     suspend fun getAllDocumentItems(): List<NoteDocumentItemEntity>
 
-    @Query("DELETE FROM custom_list_items WHERE id IN (:itemIds)")
+    @Query("DELETE FROM note_document_items WHERE id IN (:itemIds)")
     suspend fun deleteListItemsByIds(itemIds: List<String>)
 }

@@ -44,7 +44,7 @@ constructor(
     private val listItemRepository: ListItemRepository,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
-    private val TAG = "CUSTOM_LIST_DEBUG"
+    private val TAG = "NOTE_DOCUMENT_DEBUG"
 
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
         projectLogRepository.getProjectLogsStream(projectId)
@@ -153,7 +153,7 @@ constructor(
                     notesMap[item.entityId]?.let { note ->
                         ListItemContent.NoteItem(note, item)
                     }
-                ListItemTypeValues.CUSTOM_LIST ->
+                ListItemTypeValues.NOTE_DOCUMENT ->
                     noteDocumentsMap[item.entityId]?.let { document ->
                         ListItemContent.NoteDocumentItem(document, item)
                     }
@@ -349,7 +349,7 @@ constructor(
                 ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
                 ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
                 ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
-                ListItemTypeValues.CUSTOM_LIST -> noteDocumentRepository.getDocumentById(item.entityId) != null
+                ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
                 else -> true // Assume unknown types are valid to avoid deleting them
             }
             if (!entityExists) {

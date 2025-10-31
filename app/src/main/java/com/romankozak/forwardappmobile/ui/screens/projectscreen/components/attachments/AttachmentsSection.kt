@@ -182,8 +182,8 @@ private fun AttachmentItemCard(
                 )
             }
             is ListItemContent.NoteDocumentItem -> {
-                CustomListItemRow(
-                    customListItem = item,
+                NoteDocumentItemRow(
+                    noteDocumentItem = item,
                     onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )

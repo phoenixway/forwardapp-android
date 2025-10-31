@@ -1,10 +1,9 @@
-package com.romankozak.forwardappmobile.ui.screens.customlist
+package com.romankozak.forwardappmobile.ui.screens.notedocument
 
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,10 +11,9 @@ import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class CustomListEditorViewModel
+class NoteDocumentEditorViewModel
 @Inject
 constructor(
-  private val projectRepository: ProjectRepository,
   private val noteDocumentRepository: NoteDocumentRepository,
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,

@@ -571,11 +571,11 @@ constructor(
                 }
                 _uiEventChannel.send(ProjectUiEvent.ShowToast("Legacy note editing is no longer supported"))
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
                 noteDocumentRepository.getDocumentById(item.target)?.let {
                     recentItemsRepository.logNoteDocumentAccess(it)
                 }
-                _uiEventChannel.send(ProjectUiEvent.Navigate("custom_list_screen/${item.target}"))
+                _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
                 val link = com.romankozak.forwardappmobile.data.database.models.RelatedLink(

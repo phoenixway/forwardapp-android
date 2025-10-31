@@ -48,7 +48,7 @@ fun InputPanelMagicActionsDialog(
     onShowAddWebLinkDialog: () -> Unit,
     onShowAddObsidianLinkDialog: () -> Unit,
     onAddListShortcutClick: () -> Unit,
-    onShowCreateCustomListDialog: () -> Unit,
+    onShowCreateNoteDocumentDialog: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -106,11 +106,11 @@ fun InputPanelMagicActionsDialog(
                 },
             ),
             ActionItem(
-                title = "Note",
+                title = "Документ",
                 icon = Icons.Outlined.List,
                 color = MaterialTheme.colorScheme.secondary,
                 action = {
-                    onShowCreateCustomListDialog()
+                    onShowCreateNoteDocumentDialog()
                     onDismiss()
                 },
             ),

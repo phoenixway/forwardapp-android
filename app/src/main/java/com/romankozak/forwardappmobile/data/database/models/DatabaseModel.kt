@@ -121,7 +121,7 @@ object ListItemTypeValues {
     const val SUBLIST = "SUBLIST"
     const val LINK_ITEM = "LINK_ITEM"
     const val NOTE = "NOTE"
-    const val CUSTOM_LIST = "CUSTOM_LIST"
+    const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
 }
 
 

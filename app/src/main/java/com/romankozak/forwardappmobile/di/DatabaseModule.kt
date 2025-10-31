@@ -83,6 +83,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_55_56
 import com.romankozak.forwardappmobile.data.database.MIGRATION_57_58
 import com.romankozak.forwardappmobile.data.database.MIGRATION_58_59
 import com.romankozak.forwardappmobile.data.database.MIGRATION_59_60
+import com.romankozak.forwardappmobile.data.database.MIGRATION_60_61
 
 private lateinit var db: AppDatabase
 
@@ -159,7 +160,8 @@ object DatabaseModule {
             MIGRATION_55_56,
             MIGRATION_57_58,
             MIGRATION_58_59,
-            MIGRATION_59_60
+            MIGRATION_59_60,
+            MIGRATION_60_61
         ).addCallback(callback).build()
         return db
     }
@@ -206,7 +208,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideCustomListDao(appDatabase: AppDatabase): NoteDocumentDao = appDatabase.noteDocumentDao()
+    fun provideNoteDocumentDao(appDatabase: AppDatabase): NoteDocumentDao = appDatabase.noteDocumentDao()
 
     @Provides
     @Singleton

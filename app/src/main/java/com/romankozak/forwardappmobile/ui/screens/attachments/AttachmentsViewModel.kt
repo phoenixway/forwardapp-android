@@ -144,7 +144,7 @@ class AttachmentsViewModel @Inject constructor(
         when (type) {
             AttachmentType.NOTES -> {
                 viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.Navigate("custom_list_edit_screen?projectId=${projectId.value}"))
+                    _uiEventFlow.send(UiEvent.Navigate("note_document_edit_screen?projectId=${projectId.value}"))
                 }
             }
             AttachmentType.WEB_LINK -> {

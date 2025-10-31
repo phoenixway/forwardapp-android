@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 @Entity(
-    tableName = "custom_lists",
+    tableName = "note_documents",
     foreignKeys = [
         ForeignKey(
             entity = Project::class,
@@ -16,7 +16,7 @@ import java.util.UUID
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index(value = ["projectId"])],
+    indices = [Index(value = ["projectId"], name = "index_note_documents_projectId")],
 )
 data class NoteDocumentEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
