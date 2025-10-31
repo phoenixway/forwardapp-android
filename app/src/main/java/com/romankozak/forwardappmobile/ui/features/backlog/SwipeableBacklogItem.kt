@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Done
@@ -57,7 +56,6 @@ fun SwipeableBacklogItem(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
-    onCopyLink: (ListItemContent) -> Unit,
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -112,20 +110,7 @@ fun SwipeableBacklogItem(
                     .padding(start = 16.dp),
                 horizontalArrangement = Arrangement.Start
             ) {
-                IconButton(onClick = {
-                    onCopyLink(item)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy Link",
-                        tint = MaterialTheme.colorScheme.tertiary
-                    )
-                }
+
                 IconButton(onClick = {
                     onShowGoalTransportMenu(item)
                     coroutineScope.launch {

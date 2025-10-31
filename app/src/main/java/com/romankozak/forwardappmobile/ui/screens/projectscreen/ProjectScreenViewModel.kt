@@ -1788,14 +1788,7 @@ constructor(
         _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
     }
 
-    fun onCopyLink(item: ListItemContent) {
-        if (item is ListItemContent.SublistItem) {
-            val projectId = item.project.id
-            val deepLink = "forwardapp://project/$projectId"
-            copyToClipboard(deepLink, "Project Link")
-            showSnackbar("Посилання на підпроект скопійовано", null)
-        }
-    }
+
 
 
 
