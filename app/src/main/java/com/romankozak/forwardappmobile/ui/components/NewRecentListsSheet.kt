@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.Note
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
@@ -138,6 +139,7 @@ private fun RecentItemCard(
                         RecentItemType.PROJECT -> Icons.Outlined.Folder
                         RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
                         RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
+                        RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
                         RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
                     },
                     contentDescription = null,
@@ -169,6 +171,7 @@ private fun getColorsForType(type: RecentItemType): Color {
         RecentItemType.PROJECT -> MaterialTheme.colorScheme.primary
         RecentItemType.NOTE -> MaterialTheme.colorScheme.secondary
         RecentItemType.NOTE_DOCUMENT -> MaterialTheme.colorScheme.tertiary
+        RecentItemType.CHECKLIST -> MaterialTheme.colorScheme.secondaryContainer
         RecentItemType.OBSIDIAN_LINK -> MaterialTheme.colorScheme.primaryContainer
     }
 }

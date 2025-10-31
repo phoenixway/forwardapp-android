@@ -57,10 +57,11 @@ class ItemActionHandler
                         is ListItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
                         is ListItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
                         is ListItemContent.SublistItem -> {
-                            projectRepository.getProjectById(item.project.id)?.let {
+                    projectRepository.getProjectById(item.project.id)?.let {
                                 recentItemsRepository.logProjectAccess(it)
                             }
                         }
+                        is ListItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist)
                         is ListItemContent.LinkItem -> {
                             if (item.link.linkData.type == com.romankozak.forwardappmobile.data.database.models.LinkType.OBSIDIAN) {
                                 recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
@@ -84,6 +85,8 @@ class ItemActionHandler
                         resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
                     is ListItemContent.NoteDocumentItem ->
                         resultListener.requestNavigation("note_document_screen/${item.document.id}")
+                    is ListItemContent.ChecklistItem ->
+                        resultListener.requestNavigation("checklist_screen/${item.checklist.id}")
                 }
             }
         }
@@ -136,6 +139,7 @@ class ItemActionHandler
                         is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
                         is ListItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
                         is ListItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
+                        is ListItemContent.ChecklistItem -> Pair("Назва чекліста скопійована", content.checklist.name)
                     }
 
                 resultListener.copyToClipboard(text)

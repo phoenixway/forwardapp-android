@@ -126,7 +126,9 @@ class AttachmentsViewModel @Inject constructor(
         if (projectId.isNotEmpty()) {
             projectRepository.getProjectContentStream(projectId).map { content ->
                 content.filter { item ->
-                    item is ListItemContent.LinkItem || item is ListItemContent.NoteDocumentItem
+                    item is ListItemContent.LinkItem ||
+                        item is ListItemContent.NoteDocumentItem ||
+                        item is ListItemContent.ChecklistItem
                 }
             }
         } else {
@@ -145,6 +147,11 @@ class AttachmentsViewModel @Inject constructor(
             AttachmentType.NOTES -> {
                 viewModelScope.launch {
                     _uiEventFlow.send(UiEvent.Navigate("note_document_edit_screen?projectId=${projectId.value}"))
+                }
+            }
+            AttachmentType.CHECKLIST -> {
+                viewModelScope.launch {
+                    _uiEventFlow.send(UiEvent.Navigate("checklist_edit_screen?projectId=${projectId.value}"))
                 }
             }
             AttachmentType.WEB_LINK -> {

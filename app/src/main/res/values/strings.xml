@@ -8,6 +8,7 @@
     <string name="toggle_to_edit_mode">Перемкнути в режим редагування</string>
     <string name="create">Створити</string>
     <string name="description_placeholder_with_markdown_hint">Опис (підтримує Markdown)</string>
+    <string name="save">Зберегти</string>
     <string name="set_reminder_title">Встановити нагадування</string>
     <string name="note_editor_edit_title">Редагувати назву нотатки</string>
     <string name="create_button">Створити</string>
@@ -24,6 +25,7 @@
     <string name="add_attachment_description">Додати вкладення</string>
     <string name="add_attachment_button">Додати вкладення</string>
     <string name="attachment_type_notes">Нотатки</string>
+    <string name="attachment_type_checklist">Чекліст</string>
     <string name="attachment_type_web_link">Веб-посилання</string>
     <string name="attachment_type_obsidian">Obsidian</string>
     <string name="attachment_type_project_link">Посилання на проект</string>
@@ -31,6 +33,9 @@
     <string name="attachment_note_icon_description">Іконка нотатки</string>
     <string name="attachment_label_note">Нотатка</string>
     <string name="attachment_note_delete_description">Видалити нотатку</string>
+    <string name="attachment_checklist_icon_description">Іконка чекліста</string>
+    <string name="attachment_label_checklist">Чекліст</string>
+    <string name="attachment_checklist_delete_description">Видалити чекліст</string>
     <string name="collapse_panel">Згорнути панель</string>
     <string name="expand_panel">Розгорнути панель</string>
     <string name="more_options">Більше опцій</string>
@@ -69,4 +74,7 @@
     <string name="add">Додати</string>
     <string name="menu_add_obsidian_link">Додати посилання Obsidian</string>
     <string name="note_name">Назва нотатки</string>
+    <string name="checklist_placeholder_name">Назва списку</string>
+    <string name="checklist_item_placeholder">Новий пункт</string>
+    <string name="checklist_add_item">Додати пункт</string>
 </resources>
