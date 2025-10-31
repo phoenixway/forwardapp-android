@@ -5,7 +5,7 @@ import androidx.room.Fts4
 
 @Fts4(contentEntity = LegacyNoteEntity::class)
 @Entity(tableName = "notes_fts")
-data class NoteFts(
+data class LegacyNoteFts(
     val title: String,
     val content: String,
 )

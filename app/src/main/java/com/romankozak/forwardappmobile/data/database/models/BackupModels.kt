@@ -21,7 +21,7 @@ data class DatabaseContent(
     val projects: List<Project>,
     val goals: List<Goal>,
     val listItems: List<ListItem>,
-    val notes: List<NoteEntity>?,
+    val notes: List<LegacyNoteEntity>?,
     val customLists: List<CustomListEntity>?,
     val customListItems: List<CustomListItemEntity>?,
     val activityRecords: List<ActivityRecord>?,

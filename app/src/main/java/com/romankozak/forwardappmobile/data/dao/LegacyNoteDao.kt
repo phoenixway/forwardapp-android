@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface NoteDao {
+interface LegacyNoteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(note: LegacyNoteEntity)
 

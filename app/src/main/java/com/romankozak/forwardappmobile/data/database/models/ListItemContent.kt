@@ -11,7 +11,7 @@ sealed class ListItemContent {
 
     data class LinkItem(val link: LinkItemEntity, override val listItem: ListItem) : ListItemContent()
 
-    data class NoteItem(val note: NoteEntity, override val listItem: ListItem) : ListItemContent()
+    data class NoteItem(val note: LegacyNoteEntity, override val listItem: ListItem) : ListItemContent()
 
     data class CustomListItem(val customList: CustomListEntity, override val listItem: ListItem) : ListItemContent()
 }

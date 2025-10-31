@@ -272,23 +272,6 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
-    composable(
-        route = "note_edit_screen?projectId={projectId}&noteId={noteId}",
-        arguments =
-            listOf(
-                navArgument("projectId") {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument("noteId") {
-                    type = NavType.StringType
-                    nullable = true
-                },
-            ),
-    ) {
-        NoteEditorScreen(navController = navController)
-    }
-
     // Об'єднаний екран для перегляду/редагування існуючого списку
     composable(
         route = "custom_list_screen/{listId}",

@@ -21,7 +21,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         DayPlan::class,
         DayTask::class,
         DailyMetric::class,
-        NoteEntity::class,
+        LegacyNoteEntity::class,
         CustomListEntity::class,
         CustomListItemEntity::class,
         RecentItem::class,
@@ -33,7 +33,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
         GoalFts::class,
         ProjectFts::class,
         ActivityRecordFts::class,
-        NoteFts::class,
+        LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
     version = 59,
@@ -67,7 +67,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun dailyMetricDao(): DailyMetricDao
 
-    abstract fun noteDao(): NoteDao
+    abstract fun legacyNoteDao(): LegacyNoteDao
 
     abstract fun customListDao(): CustomListDao
 

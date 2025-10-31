@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NoteEditorViewModel @Inject constructor(
-    private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
+    private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
     private val application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -26,7 +26,7 @@ class NoteEditorViewModel @Inject constructor(
             noteRepository.getNoteById(id)?.let { note ->
                 // Встановлюємо projectId для "Show Location"
                 universalEditorViewModel.setProjectId(note.projectId)
-                universalEditorViewModel.setInitialContent(note.content ?: "")
+                universalEditorViewModel.setInitialContent(note.content)
             }
         }
     }

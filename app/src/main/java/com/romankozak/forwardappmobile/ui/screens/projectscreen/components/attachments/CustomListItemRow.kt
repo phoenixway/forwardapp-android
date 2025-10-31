@@ -4,14 +4,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
+import com.romankozak.forwardappmobile.R
 
 @Composable
 fun CustomListItemRow(
@@ -28,8 +30,8 @@ fun CustomListItemRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Outlined.List,
-            contentDescription = "Custom List Icon",
+            imageVector = Icons.Outlined.Description,
+            contentDescription = stringResource(R.string.attachment_note_icon_description),
             modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
@@ -43,7 +45,7 @@ fun CustomListItemRow(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Custom List",
+                text = stringResource(R.string.attachment_label_note),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -53,7 +55,7 @@ fun CustomListItemRow(
         IconButton(onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Delete Custom List",
+                contentDescription = stringResource(R.string.attachment_note_delete_description),
                 tint = MaterialTheme.colorScheme.error,
             )
         }

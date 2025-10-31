@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.di
 
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.NoteDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
-import com.romankozak.forwardappmobile.data.repository.NoteRepository
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
@@ -47,11 +47,11 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideNoteRepository(
-        noteDao: NoteDao,
+    fun provideLegacyNoteRepository(
+        noteDao: LegacyNoteDao,
         listItemDao: ListItemDao,
         recentItemsRepository: RecentItemsRepository
-    ): NoteRepository {
-        return NoteRepository(noteDao, listItemDao, recentItemsRepository)
+    ): LegacyNoteRepository {
+        return LegacyNoteRepository(noteDao, listItemDao, recentItemsRepository)
     }
 }

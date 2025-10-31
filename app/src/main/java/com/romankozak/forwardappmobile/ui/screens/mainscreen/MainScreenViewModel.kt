@@ -54,7 +54,7 @@ constructor(
   private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
   private val activityRepository: ActivityRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-  private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
+  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
   private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
 
   private val application: Application,
@@ -568,7 +568,7 @@ constructor(
                 noteRepository.getNoteById(item.target)?.let {
                     recentItemsRepository.logNoteAccess(it)
                 }
-                _uiEventChannel.send(ProjectUiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Legacy note editing is no longer supported"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
                 customListRepository.getCustomListById(item.target)?.let {

@@ -101,7 +101,7 @@ Custom navigation system built around `EnhancedNavigationManager`:
 - **Goals**: Linked to projects for strategic management
 - **Activities**: Time-tracked records with reminder support
 - **Day Management**: Daily planning with tasks and metrics
-- **Custom Lists**: User-defined list templates
+- **Notes**: User-defined structured notes with reorderable items
 - **Inbox**: Quick capture for unprocessed items
 - **Notes**: Full-featured note-taking with FTS
 - **Chat**: Conversation history with folder organization

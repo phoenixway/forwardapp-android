@@ -16,7 +16,7 @@ import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.NoteDao
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
@@ -90,7 +90,7 @@ constructor(
     private val inboxRecordDao: InboxRecordDao,
     private val settingsRepository: SettingsRepository,
     private val projectManagementDao: ProjectManagementDao,
-    private val noteDao: NoteDao,
+    private val noteDao: LegacyNoteDao,
     private val customListDao: CustomListDao,
     private val recentItemDao: RecentItemDao,
 ) {

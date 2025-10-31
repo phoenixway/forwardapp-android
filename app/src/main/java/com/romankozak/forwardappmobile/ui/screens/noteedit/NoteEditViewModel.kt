@@ -4,7 +4,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.NoteEntity
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -33,7 +33,7 @@ data class NoteEditUiState(
 class NoteEditViewModel
     @Inject
     constructor(
-        private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
+        private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(NoteEditUiState())
@@ -113,7 +113,7 @@ class NoteEditViewModel
 
                 val noteToSave =
                     if (_uiState.value.isNewNote) {
-                        NoteEntity(
+                        LegacyNoteEntity(
                             id = UUID.randomUUID().toString(),
                             projectId = projectId!!,
                             title = title,
