@@ -64,11 +64,12 @@ fun SwipeableBacklogItem(
 ) {
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
-    var offsetX by remember { mutableFloatStateOf(0f) }
     val rightActionWidth = 180.dp
     val leftActionWidth = 240.dp
     val rightActionWidthPx = with(density) { rightActionWidth.toPx() }
     val leftActionWidthPx = with(density) { leftActionWidth.toPx() }
+
+    var offsetX by remember { mutableFloatStateOf(0f) }
 
     val draggableState = rememberDraggableState { delta ->
         offsetX = (offsetX + delta).coerceIn(-rightActionWidthPx, leftActionWidthPx)
@@ -95,12 +96,14 @@ fun SwipeableBacklogItem(
                 orientation = Orientation.Horizontal,
                 state = draggableState,
                 onDragStopped = { velocity ->
-                    val leftThreshold = leftActionWidthPx * 0.12f
-                    val rightThreshold = rightActionWidthPx * 0.12f
-                    val velocityThreshold = 1200f
+                    val velocityThreshold = 350f
+                    val leftThreshold = leftActionWidthPx * 0.18f
+                    val rightThreshold = rightActionWidthPx * 0.18f
                     when {
-                        velocity > velocityThreshold -> animateTo(leftActionWidthPx)
-                        velocity < -velocityThreshold -> animateTo(-rightActionWidthPx)
+                        offsetX > 0f && velocity < -velocityThreshold -> animateTo(0f)
+                        offsetX < 0f && velocity > velocityThreshold -> animateTo(0f)
+                        offsetX >= 0f && velocity > velocityThreshold -> animateTo(leftActionWidthPx)
+                        offsetX <= 0f && velocity < -velocityThreshold -> animateTo(-rightActionWidthPx)
                         offsetX > leftThreshold -> animateTo(leftActionWidthPx)
                         offsetX < -rightThreshold -> animateTo(-rightActionWidthPx)
                         else -> animateTo(0f)
@@ -108,7 +111,9 @@ fun SwipeableBacklogItem(
                 }
             )
     ) {
-        if (offsetX > 0) {
+        fun resetSwipe() = animateTo(0f)
+
+        if (offsetX > 0f) {
             Row(
                 modifier = Modifier
                     .width(leftActionWidth)
@@ -122,7 +127,7 @@ fun SwipeableBacklogItem(
                     color = MaterialTheme.colorScheme.primary,
                 ) {
                     onShowGoalTransportMenu(item)
-                    animateTo(0f)
+                    resetSwipe()
                 }
                 SwipeActionButton(
                     icon = Icons.Default.KeyboardArrowUp,
@@ -130,7 +135,7 @@ fun SwipeableBacklogItem(
                     color = MaterialTheme.colorScheme.primary,
                 ) {
                     onMoveToTop(item)
-                    animateTo(0f)
+                    resetSwipe()
                 }
                 SwipeActionButton(
                     icon = Icons.Default.AddCircle,
@@ -138,7 +143,7 @@ fun SwipeableBacklogItem(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                 ) {
                     onAddToDayPlan(item)
-                    animateTo(0f)
+                    resetSwipe()
                 }
                 SwipeActionButton(
                     icon = Icons.Default.PlayCircleOutline,
@@ -146,12 +151,12 @@ fun SwipeableBacklogItem(
                     color = MaterialTheme.colorScheme.inversePrimary,
                 ) {
                     onStartTracking(item)
-                    animateTo(0f)
+                    resetSwipe()
                 }
             }
         }
 
-        if (offsetX < 0) {
+        if (offsetX < 0f) {
             Row(
                 modifier = Modifier
                     .width(rightActionWidth)
@@ -165,7 +170,7 @@ fun SwipeableBacklogItem(
                     color = MaterialTheme.colorScheme.primary,
                 ) {
                     onCheckedChange(item, !isCompleted)
-                    animateTo(0f)
+                    resetSwipe()
                 }
                 SwipeActionButton(
                     icon = Icons.Default.Delete,
@@ -173,7 +178,7 @@ fun SwipeableBacklogItem(
                     color = MaterialTheme.colorScheme.error,
                 ) {
                     onDelete(item)
-                    animateTo(0f)
+                    resetSwipe()
                 }
                 SwipeActionButton(
                     icon = Icons.Default.DeleteForever,
@@ -181,7 +186,7 @@ fun SwipeableBacklogItem(
                     color = MaterialTheme.colorScheme.errorContainer,
                 ) {
                     onDeleteEverywhere(item)
-                    animateTo(0f)
+                    resetSwipe()
                 }
             }
         }
