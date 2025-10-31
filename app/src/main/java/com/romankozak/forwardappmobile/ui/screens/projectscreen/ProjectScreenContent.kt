@@ -64,6 +64,7 @@ fun GoalDetailContent(
                 onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
+                onCopyContent = viewModel.itemActionHandler::copyContentRequest,
             )
         }
         ProjectViewMode.INBOX -> {
