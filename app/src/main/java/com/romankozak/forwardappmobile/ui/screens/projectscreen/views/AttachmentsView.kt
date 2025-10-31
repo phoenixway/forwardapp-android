@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.NoteDocumentItemRow
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.LinkItemRow
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.ChecklistItemRow
 
 @Composable
 fun AttachmentsView(
@@ -31,7 +32,7 @@ fun AttachmentsView(
     listContent: List<ListItemContent>
 ) {
     val attachments = listContent.filter {
-        it is ListItemContent.LinkItem || it is ListItemContent.NoteDocumentItem
+        it is ListItemContent.LinkItem || it is ListItemContent.NoteDocumentItem || it is ListItemContent.ChecklistItem
     }
 
     LazyColumn(
@@ -103,6 +104,13 @@ private fun AttachmentItemCard(
                     onDelete = { onDeleteItem(item) },
                 )
             }
+            is ListItemContent.ChecklistItem -> {
+                ChecklistItemRow(
+                    checklistItem = item,
+                    onClick = { onItemClick(item) },
+                    onDelete = { onDeleteItem(item) },
+                )
+            }
             else -> {}
         }
     }
@@ -140,6 +148,10 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
             modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
         ) {
             AttachmentTypeMenuItem(R.string.attachment_type_notes, AttachmentType.NOTES) { type ->
+                onAddAttachment(type)
+                showAddMenu = false
+            }
+            AttachmentTypeMenuItem(R.string.attachment_type_checklist, AttachmentType.CHECKLIST) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }

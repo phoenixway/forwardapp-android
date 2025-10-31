@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScreen
+import com.romankozak.forwardappmobile.ui.screens.checklist.ChecklistEditorScreen
 
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
@@ -310,6 +311,32 @@ private fun NavGraphBuilder.mainGraph(
         NoteDocumentScreen(
             navController = navController,
         )
+    }
+
+    composable(
+        route = "checklist_screen/{checklistId}",
+        arguments = listOf(
+            navArgument("checklistId") { type = NavType.StringType }
+        ),
+    ) {
+        ChecklistEditorScreen(navController = navController)
+    }
+
+    composable(
+        route = "checklist_edit_screen?projectId={projectId}&checklistId={checklistId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("checklistId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        ChecklistEditorScreen(navController = navController)
     }
 
     composable(

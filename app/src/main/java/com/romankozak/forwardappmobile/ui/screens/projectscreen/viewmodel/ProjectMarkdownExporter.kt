@@ -59,6 +59,7 @@ class ProjectMarkdownExporter
                                     }
                                     is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
                                     is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
+                                    is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
                                 }
                             appendLine(line)
                         }
