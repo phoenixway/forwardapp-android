@@ -23,7 +23,6 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.CustomListItemRow
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.LinkItemRow
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.NoteItemRow
 
 @Composable
 fun AttachmentsView(
@@ -32,7 +31,7 @@ fun AttachmentsView(
     listContent: List<ListItemContent>
 ) {
     val attachments = listContent.filter {
-        it is ListItemContent.LinkItem || it is ListItemContent.NoteItem || it is ListItemContent.CustomListItem
+        it is ListItemContent.LinkItem || it is ListItemContent.CustomListItem
     }
 
     LazyColumn(
@@ -97,13 +96,6 @@ private fun AttachmentItemCard(
                     onCopyContentRequest = onCopyContentRequest,
                 )
             }
-            is ListItemContent.NoteItem -> {
-                NoteItemRow(
-                    noteItem = item,
-                    onClick = { onItemClick(item) },
-                    onDelete = { onDeleteItem(item) },
-                )
-            }
             is ListItemContent.CustomListItem -> {
                 CustomListItemRow(
                     customListItem = item,
@@ -147,10 +139,6 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
             onDismissRequest = { showAddMenu = false },
             modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
         ) {
-            AttachmentTypeMenuItem(R.string.attachment_type_note, AttachmentType.NOTE) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
             AttachmentTypeMenuItem(R.string.attachment_type_custom_list, AttachmentType.CUSTOM_LIST) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
@@ -163,12 +151,12 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_list_link, AttachmentType.LIST_LINK) { type ->
+            AttachmentTypeMenuItem(R.string.attachment_type_project_link, AttachmentType.PROJECT_LINK) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
             HorizontalDivider()
-            AttachmentTypeMenuItem(R.string.menu_add_list_shortcut, AttachmentType.SHORTCUT) { type ->
+            AttachmentTypeMenuItem(R.string.menu_add_project_shortcut, AttachmentType.PROJECT_SHORTCUT) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }

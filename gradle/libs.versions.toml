@@ -116,6 +116,8 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
 firebase-remote-config = { group = "com.google.firebase", name = "firebase-config-ktx" }
+firebase-installations = { group = "com.google.firebase", name = "firebase-installations-ktx" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.0.0" }
 
 # Rest
 accompanist-flowlayout = { group = "com.google.accompanist", name = "accompanist-flowlayout", version.ref = "accompanist" }

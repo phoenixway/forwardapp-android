@@ -31,8 +31,8 @@ enum class AddAttachmentDialogType {
 
 enum class PendingAttachmentType {
     NONE,
-    LIST_LINK,
-    SHORTCUT
+    PROJECT_LINK,
+    PROJECT_SHORTCUT
 }
 
 data class AttachmentsUiState(
@@ -81,8 +81,8 @@ class AttachmentsViewModel @Inject constructor(
                 if (result != null) {
                     android.util.Log.d("AttachmentsViewModel", "Result received: $result")
                     when (uiState.value.pendingAttachmentType) {
-                        PendingAttachmentType.LIST_LINK -> onAddListLink(result)
-                        PendingAttachmentType.SHORTCUT -> onAddListShortcut(result)
+                        PendingAttachmentType.PROJECT_LINK -> onAddProjectLink(result)
+                        PendingAttachmentType.PROJECT_SHORTCUT -> onAddProjectShortcut(result)
                         PendingAttachmentType.NONE -> {
                             android.util.Log.w("AttachmentsViewModel", "Received a list chooser result but no pending attachment type.")
                         }
@@ -126,7 +126,7 @@ class AttachmentsViewModel @Inject constructor(
         if (projectId.isNotEmpty()) {
             projectRepository.getProjectContentStream(projectId).map { content ->
                 content.filter { item ->
-                    item is ListItemContent.LinkItem || item is ListItemContent.NoteItem || item is ListItemContent.CustomListItem
+                    item is ListItemContent.LinkItem || item is ListItemContent.CustomListItem
                 }
             }
         } else {
@@ -142,11 +142,6 @@ class AttachmentsViewModel @Inject constructor(
 
     fun onAddAttachment(type: AttachmentType) {
         when (type) {
-            AttachmentType.NOTE -> {
-                viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?projectId=${projectId.value}"))
-                }
-            }
             AttachmentType.CUSTOM_LIST -> {
                 viewModelScope.launch {
                     _uiEventFlow.send(UiEvent.Navigate("custom_list_edit_screen?projectId=${projectId.value}"))
@@ -158,16 +153,16 @@ class AttachmentsViewModel @Inject constructor(
             AttachmentType.OBSIDIAN_LINK -> {
                 _uiState.update { it.copy(showAddAttachmentDialog = AddAttachmentDialogType.OBSIDIAN_LINK) }
             }
-            AttachmentType.LIST_LINK -> {
-                _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.LIST_LINK) }
+            AttachmentType.PROJECT_LINK -> {
+                _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.PROJECT_LINK) }
                 viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.NavigateToListChooser("Add link to another list", projectId.value))
+                    _uiEventFlow.send(UiEvent.NavigateToListChooser("Add link to another project", projectId.value))
                 }
             }
-            AttachmentType.SHORTCUT -> {
-                _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.SHORTCUT) }
+            AttachmentType.PROJECT_SHORTCUT -> {
+                _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.PROJECT_SHORTCUT) }
                 viewModelScope.launch {
-                    _uiEventFlow.send(UiEvent.NavigateToListChooser("Add shortcut to another list", projectId.value))
+                    _uiEventFlow.send(UiEvent.NavigateToListChooser("Add shortcut to another project", projectId.value))
                 }
             }
         }
@@ -224,8 +219,8 @@ class AttachmentsViewModel @Inject constructor(
         }
     }
 
-    fun onAddListLink(projectId: String) {
-        android.util.Log.d("AttachmentsViewModel", "onAddListLink called with projectId: $projectId")
+    fun onAddProjectLink(projectId: String) {
+        android.util.Log.d("AttachmentsViewModel", "onAddProjectLink called with projectId: $projectId")
         viewModelScope.launch {
             val project = projectRepository.getProjectById(projectId)
             android.util.Log.d("AttachmentsViewModel", "project: $project")
@@ -241,7 +236,7 @@ class AttachmentsViewModel @Inject constructor(
         }
     }
 
-    fun onAddListShortcut(projectId: String) {
+    fun onAddProjectShortcut(projectId: String) {
         viewModelScope.launch {
             listItemRepository.addProjectLinkToProject(projectId, this@AttachmentsViewModel.projectId.value)
             _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }

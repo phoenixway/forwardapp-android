@@ -1039,11 +1039,6 @@ constructor(
 
   fun onAddAttachment(type: AttachmentType) {
     when (type) {
-      AttachmentType.NOTE -> {
-        viewModelScope.launch {
-          _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?projectId=${projectIdFlow.value}"))
-        }
-      }
       AttachmentType.CUSTOM_LIST -> {
         viewModelScope.launch {
           _uiEventFlow.send(
@@ -1053,8 +1048,8 @@ constructor(
       }
       AttachmentType.WEB_LINK -> inputHandler.onShowAddWebLinkDialog()
       AttachmentType.OBSIDIAN_LINK -> inputHandler.onShowAddObsidianLinkDialog()
-      AttachmentType.LIST_LINK -> inputHandler.onAddListLinkRequest()
-      AttachmentType.SHORTCUT -> inputHandler.onAddListShortcutRequest()
+      AttachmentType.PROJECT_LINK -> inputHandler.onAddListLinkRequest()
+      AttachmentType.PROJECT_SHORTCUT -> inputHandler.onAddListShortcutRequest()
     }
   }
 

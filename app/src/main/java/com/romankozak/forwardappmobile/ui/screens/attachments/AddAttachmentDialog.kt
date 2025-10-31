@@ -21,12 +21,11 @@ fun AddAttachmentDialog(
         title = { Text("Add attachment") },
         text = {
             Column {
-                Text("Note", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.NOTE) }.padding(16.dp))
                 Text("Custom List", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.CUSTOM_LIST) }.padding(16.dp))
                 Text("Web Link", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.WEB_LINK) }.padding(16.dp))
                 Text("Obsidian Link", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.OBSIDIAN_LINK) }.padding(16.dp))
-                Text("Link to another list", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.LIST_LINK) }.padding(16.dp))
-                Text("Shortcut to another list", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.SHORTCUT) }.padding(16.dp))
+                Text("Link to another project", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.PROJECT_LINK) }.padding(16.dp))
+                Text("Shortcut to another project", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.PROJECT_SHORTCUT) }.padding(16.dp))
             }
         },
         confirmButton = { }
