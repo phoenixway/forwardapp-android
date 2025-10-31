@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -158,7 +159,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideNoteDao(appDatabase: AppDatabase) = appDatabase.noteDao()
+    fun provideLegacyNoteDao(appDatabase: AppDatabase): LegacyNoteDao = appDatabase.legacyNoteDao()
 
     @Provides
     @Singleton

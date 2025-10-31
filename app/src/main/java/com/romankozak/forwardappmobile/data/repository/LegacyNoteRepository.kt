@@ -1,32 +1,32 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.NoteDao
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.NoteEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class NoteRepository @Inject constructor(
-    private val noteDao: NoteDao,
+class LegacyNoteRepository @Inject constructor(
+    private val legacyNoteDao: LegacyNoteDao,
     private val listItemDao: ListItemDao,
-    private val recentItemsRepository: RecentItemsRepository
+    private val recentItemsRepository: RecentItemsRepository,
 ) {
-    suspend fun getNoteById(noteId: String): NoteEntity? = noteDao.getNoteById(noteId)
+    suspend fun getNoteById(noteId: String): LegacyNoteEntity? = legacyNoteDao.getNoteById(noteId)
 
-    fun getNotesForProject(projectId: String): Flow<List<NoteEntity>> = noteDao.getNotesForProject(projectId)
+    fun getNotesForProject(projectId: String): Flow<List<LegacyNoteEntity>> = legacyNoteDao.getNotesForProject(projectId)
 
-    fun getAllAsFlow(): Flow<List<NoteEntity>> = noteDao.getAllAsFlow()
+    fun getAllAsFlow(): Flow<List<LegacyNoteEntity>> = legacyNoteDao.getAllAsFlow()
 
     @androidx.room.Transaction
-    suspend fun saveNote(note: NoteEntity) {
-        val existingNote = noteDao.getNoteById(note.id)
+    suspend fun saveNote(note: LegacyNoteEntity) {
+        val existingNote = legacyNoteDao.getNoteById(note.id)
         if (existingNote == null) {
-            noteDao.insert(note)
+            legacyNoteDao.insert(note)
 
             val newListItem =
                 ListItem(
@@ -38,14 +38,14 @@ class NoteRepository @Inject constructor(
                 )
             listItemDao.insertItem(newListItem)
         } else {
-            noteDao.update(note.copy(updatedAt = System.currentTimeMillis()))
+            legacyNoteDao.update(note.copy(updatedAt = System.currentTimeMillis()))
             recentItemsRepository.updateRecentItemDisplayName(note.id, note.title)
         }
     }
 
     @androidx.room.Transaction
     suspend fun deleteNote(noteId: String) {
-        noteDao.deleteNoteById(noteId)
+        legacyNoteDao.deleteNoteById(noteId)
         listItemDao.deleteItemByEntityId(noteId)
     }
 }

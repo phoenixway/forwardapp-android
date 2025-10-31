@@ -250,7 +250,7 @@ constructor(
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
   private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
-  private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
+  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
   private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
 ) :
   ViewModel(),
@@ -978,10 +978,10 @@ constructor(
     }
   }
 
-  fun onNoteItemClick(note: NoteEntity) {
+  fun onNoteItemClick(note: LegacyNoteEntity) {
     viewModelScope.launch {
       recentItemsRepository.logNoteAccess(note)
-      _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${note.id}"))
+          // legacy notes no longer have dedicated editor; no-op
     }
   }
 
@@ -1648,10 +1648,7 @@ constructor(
           projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
           enhancedNavigationManager.navigateToProject(item.target, item.displayName)
         }
-        RecentItemType.NOTE -> {
-          noteRepository.getNoteById(item.target)?.let { recentItemsRepository.logNoteAccess(it) }
-          _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
-        }
+        RecentItemType.NOTE -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
         RecentItemType.CUSTOM_LIST -> {
           customListRepository.getCustomListById(item.target)?.let { recentItemsRepository.logCustomListAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))

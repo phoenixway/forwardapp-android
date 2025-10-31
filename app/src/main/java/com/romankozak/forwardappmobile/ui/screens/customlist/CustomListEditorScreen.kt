@@ -5,6 +5,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
+import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
 
 @Composable
 fun CustomListEditorScreen(
@@ -16,7 +18,7 @@ fun CustomListEditorScreen(
   LaunchedEffect(listId) { listId?.let { viewModel.loadCustomList(it) } }
 
   UniversalEditorScreen(
-    title = "Edit Custom List",
+    title = stringResource(R.string.note_editor_edit_title),
     onSave = { content, cursorPosition ->
       viewModel.saveCustomList(content, cursorPosition)
       navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)

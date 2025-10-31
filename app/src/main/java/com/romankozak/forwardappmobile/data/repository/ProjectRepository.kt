@@ -29,7 +29,7 @@ class ProjectRepository
 @Inject
 constructor(
     private val projectDao: ProjectDao,
-    private val noteRepository: NoteRepository,
+    private val legacyNoteRepository: LegacyNoteRepository,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val activityRepository: ActivityRepository,
     private val recentItemsRepository: RecentItemsRepository,
@@ -99,7 +99,7 @@ constructor(
             goalRepository.getAllGoalsFlow(),
             projectDao.getAllProjects(),
             listItemRepository.getAllEntitiesAsFlow(),
-            noteRepository.getAllAsFlow(),
+            legacyNoteRepository.getAllAsFlow(),
             customListRepository.getAllCustomListsAsFlow()
         ) { array ->
             @Suppress("UNCHECKED_CAST")
@@ -110,7 +110,7 @@ constructor(
                 goals = array[2] as List<Goal>,
                 projects = array[3] as List<Project>,
                 links = array[4] as List<LinkItemEntity>,
-                notes = array[5] as List<NoteEntity>,
+                notes = array[5] as List<LegacyNoteEntity>,
                 customLists = array[6] as List<CustomListEntity>
             )
         }
@@ -123,7 +123,7 @@ constructor(
         goals: List<Goal>,
         projects: List<Project>,
         links: List<LinkItemEntity>,
-        notes: List<NoteEntity>,
+        notes: List<LegacyNoteEntity>,
         customLists: List<CustomListEntity>
     ): List<ListItemContent> {
         val remindersMap = reminders.groupBy { it.entityId }
@@ -348,7 +348,7 @@ constructor(
                 ListItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
                 ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
                 ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
-                ListItemTypeValues.NOTE -> noteRepository.getNoteById(item.entityId) != null
+                ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
                 ListItemTypeValues.CUSTOM_LIST -> customListRepository.getCustomListById(item.entityId) != null
                 else -> true // Assume unknown types are valid to avoid deleting them
             }

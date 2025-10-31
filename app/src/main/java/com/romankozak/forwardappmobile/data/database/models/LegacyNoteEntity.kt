@@ -18,7 +18,7 @@ import java.util.UUID
     ],
     indices = [Index(value = ["projectId"])],
 )
-data class NoteEntity(
+data class LegacyNoteEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val projectId: String,
     var title: String,

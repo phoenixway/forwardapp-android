@@ -81,7 +81,7 @@ class ItemActionHandler
                     is ListItemContent.LinkItem ->
                         resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
                     is ListItemContent.NoteItem ->
-                        resultListener.requestNavigation("note_edit_screen?noteId=${item.note.id}")
+                        resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
                     is ListItemContent.CustomListItem ->
                         resultListener.requestNavigation("custom_list_screen/${item.customList.id}")
                 }

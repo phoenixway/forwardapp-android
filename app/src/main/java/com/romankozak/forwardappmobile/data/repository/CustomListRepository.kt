@@ -33,7 +33,7 @@ class CustomListRepository @Inject constructor(
     ): String {
         Log.d(TAG, "createCustomList called with name: $name, projectId: $projectId, content: $content")
         val newList = CustomListEntity(name = name, projectId = projectId, content = content)
-        Log.d(TAG, "Inserting new custom list: $newList")
+        Log.d(TAG, "Inserting new note: $newList")
         customListDao.insertCustomList(newList)
         
         val newListItem =
@@ -84,7 +84,7 @@ class CustomListRepository @Inject constructor(
 
     suspend fun updateCustomList(list: CustomListEntity) {
         android.util.Log.d("CursorDebug", "Repository updating custom list. lastCursorPosition: ${list.lastCursorPosition}")
-        Log.d(TAG, "updateCustomList called with list: $list")
+        Log.d(TAG, "updateNote called with note: $list")
         customListDao.updateCustomList(list)
         recentItemsRepository.updateRecentItemDisplayName(list.id, list.name)
         Log.d(TAG, "updateCustomList finished")

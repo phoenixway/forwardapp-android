@@ -93,6 +93,10 @@
     <string name="attachment_type_web_link">Веб-посилання</string>
     <string name="attachment_type_obsidian">Посилання Obsidian</string>
     <string name="attachment_type_project_link">Посилання на проєкт</string>
+    <string name="attachment_label_note">Нотатка</string>
+    <string name="attachment_note_icon_description">Іконка нотатки</string>
+    <string name="attachment_note_delete_description">Видалити нотатку</string>
+    <string name="note_editor_edit_title">Edit Note</string>
 
     <string name="no_attachments_message">Додатки відсутні.\nНатисніть +, щоб додати перший.</string>
 
@@ -160,8 +164,8 @@
 
     <string name="search_everywhere_for">Шукати скрізь за запитом</string>
 
-    <string name="create_custom_list">Create custom list</string>
-    <string name="list_title">List title</string>
+    <string name="create_custom_list">Create note</string>
+    <string name="list_title">Note title</string>
 
     <string name="set_reminder_title">Set reminder</string>
     <string name="special_project_name">special</string>
