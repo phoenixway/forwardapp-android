@@ -1,3 +1,5 @@
+package com.romankozak.forwardappmobile.ui.screens.notedocument.components
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween

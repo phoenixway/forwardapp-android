@@ -666,7 +666,7 @@ fun ModernInputPanel(
   onRevealInExplorer: () -> Unit,
   onCloseSearch: () -> Unit,
   onAddMilestone: () -> Unit,
-  onShowCreateCustomListDialog: () -> Unit,
+  onShowCreateNoteDocumentDialog: () -> Unit,
   onShowDisplayPropertiesClick: () -> Unit,
   suggestions: List<String>,
   onSuggestionClick: (String) -> Unit,
@@ -1077,7 +1077,7 @@ fun ModernInputPanel(
       onShowAddWebLinkDialog = onShowAddWebLinkDialog,
       onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
       onAddListShortcutClick = onAddListShortcutClick,
-      onShowCreateCustomListDialog = onShowCreateCustomListDialog,
+      onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
     )
   }
 }

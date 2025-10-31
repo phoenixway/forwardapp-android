@@ -427,3 +427,62 @@ val MIGRATION_59_60 = object : Migration(59, 60) {
         migrateSpecialProjects(db)
     }
 }
+
+val MIGRATION_60_61 = object : Migration(60, 61) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `note_documents` (
+                `id` TEXT NOT NULL,
+                `projectId` TEXT NOT NULL,
+                `name` TEXT NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `content` TEXT,
+                `lastCursorPosition` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO `note_documents` (id, projectId, name, createdAt, updatedAt, content, lastCursorPosition)
+            SELECT id, projectId, name, createdAt, updatedAt, content, lastCursorPosition
+            FROM `custom_lists`
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE `custom_lists`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_note_documents_projectId` ON `note_documents` (`projectId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `note_document_items` (
+                `id` TEXT NOT NULL,
+                `listId` TEXT NOT NULL,
+                `parentId` TEXT,
+                `content` TEXT NOT NULL,
+                `isCompleted` INTEGER NOT NULL,
+                `itemOrder` INTEGER NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`listId`) REFERENCES `note_documents`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                FOREIGN KEY(`parentId`) REFERENCES `note_document_items`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO `note_document_items` (id, listId, parentId, content, isCompleted, itemOrder, createdAt, updatedAt)
+            SELECT id, listId, parentId, content, isCompleted, itemOrder, createdAt, updatedAt
+            FROM `custom_list_items`
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE `custom_list_items`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_note_document_items_listId` ON `note_document_items` (`listId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_note_document_items_parentId` ON `note_document_items` (`parentId`)")
+
+        db.execSQL("UPDATE `list_items` SET `itemType` = 'NOTE_DOCUMENT' WHERE `itemType` = 'CUSTOM_LIST'")
+    }
+}

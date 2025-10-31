@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.customlist
+package com.romankozak.forwardappmobile.ui.screens.notedocument
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -9,13 +9,16 @@ import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.R
 
 @Composable
-fun CustomListEditorScreen(
+fun NoteDocumentEditorScreen(
   navController: NavController,
-  viewModel: CustomListEditorViewModel = hiltViewModel(),
+  viewModel: NoteDocumentEditorViewModel = hiltViewModel(),
 ) {
-  val listId: String? = navController.currentBackStackEntry?.arguments?.getString("listId")
+  val backStackEntry = navController.currentBackStackEntry
+  val documentId: String? =
+    backStackEntry?.arguments?.getString("documentId")
+      ?: backStackEntry?.arguments?.getString("listId")
 
-  LaunchedEffect(listId) { listId?.let { viewModel.loadDocument(it) } }
+  LaunchedEffect(documentId) { documentId?.let { viewModel.loadDocument(it) } }
 
   UniversalEditorScreen(
     title = stringResource(R.string.note_editor_edit_title),

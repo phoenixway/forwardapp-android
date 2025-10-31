@@ -3,8 +3,10 @@ package com.romankozak.forwardappmobile.data.repository
 import android.util.Log
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
+import com.romankozak.forwardappmobile.data.legacy.toNoteDocument
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
@@ -42,7 +44,7 @@ class NoteDocumentRepository @Inject constructor(
             ListItem(
                 id = UUID.randomUUID().toString(),
                 projectId = projectId,
-                itemType = ListItemTypeValues.CUSTOM_LIST,
+                itemType = ListItemTypeValues.NOTE_DOCUMENT,
                 entityId = document.id,
                 order = -System.currentTimeMillis(),
             )
@@ -72,6 +74,12 @@ class NoteDocumentRepository @Inject constructor(
 
     suspend fun deleteDocumentItem(itemId: String) {
         noteDocumentDao.deleteListItemById(itemId)
+    }
+
+    suspend fun importFromLegacy(note: LegacyNoteEntity) {
+        val document = note.toNoteDocument()
+        noteDocumentDao.insertDocument(document)
+        recentItemsRepository.logNoteDocumentAccess(document)
     }
 
     suspend fun updateDocumentItems(items: List<NoteDocumentItemEntity>) {

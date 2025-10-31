@@ -137,7 +137,7 @@ private fun RecentItemCard(
                     imageVector = when (item.type) {
                         RecentItemType.PROJECT -> Icons.Outlined.Folder
                         RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
-                        RecentItemType.CUSTOM_LIST -> Icons.AutoMirrored.Outlined.List
+                        RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
                         RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
                     },
                     contentDescription = null,
@@ -168,7 +168,7 @@ private fun getColorsForType(type: RecentItemType): Color {
     return when (type) {
         RecentItemType.PROJECT -> MaterialTheme.colorScheme.primary
         RecentItemType.NOTE -> MaterialTheme.colorScheme.secondary
-        RecentItemType.CUSTOM_LIST -> MaterialTheme.colorScheme.tertiary
+        RecentItemType.NOTE_DOCUMENT -> MaterialTheme.colorScheme.tertiary
         RecentItemType.OBSIDIAN_LINK -> MaterialTheme.colorScheme.primaryContainer
     }
 }

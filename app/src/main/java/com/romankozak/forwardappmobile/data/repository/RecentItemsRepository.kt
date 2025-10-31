@@ -59,7 +59,7 @@ class RecentItemsRepository @Inject constructor(
         } else {
             RecentItem(
                 id = document.id,
-                type = RecentItemType.CUSTOM_LIST,
+                type = RecentItemType.NOTE_DOCUMENT,
                 lastAccessed = System.currentTimeMillis(),
                 displayName = document.name,
                 target = document.id

@@ -83,7 +83,7 @@ class ItemActionHandler
                     is ListItemContent.NoteItem ->
                         resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
                     is ListItemContent.NoteDocumentItem ->
-                        resultListener.requestNavigation("custom_list_screen/${item.document.id}")
+                        resultListener.requestNavigation("note_document_screen/${item.document.id}")
                 }
             }
         }

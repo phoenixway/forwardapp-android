@@ -90,7 +90,7 @@ constructor(
     private val inboxRecordDao: InboxRecordDao,
     private val settingsRepository: SettingsRepository,
     private val projectManagementDao: ProjectManagementDao,
-    private val noteDao: LegacyNoteDao,
+    private val legacyNoteDao: LegacyNoteDao,
     private val noteDocumentDao: NoteDocumentDao,
     private val recentItemDao: RecentItemDao,
 ) {
@@ -138,7 +138,7 @@ constructor(
                 goals = goalDao.getAll(),
                 projects = projectDao.getAll(),
                 listItems = listItemDao.getAll(),
-                notes = noteDao.getAll(),
+                notes = legacyNoteDao.getAll(),
                 documents = noteDocumentDao.getAllDocuments(),
                 documentItems = noteDocumentDao.getAllDocumentItems(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
@@ -234,7 +234,7 @@ constructor(
                 listItemDao.deleteAll()
                 projectDao.deleteAll()
                 goalDao.deleteAll()
-                noteDao.deleteAll()
+                legacyNoteDao.deleteAll()
                 noteDocumentDao.deleteAllDocuments()
                 noteDocumentDao.deleteAllDocumentItems()
                 recentItemDao.deleteAll()
@@ -244,7 +244,7 @@ constructor(
                 goalDao.insertGoals(backup.goals)
                 projectDao.insertProjects(cleanedProjects)
                 listItemDao.insertItems(cleanedListItems)
-                backup.notes?.let { noteDao.insertAll(it.orEmpty()) }
+                backup.notes?.let { legacyNoteDao.insertAll(it.orEmpty()) }
                 backup.documents?.let { noteDocumentDao.insertAllDocuments(it.orEmpty()) }
                 backup.documentItems?.let { noteDocumentDao.insertAllDocumentItems(it.orEmpty()) }
 

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.customlist
+package com.romankozak.forwardappmobile.ui.screens.notedocument
 
 import android.app.Application
 import android.content.ClipData
@@ -25,26 +25,26 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
 
-sealed class UnifiedCustomListEvent {
-    object NavigateBack : UnifiedCustomListEvent()
-    data class ShowError(val message: String) : UnifiedCustomListEvent()
-    data class ShowSuccess(val message: String = "") : UnifiedCustomListEvent()
-    object AutoSaved : UnifiedCustomListEvent()
+sealed class NoteDocumentEvent {
+    object NavigateBack : NoteDocumentEvent()
+    data class ShowError(val message: String) : NoteDocumentEvent()
+    data class ShowSuccess(val message: String = "") : NoteDocumentEvent()
+    object AutoSaved : NoteDocumentEvent()
 }
 
-data class UnifiedCustomListUiState(
+data class NoteDocumentUiState(
     val title: String = "",
     val content: TextFieldValue = TextFieldValue(""),
     val collapsedLines: Set<Int> = emptySet(),
     val toolbarState: ListToolbarState = ListToolbarState(),
     val isLoading: Boolean = false,
     val isEditing: Boolean = false,
-    val isNewList: Boolean = true,
+    val isNewDocument: Boolean = true,
     val currentLine: Int? = null,
 )
 
 @HiltViewModel
-class UnifiedCustomListViewModel @Inject constructor(
+class NoteDocumentViewModel @Inject constructor(
     private val application: Application,
     private val projectRepository: ProjectRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
@@ -56,10 +56,10 @@ class UnifiedCustomListViewModel @Inject constructor(
         private const val INDENT_LENGTH = 6
     }
 
-    private val _uiState = MutableStateFlow(UnifiedCustomListUiState())
-    val uiState: StateFlow<UnifiedCustomListUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(NoteDocumentUiState())
+    val uiState: StateFlow<NoteDocumentUiState> = _uiState.asStateFlow()
 
-    private val _events = Channel<UnifiedCustomListEvent>()
+    private val _events = Channel<NoteDocumentEvent>()
     val events = _events.receiveAsFlow()
 
     private val undoStack = ArrayDeque<TextFieldValue>()
@@ -67,30 +67,30 @@ class UnifiedCustomListViewModel @Inject constructor(
 
     private var clipboard: String = ""
 
-    val isNewList: Boolean get() = _uiState.value.isNewList
+    val isNewDocument: Boolean get() = _uiState.value.isNewDocument
 
     init {
-        val listId: String? = savedStateHandle["listId"]
-        if (listId == null) {
+        val documentId: String? = savedStateHandle["documentId"] ?: savedStateHandle["listId"]
+        if (documentId == null) {
             _uiState.update {
-                it.copy(isNewList = true, content = TextFieldValue("• ", selection = TextRange(2)))
+                it.copy(isNewDocument = true, content = TextFieldValue("• ", selection = TextRange(2)))
             }
         } else {
             viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true, isNewList = false) }
-                noteDocumentRepository.getDocumentById(listId)?.let { list ->
-                    noteDocumentRepository.updateDocument(list.copy(updatedAt = System.currentTimeMillis()))
-                    val content = TextFieldValue(list.content ?: "")
+                _uiState.update { it.copy(isLoading = true, isNewDocument = false) }
+                noteDocumentRepository.getDocumentById(documentId)?.let { document ->
+                    noteDocumentRepository.updateDocument(document.copy(updatedAt = System.currentTimeMillis()))
+                    val content = TextFieldValue(document.content ?: "")
                     _uiState.update {
                         it.copy(
-                            title = list.name,
+                            title = document.name,
                             content = content,
                             isLoading = false,
                             toolbarState = computeToolbarState(content, false)
                         )
                     }
                     pushUndo(content)
-                } ?: _events.send(UnifiedCustomListEvent.NavigateBack)
+                } ?: _events.send(NoteDocumentEvent.NavigateBack)
             }
         }
     }
@@ -109,32 +109,32 @@ class UnifiedCustomListViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val currentState = _uiState.value
-            val listId: String? = savedStateHandle["listId"]
+            val documentId: String? = savedStateHandle["documentId"] ?: savedStateHandle["listId"]
             val projectId: String? = savedStateHandle["projectId"]
 
             try {
-                if (listId == null) {
+                if (documentId == null) {
                     projectId?.let {
                         noteDocumentRepository.createDocument(
-                            name = currentState.title.ifBlank { "New Note" },
+                            name = currentState.title.ifBlank { "New Document" },
                             content = currentState.content.text,
                             projectId = it
                         )
-                        _events.send(UnifiedCustomListEvent.NavigateBack)
-                    } ?: _events.send(UnifiedCustomListEvent.ShowError("Project ID is missing"))
+                        _events.send(NoteDocumentEvent.NavigateBack)
+                    } ?: _events.send(NoteDocumentEvent.ShowError("Project ID is missing"))
                 } else {
-                    noteDocumentRepository.getDocumentById(listId)?.let { existingList ->
-                        val updatedList = existingList.copy(
+                    noteDocumentRepository.getDocumentById(documentId)?.let { existingDocument ->
+                        val updatedDocument = existingDocument.copy(
                             name = currentState.title,
                             content = currentState.content.text
                         )
-                        noteDocumentRepository.updateDocument(updatedList)
-                        _events.send(UnifiedCustomListEvent.ShowSuccess("Saved"))
-                    } ?: _events.send(UnifiedCustomListEvent.ShowError("List not found"))
+                        noteDocumentRepository.updateDocument(updatedDocument)
+                        _events.send(NoteDocumentEvent.ShowSuccess("Saved"))
+                    } ?: _events.send(NoteDocumentEvent.ShowError("Document not found"))
                 }
             } catch (e: Exception) {
                 _events.send(
-                    UnifiedCustomListEvent.ShowError(
+                    NoteDocumentEvent.ShowError(
                         e.message ?: "An unknown error occurred"
                     )
                 )
@@ -148,7 +148,7 @@ class UnifiedCustomListViewModel @Inject constructor(
         _uiState.update { it.copy(title = newTitle) }
     }
 
-// CustomListViewModel.kt
+// NoteDocumentViewModel.kt
 
     fun onContentChange(newValue: TextFieldValue) {
         pushUndo(_uiState.value.content)

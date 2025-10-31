@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.customlist
+package com.romankozak.forwardappmobile.ui.screens.notedocument
 
 import android.app.Activity
 import android.util.Log
@@ -91,9 +91,9 @@ private fun ShowToolbarButton(onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UnifiedCustomListScreen(
+fun NoteDocumentScreen(
   navController: NavController,
-  viewModel: UnifiedCustomListViewModel = hiltViewModel(),
+  viewModel: NoteDocumentViewModel = hiltViewModel(),
 ) {
   var isToolbarVisible by remember { mutableStateOf(true) }
   val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -118,7 +118,7 @@ fun UnifiedCustomListScreen(
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   var screenMode by remember {
-    mutableStateOf(if (viewModel.isNewList) ScreenMode.CREATE else ScreenMode.VIEW)
+    mutableStateOf(if (viewModel.isNewDocument) ScreenMode.CREATE else ScreenMode.VIEW)
   }
 
   val keyboardController = LocalSoftwareKeyboardController.current
@@ -140,15 +140,15 @@ fun UnifiedCustomListScreen(
   LaunchedEffect(screenMode) { viewModel.onToggleEditMode(screenMode != ScreenMode.VIEW) }
 
   LaunchedEffect(Unit) {
-    viewModel.events.collect { event: UnifiedCustomListEvent ->
+    viewModel.events.collect { event: NoteDocumentEvent ->
       when (event) {
-        is UnifiedCustomListEvent.NavigateBack -> {
+        is NoteDocumentEvent.NavigateBack -> {
           navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
           navController.popBackStack()
         }
-        is UnifiedCustomListEvent.ShowError -> {}
-        is UnifiedCustomListEvent.ShowSuccess -> {}
-        is UnifiedCustomListEvent.AutoSaved -> {}
+        is NoteDocumentEvent.ShowError -> {}
+        is NoteDocumentEvent.ShowSuccess -> {}
+        is NoteDocumentEvent.AutoSaved -> {}
       }
     }
   }
@@ -376,8 +376,8 @@ private fun EnhancedTopAppBar(
 
 @Composable
 private fun CreateEditContent(
-  uiState: UnifiedCustomListUiState,
-  viewModel: UnifiedCustomListViewModel,
+  uiState: NoteDocumentUiState,
+  viewModel: NoteDocumentViewModel,
   contentFocusRequester: FocusRequester,
   bringIntoViewRequester: BringIntoViewRequester,
   isToolbarVisible: Boolean,
@@ -635,8 +635,8 @@ val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
 
 @Composable
 private fun ViewContent(
-  uiState: UnifiedCustomListUiState,
-  viewModel: UnifiedCustomListViewModel,
+  uiState: NoteDocumentUiState,
+  viewModel: NoteDocumentViewModel,
   onContentClick: () -> Unit,
 ) {
   Column(

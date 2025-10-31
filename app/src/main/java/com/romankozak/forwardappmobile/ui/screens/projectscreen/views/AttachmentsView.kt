@@ -21,7 +21,7 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.CustomListItemRow
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.NoteDocumentItemRow
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.LinkItemRow
 
 @Composable
@@ -97,8 +97,8 @@ private fun AttachmentItemCard(
                 )
             }
             is ListItemContent.NoteDocumentItem -> {
-                CustomListItemRow(
-                    customListItem = item,
+                NoteDocumentItemRow(
+                    noteDocumentItem = item,
                     onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
