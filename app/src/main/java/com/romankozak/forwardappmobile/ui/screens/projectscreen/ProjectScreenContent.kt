@@ -64,7 +64,7 @@ fun GoalDetailContent(
                 onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
                 onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                 onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
-                onCopySubprojectLink = { item -> viewModel.onCopySubprojectLink(item) },
+                onCopyLink = { item -> viewModel.onCopyLink(item) },
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
             )
