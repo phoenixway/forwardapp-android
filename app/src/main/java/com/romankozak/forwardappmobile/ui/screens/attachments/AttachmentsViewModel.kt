@@ -142,7 +142,7 @@ class AttachmentsViewModel @Inject constructor(
 
     fun onAddAttachment(type: AttachmentType) {
         when (type) {
-            AttachmentType.CUSTOM_LIST -> {
+            AttachmentType.NOTES -> {
                 viewModelScope.launch {
                     _uiEventFlow.send(UiEvent.Navigate("custom_list_edit_screen?projectId=${projectId.value}"))
                 }
