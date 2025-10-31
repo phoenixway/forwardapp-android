@@ -49,6 +49,7 @@ fun SwipeableBacklogItem(
     reorderableScope: ReorderableCollectionItemScope,
     showCheckboxes: Boolean,
     isDragging: Boolean,
+    isSelected: Boolean,
     onItemClick: (ListItemContent) -> Unit,
     onLongClick: (ListItemContent) -> Unit,
     onMoreClick: (ListItemContent) -> Unit,
@@ -202,7 +203,7 @@ fun SwipeableBacklogItem(
             onCheckedChange = { onCheckedChange(item, it) },
             onRelatedLinkClick = onRelatedLinkClick,
             showCheckbox = showCheckboxes,
-            isSelected = isDragging
+            isSelected = isSelected || isDragging
         )
     }
 }

@@ -46,6 +46,7 @@ fun GoalDetailContent(
                 modifier = modifier,
                 listState = listState,
                 showCheckboxes = uiState.showCheckboxes,
+                selectedItemIds = uiState.selectedItemIds,
                 onMove = { from, to -> viewModel.onMove(from, to) },
                 onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },

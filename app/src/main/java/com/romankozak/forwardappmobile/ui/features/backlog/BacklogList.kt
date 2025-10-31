@@ -24,6 +24,7 @@ fun BacklogListScreen(
     modifier: Modifier = Modifier,
     listState: LazyListState,
     showCheckboxes: Boolean,
+    selectedItemIds: Set<String>,
     onMove: (from: Int, to: Int) -> Unit,
     onItemClick: (ListItemContent) -> Unit,
     onLongClick: (ListItemContent) -> Unit,
@@ -56,11 +57,13 @@ fun BacklogListScreen(
     ) {
         items(items, key = { it.listItem.id }) { item ->
             ReorderableItem(reorderableState, key = item.listItem.id) { isDragging ->
+                val isSelected = item.listItem.id in selectedItemIds
                 SwipeableBacklogItem(
                     item = item,
                     reorderableScope = this,
                     showCheckboxes = showCheckboxes,
                     isDragging = isDragging,
+                    isSelected = isSelected,
                     onItemClick = { onItemClick(item) },
                     onLongClick = { onLongClick(item) },
                     onMoreClick = { 
