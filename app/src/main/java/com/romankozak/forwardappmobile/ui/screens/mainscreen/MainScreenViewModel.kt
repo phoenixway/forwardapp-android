@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
@@ -55,7 +56,7 @@ constructor(
   private val activityRepository: ActivityRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
   private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
-  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
+  private val noteDocumentRepository: NoteDocumentRepository,
 
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,
@@ -571,8 +572,8 @@ constructor(
                 _uiEventChannel.send(ProjectUiEvent.ShowToast("Legacy note editing is no longer supported"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
-                customListRepository.getCustomListById(item.target)?.let {
-                    recentItemsRepository.logCustomListAccess(it)
+                noteDocumentRepository.getDocumentById(item.target)?.let {
+                    recentItemsRepository.logNoteDocumentAccess(it)
                 }
                 _uiEventChannel.send(ProjectUiEvent.Navigate("custom_list_screen/${item.target}"))
             }

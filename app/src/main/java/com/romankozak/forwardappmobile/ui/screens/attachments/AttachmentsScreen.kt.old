@@ -255,8 +255,8 @@ fun AttachmentsScreen(
                                     is ListItemContent.NoteItem -> {
                                         navController.navigate("note_edit_screen?noteId=${attachment.note.id}")
                                     }
-                                    is ListItemContent.CustomListItem -> {
-                                        navController.navigate("custom_list_screen/${attachment.customList.id}")
+                                    is ListItemContent.NoteDocumentItem -> {
+                                        navController.navigate("custom_list_screen/${attachment.document.id}")
                                     }
                                     else -> {}
                                 }
@@ -279,8 +279,8 @@ fun AttachmentsScreen(
                                 is ListItemContent.NoteItem -> {
                                     Text(text = attachment.note.title, modifier = Modifier.weight(1f))
                                 }
-                                is ListItemContent.CustomListItem -> {
-                                    Text(text = attachment.customList.name, modifier = Modifier.weight(1f))
+                                is ListItemContent.NoteDocumentItem -> {
+                                    Text(text = attachment.document.name, modifier = Modifier.weight(1f))
                                 }
                                 else -> {}
                             }

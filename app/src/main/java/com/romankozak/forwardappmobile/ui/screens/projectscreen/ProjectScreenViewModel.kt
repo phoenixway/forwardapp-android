@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.ner.NerManager
@@ -171,7 +172,7 @@ constructor(
             "- [Л] [$displayName](${item.link.linkData.target})"
           }
           is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-          is ListItemContent.CustomListItem -> "- [К] ${item.customList.name}"
+          is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
         }
       markdownBuilder.appendLine(line)
     }
@@ -246,7 +247,7 @@ constructor(
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
   private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
-  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
+  private val noteDocumentRepository: NoteDocumentRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
   private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
@@ -424,7 +425,7 @@ constructor(
                     is ListItemContent.LinkItem ->
                       itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
                     is ListItemContent.NoteItem -> itemContent.note.title
-                    is ListItemContent.CustomListItem -> itemContent.customList.name
+                    is ListItemContent.NoteDocumentItem -> itemContent.document.name
                   }
                 textToSearch.contains(query, ignoreCase = true)
               }
@@ -985,9 +986,9 @@ constructor(
     }
   }
 
-  fun onCustomListItemClick(customList: CustomListEntity) {
+  fun onCustomListItemClick(customList: NoteDocumentEntity) {
     viewModelScope.launch {
-      recentItemsRepository.logCustomListAccess(customList)
+      recentItemsRepository.logNoteDocumentAccess(customList)
       _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${customList.id}"))
     }
   }
@@ -1165,7 +1166,7 @@ constructor(
 
           is ListItemContent.LinkItem,
           is ListItemContent.NoteItem,
-          is ListItemContent.CustomListItem -> null to null
+          is ListItemContent.NoteDocumentItem -> null to null
         }
 
       val (newRecord, message) = result
@@ -1365,7 +1366,7 @@ constructor(
           }
           is ListItemContent.LinkItem -> null
           is ListItemContent.NoteItem -> null
-          is ListItemContent.CustomListItem -> null
+          is ListItemContent.NoteDocumentItem -> null
         }
 
       if (task != null) {
@@ -1414,7 +1415,7 @@ constructor(
                     "- [Л] [$displayName](${item.link.linkData.target})"
                 }
                 is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-                is ListItemContent.CustomListItem -> "- [К] ${item.customList.name}"
+                is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
             }
         markdownBuilder.appendLine(line)
     }
@@ -1650,7 +1651,7 @@ constructor(
         }
         RecentItemType.NOTE -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
         RecentItemType.CUSTOM_LIST -> {
-          customListRepository.getCustomListById(item.target)?.let { recentItemsRepository.logCustomListAccess(it) }
+          noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
@@ -1732,7 +1733,7 @@ constructor(
     fun onSaveCustomList(content: String) {
         viewModelScope.launch {
             val title = content.lines().firstOrNull()?.trim() ?: "Новий список"
-            customListRepository.createCustomList(title, projectIdFlow.value, content)
+            noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
             onDismissCustomListEditor()
         }
     }

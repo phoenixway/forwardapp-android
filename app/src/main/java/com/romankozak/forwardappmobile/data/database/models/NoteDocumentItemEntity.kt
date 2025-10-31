@@ -10,13 +10,13 @@ import java.util.UUID
     tableName = "custom_list_items",
     foreignKeys = [
         ForeignKey(
-            entity = CustomListEntity::class,
+            entity = NoteDocumentEntity::class,
             parentColumns = ["id"],
             childColumns = ["listId"],
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
-            entity = CustomListItemEntity::class,
+            entity = NoteDocumentItemEntity::class,
             parentColumns = ["id"],
             childColumns = ["parentId"],
             onDelete = ForeignKey.CASCADE,
@@ -24,7 +24,7 @@ import java.util.UUID
     ],
     indices = [Index(value = ["listId"]), Index(value = ["parentId"])],
 )
-data class CustomListItemEntity(
+data class NoteDocumentItemEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val listId: String,
     val parentId: String? = null,

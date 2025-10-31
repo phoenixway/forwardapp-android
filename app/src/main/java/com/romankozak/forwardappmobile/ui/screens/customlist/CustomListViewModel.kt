@@ -11,6 +11,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.ui.common.editor.components.ListFormatMode
 import com.romankozak.forwardappmobile.ui.common.editor.components.ListToolbarState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,7 +47,7 @@ data class UnifiedCustomListUiState(
 class UnifiedCustomListViewModel @Inject constructor(
     private val application: Application,
     private val projectRepository: ProjectRepository,
-    private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
+    private val noteDocumentRepository: NoteDocumentRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -77,8 +78,8 @@ class UnifiedCustomListViewModel @Inject constructor(
         } else {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, isNewList = false) }
-                customListRepository.getCustomListById(listId)?.let { list ->
-                    customListRepository.updateCustomList(list.copy(updatedAt = System.currentTimeMillis()))
+                noteDocumentRepository.getDocumentById(listId)?.let { list ->
+                    noteDocumentRepository.updateDocument(list.copy(updatedAt = System.currentTimeMillis()))
                     val content = TextFieldValue(list.content ?: "")
                     _uiState.update {
                         it.copy(
@@ -114,20 +115,20 @@ class UnifiedCustomListViewModel @Inject constructor(
             try {
                 if (listId == null) {
                     projectId?.let {
-                        customListRepository.createCustomList(
-                            name = currentState.title.ifBlank { "New List" },
+                        noteDocumentRepository.createDocument(
+                            name = currentState.title.ifBlank { "New Note" },
                             content = currentState.content.text,
                             projectId = it
                         )
                         _events.send(UnifiedCustomListEvent.NavigateBack)
                     } ?: _events.send(UnifiedCustomListEvent.ShowError("Project ID is missing"))
                 } else {
-                    customListRepository.getCustomListById(listId)?.let { existingList ->
+                    noteDocumentRepository.getDocumentById(listId)?.let { existingList ->
                         val updatedList = existingList.copy(
                             name = currentState.title,
                             content = currentState.content.text
                         )
-                        customListRepository.updateCustomList(updatedList)
+                        noteDocumentRepository.updateDocument(updatedList)
                         _events.send(UnifiedCustomListEvent.ShowSuccess("Saved"))
                     } ?: _events.send(UnifiedCustomListEvent.ShowError("List not found"))
                 }

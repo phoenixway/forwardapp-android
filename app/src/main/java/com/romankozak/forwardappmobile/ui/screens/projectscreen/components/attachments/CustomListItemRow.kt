@@ -17,7 +17,7 @@ import com.romankozak.forwardappmobile.R
 
 @Composable
 fun CustomListItemRow(
-    customListItem: ListItemContent.CustomListItem,
+    customListItem: ListItemContent.NoteDocumentItem,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -38,7 +38,7 @@ fun CustomListItemRow(
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = customListItem.customList.name,
+                text = customListItem.document.name,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

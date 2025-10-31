@@ -55,7 +55,7 @@ class ItemActionHandler
                 scope.launch {
                     when (item) {
                         is ListItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
-                        is ListItemContent.CustomListItem -> recentItemsRepository.logCustomListAccess(item.customList)
+                        is ListItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
                         is ListItemContent.SublistItem -> {
                             projectRepository.getProjectById(item.project.id)?.let {
                                 recentItemsRepository.logProjectAccess(it)
@@ -82,8 +82,8 @@ class ItemActionHandler
                         resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
                     is ListItemContent.NoteItem ->
                         resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
-                    is ListItemContent.CustomListItem ->
-                        resultListener.requestNavigation("custom_list_screen/${item.customList.id}")
+                    is ListItemContent.NoteDocumentItem ->
+                        resultListener.requestNavigation("custom_list_screen/${item.document.id}")
                 }
             }
         }
@@ -135,7 +135,7 @@ class ItemActionHandler
                         }
                         is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
                         is ListItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
-                        is ListItemContent.CustomListItem -> Pair("Назва списку скопійована", content.customList.name)
+                        is ListItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
                     }
 
                 resultListener.copyToClipboard(text)

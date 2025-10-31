@@ -31,7 +31,7 @@ fun AttachmentsView(
     listContent: List<ListItemContent>
 ) {
     val attachments = listContent.filter {
-        it is ListItemContent.LinkItem || it is ListItemContent.CustomListItem
+        it is ListItemContent.LinkItem || it is ListItemContent.NoteDocumentItem
     }
 
     LazyColumn(
@@ -96,7 +96,7 @@ private fun AttachmentItemCard(
                     onCopyContentRequest = onCopyContentRequest,
                 )
             }
-            is ListItemContent.CustomListItem -> {
+            is ListItemContent.NoteDocumentItem -> {
                 CustomListItemRow(
                     customListItem = item,
                     onClick = { onItemClick(item) },

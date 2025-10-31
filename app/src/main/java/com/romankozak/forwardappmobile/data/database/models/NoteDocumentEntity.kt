@@ -18,7 +18,7 @@ import java.util.UUID
     ],
     indices = [Index(value = ["projectId"])],
 )
-data class CustomListEntity(
+data class NoteDocumentEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val projectId: String,
     var name: String,

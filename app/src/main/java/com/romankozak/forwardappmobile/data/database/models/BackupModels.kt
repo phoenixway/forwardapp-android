@@ -22,8 +22,10 @@ data class DatabaseContent(
     val goals: List<Goal>,
     val listItems: List<ListItem>,
     val notes: List<LegacyNoteEntity>?,
-    val customLists: List<CustomListEntity>?,
-    val customListItems: List<CustomListItemEntity>?,
+    @SerializedName(value = "documents", alternate = ["customLists"])
+    val documents: List<NoteDocumentEntity>?,
+    @SerializedName(value = "documentItems", alternate = ["customListItems"])
+    val documentItems: List<NoteDocumentItemEntity>?,
     val activityRecords: List<ActivityRecord>?,
     val inboxRecords: List<InboxRecord>?,
     @SerializedName(value = "recentProjectEntries", alternate = ["recentListEntries"])

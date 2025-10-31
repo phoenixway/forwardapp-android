@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.database.models.CustomListEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
@@ -52,20 +52,20 @@ class RecentItemsRepository @Inject constructor(
         recentItemDao.logAccess(recentItem)
     }
 
-    suspend fun logCustomListAccess(customList: CustomListEntity) {
-        val existingItem = recentItemDao.getRecentItemById(customList.id)
+    suspend fun logNoteDocumentAccess(document: NoteDocumentEntity) {
+        val existingItem = recentItemDao.getRecentItemById(document.id)
         val recentItem = if (existingItem != null) {
             existingItem.copy(lastAccessed = System.currentTimeMillis())
         } else {
             RecentItem(
-                id = customList.id,
+                id = document.id,
                 type = RecentItemType.CUSTOM_LIST,
                 lastAccessed = System.currentTimeMillis(),
-                displayName = customList.name,
-                target = customList.id
+                displayName = document.name,
+                target = document.id
             )
         }
-        Log.d("Recents_Debug", "Logging note access: $recentItem")
+        Log.d("Recents_Debug", "Logging note document access: $recentItem")
         recentItemDao.logAccess(recentItem)
     }
 

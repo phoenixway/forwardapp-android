@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,7 +16,7 @@ class CustomListEditorViewModel
 @Inject
 constructor(
   private val projectRepository: ProjectRepository,
-  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
+  private val noteDocumentRepository: NoteDocumentRepository,
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -23,34 +24,34 @@ constructor(
   val universalEditorViewModel = UniversalEditorViewModel(application)
   private var listId: String? = null
 
-  fun loadCustomList(id: String) {
+  fun loadDocument(id: String) {
     listId = id
     viewModelScope.launch {
-      customListRepository.getCustomListById(id)?.let { customList ->
-        android.util.Log.d("CursorDebug", "Loaded customList with lastCursorPosition: ${customList.lastCursorPosition}")
+      noteDocumentRepository.getDocumentById(id)?.let { document ->
+        android.util.Log.d("CursorDebug", "Loaded document with lastCursorPosition: ${document.lastCursorPosition}")
         // Встановлюємо projectId для "Show Location"
-        universalEditorViewModel.setProjectId(customList.projectId)
+        universalEditorViewModel.setProjectId(document.projectId)
         universalEditorViewModel.setInitialContent(
-            customList.content ?: "",
-            customList.lastCursorPosition
+            document.content ?: "",
+            document.lastCursorPosition
         )
       }
     }
   }
 
-  fun saveCustomList(content: String, cursorPosition: Int) {
-    android.util.Log.d("CursorDebug", "saveCustomList called with cursorPosition: $cursorPosition")
+  fun saveDocument(content: String, cursorPosition: Int) {
+    android.util.Log.d("CursorDebug", "saveDocument called with cursorPosition: $cursorPosition")
     listId?.let {
       viewModelScope.launch {
-        customListRepository.getCustomListById(it)?.let { customList ->
-          val name = content.lines().firstOrNull()?.take(100) ?: "Unnamed List"
-          val updatedList = customList.copy(
+        noteDocumentRepository.getDocumentById(it)?.let { document ->
+          val name = content.lines().firstOrNull()?.take(100) ?: "Unnamed Note"
+          val updatedDocument = document.copy(
               name = name,
               content = content,
               updatedAt = System.currentTimeMillis(),
               lastCursorPosition = cursorPosition
           )
-          customListRepository.updateCustomList(updatedList)
+          noteDocumentRepository.updateDocument(updatedDocument)
         }
       }
     }
