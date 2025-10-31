@@ -101,7 +101,11 @@ fun GoalDetailDialogs(viewModel: BacklogViewModel) {
                 viewModel.itemActionHandler.onItemActionSelected(GoalActionType.CopyGoal, item)
             }
         },
-        onCopyContentToClipboardRequest = viewModel.itemActionHandler.onCopyContentToClipboard.collectAsStateWithLifecycle().value,
+        onCopySubprojectRequest = {
+            itemForTransportMenu?.let { item ->
+                viewModel.itemActionHandler.onItemActionSelected(GoalActionType.COPY_SUBPROJECT_LINK, item)
+            }
+        },
         isGoalItem = itemForTransportMenu is ListItemContent.GoalItem,
     )
 

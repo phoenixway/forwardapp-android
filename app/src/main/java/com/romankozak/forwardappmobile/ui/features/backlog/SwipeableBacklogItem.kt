@@ -57,7 +57,7 @@ fun SwipeableBacklogItem(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
-    onCopyLink: (ListItemContent) -> Unit,
+    onCopySubprojectLink: (ListItemContent) -> Unit,
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -113,7 +113,7 @@ fun SwipeableBacklogItem(
                 horizontalArrangement = Arrangement.Start
             ) {
                 IconButton(onClick = {
-                    onCopyLink(item)
+                    onCopySubprojectLink(item)
                     coroutineScope.launch {
                         animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
                             offsetX = value
