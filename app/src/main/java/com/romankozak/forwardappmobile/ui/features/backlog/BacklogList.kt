@@ -33,7 +33,7 @@ fun BacklogListScreen(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
-    onCopyLink: (ListItemContent) -> Unit,
+    onCopySubprojectLink: (ListItemContent) -> Unit,
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
     onRemindersClick: (ListItemContent) -> Unit,
 ) {
@@ -74,7 +74,7 @@ fun BacklogListScreen(
                     onAddToDayPlan = { onAddToDayPlan(item) },
                     onStartTracking = { onStartTracking(item) },
                     onShowGoalTransportMenu = { onShowGoalTransportMenu(item) },
-                    onCopyLink = { onCopyLink(item) },
+                    onCopySubprojectLink = { onCopySubprojectLink(item) },
                     onRelatedLinkClick = onRelatedLinkClick
                 )
             }

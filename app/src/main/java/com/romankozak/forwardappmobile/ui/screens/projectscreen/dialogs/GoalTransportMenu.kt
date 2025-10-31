@@ -37,7 +37,7 @@ fun GoalTransportMenu(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
-    onCopyContentToClipboardRequest: () -> Unit,
+    onCopySubprojectRequest: () -> Unit,
     isGoalItem: Boolean,
 ) {
     AnimatedVisibility(
@@ -106,18 +106,6 @@ fun GoalTransportMenu(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         TransportMenuItem(
-                            icon = Icons.Default.AddLink,
-                            title = "Створити зв'язок",
-                            description = "Створити новий екземпляр у іншому проекті",
-                            onClick = {
-                                onCreateInstanceRequest()
-                                onDismiss()
-                            },
-                        )
-
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                        TransportMenuItem(
                             icon = Icons.AutoMirrored.Filled.Send,
                             title = "Перемістити",
                             description = "Перемістити елемент в інший проект",
@@ -131,10 +119,10 @@ fun GoalTransportMenu(
 
                         TransportMenuItem(
                             icon = Icons.Default.ContentCopy,
-                            title = "Копіювати текст",
-                            description = "Копіювати вміст елемента в буфер обміну",
+                            title = "Копіювати підпроект",
+                            description = "Створити копію цього підпроекту в іншому проекті",
                             onClick = {
-                                onCopyContentToClipboardRequest()
+                                onCopySubprojectRequest()
                                 onDismiss()
                             },
                         )

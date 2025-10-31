@@ -89,6 +89,7 @@ enum class GoalActionType {
   CopyGoal,
   AddLinkToList,
   ADD_LIST_SHORTCUT,
+  COPY_SUBPROJECT_LINK,
 }
 
 sealed class GoalActionDialogState {
@@ -771,6 +772,7 @@ constructor(
         GoalActionType.CopyGoal -> "Копіювати до..."
         GoalActionType.AddLinkToList -> "Додати посилання на проект..."
         GoalActionType.ADD_LIST_SHORTCUT -> "Додати ярлик на проект..."
+        GoalActionType.COPY_SUBPROJECT_LINK -> "Копіювати посилання на підпроект..."
       }
     navigateToListChooser(title)
   }
@@ -884,6 +886,17 @@ constructor(
           } else {
             val newItemId =
               listItemRepository.addProjectLinkToProject(targetProjectId, projectIdFlow.value)
+            withContext(Dispatchers.Main) {
+              _uiState.update { it.copy(newlyAddedItemId = newItemId) }
+            }
+          }
+        }
+
+        GoalActionType.COPY_SUBPROJECT_LINK -> {
+          if (goalIds.isNotEmpty()) {
+            val subprojectToLinkId = goalIds.first()
+            val newItemId =
+              listItemRepository.addProjectLinkToProject(subprojectToLinkId, targetProjectId)
             withContext(Dispatchers.Main) {
               _uiState.update { it.copy(newlyAddedItemId = newItemId) }
             }
@@ -1788,12 +1801,13 @@ constructor(
         _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
     }
 
-    fun onCopyLink(item: ListItemContent) {
+    fun onCopySubprojectLink(item: ListItemContent) {
         if (item is ListItemContent.SublistItem) {
-            val projectId = item.project.id
-            val deepLink = "forwardapp://project/$projectId"
-            copyToClipboard(deepLink, "Project Link")
-            showSnackbar("Посилання на підпроект скопійовано", null)
+            setPendingAction(
+                actionType = GoalActionType.COPY_SUBPROJECT_LINK,
+                itemIds = setOf(item.listItem.id),
+                goalIds = setOf(item.project.id)
+            )
         }
     }
 
