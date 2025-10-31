@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -22,8 +23,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -33,8 +34,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.roundToInt
@@ -68,7 +71,15 @@ fun SwipeableBacklogItem(
     val leftActionWidthPx = with(density) { leftActionWidth.toPx() }
 
     val draggableState = rememberDraggableState { delta ->
-        offsetX += delta
+        offsetX = (offsetX + delta).coerceIn(-rightActionWidthPx, leftActionWidthPx)
+    }
+
+    fun animateTo(target: Float) {
+        coroutineScope.launch {
+            animate(initialValue = offsetX, targetValue = target) { value, _ ->
+                offsetX = value
+            }
+        }
     }
 
     val isCompleted = when (item) {
@@ -83,21 +94,16 @@ fun SwipeableBacklogItem(
             .draggable(
                 orientation = Orientation.Horizontal,
                 state = draggableState,
-                onDragStopped = {
-                    coroutineScope.launch {
-                        if (offsetX > leftActionWidthPx / 2) {
-                            animate(initialValue = offsetX, targetValue = leftActionWidthPx) { value, _ ->
-                                offsetX = value
-                            }
-                        } else if (offsetX < -rightActionWidthPx / 2) {
-                            animate(initialValue = offsetX, targetValue = -rightActionWidthPx) { value, _ ->
-                                offsetX = value
-                            }
-                        } else {
-                            animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                                offsetX = value
-                            }
-                        }
+                onDragStopped = { velocity ->
+                    val leftThreshold = leftActionWidthPx * 0.12f
+                    val rightThreshold = rightActionWidthPx * 0.12f
+                    val velocityThreshold = 1200f
+                    when {
+                        velocity > velocityThreshold -> animateTo(leftActionWidthPx)
+                        velocity < -velocityThreshold -> animateTo(-rightActionWidthPx)
+                        offsetX > leftThreshold -> animateTo(leftActionWidthPx)
+                        offsetX < -rightThreshold -> animateTo(-rightActionWidthPx)
+                        else -> animateTo(0f)
                     }
                 }
             )
@@ -107,67 +113,42 @@ fun SwipeableBacklogItem(
                 modifier = Modifier
                     .width(leftActionWidth)
                     .align(Alignment.CenterStart)
-                    .padding(start = 16.dp),
-                horizontalArrangement = Arrangement.Start
+                    .padding(start = 16.dp, end = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
             ) {
-
-                IconButton(onClick = {
+                SwipeActionButton(
+                    icon = Icons.Default.Share,
+                    contentDescription = "Share",
+                    color = MaterialTheme.colorScheme.primary,
+                ) {
                     onShowGoalTransportMenu(item)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Move Link",
-                        tint = MaterialTheme.colorScheme.tertiary
-                    )
+                    animateTo(0f)
                 }
-                IconButton(onClick = {
+                SwipeActionButton(
+                    icon = Icons.Default.KeyboardArrowUp,
+                    contentDescription = "Move to top",
+                    color = MaterialTheme.colorScheme.primary,
+                ) {
                     onMoveToTop(item)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowUp,
-                        contentDescription = "Move to top",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    animateTo(0f)
                 }
-                IconButton(onClick = {
+                SwipeActionButton(
+                    icon = Icons.Default.AddCircle,
+                    contentDescription = "Add to day plan",
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
                     onAddToDayPlan(item)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.AddCircle,
-                        contentDescription = "Add to day plan",
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
+                    animateTo(0f)
                 }
-                IconButton(onClick = {
+                SwipeActionButton(
+                    icon = Icons.Default.PlayCircleOutline,
+                    contentDescription = "Start tracking",
+                    color = MaterialTheme.colorScheme.inversePrimary,
+                ) {
                     onStartTracking(item)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.PlayCircleOutline,
-                        contentDescription = "Start tracking",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    animateTo(0f)
                 }
-                            }
+            }
         }
 
         if (offsetX < 0) {
@@ -175,50 +156,32 @@ fun SwipeableBacklogItem(
                 modifier = Modifier
                     .width(rightActionWidth)
                     .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp),
-                horizontalArrangement = Arrangement.End
+                    .padding(end = 16.dp, start = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
             ) {
-                IconButton(onClick = {
+                SwipeActionButton(
+                    icon = Icons.Default.Done,
+                    contentDescription = "Complete",
+                    color = MaterialTheme.colorScheme.primary,
+                ) {
                     onCheckedChange(item, !isCompleted)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Done,
-                        contentDescription = "Complete",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    animateTo(0f)
                 }
-                IconButton(onClick = {
+                SwipeActionButton(
+                    icon = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    color = MaterialTheme.colorScheme.error,
+                ) {
                     onDelete(item)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    animateTo(0f)
                 }
-                IconButton(onClick = {
+                SwipeActionButton(
+                    icon = Icons.Default.DeleteForever,
+                    contentDescription = "Delete everywhere",
+                    color = MaterialTheme.colorScheme.errorContainer,
+                ) {
                     onDeleteEverywhere(item)
-                    coroutineScope.launch {
-                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
-                            offsetX = value
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteForever,
-                        contentDescription = "Delete everywhere",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    animateTo(0f)
                 }
             }
         }
@@ -236,5 +199,30 @@ fun SwipeableBacklogItem(
             showCheckbox = showCheckboxes,
             isSelected = isDragging
         )
+    }
+}
+
+@Composable
+private fun SwipeActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    color: Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.size(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.9f),
+        tonalElevation = 0.dp,
+        onClick = onClick,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
