@@ -82,6 +82,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_54_55
 import com.romankozak.forwardappmobile.data.database.MIGRATION_55_56
 import com.romankozak.forwardappmobile.data.database.MIGRATION_57_58
 import com.romankozak.forwardappmobile.data.database.MIGRATION_58_59
+import com.romankozak.forwardappmobile.data.database.MIGRATION_59_60
 
 private lateinit var db: AppDatabase
 
@@ -157,7 +158,8 @@ object DatabaseModule {
             MIGRATION_54_55,
             MIGRATION_55_56,
             MIGRATION_57_58,
-            MIGRATION_58_59
+            MIGRATION_58_59,
+            MIGRATION_59_60
         ).addCallback(callback).build()
         return db
     }
