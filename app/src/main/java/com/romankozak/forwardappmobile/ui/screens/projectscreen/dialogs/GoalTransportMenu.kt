@@ -37,7 +37,7 @@ fun GoalTransportMenu(
     onCreateInstanceRequest: () -> Unit,
     onMoveInstanceRequest: () -> Unit,
     onCopyGoalRequest: () -> Unit,
-    onCopySubprojectRequest: () -> Unit,
+    onCopyContentToClipboardRequest: () -> Unit,
     isGoalItem: Boolean,
 ) {
     AnimatedVisibility(
@@ -119,10 +119,10 @@ fun GoalTransportMenu(
 
                         TransportMenuItem(
                             icon = Icons.Default.ContentCopy,
-                            title = "Копіювати підпроект",
+                            title = "Копіювати",
                             description = "Створити копію цього підпроекту в іншому проекті",
                             onClick = {
-                                onCopySubprojectRequest()
+                                onCopyGoalRequest()
                                 onDismiss()
                             },
                         )
