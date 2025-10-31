@@ -9,13 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
-
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectDashboardView
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.AttachmentsView
-
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.InboxView
-
 
 private const val TAG = "BACKLOG_UI_DEBUG"
 
@@ -47,6 +44,7 @@ fun GoalDetailContent(
             com.romankozak.forwardappmobile.ui.features.backlog.BacklogListScreen(
                 items = listContent,
                 modifier = modifier,
+                listState = listState,
                 showCheckboxes = uiState.showCheckboxes,
                 onMove = { from, to -> viewModel.onMove(from, to) },
                 onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
@@ -64,7 +62,6 @@ fun GoalDetailContent(
                 onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
                 onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                 onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
-                onCopyLink = { item -> viewModel.onCopyLink(item) },
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
             )

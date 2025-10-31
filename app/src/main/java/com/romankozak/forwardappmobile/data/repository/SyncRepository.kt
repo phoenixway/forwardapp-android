@@ -5,8 +5,8 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.util.Log
 import androidx.core.net.toUri
+import android.util.Log
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.data.sync.ReservedGroupAdapter
@@ -407,7 +407,9 @@ constructor(
     }
 
     suspend fun runPostBackupMigration() {
+        Log.d(TAG, "runPostBackupMigration: Starting post-backup migration")
         val db = appDatabase.openHelper.writableDatabase
         com.romankozak.forwardappmobile.data.database.migrateSpecialProjects(db)
+        Log.d(TAG, "runPostBackupMigration: Finished post-backup migration")
     }
 }

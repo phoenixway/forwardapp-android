@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 
 
@@ -71,15 +72,10 @@ fun GoalDetailEffects(
 
 
     val displayList =
-
         remember(listContent, list?.isAttachmentsExpanded) {
-
             val attachmentItems = listContent.filterIsInstance<ListItemContent.LinkItem>()
-
             val draggableItems = listContent.filterNot { it is ListItemContent.LinkItem }
-
             if (list?.isAttachmentsExpanded == true) attachmentItems + draggableItems else draggableItems
-
         }
 
 
@@ -208,24 +204,6 @@ fun GoalDetailEffects(
 
     
 
-    val newItemInList = uiState.newlyAddedItemId?.let { id -> displayList.find { it.listItem.id == id } }
-
-    LaunchedEffect(newItemInList) {
-
-        if (newItemInList != null) {
-
-            listState.animateScrollToItem(0)
-
-            viewModel.onScrolledToNewItem()
-
-        }
-
-    }
-
-
-
-    
-
     DisposableEffect(savedStateHandle, lifecycleOwner, viewModel) {
 
         val observer =
@@ -290,16 +268,25 @@ fun GoalDetailEffects(
         val itemId = uiState.itemToHighlight
         if ((goalId == null && itemId == null) || displayList.isEmpty()) return@LaunchedEffect
 
-        val indexToScroll =
+        val displayIndex =
             when {
                 goalId != null -> displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == goalId }.takeIf { it != -1 }
                 itemId != null -> displayList.indexOfFirst { it.listItem.id == itemId }.takeIf { it != -1 }
                 else -> null
             }
 
-        if (indexToScroll != null) {
-            listState.animateScrollToItem(indexToScroll)
-            delay(2500L)
+        if (displayIndex != null) {
+            val targetItem = displayList.getOrNull(displayIndex)
+            val actualIndex = targetItem?.let { item ->
+                listContent.indexOfFirst { it.listItem.id == item.listItem.id }
+            } ?: -1
+
+            if (actualIndex != -1) {
+                listState.animateScrollToItem(actualIndex)
+                delay(2500L)
+            } else {
+                Log.w(TAG, "Highlight requested item not found in listContent.")
+            }
         }
         viewModel.onHighlightShown()
     }
@@ -340,7 +327,7 @@ fun GoalDetailEffects(
     LaunchedEffect(uiState.newlyAddedItemId, displayList) {
         val itemId = uiState.newlyAddedItemId
         Log.d("AutoScrollDebug", "newlyAddedItemId: $itemId, displayList size: ${displayList.size}")
-        if (itemId != null) {
+        if (itemId != null && displayList.isNotEmpty()) {
             var index = displayList.indexOfFirst { it.listItem.id == itemId }
             if (index == -1) {
                 index = displayList.indexOfFirst { it is ListItemContent.GoalItem && it.goal.id == itemId }
@@ -348,8 +335,21 @@ fun GoalDetailEffects(
             }
             Log.d("AutoScrollDebug", "Final index: $index for itemId: $itemId")
             if (index != -1) {
-                listState.animateScrollToItem(index)
-                viewModel.onScrolledToNewItem()
+                val targetItem = displayList.getOrNull(index)
+                val actualIndex = targetItem?.let { item ->
+                    listContent.indexOfFirst { it.listItem.id == item.listItem.id }
+                } ?: -1
+
+                if (actualIndex != -1) {
+                    yield() // дочекаємось оновленого лейауту перед прокруткою
+                    listState.animateScrollToItem(actualIndex)
+                    if (listState.firstVisibleItemIndex != actualIndex || listState.firstVisibleItemScrollOffset != 0) {
+                        listState.scrollToItem(actualIndex)
+                    }
+                    viewModel.onScrolledToNewItem()
+                } else {
+                    Log.w("AutoScrollDebug", "Item $itemId found in displayList but missing in listContent!")
+                }
             } else {
                 Log.w("AutoScrollDebug", "Item not found in displayList by any ID!")
             }
