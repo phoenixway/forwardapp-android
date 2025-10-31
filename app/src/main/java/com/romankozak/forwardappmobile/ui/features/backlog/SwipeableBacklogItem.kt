@@ -57,6 +57,7 @@ fun SwipeableBacklogItem(
     onAddToDayPlan: (ListItemContent) -> Unit,
     onStartTracking: (ListItemContent) -> Unit,
     onShowGoalTransportMenu: (ListItemContent) -> Unit,
+    onCopyLink: (ListItemContent) -> Unit,
     onRelatedLinkClick: (com.romankozak.forwardappmobile.data.database.models.RelatedLink) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -112,6 +113,20 @@ fun SwipeableBacklogItem(
                 horizontalArrangement = Arrangement.Start
             ) {
                 IconButton(onClick = {
+                    onCopyLink(item)
+                    coroutineScope.launch {
+                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
+                            offsetX = value
+                        }
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy Link",
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                IconButton(onClick = {
                     onShowGoalTransportMenu(item)
                     coroutineScope.launch {
                         animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
@@ -121,7 +136,7 @@ fun SwipeableBacklogItem(
                 }) {
                     Icon(
                         imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
+                        contentDescription = "Move Link",
                         tint = MaterialTheme.colorScheme.tertiary
                     )
                 }
