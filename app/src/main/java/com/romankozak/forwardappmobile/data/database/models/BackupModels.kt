@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.data.database.models
 
 import com.google.gson.annotations.SerializedName
@@ -12,16 +10,15 @@ data class RecentProjectEntry(
 data class FullAppBackup(
     @SerializedName("database")
     val database: DatabaseContent,
-    
 )
-
 
 data class DatabaseContent(
     @SerializedName(value = "projects", alternate = ["goalLists"])
     val projects: List<Project>,
     val goals: List<Goal>,
     val listItems: List<ListItem>,
-    val notes: List<LegacyNoteEntity>?,
+    @SerializedName(value = "legacyNotes", alternate = ["notes"])
+    val legacyNotes: List<LegacyNoteEntity>?,
     @SerializedName(value = "documents", alternate = ["customLists"])
     val documents: List<NoteDocumentEntity>?,
     @SerializedName(value = "documentItems", alternate = ["customListItems"])

@@ -138,7 +138,7 @@ constructor(
                 goals = goalDao.getAll(),
                 projects = projectDao.getAll(),
                 listItems = listItemDao.getAll(),
-                notes = legacyNoteDao.getAll(),
+                legacyNotes = legacyNoteDao.getAll(),
                 documents = noteDocumentDao.getAllDocuments(),
                 documentItems = noteDocumentDao.getAllDocumentItems(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
@@ -244,7 +244,7 @@ constructor(
                 goalDao.insertGoals(backup.goals)
                 projectDao.insertProjects(cleanedProjects)
                 listItemDao.insertItems(cleanedListItems)
-                backup.notes?.let { legacyNoteDao.insertAll(it.orEmpty()) }
+                backup.legacyNotes?.let { legacyNoteDao.insertAll(it.orEmpty()) }
                 backup.documents?.let { noteDocumentDao.insertAllDocuments(it.orEmpty()) }
                 backup.documentItems?.let { noteDocumentDao.insertAllDocumentItems(it.orEmpty()) }
 
