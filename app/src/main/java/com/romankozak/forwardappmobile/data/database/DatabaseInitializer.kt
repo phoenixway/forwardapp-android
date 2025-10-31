@@ -50,10 +50,25 @@ class DatabaseInitializer @Inject constructor(
             tags = null
         )
 
+        val mainBeaconsGroupId = UUID.randomUUID().toString()
+        val mainBeaconsGroupProject = Project(
+            id = mainBeaconsGroupId,
+            name = context.getString(R.string.main_beacons_group_name),
+            parentId = specialProjectId,
+            isExpanded = false,
+            projectType = ProjectType.RESERVED,
+            reservedGroup = ReservedGroup.MainBeaconsGroup,
+            description = null,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = null,
+            tags = null
+        )
+
         val projects = mutableListOf(
             specialProject,
             strategicGroupProject,
-            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.mission_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            mainBeaconsGroupProject,
+            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.mission_project_name), parentId = mainBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.MainBeacons, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.long_term_strategy_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.medium_term_program_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
             Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.active_quests_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),

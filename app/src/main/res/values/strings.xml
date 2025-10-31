@@ -1,180 +1,81 @@
 <resources>
     <string name="app_name">ForwardApp</string>
-
-    <string name="recent_lists">Show recent lists</string>
-    <string name="swipe_to_change_mode">Swipe to change mode</string>
-    <string name="send">Send</string>
-
-    <string name="mode_add_goal">Add goal</string>
-    <string name="mode_add_note">Add note</string>
-
-    <string name="mode_search_in_list">Search in list</string>
-    <string name="mode_search_global">Global search</string>
-
-    <string name="hint_add_goal">Add your goal..</string>
-    <string name="hint_search_in_list">Find in this list…</string>
-    <string name="hint_search_global">Search through all goals…</string>
-    <string name="hint_add_note">Create note</string>
-    <string name="no_lists_created">Немає жодного списку. Створіть перший!</string>
-    <string name="new_top_level_list">Новий список верхнього рівня</string>
-    <string name="root_list_label">Корінь (верхній рівень)</string>
-    <string name="back">Назад</string>
-    <string name="create_new_sublist_title">Новий підсписок: \'%1$s\'</string>
-    <string name="create_new_list_title">Новий список</string>
-    <string name="search_lists">Пошук списків</string>
-    <string name="search_placeholder">Введіть назву списку…</string>
-    <string name="clear_search">Очистити</string>
-    <string name="show_nested_lists">Показувати вкладені списки</string>
+    <string name="title_activity_kimera">KimeraActivity</string>
+    <string name="special_project_name">Спеціальні</string>
+    <string name="inbox_project_name">Вхідні</string>
+    <string name="strategic_group_name">Стратегічні</string>
+    <string name="mission_project_name">Місія</string>
+    <string name="long_term_strategy_project_name">Довгострокова стратегія</string>
+    <string name="medium_term_program_project_name">Середньострокова програма</string>
+    <string name="active_quests_project_name">Активні квести</string>
+    <string name="strategic_goals_project_name">Стратегічні цілі</string>
+    <string name="strategic_review_project_name">Стратегічний огляд</string>
+    <string name="main_beacons_group_name">Головні маяки</string>
+    <string name="edit_description">Редагувати опис</string>
+    <string name="cancel">Скасувати</string>
+    <string name="toggle_to_preview_mode">Перемкнути в режим попереднього перегляду</string>
+    <string name="toggle_to_edit_mode">Перемкнути в режим редагування</string>
+    <string name="create">Створити</string>
+    <string name="description_placeholder_with_markdown_hint">Опис (підтримує Markdown)</string>
+    <string name="set_reminder_title">Встановити нагадування</string>
+    <string name="note_editor_edit_title">Редагувати назву нотатки</string>
+    <string name="create_button">Створити</string>
+    <string name="clear_search">Очистити пошук</string>
     <string name="enabled">Увімкнено</string>
     <string name="disabled">Вимкнено</string>
-    <string name="found_lists">Знайдено: %1$d %2$s</string>
-    <string name="list_singular">список</string>
-    <string name="lists_plural">списків</string>
-    <string name="root_level">🏠 Корінь (верхній рівень)</string>
-    <string name="create_button">Створити</string>
-    <string name="expand">Розгорнути</string>
-    <string name="collapse">Згорнути</string>
-    <string name="add_sublist">Додати підсписок</string>
-
-    <!-- CreateListForm -->
-    <string name="creating_new_list">Створення нового списку</string>
-    <string name="new_list_name_label">Назва нового списку</string>
-    <string name="new_list_name_placeholder">Наприклад: Робочі завдання</string>
     <string name="minimum_3_characters">Мінімум 3 символи</string>
-    <string name="character_counter">%1$d/50 символів</string>
-    <string name="cancel">Cancel</string>
-    <string name="create">Створити</string>
-
-    <!-- Empty States -->
-    <string name="lists_not_found">Списки не знайдено</string>
-    <string name="no_lists">Немає списків</string>
-    <string name="try_change_search_criteria">Спробуйте змінити критерії пошуку</string>
-    <string name="create_first_list_hint">Створіть свій перший список натиснувши кнопку \'+\'</string>
-
-   <!-- Рядки для Markdown редактора -->
-    <string name="edit_description">Редагувати опис</string>
-    <string name="editor">Редактор</string>
-    <string name="preview">Перегляд</string>
-    <string name="toggle_to_preview_mode">Перейти в режим перегляду</string>
-    <string name="toggle_to_edit_mode">Перейти в режим редагування</string>
-    <string name="description_placeholder_with_markdown_hint">Введіть опис...\n\n**жирний**, *курсив*, - список, # заголовок</string>
-
-    <string name="more_actions_content_description">Більше дій</string>
-    <string name="add_link_to_list">+ посилання на список</string>
-    <string name="add_web_link">+ веб-посилання</string>
-    <string name="add_obsidian_link">+ посилання на Obsidian</string>
-
-    <string name="add_link_dialog_title">Додати веб-посилання</string>
-    <string name="add_obsidian_link_dialog_title">Додати посилання на нотатку</string>
-    <string name="url_placeholder">https://example.com</string>
-    <string name="obsidian_placeholder">Назва нотатки</string>
-    <string name="add_button">Додати</string>
-    <string name="loading">Завантаження...</string>
-    <string name="back_button_description">Назад</string>
-    <string name="reveal_in_backlogs">Показати у списках</string>
-    <string name="error_could_not_open_link">Не вдалося відкрити посилання</string>
-    <string name="error_obsidian_vault_not_set">Назва Obsidian Vault не вказана в налаштуваннях</string>
-    <string name="error_link_open_failed">Не вдалося відкрити посилання. Можливо, програма не встановлена.</string>
-    <string name="link_icon_description">Іконка посилання</string>
-    <string name="drag_handle_description">Перетягнути</string>
-    <string name="link_type_goal_list">Посилання на список</string>
-    <string name="link_type_obsidian_note">Нотатка Obsidian</string>
-    <string name="link_type_generic">Посилання</string>
-    <string name="dialog_placeholder_name_optional">Назва (необов\'язково)</string>
-    <string name="dialog_placeholder_note_name">Назва нотатки</string>
-    <string name="dialog_placeholder_name">Назва</string>
-    <string name="dialog_placeholder_address">Адреса</string>
-
-    <string name="attachments_header">Додатки</string>
-    <string name="delete_attachment_description">Видалити додаток</string>
-    <string name="add_attachment_description">Додати новий додаток</string>
-    <string name="add_attachment_button">Додати додаток</string>
+    <string name="character_counter">%1$d/%2$d</string>
+    <string name="collapse">Згорнути</string>
+    <string name="expand">Розгорнути</string>
+    <string name="attachments_header">Вкладення</string>
+    <string name="no_attachments_message">Немає вкладень</string>
+    <string name="delete_attachment_description">Видалити вкладення</string>
+    <string name="add_attachment_description">Додати вкладення</string>
+    <string name="add_attachment_button">Додати вкладення</string>
     <string name="attachment_type_notes">Нотатки</string>
     <string name="attachment_type_web_link">Веб-посилання</string>
-    <string name="attachment_type_obsidian">Посилання Obsidian</string>
-    <string name="attachment_type_project_link">Посилання на проєкт</string>
-    <string name="attachment_label_note">Нотатка</string>
+    <string name="attachment_type_obsidian">Obsidian</string>
+    <string name="attachment_type_project_link">Посилання на проект</string>
+    <string name="menu_add_project_shortcut">Додати ярлик проекту</string>
     <string name="attachment_note_icon_description">Іконка нотатки</string>
+    <string name="attachment_label_note">Нотатка</string>
     <string name="attachment_note_delete_description">Видалити нотатку</string>
-    <string name="note_editor_edit_title">Edit Note</string>
-
-    <string name="no_attachments_message">Додатки відсутні.\nНатисніть +, щоб додати перший.</string>
-
-    <string name="goal_item_semantics">Goal: %1$s</string>
-    <string name="sublist_item_semantics">Another backlog as backlog item: %1$s</string>
-    <string name="sublist_item_icon_description">Іконка під-списку</string>
-
-
-    <string name="menu_search_in_list">Search in backlog</string>
-    <string name="menu_search_everywhere">Search everywhere</string>
-    <string name="menu_add_list_link">Link to backlog</string>
-    <string name="menu_add_web_link">Web url</string>
-    <string name="menu_add_obsidian_link">Obsidian note</string>
-    <string name="menu_add_project_shortcut">Project shortcut</string>
-    <string name="menu_add_goal_component">Goal</string>
-
-
-    <string name="note_content_description">Нотатки..</string>
-    <string name="note_without_title">Note</string>
-    <string name="link_content_description">Нотатки..</string>
-    <string name="empty_note_preview">пуста нотатка</string>
-    <string name="note_content_placeholder">тест</string>
-    <string name="forward">Forward</string>
-    <string name="toggle_attachments">toggle_attachments</string>
-    <string name="more_options">more_options</string>
-    <string name="edit_list">Properties</string>
-    <string name="go_to_home_list">go_to_home_list</string>
-    <string name="delete_list">deletelist</string>
-    <string name="share_list">share_list</string>
-    <string name="selected">selected</string>
-        <string name="display_name_optional">Назва (необов\'язково)</string>
-    <string name="add">Додати</string>
-    <string name="note_name">Назва нотатки</string>
-
-
-    <string name="close_selection_mode">Закрити режим виділення</string>
+    <string name="collapse_panel">Згорнути панель</string>
+    <string name="expand_panel">Розгорнути панель</string>
+    <string name="more_options">Більше опцій</string>
+    <string name="edit_list">Редагувати список</string>
+    <string name="share_list">Поділитися списком</string>
+    <string name="delete_list">Видалити список</string>
+    <string name="hint_add_goal">Додати ціль</string>
+    <string name="hint_add_quick_record">Додати швидкий запис</string>
+    <string name="hint_search_in_list">Пошук у списку</string>
+    <string name="hint_search_global">Глобальний пошук</string>
+    <string name="clear_input">Очистити введення</string>
+    <string name="send">Надіслати</string>
+    <string name="back">Назад</string>
+    <string name="forward">Вперед</string>
+    <string name="go_to_home_list">Перейти до домашнього списку</string>
+    <string name="toggle_attachments">Перемкнути вкладення</string>
+    <string name="loading">Завантаження</string>
+    <string name="close_selection_mode">Закрити режим вибору</string>
+    <string name="selected">Вибрано</string>
     <string name="select_all">Вибрати все</string>
-    <string name="toggle_completed_status">Відмітити виконаними/невиконаними</string>
-    <string name="delete_selected">Видалити виділені</string>
-    <string name="more_actions">Додаткові дії</string>
-
+    <string name="mark_as_incomplete">Позначити як незавершене</string>
+    <string name="mark_as_complete">Позначити як завершене</string>
+    <string name="delete_selected">Видалити вибране</string>
+    <string name="more_actions">Більше дій</string>
     <string name="create_link">Створити посилання</string>
     <string name="move">Перемістити</string>
     <string name="copy">Копіювати</string>
-    <string name="hint_add_quick_record">Add record to Inbox</string>
-    <string name="menu_add_quick_record">Quick record</string>
-    <string name="import_from_markdown">Import from markdown</string>
-    <string name="import_markdown_description">Paste markdown list</string>
-    <string name="markdown_text_label">Your text..</string>
-    <string name="import_action">Start</string>
-    <string name="collapse_panel">collapse_panel</string>
-    <string name="expand_panel">expand_panel</string>
-    <string name="mode_icon_description">Mode: %s</string>
-    <string name="search_group">Search</string>
-    <string name="attachments_group">Attachments</string>
-    <string name="clear_input">Clear input</string>
-
-
-
-    <string name="item_added">Item added</string>
-    <string name="undo">Undo</string>
-    <string name="mark_as_complete">mark_as_complete</string>
-    <string name="mark_as_incomplete">mark_as_incomplete</string>
-    <string name="recents">recents</string>
-
-    <string name="search_everywhere_for">Шукати скрізь за запитом</string>
-
-    <string name="create_custom_list">Create note</string>
-    <string name="list_title">Note title</string>
-
-    <string name="set_reminder_title">Set reminder</string>
-    <string name="special_project_name">special</string>
-    <string name="strategic_group_name">strategic</string>
-    <string name="mission_project_name">mission</string>
-    <string name="long_term_strategy_project_name">long-term-strategy</string>
-    <string name="medium_term_program_project_name">medium-term-program</string>
-    <string name="active_quests_project_name">active-quests</string>
-    <string name="strategic_goals_project_name">strategic-goals</string>
-    <string name="strategic_review_project_name">strategic-review</string>
-    <string name="inbox_project_name">inbox</string>
+    <string name="error_obsidian_vault_not_set">Сховище Obsidian не встановлено</string>
+    <string name="error_link_open_failed">Не вдалося відкрити посилання</string>
+    <string name="import_from_markdown">Імпортувати з Markdown</string>
+    <string name="import_markdown_description">Вставте текст Markdown для імпорту</string>
+    <string name="markdown_text_label">Текст Markdown</string>
+    <string name="import_action">Імпортувати</string>
+    <string name="menu_add_web_link">Додати веб-посилання</string>
+    <string name="display_name_optional">Назва (необов\'язково)</string>
+    <string name="add">Додати</string>
+    <string name="menu_add_obsidian_link">Додати посилання Obsidian</string>
+    <string name="note_name">Назва нотатки</string>
 </resources>
