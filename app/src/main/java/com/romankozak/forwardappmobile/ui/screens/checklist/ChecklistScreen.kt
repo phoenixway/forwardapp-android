@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -245,6 +246,7 @@ private fun ChecklistContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChecklistTopBar(
     title: String,
@@ -262,14 +264,10 @@ private fun ChecklistTopBar(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(text = stringResource(R.string.checklist_title_placeholder)) },
                 singleLine = true,
-                textStyle = MaterialTheme.typography.titleLarge,
-                colors = OutlinedTextFieldDefaults.colors(
+colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
                     disabledBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
                 ),
             )
         },
@@ -372,9 +370,6 @@ private fun ChecklistItemRow(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
                     disabledBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
                 ),
                 textStyle = MaterialTheme.typography.bodyLarge,
             )
