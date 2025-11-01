@@ -391,7 +391,7 @@ private fun ChecklistItemRow(
 
                                     2.dp, 
 
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
 
                                 ) 
 
@@ -523,7 +523,7 @@ private fun ChecklistItemRow(
 
                         contentDescription = stringResource(R.string.checklist_delete_item),
 
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
 
                     )
 
@@ -549,7 +549,7 @@ private fun ChecklistItemRow(
 
                         contentDescription = null,
 
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
 
                         modifier = Modifier.size(24.dp),
 
