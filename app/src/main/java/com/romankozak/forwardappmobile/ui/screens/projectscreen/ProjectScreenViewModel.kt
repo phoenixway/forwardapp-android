@@ -21,7 +21,6 @@ import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
-import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.ner.NerManager
@@ -174,7 +173,6 @@ constructor(
           }
           is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
           is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-          is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
         }
       markdownBuilder.appendLine(line)
     }
@@ -250,7 +248,6 @@ constructor(
   private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
   private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
   private val noteDocumentRepository: NoteDocumentRepository,
-  private val checklistRepository: ChecklistRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
   private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
@@ -429,7 +426,6 @@ constructor(
                       itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
                     is ListItemContent.NoteItem -> itemContent.note.title
                     is ListItemContent.NoteDocumentItem -> itemContent.document.name
-                    is ListItemContent.ChecklistItem -> itemContent.checklist.name
                   }
                 textToSearch.contains(query, ignoreCase = true)
               }
@@ -997,13 +993,6 @@ constructor(
     }
   }
 
-  fun onChecklistItemClick(checklist: ChecklistEntity) {
-    viewModelScope.launch {
-      recentItemsRepository.logChecklistAccess(checklist)
-      _uiEventFlow.send(UiEvent.Navigate("checklist_screen/${checklist.id}"))
-    }
-  }
-
   fun onLinkItemClick(link: RelatedLink) {
     Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
     viewModelScope.launch {
@@ -1055,13 +1044,6 @@ constructor(
         viewModelScope.launch {
           _uiEventFlow.send(
             UiEvent.Navigate("note_document_edit_screen?projectId=${projectIdFlow.value}")
-          )
-        }
-      }
-      AttachmentType.CHECKLIST -> {
-        viewModelScope.launch {
-          _uiEventFlow.send(
-            UiEvent.Navigate("checklist_edit_screen?projectId=${projectIdFlow.value}")
           )
         }
       }
@@ -1184,8 +1166,7 @@ constructor(
 
           is ListItemContent.LinkItem,
           is ListItemContent.NoteItem,
-          is ListItemContent.NoteDocumentItem,
-          is ListItemContent.ChecklistItem -> null to null
+          is ListItemContent.NoteDocumentItem -> null to null
         }
 
       val (newRecord, message) = result
@@ -1386,7 +1367,6 @@ constructor(
           is ListItemContent.LinkItem -> null
           is ListItemContent.NoteItem -> null
           is ListItemContent.NoteDocumentItem -> null
-          is ListItemContent.ChecklistItem -> null
         }
 
       if (task != null) {
@@ -1436,7 +1416,6 @@ constructor(
                 }
                 is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
                 is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-                is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
             }
         markdownBuilder.appendLine(line)
     }
@@ -1674,10 +1653,6 @@ constructor(
         RecentItemType.NOTE_DOCUMENT -> {
           noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it) }
           _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${item.target}"))
-        }
-        RecentItemType.CHECKLIST -> {
-          checklistRepository.getChecklistById(item.target)?.let { recentItemsRepository.logChecklistAccess(it) }
-          _uiEventFlow.send(UiEvent.Navigate("checklist_screen/${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
           val link =

@@ -324,9 +324,6 @@ class InputHandler(
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
                 resultListener.requestNavigation("note_document_screen/${item.target}")
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
-                resultListener.requestNavigation("checklist_screen/${item.target}")
-            }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
                 resultListener.createObsidianNote(item.target)
             }
