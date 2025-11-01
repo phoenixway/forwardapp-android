@@ -6,16 +6,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 
-import androidx.compose.runtime.remember
-import androidx.compose.ui.focus.FocusRequester
-
 @Composable
 fun NoteEditorScreen(
   navController: NavController,
   viewModel: NoteEditorViewModel = hiltViewModel(),
 ) {
   val noteId: String? = navController.currentBackStackEntry?.arguments?.getString("noteId")
-  val focusRequester = remember { FocusRequester() }
 
   LaunchedEffect(noteId) { noteId?.let { viewModel.loadNote(it) } }
 
@@ -29,6 +25,5 @@ fun NoteEditorScreen(
     onNavigateBack = { navController.popBackStack() },
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,
-    contentFocusRequester = focusRequester,
   )
 }
