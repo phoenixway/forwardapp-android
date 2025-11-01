@@ -2,12 +2,13 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.RecentItem
 import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -66,6 +67,24 @@ class RecentItemsRepository @Inject constructor(
             )
         }
         Log.d("Recents_Debug", "Logging note document access: $recentItem")
+        recentItemDao.logAccess(recentItem)
+    }
+
+    suspend fun logChecklistAccess(checklist: ChecklistEntity) {
+        val existingItem = recentItemDao.getRecentItemById(checklist.id)
+        val recentItem =
+            if (existingItem != null) {
+                existingItem.copy(lastAccessed = System.currentTimeMillis(), displayName = checklist.name)
+            } else {
+                RecentItem(
+                    id = checklist.id,
+                    type = RecentItemType.CHECKLIST,
+                    lastAccessed = System.currentTimeMillis(),
+                    displayName = checklist.name,
+                    target = checklist.id,
+                )
+            }
+        Log.d("Recents_Debug", "Logging checklist access: $recentItem")
         recentItemDao.logAccess(recentItem)
     }
 

@@ -445,6 +445,7 @@ private fun ProjectBottomBar(
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
+                onCreateChecklist = viewModel::onCreateChecklist,
                 isViewModePanelVisible = uiState.isViewModePanelVisible,
                 onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                 suggestions = suggestions,

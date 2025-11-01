@@ -24,6 +24,7 @@
     <string name="add_attachment_description">Додати вкладення</string>
     <string name="add_attachment_button">Додати вкладення</string>
     <string name="attachment_type_notes">Нотатки</string>
+    <string name="attachment_type_checklist">Чекліст</string>
     <string name="attachment_type_web_link">Веб-посилання</string>
     <string name="attachment_type_obsidian">Obsidian</string>
     <string name="attachment_type_project_link">Посилання на проект</string>
@@ -31,6 +32,15 @@
     <string name="attachment_note_icon_description">Іконка нотатки</string>
     <string name="attachment_label_note">Нотатка</string>
     <string name="attachment_note_delete_description">Видалити нотатку</string>
+    <string name="attachment_checklist_icon_description">Іконка чекліста</string>
+    <string name="attachment_label_checklist">Чекліст</string>
+    <string name="attachment_checklist_delete_description">Видалити чекліст</string>
+    <string name="checklist_title_placeholder">Назва чекліста</string>
+    <string name="checklist_item_placeholder">Новий пункт</string>
+    <string name="checklist_toggle_checkboxes">Перемкнути чекбокси</string>
+    <string name="checklist_clear_completed">Очистити виконані</string>
+    <string name="checklist_delete_item">Видалити пункт</string>
+    <string name="checklist_add_item">Додати пункт</string>
     <string name="collapse_panel">Згорнути панель</string>
     <string name="expand_panel">Розгорнути панель</string>
     <string name="more_options">Більше опцій</string>

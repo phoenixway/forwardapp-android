@@ -7,7 +7,8 @@ enum class RecentItemType {
     PROJECT,
     NOTE,
     NOTE_DOCUMENT,
-    OBSIDIAN_LINK
+    OBSIDIAN_LINK,
+    CHECKLIST,
 }
 
 @Entity(tableName = "recent_items")

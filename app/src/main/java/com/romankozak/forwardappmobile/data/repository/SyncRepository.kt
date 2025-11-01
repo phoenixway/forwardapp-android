@@ -20,7 +20,10 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
+import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.database.models.DatabaseContent
 import com.romankozak.forwardappmobile.data.database.models.FullAppBackup
 import com.romankozak.forwardappmobile.data.database.models.Goal
@@ -92,6 +95,7 @@ constructor(
     private val projectManagementDao: ProjectManagementDao,
     private val legacyNoteDao: LegacyNoteDao,
     private val noteDocumentDao: NoteDocumentDao,
+    private val checklistDao: ChecklistDao,
     private val recentItemDao: RecentItemDao,
 ) {
     private val TAG = "SyncRepository"
@@ -141,6 +145,8 @@ constructor(
                 legacyNotes = legacyNoteDao.getAll(),
                 documents = noteDocumentDao.getAllDocuments(),
                 documentItems = noteDocumentDao.getAllDocumentItems(),
+                checklists = checklistDao.getAllChecklists(),
+                checklistItems = checklistDao.getAllChecklistItems(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
@@ -225,6 +231,9 @@ constructor(
                 }
             }
 
+            val backupChecklists = backup.checklists.orEmpty()
+            val backupChecklistItems = backup.checklistItems.orEmpty()
+
             appDatabase.withTransaction {
                 Log.d(IMPORT_TAG, "Початок транзакції в БД. Очищення старих даних...")
                 projectManagementDao.deleteAllLogs()
@@ -237,6 +246,8 @@ constructor(
                 legacyNoteDao.deleteAll()
                 noteDocumentDao.deleteAllDocuments()
                 noteDocumentDao.deleteAllDocumentItems()
+                checklistDao.deleteAllChecklistItems()
+                checklistDao.deleteAllChecklists()
                 recentItemDao.deleteAll()
                 Log.d(IMPORT_TAG, "Всі таблиці очищено.")
 
@@ -247,6 +258,12 @@ constructor(
                 backup.legacyNotes?.let { legacyNoteDao.insertAll(it.orEmpty()) }
                 backup.documents?.let { noteDocumentDao.insertAllDocuments(it.orEmpty()) }
                 backup.documentItems?.let { noteDocumentDao.insertAllDocumentItems(it.orEmpty()) }
+                if (backupChecklists.isNotEmpty()) {
+                    checklistDao.insertChecklists(backupChecklists)
+                }
+                if (backupChecklistItems.isNotEmpty()) {
+                    checklistDao.insertItems(backupChecklistItems)
+                }
 
                 backup.activityRecords?.let { activityRecordDao.insertAll(it) }
                 backup.linkItemEntities?.let { linkItemDao.insertAll(it) }

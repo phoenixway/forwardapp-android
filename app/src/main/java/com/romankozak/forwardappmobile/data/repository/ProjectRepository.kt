@@ -37,6 +37,7 @@ constructor(
     private val projectLogRepository: ProjectLogRepository,
     private val searchRepository: SearchRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
+    private val checklistRepository: ChecklistRepository,
     private val goalRepository: GoalRepository,
     private val inboxRepository: InboxRepository,
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
@@ -100,7 +101,8 @@ constructor(
             projectDao.getAllProjects(),
             listItemRepository.getAllEntitiesAsFlow(),
             legacyNoteRepository.getAllAsFlow(),
-            noteDocumentRepository.getAllDocumentsAsFlow()
+            noteDocumentRepository.getAllDocumentsAsFlow(),
+            checklistRepository.getAllChecklistsAsFlow()
         ) { array ->
             @Suppress("UNCHECKED_CAST")
             mapToListItemContent(
@@ -111,7 +113,8 @@ constructor(
                 projects = array[3] as List<Project>,
                 links = array[4] as List<LinkItemEntity>,
                 notes = array[5] as List<LegacyNoteEntity>,
-                noteDocuments = array[6] as List<NoteDocumentEntity>
+                noteDocuments = array[6] as List<NoteDocumentEntity>,
+                checklists = array[7] as List<ChecklistEntity>,
             )
         }
     }
@@ -124,7 +127,8 @@ constructor(
         projects: List<Project>,
         links: List<LinkItemEntity>,
         notes: List<LegacyNoteEntity>,
-        noteDocuments: List<NoteDocumentEntity>
+        noteDocuments: List<NoteDocumentEntity>,
+        checklists: List<ChecklistEntity>,
     ): List<ListItemContent> {
         val remindersMap = reminders.groupBy { it.entityId }
         val goalsMap = goals.associateBy { it.id }
@@ -132,6 +136,7 @@ constructor(
         val linksMap = links.associateBy { it.id }
         val notesMap = notes.associateBy { it.id }
         val noteDocumentsMap = noteDocuments.associateBy { it.id }
+        val checklistsMap = checklists.associateBy { it.id }
 
         val backlogItems = items.mapNotNull { item ->
             when (item.itemType) {
@@ -156,6 +161,10 @@ constructor(
                 ListItemTypeValues.NOTE_DOCUMENT ->
                     noteDocumentsMap[item.entityId]?.let { document ->
                         ListItemContent.NoteDocumentItem(document, item)
+                    }
+                ListItemTypeValues.CHECKLIST ->
+                    checklistsMap[item.entityId]?.let { checklist ->
+                        ListItemContent.ChecklistItem(checklist, item)
                     }
                 else -> null
             }
@@ -350,6 +359,7 @@ constructor(
                 ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
                 ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
                 ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
+                ListItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) != null
                 else -> true // Assume unknown types are valid to avoid deleting them
             }
             if (!entityExists) {
