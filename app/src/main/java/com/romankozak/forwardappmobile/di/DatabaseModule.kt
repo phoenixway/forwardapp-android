@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
+import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -84,6 +85,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_57_58
 import com.romankozak.forwardappmobile.data.database.MIGRATION_58_59
 import com.romankozak.forwardappmobile.data.database.MIGRATION_59_60
 import com.romankozak.forwardappmobile.data.database.MIGRATION_60_61
+import com.romankozak.forwardappmobile.data.database.MIGRATION_61_62
 
 private lateinit var db: AppDatabase
 
@@ -161,7 +163,8 @@ object DatabaseModule {
             MIGRATION_57_58,
             MIGRATION_58_59,
             MIGRATION_59_60,
-            MIGRATION_60_61
+            MIGRATION_60_61,
+            MIGRATION_61_62,
         ).addCallback(callback).build()
         return db
     }
@@ -209,6 +212,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideNoteDocumentDao(appDatabase: AppDatabase): NoteDocumentDao = appDatabase.noteDocumentDao()
+
+    @Provides
+    @Singleton
+    fun provideChecklistDao(appDatabase: AppDatabase): ChecklistDao = appDatabase.checklistDao()
 
     @Provides
     @Singleton

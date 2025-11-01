@@ -66,6 +66,7 @@ class ItemActionHandler
                                 recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
                             }
                         }
+                        is ListItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist)
                         else -> {}
                     }
                 }
@@ -84,6 +85,8 @@ class ItemActionHandler
                         resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
                     is ListItemContent.NoteDocumentItem ->
                         resultListener.requestNavigation("note_document_screen/${item.document.id}")
+                    is ListItemContent.ChecklistItem ->
+                        resultListener.requestNavigation("checklist_screen?checklistId=${item.checklist.id}")
                 }
             }
         }
@@ -136,6 +139,7 @@ class ItemActionHandler
                         is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
                         is ListItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
                         is ListItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
+                        is ListItemContent.ChecklistItem -> Pair("Назва чекліста скопійована", content.checklist.name)
                     }
 
                 resultListener.copyToClipboard(text)

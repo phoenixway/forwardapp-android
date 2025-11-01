@@ -486,3 +486,35 @@ val MIGRATION_60_61 = object : Migration(60, 61) {
         db.execSQL("UPDATE `list_items` SET `itemType` = 'NOTE_DOCUMENT' WHERE `itemType` = 'CUSTOM_LIST'")
     }
 }
+
+val MIGRATION_61_62 = object : Migration(61, 62) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `checklists` (
+                `id` TEXT NOT NULL,
+                `projectId` TEXT NOT NULL,
+                `name` TEXT NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_checklists_projectId` ON `checklists` (`projectId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `checklist_items` (
+                `id` TEXT NOT NULL,
+                `checklistId` TEXT NOT NULL,
+                `content` TEXT NOT NULL,
+                `isChecked` INTEGER NOT NULL DEFAULT 0,
+                `itemOrder` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`checklistId`) REFERENCES `checklists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_checklist_items_checklistId` ON `checklist_items` (`checklistId`)")
+    }
+}

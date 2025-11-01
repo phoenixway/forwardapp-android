@@ -667,6 +667,7 @@ fun ModernInputPanel(
   onCloseSearch: () -> Unit,
   onAddMilestone: () -> Unit,
   onShowCreateNoteDocumentDialog: () -> Unit,
+  onCreateChecklist: () -> Unit,
   onShowDisplayPropertiesClick: () -> Unit,
   suggestions: List<String>,
   onSuggestionClick: (String) -> Unit,
@@ -1078,6 +1079,7 @@ fun ModernInputPanel(
       onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
       onAddListShortcutClick = onAddListShortcutClick,
       onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
+      onCreateChecklist = onCreateChecklist,
     )
   }
 }

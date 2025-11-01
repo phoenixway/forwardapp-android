@@ -1,6 +1,9 @@
-Рефакторинг custom lists → NoteDocument просувається. UI та навігацію вже
-переніс, fallback-маршрути прибрав. Backup та SyncRepository оновлено
-під `legacyNotes`/`noteDocuments`. Далі треба:
-1. Підготувати юніт/інтеграційні тести для NoteDocument і міграції 60→61.
-2. Перевірити десктопний WiFi-синк на предмет підтримки note documents та
-   за потреби оновити createSyncReport/applyChanges.
+Рефакторинг custom lists → NoteDocument завершено, додатково заведено новий
+тип вкладень Checklist (міграція 61→62, UI-редактор, інтеграція в Recents і
+Sync/Backup). Далі у фокусі:
+1. Підготувати юніт/інтеграційні тести для міграцій 60→61 та 61→62, а також
+   покриття для ChecklistRepository.
+2. Перевірити десктопний WiFi-синк (createSyncReport/applyChanges) з новими
+   Checklist-даними та зафіксувати потенційні зміни у протоколі.
+3. Зібрати UX-фідбек по ChecklistScreen (масове очищення, приховування чекбоксів,
+   навігація з Attachments) і за потреби винести до окремих тасок.

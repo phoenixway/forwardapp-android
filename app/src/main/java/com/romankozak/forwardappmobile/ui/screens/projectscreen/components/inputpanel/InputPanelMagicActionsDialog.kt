@@ -49,6 +49,7 @@ fun InputPanelMagicActionsDialog(
     onShowAddObsidianLinkDialog: () -> Unit,
     onAddListShortcutClick: () -> Unit,
     onShowCreateNoteDocumentDialog: () -> Unit,
+    onCreateChecklist: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -111,6 +112,15 @@ fun InputPanelMagicActionsDialog(
                 color = MaterialTheme.colorScheme.secondary,
                 action = {
                     onShowCreateNoteDocumentDialog()
+                    onDismiss()
+                },
+            ),
+            ActionItem(
+                title = "Чекліст",
+                icon = Icons.Outlined.Checklist,
+                color = MaterialTheme.colorScheme.secondary,
+                action = {
+                    onCreateChecklist()
                     onDismiss()
                 },
             ),

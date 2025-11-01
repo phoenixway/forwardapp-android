@@ -313,6 +313,23 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
+        route = "checklist_screen?projectId={projectId}&checklistId={checklistId}",
+        arguments =
+            listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("checklistId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
+    ) {
+        com.romankozak.forwardappmobile.ui.screens.checklist.ChecklistScreen(navController = navController)
+    }
+
+    composable(
         route = "list_chooser_screen/{title}?currentParentId={currentParentId}&disabledIds={disabledIds}",
         arguments =
             listOf(
