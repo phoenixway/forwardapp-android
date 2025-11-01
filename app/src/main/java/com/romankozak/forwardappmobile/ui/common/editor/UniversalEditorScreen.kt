@@ -68,6 +68,7 @@ fun UniversalEditorScreen(
   onNavigateBack: () -> Unit,
   navController: NavController,
   viewModel: UniversalEditorViewModel = hiltViewModel(),
+  contentFocusRequester: FocusRequester,
 ) {
   var isToolbarVisible by remember { mutableStateOf(false) }
   val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -91,7 +92,6 @@ fun UniversalEditorScreen(
   }
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-  val contentFocusRequester = remember { FocusRequester() }
   val snackbarHostState = remember { SnackbarHostState() }
   val keyboardController = LocalSoftwareKeyboardController.current
   var isKeyboardVisible by remember { mutableStateOf(false) }

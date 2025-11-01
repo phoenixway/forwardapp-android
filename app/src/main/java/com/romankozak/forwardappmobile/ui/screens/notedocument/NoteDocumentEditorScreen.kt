@@ -8,6 +8,11 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.R
 
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import kotlinx.coroutines.delay
+
 @Composable
 fun NoteDocumentEditorScreen(
   navController: NavController,
@@ -17,6 +22,17 @@ fun NoteDocumentEditorScreen(
   val documentId: String? =
     backStackEntry?.arguments?.getString("documentId")
       ?: backStackEntry?.arguments?.getString("listId")
+
+  val focusRequester = remember { FocusRequester() }
+  val keyboardController = LocalSoftwareKeyboardController.current
+
+  LaunchedEffect(documentId) {
+    if (documentId == null) {
+      delay(300)
+      focusRequester.requestFocus()
+      keyboardController?.show()
+    }
+  }
 
   LaunchedEffect(documentId) { documentId?.let { viewModel.loadDocument(it) } }
 
@@ -30,5 +46,6 @@ fun NoteDocumentEditorScreen(
     onNavigateBack = { navController.popBackStack() },
     viewModel = viewModel.universalEditorViewModel,
     navController = navController,
+    contentFocusRequester = focusRequester,
   )
 }
