@@ -29,6 +29,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -49,6 +55,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -218,6 +226,7 @@ private fun ChecklistContent(
         }
     }
 
+    val focusManager = LocalFocusManager.current
     AnimatedVisibility(
         visible = uiState.items.isNotEmpty(),
         enter = fadeIn(),
@@ -332,72 +341,223 @@ private fun ChecklistItemRow(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = if (isDragging) 4.dp else 1.dp,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Surface(
+
+            modifier = Modifier.fillMaxWidth(),
+
+            shape = MaterialTheme.shapes.large,
+
+            tonalElevation = if (isDragging) 4.dp else 1.dp,
+
+            color = MaterialTheme.colorScheme.surface,
+
         ) {
-            Icon(
-                imageVector = Icons.Rounded.DragHandle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = with(reorderableScope) {
-                        Modifier.longPressDraggableHandle(
-                            onDragStarted = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+
+            Row(
+
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+
+                verticalAlignment = Alignment.CenterVertically,
+
+            ) {
+
+                if (showCheckbox) {
+
+                    IconToggleButton(
+
+                        checked = item.isChecked,
+
+                        onCheckedChange = onCheckedChange,
+
+                        modifier = Modifier.size(40.dp)
+
+                    ) {
+
+                        Surface(
+
+                            shape = androidx.compose.foundation.shape.CircleShape,
+
+                            color = if (item.isChecked) 
+
+                                MaterialTheme.colorScheme.primary 
+
+                            else 
+
+                                Color.Transparent,
+
+                            border = if (!item.isChecked) 
+
+                                androidx.compose.foundation.BorderStroke(
+
+                                    2.dp, 
+
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+
+                                ) 
+
+                            else null,
+
+                            modifier = Modifier.size(20.dp)
+
+                        ) {
+
+                            Box(
+
+                                contentAlignment = Alignment.Center,
+
+                                modifier = Modifier.fillMaxSize()
+
+                            ) {
+
+                                if (item.isChecked) {
+
+                                    Icon(
+
+                                        imageVector = Icons.Filled.Check,
+
+                                        contentDescription = "Checkbox",
+
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+
+                                        modifier = Modifier.size(14.dp)
+
+                                    )
+
+                                }
+
                             }
-                        ).size(20.dp)
+
+                        }
+
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                }
+
+                OutlinedTextField(
+
+                    value = item.content,
+
+                    onValueChange = onContentChange,
+
+                    modifier =
+
+                        Modifier
+
+                            .weight(1f)
+
+                            .focusRequester(focusRequester)
+
+                            .onKeyEvent { event ->
+
+                                if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
+
+                                    onAddBelow()
+
+                                    true
+
+                                } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
+
+                                    focusManager.clearFocus()
+
+                                    false
+
+                                } else {
+
+                                    false
+
+                                }
+
+                            },
+
+                    placeholder = { 
+
+                        Text(
+
+                            text = stringResource(R.string.checklist_item_placeholder),
+
+                            style = MaterialTheme.typography.bodyLarge
+
+                        ) 
+
                     },
-                //
-            )
-            if (showCheckbox) {
-                Checkbox(
-                    checked = item.isChecked,
-                    onCheckedChange = onCheckedChange,
+
+                    singleLine = true,
+
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+
+                    keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
+
+                    colors = OutlinedTextFieldDefaults.colors(
+
+                        focusedBorderColor = Color.Transparent,
+
+                        unfocusedBorderColor = Color.Transparent,
+
+                        disabledBorderColor = Color.Transparent,
+
+                        focusedContainerColor = Color.Transparent,
+
+                        unfocusedContainerColor = Color.Transparent,
+
+                    ),
+
+                    textStyle = MaterialTheme.typography.bodyLarge,
+
                 )
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                IconButton(
+
+                    onClick = onDelete,
+
+                    modifier = Modifier.size(40.dp)
+
+                ) {
+
+                    Icon(
+
+                        imageVector = Icons.Outlined.Delete,
+
+                        contentDescription = stringResource(R.string.checklist_delete_item),
+
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+
+                    )
+
+                }
+
+                IconButton(
+
+                    onClick = { /* No action on click for drag handle */ },
+
+                    modifier = with(reorderableScope) {
+
+                        Modifier.draggableHandle()
+
+                            .size(40.dp)
+
+                    }
+
+                ) {
+
+                    Icon(
+
+                        imageVector = Icons.Rounded.DragHandle,
+
+                        contentDescription = null,
+
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+
+                        modifier = Modifier.size(24.dp),
+
+                    )
+
+                }
+
             }
-            OutlinedTextField(
-                value = item.content,
-                onValueChange = onContentChange,
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester)
-                        .onKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
-                                onAddBelow()
-                                true
-                            } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
-                                focusManager.clearFocus()
-                                false
-                            } else {
-                                false
-                            }
-                        },
-                placeholder = { Text(text = stringResource(R.string.checklist_item_placeholder)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent,
-                ),
-                textStyle = MaterialTheme.typography.bodyLarge,
-            )
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = stringResource(R.string.checklist_delete_item),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
+
         }
-    }
 }
