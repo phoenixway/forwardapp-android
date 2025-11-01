@@ -25,6 +25,7 @@ fun BacklogListScreen(
     listState: LazyListState,
     showCheckboxes: Boolean,
     selectedItemIds: Set<String>,
+    contextMarkerToEmojiMap: Map<String, String>,
     onMove: (from: Int, to: Int) -> Unit,
     onItemClick: (ListItemContent) -> Unit,
     onLongClick: (ListItemContent) -> Unit,
@@ -64,6 +65,7 @@ fun BacklogListScreen(
                     showCheckboxes = showCheckboxes,
                     isDragging = isDragging,
                     isSelected = isSelected,
+                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                     onItemClick = { onItemClick(item) },
                     onLongClick = { onLongClick(item) },
                     onMoreClick = { 

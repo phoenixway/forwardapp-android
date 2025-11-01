@@ -50,6 +50,7 @@ fun SwipeableBacklogItem(
     showCheckboxes: Boolean,
     isDragging: Boolean,
     isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>,
     onItemClick: (ListItemContent) -> Unit,
     onLongClick: (ListItemContent) -> Unit,
     onMoreClick: (ListItemContent) -> Unit,
@@ -203,7 +204,8 @@ fun SwipeableBacklogItem(
             onCheckedChange = { onCheckedChange(item, it) },
             onRelatedLinkClick = onRelatedLinkClick,
             showCheckbox = showCheckboxes,
-            isSelected = isSelected || isDragging
+            isSelected = isSelected || isDragging,
+            contextMarkerToEmojiMap = contextMarkerToEmojiMap
         )
     }
 }
