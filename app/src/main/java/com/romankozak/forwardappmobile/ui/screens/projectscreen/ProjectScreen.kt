@@ -50,7 +50,9 @@ import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import com.romankozak.forwardappmobile.ui.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
+import com.romankozak.forwardappmobile.ui.reminders.dialogs.RemindersDialog
+import com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel
+
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.EditLogEntryDialog
@@ -58,6 +60,8 @@ import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.GoalDeta
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.dialogs.ProjectDisplayPropertiesDialog
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
+
+
 
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -113,14 +117,14 @@ fun ProjectsScreen(
                 viewModel = editorViewModel
             )
         }
-        uiState.showUniversalEditorForCustomList -> {
+        uiState.showNoteDocumentEditor -> {
             LaunchedEffect(Unit) {
                 editorViewModel.onContentChange(TextFieldValue(""))
             }
             UniversalEditorScreen(
-                title = "Створити новий список",
-                onSave = { content, _ -> viewModel.onSaveCustomList(content) },
-                onNavigateBack = { viewModel.onDismissCustomListEditor() },
+                title = "Створити новий документ",
+                onSave = { content, _ -> viewModel.onSaveNoteDocument(content) },
+                onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
                 viewModel = editorViewModel
             )
@@ -146,6 +150,7 @@ private fun ProjectScaffold(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+    val reminderViewModel: com.romankozak.forwardappmobile.ui.reminders.viewmodel.ReminderViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val project by viewModel.project.collectAsStateWithLifecycle()
@@ -159,6 +164,8 @@ private fun ProjectScaffold(
     val inboxListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(false) }
+    var showRemindersListDialog by remember { mutableStateOf(false) }
+    var selectedItemForReminders by remember { mutableStateOf<ListItemContent?>(null) }
 
     val targetBackgroundColor = MaterialTheme.colorScheme.surface
     val animatedBackgroundColor by animateColorAsState(
@@ -205,10 +212,7 @@ private fun ProjectScaffold(
         )
     }
 
-    val dragDropState = rememberSimpleDragDropState(
-        lazyListState = listState,
-        onMove = viewModel::moveItem,
-    )
+    
 
     val draggableItems = remember(listContent) {
         listContent.filterNot { it is ListItemContent.LinkItem }
@@ -220,7 +224,6 @@ private fun ProjectScaffold(
         snackbarHostState = snackbarHostState,
         listState = listState,
         inboxListState = inboxListState,
-        dragDropState = dragDropState,
         coroutineScope = coroutineScope
     )
 
@@ -341,11 +344,22 @@ private fun ProjectScaffold(
             uiState = uiState,
             listState = listState,
             inboxListState = inboxListState,
-            dragDropState = dragDropState,
             onEditLog = viewModel::onEditLogEntry,
             onDeleteLog = viewModel::onDeleteLogEntry,
             onSaveArtifact = viewModel::onSaveArtifact,
-            onEditArtifact = viewModel::onEditArtifact
+            onEditArtifact = viewModel::onEditArtifact,
+            onRemindersClick = { item ->
+                selectedItemForReminders = item
+                showRemindersListDialog = true
+            }
+        )
+    }
+
+    if (showRemindersListDialog && selectedItemForReminders != null) {
+        RemindersDialog(
+            viewModel = reminderViewModel,
+            item = selectedItemForReminders!!,
+            onDismiss = { showRemindersListDialog = false }
         )
     }
 }
@@ -430,7 +444,8 @@ private fun ProjectBottomBar(
                 onRevealInExplorer = { viewModel.onRevealInExplorer(project?.id ?: "") },
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
-                onShowCreateCustomListDialog = viewModel::onShowCreateCustomListDialog,
+                onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
+                onCreateChecklist = viewModel::onCreateChecklist,
                 isViewModePanelVisible = uiState.isViewModePanelVisible,
                 onToggleNavPanelMode = viewModel::onToggleNavPanelMode,
                 suggestions = suggestions,
@@ -457,16 +472,7 @@ private fun TransparentSystemBars(isDarkTheme: Boolean = isSystemInDarkTheme()) 
     }
 }
 
-@Composable
-private fun rememberSimpleDragDropState(
-    lazyListState: LazyListState,
-    onMove: (Int, Int) -> Unit,
-): SimpleDragDropState {
-    val scope = rememberCoroutineScope()
-    return remember(lazyListState, onMove) {
-        SimpleDragDropState(state = lazyListState, scope = scope, onMove = onMove)
-    }
-}
+
 
 fun Modifier.glitch(trigger: Any): Modifier = composed {
     var glitchAmount by remember { mutableFloatStateOf(0f) }

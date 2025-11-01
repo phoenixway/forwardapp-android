@@ -34,7 +34,7 @@ class DatabaseInitializerTest {
         whenever(context.getString(R.string.long_term_strategy_project_name)).thenReturn("long-term-strategy")
         whenever(context.getString(R.string.medium_term_program_project_name)).thenReturn("medium-term-program")
         whenever(context.getString(R.string.active_quests_project_name)).thenReturn("active-quests")
-        whenever(context.getString(R.string.strategic_goals_project_name)).thenReturn("strategic-goals")
+        whenever(context.getString(R.string.strategic_goals_project_name)).thenReturn("strategic-inbox")
         whenever(context.getString(R.string.strategic_review_project_name)).thenReturn("strategic-review")
         whenever(context.getString(R.string.inbox_project_name)).thenReturn("inbox")
     }

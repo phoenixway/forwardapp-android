@@ -25,7 +25,7 @@ class ReservedGroupAdapter : TypeAdapter<ReservedGroup>() {
             val groupName = input.nextString()
             return ReservedGroup.fromString(groupName)
         }
-        // If it's not a String, it must be an Object (old format)
+        // If it's not a String, it must be an Object (old format) or another unexpected type
         if (input.peek() == JsonToken.BEGIN_OBJECT) {
             input.beginObject()
             var groupName: String? = null

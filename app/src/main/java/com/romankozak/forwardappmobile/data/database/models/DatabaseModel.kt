@@ -121,7 +121,8 @@ object ListItemTypeValues {
     const val SUBLIST = "SUBLIST"
     const val LINK_ITEM = "LINK_ITEM"
     const val NOTE = "NOTE"
-    const val CUSTOM_LIST = "CUSTOM_LIST"
+    const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
+    const val CHECKLIST = "CHECKLIST"
 }
 
 
@@ -244,10 +245,11 @@ data class Project(
     val createdAt: Long,
     val updatedAt: Long?,
     val tags: List<String>? = null,
+    val relatedLinks: List<RelatedLink>? = null,
     @ColumnInfo(name = "is_expanded", defaultValue = "1") val isExpanded: Boolean = true,
     @ColumnInfo(name = "goal_order", defaultValue = "0") val order: Long = 0,
     @ColumnInfo(name = "is_attachments_expanded", defaultValue = "0") val isAttachmentsExpanded: Boolean = false,
-    @ColumnInfo(name = "default_view_mode") val defaultViewModeName: String? = ProjectViewMode.BACKLOG.name,
+    @ColumnInfo(name = "default_view_mode") val defaultViewModeName: String? = null,
     @ColumnInfo(name = "is_completed", defaultValue = "0") val isCompleted: Boolean = false,
     @ColumnInfo(name = "is_project_management_enabled") val isProjectManagementEnabled: Boolean? = false,
     @ColumnInfo(name = "project_status") val projectStatus: String? = ProjectStatusValues.NO_PLAN,

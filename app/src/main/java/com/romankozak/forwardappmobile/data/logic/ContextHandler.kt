@@ -23,6 +23,7 @@ class ContextHandler
         private val projectRepositoryProvider: Provider<ProjectRepository>,
         private val settingsRepository: SettingsRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
+        private val iconProvider: com.romankozak.forwardappmobile.ui.common.IconProvider,
     ) {
         private val projectRepository: ProjectRepository by lazy { projectRepositoryProvider.get() }
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
@@ -54,6 +55,14 @@ class ContextHandler
             val localContextTagMap = mutableMapOf<String, String>()
             val localContextMarkerMap = mutableMapOf<String, String>()
             val localMarkerToEmojiMap = mutableMapOf<String, String>()
+            val hardcodedIconsData = iconProvider.getIconMappings()
+            hardcodedIconsData.forEach { (icon, markers) ->
+                markers.forEach { marker ->
+                    localMarkerToEmojiMap[marker] = icon
+                }
+            }
+            android.util.Log.d("ContextHandler", "Hardcoded icons added to localMarkerToEmojiMap: $localMarkerToEmojiMap")
+
             val contextsBeingBuilt = mutableListOf<UiContext>()
 
             val reservedContextsInfo = SettingsRepository.ContextKeys.reservedContexts.map { (name, keys) ->
@@ -111,6 +120,7 @@ class ContextHandler
             _contextNamesFlow.value = localContextTagMap.keys.sorted()
             _tagToContextNameMap.value = localContextTagMap.entries.associate { (k, v) -> v to k }
             _contextMarkerToEmojiMap.value = localMarkerToEmojiMap
+            android.util.Log.d("ContextHandler", "Final contextMarkerToEmojiMap: ${_contextMarkerToEmojiMap.value}")
         }
 
         private fun parseContextsFromText(text: String): Set<String> {

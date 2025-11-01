@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.back
 
 import com.romankozak.forwardappmobile.data.database.models.Reminder
 import androidx.compose.material.icons.filled.AccountTree
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -58,32 +59,7 @@ import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import kotlinx.coroutines.delay
 
-@Composable
-private fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
-        shadowElevation = 1.dp,
-        tonalElevation = 2.dp,
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(6.dp)
-                .semantics {
-                    contentDescription = "Містить нотатку"
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-    }
-}
+
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -104,6 +80,7 @@ fun ProjectItem(
     reminders: List<Reminder> = emptyList(),
     endAction: @Composable () -> Unit = {},
 ) {
+    android.util.Log.d("ProjectItem", "ProjectItem composable called for project: ${project.name}")
     val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(project.name, contextMarkerToEmojiMap)
 

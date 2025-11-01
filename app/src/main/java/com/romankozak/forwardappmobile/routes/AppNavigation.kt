@@ -23,8 +23,8 @@ import com.romankozak.forwardappmobile.ui.navigation.AppNavigationViewModel
 import com.romankozak.forwardappmobile.ui.navigation.NavigationCommand
 import com.romankozak.forwardappmobile.ui.screens.ManageContextsScreen
 import com.romankozak.forwardappmobile.ui.screens.activitytracker.ActivityTrackerScreen
-import com.romankozak.forwardappmobile.ui.screens.customlist.CustomListEditorScreen
-import com.romankozak.forwardappmobile.ui.screens.customlist.UnifiedCustomListScreen
+import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentEditorScreen
+import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScreen
 
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
@@ -272,68 +272,61 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
+    // Об'єднаний екран для перегляду/редагування існуючого списку
     composable(
-        route = "note_edit_screen?projectId={projectId}&noteId={noteId}",
+        route = "note_document_screen/{documentId}",
+        arguments = listOf(
+            navArgument("documentId") { type = NavType.StringType }
+        ),
+    ) {
+        NoteDocumentEditorScreen(navController = navController)
+    }
+
+    composable(
+        route = "note_document_create_screen/{projectId}",
+        arguments = listOf(
+            navArgument("projectId") { type = NavType.StringType }
+        ),
+    ) {
+        NoteDocumentScreen(
+            navController = navController,
+        )
+    }
+
+    composable(
+        route = "note_document_edit_screen?projectId={projectId}&documentId={documentId}",
         arguments =
             listOf(
                 navArgument("projectId") {
                     type = NavType.StringType
                     nullable = true
                 },
-                navArgument("noteId") {
+                navArgument("documentId") {
                     type = NavType.StringType
                     nullable = true
                 },
             ),
     ) {
-        NoteEditorScreen(navController = navController)
-    }
-
-    // Об'єднаний екран для перегляду/редагування існуючого списку
-    composable(
-        route = "custom_list_screen/{listId}",
-        arguments = listOf(
-            navArgument("listId") { type = NavType.StringType }
-        ),
-    ) { backStackEntry ->
-        CustomListEditorScreen(navController = navController)
-    }
-
-    // Об'єднаний екран для створення нового списку
-    composable(
-        route = "custom_list_create_screen/{projectId}",
-        arguments = listOf(
-            navArgument("projectId") { type = NavType.StringType }
-        ),
-    ) { backStackEntry ->
-        val projectId = backStackEntry.arguments?.getString("projectId")
-
-        UnifiedCustomListScreen(
+        NoteDocumentScreen(
             navController = navController,
         )
     }
 
-    // Залишаємо старий роут для зворотної сумісності, але переспрямовуємо на новий
     composable(
-        route = "custom_list_edit_screen?projectId={projectId}&listId={listId}",
+        route = "checklist_screen?projectId={projectId}&checklistId={checklistId}",
         arguments =
             listOf(
                 navArgument("projectId") {
                     type = NavType.StringType
                     nullable = true
                 },
-                navArgument("listId") {
+                navArgument("checklistId") {
                     type = NavType.StringType
                     nullable = true
                 },
             ),
-    ) { backStackEntry ->
-        val projectId = backStackEntry.arguments?.getString("projectId")
-        val listId = backStackEntry.arguments?.getString("listId")
-
-        UnifiedCustomListScreen(
-            navController = navController,
-        )
+    ) {
+        com.romankozak.forwardappmobile.ui.screens.checklist.ChecklistScreen(navController = navController)
     }
 
     composable(

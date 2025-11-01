@@ -1,5 +1,7 @@
 import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -59,6 +61,8 @@ android {
         resources {
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/LICENSE-notice.md"
 
         excludes += listOf(
             "META-INF/DEPENDENCIES",
@@ -103,6 +107,11 @@ android {
 
 }
 
+tasks.withType<Test> {
+    useJUnitPlatform()
+    systemProperties.put("mockk.mock-maker-inline", "true")
+}
+
 dependencies {
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
@@ -120,6 +129,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.remote.config)
+    implementation(libs.firebase.installations)
+    implementation(libs.play.services.auth)
 
     // Основні Compose бібліотеки
     implementation(libs.androidx.ui)
@@ -178,10 +190,14 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
+    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
+    testImplementation("io.mockk:mockk:1.13.10")
+    androidTestImplementation("io.mockk:mockk-android:1.13.10")
 
     // Additional libraries
     implementation(libs.accompanist.flowlayout)

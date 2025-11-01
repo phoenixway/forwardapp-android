@@ -26,7 +26,7 @@ class DatabaseInitializer @Inject constructor(
         val specialProjectId = UUID.randomUUID().toString()
         val specialProject = Project(
             id = specialProjectId,
-            name = context.getString(R.string.special_project_name),
+            name = "special",
             isExpanded = false,
             projectType = ProjectType.SYSTEM,
             parentId = null,
@@ -39,7 +39,7 @@ class DatabaseInitializer @Inject constructor(
         val strategicGroupId = UUID.randomUUID().toString()
         val strategicGroupProject = Project(
             id = strategicGroupId,
-            name = context.getString(R.string.strategic_group_name),
+            name = "strategic",
             parentId = specialProjectId,
             isExpanded = false,
             projectType = ProjectType.RESERVED,
@@ -50,21 +50,36 @@ class DatabaseInitializer @Inject constructor(
             tags = null
         )
 
+        val mainBeaconsGroupId = UUID.randomUUID().toString()
+        val mainBeaconsGroupProject = Project(
+            id = mainBeaconsGroupId,
+            name = "main-beacons",
+            parentId = specialProjectId,
+            isExpanded = false,
+            projectType = ProjectType.RESERVED,
+            reservedGroup = ReservedGroup.MainBeaconsGroup,
+            description = null,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = null,
+            tags = null
+        )
+
         val projects = mutableListOf(
             specialProject,
             strategicGroupProject,
-            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.mission_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.long_term_strategy_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.medium_term_program_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.active_quests_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.strategic_goals_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
-            Project(id = UUID.randomUUID().toString(), name = context.getString(R.string.strategic_review_project_name), parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            mainBeaconsGroupProject,
+            Project(id = UUID.randomUUID().toString(), name = "mission", parentId = mainBeaconsGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.MainBeacons, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "long-term-strategy", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "medium-term-program", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "active-quests", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "strategic-inbox", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
+            Project(id = UUID.randomUUID().toString(), name = "strategic-review", parentId = strategicGroupId, isExpanded = false, projectType = ProjectType.RESERVED, reservedGroup = ReservedGroup.Strategic, description = null, createdAt = System.currentTimeMillis(), updatedAt = null, tags = null),
         )
 
         val inboxProjectId = UUID.randomUUID().toString()
         val inboxProject = Project(
             id = inboxProjectId,
-            name = context.getString(R.string.inbox_project_name),
+            name = "inbox",
             parentId = specialProjectId,
             isExpanded = false,
             projectType = ProjectType.RESERVED,

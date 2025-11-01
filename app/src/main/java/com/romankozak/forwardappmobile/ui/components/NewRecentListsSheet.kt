@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -137,7 +138,8 @@ private fun RecentItemCard(
                     imageVector = when (item.type) {
                         RecentItemType.PROJECT -> Icons.Outlined.Folder
                         RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
-                        RecentItemType.CUSTOM_LIST -> Icons.AutoMirrored.Outlined.List
+                        RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
+                        RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
                         RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
                     },
                     contentDescription = null,
@@ -168,7 +170,8 @@ private fun getColorsForType(type: RecentItemType): Color {
     return when (type) {
         RecentItemType.PROJECT -> MaterialTheme.colorScheme.primary
         RecentItemType.NOTE -> MaterialTheme.colorScheme.secondary
-        RecentItemType.CUSTOM_LIST -> MaterialTheme.colorScheme.tertiary
+        RecentItemType.NOTE_DOCUMENT -> MaterialTheme.colorScheme.tertiary
+        RecentItemType.CHECKLIST -> MaterialTheme.colorScheme.tertiaryContainer
         RecentItemType.OBSIDIAN_LINK -> MaterialTheme.colorScheme.primaryContainer
     }
 }
