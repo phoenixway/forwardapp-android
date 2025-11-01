@@ -58,6 +58,7 @@ fun BacklogItem(
     onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>,
 ) {
     when (item) {
         is ListItemContent.GoalItem -> {
@@ -72,7 +73,8 @@ fun BacklogItem(
                 onCheckedChange = onCheckedChange,
                 onRelatedLinkClick = onRelatedLinkClick,
                 showCheckbox = showCheckbox,
-                isSelected = isSelected
+                isSelected = isSelected,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap
             )
         }
         is ListItemContent.SublistItem -> {
@@ -86,7 +88,8 @@ fun BacklogItem(
                 onCheckedChange = onCheckedChange,
                 onRelatedLinkClick = onRelatedLinkClick,
                 showCheckbox = showCheckbox,
-                isSelected = isSelected
+                isSelected = isSelected,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap
             )
         }
         else -> {
@@ -107,9 +110,10 @@ private fun InternalGoalItem(
     onCheckedChange: (Boolean) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
-    isSelected: Boolean
+    isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>
 ) {
-    val parsedData = rememberParsedText(goal.text, emptyMap()) // Simplified
+    val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap) // Simplified
     val hapticFeedback = LocalHapticFeedback.current
 
     Surface(
@@ -220,9 +224,10 @@ private fun InternalSubprojectItem(
     onCheckedChange: (Boolean) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
-    isSelected: Boolean
+    isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>
 ) {
-    val parsedData = rememberParsedText(subproject.name, emptyMap()) // Simplified
+    val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap) // Simplified
     val hapticFeedback = LocalHapticFeedback.current
 
     Surface(

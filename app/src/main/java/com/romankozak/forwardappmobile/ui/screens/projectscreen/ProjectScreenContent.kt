@@ -35,6 +35,7 @@ fun GoalDetailContent(
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val projectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
+    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
 
 
 
@@ -47,6 +48,7 @@ fun GoalDetailContent(
                 listState = listState,
                 showCheckboxes = uiState.showCheckboxes,
                 selectedItemIds = uiState.selectedItemIds,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 onMove = { from, to -> viewModel.onMove(from, to) },
                 onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },
