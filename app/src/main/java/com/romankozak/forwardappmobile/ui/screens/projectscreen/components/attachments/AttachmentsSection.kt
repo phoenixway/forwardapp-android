@@ -26,7 +26,6 @@ import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 enum class AttachmentType {
     NOTES,
-    CHECKLIST,
     WEB_LINK,
     OBSIDIAN_LINK,
     PROJECT_LINK,
@@ -189,13 +188,6 @@ private fun AttachmentItemCard(
                     onDelete = { onDeleteItem(item) },
                 )
             }
-            is ListItemContent.ChecklistItem -> {
-                ChecklistItemRow(
-                    checklistItem = item,
-                    onClick = { onItemClick(item) },
-                    onDelete = { onDeleteItem(item) },
-                )
-            }
             else -> {}
         }
     }
@@ -233,10 +225,6 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
             modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
         ) {
             AttachmentTypeMenuItem(R.string.attachment_type_notes, AttachmentType.NOTES) { type ->
-                onAddAttachment(type)
-                showAddMenu = false
-            }
-            AttachmentTypeMenuItem(R.string.attachment_type_checklist, AttachmentType.CHECKLIST) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }

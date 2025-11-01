@@ -122,7 +122,6 @@ object ListItemTypeValues {
     const val LINK_ITEM = "LINK_ITEM"
     const val NOTE = "NOTE"
     const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
-    const val CHECKLIST = "CHECKLIST"
 }
 
 

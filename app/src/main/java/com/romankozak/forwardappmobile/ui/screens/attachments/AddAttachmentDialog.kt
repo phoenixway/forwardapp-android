@@ -22,7 +22,6 @@ fun AddAttachmentDialog(
         text = {
             Column {
                 Text("Notes", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.NOTES) }.padding(16.dp))
-                Text("Checklist", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.CHECKLIST) }.padding(16.dp))
                 Text("Web Link", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.WEB_LINK) }.padding(16.dp))
                 Text("Obsidian Link", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.OBSIDIAN_LINK) }.padding(16.dp))
                 Text("Link to another project", modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.PROJECT_LINK) }.padding(16.dp))

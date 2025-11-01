@@ -7,7 +7,6 @@ enum class RecentItemType {
     PROJECT,
     NOTE,
     NOTE_DOCUMENT,
-    CHECKLIST,
     OBSIDIAN_LINK
 }
 
@@ -18,6 +17,6 @@ data class RecentItem(
     val type: RecentItemType,
     val lastAccessed: Long,
     val displayName: String,
-    val target: String, // Project ID, Legacy Note ID, NoteDoc ID, Checklist ID, or Obsidian URI
+    val target: String, // Project ID, Legacy Note ID, Note ID, or Obsidian URI
     val isPinned: Boolean = false
 )

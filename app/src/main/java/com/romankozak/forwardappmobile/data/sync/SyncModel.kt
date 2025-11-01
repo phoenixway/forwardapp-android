@@ -59,27 +59,12 @@ data class DesktopLegacyNote(
     val updatedAt: String?,
 )
 
-data class DesktopChecklistItem(
-    val id: String,
-    val content: String,
-    val isChecked: Boolean,
-    val itemOrder: Long,
-)
-
-data class DesktopChecklist(
-    val id: String,
-    val name: String,
-    val projectId: String?,
-    val items: List<DesktopChecklistItem>?,
-)
-
 data class DesktopBackupData(
     val goals: Map<String, DesktopGoal>?,
     val goalLists: Map<String, DesktopGoalList>?,
     val goalInstances: Map<String, DesktopGoalInstance>?,
     @SerializedName(value = "legacyNotes", alternate = ["notes"])
     val legacyNotes: Map<String, DesktopLegacyNote>? = null,
-    val checklists: Map<String, DesktopChecklist>? = null,
 )
 
 data class DesktopBackupFile(
