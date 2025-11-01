@@ -71,6 +71,11 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.romankozak.forwardappmobile.R
 
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import sh.calvin.reorderable.ReorderableCollectionItemScope
+
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ChecklistScreen(
@@ -228,6 +233,8 @@ private fun ChecklistContent(
                 ReorderableItem(reorderState, key = item.id) { isDragging ->
                     ChecklistItemRow(
                         item = item,
+                        reorderableScope = this,
+
                         showCheckbox = uiState.showCheckboxes,
                         isDragging = isDragging,
                         shouldRequestFocus = item.id == uiState.pendingFocusItemId,
@@ -302,6 +309,7 @@ colors = OutlinedTextFieldDefaults.colors(
 @Composable
 private fun ChecklistItemRow(
     item: ChecklistItemUiModel,
+    reorderableScope: ReorderableCollectionItemScope,
     showCheckbox: Boolean,
     isDragging: Boolean,
     shouldRequestFocus: Boolean,
@@ -313,6 +321,9 @@ private fun ChecklistItemRow(
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+
+    val hapticFeedback = LocalHapticFeedback.current
+
 
     LaunchedEffect(shouldRequestFocus) {
         if (shouldRequestFocus) {
@@ -336,7 +347,14 @@ private fun ChecklistItemRow(
                 imageVector = Icons.Rounded.DragHandle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
+                modifier = with(reorderableScope) {
+                        Modifier.longPressDraggableHandle(
+                            onDragStarted = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        ).size(20.dp)
+                    },
+                //
             )
             if (showCheckbox) {
                 Checkbox(
