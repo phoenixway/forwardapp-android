@@ -29,14 +29,15 @@ class ProjectRepository
 @Inject
 constructor(
     private val projectDao: ProjectDao,
-    private val noteRepository: NoteRepository,
+    private val legacyNoteRepository: LegacyNoteRepository,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val activityRepository: ActivityRepository,
     private val recentItemsRepository: RecentItemsRepository,
     private val reminderRepository: ReminderRepository,
     private val projectLogRepository: ProjectLogRepository,
     private val searchRepository: SearchRepository,
-    private val customListRepository: CustomListRepository,
+    private val noteDocumentRepository: NoteDocumentRepository,
+    private val checklistRepository: ChecklistRepository,
     private val goalRepository: GoalRepository,
     private val inboxRepository: InboxRepository,
     private val projectTimeTrackingRepository: ProjectTimeTrackingRepository,
@@ -44,7 +45,7 @@ constructor(
     private val listItemRepository: ListItemRepository,
 ) {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
-    private val TAG = "CUSTOM_LIST_DEBUG"
+    private val TAG = "NOTE_DOCUMENT_DEBUG"
 
     fun getProjectLogsStream(projectId: String): Flow<List<ProjectExecutionLog>> =
         projectLogRepository.getProjectLogsStream(projectId)
@@ -99,8 +100,9 @@ constructor(
             goalRepository.getAllGoalsFlow(),
             projectDao.getAllProjects(),
             listItemRepository.getAllEntitiesAsFlow(),
-            noteRepository.getAllAsFlow(),
-            customListRepository.getAllCustomListsAsFlow()
+            legacyNoteRepository.getAllAsFlow(),
+            noteDocumentRepository.getAllDocumentsAsFlow(),
+            checklistRepository.getAllChecklistsAsFlow()
         ) { array ->
             @Suppress("UNCHECKED_CAST")
             mapToListItemContent(
@@ -110,8 +112,9 @@ constructor(
                 goals = array[2] as List<Goal>,
                 projects = array[3] as List<Project>,
                 links = array[4] as List<LinkItemEntity>,
-                notes = array[5] as List<NoteEntity>,
-                customLists = array[6] as List<CustomListEntity>
+                notes = array[5] as List<LegacyNoteEntity>,
+                noteDocuments = array[6] as List<NoteDocumentEntity>,
+                checklists = array[7] as List<ChecklistEntity>,
             )
         }
     }
@@ -123,15 +126,17 @@ constructor(
         goals: List<Goal>,
         projects: List<Project>,
         links: List<LinkItemEntity>,
-        notes: List<NoteEntity>,
-        customLists: List<CustomListEntity>
+        notes: List<LegacyNoteEntity>,
+        noteDocuments: List<NoteDocumentEntity>,
+        checklists: List<ChecklistEntity>,
     ): List<ListItemContent> {
         val remindersMap = reminders.groupBy { it.entityId }
         val goalsMap = goals.associateBy { it.id }
         val projectsMap = projects.associateBy { it.id }
         val linksMap = links.associateBy { it.id }
         val notesMap = notes.associateBy { it.id }
-        val customListsMap = customLists.associateBy { it.id }
+        val noteDocumentsMap = noteDocuments.associateBy { it.id }
+        val checklistsMap = checklists.associateBy { it.id }
 
         val backlogItems = items.mapNotNull { item ->
             when (item.itemType) {
@@ -153,9 +158,13 @@ constructor(
                     notesMap[item.entityId]?.let { note ->
                         ListItemContent.NoteItem(note, item)
                     }
-                ListItemTypeValues.CUSTOM_LIST ->
-                    customListsMap[item.entityId]?.let { customList ->
-                        ListItemContent.CustomListItem(customList, item)
+                ListItemTypeValues.NOTE_DOCUMENT ->
+                    noteDocumentsMap[item.entityId]?.let { document ->
+                        ListItemContent.NoteDocumentItem(document, item)
+                    }
+                ListItemTypeValues.CHECKLIST ->
+                    checklistsMap[item.entityId]?.let { checklist ->
+                        ListItemContent.ChecklistItem(checklist, item)
                     }
                 else -> null
             }
@@ -348,8 +357,9 @@ constructor(
                 ListItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
                 ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
                 ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
-                ListItemTypeValues.NOTE -> noteRepository.getNoteById(item.entityId) != null
-                ListItemTypeValues.CUSTOM_LIST -> customListRepository.getCustomListById(item.entityId) != null
+                ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
+                ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
+                ListItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(item.entityId) != null
                 else -> true // Assume unknown types are valid to avoid deleting them
             }
             if (!entityExists) {

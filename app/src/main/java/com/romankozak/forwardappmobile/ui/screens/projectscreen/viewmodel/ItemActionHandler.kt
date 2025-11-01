@@ -55,7 +55,7 @@ class ItemActionHandler
                 scope.launch {
                     when (item) {
                         is ListItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
-                        is ListItemContent.CustomListItem -> recentItemsRepository.logCustomListAccess(item.customList)
+                        is ListItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
                         is ListItemContent.SublistItem -> {
                             projectRepository.getProjectById(item.project.id)?.let {
                                 recentItemsRepository.logProjectAccess(it)
@@ -66,6 +66,7 @@ class ItemActionHandler
                                 recentItemsRepository.logObsidianLinkAccess(item.link.linkData)
                             }
                         }
+                        is ListItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist)
                         else -> {}
                     }
                 }
@@ -81,9 +82,11 @@ class ItemActionHandler
                     is ListItemContent.LinkItem ->
                         resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
                     is ListItemContent.NoteItem ->
-                        resultListener.requestNavigation("note_edit_screen?noteId=${item.note.id}")
-                    is ListItemContent.CustomListItem ->
-                        resultListener.requestNavigation("custom_list_screen/${item.customList.id}")
+                        resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
+                    is ListItemContent.NoteDocumentItem ->
+                        resultListener.requestNavigation("note_document_screen/${item.document.id}")
+                    is ListItemContent.ChecklistItem ->
+                        resultListener.requestNavigation("checklist_screen?checklistId=${item.checklist.id}")
                 }
             }
         }
@@ -135,7 +138,8 @@ class ItemActionHandler
                         }
                         is ListItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
                         is ListItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
-                        is ListItemContent.CustomListItem -> Pair("Назва списку скопійована", content.customList.name)
+                        is ListItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
+                        is ListItemContent.ChecklistItem -> Pair("Назва чекліста скопійована", content.checklist.name)
                     }
 
                 resultListener.copyToClipboard(text)
@@ -159,6 +163,10 @@ class ItemActionHandler
         fun onDismissGoalTransportMenu() {
             _showGoalTransportMenu.value = false
             _itemForTransportMenu.value = null
+        }
+
+        fun onRelatedLinkClick(link: com.romankozak.forwardappmobile.data.database.models.RelatedLink) {
+            resultListener.requestNavigation(BacklogViewModel.HANDLE_LINK_CLICK_ROUTE + "/${link.target}")
         }
 
         

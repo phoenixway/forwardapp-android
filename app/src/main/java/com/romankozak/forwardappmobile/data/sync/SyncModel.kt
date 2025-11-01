@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.sync
 
+import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.data.database.models.ScoringStatusValues
 import com.romankozak.forwardappmobile.data.database.models.*
 
@@ -50,7 +51,7 @@ data class DesktopGoalInstance(
     val goalId: String,
 )
 
-data class DesktopNote(
+data class DesktopLegacyNote(
     val id: String,
     val title: String?,
     val content: String,
@@ -62,7 +63,8 @@ data class DesktopBackupData(
     val goals: Map<String, DesktopGoal>?,
     val goalLists: Map<String, DesktopGoalList>?,
     val goalInstances: Map<String, DesktopGoalInstance>?,
-    val notes: Map<String, DesktopNote>? = null,
+    @SerializedName(value = "legacyNotes", alternate = ["notes"])
+    val legacyNotes: Map<String, DesktopLegacyNote>? = null,
 )
 
 data class DesktopBackupFile(

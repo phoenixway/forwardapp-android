@@ -12,6 +12,8 @@ import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.CHAT_ROUTE
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
@@ -54,8 +56,9 @@ constructor(
   private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
   private val activityRepository: ActivityRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
-  private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
-  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
+  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
+  private val noteDocumentRepository: NoteDocumentRepository,
+  private val checklistRepository: ChecklistRepository,
 
   private val application: Application,
   private val savedStateHandle: SavedStateHandle,
@@ -568,13 +571,19 @@ constructor(
                 noteRepository.getNoteById(item.target)?.let {
                     recentItemsRepository.logNoteAccess(it)
                 }
-                _uiEventChannel.send(ProjectUiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
+                _uiEventChannel.send(ProjectUiEvent.ShowToast("Legacy note editing is no longer supported"))
             }
-            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CUSTOM_LIST -> {
-                customListRepository.getCustomListById(item.target)?.let {
-                    recentItemsRepository.logCustomListAccess(it)
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.NOTE_DOCUMENT -> {
+                noteDocumentRepository.getDocumentById(item.target)?.let {
+                    recentItemsRepository.logNoteDocumentAccess(it)
                 }
-                _uiEventChannel.send(ProjectUiEvent.Navigate("custom_list_screen/${item.target}"))
+                _uiEventChannel.send(ProjectUiEvent.Navigate("note_document_screen/${item.target}"))
+            }
+            com.romankozak.forwardappmobile.data.database.models.RecentItemType.CHECKLIST -> {
+                checklistRepository.getChecklistById(item.target)?.let {
+                    recentItemsRepository.logChecklistAccess(it)
+                }
+                _uiEventChannel.send(ProjectUiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
             }
             com.romankozak.forwardappmobile.data.database.models.RecentItemType.OBSIDIAN_LINK -> {
                 val link = com.romankozak.forwardappmobile.data.database.models.RelatedLink(

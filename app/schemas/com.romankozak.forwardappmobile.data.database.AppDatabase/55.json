@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 55,
-    "identityHash": "de5c80d316b443d10d6952fed0dfec36",
+    "identityHash": "3e7910018b27ea4d53636bfcea735bb2",
     "entities": [
       {
         "tableName": "conversations",
@@ -208,7 +208,7 @@
       },
       {
         "tableName": "projects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT, `project_status_text` TEXT, `project_log_level` TEXT, `total_time_spent_minutes` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, `show_checkboxes` INTEGER NOT NULL DEFAULT 0, `project_type` TEXT NOT NULL DEFAULT 'DEFAULT', `reserved_group` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `parentId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER, `tags` TEXT, `relatedLinks` TEXT, `is_expanded` INTEGER NOT NULL DEFAULT 1, `goal_order` INTEGER NOT NULL DEFAULT 0, `is_attachments_expanded` INTEGER NOT NULL DEFAULT 0, `default_view_mode` TEXT, `is_completed` INTEGER NOT NULL DEFAULT 0, `is_project_management_enabled` INTEGER, `project_status` TEXT, `project_status_text` TEXT, `project_log_level` TEXT, `total_time_spent_minutes` INTEGER, `valueImportance` REAL NOT NULL DEFAULT 0.0, `valueImpact` REAL NOT NULL DEFAULT 0.0, `effort` REAL NOT NULL DEFAULT 0.0, `cost` REAL NOT NULL DEFAULT 0.0, `risk` REAL NOT NULL DEFAULT 0.0, `weightEffort` REAL NOT NULL DEFAULT 1.0, `weightCost` REAL NOT NULL DEFAULT 1.0, `weightRisk` REAL NOT NULL DEFAULT 1.0, `rawScore` REAL NOT NULL DEFAULT 0.0, `displayScore` INTEGER NOT NULL DEFAULT 0, `scoring_status` TEXT NOT NULL, `show_checkboxes` INTEGER NOT NULL DEFAULT 0, `project_type` TEXT NOT NULL DEFAULT 'DEFAULT', `reserved_group` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -246,6 +246,11 @@
           {
             "fieldPath": "tags",
             "columnName": "tags",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "relatedLinks",
+            "columnName": "relatedLinks",
             "affinity": "TEXT"
           },
           {
@@ -2010,7 +2015,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'de5c80d316b443d10d6952fed0dfec36')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3e7910018b27ea4d53636bfcea735bb2')"
     ]
   }
 }

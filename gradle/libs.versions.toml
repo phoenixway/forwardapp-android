@@ -7,7 +7,7 @@ kotlin = "2.2.20"
 ksp = "2.2.20-2.0.3"
 
 # Compose -> Використовуємо актуальну стабільну версію BOM
-androidx-compose-bom = "2024.12.01"
+androidx-compose-bom = "2024.02.01"
 
 # AndroidX Libraries
 coreKtx = "1.13.1"
@@ -81,6 +81,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 
 # Ktor Server & Client
 ktor-server-core = { group = "io.ktor", name = "ktor-server-core-jvm", version.ref = "ktor" }
@@ -115,6 +116,9 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
+firebase-remote-config = { group = "com.google.firebase", name = "firebase-config-ktx" }
+firebase-installations = { group = "com.google.firebase", name = "firebase-installations-ktx" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.0.0" }
 
 # Rest
 accompanist-flowlayout = { group = "com.google.accompanist", name = "accompanist-flowlayout", version.ref = "accompanist" }

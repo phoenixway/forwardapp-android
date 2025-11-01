@@ -10,12 +10,18 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
+
+
 import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.ner.NerManager
@@ -118,14 +124,14 @@ data class UiState(
   val recordForReminderDialog: ActivityRecord? = null,
   val projectTimeMetrics: ProjectTimeMetrics? = null,
   val showShareDialog: Boolean = false,
-  val showCreateCustomListDialog: Boolean = false,
+  val showCreateNoteDocumentDialog: Boolean = false,
   val showRemindersDialog: Boolean = false,
   val itemForRemindersDialog: ListItemContent? = null,
       val remindersForDialog: List<Reminder> = emptyList(),
       val logEntryToEdit: ProjectExecutionLog? = null,
       val artifactToEdit: ProjectArtifact? = null,
       val selectedDashboardTab: ProjectManagementTab = ProjectManagementTab.Dashboard,
-      val showUniversalEditorForCustomList: Boolean = false,
+      val showNoteDocumentEditor: Boolean = false,
       val showDisplayPropertiesDialog: Boolean = false,
       val showCheckboxes: Boolean = false,
   ) {
@@ -167,7 +173,8 @@ constructor(
             "- [Л] [$displayName](${item.link.linkData.target})"
           }
           is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-          is ListItemContent.CustomListItem -> "- [К] ${item.customList.name}"
+          is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
+          is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
         }
       markdownBuilder.appendLine(line)
     }
@@ -242,11 +249,12 @@ constructor(
   @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
   private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
   private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
-  private val customListRepository: com.romankozak.forwardappmobile.data.repository.CustomListRepository,
+  private val noteDocumentRepository: NoteDocumentRepository,
+  private val checklistRepository: ChecklistRepository,
   private val reminderRepository: com.romankozak.forwardappmobile.data.repository.ReminderRepository,
   private val recentItemsRepository: com.romankozak.forwardappmobile.data.repository.RecentItemsRepository,
   private val projectLogRepository: com.romankozak.forwardappmobile.data.repository.ProjectLogRepository,
-  private val noteRepository: com.romankozak.forwardappmobile.data.repository.NoteRepository,
+  private val noteRepository: com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository,
   private val inboxRepository: com.romankozak.forwardappmobile.data.repository.InboxRepository,
 ) :
   ViewModel(),
@@ -297,6 +305,11 @@ constructor(
   val inboxHandler = InboxHandler(projectRepository, inboxRepository, viewModelScope, projectIdFlow, this)
   val inboxMarkdownHandler = InboxMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
   val backlogMarkdownHandler = BacklogMarkdownHandler(projectRepository, goalRepository, viewModelScope, this)
+
+  private lateinit var lazyListState: LazyListState
+
+
+
 
   private val _uiState =
     MutableStateFlow(
@@ -415,7 +428,8 @@ constructor(
                     is ListItemContent.LinkItem ->
                       itemContent.link.linkData.displayName ?: itemContent.link.linkData.target
                     is ListItemContent.NoteItem -> itemContent.note.title
-                    is ListItemContent.CustomListItem -> itemContent.customList.name
+                    is ListItemContent.NoteDocumentItem -> itemContent.document.name
+                    is ListItemContent.ChecklistItem -> itemContent.checklist.name
                   }
                 textToSearch.contains(query, ignoreCase = true)
               }
@@ -513,7 +527,10 @@ constructor(
     }
 
     viewModelScope.launch {
-      databaseContentStream.collect { dbContent -> _listContent.value = dbContent }
+        databaseContentStream.collect { dbContent ->
+            Log.d(TAG, "databaseContentStream collected, list size: ${dbContent.size}")
+            _listContent.value = dbContent
+        }
     }
 
     viewModelScope.launch {
@@ -528,10 +545,13 @@ constructor(
 
     viewModelScope.launch { withContext(Dispatchers.IO) { contextHandler.initialize() } }
     loadAllTags()
-    loadAllContexts()
+        loadAllContexts()
+    
+        lazyListState = LazyListState(0, 0)
 
 
-  }
+
+      }
 
   private fun loadAllTags() {
     viewModelScope.launch(Dispatchers.IO) {
@@ -906,40 +926,33 @@ constructor(
     _uiState.update { it.copy(newlyAddedItemId = null) }
   }
 
-  fun moveItem(fromIndex: Int, toIndex: Int) {
-    val currentContent = _listContent.value
-    val draggableItems = currentContent.filterNot { it is ListItemContent.LinkItem }.toMutableList()
-    if (fromIndex !in draggableItems.indices || toIndex !in draggableItems.indices) return
-    if (fromIndex == toIndex) return
-    val movedItem = draggableItems.removeAt(fromIndex)
-    draggableItems.add(toIndex, movedItem)
-    val newFullList = mutableListOf<ListItemContent>()
-    val reorderedDraggablesIterator = draggableItems.iterator()
-    currentContent.forEach { originalItem ->
-      if (originalItem is ListItemContent.LinkItem) {
-        newFullList.add(originalItem)
-      } else if (reorderedDraggablesIterator.hasNext()) {
-        newFullList.add(reorderedDraggablesIterator.next())
-      }
+  fun onMove(fromIndex: Int, toIndex: Int) {
+    Log.d(TAG, "onMove called with fromIndex: $fromIndex, toIndex: $toIndex")
+    viewModelScope.launch {
+        val currentContent = _listContent.value.toMutableList()
+        val movedItem = currentContent.removeAt(fromIndex)
+        currentContent.add(toIndex, movedItem)
+        _listContent.value = currentContent
+        saveListOrder(currentContent)
     }
-    _listContent.value = newFullList
-    viewModelScope.launch { saveListOrder(newFullList) }
   }
 
   fun onMoveToTop(item: ListItemContent) {
     val fromIndex = _listContent.value.indexOf(item)
     if (fromIndex != -1) {
-        moveItem(fromIndex, 0)
+        onMove(fromIndex, 0)
         viewModelScope.launch { _uiEventFlow.send(UiEvent.ScrollTo(0)) }
     }
   }
 
   private suspend fun saveListOrder(listToSave: List<ListItemContent>) =
     withContext(Dispatchers.IO) {
+      Log.d(TAG, "[saveListOrder] Starting to save order for ${listToSave.size} items.")
       try {
         val updatedItems =
           listToSave.mapIndexed { index, content -> content.listItem.copy(order = index.toLong()) }
         listItemRepository.updateListItemsOrder(updatedItems)
+        Log.d(TAG, "[saveListOrder] Successfully saved new order to the database.")
       } catch (e: Exception) {
         Log.e(TAG, "[saveListOrder] Failed to save list order", e)
       }
@@ -970,17 +983,24 @@ constructor(
     }
   }
 
-  fun onNoteItemClick(note: NoteEntity) {
+  fun onNoteItemClick(note: LegacyNoteEntity) {
     viewModelScope.launch {
       recentItemsRepository.logNoteAccess(note)
-      _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${note.id}"))
+          // legacy notes no longer have dedicated editor; no-op
     }
   }
 
-  fun onCustomListItemClick(customList: CustomListEntity) {
+  fun onNoteDocumentItemClick(noteDocument: NoteDocumentEntity) {
     viewModelScope.launch {
-      recentItemsRepository.logCustomListAccess(customList)
-      _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${customList.id}"))
+      recentItemsRepository.logNoteDocumentAccess(noteDocument)
+      _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${noteDocument.id}"))
+    }
+  }
+
+  fun onChecklistItemClick(checklist: ChecklistEntity) {
+    viewModelScope.launch {
+      recentItemsRepository.logChecklistAccess(checklist)
+      _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${checklist.id}"))
     }
   }
 
@@ -1031,22 +1051,27 @@ constructor(
 
   fun onAddAttachment(type: AttachmentType) {
     when (type) {
-      AttachmentType.NOTE -> {
-        viewModelScope.launch {
-          _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?projectId=${projectIdFlow.value}"))
-        }
-      }
-      AttachmentType.CUSTOM_LIST -> {
+      AttachmentType.NOTES -> {
         viewModelScope.launch {
           _uiEventFlow.send(
-            UiEvent.Navigate("custom_list_edit_screen?projectId=${projectIdFlow.value}")
+            UiEvent.Navigate("note_document_edit_screen?projectId=${projectIdFlow.value}")
           )
         }
       }
       AttachmentType.WEB_LINK -> inputHandler.onShowAddWebLinkDialog()
       AttachmentType.OBSIDIAN_LINK -> inputHandler.onShowAddObsidianLinkDialog()
-      AttachmentType.LIST_LINK -> inputHandler.onAddListLinkRequest()
-      AttachmentType.SHORTCUT -> inputHandler.onAddListShortcutRequest()
+      AttachmentType.PROJECT_LINK -> inputHandler.onAddListLinkRequest()
+      AttachmentType.PROJECT_SHORTCUT -> inputHandler.onAddListShortcutRequest()
+      AttachmentType.CHECKLIST -> {
+        val projectId = projectIdFlow.value
+        if (projectId.isNotBlank()) {
+          viewModelScope.launch {
+            _uiEventFlow.send(UiEvent.Navigate("checklist_screen?projectId=$projectId"))
+          }
+        } else {
+          showSnackbar("Не вдалося визначити проект для створення чекліста", null)
+        }
+      }
     }
   }
 
@@ -1162,7 +1187,8 @@ constructor(
 
           is ListItemContent.LinkItem,
           is ListItemContent.NoteItem,
-          is ListItemContent.CustomListItem -> null to null
+          is ListItemContent.NoteDocumentItem,
+          is ListItemContent.ChecklistItem -> null to null
         }
 
       val (newRecord, message) = result
@@ -1338,6 +1364,15 @@ constructor(
     }
   }
 
+  fun onDeleteEverywhere(item: ListItemContent) {
+    viewModelScope.launch {
+        if (item is ListItemContent.GoalItem) {
+            goalRepository.deleteGoal(item.goal.id)
+        }
+    }
+  }
+
+
   fun addItemToDailyPlan(itemContent: ListItemContent) {
     viewModelScope.launch {
       val today = System.currentTimeMillis()
@@ -1353,7 +1388,8 @@ constructor(
           }
           is ListItemContent.LinkItem -> null
           is ListItemContent.NoteItem -> null
-          is ListItemContent.CustomListItem -> null
+          is ListItemContent.NoteDocumentItem -> null
+          is ListItemContent.ChecklistItem -> null
         }
 
       if (task != null) {
@@ -1402,7 +1438,8 @@ constructor(
                     "- [Л] [$displayName](${item.link.linkData.target})"
                 }
                 is ListItemContent.NoteItem -> "- [Н] ${item.note.title}"
-                is ListItemContent.CustomListItem -> "- [К] ${item.customList.name}"
+                is ListItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
+                is ListItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
             }
         markdownBuilder.appendLine(line)
     }
@@ -1636,13 +1673,14 @@ constructor(
           projectRepository.getProjectById(item.target)?.let { recentItemsRepository.logProjectAccess(it) }
           enhancedNavigationManager.navigateToProject(item.target, item.displayName)
         }
-        RecentItemType.NOTE -> {
-          noteRepository.getNoteById(item.target)?.let { recentItemsRepository.logNoteAccess(it) }
-          _uiEventFlow.send(UiEvent.Navigate("note_edit_screen?noteId=${item.target}"))
+        RecentItemType.NOTE -> _uiEventFlow.send(UiEvent.ShowSnackbar("Застарілі нотатки доступні лише для читання"))
+        RecentItemType.NOTE_DOCUMENT -> {
+          noteDocumentRepository.getDocumentById(item.target)?.let { recentItemsRepository.logNoteDocumentAccess(it) }
+          _uiEventFlow.send(UiEvent.Navigate("note_document_screen/${item.target}"))
         }
-        RecentItemType.CUSTOM_LIST -> {
-          customListRepository.getCustomListById(item.target)?.let { recentItemsRepository.logCustomListAccess(it) }
-          _uiEventFlow.send(UiEvent.Navigate("custom_list_screen/${item.target}"))
+        RecentItemType.CHECKLIST -> {
+          checklistRepository.getChecklistById(item.target)?.let { recentItemsRepository.logChecklistAccess(it) }
+          _uiEventFlow.send(UiEvent.Navigate("checklist_screen?checklistId=${item.target}"))
         }
         RecentItemType.OBSIDIAN_LINK -> {
           val link =
@@ -1670,19 +1708,30 @@ constructor(
     }
   }
 
-  fun onDismissCreateCustomListDialog() {
-    _uiState.update { it.copy(showCreateCustomListDialog = false) }
+  fun onDismissCreateNoteDocumentDialog() {
+    _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
   }
 
-  fun onShowCreateCustomListDialog() {
-    _uiState.update { it.copy(showUniversalEditorForCustomList = true) }
+  fun onShowCreateNoteDocumentDialog() {
+    _uiState.update { it.copy(showNoteDocumentEditor = true) }
   }
 
-  fun onCreateCustomList(title: String) {
+  fun onCreateChecklist() {
+    val projectId = projectIdFlow.value
+    if (projectId.isBlank()) {
+      showSnackbar("Не вдалося створити чекліст для невідомого проєкту", null)
+      return
+    }
     viewModelScope.launch {
-      _uiState.update { it.copy(showCreateCustomListDialog = false) }
+      _uiEventFlow.send(UiEvent.Navigate("checklist_screen?projectId=$projectId"))
+    }
+  }
+
+  fun onCreateNoteDocument(title: String) {
+    viewModelScope.launch {
+      _uiState.update { it.copy(showCreateNoteDocumentDialog = false) }
       _uiEventFlow.send(
-        UiEvent.Navigate("custom_list_edit_screen?projectId=${projectIdFlow.value}")
+        UiEvent.Navigate("note_document_edit_screen?projectId=${projectIdFlow.value}")
       )
     }
   }
@@ -1720,16 +1769,16 @@ constructor(
         _uiState.update { it.copy(logEntryToEdit = null) }
     }
 
-    fun onSaveCustomList(content: String) {
+    fun onSaveNoteDocument(content: String) {
         viewModelScope.launch {
-            val title = content.lines().firstOrNull()?.trim() ?: "Новий список"
-            customListRepository.createCustomList(title, projectIdFlow.value, content)
-            onDismissCustomListEditor()
+            val title = content.lines().firstOrNull()?.trim() ?: "Новий документ"
+            noteDocumentRepository.createDocument(title, projectIdFlow.value, content)
+            onDismissNoteDocumentEditor()
         }
     }
 
-    fun onDismissCustomListEditor() {
-        _uiState.update { it.copy(showUniversalEditorForCustomList = false) }
+    fun onDismissNoteDocumentEditor() {
+        _uiState.update { it.copy(showNoteDocumentEditor = false) }
     }
 
     fun onAddMilestone() {
@@ -1777,4 +1826,10 @@ constructor(
     fun onDismissDisplayPropertiesDialog() {
         _uiState.update { it.copy(showDisplayPropertiesDialog = false) }
     }
+
+
+
+
+
+
 }

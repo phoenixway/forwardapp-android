@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.ui.screens.projectscreen
 
 import android.util.Log
@@ -11,11 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.dnd.SimpleDragDropState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectDashboardView
+import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.projectrealization.ProjectManagementTab
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.AttachmentsView
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.BacklogView
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.views.InboxView
 
 private const val TAG = "BACKLOG_UI_DEBUG"
@@ -27,37 +23,51 @@ fun GoalDetailContent(
     uiState: UiState,
     listState: LazyListState,
     inboxListState: LazyListState,
-    dragDropState: SimpleDragDropState,
     onEditLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onDeleteLog: (com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog) -> Unit,
     onSaveArtifact: (String) -> Unit,
     onEditArtifact: (com.romankozak.forwardappmobile.data.database.models.ProjectArtifact) -> Unit,
+    onRemindersClick: (ListItemContent) -> Unit,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs by viewModel.projectLogs.collectAsStateWithLifecycle()
     val projectArtifact by viewModel.projectArtifact.collectAsStateWithLifecycle()
     val isSelectionModeActive by viewModel.isSelectionModeActive.collectAsStateWithLifecycle()
+    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
 
-    val calculatedSwipeEnabled = !isSelectionModeActive && !dragDropState.isDragging
-    Log.v(
-        TAG,
-        "РЕКОМПОЗИЦІЯ ЕКРАНУ: isSelectionModeActive=$isSelectionModeActive, dragDropState.isDragging=${dragDropState.isDragging}, calculatedSwipeEnabled=$calculatedSwipeEnabled",
-    )
+
 
     when (uiState.currentView) {
         ProjectViewMode.BACKLOG -> {
-            BacklogView(
+            val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+            com.romankozak.forwardappmobile.ui.features.backlog.BacklogListScreen(
+                items = listContent,
                 modifier = modifier,
-                viewModel = viewModel,
-                uiState = uiState,
                 listState = listState,
-                dragDropState = dragDropState,
-                listContent = listContent,
-                isAttachmentsExpanded = false, // This is no longer used
-                swipeEnabled = calculatedSwipeEnabled,
+                showCheckboxes = uiState.showCheckboxes,
+                selectedItemIds = uiState.selectedItemIds,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                onMove = { from, to -> viewModel.onMove(from, to) },
+                onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
+                onLongClick = { item -> viewModel.toggleSelection(item.listItem.id) },
+                onCheckedChange = { item, isChecked ->
+                    when (item) {
+                        is ListItemContent.GoalItem -> viewModel.itemActionHandler.toggleGoalCompletedWithState(item.goal, isChecked)
+                        is ListItemContent.SublistItem -> viewModel.onSubprojectCompletedChanged(item.project, isChecked)
+                        else -> {}
+                    }
+                },
+                onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
+                onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
+                onMoveToTop = { item -> viewModel.onMoveToTop(item) },
+                onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
+                onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
+                onShowGoalTransportMenu = { item -> viewModel.itemActionHandler.onGoalTransportInitiated(item) {} },
+                onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
+                onRemindersClick = onRemindersClick,
+                onCopyContent = viewModel.itemActionHandler::copyContentRequest,
             )
         }
         ProjectViewMode.INBOX -> {

@@ -79,10 +79,11 @@ ViewModels follow use-case composition pattern. Large ViewModels delegate to mul
 - All ViewModels use `@HiltViewModel` annotation
 
 #### Database Layer
-- `AppDatabase` (v53) contains 20+ entities with Room migrations
+- `AppDatabase` (v61) contains 20+ entities with Room migrations
 - DAOs follow repository pattern
 - Repositories in `data/repository/` expose Flow-based APIs
-- FTS entities for searchable content: `GoalFts`, `ProjectFts`, `ActivityRecordFts`, `NoteFts`, `RecurringTaskFts`
+- Note documents живуть у таблицях `note_documents` / `note_document_items` (раніше `custom_lists` / `custom_list_items`)
+- FTS entities for searchable content: `GoalFts`, `ProjectFts`, `ActivityRecordFts`, `LegacyNoteFts`, `RecurringTaskFts`
 
 #### Navigation
 Custom navigation system built around `EnhancedNavigationManager`:
@@ -101,9 +102,9 @@ Custom navigation system built around `EnhancedNavigationManager`:
 - **Goals**: Linked to projects for strategic management
 - **Activities**: Time-tracked records with reminder support
 - **Day Management**: Daily planning with tasks and metrics
-- **Custom Lists**: User-defined list templates
+- **Note documents**: Редаговані документи (колишні custom lists) з Markdown-подібним редактором
+- **Legacy notes**: Стара система нотаток із FTS, залишена для сумісності
 - **Inbox**: Quick capture for unprocessed items
-- **Notes**: Full-featured note-taking with FTS
 - **Chat**: Conversation history with folder organization
 
 ### Critical Implementation Notes
@@ -115,7 +116,7 @@ Custom navigation system built around `EnhancedNavigationManager`:
 - See `docs/ARCHITECTURE_NOTES.md` for detailed rationale
 
 #### Database Migrations
-All migrations (8→53) are manually defined in `Migrations.kt` and registered in `AppModule`. When changing schema:
+All migrations (8→61) are manually defined in `Migrations.kt` and registered in `AppModule`. When changing schema:
 1. Increment version in `@Database` annotation
 2. Create `MIGRATION_X_Y` in `Migrations.kt`
 3. Register migration in `DatabaseModule.provideAppDatabase()`

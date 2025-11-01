@@ -25,12 +25,12 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 
 enum class AttachmentType {
-    NOTE,
-    CUSTOM_LIST,
+    NOTES,
+    CHECKLIST,
     WEB_LINK,
     OBSIDIAN_LINK,
-    LIST_LINK,
-    SHORTCUT,
+    PROJECT_LINK,
+    PROJECT_SHORTCUT,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -182,16 +182,16 @@ private fun AttachmentItemCard(
                     onCopyContentRequest = onCopyContentRequest,
                 )
             }
-            is ListItemContent.NoteItem -> {
-                NoteItemRow(
-                    noteItem = item,
+            is ListItemContent.NoteDocumentItem -> {
+                NoteDocumentItemRow(
+                    noteDocumentItem = item,
                     onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
             }
-            is ListItemContent.CustomListItem -> {
-                CustomListItemRow(
-                    customListItem = item,
+            is ListItemContent.ChecklistItem -> {
+                ChecklistItemRow(
+                    checklistItem = item,
                     onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
@@ -232,11 +232,11 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
             onDismissRequest = { showAddMenu = false },
             modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
         ) {
-            AttachmentTypeMenuItem(R.string.attachment_type_note, AttachmentType.NOTE) { type ->
+            AttachmentTypeMenuItem(R.string.attachment_type_notes, AttachmentType.NOTES) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_custom_list, AttachmentType.CUSTOM_LIST) { type ->
+            AttachmentTypeMenuItem(R.string.attachment_type_checklist, AttachmentType.CHECKLIST) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
@@ -248,12 +248,12 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_list_link, AttachmentType.LIST_LINK) { type ->
+            AttachmentTypeMenuItem(R.string.attachment_type_project_link, AttachmentType.PROJECT_LINK) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
             HorizontalDivider()
-            AttachmentTypeMenuItem(R.string.menu_add_list_shortcut, AttachmentType.SHORTCUT) { type ->
+            AttachmentTypeMenuItem(R.string.menu_add_project_shortcut, AttachmentType.PROJECT_SHORTCUT) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
