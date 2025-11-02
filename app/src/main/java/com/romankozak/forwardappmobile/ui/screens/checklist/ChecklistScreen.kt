@@ -485,7 +485,7 @@ private fun ChecklistItemRow(
 
                         onCheckedChange = onCheckedChange,
 
-                        modifier = Modifier.padding(top = 8.dp).size(32.dp)
+                        modifier = Modifier.padding(top = 16.dp).size(32.dp)
 
                     ) {
 
@@ -631,7 +631,7 @@ private fun ChecklistItemRow(
                     modifier = with(reorderableScope) {
                         Modifier
                             .draggableHandle()
-                            .padding(top = 8.dp)
+                            .padding(top = 16.dp)
                             .size(40.dp)
                     }
 
