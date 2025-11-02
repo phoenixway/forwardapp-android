@@ -355,7 +355,7 @@ private fun ChecklistItemRow(
 
             Row(
 
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
 
                 verticalAlignment = Alignment.CenterVertically,
 
@@ -431,7 +431,7 @@ private fun ChecklistItemRow(
 
                     }
 
-                    Spacer(modifier = Modifier.width(2.dp))
+                    Spacer(modifier = Modifier.width(1.dp))
 
                 }
 
