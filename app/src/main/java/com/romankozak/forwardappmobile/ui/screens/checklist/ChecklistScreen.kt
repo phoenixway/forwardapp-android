@@ -71,6 +71,9 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -300,13 +303,19 @@ private fun ChecklistContent(
             items(uiState.items, key = { it.id }) { item ->
                 ReorderableItem(reorderState, key = item.id) { isDragging ->
                     val reorderableScope = this
+                    val clipboardManager = LocalClipboardManager.current
                     val dismissState = rememberSwipeToDismissBoxState(
                         confirmValueChange = {
-                            if (it == SwipeToDismissBoxValue.EndToStart) {
-                                onDelete(item.id)
-                                true
-                            } else {
-                                false
+                            when (it) {
+                                SwipeToDismissBoxValue.EndToStart -> {
+                                    onDelete(item.id)
+                                    true
+                                }
+                                SwipeToDismissBoxValue.StartToEnd -> {
+                                    clipboardManager.setText(AnnotatedString(item.content))
+                                    false
+                                }
+                                else -> false
                             }
                         }
                     )
@@ -315,23 +324,30 @@ private fun ChecklistContent(
                         backgroundContent = {
                             val color = when (dismissState.dismissDirection) {
                                 SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
                                 else -> Color.Transparent
                             }
                             val icon = when (dismissState.dismissDirection) {
                                 SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
+                                SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
                                 else -> null
+                            }
+                            val alignment = when (dismissState.dismissDirection) {
+                                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                else -> Alignment.Center
                             }
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(color)
                                     .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.CenterEnd
+                                contentAlignment = alignment
                             ) {
                                 if (icon != null) {
                                     Icon(
                                         imageVector = icon,
-                                        contentDescription = "Delete"
+                                        contentDescription = null
                                     )
                                 }
                             }
