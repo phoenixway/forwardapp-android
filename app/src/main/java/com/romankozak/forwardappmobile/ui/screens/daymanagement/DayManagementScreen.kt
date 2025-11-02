@@ -42,7 +42,6 @@ enum class DayManagementTab(val title: String, val icon: ImageVector, val descri
   TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
   PLAN("План", Icons.AutoMirrored.Filled.ListAlt, "Створити та керувати завданнями"),
   DASHBOARD("Дашборд", Icons.Default.Dashboard, "Переглянути прогрес дня"),
-  INBOX("Вхідні", Icons.Default.Inbox, "Переглянути вхідні"),
   ANALYTICS("Аналітика", Icons.Default.Assessment, "Статистика та аналіз продуктивності"),
 }
 
@@ -65,6 +64,16 @@ fun DayManagementScreen(
   val coroutineScope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
   var addTaskTrigger by remember { mutableStateOf(0) }
+
+  LaunchedEffect(key1 = Unit) {
+    viewModel.uiEvent.collect { event ->
+      when (event) {
+        is DayManagementUiEvent.NavigateToProject -> {
+          mainNavController.navigate("goal_detail_screen/${event.projectId}")
+        }
+      }
+    }
+  }
 
   LaunchedEffect(uiState.error) {
     uiState.error?.let { error ->
@@ -93,6 +102,7 @@ fun DayManagementScreen(
             coroutineScope.launch { pagerState.animateScrollToPage(tab.ordinal) }
           },
           onHomeClick = { mainNavController.popBackStack() },
+          onInboxClick = { viewModel.onInboxClicked() }
         )
       }
     },
@@ -149,7 +159,6 @@ fun DayManagementScreen(
                   navController = mainNavController,
                 )
               DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = planId)
-              DayManagementTab.INBOX -> InboxScreen()
               DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
             }
           }

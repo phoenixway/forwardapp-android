@@ -36,6 +36,7 @@ fun DayManagementBottomNav(
     currentTab: DayManagementTab,
     onTabSelected: (DayManagementTab) -> Unit,
     onHomeClick: () -> Unit,
+    onInboxClick: () -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -122,8 +123,8 @@ fun DayManagementBottomNav(
                 ModernBottomNavButton(
                     text = "Inbox",
                     icon = Icons.Outlined.Inbox,
-                    isSelected = currentTab == DayManagementTab.INBOX,
-                    onClick = { onTabSelected(DayManagementTab.INBOX) }
+                    isSelected = false, // It's not a tab, so it's never selected
+                    onClick = onInboxClick
                 )
             }
         }
