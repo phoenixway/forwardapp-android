@@ -196,10 +196,12 @@ internal fun ExpandingBottomNav(
                     )
 
                     SmallBottomNavButton(
-                        text = "Strategy",
-                        icon = Icons.Outlined.Domain,
-                        onClick = onStrManagementClick,
+                        text = "Inbox",
+                        icon = Icons.Outlined.Inbox,
+                        onClick = { onEvent(MainScreenEvent.OpenInboxProject) },
                     )
+
+
 
                     SmallBottomNavButton(
                         text = "Insights",
@@ -262,7 +264,8 @@ internal fun ExpandingBottomNav(
                 ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Inbox", icon = Icons.Outlined.Inbox, onClick = { onEvent(MainScreenEvent.OpenInboxProject) })
+                ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
+
             }
         }
     }
