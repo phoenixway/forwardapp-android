@@ -315,6 +315,10 @@ private fun ProjectScaffold(
                                 uiState.selectedItemIds
                             )
                         },
+                        onInboxClick = {
+                            val today = System.currentTimeMillis()
+                            navController.navigate("day_plan_screen/$today?startTab=INBOX")
+                        },
                         onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
                         onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
                         currentViewMode = uiState.currentView,
