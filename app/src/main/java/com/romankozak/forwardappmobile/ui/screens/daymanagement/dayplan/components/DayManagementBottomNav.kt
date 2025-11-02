@@ -61,7 +61,12 @@ fun DayManagementBottomNav(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    // Context specific buttons can be placed here
+                    ModernBottomNavButton(
+                        text = "Analytics",
+                        icon = Icons.Outlined.Analytics,
+                        isSelected = currentTab == DayManagementTab.ANALYTICS,
+                        onClick = { onTabSelected(DayManagementTab.ANALYTICS) }
+                    )
                 }
             }
 
@@ -115,10 +120,10 @@ fun DayManagementBottomNav(
                     onClick = { onTabSelected(DayManagementTab.DASHBOARD) }
                 )
                 ModernBottomNavButton(
-                    text = "Analytics",
-                    icon = Icons.Outlined.Analytics,
-                    isSelected = currentTab == DayManagementTab.ANALYTICS,
-                    onClick = { onTabSelected(DayManagementTab.ANALYTICS) }
+                    text = "Inbox",
+                    icon = Icons.Outlined.Inbox,
+                    isSelected = currentTab == DayManagementTab.INBOX,
+                    onClick = { onTabSelected(DayManagementTab.INBOX) }
                 )
             }
         }

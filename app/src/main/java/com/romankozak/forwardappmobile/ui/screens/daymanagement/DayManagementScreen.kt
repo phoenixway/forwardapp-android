@@ -35,10 +35,14 @@ import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.DayPlanS
 import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.components.DayManagementBottomNav
 import kotlinx.coroutines.launch
 
+import androidx.compose.material.icons.filled.Inbox
+import com.romankozak.forwardappmobile.ui.screens.inbox.InboxScreen
+
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
   TRACK("Трекер", Icons.Outlined.Timeline, "Відстежувати активність"),
   PLAN("План", Icons.AutoMirrored.Filled.ListAlt, "Створити та керувати завданнями"),
   DASHBOARD("Дашборд", Icons.Default.Dashboard, "Переглянути прогрес дня"),
+  INBOX("Вхідні", Icons.Default.Inbox, "Переглянути вхідні"),
   ANALYTICS("Аналітика", Icons.Default.Assessment, "Статистика та аналіз продуктивності"),
 }
 
@@ -145,6 +149,7 @@ fun DayManagementScreen(
                   navController = mainNavController,
                 )
               DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = planId)
+              DayManagementTab.INBOX -> InboxScreen()
               DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
             }
           }
