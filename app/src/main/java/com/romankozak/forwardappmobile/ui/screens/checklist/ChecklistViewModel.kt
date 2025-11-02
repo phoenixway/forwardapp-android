@@ -31,6 +31,8 @@ data class ChecklistUiState(
     val showCheckboxes: Boolean = true,
     val pendingFocusItemId: String? = null,
     val errorMessage: String? = null,
+    val showUndoSnackbar: Boolean = false,
+    val lastDeletedItem: ChecklistItemEntity? = null,
 )
 
 @HiltViewModel
@@ -218,22 +220,20 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun onDeleteItem(itemId: String) {
-        val currentItems = _uiState.value.items
-        val index = currentItems.indexOfFirst { it.id == itemId }
-        val focusTarget =
-            when {
-                index > 0 -> currentItems[index - 1].id
-                index == 0 && currentItems.size > 1 -> currentItems[1].id
-                else -> null
-            }
+        val itemToDelete = itemsById.value[itemId] ?: return
+        _uiState.update { it.copy(lastDeletedItem = itemToDelete, showUndoSnackbar = true) }
+    }
 
-        itemsById.value = itemsById.value - itemId
+    fun onUndoDelete() {
+        _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
+    }
+
+    fun onConfirmDelete() {
+        val itemToDelete = _uiState.value.lastDeletedItem ?: return
         viewModelScope.launch {
-            checklistRepository.deleteItem(itemId)
+            checklistRepository.deleteItem(itemToDelete.id)
         }
-        if (focusTarget != null) {
-            _uiState.update { it.copy(pendingFocusItemId = focusTarget) }
-        }
+        _uiState.update { it.copy(lastDeletedItem = null, showUndoSnackbar = false) }
     }
 
     fun onClearCompleted() {

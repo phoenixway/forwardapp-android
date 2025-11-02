@@ -111,22 +111,23 @@ fun ChecklistScreen(
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
         viewModel.onMoveItem(from.index, to.index)
     }
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.showUndoSnackbar) {
-        if (uiState.showUndoSnackbar) {
-            val result = snackbarHostState.showSnackbar(
-                message = "Item deleted",
-                actionLabel = "Undo"
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                viewModel.onUndoDelete()
-            } else {
-                viewModel.onConfirmDelete()
+        val snackbarHostState = remember { SnackbarHostState() }
+    
+        LaunchedEffect(uiState.showUndoSnackbar) {
+            if (uiState.showUndoSnackbar) {
+                val result = snackbarHostState.showSnackbar(
+                    message = "Item deleted",
+                    actionLabel = "Undo"
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.onUndoDelete()
+                } else {
+                    viewModel.onConfirmDelete()
+                }
             }
         }
-    }
-    val sheetState = rememberModalBottomSheetState()
+    
+        val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ChecklistItemUiModel?>(null) }
 
