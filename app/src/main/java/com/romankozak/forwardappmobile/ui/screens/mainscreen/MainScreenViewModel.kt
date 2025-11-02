@@ -512,19 +512,19 @@ constructor(
       }
       is MainScreenEvent.OpenInboxProject -> {
         viewModelScope.launch {
-          val inbox = _allProjectsFlat.value.find { it.name.equals("Inbox", ignoreCase = true) }
-          val inboxId = if (inbox != null) {
-            inbox.id
-          } else {
-            projectRepository.createProjectWithId(
-                id = UUID.randomUUID().toString(),
-                name = "Inbox",
-                parentId = null,
-            )
-            val newInboxId = _allProjectsFlat.value.find { it.name.equals("Inbox", ignoreCase = true) }?.id ?: ""
-            newInboxId
+          val specialProject = _allProjectsFlat.value.find { it.projectType == com.romankozak.forwardappmobile.data.database.models.ProjectType.SYSTEM }
+          if (specialProject == null) {
+            _uiEventChannel.send(ProjectUiEvent.ShowToast("System projects not found"))
+            return@launch
           }
-          _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(inboxId))
+
+          val inboxProject = _allProjectsFlat.value.find { it.reservedGroup == com.romankozak.forwardappmobile.data.database.models.ReservedGroup.Inbox && it.parentId == specialProject.id }
+          if (inboxProject == null) {
+            _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
+            return@launch
+          }
+
+          _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(inboxProject.id))
         }
       }
       else -> {}

@@ -196,6 +196,12 @@ internal fun ExpandingBottomNav(
                     )
 
                     SmallBottomNavButton(
+                        text = "Strategy",
+                        icon = Icons.Outlined.Domain,
+                        onClick = onStrManagementClick,
+                    )
+
+                    SmallBottomNavButton(
                         text = "Insights",
                         icon = Icons.Outlined.Lightbulb,
                         onClick = onInsightsClick,
@@ -208,82 +214,10 @@ internal fun ExpandingBottomNav(
                     )
 
                     SmallBottomNavButton(
-                        text = "Contexts",
-                        icon = Icons.Outlined.Style,
-                        onClick = onContextsClick,
-                    )
-
-                    SmallBottomNavButton(
                         text = "Reminders",
                         icon = Icons.Outlined.Notifications,
                         onClick = onShowReminders,
                     )
-                    SmallBottomNavButton(
-                        text = "Day",
-                        icon = Icons.Outlined.WbSunny,
-                        onClick = onDayPlanClick,
-                    )
-
-                    Box {
-                        SmallBottomNavButton(
-                            text = "More",
-                            icon = Icons.Outlined.MoreHoriz,
-                            onClick = { showMoreMenu = !showMoreMenu },
-                            isSelected = showMoreMenu,
-                        )
-                        DropdownMenu(
-                            expanded = showMoreMenu,
-                            onDismissRequest = { showMoreMenu = false },
-                            offset = DpOffset((-16).dp, (-8).dp),
-                            modifier =
-                                Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.surfaceContainer,
-                                        RoundedCornerShape(16.dp),
-                                    )
-                                    .clip(RoundedCornerShape(16.dp)),
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Global Search") },
-                                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Global Search") },
-                                onClick = {
-                                    onGlobalSearchClick()
-                                    showMoreMenu = false
-                                },
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.AccountBox,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.tertiary,
-                                        )
-                                        Column {
-                                            Text(
-                                                "AI Inbox",
-                                                style =
-                                                    MaterialTheme.typography.bodyMedium.copy(
-                                                        fontWeight = FontWeight.Medium,
-                                                    ),
-                                            )
-                                            Text(
-                                                "Messages from AI",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = { showMoreMenu = false },
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
-                        }
-                    }
                 }
             }
 
@@ -325,10 +259,10 @@ internal fun ExpandingBottomNav(
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
-                ModernBottomNavButton(text = "Inbox", icon = Icons.Outlined.Inbox, onClick = { onEvent(MainScreenEvent.OpenInboxProject) })
+                ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)
+                ModernBottomNavButton(text = "Inbox", icon = Icons.Outlined.Inbox, onClick = { onEvent(MainScreenEvent.OpenInboxProject) })
             }
         }
     }
