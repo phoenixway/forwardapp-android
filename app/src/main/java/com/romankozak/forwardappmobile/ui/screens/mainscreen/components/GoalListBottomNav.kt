@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.Domain
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 
 @Composable
@@ -158,6 +160,7 @@ internal fun ExpandingBottomNav(
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
+    onEvent: (MainScreenEvent) -> Unit,
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -214,6 +217,11 @@ internal fun ExpandingBottomNav(
                         text = "Reminders",
                         icon = Icons.Outlined.Notifications,
                         onClick = onShowReminders,
+                    )
+                    SmallBottomNavButton(
+                        text = "Day",
+                        icon = Icons.Outlined.WbSunny,
+                        onClick = onDayPlanClick,
                     )
 
                     Box {
@@ -317,7 +325,7 @@ internal fun ExpandingBottomNav(
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
-                ModernBottomNavButton(text = "Day", icon = Icons.Outlined.WbSunny, onClick = onDayPlanClick)
+                ModernBottomNavButton(text = "Inbox", icon = Icons.Outlined.Inbox, onClick = { onEvent(MainScreenEvent.OpenInboxProject) })
                 ModernBottomNavButton(text = "Home", icon = Icons.Outlined.Home, onClick = onHomeClick)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
                 ModernBottomNavButton(text = "Strategy", icon = Icons.Outlined.Domain, onClick = onStrManagementClick)

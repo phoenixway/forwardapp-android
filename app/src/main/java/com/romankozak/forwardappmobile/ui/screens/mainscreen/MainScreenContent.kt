@@ -204,6 +204,7 @@ internal fun OptimizedExpandingBottomNav(
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
     onShowReminders: () -> Unit,
+    onEvent: (MainScreenEvent) -> Unit,
 ) {
     
     val stableOnHomeClick = remember { { onHomeClick() } }
@@ -229,5 +230,6 @@ internal fun OptimizedExpandingBottomNav(
         onActivityTrackerClick = stableOnActivityTrackerClick,
         onInsightsClick = onInsightsClick,
         onShowReminders = onShowReminders,
+        onEvent = onEvent,
     )
 }

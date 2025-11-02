@@ -482,7 +482,7 @@ constructor(
       is MainScreenEvent.RevealProjectInHierarchy -> {
         android.util.Log.d("ProjectRevealDebug", "MainScreenViewModel received RevealProjectInHierarchy event with projectId: ${event.projectId}")
         viewModelScope.launch {
-          // Switch to "All" mode to ensure the project isn't filtered out by a planning mode
+          // Switch to "All" mode to ensure the project isn\'t filtered out by a planning mode
           planningUseCase.onPlanningModeChange(PlanningMode.All)
 
           when (val result = searchUseCase.revealProjectInHierarchy(event.projectId)) {
@@ -508,6 +508,23 @@ constructor(
               _uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))
             }
           }
+        }
+      }
+      is MainScreenEvent.OpenInboxProject -> {
+        viewModelScope.launch {
+          val inbox = _allProjectsFlat.value.find { it.name.equals("Inbox", ignoreCase = true) }
+          val inboxId = if (inbox != null) {
+            inbox.id
+          } else {
+            projectRepository.createProjectWithId(
+                id = UUID.randomUUID().toString(),
+                name = "Inbox",
+                parentId = null,
+            )
+            val newInboxId = _allProjectsFlat.value.find { it.name.equals("Inbox", ignoreCase = true) }?.id ?: ""
+            newInboxId
+          }
+          _uiEventChannel.send(ProjectUiEvent.NavigateToDetails(inboxId))
         }
       }
       else -> {}

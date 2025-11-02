@@ -34,6 +34,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.SearchBottomBar
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
+import com.romankozak.forwardappmobile.ui.screens.mainscreen.OptimizedExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 
@@ -121,7 +122,7 @@ fun MainScreenScaffold(
                         onShowSearchHistory = { showSearchHistorySheet = true },
                     )
                 } else {
-                    ExpandingBottomNav(
+                    OptimizedExpandingBottomNav(
                         onToggleSearch = {
                             onEvent(MainScreenEvent.SearchQueryChanged(TextFieldValue("")))
                         },
@@ -139,6 +140,7 @@ fun MainScreenScaffold(
                         onActivityTrackerClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
                         onInsightsClick = { onEvent(MainScreenEvent.NavigateToAiInsights) },
                         onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
+                        onEvent = onEvent,
                     )
                 }
             }
