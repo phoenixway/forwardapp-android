@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,9 @@ import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.NavigationRailItem
@@ -45,6 +49,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -104,6 +109,20 @@ fun ChecklistScreen(
         viewModel.onMoveItem(from.index, to.index)
     }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.showUndoSnackbar) {
+        if (uiState.showUndoSnackbar) {
+            val result = snackbarHostState.showSnackbar(
+                message = "Item deleted",
+                actionLabel = "Undo"
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.onUndoDelete()
+            } else {
+                viewModel.onConfirmDelete()
+            }
+        }
+    }
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ChecklistItemUiModel?>(null) }
@@ -275,25 +294,64 @@ private fun ChecklistContent(
         LazyColumn(
             state = listState,
             modifier = modifier,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(uiState.items, key = { it.id }) { item ->
                 ReorderableItem(reorderState, key = item.id) { isDragging ->
-                    ChecklistItemRow(
-                        item = item,
-                        reorderableScope = this,
-
-                        showCheckbox = uiState.showCheckboxes,
-                        isDragging = isDragging,
-                        shouldRequestFocus = item.id == uiState.pendingFocusItemId,
-                        onFocusConsumed = onFocusConsumed,
-                        onContentChange = { onContentChange(item.id, it) },
-                        onCheckedChange = { onCheckedChange(item.id, it) },
-                        onAddBelow = { onAddBelow(item.id) },
-                        onDelete = { onDelete(item.id) },
-                        onShowItemActions = { onShowItemActions(item) },
+                    val reorderableScope = this
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = {
+                            if (it == SwipeToDismissBoxValue.EndToStart) {
+                                onDelete(item.id)
+                                true
+                            } else {
+                                false
+                            }
+                        }
                     )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            val color = when (dismissState.dismissDirection) {
+                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                else -> Color.Transparent
+                            }
+                            val icon = when (dismissState.dismissDirection) {
+                                SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
+                                else -> null
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(color)
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                if (icon != null) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = "Delete"
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        ChecklistItemRow(
+                            item = item,
+                            reorderableScope = reorderableScope,
+
+                            showCheckbox = uiState.showCheckboxes,
+                            isDragging = isDragging,
+                            shouldRequestFocus = item.id == uiState.pendingFocusItemId,
+                            onFocusConsumed = onFocusConsumed,
+                            onContentChange = { onContentChange(item.id, it) },
+                            onCheckedChange = { onCheckedChange(item.id, it) },
+                            onAddBelow = { onAddBelow(item.id) },
+                            onDelete = { onDelete(item.id) },
+                            onShowItemActions = { onShowItemActions(item) },
+                        )
+                    }
                 }
             }
             item {
@@ -397,7 +455,7 @@ private fun ChecklistItemRow(
 
             Row(
 
-                modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
+                modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp),
 
                 verticalAlignment = Alignment.Top,
 
@@ -411,7 +469,7 @@ private fun ChecklistItemRow(
 
                         onCheckedChange = onCheckedChange,
 
-                        modifier = Modifier.padding(top = 14.dp).size(32.dp)
+                        modifier = Modifier.padding(top = 8.dp).size(32.dp)
 
                     ) {
 
@@ -557,7 +615,7 @@ private fun ChecklistItemRow(
                     modifier = with(reorderableScope) {
                         Modifier
                             .draggableHandle()
-                            .padding(top = 14.dp)
+                            .padding(top = 8.dp)
                             .size(40.dp)
                     }
 
