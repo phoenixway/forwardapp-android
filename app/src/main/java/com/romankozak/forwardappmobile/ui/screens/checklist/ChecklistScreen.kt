@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,9 +25,13 @@ import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
-import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,7 +52,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -96,12 +104,39 @@ fun ChecklistScreen(
         viewModel.onMoveItem(from.index, to.index)
     }
     val snackbarHostState = remember { SnackbarHostState() }
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var selectedItem by remember { mutableStateOf<ChecklistItemUiModel?>(null) }
 
     LaunchedEffect(uiState.pendingFocusItemId, uiState.items) {
         val targetId = uiState.pendingFocusItemId ?: return@LaunchedEffect
         val targetIndex = uiState.items.indexOfFirst { it.id == targetId }
         if (targetIndex >= 0) {
             listState.animateScrollToItem(targetIndex)
+        }
+    }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState
+        ) {
+            Column {
+                ListItem(
+                    headlineContent = { Text("Delete") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Outlined.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showBottomSheet = false
+                        selectedItem?.let { viewModel.onDeleteItem(it.id) }
+                    }
+                )
+            }
         }
     }
 
@@ -182,6 +217,10 @@ fun ChecklistScreen(
                     onAddBelow = viewModel::onAddItem,
                     onDelete = viewModel::onDeleteItem,
                     onFocusConsumed = viewModel::onPendingFocusConsumed,
+                    onShowItemActions = { item ->
+                        selectedItem = item
+                        showBottomSheet = true
+                    },
                 )
             }
         }
@@ -200,6 +239,7 @@ private fun ChecklistContent(
     onAddBelow: (String?) -> Unit,
     onDelete: (String) -> Unit,
     onFocusConsumed: () -> Unit,
+    onShowItemActions: (ChecklistItemUiModel) -> Unit,
 ) {
     AnimatedVisibility(
         visible = uiState.items.isEmpty(),
@@ -252,6 +292,7 @@ private fun ChecklistContent(
                         onCheckedChange = { onCheckedChange(item.id, it) },
                         onAddBelow = { onAddBelow(item.id) },
                         onDelete = { onDelete(item.id) },
+                        onShowItemActions = { onShowItemActions(item) },
                     )
                 }
             }
@@ -327,6 +368,7 @@ private fun ChecklistItemRow(
     onCheckedChange: (Boolean) -> Unit,
     onAddBelow: () -> Unit,
     onDelete: () -> Unit,
+    onShowItemActions: (ChecklistItemUiModel) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -357,7 +399,7 @@ private fun ChecklistItemRow(
 
                 modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
 
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
 
             ) {
 
@@ -369,7 +411,7 @@ private fun ChecklistItemRow(
 
                         onCheckedChange = onCheckedChange,
 
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.padding(top = 14.dp).size(32.dp)
 
                     ) {
 
@@ -483,7 +525,8 @@ private fun ChecklistItemRow(
 
                     },
 
-                    singleLine = true,
+                    minLines = 1,
+                    maxLines = 10,
 
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
 
@@ -503,51 +546,28 @@ private fun ChecklistItemRow(
 
                     ),
 
-                    textStyle = MaterialTheme.typography.bodyLarge,
+                    textStyle = MaterialTheme.typography.bodyMedium,
 
                 )
 
-                Spacer(modifier = Modifier.width(4.dp))
-
                 IconButton(
 
-                    onClick = onDelete,
-
-                    modifier = Modifier.size(40.dp)
-
-                ) {
-
-                    Icon(
-
-                        imageVector = Icons.Outlined.Delete,
-
-                        contentDescription = stringResource(R.string.checklist_delete_item),
-
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
-
-                    )
-
-                }
-
-                IconButton(
-
-                    onClick = { /* No action on click for drag handle */ },
+                    onClick = { onShowItemActions(item) },
 
                     modifier = with(reorderableScope) {
-
-                        Modifier.draggableHandle()
-
+                        Modifier
+                            .draggableHandle()
+                            .padding(top = 14.dp)
                             .size(40.dp)
-
                     }
 
                 ) {
 
                     Icon(
 
-                        imageVector = Icons.Rounded.DragHandle,
+                        imageVector = Icons.Default.MoreVert,
 
-                        contentDescription = null,
+                        contentDescription = "More options",
 
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
 
