@@ -355,7 +355,7 @@ private fun ChecklistItemRow(
 
             Row(
 
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
 
                 verticalAlignment = Alignment.CenterVertically,
 
@@ -369,7 +369,7 @@ private fun ChecklistItemRow(
 
                         onCheckedChange = onCheckedChange,
 
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(32.dp)
 
                     ) {
 
@@ -397,7 +397,7 @@ private fun ChecklistItemRow(
 
                             else null,
 
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
 
                         ) {
 
@@ -419,7 +419,7 @@ private fun ChecklistItemRow(
 
                                         tint = MaterialTheme.colorScheme.onPrimary,
 
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(12.dp)
 
                                     )
 
@@ -431,7 +431,7 @@ private fun ChecklistItemRow(
 
                     }
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
 
                 }
 
