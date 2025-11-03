@@ -188,6 +188,7 @@ constructor(
           dialogUseCase.recordForReminderDialog,
           obsidianVaultNameFlow,
           navigationSnapshot,
+          contextHandler.contextMarkerToEmojiMap,
         ) { values ->
           val coreState = values[0] as CoreUiState
           val dialogState = values[1] as DialogUiState
@@ -202,6 +203,8 @@ constructor(
             values[9] as com.romankozak.forwardappmobile.data.database.models.ActivityRecord?
           val obsidianVaultName = values[10] as String
           val navSnapshot = values[11] as NavigationSnapshot
+          @Suppress("UNCHECKED_CAST")
+          val contextMarkerToEmojiMap = values[12] as Map<String, String>
 
           MainScreenUiState(
             subStateStack = coreState.subStateStack,
@@ -231,6 +234,7 @@ constructor(
             showSearchDialog = dialogState.showSearchDialog,
             searchResults = searchResults,
             recordForReminderDialog = recordForReminder,
+            contextMarkerToEmojiMap = contextMarkerToEmojiMap,
           )
         }
         .stateIn(scope, SharingStarted.Eagerly, MainScreenUiState())

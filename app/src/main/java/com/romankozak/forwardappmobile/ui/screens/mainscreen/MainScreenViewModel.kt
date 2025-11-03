@@ -101,6 +101,8 @@ constructor(
   private val navigationSnapshot =
     MutableStateFlow(MainScreenStateUseCase.NavigationSnapshot())
 
+  val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
+
   val uiState: StateFlow<MainScreenUiState>
     get() = mainScreenStateUseCase.uiState
 

@@ -169,6 +169,7 @@ fun MainScreenScaffold(
         showSheet = showContextSheet,
         onDismiss = { showContextSheet = false },
         contexts = uiState.allContexts,
+        contextMarkerToEmojiMap = uiState.contextMarkerToEmojiMap,
         onContextSelected = {
             onEvent(MainScreenEvent.ContextSelected(it))
             showContextSheet = false

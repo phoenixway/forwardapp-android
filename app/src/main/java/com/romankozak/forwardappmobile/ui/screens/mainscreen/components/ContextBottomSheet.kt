@@ -26,6 +26,7 @@ fun ContextBottomSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,
     contexts: List<UiContext>,
+    contextMarkerToEmojiMap: Map<String, String>,
     onContextSelected: (String) -> Unit,
 ) {
     if (showSheet) {
@@ -48,8 +49,9 @@ fun ContextBottomSheet(
                             ListItem(
                                 headlineContent = { Text(context.name.replaceFirstChar { it.uppercase() }) },
                                 leadingContent = {
-                                    if (context.emoji.isNotBlank()) {
-                                        Text(context.emoji, fontSize = 24.sp)
+                                    val emoji = contextMarkerToEmojiMap[context.name]
+                                    if (!emoji.isNullOrBlank()) {
+                                        Text(emoji, fontSize = 24.sp)
                                     } else {
                                         Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
                                     }
