@@ -50,6 +50,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentType
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.data.database.models.DayTask
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
@@ -448,6 +450,20 @@ fun DayPlanScreen(
               onSublistClick = onNavigateToProject,
               onSettingsClick = onNavigateToSettings,
               modifier = Modifier.fillMaxSize(),
+              onParentInfoClick = { parentInfo ->
+                  when (parentInfo.type) {
+                      ParentType.PROJECT -> {
+                          navController.navigate("goal_detail_screen/${parentInfo.id}")
+                      }
+                      ParentType.GOAL -> {
+                          parentInfo.projectId?.let { listId ->
+                              navController.navigate("goal_detail_screen/${listId}?goalId=${parentInfo.id}")
+                          } ?: run {
+                              Log.e(TAG, "Goal parentInfo has null projectId for goalId: ${parentInfo.id}")
+                          }
+                      }
+                  }
+              },
             )
           }
         }

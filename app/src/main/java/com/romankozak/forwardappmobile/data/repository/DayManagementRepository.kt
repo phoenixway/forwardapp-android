@@ -658,9 +658,21 @@ class DayManagementRepository
             }
         }
 
+        suspend fun getProject(id: String): Project? {
+            return withContext(ioDispatcher) {
+                projectDao.getProjectById(id)
+            }
+        }
+
         suspend fun detachFromRecurrence(taskId: String) {
             withContext(ioDispatcher) {
                 dayTaskDao.detachFromRecurrence(taskId)
+            }
+        }
+
+        suspend fun findProjectIdForGoal(goalId: String): String? {
+            return withContext(ioDispatcher) {
+                listItemDao.findProjectIdForGoal(goalId)
             }
         }
 

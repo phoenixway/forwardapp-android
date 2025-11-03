@@ -20,6 +20,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentType
+import com.romankozak.forwardappmobile.ui.screens.daymanagement.dayplan.ParentInfo
+import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Checklist
@@ -71,6 +75,7 @@ fun TaskList(
     onSublistClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onParentInfoClick: (ParentInfo) -> Unit,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var internalTasks by remember(tasks) { mutableStateOf(tasks) }
@@ -136,7 +141,8 @@ fun TaskList(
                                             .size(24.dp),
                                         tint = MaterialTheme.colorScheme.outline,
                                     )
-                                }
+                                },
+                                onParentInfoClick = onParentInfoClick,
                             )
                         }
                     }
@@ -182,112 +188,193 @@ private fun EmptyTasksState(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
+
 @Composable
+
 fun TaskItem(
+
     taskWithReminder: DayTaskWithReminder,
+
     onToggle: () -> Unit,
+
     onLongPress: () -> Unit,
+
     modifier: Modifier = Modifier,
+
     dragHandle: @Composable () -> Unit,
+
+    onParentInfoClick: (ParentInfo) -> Unit, // Add this line
+
 ) {
+
     val task = taskWithReminder.dayTask
+
     val contentAlpha = if (task.completed) 0.6f else 1f
 
+
+
     Surface(
+
         modifier = modifier.fillMaxWidth(),
+
         shape = RoundedCornerShape(20.dp),
+
         color = taskContainerColor(task),
+
         tonalElevation = if (task.completed) 0.dp else 4.dp,
+
     ) {
+
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+
+            modifier = Modifier
+
+                .fillMaxWidth()
+
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+
             verticalAlignment = Alignment.CenterVertically,
+
         ) {
+
             Checkbox(
+
                 checked = task.completed,
+
                 onCheckedChange = { onToggle() },
+
                 colors =
+
                     CheckboxDefaults.colors(
+
                         checkedColor = MaterialTheme.colorScheme.primary,
+
                         uncheckedColor = MaterialTheme.colorScheme.outline,
+
                         checkmarkColor = MaterialTheme.colorScheme.onPrimary,
+
                     ),
+
             )
 
+
+
             Spacer(modifier = Modifier.width(12.dp))
+
+
 
             Column(modifier = Modifier.weight(1f)) {
+
                 DayPlanMarkdownText(
+
                     text = task.title,
+
                     style =
+
                         MaterialTheme.typography.titleMedium.copy(
+
                             fontWeight = FontWeight.SemiBold,
+
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
+
                         ),
+
                     isCompleted = task.completed,
+
                 )
+
+
 
                 task.description?.takeIf { it.isNotBlank() }?.let { description ->
+
                     Spacer(modifier = Modifier.height(4.dp))
+
                     DayPlanMarkdownText(
+
                         text = description,
+
                         style =
+
                             MaterialTheme.typography.bodyMedium.copy(
+
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+
                             ),
+
                         isCompleted = task.completed,
+
                     )
+
                 }
 
+
+
                 TaskMetaInfo(
+
                     taskWithReminder = taskWithReminder,
+
                     modifier = Modifier.padding(top = 6.dp),
+
+                    onParentInfoClick = onParentInfoClick, // Add this line
+
                 )
+
             }
+
+
 
             Spacer(modifier = Modifier.width(12.dp))
 
+
+
             Row(
+
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+
                 verticalAlignment = Alignment.CenterVertically,
+
             ) {
+
                 dragHandle()
+
                 IconButton(
+
                     onClick = onLongPress,
+
                     modifier = Modifier.size(40.dp),
+
                 ) {
+
                     Icon(
+
                         Icons.Filled.MoreVert,
+
                         contentDescription = "Більше опцій",
+
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
+
                     )
+
                 }
+
             }
+
         }
+
     }
+
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TaskMetaInfo(taskWithReminder: DayTaskWithReminder, modifier: Modifier = Modifier) {
+private fun TaskMetaInfo(
+    taskWithReminder: DayTaskWithReminder,
+    modifier: Modifier = Modifier,
+    onParentInfoClick: (ParentInfo) -> Unit, // Add this line
+) {
     val task = taskWithReminder.dayTask
     val metaItems =
         buildList<MetaInfoItem> {
-            task.points.takeIf { it > 0 }?.let { points ->
-                add(
-                    MetaInfoItem(
-                        icon = Icons.Filled.Star,
-                        text = "$points балів",
-                        tint = MaterialTheme.colorScheme.secondary,
-                    ),
-                )
-            }
-            task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
-                add(MetaInfoItem(icon = Icons.Outlined.Timer, text = "$minutes хв"))
-            }
             if (task.priority != TaskPriority.NONE) {
                 add(
                     MetaInfoItem(
@@ -299,6 +386,28 @@ private fun TaskMetaInfo(taskWithReminder: DayTaskWithReminder, modifier: Modifi
                         tint = task.priority.priorityIndicatorColor(),
                     ),
                 )
+            }
+            task.points.takeIf { it > 0 }?.let { points ->
+                add(
+                    MetaInfoItem(
+                        icon = Icons.Filled.Star,
+                        text = "$points балів",
+                        tint = MaterialTheme.colorScheme.secondary,
+                    ),
+                )
+            }
+            taskWithReminder.parentInfo?.let { parentInfo ->
+                add(
+                    MetaInfoItem(
+                        icon = if (parentInfo.type == ParentType.GOAL) Icons.Default.TrackChanges else Icons.Default.Topic,
+                        text = parentInfo.title,
+                        tint = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                        onClick = { onParentInfoClick(parentInfo) } // Add this line
+                    )
+                )
+            }
+            task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
+                add(MetaInfoItem(icon = Icons.Outlined.Timer, text = "$minutes хв"))
             }
             if (task.recurringTaskId != null) {
                 add(MetaInfoItem(icon = Icons.Outlined.Repeat, text = "Повторюється"))
@@ -320,6 +429,7 @@ private fun TaskMetaInfo(taskWithReminder: DayTaskWithReminder, modifier: Modifi
                 icon = item.icon,
                 text = item.text,
                 contentColor = item.tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = item.onClick, // Add this line
             )
         }
     }
@@ -330,6 +440,7 @@ private fun MetaInfoChip(
     icon: ImageVector,
     text: String,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onClick: (() -> Unit)? = null, // Add this line
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -337,6 +448,8 @@ private fun MetaInfoChip(
         shape = RoundedCornerShape(10.dp),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
+        onClick = onClick ?: {}, // Add this line
+        enabled = onClick != null // Add this line
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -362,6 +475,7 @@ private data class MetaInfoItem(
     val icon: ImageVector,
     val text: String,
     val tint: Color? = null,
+    val onClick: (() -> Unit)? = null, // Add this line
 )
 
 @Composable
