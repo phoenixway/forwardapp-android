@@ -429,10 +429,9 @@ constructor(
       is MainScreenEvent.NavigateToChat -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate(CHAT_ROUTE)) }
       }
-      is MainScreenEvent.NavigateToActivityTracker -> {
+      is MainScreenEvent.NavigateToActivityTrackerScreen -> {
         viewModelScope.launch {
-          val today = System.currentTimeMillis()
-          _uiEventChannel.send(ProjectUiEvent.NavigateToDayPlan(today, "PLAN"))
+          _uiEventChannel.send(ProjectUiEvent.Navigate("activity_tracker_screen"))
         }
       }
       

@@ -134,5 +134,6 @@ sealed interface MainScreenEvent {
     data class UpdateThemeMode(val themeMode: com.romankozak.forwardappmobile.ui.theme.ThemeMode) : MainScreenEvent
     data object GoToReminders : MainScreenEvent
     data class RevealProjectInHierarchy(val projectId: String) : MainScreenEvent
-    data object OpenInboxProject : MainScreenEvent
+    object OpenInboxProject : MainScreenEvent
+    object NavigateToActivityTrackerScreen : MainScreenEvent
 }

@@ -276,7 +276,7 @@ internal fun ExpandingBottomNav(
                     SmallBottomNavButton(
                         text = "Tracker",
                         icon = Icons.Outlined.TrackChanges,
-                        onClick = onActivityTrackerClick,
+                        onClick = { onEvent(MainScreenEvent.NavigateToActivityTrackerScreen) },
                     )
                     MoreActionsBottomNavButton(
                         onInsightsClick = onInsightsClick,
