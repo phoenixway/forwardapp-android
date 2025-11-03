@@ -11,7 +11,15 @@ import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
+
+internal fun toDateHeader(timestamp: Long): String {
+    val sdf = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}
 
 @HiltViewModel
 class ActivityTrackerViewModel
@@ -40,6 +48,11 @@ class ActivityTrackerViewModel
             repository
                 .getLogStream()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        val groupedActivityLog: StateFlow<Map<String, List<ActivityRecord>>> =
+            activityLog.map { log ->
+                log.groupBy { toDateHeader(it.createdAt) }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
         val lastOngoingActivity: StateFlow<ActivityRecord?> =
             activityLog
