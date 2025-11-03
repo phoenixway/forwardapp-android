@@ -244,16 +244,7 @@ fun CompactDayPlanHeader(
             contentColor = colorScheme.tertiary,
           )
         }
-        AssistChip(
-          onClick = onAddTaskClick,
-          label = { Text("Нове завдання") },
-          leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
-        )
-        AssistChip(
-          onClick = onSettingsClick,
-          label = { Text("Налаштування") },
-          leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-        )
+
       }
 
       if (totalPointsAvailable > 0) {
