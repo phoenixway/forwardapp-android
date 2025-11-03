@@ -200,14 +200,13 @@ fun CompactDayPlanHeader(
             textAlign = TextAlign.Center,
             color = colorScheme.onSurface,
           )
-          Text(
-            text =
-              progressLabel?.let { "Прогрес: $it" }
-                ?: tasksLabel,
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurfaceVariant,
-          )
-        }
+                    progressLabel?.let { label ->
+                      Text(
+                        text = "Прогрес: $label",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant,
+                      )
+                    }        }
         IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
           Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowForward,

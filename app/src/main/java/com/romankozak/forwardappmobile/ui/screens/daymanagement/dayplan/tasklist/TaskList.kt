@@ -132,16 +132,7 @@ fun TaskList(
                                 taskWithReminder = taskWithReminder,
                                 onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
                                 onLongPress = { onTaskLongPress(taskWithReminder) },
-                                dragHandle = {
-                                    Icon(
-                                        Icons.Rounded.DragHandle,
-                                        contentDescription = "Перетягнути",
-                                        modifier = Modifier
-                                            .draggableHandle()
-                                            .size(24.dp),
-                                        tint = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
+                                dragHandleModifier = Modifier.draggableHandle(),
                                 onParentInfoClick = onParentInfoClick,
                             )
                         }
@@ -201,7 +192,7 @@ fun TaskItem(
 
     modifier: Modifier = Modifier,
 
-    dragHandle: @Composable () -> Unit,
+    dragHandleModifier: Modifier = Modifier,
 
     onParentInfoClick: (ParentInfo) -> Unit, // Add this line
 
@@ -327,36 +318,17 @@ fun TaskItem(
 
 
 
-            Row(
-
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-
-                verticalAlignment = Alignment.CenterVertically,
-
+            IconButton(
+                onClick = onLongPress,
+                modifier = Modifier
+                    .size(40.dp)
+                    .then(dragHandleModifier),
             ) {
-
-                dragHandle()
-
-                IconButton(
-
-                    onClick = onLongPress,
-
-                    modifier = Modifier.size(40.dp),
-
-                ) {
-
-                    Icon(
-
-                        Icons.Filled.MoreVert,
-
-                        contentDescription = "Більше опцій",
-
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-
-                    )
-
-                }
-
+                Icon(
+                    Icons.Filled.MoreVert,
+                    contentDescription = "Більше опцій",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
         }
