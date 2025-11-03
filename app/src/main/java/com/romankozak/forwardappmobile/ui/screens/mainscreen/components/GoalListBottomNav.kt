@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.Domain
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -143,6 +146,72 @@ private fun PlanningModeSelector(
 }
 
 @Composable
+internal fun MoreActionsBottomNavButton(
+    onInsightsClick: () -> Unit,
+    onShowReminders: () -> Unit,
+    onAiChatClick: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Transparent)
+            .clickable { showMenu = true }
+            .padding(horizontal = 4.dp, vertical = 6.dp)
+            .widthIn(min = 56.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.MoreVert,
+            contentDescription = "More Actions",
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = "More",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+        )
+
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            offset = DpOffset(0.dp, (-50).dp) // Adjust offset to position above the button
+        ) {
+            DropdownMenuItem(
+                text = { Text("Insights") },
+                leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
+                onClick = {
+                    onInsightsClick()
+                    showMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Reminders") },
+                leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = "Reminders") },
+                onClick = {
+                    onShowReminders()
+                    showMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("AI-Chat") },
+                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat") },
+                onClick = {
+                    onAiChatClick()
+                    showMenu = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
 internal fun ExpandingBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
@@ -194,31 +263,25 @@ internal fun ExpandingBottomNav(
                         currentMode = currentMode,
                         onPlanningModeChange = onPlanningModeChange,
                     )
-
                     SmallBottomNavButton(
                         text = "Inbox",
                         icon = Icons.Outlined.Inbox,
                         onClick = { onEvent(MainScreenEvent.OpenInboxProject) },
                     )
-
-
-
                     SmallBottomNavButton(
-                        text = "Insights",
-                        icon = Icons.Outlined.Lightbulb,
-                        onClick = onInsightsClick,
+                        text = "Contexts",
+                        icon = Icons.Outlined.AccountTree,
+                        onClick = onContextsClick,
                     )
                     SmallBottomNavButton(
-                        text = "AI-Chat",
-                        icon = Icons.Outlined.AutoAwesome,
-                        
-                        onClick = onAiChatClick,
+                        text = "Tracker",
+                        icon = Icons.Outlined.TrackChanges,
+                        onClick = onActivityTrackerClick,
                     )
-
-                    SmallBottomNavButton(
-                        text = "Reminders",
-                        icon = Icons.Outlined.Notifications,
-                        onClick = onShowReminders,
+                    MoreActionsBottomNavButton(
+                        onInsightsClick = onInsightsClick,
+                        onShowReminders = onShowReminders,
+                        onAiChatClick = onAiChatClick,
                     )
                 }
             }
