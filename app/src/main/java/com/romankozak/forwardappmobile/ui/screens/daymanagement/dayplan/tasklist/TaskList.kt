@@ -32,6 +32,11 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,6 +51,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.data.database.models.DayPlan
 import com.romankozak.forwardappmobile.data.database.models.DayTask
@@ -113,7 +119,7 @@ fun TaskList(
                 state = lazyListState,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(internalTasks, key = { it.dayTask.id }) { taskWithReminder ->
                     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
@@ -228,25 +234,40 @@ fun TaskItem(
 
         ) {
 
-            Checkbox(
-
+            IconToggleButton(
                 checked = task.completed,
-
                 onCheckedChange = { onToggle() },
-
-                colors =
-
-                    CheckboxDefaults.colors(
-
-                        checkedColor = MaterialTheme.colorScheme.primary,
-
-                        uncheckedColor = MaterialTheme.colorScheme.outline,
-
-                        checkmarkColor = MaterialTheme.colorScheme.onPrimary,
-
-                    ),
-
-            )
+                modifier = Modifier.size(32.dp)
+            ) {
+                Surface(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = if (task.completed)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        Color.Transparent,
+                    border = if (!task.completed)
+                        androidx.compose.foundation.BorderStroke(
+                            2.dp,
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                    else null,
+                    modifier = Modifier.size(18.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        if (task.completed) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Checkbox",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
 
 
@@ -271,6 +292,7 @@ fun TaskItem(
                         ),
 
                     isCompleted = task.completed,
+                    maxLines = 3,
 
                 )
 
@@ -394,7 +416,7 @@ private fun TaskMetaInfo(
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         metaItems.forEach { item ->
             MetaInfoChip(
@@ -424,7 +446,7 @@ private fun MetaInfoChip(
         enabled = onClick != null // Add this line
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -438,6 +460,8 @@ private fun MetaInfoChip(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -454,9 +478,9 @@ private data class MetaInfoItem(
 private fun taskContainerColor(dayTask: DayTask): Color {
     val colorScheme = MaterialTheme.colorScheme
     return if (dayTask.completed) {
-        colorScheme.surfaceContainerHigh
+        colorScheme.surfaceContainerHighest
     } else {
-        colorScheme.surfaceContainerLow
+        colorScheme.surfaceContainer
     }
 }
 

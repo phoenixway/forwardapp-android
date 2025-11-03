@@ -14,12 +14,15 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 
 
+import androidx.compose.ui.text.style.TextOverflow
+
 @Composable
 fun DayPlanMarkdownText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
     isCompleted: Boolean = false,
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     val tagColor = MaterialTheme.colorScheme.primary
     val projectColor = MaterialTheme.colorScheme.tertiary
@@ -49,33 +52,36 @@ fun DayPlanMarkdownText(
             )
         }
 
-    text.lines().forEach { line ->
-        val listMatch = listRegex.find(line)
-        val (content, isList) =
-            if (listMatch != null) {
-                listMatch.destructured.component2() to true
-            } else {
-                line to false
-            }
-
-        val annotatedLine = applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
-
-        val fullLine =
-            if (isList) {
-                buildAnnotatedString {
-                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("•  ") }
-                    append(annotatedLine)
+    val annotatedString = buildAnnotatedString {
+        text.lines().forEachIndexed { index, line ->
+            val listMatch = listRegex.find(line)
+            val (content, isList) =
+                if (listMatch != null) {
+                    listMatch.destructured.component2() to true
+                } else {
+                    line to false
                 }
-            } else {
-                annotatedLine
-            }
 
-        Text(
-            text = fullLine,
-            style = finalTextStyle,
-            modifier = modifier,
-        )
+            val annotatedLine = applyInlineStyles(content, inlineContentRegex, tagColor, projectColor, linkColor, isCompleted)
+
+            if (isList) {
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("•  ") }
+            }
+            append(annotatedLine)
+
+            if (index < text.lines().size - 1) {
+                append("\n")
+            }
+        }
     }
+
+    Text(
+        text = annotatedString,
+        style = finalTextStyle,
+        modifier = modifier,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 private fun applyInlineStyles(
