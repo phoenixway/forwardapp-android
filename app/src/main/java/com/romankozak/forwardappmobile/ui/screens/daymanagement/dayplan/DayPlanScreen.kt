@@ -200,13 +200,7 @@ fun CompactDayPlanHeader(
             textAlign = TextAlign.Center,
             color = colorScheme.onSurface,
           )
-                    progressLabel?.let { label ->
-                      Text(
-                        text = "Прогрес: $label",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colorScheme.onSurfaceVariant,
-                      )
-                    }        }
+        }
         IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
           Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -236,14 +230,6 @@ fun CompactDayPlanHeader(
           text = tasksLabel,
           contentColor = colorScheme.onSurface,
         )
-        progressLabel?.let { label ->
-          HeaderInfoChip(
-            icon = Icons.Filled.Star,
-            text = label,
-            contentColor = colorScheme.tertiary,
-          )
-        }
-
       }
 
       if (totalPointsAvailable > 0) {

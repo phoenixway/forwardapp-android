@@ -50,7 +50,8 @@ fun MainScreenScaffold(
     lastOngoingActivity: com.romankozak.forwardappmobile.data.database.models.ActivityRecord?,
     viewModel: MainScreenViewModel,
     sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    showWifiServerDialog: Boolean,
 ) {
     val listState = rememberLazyListState()
     var showContextSheet by remember { mutableStateOf(false) }
@@ -196,6 +197,7 @@ fun MainScreenScaffold(
     HandleDialogs(
         uiState = uiState,
         onEvent = onEvent,
+        showWifiServerDialog = showWifiServerDialog,
     )
 
     uiState.recordForReminderDialog?.let { record ->
