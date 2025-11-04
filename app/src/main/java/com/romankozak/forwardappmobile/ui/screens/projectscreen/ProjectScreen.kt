@@ -388,6 +388,8 @@ private fun ProjectBottomBar(
     project: Project?,
     onShowDisplayPropertiesClick: () -> Unit
 ) {
+    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+
     Column {
         InProgressIndicator(
             ongoingActivity = lastOngoingActivity,
@@ -396,7 +398,8 @@ private fun ProjectBottomBar(
             onIndicatorClick = {
                 val today = System.currentTimeMillis()
                 navController.navigate("day_plan_screen/$today?startTab=TRACK")
-            }
+            },
+            indicatorState = indicatorState
         )
         AnimatedVisibility(
             visible = !uiState.isSelectionModeActive,

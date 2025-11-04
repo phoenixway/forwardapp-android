@@ -97,11 +97,13 @@ fun ActivityTrackerScreen(
                         .navigationBarsPadding()
                         .imePadding(),
                 ) {
+                    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = true) }
                     InProgressIndicator(
                         ongoingActivity = lastOngoingActivity,
                         onStopClick = viewModel::onToggleStartStop,
                         onReminderClick = { lastOngoingActivity?.let { viewModel.onSetReminder(it) } },
-                        onIndicatorClick = { } 
+                        onIndicatorClick = { },
+                        indicatorState = indicatorState
                     )
                     ActivityInputBar(
                         text = inputText,

@@ -77,6 +77,8 @@ fun MainScreenScaffold(
         onEvent(MainScreenEvent.BackClick)
     }
 
+    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
@@ -107,7 +109,8 @@ fun MainScreenScaffold(
                     ongoingActivity = lastOngoingActivity,
                     onStopClick = { viewModel.stopOngoingActivity() },
                     onReminderClick = { viewModel.setReminderForOngoingActivity() },
-                    onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) }
+                    onIndicatorClick = { onEvent(MainScreenEvent.NavigateToActivityTracker) },
+                    indicatorState = indicatorState
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 val isSearchActive = uiState.subStateStack.any { it is MainSubState.LocalSearch }
