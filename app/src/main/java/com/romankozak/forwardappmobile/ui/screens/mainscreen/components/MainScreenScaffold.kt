@@ -37,8 +37,7 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainSubState
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.OptimizedExpandingBottomNav
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.components.HandleDialogs
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.WifiExportDialog
-import com.romankozak.forwardappmobile.ui.screens.mainscreen.dialogs.WifiImportDialog
+
 
 private const val UI_TAG = "MainScreenUI_DEBUG"
 
@@ -208,17 +207,5 @@ fun MainScreenScaffold(
         )
     }
 
-    if (uiState.showWifiServerDialog) {
-        WifiExportDialog(
-            serverAddress = uiState.wifiServerAddress,
-            onDismiss = { onEvent(MainScreenEvent.DismissWifiServerDialog) }
-        )
-    }
 
-    if (uiState.showWifiImportDialog) {
-        WifiImportDialog(
-            onDismiss = { onEvent(MainScreenEvent.DismissWifiImportDialog) },
-            onImport = { address -> onEvent(MainScreenEvent.PerformWifiImport(address)) }
-        )
-    }
 }
