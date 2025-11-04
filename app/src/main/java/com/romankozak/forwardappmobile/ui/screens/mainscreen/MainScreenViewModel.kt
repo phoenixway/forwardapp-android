@@ -103,8 +103,6 @@ constructor(
 
   val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
 
-  val showWifiServerDialog: StateFlow<Boolean> = syncUseCase.syncUiState.map { it.showWifiServerDialog }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
-
   val uiState: StateFlow<MainScreenUiState>
     get() = mainScreenStateUseCase.uiState
 

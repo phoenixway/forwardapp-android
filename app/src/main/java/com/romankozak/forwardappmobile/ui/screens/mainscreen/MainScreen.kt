@@ -151,8 +151,6 @@ fun MainScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val showWifiServerDialog by viewModel.showWifiServerDialog.collectAsStateWithLifecycle()
-
     viewModel.enhancedNavigationManager?.let { navManager ->
         MainScreenScaffold(
             uiState = uiState,
@@ -162,7 +160,6 @@ fun MainScreen(
             viewModel = viewModel,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
-            showWifiServerDialog = showWifiServerDialog,
         )
     } ?: Box(
         modifier = Modifier.fillMaxSize(),

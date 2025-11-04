@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenUi
 fun HandleDialogs(
     uiState: MainScreenUiState,
     onEvent: (MainScreenEvent) -> Unit,
-    showWifiServerDialog: Boolean,
 ) {
     
     when (val state = uiState.dialogState) {
@@ -97,7 +96,7 @@ fun HandleDialogs(
     }
 
     
-    if (showWifiServerDialog) {
+    if (uiState.showWifiServerDialog) {
         WifiServerDialog(
             address = uiState.wifiServerAddress,
             onDismiss = { onEvent(MainScreenEvent.DismissWifiServerDialog) },

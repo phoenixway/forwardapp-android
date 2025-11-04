@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.SyncRepository
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.sync.WifiSyncManager
+import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
+@ViewModelScoped
 class SyncUseCase @Inject constructor(
     private val syncRepository: SyncRepository,
     private val settingsRepository: SettingsRepository,

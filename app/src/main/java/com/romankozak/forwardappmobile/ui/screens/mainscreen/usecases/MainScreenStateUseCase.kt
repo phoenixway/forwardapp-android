@@ -174,8 +174,6 @@ constructor(
           )
         }
 
-    val syncStateFlow = syncUseCase.syncUiState.stateIn(scope, SharingStarted.Eagerly, SyncUseCase.SyncUiState())
-
     uiStateInternal =
       combine(
           coreUiStateFlow,
@@ -184,7 +182,7 @@ constructor(
           searchResultsFlow,
           searchUseCase.searchHistory,
           planningUseCase.planningSettingsState,
-          syncStateFlow, // Use the collected flow here
+          syncUseCase.syncUiState,
           navigationUseCase.isProcessingReveal,
           planningUseCase.isReadyForFiltering,
           dialogUseCase.recordForReminderDialog,
