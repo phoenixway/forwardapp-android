@@ -24,8 +24,8 @@ import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.data.database.models.DatabaseContent
-import com.romankozak.forwardappmobile.data.database.models.FullAppBackup
+import com.romankozak.forwardappmobile.data.sync.DatabaseContent
+import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.Project
@@ -153,7 +153,11 @@ constructor(
                 projectExecutionLogs = projectManagementDao.getAllLogs(),
                 recentProjectEntries = null
             )
-        val fullBackup = FullAppBackup(database = databaseContent)
+        val settingsMap = settingsRepository.getPreferencesSnapshot().asMap().mapKeys { it.key.name }
+            .mapValues { it.value.toString() }
+        val settingsContent = com.romankozak.forwardappmobile.data.sync.SettingsContent(settings = settingsMap)
+
+        val fullBackup = FullAppBackup(database = databaseContent, settings = settingsContent)
         return gson.toJson(fullBackup)
     }
 
@@ -175,6 +179,11 @@ constructor(
 
             Log.d(IMPORT_TAG, "Починаємо розбір JSON в об'єкт FullAppBackup...")
             val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+
+            if (backupData.backupSchemaVersion != 1) {
+                return Result.failure(Exception("Unsupported backup version: ${backupData.backupSchemaVersion}. Expected version 1."))
+            }
+
             val backup = backupData.database
             Log.d(IMPORT_TAG, "JSON успішно розібрано.")
 
@@ -270,6 +279,8 @@ constructor(
                 backup.inboxRecords?.let { inboxRecordDao.insertAll(it) }
                 backup.projectExecutionLogs?.let { projectManagementDao.insertAllLogs(it) }
                 recentItemsToInsert?.let { recentItemDao.insertAll(it) }
+                
+                settingsRepository.restoreFromMap(backupData.settings.settings)
 
                 com.romankozak.forwardappmobile.data.database.DatabaseInitializer(projectDao, context).prePopulate()
 
