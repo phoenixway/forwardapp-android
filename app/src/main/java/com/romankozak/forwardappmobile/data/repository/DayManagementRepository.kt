@@ -100,16 +100,29 @@ class DayManagementRepository
             priority: TaskPriority,
             recurrenceRule: RecurrenceRule,
             dayPlanId: String,
-            goalId: String? = null
+            goalId: String? = null,
+            projectId: String? = null,
+            taskType: String? = null,
+            points: Int = 0,
         ) {
             withContext(ioDispatcher) {
                 val dayPlan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
+
+                val resolvedTaskType =
+                    taskType
+                        ?: when {
+                            goalId != null -> ListItemTypeValues.GOAL
+                            projectId != null -> ListItemTypeValues.SUBLIST
+                            else -> ListItemTypeValues.GOAL
+                        }
+
                 val recurringTask = RecurringTask(
                     title = title,
                     description = description,
                     goalId = goalId,
                     duration = duration?.toInt(),
                     priority = priority,
+                    points = points,
                     recurrenceRule = recurrenceRule,
                     startDate = dayPlan.date
                 )
@@ -121,8 +134,10 @@ class DayManagementRepository
                     description = description,
                     priority = priority,
                     goalId = goalId,
+                    projectId = projectId,
                     estimatedDurationMinutes = duration,
-                    taskType = ListItemTypeValues.GOAL,
+                    taskType = resolvedTaskType,
+                    points = points,
                 )
                 val dayTask = addTaskToDayPlan(taskParams).copy(
                     recurringTaskId = recurringTask.id,
@@ -535,34 +550,47 @@ class DayManagementRepository
                             val existingTask = dayTaskDao.findByRecurringIdAndDate(recurringTask.id, dayPlan.id)
                             if (existingTask == null) {
 
-                                val title: String
-                                val description: String?
-                                val goalId: String?
+                                val templateTask = dayTaskDao.findTemplateForRecurringTask(recurringTask.id)
+                                val templateGoalId = templateTask?.goalId ?: recurringTask.goalId
+                                val projectId = templateTask?.projectId
+                                val points = templateTask?.points ?: recurringTask.points
+                                val priority = templateTask?.priority ?: recurringTask.priority
+                                val estimatedDurationMinutes = templateTask?.estimatedDurationMinutes ?: recurringTask.duration?.toLong()
 
-                                if (recurringTask.goalId != null) {
-                                    val goal = goalDao.getGoalById(recurringTask.goalId)
-                                    if (goal != null) {
-                                        title = goal.text
-                                        description = goal.description
-                                        goalId = goal.id
+                                val (title, description, goalId) =
+                                    if (templateGoalId != null) {
+                                        val goal = goalDao.getGoalById(templateGoalId)
+                                        if (goal != null) {
+                                            Triple(goal.text, goal.description, goal.id)
+                                        } else {
+                                            return@forEach
+                                        }
                                     } else {
-                                        // Goal was deleted, skip this occurrence
-                                        return@forEach
+                                        Triple(
+                                            templateTask?.title ?: recurringTask.title,
+                                            templateTask?.description ?: recurringTask.description,
+                                            null,
+                                        )
                                     }
-                                } else {
-                                    title = recurringTask.title
-                                    description = recurringTask.description
-                                    goalId = null
-                                }
+
+                                val resolvedTaskType =
+                                    templateTask?.taskType
+                                        ?: when {
+                                            goalId != null -> ListItemTypeValues.GOAL
+                                            projectId != null -> ListItemTypeValues.SUBLIST
+                                            else -> ListItemTypeValues.GOAL
+                                        }
 
                                 val taskParams = NewTaskParameters(
                                     dayPlanId = dayPlan.id,
                                     title = title,
                                     description = description,
                                     goalId = goalId,
-                                    priority = recurringTask.priority,
-                                    estimatedDurationMinutes = recurringTask.duration?.toLong(),
-                                    taskType = ListItemTypeValues.GOAL,
+                                    projectId = projectId,
+                                    priority = priority,
+                                    estimatedDurationMinutes = estimatedDurationMinutes,
+                                    taskType = resolvedTaskType,
+                                    points = points,
                                 )
                                 addTaskToDayPlan(taskParams).copy(recurringTaskId = recurringTask.id).also { dayTaskDao.update(it) }
                             }

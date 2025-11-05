@@ -204,7 +204,8 @@ constructor(
                         duration = duration,
                         priority = priority,
                         recurrenceRule = recurrenceRule,
-                        dayPlanId = dayPlanId
+                        dayPlanId = dayPlanId,
+                        points = points,
                     )
                 } else {
                     Firebase.crashlytics.log("Adding single task: ${trimmedTitle}")
@@ -241,6 +242,7 @@ constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val goal = dayManagementRepository.getGoal(goalId) ?: return@launch
+                val projectId = dayManagementRepository.findProjectIdForGoal(goalId)
                 dayManagementRepository.addRecurringTask(
                     title = goal.text,
                     description = goal.description,
@@ -248,7 +250,8 @@ constructor(
                     priority = TaskPriority.MEDIUM, // Or map from goal importance
                     recurrenceRule = recurrenceRule,
                     dayPlanId = dayPlanId,
-                    goalId = goalId
+                    goalId = goalId,
+                    projectId = projectId,
                 )
             } catch (e: Exception) {
                  _uiState.update {

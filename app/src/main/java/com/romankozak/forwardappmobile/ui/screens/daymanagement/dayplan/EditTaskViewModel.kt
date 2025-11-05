@@ -153,7 +153,10 @@ class EditTaskViewModel @Inject constructor(
                         priority = state.priority,
                         recurrenceRule = recurrenceRule,
                         dayPlanId = originalTask.dayPlanId,
-                        goalId = originalTask.goalId
+                        goalId = originalTask.goalId,
+                        projectId = originalTask.projectId,
+                        taskType = originalTask.taskType,
+                        points = state.points,
                     )
                     // The old simple task should be deleted
                     dayManagementRepository.deleteTask(originalTask.id)
