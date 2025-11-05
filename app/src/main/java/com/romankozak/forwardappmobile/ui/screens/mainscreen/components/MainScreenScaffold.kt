@@ -101,6 +101,7 @@ fun MainScreenScaffold(
                 onShowSettings = { onEvent(MainScreenEvent.GoToSettings) },
                 onShowAbout = { onEvent(MainScreenEvent.ShowAboutDialog) },
                 onShowReminders = { onEvent(MainScreenEvent.GoToReminders) },
+                onShowAttachmentsLibrary = { onEvent(MainScreenEvent.OpenAttachmentsLibrary) },
             )
         },
         bottomBar = {

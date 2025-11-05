@@ -136,4 +136,5 @@ sealed interface MainScreenEvent {
     data class RevealProjectInHierarchy(val projectId: String) : MainScreenEvent
     object OpenInboxProject : MainScreenEvent
     object NavigateToActivityTrackerScreen : MainScreenEvent
+    object OpenAttachmentsLibrary : MainScreenEvent
 }

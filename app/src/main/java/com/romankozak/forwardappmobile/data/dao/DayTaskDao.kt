@@ -150,4 +150,5 @@ interface DayTaskDao {
 
     @Query("UPDATE day_tasks SET nextOccurrenceTime = :nextOccurrenceTime WHERE id = :taskId")
     suspend fun updateNextOccurrenceTime(taskId: String, nextOccurrenceTime: Long)
+
 }

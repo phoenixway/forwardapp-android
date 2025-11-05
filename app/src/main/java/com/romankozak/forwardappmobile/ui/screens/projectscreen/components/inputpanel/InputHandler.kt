@@ -268,7 +268,7 @@ class InputHandler(
                     name
                 }
             val link = RelatedLink(type = LinkType.URL, target = url, displayName = displayName)
-            val newItemId = listItemRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+            val newItemId = projectRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -281,7 +281,7 @@ class InputHandler(
         }
         scope.launch(Dispatchers.IO) {
             val link = RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
-            val newItemId = listItemRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
+            val newItemId = projectRepository.addLinkItemToProjectFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()

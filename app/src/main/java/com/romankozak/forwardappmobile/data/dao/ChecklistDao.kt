@@ -27,8 +27,22 @@ interface ChecklistDao {
     @Query("SELECT * FROM checklists WHERE id = :checklistId")
     fun observeChecklistById(checklistId: String): Flow<ChecklistEntity?>
 
-    @Query("SELECT * FROM checklists WHERE projectId = :projectId ORDER BY name COLLATE NOCASE ASC")
-    fun getChecklistsForProject(projectId: String): Flow<List<ChecklistEntity>>
+    @Query(
+        """
+        SELECT c.*
+        FROM checklists AS c
+        INNER JOIN attachments AS a
+            ON a.entity_id = c.id AND a.attachment_type = :attachmentType
+        INNER JOIN project_attachment_cross_ref AS link
+            ON link.attachment_id = a.id
+        WHERE link.project_id = :projectId
+        ORDER BY c.name COLLATE NOCASE ASC
+        """,
+    )
+    fun getChecklistsForProject(
+        projectId: String,
+        attachmentType: String,
+    ): Flow<List<ChecklistEntity>>
 
     @Query("SELECT * FROM checklists")
     fun getAllChecklistsAsFlow(): Flow<List<ChecklistEntity>>

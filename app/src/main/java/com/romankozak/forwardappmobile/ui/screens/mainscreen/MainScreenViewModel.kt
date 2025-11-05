@@ -27,6 +27,7 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
+import com.romankozak.forwardappmobile.config.FeatureToggles
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
@@ -479,6 +480,11 @@ constructor(
       is MainScreenEvent.UpdateThemeMode -> themingUseCase.updateThemeMode(viewModelScope, event.themeMode)
       is MainScreenEvent.GoToReminders -> {
         viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("reminders_screen")) }
+      }
+      is MainScreenEvent.OpenAttachmentsLibrary -> {
+        if (FeatureToggles.attachmentsLibraryEnabled) {
+          viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.Navigate("attachments_library_screen")) }
+        }
       }
       is MainScreenEvent.RevealProjectInHierarchy -> {
         android.util.Log.d("ProjectRevealDebug", "MainScreenViewModel received RevealProjectInHierarchy event with projectId: ${event.projectId}")

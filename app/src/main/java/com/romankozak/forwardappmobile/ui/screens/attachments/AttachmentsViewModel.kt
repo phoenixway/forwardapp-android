@@ -136,7 +136,10 @@ class AttachmentsViewModel @Inject constructor(
 
     fun deleteAttachment(attachment: ListItemContent) {
         viewModelScope.launch {
-            projectRepository.deleteListItems(listOf(attachment.listItem.id))
+            val currentProjectId = projectId.value
+            if (currentProjectId.isNotEmpty()) {
+                projectRepository.deleteListItems(currentProjectId, listOf(attachment.listItem.id))
+            }
         }
     }
 
@@ -207,7 +210,7 @@ class AttachmentsViewModel @Inject constructor(
                 target = url,
                 displayName = name
             )
-            listItemRepository.addLinkItemToProjectFromLink(projectId.value, link)
+            projectRepository.addLinkItemToProjectFromLink(projectId.value, link)
             onDismissAddAttachmentDialog()
         }
     }
@@ -219,7 +222,7 @@ class AttachmentsViewModel @Inject constructor(
                 target = url,
                 displayName = name
             )
-            listItemRepository.addLinkItemToProjectFromLink(projectId.value, link)
+            projectRepository.addLinkItemToProjectFromLink(projectId.value, link)
             onDismissAddAttachmentDialog()
         }
     }
@@ -235,7 +238,7 @@ class AttachmentsViewModel @Inject constructor(
                     target = projectId,
                     displayName = project.name
                 )
-                listItemRepository.addLinkItemToProjectFromLink(this@AttachmentsViewModel.projectId.value, link)
+                projectRepository.addLinkItemToProjectFromLink(this@AttachmentsViewModel.projectId.value, link)
             }
             _uiState.update { it.copy(pendingAttachmentType = PendingAttachmentType.NONE) }
         }

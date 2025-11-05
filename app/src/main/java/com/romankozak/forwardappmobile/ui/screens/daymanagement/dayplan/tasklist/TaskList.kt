@@ -69,6 +69,7 @@ fun TaskList(
     dayPlan: DayPlan?,
     totalPointsEarned: Int,
     totalPointsAvailable: Int,
+    bestCompletedPoints: Int,
     completedTasks: Int,
     totalTasks: Int,
     onTaskLongPress: (DayTaskWithReminder) -> Unit,
@@ -100,6 +101,7 @@ fun TaskList(
             dayPlan = dayPlan,
             totalPointsEarned = totalPointsEarned,
             totalPointsAvailable = totalPointsAvailable,
+            bestCompletedPoints = bestCompletedPoints,
             completedTasks = completedTasks,
             totalTasks = totalTasks,
             onNavigateToPreviousDay = onNavigateToPreviousDay,
@@ -323,13 +325,9 @@ fun TaskItem(
 
 
                 TaskMetaInfo(
-
                     taskWithReminder = taskWithReminder,
-
                     modifier = Modifier.padding(top = 6.dp),
-
                     onParentInfoClick = onParentInfoClick, // Add this line
-
                 )
 
             }

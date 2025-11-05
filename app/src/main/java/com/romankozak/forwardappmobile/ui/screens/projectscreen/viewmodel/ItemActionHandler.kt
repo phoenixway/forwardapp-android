@@ -94,7 +94,7 @@ class ItemActionHandler
         fun deleteItem(item: ListItemContent) {
             scope.launch {
                 recentlyDeletedItems = listOf(item)
-                projectRepository.deleteListItems(listOf(item.listItem.id))
+                projectRepository.deleteListItems(projectIdFlow.value, listOf(item.listItem.id))
                 resultListener.showSnackbar("Елемент видалено", "Скасувати")
             }
         }

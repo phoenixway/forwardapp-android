@@ -49,6 +49,7 @@ data class DayPlanUiState(
     val lastUpdated: Long? = null,
     val isReordering: Boolean = false,
     val isToday: Boolean = true,
+    val bestCompletedPoints: Int = 0,
 )
 
 sealed class DayPlanUiEvent {
@@ -468,11 +469,13 @@ constructor(
                             }
                         }
                         .collect { tasksWithReminders ->
+                            val highestCompletedPoints = dayManagementRepository.getHighestCompletedPointsAcrossPlans()
                             _uiState.update { currentState ->
                                 currentState.copy(
                                     isLoading = false,
                                     isRefreshing = false,
                                     tasks = sortTasksWithOrder(tasksWithReminders),
+                                    bestCompletedPoints = highestCompletedPoints,
                                     lastUpdated = System.currentTimeMillis(),
                                     error = null,
                                 )

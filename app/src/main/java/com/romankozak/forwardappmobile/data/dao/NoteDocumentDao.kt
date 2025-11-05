@@ -21,8 +21,22 @@ interface NoteDocumentDao {
     @Query("SELECT * FROM note_documents WHERE id = :documentId")
     suspend fun getDocumentById(documentId: String): NoteDocumentEntity?
 
-    @Query("SELECT * FROM note_documents WHERE projectId = :projectId ORDER BY updatedAt DESC")
-    fun getDocumentsForProject(projectId: String): Flow<List<NoteDocumentEntity>>
+    @Query(
+        """
+        SELECT nd.*
+        FROM note_documents AS nd
+        INNER JOIN attachments AS a
+            ON a.entity_id = nd.id AND a.attachment_type = :attachmentType
+        INNER JOIN project_attachment_cross_ref AS link
+            ON link.attachment_id = a.id
+        WHERE link.project_id = :projectId
+        ORDER BY nd.updatedAt DESC
+        """,
+    )
+    fun getDocumentsForProject(
+        projectId: String,
+        attachmentType: String,
+    ): Flow<List<NoteDocumentEntity>>
 
     @Query("DELETE FROM note_documents WHERE id = :documentId")
     suspend fun deleteDocumentById(documentId: String)

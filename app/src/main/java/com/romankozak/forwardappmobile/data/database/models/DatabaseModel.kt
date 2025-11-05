@@ -5,6 +5,7 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Fts4
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
@@ -162,6 +163,49 @@ data class LinkItemEntity(
     @ColumnInfo(name = "link_data")
     val linkData: RelatedLink,
     val createdAt: Long,
+)
+
+@Entity(
+    tableName = "attachments",
+    indices = [
+        Index(value = ["attachment_type"]),
+        Index(value = ["entity_id"]),
+    ],
+)
+data class AttachmentEntity(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    @ColumnInfo(name = "attachment_type") val attachmentType: String,
+    @ColumnInfo(name = "entity_id") val entityId: String,
+    @ColumnInfo(name = "owner_project_id") val ownerProjectId: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(
+    tableName = "project_attachment_cross_ref",
+    primaryKeys = ["project_id", "attachment_id"],
+    foreignKeys = [
+        ForeignKey(
+            entity = Project::class,
+            parentColumns = ["id"],
+            childColumns = ["project_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = AttachmentEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["attachment_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index(value = ["attachment_id"]),
+    ],
+)
+data class ProjectAttachmentCrossRef(
+    @ColumnInfo(name = "project_id") val projectId: String,
+    @ColumnInfo(name = "attachment_id") val attachmentId: String,
+    @ColumnInfo(name = "attachment_order") val attachmentOrder: Long = -System.currentTimeMillis(),
 )
 
 

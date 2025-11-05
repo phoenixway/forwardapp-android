@@ -141,6 +141,7 @@ data class DailyMetric(
     
     val totalPlannedTime: Long = 0,
     val totalActiveTime: Long = 0,
+    @ColumnInfo(defaultValue = "0") val completedPoints: Int = 0,
     val totalBreakTime: Long = 0,
     
     val morningEnergyLevel: Int? = null,

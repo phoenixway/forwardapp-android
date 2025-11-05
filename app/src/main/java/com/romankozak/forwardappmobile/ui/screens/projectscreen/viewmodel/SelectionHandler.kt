@@ -12,6 +12,7 @@ class SelectionHandler(
     private val projectRepository: ProjectRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
+    private val projectIdFlow: StateFlow<String>,
     private val listContentFlow: StateFlow<List<ListItemContent>>,
     private val resultListener: ResultListener,
 ) {
@@ -116,7 +117,7 @@ class SelectionHandler(
         clearSelection()
 
         scope.launch {
-            projectRepository.deleteListItems(selectedIds.toList())
+            projectRepository.deleteListItems(projectIdFlow.value, selectedIds.toList())
             resultListener.showSnackbar("Видалено елементів: ${selectedIds.size}", "Скасувати")
         }
     }

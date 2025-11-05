@@ -32,7 +32,8 @@ class DayManagementRepository
         private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
-        
+        @Volatile
+        private var cachedBestCompletedPoints: Int? = null
 
         fun getPlanByIdStream(planId: String): Flow<DayPlan?> = dayPlanDao.getPlanByIdStream(planId)
 
@@ -477,6 +478,8 @@ class DayManagementRepository
 
         suspend fun calculateAndSaveDailyMetrics(dayPlanId: String) =
             withContext(ioDispatcher) {
+                cachedBestCompletedPoints = null
+
                 val tasks = dayTaskDao.getTasksForDaySync(dayPlanId)
                 val plan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
 
@@ -486,6 +489,7 @@ class DayManagementRepository
 
                 val totalPlannedTime = tasks.mapNotNull { it.estimatedDurationMinutes }.sum()
                 val totalActiveTime = tasks.mapNotNull { it.actualDurationMinutes }.sum()
+                val completedPoints = tasks.filter { it.completed }.sumOf { it.points.coerceAtLeast(0) }
 
                 val metric =
                     DailyMetric(
@@ -496,6 +500,7 @@ class DayManagementRepository
                         completionRate = completionRate,
                         totalPlannedTime = totalPlannedTime,
                         totalActiveTime = totalActiveTime,
+                        completedPoints = completedPoints,
                     )
 
                 dailyMetricDao.insert(metric)
@@ -697,6 +702,14 @@ class DayManagementRepository
                 dayTaskDao.detachFromRecurrence(taskId)
             }
         }
+
+        suspend fun getHighestCompletedPointsAcrossPlans(): Int =
+            withContext(ioDispatcher) {
+                cachedBestCompletedPoints
+                    ?: dailyMetricDao.getMaxCompletedPoints()
+                        .also { cachedBestCompletedPoints = it ?: 0 }
+                        ?: 0
+            }
 
         suspend fun findProjectIdForGoal(goalId: String): String? {
             return withContext(ioDispatcher) {

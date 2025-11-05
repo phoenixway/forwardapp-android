@@ -71,6 +71,7 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableLazyListState
 import kotlin.math.roundToInt
+import kotlin.math.max
 
 val TAG = "NAV_DEBUG" // Тег для логування
 
@@ -113,6 +114,7 @@ fun CompactDayPlanHeader(
   dayPlan: DayPlan?,
   totalPointsEarned: Int,
   totalPointsAvailable: Int,
+  bestCompletedPoints: Int,
   completedTasks: Int,
   totalTasks: Int,
   onNavigateToPreviousDay: () -> Unit,
@@ -139,10 +141,14 @@ fun CompactDayPlanHeader(
       }
     }
   val pointsLabel =
-    if (totalPointsAvailable > 0) {
-      "$totalPointsEarned / $totalPointsAvailable балів"
-    } else {
-      "$totalPointsEarned балів"
+    buildString {
+      val bestDayPoints = max(bestCompletedPoints, totalPointsEarned)
+      append(totalPointsEarned)
+      append(" / ")
+      append(totalPointsAvailable)
+      append(" / ")
+      append(bestDayPoints)
+      append(" балів")
     }
   val tasksLabel =
     if (totalTasks > 0) {
@@ -410,6 +416,7 @@ fun DayPlanScreen(
               dayPlan = uiState.dayPlan,
               totalPointsEarned = totalPointsEarned,
               totalPointsAvailable = totalPointsAvailable,
+              bestCompletedPoints = uiState.bestCompletedPoints,
               completedTasks = completedTasksCount,
               totalTasks = totalTasksCount,
               onTaskLongPress = { taskWithReminder -> viewModel.onTaskLongPressed(taskWithReminder) },

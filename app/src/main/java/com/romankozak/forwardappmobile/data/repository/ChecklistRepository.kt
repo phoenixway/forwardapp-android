@@ -1,25 +1,22 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ChecklistRepository @Inject constructor(
     private val checklistDao: ChecklistDao,
-    private val listItemDao: ListItemDao,
+    private val attachmentRepository: AttachmentRepository,
     private val recentItemsRepository: RecentItemsRepository,
 ) {
 
     fun getChecklistsForProject(projectId: String): Flow<List<ChecklistEntity>> =
-        checklistDao.getChecklistsForProject(projectId)
+        checklistDao.getChecklistsForProject(projectId, ListItemTypeValues.CHECKLIST)
 
     fun getAllChecklistsAsFlow(): Flow<List<ChecklistEntity>> = checklistDao.getAllChecklistsAsFlow()
 
@@ -30,16 +27,13 @@ class ChecklistRepository @Inject constructor(
     suspend fun createChecklist(name: String, projectId: String): String {
         val checklist = ChecklistEntity(projectId = projectId, name = name)
         checklistDao.insertChecklist(checklist)
-
-        val listItem =
-            ListItem(
-                id = UUID.randomUUID().toString(),
-                projectId = projectId,
-                itemType = ListItemTypeValues.CHECKLIST,
-                entityId = checklist.id,
-                order = -System.currentTimeMillis(),
-            )
-        listItemDao.insertItem(listItem)
+        attachmentRepository.ensureAttachmentLinkedToProject(
+            attachmentType = ListItemTypeValues.CHECKLIST,
+            entityId = checklist.id,
+            projectId = projectId,
+            ownerProjectId = projectId,
+            createdAt = System.currentTimeMillis(),
+        )
         recentItemsRepository.logChecklistAccess(checklist)
         return checklist.id
     }
@@ -51,7 +45,9 @@ class ChecklistRepository @Inject constructor(
 
     suspend fun deleteChecklist(checklistId: String) {
         checklistDao.deleteChecklistById(checklistId)
-        listItemDao.deleteItemByEntityId(checklistId)
+        attachmentRepository.findAttachmentByEntity(ListItemTypeValues.CHECKLIST, checklistId)?.let {
+            attachmentRepository.deleteAttachment(it.id)
+        }
     }
 
     fun getItemsForChecklist(checklistId: String): Flow<List<ChecklistItemEntity>> =

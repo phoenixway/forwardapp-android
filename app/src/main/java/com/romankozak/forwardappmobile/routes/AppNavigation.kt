@@ -28,6 +28,7 @@ import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScree
 
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
+import com.romankozak.forwardappmobile.ui.screens.attachments.library.AttachmentsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen
@@ -178,6 +179,10 @@ private fun NavGraphBuilder.mainGraph(
             viewModel = viewModel,
             navController = navController,
         )
+    }
+
+    composable("attachments_library_screen") {
+        AttachmentsLibraryScreen(navController = navController)
     }
 
     composable("settings_screen") { backStackEntry ->
