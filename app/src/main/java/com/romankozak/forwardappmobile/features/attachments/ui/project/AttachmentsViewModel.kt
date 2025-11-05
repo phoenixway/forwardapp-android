@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -219,7 +221,7 @@ class AttachmentsViewModel @Inject constructor(
 
     fun onAddWebLink(link: RelatedLink) {
         viewModelScope.launch {
-            listItemRepository.addLinkItemToProjectFromLink(projectId.value, link)
+            projectRepository.addLinkItemToProjectFromLink(projectId.value, link)
         }
     }
 
@@ -251,7 +253,14 @@ class AttachmentsViewModel @Inject constructor(
         viewModelScope.launch {
             uiState.value.project?.let { project ->
                 uiState.value.reminderTime?.let { reminderTime ->
-                    alarmScheduler.scheduleReminderForProject(project, reminderTime)
+                    val reminder = Reminder(
+                        entityId = project.id,
+                        entityType = "PROJECT",
+                        reminderTime = reminderTime,
+                        status = "SCHEDULED",
+                        creationTime = System.currentTimeMillis()
+                    )
+                    alarmScheduler.schedule(reminder)
                 }
             }
         }
@@ -317,7 +326,8 @@ class AttachmentsViewModel @Inject constructor(
                         weightRisk = uiState.value.weightRisk,
                         rawScore = uiState.value.rawScore,
                     )
-                goalScoringManager.onScoringChanged(updatedProject)
+                val scoredProject = goalScoringManager.calculateScoresForProject(updatedProject)
+                projectRepository.updateProject(scoredProject)
             }
         }
     }
