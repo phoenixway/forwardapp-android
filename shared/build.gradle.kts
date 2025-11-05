@@ -26,12 +26,12 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
-                //put your android dependencies here
+                implementation(libs.sqldelight.android.driver)
             }
         }
         val jsMain by getting {
             dependencies {
-                //put your js dependencies here
+                implementation(libs.sqldelight.sqljs.driver)
             }
         }
     }
