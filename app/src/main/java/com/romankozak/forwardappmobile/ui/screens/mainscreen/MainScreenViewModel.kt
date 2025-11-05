@@ -5,12 +5,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
@@ -519,13 +519,13 @@ constructor(
       }
       is MainScreenEvent.OpenInboxProject -> {
         viewModelScope.launch {
-          val specialProject = _allProjectsFlat.value.find { it.projectType == com.romankozak.forwardappmobile.data.database.models.ProjectType.SYSTEM }
+          val specialProject = _allProjectsFlat.value.find { it.projectType == com.romankozak.forwardappmobile.shared.data.database.models.ProjectType.SYSTEM }
           if (specialProject == null) {
             _uiEventChannel.send(ProjectUiEvent.ShowToast("System projects not found"))
             return@launch
           }
 
-          val inboxProject = _allProjectsFlat.value.find { it.reservedGroup == com.romankozak.forwardappmobile.data.database.models.ReservedGroup.Inbox && it.parentId == specialProject.id }
+          val inboxProject = _allProjectsFlat.value.find { it.reservedGroup == com.romankozak.forwardappmobile.data.database.models.ReservedGroup.Inbox.groupName && it.parentId == specialProject.id }
           if (inboxProject == null) {
             _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox project not found"))
             return@launch

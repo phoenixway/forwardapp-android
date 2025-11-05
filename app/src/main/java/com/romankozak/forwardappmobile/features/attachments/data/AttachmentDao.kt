@@ -5,9 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentRoomEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProjectRoom
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRefRoom
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -24,10 +24,10 @@ interface AttachmentDao {
         ORDER BY link.attachment_order ASC, a.createdAt DESC
         """,
     )
-    fun getAttachmentsForProject(projectId: String): Flow<List<AttachmentWithProject>>
+    fun getAttachmentsForProject(projectId: String): Flow<List<AttachmentWithProjectRoom>>
 
     @Query("SELECT * FROM attachments WHERE id = :attachmentId LIMIT 1")
-    suspend fun getAttachmentById(attachmentId: String): AttachmentEntity?
+    suspend fun getAttachmentById(attachmentId: String): AttachmentRoomEntity?
 
     @Query(
         """
@@ -40,19 +40,19 @@ interface AttachmentDao {
     suspend fun findAttachmentByEntity(
         attachmentType: String,
         entityId: String,
-    ): AttachmentEntity?
+    ): AttachmentRoomEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAttachment(attachment: AttachmentEntity)
+    suspend fun insertAttachment(attachment: AttachmentRoomEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAttachments(attachments: List<AttachmentEntity>)
+    suspend fun insertAttachments(attachments: List<AttachmentRoomEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProjectAttachmentLinks(links: List<ProjectAttachmentCrossRef>)
+    suspend fun insertProjectAttachmentLinks(links: List<ProjectAttachmentCrossRefRoom>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProjectAttachmentLink(link: ProjectAttachmentCrossRef)
+    suspend fun insertProjectAttachmentLink(link: ProjectAttachmentCrossRefRoom)
 
     @Query(
         """
@@ -88,8 +88,8 @@ interface AttachmentDao {
     )
 
     @Query("SELECT * FROM attachments")
-    fun getAllAttachmentsFlow(): Flow<List<AttachmentEntity>>
+    fun getAllAttachmentsFlow(): Flow<List<AttachmentRoomEntity>>
 
     @Query("SELECT * FROM project_attachment_cross_ref")
-    fun getAllProjectAttachmentLinksFlow(): Flow<List<ProjectAttachmentCrossRef>>
+    fun getAllProjectAttachmentLinksFlow(): Flow<List<ProjectAttachmentCrossRefRoom>>
 }

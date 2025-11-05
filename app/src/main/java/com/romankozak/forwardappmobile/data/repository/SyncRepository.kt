@@ -29,7 +29,7 @@ import com.romankozak.forwardappmobile.data.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.database.models.ProjectLogLevelValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectType

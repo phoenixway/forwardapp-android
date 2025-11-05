@@ -3,17 +3,17 @@ package com.romankozak.forwardappmobile.features.attachments.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.config.FeatureToggles
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
-import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
+import com.romankozak.forwardappmobile.shared.features.attachments.data.model.AttachmentEntity
+import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemRecord
+import com.romankozak.forwardappmobile.shared.features.attachments.data.model.ProjectAttachmentCrossRef
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +26,7 @@ class AttachmentsLibraryViewModel @Inject constructor(
     private val attachmentRepository: AttachmentRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
     private val checklistRepository: ChecklistRepository,
-    private val projectDao: ProjectDao,
+    private val projectRepository: ProjectRepository,
 ) : ViewModel() {
 
     private val queryState = MutableStateFlow("")
@@ -39,7 +39,7 @@ class AttachmentsLibraryViewModel @Inject constructor(
             attachmentRepository.getAllLinkItems(),
             noteDocumentRepository.getAllDocumentsAsFlow(),
             checklistRepository.getAllChecklistsAsFlow(),
-            projectDao.getAllProjects(),
+            projectRepository.getAllProjectsFlow(),
             queryState,
             filterState,
         ) { array ->
@@ -48,11 +48,12 @@ class AttachmentsLibraryViewModel @Inject constructor(
             @Suppress("UNCHECKED_CAST")
             val links = array[1] as List<ProjectAttachmentCrossRef>
             @Suppress("UNCHECKED_CAST")
-            val linkItems = array[2] as List<LinkItemEntity>
+            val linkItems = array[2] as List<LinkItemRecord>
             @Suppress("UNCHECKED_CAST")
             val noteDocuments = array[3] as List<NoteDocumentEntity>
             @Suppress("UNCHECKED_CAST")
             val checklists = array[4] as List<ChecklistEntity>
+            @Suppress("UNCHECKED_CAST")
             @Suppress("UNCHECKED_CAST")
             val projects = array[5] as List<Project>
             val query = array[6] as String

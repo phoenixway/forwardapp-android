@@ -2,11 +2,12 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItem
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
+import com.romankozak.forwardappmobile.features.projects.data.ContextTextAction
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -19,7 +20,7 @@ class GoalRepository @Inject constructor(
     private val listItemDao: ListItemDao,
     private val reminderRepository: ReminderRepository,
     private val contextHandlerProvider: Provider<ContextHandler>,
-    private val projectDao: ProjectDao
+    private val projectLocalDataSource: ProjectLocalDataSource,
 )
 {
     private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
@@ -163,7 +164,7 @@ class GoalRepository @Inject constructor(
         projectId: String,
         action: ContextTextAction,
     ) {
-        val project = projectDao.getProjectById(projectId) ?: return
+        val project = projectLocalDataSource.getById(projectId) ?: return
         val projectTags = project.tags.orEmpty()
         if (projectTags.isEmpty()) return
 

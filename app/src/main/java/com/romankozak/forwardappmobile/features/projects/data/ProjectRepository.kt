@@ -1,26 +1,52 @@
-package com.romankozak.forwardappmobile.data.repository
+package com.romankozak.forwardappmobile.features.projects.data
 
 import android.util.Log
-import androidx.room.Transaction
-import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
+import com.romankozak.forwardappmobile.data.database.models.GlobalProjectSearchResult
+import com.romankozak.forwardappmobile.data.database.models.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
+import com.romankozak.forwardappmobile.data.database.models.Goal
+import com.romankozak.forwardappmobile.data.database.models.LegacyNoteEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeValues
 import com.romankozak.forwardappmobile.data.database.models.ProjectStatusValues
-import com.romankozak.forwardappmobile.data.database.models.*
+import com.romankozak.forwardappmobile.data.database.models.ProjectArtifact
+import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
+import com.romankozak.forwardappmobile.data.database.models.ProjectExecutionLog
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.data.database.models.Reminder
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
+import com.romankozak.forwardappmobile.data.database.models.ListItem
+import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.InboxRepository
+import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
+import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectArtifactRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
+import com.romankozak.forwardappmobile.data.repository.ProjectTimeTrackingRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.repository.SearchRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
-import com.romankozak.forwardappmobile.data.repository.SearchRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }
@@ -30,7 +56,7 @@ internal enum class ContextTextAction { ADD, REMOVE }
 class ProjectRepository
 @Inject
 constructor(
-    private val projectDao: ProjectDao,
+    private val projectLocalDataSource: ProjectLocalDataSource,
     private val legacyNoteRepository: LegacyNoteRepository,
     private val contextHandlerProvider: Provider<ContextHandler>,
     private val activityRepository: ActivityRepository,
@@ -93,7 +119,7 @@ constructor(
         projectId: String,
         viewMode: ProjectViewMode,
     ) {
-        projectDao.updateViewMode(projectId, viewMode.name)
+        projectLocalDataSource.updateDefaultViewMode(projectId, viewMode.name)
     }
 
     fun getProjectContentStream(projectId: String): Flow<List<ListItemContent>> {
@@ -101,7 +127,7 @@ constructor(
             listItemRepository.getItemsForProjectStream(projectId),
             reminderRepository.getAllReminders(),
             goalRepository.getAllGoalsFlow(),
-            projectDao.getAllProjects(),
+            projectLocalDataSource.observeAll(),
             listItemRepository.getAllEntitiesAsFlow(),
             legacyNoteRepository.getAllAsFlow(),
             noteDocumentRepository.getAllDocumentsAsFlow(),
@@ -210,8 +236,6 @@ constructor(
 
         return backlogItems
     }
-
-    @Transaction
     suspend fun addProjectLinkToProject(
         targetProjectId: String,
         currentProjectId: String,
@@ -275,15 +299,15 @@ constructor(
     ) = listItemRepository.deleteLinkByEntityIdAndProjectId(entityId, projectId)
 
     fun getAllProjectsFlow(): Flow<List<Project>> =
-        projectDao
-            .getAllProjects()
+        projectLocalDataSource
+            .observeAll()
             .map { projects -> projects.map { it.withNormalizedParentId() } }
 
     suspend fun getProjectById(id: String): Project? =
-        projectDao.getProjectById(id)?.withNormalizedParentId()
+        projectLocalDataSource.getById(id)?.withNormalizedParentId()
 
     fun getProjectByIdFlow(id: String): Flow<Project?> =
-        projectDao.getProjectByIdStream(id).map { project -> project?.withNormalizedParentId() }
+        projectLocalDataSource.observeById(id).map { project -> project?.withNormalizedParentId() }
 
     private fun Project.withNormalizedParentId(): Project {
         val normalizedParentId =
@@ -299,18 +323,21 @@ constructor(
     }
 
     suspend fun updateProject(project: Project) {
-        projectDao.update(project)
+        projectLocalDataSource.upsert(project)
         recentItemsRepository.updateRecentItemDisplayName(project.id, project.name)
     }
 
-    suspend fun updateProjects(projects: List<Project>): Int = if (projects.isNotEmpty()) projectDao.update(projects) else 0
+    suspend fun updateProjects(projects: List<Project>): Int {
+        if (projects.isEmpty()) return 0
+        projectLocalDataSource.upsert(projects)
+        return projects.size
+    }
 
-    @Transaction
     suspend fun deleteProjectsAndSubProjects(projectsToDelete: List<Project>) {
         if (projectsToDelete.isEmpty()) return
         val projectIds = projectsToDelete.map { it.id }
         listItemRepository.deleteItemsForProjects(projectIds)
-        projectsToDelete.forEach { projectDao.delete(it.id) }
+        projectsToDelete.forEach { projectLocalDataSource.delete(it.id) }
     }
 
     suspend fun createProjectWithId(
@@ -327,21 +354,16 @@ constructor(
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
             )
-        projectDao.insert(newProject)
+        projectLocalDataSource.upsert(newProject)
         if (parentId != null) {
             listItemRepository.addProjectLinkToProject(id, parentId)
         }
     }
-
-
-
-    @Transaction
     suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
         return searchRepository.searchGlobal(query)
     }
 
 
-    @Transaction
     suspend fun moveProject(
         projectToMove: Project,
         newParentId: String?,
@@ -349,7 +371,7 @@ constructor(
         if (projectToMove.projectType != ProjectType.DEFAULT) {
             return
         }
-        val projectFromDb = projectDao.getProjectById(projectToMove.id) ?: return
+        val projectFromDb = projectLocalDataSource.getById(projectToMove.id) ?: return
         val oldParentId = projectFromDb.parentId
 
         if (oldParentId != newParentId) {
@@ -363,23 +385,23 @@ constructor(
             val oldSiblings =
                 (
                     if (oldParentId != null) {
-                        projectDao.getProjectsByParentId(oldParentId)
+                        projectLocalDataSource.getByParent(oldParentId)
                     } else {
-                        projectDao.getTopLevelProjects()
+                        projectLocalDataSource.getTopLevel()
                     }
                 ).filter { it.id != projectToMove.id }
 
             if (oldSiblings.isNotEmpty()) {
-                projectDao.update(oldSiblings.mapIndexed { index, project -> project.copy(order = index.toLong()) })
+                projectLocalDataSource.upsert(oldSiblings.mapIndexed { index, project -> project.copy(order = index.toLong()) })
             }
         }
 
         val newSiblings =
             (
                 if (newParentId != null) {
-                    projectDao.getProjectsByParentId(newParentId)
+                    projectLocalDataSource.getByParent(newParentId)
                 } else {
-                    projectDao.getTopLevelProjects()
+                    projectLocalDataSource.getTopLevel()
                 }
             ).filter { it.id != projectToMove.id }
 
@@ -388,10 +410,9 @@ constructor(
                 parentId = newParentId,
                 order = newSiblings.size.toLong(),
             )
-        projectDao.update(finalProjectToMove)
+        projectLocalDataSource.upsert(finalProjectToMove)
     }
 
-    @Transaction
     suspend fun addLinkItemToProjectFromLink(
         projectId: String,
         link: RelatedLink,
@@ -400,13 +421,13 @@ constructor(
         return attachment.id
     }
 
-    suspend fun findProjectIdsByTag(tag: String): List<String> = projectDao.getProjectIdsByTag(tag)
+    suspend fun findProjectIdsByTag(tag: String): List<String> = projectLocalDataSource.getIdsByTag(tag)
 
-    suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectDao.getProjectsByType(projectType.name)
+    suspend fun getProjectsByType(projectType: ProjectType): List<Project> = projectLocalDataSource.getByType(projectType.name)
 
-    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project> = projectDao.getProjectsByReservedGroup(reservedGroup)
+    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project> = projectLocalDataSource.getByReservedGroup(reservedGroup)
 
-    suspend fun getAllProjects(): List<Project> = projectDao.getAll()
+    suspend fun getAllProjects(): List<Project> = projectLocalDataSource.getAll()
 
 
 
@@ -430,7 +451,7 @@ constructor(
         allListItems.forEach { item ->
             val entityExists = when (item.itemType) {
                 ListItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId) != null
-                ListItemTypeValues.SUBLIST -> projectDao.getProjectById(item.entityId) != null
+                ListItemTypeValues.SUBLIST -> projectLocalDataSource.getById(item.entityId) != null
                 ListItemTypeValues.LINK_ITEM -> listItemRepository.getLinkItemById(item.entityId) != null
                 ListItemTypeValues.NOTE -> legacyNoteRepository.getNoteById(item.entityId) != null
                 ListItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(item.entityId) != null
@@ -455,7 +476,7 @@ constructor(
     suspend fun createProjectArtifact(artifact: ProjectArtifact) = projectArtifactRepository.createProjectArtifact(artifact)
 
     suspend fun ensureChildProjectListItemsExist(projectId: String) {
-        val children = projectDao.getProjectsByParentId(projectId)
+        val children = projectLocalDataSource.getByParent(projectId)
         val backlogItems = listItemRepository.getItemsForProjectStream(projectId).first()
         val backlogSubprojectIds = backlogItems.filter { it.itemType == ListItemTypeValues.SUBLIST }.map { it.entityId }.toSet()
 

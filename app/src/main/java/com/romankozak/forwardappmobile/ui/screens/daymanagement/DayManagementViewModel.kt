@@ -4,10 +4,10 @@ package com.romankozak.forwardappmobile.ui.screens.daymanagement
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.ProjectType
+import com.romankozak.forwardappmobile.shared.data.database.models.ProjectType
 import com.romankozak.forwardappmobile.data.database.models.ReservedGroup
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.routes.DAY_PLAN_DATE_ARG
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -76,7 +76,7 @@ constructor(
             val projects = projectRepository.getAllProjects()
             val specialProject = projects.find { it.projectType == ProjectType.SYSTEM }
             if (specialProject != null) {
-                val inboxProject = projects.find { it.reservedGroup == ReservedGroup.Inbox && it.parentId == specialProject.id }
+                val inboxProject = projects.find { it.reservedGroup == ReservedGroup.Inbox.groupName && it.parentId == specialProject.id }
                 inboxProject?.let {
                     _uiEvent.send(DayManagementUiEvent.NavigateToProject(it.id))
                 }

@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.data.database.models.*
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -25,7 +26,7 @@ class DayManagementRepository
         private val dayTaskDao: DayTaskDao,
         private val dailyMetricDao: DailyMetricDao,
         private val goalDao: GoalDao,
-        private val projectDao: ProjectDao,
+        private val projectLocalDataSource: ProjectLocalDataSource,
         private val recurringTaskDao: RecurringTaskDao,
         private val listItemDao: ListItemDao, 
         private val activityRepository: ActivityRepository,
@@ -213,7 +214,7 @@ class DayManagementRepository
         ): DayTask =
             withContext(ioDispatcher) {
                 val project =
-                    projectDao.getProjectById(projectId)
+                    projectLocalDataSource.getById(projectId)
                         ?: throw NoSuchElementException("Project with id $projectId not found")
 
                 val taskParams =
@@ -693,7 +694,7 @@ class DayManagementRepository
 
         suspend fun getProject(id: String): Project? {
             return withContext(ioDispatcher) {
-                projectDao.getProjectById(id)
+                projectLocalDataSource.getById(id)
             }
         }
 

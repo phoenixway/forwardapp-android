@@ -39,7 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import kotlinx.coroutines.delay
 import java.util.*
 

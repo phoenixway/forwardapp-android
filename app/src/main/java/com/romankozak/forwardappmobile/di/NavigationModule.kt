@@ -1,7 +1,7 @@
 
 package com.romankozak.forwardappmobile.di
 
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import dagger.Module
 import dagger.Provides

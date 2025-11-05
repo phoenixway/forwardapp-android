@@ -236,7 +236,7 @@ class ReservedGroupConverter {
 
 @Entity(tableName = "projects")
 @TypeConverters(ProjectTypeConverter::class, ReservedGroupConverter::class)
-data class Project(
+data class ProjectEntity(
     @PrimaryKey val id: String,
     val name: String,
     val description: String?,
@@ -275,7 +275,7 @@ data class Project(
     tableName = "project_execution_logs",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = ProjectEntity::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.CASCADE,
@@ -295,7 +295,7 @@ data class ProjectExecutionLog(
     tableName = "inbox_records",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = ProjectEntity::class,
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.CASCADE,
@@ -314,7 +314,7 @@ data class InboxRecord(
     tableName = "list_items",
     foreignKeys = [
         ForeignKey(
-            entity = Project::class,
+            entity = ProjectEntity::class,
             parentColumns = ["id"],
             childColumns = ["project_id"],
             onDelete = ForeignKey.CASCADE,
@@ -338,7 +338,7 @@ data class GoalFts(
     val description: String?,
 )
 
-@Fts4(contentEntity = Project::class)
+@Fts4(contentEntity = ProjectEntity::class)
 @Entity(tableName = "projects_fts")
 data class ProjectFts(
     val name: String,
@@ -366,7 +366,7 @@ data class GlobalLinkSearchResult(
 
 data class GlobalSubprojectSearchResult(
     @Embedded
-    val subproject: Project,
+    val subproject: ProjectEntity,
     val parentProjectId: String,
     val parentProjectName: String,
     @TypeConverters(PathSegmentsConverter::class)
@@ -375,7 +375,7 @@ data class GlobalSubprojectSearchResult(
 
 data class GlobalProjectSearchResult(
     @Embedded
-    val project: Project,
+    val project: ProjectEntity,
     @TypeConverters(PathSegmentsConverter::class)
     val pathSegments: List<String>,
 )

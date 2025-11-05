@@ -21,6 +21,6 @@ actual class DatabaseDriverFactory actual constructor(
     }
 
     private companion object {
-        const val DATABASE_NAME = "forwardapp.db"
+        const val DATABASE_NAME = "forward_app_database"
     }
 }

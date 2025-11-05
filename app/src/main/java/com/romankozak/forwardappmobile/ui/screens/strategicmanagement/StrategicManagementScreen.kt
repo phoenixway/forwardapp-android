@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.routes.MAIN_GRAPH_ROUTE
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.MainScreenViewModel
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.MainScreenEvent

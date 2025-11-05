@@ -14,8 +14,10 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ProjectLogRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.attachments.data.AndroidLinkItemDataSource
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
+import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import dagger.Module
 import dagger.Provides
@@ -63,9 +65,16 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideAttachmentRepository(
-        attachmentDao: AttachmentDao,
+        attachmentQueries: AttachmentQueriesQueries,
+        linkItemDataSource: LinkItemDataSource,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): AttachmentRepository = AttachmentRepository(attachmentQueries, linkItemDataSource, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideLinkItemDataSource(
         linkItemDao: LinkItemDao,
-    ): AttachmentRepository = AttachmentRepository(attachmentDao, linkItemDao)
+    ): LinkItemDataSource = AndroidLinkItemDataSource(linkItemDao)
 
     @Provides
     @Singleton

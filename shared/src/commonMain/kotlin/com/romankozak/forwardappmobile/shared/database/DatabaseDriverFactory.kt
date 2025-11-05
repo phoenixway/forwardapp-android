@@ -5,7 +5,7 @@ import app.cash.sqldelight.db.SqlDriver
 /**
  * Platform-specific configuration needed to create a SQLDelight driver.
  */
-expect class PlatformContext
+expect abstract class PlatformContext
 
 /**
  * Factory that creates a platform-specific SQLDelight driver.

@@ -2,7 +2,7 @@
 
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.state
 
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.PlanningMode
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow

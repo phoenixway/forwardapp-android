@@ -2,8 +2,8 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.database.models.ActivityRecord
+import com.romankozak.forwardappmobile.features.projects.data.ProjectLocalDataSource
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -15,7 +15,7 @@ class ActivityRepository
     constructor(
         private val activityRecordDao: ActivityRecordDao,
         private val goalDao: GoalDao,
-        private val projectDao: ProjectDao,
+        private val projectLocalDataSource: ProjectLocalDataSource,
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
 
@@ -80,7 +80,7 @@ class ActivityRepository
         }
 
         suspend fun startProjectActivity(projectId: String): ActivityRecord? {
-            val project = projectDao.getProjectById(projectId) ?: return null
+            val project = projectLocalDataSource.getById(projectId) ?: return null
             val now = System.currentTimeMillis()
             endLastActivity(now)
             val newRecord =

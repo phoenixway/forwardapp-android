@@ -4,7 +4,7 @@ package com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel
 
 import com.romankozak.forwardappmobile.data.database.models.Goal
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
-import com.romankozak.forwardappmobile.data.repository.ProjectRepository
+import com.romankozak.forwardappmobile.features.projects.data.ProjectRepository
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionDialogState
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.GoalActionType

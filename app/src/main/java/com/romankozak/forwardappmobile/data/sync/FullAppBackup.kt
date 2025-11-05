@@ -13,7 +13,7 @@ data class FullAppBackup(
 data class DatabaseContent(
     val goals: List<Goal>,
     @SerializedName(value = "projects", alternate = ["goalLists"])
-    val projects: List<Project>,
+    val projects: List<ProjectEntity>,
     val listItems: List<ListItem>,
     @SerializedName(value = "legacyNotes", alternate = ["notes"])
     val legacyNotes: List<LegacyNoteEntity>? = null,

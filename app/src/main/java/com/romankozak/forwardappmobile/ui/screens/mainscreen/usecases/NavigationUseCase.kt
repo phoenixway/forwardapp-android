@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.ClearCommand
 import com.romankozak.forwardappmobile.ui.navigation.ClearResult

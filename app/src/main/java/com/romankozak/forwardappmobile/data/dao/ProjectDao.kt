@@ -9,28 +9,28 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.data.database.models.GlobalProjectSearchResult
 import com.romankozak.forwardappmobile.data.database.models.GlobalSubprojectSearchResult
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.data.database.models.ProjectEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProjectDao {
     @Query("SELECT * FROM projects ORDER BY goal_order ASC")
-    fun getAllProjects(): Flow<List<Project>>
+    fun getAllProjects(): Flow<List<ProjectEntity>>
 
     @Query("SELECT * FROM projects")
-    suspend fun getAll(): List<Project>
+    suspend fun getAll(): List<ProjectEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProjects(projects: List<Project>)
+    suspend fun insertProjects(projects: List<ProjectEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(project: Project)
+    suspend fun insert(project: ProjectEntity)
 
     @Update
-    suspend fun update(project: Project)
+    suspend fun update(project: ProjectEntity)
 
     @Update
-    suspend fun update(projects: List<Project>): Int
+    suspend fun update(projects: List<ProjectEntity>): Int
 
     @Query("DELETE FROM projects WHERE id = :id AND project_type = 'DEFAULT'")
     suspend fun delete(id: String)
@@ -39,13 +39,13 @@ interface ProjectDao {
     suspend fun deleteProjectById(projectId: String)
 
     @Query("SELECT * FROM projects WHERE id IN (:projectIds)")
-    suspend fun getProjectsByIds(projectIds: List<String>): List<Project>
+    suspend fun getProjectsByIds(projectIds: List<String>): List<ProjectEntity>
 
     @Query("SELECT * FROM projects WHERE id = :id")
-    suspend fun getProjectById(id: String): Project?
+    suspend fun getProjectById(id: String): ProjectEntity?
 
     @Query("SELECT * FROM projects WHERE id = :id")
-    fun getProjectByIdStream(id: String): Flow<Project?>
+    fun getProjectByIdStream(id: String): Flow<ProjectEntity?>
 
     @Query("UPDATE projects SET goal_order = :order WHERE id = :projectId")
     suspend fun updateOrder(
@@ -54,19 +54,19 @@ interface ProjectDao {
     )
 
     @Query("SELECT * FROM projects WHERE parentId = :parentId ORDER BY goal_order ASC")
-    suspend fun getProjectsByParentId(parentId: String): List<Project>
+    suspend fun getProjectsByParentId(parentId: String): List<ProjectEntity>
 
     @Query("SELECT * FROM projects WHERE parentId IS NULL ORDER BY goal_order ASC")
-    suspend fun getTopLevelProjects(): List<Project>
+    suspend fun getTopLevelProjects(): List<ProjectEntity>
 
     @Query("SELECT * FROM projects WHERE tags LIKE '%' || :tag || '%'")
-    suspend fun getProjectsByTag(tag: String): List<Project>
+    suspend fun getProjectsByTag(tag: String): List<ProjectEntity>
 
     @Query("SELECT * FROM projects WHERE project_type = :projectType")
-    suspend fun getProjectsByType(projectType: String): List<Project>
+    suspend fun getProjectsByType(projectType: String): List<ProjectEntity>
 
     @Query("SELECT * FROM projects WHERE reserved_group = :reservedGroup")
-    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<Project>
+    suspend fun getProjectsByReservedGroup(reservedGroup: String): List<ProjectEntity>
 
     @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getProjectIdsByTag(tag: String): List<String>

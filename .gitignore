@@ -1,5 +1,7 @@
 .kotlin/
 .gradle/
+build/
+*/build/
 ktlint
 google-cloud-sdk*
 loggy.log

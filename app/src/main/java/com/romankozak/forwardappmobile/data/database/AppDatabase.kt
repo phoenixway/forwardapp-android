@@ -23,10 +23,10 @@ import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
-import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentRoomEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRefRoom
 
 @Database(
     entities = [
@@ -36,7 +36,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         ListItem::class,
         ActivityRecord::class,
         LinkItemEntity::class,
-        AttachmentEntity::class,
+        AttachmentRoomEntity::class,
         InboxRecord::class,
         ChatMessageEntity::class,
         ProjectExecutionLog::class,
@@ -53,7 +53,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         RecurringTask::class,
         Reminder::class,
         ProjectArtifact::class,
-        ProjectAttachmentCrossRef::class,
+        ProjectAttachmentCrossRefRoom::class,
 
         GoalFts::class,
         ProjectFts::class,

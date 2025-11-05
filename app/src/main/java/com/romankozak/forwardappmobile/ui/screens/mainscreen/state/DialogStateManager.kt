@@ -3,7 +3,7 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.state
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.data.database.models.Project
+import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.ui.screens.mainscreen.models.DialogState
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow

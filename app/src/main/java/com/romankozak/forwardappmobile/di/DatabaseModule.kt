@@ -24,7 +24,11 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.DatabaseDriverFactory
+import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
+import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -192,10 +196,6 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideAttachmentDao(appDatabase: AppDatabase): AttachmentDao = appDatabase.attachmentDao()
-
-    @Provides
-    @Singleton
     fun provideRecentItemDao(appDatabase: AppDatabase) = appDatabase.recentItemDao()
 
     @Provides
@@ -217,6 +217,24 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideInboxRecordDao(appDatabase: AppDatabase) = appDatabase.inboxRecordDao()
+
+    @Provides
+    @Singleton
+    fun provideForwardAppDatabase(
+        @ApplicationContext context: Context,
+    ): ForwardAppDatabase = createForwardAppDatabase(DatabaseDriverFactory(context))
+
+    @Provides
+    @Singleton
+    fun provideAttachmentQueries(
+        forwardAppDatabase: ForwardAppDatabase,
+    ): AttachmentQueriesQueries = forwardAppDatabase.attachmentQueriesQueries
+
+    @Provides
+    @Singleton
+    fun provideProjectQueries(
+        forwardAppDatabase: ForwardAppDatabase,
+    ): ProjectQueriesQueries = forwardAppDatabase.projectQueriesQueries
 
     @Provides
     @Singleton
