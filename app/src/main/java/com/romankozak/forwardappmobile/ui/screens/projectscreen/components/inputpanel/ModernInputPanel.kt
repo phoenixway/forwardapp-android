@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -29,7 +30,6 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -424,7 +424,7 @@ private fun BackForwardButton(state: NavPanelState, actions: NavPanelActions, co
                 actions.onForwardClick()
               }
             },
-            indication = ripple(bounded = false),
+            indication = LocalIndication.current,
             interactionSource = remember { MutableInteractionSource() },
           ),
       contentAlignment = Alignment.Center,

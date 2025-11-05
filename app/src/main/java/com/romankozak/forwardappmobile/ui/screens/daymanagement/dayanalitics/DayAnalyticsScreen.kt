@@ -81,7 +81,7 @@ private fun TimeRangeSelector(
             onValueChange = {},
             label = { Text("Період") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = expanded,

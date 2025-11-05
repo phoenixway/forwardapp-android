@@ -27,7 +27,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -185,7 +184,7 @@ fun EditTaskScreen(
                                         readOnly = true,
                                         label = { Text("Frequency") },
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                        modifier = Modifier.fillMaxWidth().menuAnchor()
                                     )
                                     ExposedDropdownMenu(
                                         expanded = expanded,
