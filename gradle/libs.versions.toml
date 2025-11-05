@@ -6,6 +6,7 @@ javapoet = "1.13.0"
 kotlin = "2.2.20"
 ksp = "2.2.20-2.0.3"
 kotlinxSerialization = "1.6.3"
+sqlDelight = "2.0.2"
 
 # Compose -> Використовуємо актуальну стабільну версію BOM
 androidx-compose-bom = "2024.02.01"
@@ -125,6 +126,8 @@ play-services-auth = { group = "com.google.android.gms", name = "play-services-a
 accompanist-flowlayout = { group = "com.google.accompanist", name = "accompanist-flowlayout", version.ref = "accompanist" }
 #androidx-foundation-desktop = { group = "androidx.compose.foundation", name = "foundation-desktop", version.ref = "foundationDesktop" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqlDelight" }
+sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqlDelight" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -139,3 +142,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 google-services-plugin = { id = "com.google.gms.google-services", version.ref = "google-services-plugin-version" }
 firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin-version" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqlDelight" }

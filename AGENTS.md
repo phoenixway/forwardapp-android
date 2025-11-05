@@ -11,6 +11,7 @@ Author Kotlin with Jetpack Compose components using 4-space indentation and trai
 
 ## Testing Guidelines
 Place JUnit tests in `app/src/test` with names like `SearchUseCaseTest`, and integration or Compose UI checks in `app/src/androidTest` extending the instrumentation runner. Prior to opening a PR, run `./gradlew test` locally and, when a device or emulator is available, `./gradlew connectedAndroidTest`. Add coverage whenever you touch navigation, persistence, or critical business logic.
+Any time you alter test flows, commands, or required setups, amend `TESTING_MANUAL.md` in the same change so the manual stays current.
 
 ## Commit & Pull Request Guidelines
 Follow the existing conventional commit style (`feat`, `fix`, `refactor(scope): summary`) with imperative summaries under 65 characters. PRs should link tasks, note risky areas, and include screenshots or clips for UI shifts. Document which build and test commands were executed and highlight any intentionally skipped checks.

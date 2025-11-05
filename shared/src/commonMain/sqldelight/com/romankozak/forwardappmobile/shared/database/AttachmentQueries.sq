@@ -1,0 +1,97 @@
+CREATE TABLE attachments (
+  id TEXT NOT NULL PRIMARY KEY,
+  attachment_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  owner_project_id TEXT,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL
+);
+
+CREATE INDEX index_attachments_attachment_type
+ON attachments(attachment_type);
+
+CREATE INDEX index_attachments_entity_id
+ON attachments(entity_id);
+
+CREATE TABLE project_attachment_cross_ref (
+  project_id TEXT NOT NULL,
+  attachment_id TEXT NOT NULL,
+  attachment_order INTEGER NOT NULL,
+  PRIMARY KEY(project_id, attachment_id)
+);
+
+CREATE INDEX index_project_attachment_cross_ref_attachment_id
+ON project_attachment_cross_ref(attachment_id);
+
+getAttachmentsForProject:
+SELECT attachments.id,
+       attachments.attachment_type,
+       attachments.entity_id,
+       attachments.owner_project_id,
+       attachments.createdAt,
+       attachments.updatedAt,
+       link.project_id,
+       link.attachment_order
+FROM attachments
+INNER JOIN project_attachment_cross_ref AS link
+ON link.attachment_id = attachments.id
+WHERE link.project_id = ?1
+ORDER BY link.attachment_order ASC, attachments.createdAt DESC;
+
+getAttachmentById:
+SELECT *
+FROM attachments
+WHERE id = ?1;
+
+findAttachmentByEntity:
+SELECT *
+FROM attachments
+WHERE attachment_type = ?1 AND entity_id = ?2
+LIMIT 1;
+
+insertAttachment:
+INSERT OR REPLACE INTO attachments(
+  id,
+  attachment_type,
+  entity_id,
+  owner_project_id,
+  createdAt,
+  updatedAt
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6);
+
+insertProjectAttachmentLink:
+INSERT OR REPLACE INTO project_attachment_cross_ref(
+  project_id,
+  attachment_id,
+  attachment_order
+) VALUES (?1, ?2, ?3);
+
+deleteProjectAttachmentLink:
+DELETE FROM project_attachment_cross_ref
+WHERE project_id = ?1 AND attachment_id = ?2;
+
+deleteAllLinksForAttachment:
+DELETE FROM project_attachment_cross_ref
+WHERE attachment_id = ?1;
+
+deleteAttachment:
+DELETE FROM attachments
+WHERE id = ?1;
+
+countLinksForAttachment:
+SELECT COUNT(*)
+FROM project_attachment_cross_ref
+WHERE attachment_id = ?1;
+
+updateAttachmentOrder:
+UPDATE project_attachment_cross_ref
+SET attachment_order = ?3
+WHERE project_id = ?1 AND attachment_id = ?2;
+
+getAllAttachments:
+SELECT *
+FROM attachments;
+
+getAllProjectAttachmentLinks:
+SELECT *
+FROM project_attachment_cross_ref;
