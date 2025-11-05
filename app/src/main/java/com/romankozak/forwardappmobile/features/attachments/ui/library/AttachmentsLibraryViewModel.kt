@@ -1,17 +1,17 @@
-package com.romankozak.forwardappmobile.ui.screens.attachments.library
+package com.romankozak.forwardappmobile.features.attachments.ui.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.dao.ProjectDao
-import com.romankozak.forwardappmobile.data.database.models.AttachmentEntity
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
 import com.romankozak.forwardappmobile.data.database.models.NoteDocumentEntity
 import com.romankozak.forwardappmobile.data.database.models.Project
-import com.romankozak.forwardappmobile.data.database.models.ProjectAttachmentCrossRef
-import com.romankozak.forwardappmobile.data.repository.AttachmentRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

@@ -35,7 +35,7 @@ import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.ui.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.ui.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.TagUtils
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.viewmodel.InboxHandler

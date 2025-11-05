@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.attachments.library
+package com.romankozak.forwardappmobile.features.attachments.ui.library
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -26,9 +26,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.data.database.models.LinkType
 import com.romankozak.forwardappmobile.config.FeatureToggles
+import com.romankozak.forwardappmobile.data.database.models.LinkType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,8 +123,8 @@ fun AttachmentsLibraryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = if (uiState.totalCount == 0) "Ще немає додатків" else "Нічого не знайдено",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "Нічого не знайдено",
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -207,7 +207,7 @@ private fun AttachmentCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             ),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(Modifier.padding(16.dp)) {
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium,
@@ -216,7 +216,7 @@ private fun AttachmentCard(
                 overflow = TextOverflow.Ellipsis,
             )
 
-          item.subtitle?.let {
+            item.subtitle?.let {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = it,

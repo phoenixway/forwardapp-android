@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
 import com.romankozak.forwardappmobile.data.repository.SearchRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentRepository
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
 import javax.inject.Singleton
 
 internal enum class ContextTextAction { ADD, REMOVE }

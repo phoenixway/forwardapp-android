@@ -1,13 +1,12 @@
-package com.romankozak.forwardappmobile.data.repository
+package com.romankozak.forwardappmobile.features.attachments.data
 
-import com.romankozak.forwardappmobile.data.dao.AttachmentDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.data.database.models.AttachmentEntity
-import com.romankozak.forwardappmobile.data.database.models.AttachmentWithProject
 import com.romankozak.forwardappmobile.data.database.models.ListItemTypeValues
-import com.romankozak.forwardappmobile.data.database.models.ProjectAttachmentCrossRef
-import com.romankozak.forwardappmobile.data.database.models.RelatedLink
 import com.romankozak.forwardappmobile.data.database.models.LinkItemEntity
+import com.romankozak.forwardappmobile.data.database.models.RelatedLink
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject

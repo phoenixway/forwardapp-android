@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.ui.screens.attachments.library
+package com.romankozak.forwardappmobile.features.attachments.ui.library
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

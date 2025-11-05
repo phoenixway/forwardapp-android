@@ -28,7 +28,7 @@ import com.romankozak.forwardappmobile.ui.screens.notedocument.NoteDocumentScree
 
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.ui.screens.globalsearch.GlobalSearchViewModel
-import com.romankozak.forwardappmobile.ui.screens.attachments.library.AttachmentsLibraryScreen
+import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
 import com.romankozak.forwardappmobile.ui.screens.projectsettings.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.ui.screens.inbox.InboxEditorScreen

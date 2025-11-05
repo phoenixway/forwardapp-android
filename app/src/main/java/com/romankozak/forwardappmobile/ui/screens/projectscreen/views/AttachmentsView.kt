@@ -20,10 +20,10 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.data.database.models.ListItemContent
 import com.romankozak.forwardappmobile.ui.screens.projectscreen.BacklogViewModel
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.AttachmentType
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.NoteDocumentItemRow
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.ChecklistItemRow
-import com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments.LinkItemRow
+import com.romankozak.forwardappmobile.features.attachments.ui.project.AttachmentType
+import com.romankozak.forwardappmobile.features.attachments.ui.project.components.NoteDocumentItemRow
+import com.romankozak.forwardappmobile.features.attachments.ui.project.components.ChecklistItemRow
+import com.romankozak.forwardappmobile.features.attachments.ui.project.components.LinkItemRow
 
 @Composable
 fun AttachmentsView(

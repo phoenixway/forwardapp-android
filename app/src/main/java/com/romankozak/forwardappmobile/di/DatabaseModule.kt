@@ -24,7 +24,7 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.data.dao.AttachmentDao
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

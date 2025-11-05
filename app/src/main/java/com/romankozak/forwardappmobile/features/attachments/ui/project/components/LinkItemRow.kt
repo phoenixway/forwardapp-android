@@ -1,16 +1,25 @@
-package com.romankozak.forwardappmobile.ui.screens.projectscreen.components.attachments
+package com.romankozak.forwardappmobile.features.attachments.ui.project.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -69,7 +78,8 @@ fun LinkItemRow(
                                 onLongPress = { onLongClick() },
                                 onTap = { onClick() },
                             )
-                        }.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                        }
+                        .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val iconImageVector =

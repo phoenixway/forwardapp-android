@@ -1,13 +1,13 @@
-package com.romankozak.forwardappmobile.data.dao
+package com.romankozak.forwardappmobile.features.attachments.data
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.data.database.models.AttachmentEntity
-import com.romankozak.forwardappmobile.data.database.models.AttachmentWithProject
-import com.romankozak.forwardappmobile.data.database.models.ProjectAttachmentCrossRef
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentEntity
+import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentWithProject
+import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRef
 import kotlinx.coroutines.flow.Flow
 
 @Dao
