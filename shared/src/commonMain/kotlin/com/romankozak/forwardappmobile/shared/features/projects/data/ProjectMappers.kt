@@ -120,8 +120,12 @@ private fun List<String>?.toTagString(): String? =
 
 private fun String?.toRelatedLinkList(): List<RelatedLink>? =
     this
-        ?.takeIf { it.isNotBlank() }
-        ?.let { json.decodeFromString<List<RelatedLink>>(it) }
+        ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+        ?.let {
+            runCatching { json.decodeFromString<List<RelatedLink>>(it) }
+                .onFailure { error -> println("ProjectMappers: failed to decode relatedLinks='$it' -> ${error.message}") }
+                .getOrNull()
+        }
 
 private fun List<RelatedLink>?.toRelatedLinkString(): String? =
     this
