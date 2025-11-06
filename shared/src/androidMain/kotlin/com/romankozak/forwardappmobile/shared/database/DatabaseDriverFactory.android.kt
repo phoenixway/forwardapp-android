@@ -23,8 +23,8 @@ actual class DatabaseDriverFactory actual constructor(
                 object : AndroidSqliteDriver.Callback(schema) {
                     override fun onConfigure(db: SupportSQLiteDatabase) {
                         super.onConfigure(db)
-                        db.execSQL("PRAGMA busy_timeout = 5000")
-                        db.execSQL("PRAGMA journal_mode=WAL")
+                        db.query("PRAGMA busy_timeout = 5000").close()
+                        db.query("PRAGMA journal_mode = WAL").close()
                     }
 
                     override fun onDowngrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
