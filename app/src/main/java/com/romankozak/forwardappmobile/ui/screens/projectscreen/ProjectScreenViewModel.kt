@@ -28,6 +28,8 @@ import com.romankozak.forwardappmobile.data.database.models.ProjectLogEntryTypeV
 import com.romankozak.forwardappmobile.data.database.models.ProjectTimeMetrics
 import com.romankozak.forwardappmobile.data.database.models.ProjectViewMode
 import com.romankozak.forwardappmobile.data.database.models.Reminder
+import com.romankozak.forwardappmobile.data.database.models.RecentItem
+import com.romankozak.forwardappmobile.data.database.models.RecentItemType
 import com.romankozak.forwardappmobile.shared.data.database.models.LinkType
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.shared.data.database.models.RelatedLink

@@ -111,10 +111,18 @@ constructor(
 
     suspend fun getByTag(tag: String): List<Project> =
         withContext(ioDispatcher) {
-            projectQueries
-                .getProjectsByTag(tag)
-                .executeAsList()
-                .map { it.toModel() }
+            val ids =
+                projectQueries
+                    .getProjectIdsByTag(tag)
+                    .executeAsList()
+            if (ids.isEmpty()) {
+                emptyList()
+            } else {
+                projectQueries
+                    .getProjectsByIds(ids)
+                    .executeAsList()
+                    .map { it.toModel() }
+            }
         }
 
     suspend fun getIdsByTag(tag: String): List<String> =
