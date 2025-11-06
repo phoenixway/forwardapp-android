@@ -71,6 +71,12 @@ interface ProjectDao {
     @Query("SELECT id FROM projects WHERE tags LIKE '%' || :tag || '%'")
     suspend fun getProjectIdsByTag(tag: String): List<String>
 
+    @Query("SELECT * FROM projects WHERE parentId = :parentId AND reserved_group = :reservedGroup LIMIT 1")
+    suspend fun getProjectByParentAndReservedGroup(
+        parentId: String?,
+        reservedGroup: String,
+    ): Project?
+
     @Transaction
     @Query(
         """
