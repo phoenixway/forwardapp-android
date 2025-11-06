@@ -221,11 +221,7 @@ object DatabaseModule {
     fun provideForwardAppDatabase(
         appDatabase: AppDatabase,
     ): ForwardAppDatabase {
-        val driver =
-            AndroidSqliteDriver(
-                schema = ForwardAppDatabase.Schema,
-                openHelper = appDatabase.openHelper,
-            )
+        val driver = AndroidSqliteDriver(appDatabase.openHelper)
         return ForwardAppDatabase(driver)
     }
 

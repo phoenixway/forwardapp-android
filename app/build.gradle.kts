@@ -1,5 +1,5 @@
 import org.gradle.kotlin.dsl.implementation
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.tasks.testing.Test
 
 plugins {
@@ -38,8 +38,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
     }
     buildFeatures {
         compose = true
@@ -149,7 +151,6 @@ dependencies {
     implementation(libs.compose.foundation.layout)
     implementation(libs.compose.animation.core)
     implementation(libs.compose.animation)
-    implementation(libs.sqldelight.driver.android)
 
     // Lifecycle для Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -189,6 +190,7 @@ dependencies {
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
     implementation(libs.sqldelight.coroutines)
+    implementation(libs.sqldelight.android.driver)
 
     // Testing
     testImplementation(libs.junit)
