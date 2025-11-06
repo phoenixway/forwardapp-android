@@ -23,11 +23,10 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
-import com.romankozak.forwardappmobile.shared.database.DatabaseDriverFactory
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
-import com.romankozak.forwardappmobile.shared.database.createForwardAppDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -220,8 +219,15 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideForwardAppDatabase(
-        @ApplicationContext context: Context,
-    ): ForwardAppDatabase = createForwardAppDatabase(DatabaseDriverFactory(context))
+        appDatabase: AppDatabase,
+    ): ForwardAppDatabase {
+        val driver =
+            AndroidSqliteDriver(
+                schema = ForwardAppDatabase.Schema,
+                openHelper = appDatabase.openHelper,
+            )
+        return ForwardAppDatabase(driver)
+    }
 
     @Provides
     @Singleton
