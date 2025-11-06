@@ -21,7 +21,7 @@
 - [ ] **1.2. Завершення міграції фічі "Attachments" (пілот):**
     - [x] Перенести `AttachmentRepository` у `shared` на SQLDelight (`AttachmentQueries.sq`).
     - [x] Налаштувати `ForwardAppDatabase` + `DatabaseDriverFactory` (Android/JS).
-    - [ ] Переконатись, що всі запити з `AttachmentDao` усунуті або перенесені в `.sq` і більше не використовуються в `app`.
+    - [x] Переконатись, що всі запити з `AttachmentDao` усунуті або перенесені в `.sq` і більше не використовуються в `app`.
 - [ ] **1.3. Міграція легких репозиторіїв (перед Projects):**
 - [x] `ProjectArtifactRepository` → SQLDelight (`ProjectArtifactQueries.sq`), винести в `shared/.../features/projects/data/artifacts`.
     - [x] `ProjectLogRepository` → SQLDelight (`ProjectExecutionLogQueries.sq`), винести в `shared/.../features/projects/data/logs`.
@@ -39,11 +39,11 @@
     - [x] Описати таблиці та перенести всі SQL-запити з `NoteDao`, `NoteFtsDao`, `LegacyNoteDao`.
     - [x] Перемістити `NoteRepository` та `LegacyNoteRepository` в `shared` модуль (`.../features/notes/data`).
     - [x] Адаптувати репозиторії для роботи зі згенерованими SQLDelight `Queries`.
-- [ ] **1.6. Міграція фічі "Checklists":**
-    - [ ] Створити `ChecklistQueries.sq` в `shared` модулі.
-    - [ ] Описати таблицю `checklists` та перенести запити з `ChecklistDao`.
-    - [ ] Перемістити `ChecklistRepository` в `shared` модуль (`.../features/checklists/data`).
-    - [ ] Адаптувати репозиторій для роботи з SQLDelight.
+- [x] **1.6. Міграція фічі "Checklists":**
+    - [x] Створити `ChecklistQueries.sq` в `shared` модулі.
+    - [x] Описати таблицю `checklists` та перенести запити з `ChecklistDao`.
+    - [x] Перемістити `ChecklistRepository` в `shared` модуль (`.../features/checklists/data`).
+    - [x] Адаптувати репозиторій для роботи з SQLDelight.
 - [ ] **1.7. Міграція решти сутностей:**
     - [ ] Повторити процес для всіх інших сутностей, що залишилися.
 - [ ] **1.8. Оновлення Dependency Injection:**

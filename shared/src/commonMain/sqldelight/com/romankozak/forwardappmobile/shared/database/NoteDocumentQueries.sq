@@ -1,36 +1,3 @@
-CREATE TABLE note_documents (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
-  name TEXT NOT NULL,
-  createdAt INTEGER NOT NULL,
-  updatedAt INTEGER NOT NULL,
-  content TEXT,
-  lastCursorPosition INTEGER NOT NULL DEFAULT 0,
-  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
-);
-
-CREATE INDEX index_note_documents_projectId
-ON note_documents(projectId);
-
-CREATE TABLE note_document_items (
-  id TEXT NOT NULL PRIMARY KEY,
-  listId TEXT NOT NULL,
-  parentId TEXT,
-  content TEXT NOT NULL,
-  isCompleted INTEGER NOT NULL,
-  itemOrder INTEGER NOT NULL,
-  createdAt INTEGER NOT NULL,
-  updatedAt INTEGER NOT NULL,
-  FOREIGN KEY(listId) REFERENCES note_documents(id) ON DELETE CASCADE,
-  FOREIGN KEY(parentId) REFERENCES note_document_items(id) ON DELETE CASCADE
-);
-
-CREATE INDEX index_note_document_items_listId
-ON note_document_items(listId);
-
-CREATE INDEX index_note_document_items_parentId
-ON note_document_items(parentId);
-
 getNoteDocumentsForProject:
 SELECT note_documents.*
 FROM note_documents

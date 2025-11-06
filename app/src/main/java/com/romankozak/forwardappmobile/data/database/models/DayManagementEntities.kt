@@ -46,38 +46,6 @@ data class DayPlan(
 
 @Entity(
     tableName = "day_tasks",
-    foreignKeys = [
-        ForeignKey(
-            entity = DayPlan::class,
-            parentColumns = ["id"],
-            childColumns = ["dayPlanId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
-            entity = Goal::class,
-            parentColumns = ["id"],
-            childColumns = ["goalId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
-        ForeignKey(
-            entity = ProjectEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["projectId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
-        ForeignKey(
-            entity = ActivityRecord::class,
-            parentColumns = ["id"],
-            childColumns = ["activityRecordId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
-        ForeignKey(
-            entity = RecurringTask::class,
-            parentColumns = ["id"],
-            childColumns = ["recurringTaskId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
-    ],
     indices = [
         Index("dayPlanId"),
         Index("goalId"),

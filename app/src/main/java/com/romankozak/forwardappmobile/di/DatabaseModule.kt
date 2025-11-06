@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.romankozak.forwardappmobile.shared.database.AttachmentQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
@@ -27,6 +26,7 @@ import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import com.romankozak.forwardappmobile.shared.database.LegacyNoteQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ChecklistQueriesQueries
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.EntryPoint
@@ -108,8 +108,8 @@ object DatabaseModule {
         scope: CoroutineScope
     ): AppDatabase {
         val callback = object : RoomDatabase.Callback() {
-            override fun onOpen(dbSupport: SupportSQLiteDatabase) {
-                super.onOpen(dbSupport)
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                super.onCreate(db)
                 scope.launch(Dispatchers.IO) {
                     val entryPoint =
                         EntryPointAccessors.fromApplication(
@@ -119,13 +119,17 @@ object DatabaseModule {
                     entryPoint.databaseInitializer().prePopulate()
                 }
             }
+
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+            }
         }
 
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "forward_app_database"
-        ).fallbackToDestructiveMigration().addMigrations(
+        ).addMigrations(
             MIGRATION_8_9,
             MIGRATION_10_11,
             MIGRATION_11_12,
@@ -211,9 +215,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideForwardAppDatabase(
-        appDatabase: AppDatabase,
+        @ApplicationContext context: Context,
     ): ForwardAppDatabase {
-        val driver = AndroidSqliteDriver(appDatabase.openHelper)
+        val driver = AndroidSqliteDriver(ForwardAppDatabase.Schema, context, "forward_app.db")
         return ForwardAppDatabase(driver)
     }
 
@@ -250,10 +254,11 @@ object DatabaseModule {
         forwardAppDatabase: ForwardAppDatabase,
     ): NoteDocumentQueriesQueries = forwardAppDatabase.noteDocumentQueriesQueries
 
-
     @Provides
-    @Singleton
-    fun provideChecklistDao(appDatabase: AppDatabase): ChecklistDao = appDatabase.checklistDao()
+    fun provideChecklistQueries(
+        forwardAppDatabase: ForwardAppDatabase,
+    ): ChecklistQueriesQueries = forwardAppDatabase.checklistQueriesQueries
+
 
     @Provides
     @Singleton

@@ -53,6 +53,8 @@ sqldelight {
     databases {
         create("ForwardAppDatabase") {
             packageName = "com.romankozak.forwardappmobile.shared.database"
+            srcDirs = files("src/commonMain/sqldelight")
+            deriveSchemaFromMigrations.set(true)
         }
     }
 }

@@ -622,3 +622,15 @@ val MIGRATION_64_65 = object : Migration(64, 65) {
         )
     }
 }
+
+val MIGRATION_65_66 = object : Migration(65, 66) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Empty migration.
+    }
+}
+
+val MIGRATION_66_67 = object : Migration(66, 67) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Empty migration.
+    }
+}

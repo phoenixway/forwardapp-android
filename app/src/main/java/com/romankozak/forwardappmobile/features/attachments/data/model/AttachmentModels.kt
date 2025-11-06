@@ -27,27 +27,7 @@ data class AttachmentRoomEntity(
     val updatedAt: Long,
 )
 
-@Entity(
-    tableName = "project_attachment_cross_ref",
-    primaryKeys = ["project_id", "attachment_id"],
-    foreignKeys = [
-        ForeignKey(
-            entity = ProjectEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["project_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
-            entity = AttachmentRoomEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["attachment_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [
-        Index(value = ["attachment_id"]),
-    ],
-)
+@Entity(tableName = "project_attachment_cross_ref", primaryKeys = ["project_id", "attachment_id"])
 data class ProjectAttachmentCrossRefRoom(
     @ColumnInfo(name = "project_id") val projectId: String,
     @ColumnInfo(name = "attachment_id") val attachmentId: String,

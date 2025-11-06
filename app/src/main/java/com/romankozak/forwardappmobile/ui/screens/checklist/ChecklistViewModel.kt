@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.ui.screens.checklist
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
-import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
-import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.shared.features.checklists.data.model.Checklist
+import com.romankozak.forwardappmobile.shared.features.checklists.data.model.ChecklistItem
+import com.romankozak.forwardappmobile.features.checklists.data.ChecklistRepository
+import com.romankozak.forwardappmobile.shared.features.recentitems.data.RecentItemsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +32,7 @@ data class ChecklistUiState(
     val pendingFocusItemId: String? = null,
     val errorMessage: String? = null,
     val showUndoSnackbar: Boolean = false,
-    val lastDeletedItem: ChecklistItemEntity? = null,
+    val lastDeletedItem: ChecklistItem? = null,
 )
 
 @HiltViewModel
@@ -49,8 +49,8 @@ class ChecklistViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChecklistUiState())
     val uiState: StateFlow<ChecklistUiState> = _uiState.asStateFlow()
 
-    private val itemsById = MutableStateFlow<Map<String, ChecklistItemEntity>>(emptyMap())
-    private val currentChecklist = MutableStateFlow<ChecklistEntity?>(null)
+    private val itemsById = MutableStateFlow<Map<String, ChecklistItem>>(emptyMap())
+    private val currentChecklist = MutableStateFlow<Checklist?>(null)
     private val checklistIdState = MutableStateFlow(savedStateHandle.get<String>("checklistId"))
     private val projectId: String? = savedStateHandle.get<String>("projectId")
 
@@ -67,6 +67,10 @@ class ChecklistViewModel @Inject constructor(
                             return@launch
                         }
                         val createdId = checklistRepository.createChecklist(DEFAULT_CHECKLIST_NAME, project)
+                        if (createdId == null) {
+                            _uiState.update { it.copy(isLoading = false, errorMessage = "Не вдалося створити чекліст") }
+                            return@launch
+                        }
                         val firstItemId = checklistRepository.addItem(createdId, order = 0)
                         checklistIdState.value = createdId
                         savedStateHandle["checklistId"] = createdId

@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.di
 
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.notes.AndroidNoteBacklogLinkDataSource
@@ -19,6 +18,7 @@ import com.romankozak.forwardappmobile.shared.database.NoteDocumentQueriesQuerie
 import com.romankozak.forwardappmobile.shared.database.ProjectExecutionLogQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.RecentItemQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ReminderQueriesQueries
+import com.romankozak.forwardappmobile.shared.database.ChecklistQueriesQueries
 import com.romankozak.forwardappmobile.shared.features.attachments.data.model.LinkItemDataSource
 import com.romankozak.forwardappmobile.shared.features.notes.data.datasource.NoteBacklogLinkDataSource
 import com.romankozak.forwardappmobile.shared.features.reminders.domain.AlarmScheduler
@@ -111,8 +111,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideChecklistRepository(
-        checklistDao: ChecklistDao,
+        checklistQueries: ChecklistQueriesQueries,
         attachmentRepository: AttachmentRepository,
         recentItemsRepository: RecentItemsRepository,
-    ): ChecklistRepository = ChecklistRepository(checklistDao, attachmentRepository, recentItemsRepository)
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): ChecklistRepository =
+        ChecklistRepository(checklistQueries, attachmentRepository, recentItemsRepository, ioDispatcher)
 }

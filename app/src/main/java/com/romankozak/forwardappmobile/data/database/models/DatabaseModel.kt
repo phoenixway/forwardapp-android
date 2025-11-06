@@ -214,14 +214,6 @@ data class ProjectEntity(
 
 @Entity(
     tableName = "project_execution_logs",
-    foreignKeys = [
-        ForeignKey(
-            entity = ProjectEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
 )
 data class ProjectExecutionLog(
     @PrimaryKey val id: String,
@@ -234,14 +226,6 @@ data class ProjectExecutionLog(
 
 @Entity(
     tableName = "inbox_records",
-    foreignKeys = [
-        ForeignKey(
-            entity = ProjectEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
 )
 data class InboxRecord(
     @PrimaryKey val id: String,
@@ -253,14 +237,6 @@ data class InboxRecord(
 
 @Entity(
     tableName = "list_items",
-    foreignKeys = [
-        ForeignKey(
-            entity = ProjectEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["project_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
 )
 data class ListItem(
     @PrimaryKey val id: String,

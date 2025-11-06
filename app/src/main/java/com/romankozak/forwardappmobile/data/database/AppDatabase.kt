@@ -7,7 +7,6 @@ import androidx.room.TypeConverters
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
@@ -18,7 +17,7 @@ import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.database.models.*
-import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+
 import com.romankozak.forwardappmobile.features.attachments.data.model.AttachmentRoomEntity
 import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAttachmentCrossRefRoom
 
@@ -40,8 +39,6 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         LegacyNoteRoomEntity::class,
         NoteDocumentRoomEntity::class,
         NoteDocumentItemRoomEntity::class,
-        ChecklistEntity::class,
-        ChecklistItemEntity::class,
         RecentItemRoomEntity::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
@@ -53,7 +50,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.model.ProjectAt
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 65,
+    version = 66,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class, ProjectTypeConverter::class)
@@ -70,7 +67,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun chatDao(): ChatDao
 
-    abstract fun attachmentDao(): AttachmentDao
+
 
     abstract fun conversationFolderDao(): ConversationFolderDao
 
@@ -84,6 +81,5 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun dailyMetricDao(): DailyMetricDao
 
-    abstract fun checklistDao(): ChecklistDao
     abstract fun recurringTaskDao(): RecurringTaskDao
 }

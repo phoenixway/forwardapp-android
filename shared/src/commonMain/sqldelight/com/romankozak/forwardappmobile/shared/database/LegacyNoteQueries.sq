@@ -1,16 +1,3 @@
-CREATE TABLE notes (
-  id TEXT NOT NULL PRIMARY KEY,
-  projectId TEXT NOT NULL,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  createdAt INTEGER NOT NULL,
-  updatedAt INTEGER NOT NULL,
-  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
-);
-
-CREATE INDEX index_notes_projectId
-ON notes(projectId);
-
 getNotesForProject:
 SELECT *
 FROM notes

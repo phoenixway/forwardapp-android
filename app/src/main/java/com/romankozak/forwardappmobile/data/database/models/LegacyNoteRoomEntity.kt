@@ -6,18 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
 
-@Entity(
-    tableName = "notes",
-    foreignKeys = [
-        ForeignKey(
-            entity = ProjectEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index(value = ["projectId"], name = "index_notes_projectId")],
-)
+@Entity(tableName = "notes")
 data class LegacyNoteRoomEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val projectId: String,

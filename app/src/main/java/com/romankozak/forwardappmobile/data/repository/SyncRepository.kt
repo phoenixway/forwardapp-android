@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.dao.ProjectManagementDao
-import com.romankozak.forwardappmobile.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.database.models.ChecklistEntity
 import com.romankozak.forwardappmobile.data.database.models.ChecklistItemEntity
@@ -102,7 +102,7 @@ constructor(
     private val projectManagementDao: ProjectManagementDao,
     private val legacyNoteRepository: LegacyNoteRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
-    private val checklistDao: ChecklistDao,
+    private val checklistRepository: ChecklistRepository,
     private val recentItemQueries: RecentItemQueriesQueries,
     private val attachmentRepository: AttachmentRepository,
     private val databaseInitializer: DatabaseInitializer,
@@ -154,8 +154,8 @@ constructor(
                 legacyNotes = legacyNoteRepository.getAllSnapshot(),
                 documents = noteDocumentRepository.getAllDocumentsSnapshot(),
                 documentItems = noteDocumentRepository.getAllDocumentItemsSnapshot(),
-                checklists = checklistDao.getAllChecklists(),
-                checklistItems = checklistDao.getAllChecklistItems(),
+                checklists = checklistRepository.getAllChecklistsSnapshot(),
+                checklistItems = checklistRepository.getAllItemsSnapshot(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
                 linkItemEntities = linkItemDao.getAllEntities(),
                 inboxRecords = inboxRecordDao.getAll(),
@@ -319,10 +319,10 @@ constructor(
             noteDocumentRepository.deleteAllDocumentItems()
             Log.d(FULL_IMPORT_TAG, "TX stage: note document items cleared")
             Log.d(IMPORT_TAG, "  - note_document_items очищено")
-            checklistDao.deleteAllChecklistItems()
+            checklistRepository.deleteAllChecklistItems()
             Log.d(FULL_IMPORT_TAG, "TX stage: checklist items cleared")
             Log.d(IMPORT_TAG, "  - checklist_items очищено")
-            checklistDao.deleteAllChecklists()
+            checklistRepository.deleteAllChecklists()
             Log.d(FULL_IMPORT_TAG, "TX stage: checklists cleared")
             Log.d(IMPORT_TAG, "  - checklists очищено")
             recentItemQueries.deleteAllRecentItems()
@@ -360,12 +360,12 @@ constructor(
                 }
                 if (backupChecklists.isNotEmpty()) {
                     Log.d(IMPORT_TAG, "  -> Inserting checklists: ${backupChecklists.size}")
-                    checklistDao.insertChecklists(backupChecklists)
+                    checklistRepository.replaceAll(backupChecklists)
                     Log.d(IMPORT_TAG, "  - checklists вставлено: ${backupChecklists.size}")
                 }
                 if (backupChecklistItems.isNotEmpty()) {
                     Log.d(IMPORT_TAG, "  -> Inserting checklistItems: ${backupChecklistItems.size}")
-                    checklistDao.insertItems(backupChecklistItems)
+                    checklistRepository.replaceAllItems(backupChecklistItems)
                     Log.d(IMPORT_TAG, "  - checklist_items вставлено: ${backupChecklistItems.size}")
                 }
 

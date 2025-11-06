@@ -1,0 +1,147 @@
+
+CREATE TABLE projects (
+  id TEXT NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  parentId TEXT,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER,
+  tags TEXT,
+  relatedLinks TEXT,
+  is_expanded INTEGER NOT NULL DEFAULT 1,
+  goal_order INTEGER NOT NULL DEFAULT 0,
+  is_attachments_expanded INTEGER NOT NULL DEFAULT 0,
+  default_view_mode TEXT,
+  is_completed INTEGER NOT NULL DEFAULT 0,
+  is_project_management_enabled INTEGER DEFAULT 0,
+  project_status TEXT DEFAULT 'NO_PLAN',
+  project_status_text TEXT,
+  project_log_level TEXT DEFAULT 'NORMAL',
+  total_time_spent_minutes INTEGER DEFAULT 0,
+  valueImportance REAL NOT NULL DEFAULT 0.0,
+  valueImpact REAL NOT NULL DEFAULT 0.0,
+  effort REAL NOT NULL DEFAULT 0.0,
+  cost REAL NOT NULL DEFAULT 0.0,
+  risk REAL NOT NULL DEFAULT 0.0,
+  weightEffort REAL NOT NULL DEFAULT 1.0,
+  weightCost REAL NOT NULL DEFAULT 1.0,
+  weightRisk REAL NOT NULL DEFAULT 1.0,
+  rawScore REAL NOT NULL DEFAULT 0.0,
+  displayScore INTEGER NOT NULL DEFAULT 0,
+  scoring_status TEXT NOT NULL DEFAULT 'NOT_ASSESSED',
+  show_checkboxes INTEGER NOT NULL DEFAULT 0,
+  project_type TEXT NOT NULL DEFAULT 'DEFAULT',
+  reserved_group TEXT
+);
+
+CREATE TABLE reminders (
+    id TEXT NOT NULL PRIMARY KEY,
+    entityId TEXT NOT NULL,
+    entityType TEXT NOT NULL,
+    reminderTime INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    creationTime INTEGER NOT NULL,
+    snoozeUntil INTEGER
+);
+
+CREATE TABLE attachments (
+  id TEXT NOT NULL PRIMARY KEY,
+  attachment_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  owner_project_id TEXT,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE project_attachment_cross_ref (
+  project_id TEXT NOT NULL,
+  attachment_id TEXT NOT NULL,
+  attachment_order INTEGER NOT NULL,
+  PRIMARY KEY(project_id, attachment_id)
+);
+
+CREATE TABLE checklists (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  name TEXT NOT NULL,
+  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE checklist_items (
+  id TEXT NOT NULL PRIMARY KEY,
+  checklistId TEXT NOT NULL,
+  content TEXT NOT NULL,
+  isChecked INTEGER NOT NULL DEFAULT 0,
+  itemOrder INTEGER NOT NULL,
+  FOREIGN KEY(checklistId) REFERENCES checklists(id) ON DELETE CASCADE
+);
+
+CREATE TABLE notes (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE note_documents (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  name TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  content TEXT,
+  lastCursorPosition INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE note_document_items (
+  id TEXT NOT NULL PRIMARY KEY,
+  listId TEXT NOT NULL,
+  parentId TEXT,
+  content TEXT NOT NULL,
+  isCompleted INTEGER NOT NULL,
+  itemOrder INTEGER NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  FOREIGN KEY(listId) REFERENCES note_documents(id) ON DELETE CASCADE,
+  FOREIGN KEY(parentId) REFERENCES note_document_items(id) ON DELETE CASCADE
+);
+
+CREATE TABLE list_items (
+  id TEXT NOT NULL PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  itemType TEXT NOT NULL,
+  entityId TEXT NOT NULL,
+  item_order INTEGER NOT NULL,
+  FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE recent_items (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL,
+    lastAccessed INTEGER NOT NULL,
+    displayName TEXT NOT NULL,
+    target TEXT NOT NULL,
+    isPinned INTEGER NOT NULL
+);
+
+CREATE TABLE project_artifacts (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  content TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE project_execution_logs (
+  id TEXT NOT NULL PRIMARY KEY,
+  projectId TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  description TEXT NOT NULL,
+  details TEXT,
+  FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE
+);

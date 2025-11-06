@@ -6,7 +6,6 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.romankozak.forwardappmobile.data.database.MIGRATION_61_62
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -41,10 +40,14 @@ class Migration61to62Test {
                 .allowMainThreadQueries()
                 .build()
 
-        val checklistDao = migratedDb.checklistDao()
-        runBlocking {
-            assertTrue(checklistDao.getAllChecklists().isEmpty())
-            assertTrue(checklistDao.getAllChecklistItems().isEmpty())
+        val sqliteDb = migratedDb.openHelper.writableDatabase
+        sqliteDb.query("SELECT COUNT(*) FROM checklists").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertTrue(cursor.getLong(0) == 0L)
+        }
+        sqliteDb.query("SELECT COUNT(*) FROM checklist_items").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertTrue(cursor.getLong(0) == 0L)
         }
 
         migratedDb.close()

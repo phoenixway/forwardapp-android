@@ -27,30 +27,12 @@ private val GlobalSearchResultItem.typeOrder: Int
 class SearchRepository
 @Inject
 constructor(
-    private val goalDao: GoalDao,
     private val projectLocalDataSource: ProjectLocalDataSource,
     private val listItemDao: ListItemDao,
-    private val linkItemDao: LinkItemDao,
     private val activityRepository: ActivityRepository,
     private val inboxRecordDao: InboxRecordDao,
 ) {
     suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
-        val goalResults =
-            goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
-                val listItem = listItemDao.getListItemByEntityId(searchResult.goal.id)
-                listItem?.let {
-                    GlobalSearchResultItem.GoalItem(
-                        goal = searchResult.goal,
-                        listItem = it,
-                        projectName = searchResult.projectName,
-                        pathSegments = searchResult.pathSegments,
-                    )
-                }
-            }
-        val linkResults =
-            linkItemDao.searchLinksGlobal(query).map {
-                GlobalSearchResultItem.LinkItem(it)
-            }
         val allProjects = projectLocalDataSource.getAll()
         val projectMap = allProjects.associateBy { it.id }
         val pathCache = mutableMapOf<String, List<String>>()
@@ -108,7 +90,7 @@ constructor(
                 GlobalSearchResultItem.InboxItem(it)
             }
 
-        val combinedResults = (goalResults + linkResults + subprojectResults + projectResults + activityResults + inboxResults)
+        val combinedResults = (subprojectResults + projectResults + activityResults + inboxResults)
 
         return combinedResults.sortedWith(
             compareBy<GlobalSearchResultItem> { it.typeOrder }

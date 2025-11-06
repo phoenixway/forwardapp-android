@@ -45,25 +45,6 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE text LIKE '%' || :query || '%'")
     fun searchGoalsByText(query: String): Flow<List<Goal>>
 
-    @Transaction
-    @Query(
-        """
-WITH RECURSIVE path_cte(id, name, path) AS (
-    SELECT id, name, name as path FROM projects WHERE parentId IS NULL
-    UNION ALL
-    SELECT p.id, p.name, pct.path || ' / ' || p.name
-    FROM projects p JOIN path_cte pct ON p.parentId = pct.id
-)
-SELECT DISTINCT g.*, p.id as projectId, p.name as projectName, pc.path as pathSegments
-FROM goals g
-JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
-JOIN projects p ON li.project_id = p.id
-JOIN path_cte pc ON p.id = pc.id
-WHERE g.text LIKE :query OR g.description LIKE :query
-""",
-    )
-    
-    suspend fun searchGoalsGlobal(query: String): List<GlobalGoalSearchResult>
 
     @Query("SELECT COUNT(*) FROM goals")
     fun getAllGoalsCountFlow(): Flow<Int>

@@ -1101,7 +1101,12 @@ constructor(
         val projectId = projectIdFlow.value
         if (projectId.isNotBlank()) {
           viewModelScope.launch {
-            _uiEventFlow.send(UiEvent.Navigate("checklist_screen?projectId=$projectId"))
+            val project = projectRepository.getProjectById(projectId)
+            if (project != null) {
+              _uiEventFlow.send(UiEvent.Navigate("checklist_screen?projectId=$projectId"))
+            } else {
+              showSnackbar("Проект не знайдено", null)
+            }
           }
         } else {
           showSnackbar("Не вдалося визначити проект для створення чекліста", null)
