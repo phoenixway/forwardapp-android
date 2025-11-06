@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.projects.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
+import android.util.Log
 import com.romankozak.forwardappmobile.shared.data.database.models.Project
 import com.romankozak.forwardappmobile.di.IoDispatcher
 import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
@@ -66,10 +67,14 @@ constructor(
         }
     }
 
-    suspend fun upsert(projects: List<Project>) {
+    suspend fun upsert(projects: List<Project>, useTransaction: Boolean = true) {
         if (projects.isEmpty()) return
         withContext(ioDispatcher) {
-            projectQueries.transaction {
+            if (useTransaction) {
+                projectQueries.transaction {
+                    projects.forEach { projectQueries.insertOrReplace(it) }
+                }
+            } else {
                 projects.forEach { projectQueries.insertOrReplace(it) }
             }
         }
@@ -81,16 +86,35 @@ constructor(
         }
     }
 
+    suspend fun delete(projectIds: List<String>) {
+        withContext(ioDispatcher) {
+            projectQueries.transaction {
+                projectIds.forEach { projectQueries.deleteProject(it) }
+            }
+        }
+    }
+
     suspend fun deleteDefault(projectId: String) {
         withContext(ioDispatcher) {
             projectQueries.deleteProjectById(projectId)
         }
     }
 
+    private fun deleteAllInternal() {
+        Log.d("FullImportFlow", "ProjectLocalDataSource.deleteAllInternal() executing on ${Thread.currentThread().name}")
+        projectQueries.deleteProjectsForReset()
+    }
+
     suspend fun deleteAll() {
-        withContext(ioDispatcher) {
-            projectQueries.deleteAllProjects()
+        withContext<Unit>(ioDispatcher) {
+            deleteAllInternal()
+            Log.d("FullImportFlow", "ProjectLocalDataSource.deleteAll() done")
         }
+    }
+
+    fun deleteAllWithinTransaction() {
+        deleteAllInternal()
+        Log.d("FullImportFlow", "ProjectLocalDataSource.deleteAllWithinTransaction() done")
     }
 
     suspend fun getByParent(parentId: String): List<Project> =
@@ -160,4 +184,22 @@ constructor(
         }
     }
 
+    suspend fun getByParentAndReservedGroup(
+        parentId: String?,
+        reservedGroup: String,
+    ): Project? =
+        withContext(ioDispatcher) {
+            projectQueries
+                .getProjectByParentAndReservedGroup(parentId, reservedGroup)
+                .executeAsOneOrNull()
+                ?.toModel()
+        }
+
+    suspend fun getByNameLike(query: String): List<Project> =
+        withContext(ioDispatcher) {
+            projectQueries
+                .getProjectsByNameLike(query)
+                .executeAsList()
+                .map { it.toModel() }
+        }
 }

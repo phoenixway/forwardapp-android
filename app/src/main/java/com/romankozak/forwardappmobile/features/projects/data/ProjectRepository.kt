@@ -338,7 +338,7 @@ constructor(
         if (projectsToDelete.isEmpty()) return
         val projectIds = projectsToDelete.map { it.id }
         listItemRepository.deleteItemsForProjects(projectIds)
-        projectsToDelete.forEach { projectLocalDataSource.delete(it.id) }
+        projectLocalDataSource.delete(projectIds)
     }
 
     suspend fun createProjectWithId(

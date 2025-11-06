@@ -7,7 +7,6 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.romankozak.forwardappmobile.data.database.AppDatabase
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.NoteDocumentDao
-import com.romankozak.forwardappmobile.data.dao.ProjectDao
 import com.romankozak.forwardappmobile.data.dao.GoalDao
 import com.romankozak.forwardappmobile.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
@@ -29,8 +28,10 @@ import com.romankozak.forwardappmobile.shared.database.ProjectQueriesQueries
 import com.romankozak.forwardappmobile.shared.database.ForwardAppDatabase
 import dagger.Module
 import dagger.Provides
+import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -92,7 +93,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_61_62
 import com.romankozak.forwardappmobile.data.database.MIGRATION_62_63
 import com.romankozak.forwardappmobile.data.database.MIGRATION_63_64
 
-private lateinit var db: AppDatabase
+
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -108,13 +109,17 @@ object DatabaseModule {
             override fun onOpen(dbSupport: SupportSQLiteDatabase) {
                 super.onOpen(dbSupport)
                 scope.launch(Dispatchers.IO) {
-                    val databaseInitializer = com.romankozak.forwardappmobile.data.database.DatabaseInitializer(db.projectDao(), context)
-                    databaseInitializer.prePopulate()
+                    val entryPoint =
+                        EntryPointAccessors.fromApplication(
+                            context,
+                            DatabaseInitializerEntryPoint::class.java,
+                        )
+                    entryPoint.databaseInitializer().prePopulate()
                 }
             }
         }
 
-        db = Room.databaseBuilder(
+        return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "forward_app_database"
@@ -173,12 +178,7 @@ object DatabaseModule {
             MIGRATION_62_63,
             MIGRATION_63_64,
         ).addCallback(callback).build()
-        return db
     }
-
-    @Provides
-    @Singleton
-    fun provideProjectDao(appDatabase: AppDatabase) = appDatabase.projectDao()
 
     @Provides
     @Singleton
@@ -268,4 +268,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideConversationFolderDao(appDatabase: AppDatabase) = appDatabase.conversationFolderDao()
+}
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface DatabaseInitializerEntryPoint {
+    fun databaseInitializer(): DatabaseInitializer
 }
